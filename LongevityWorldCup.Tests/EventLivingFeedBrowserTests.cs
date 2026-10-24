@@ -10,6 +10,17 @@ public sealed class EventLivingFeedBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture) : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    private static async Task PreparePreviewTargetAsync(ILocator link) => await link.EvaluateAsync("""
+        async link => {
+            await document.fonts.ready;
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            // Finish positioning before hover or touch. A later real scroll
+            // correctly dismisses the preview and must not race this setup.
+            link.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        }
+        """);
+
     private const string Athletes = """
         [{"Key":"feed-a","Name":"Ada Feed","CurrentPlacement":4,"ProfilePic":"/assets/favicon-64x64.png","Flag":"Hungary","Division":"Women's","Badges":[{"BadgeLabel":"≥2 submissions"}]},
          {"Key":"feed-b","Name":"Bela Feed","CurrentPlacement":12}]
@@ -81,8 +92,7 @@ public sealed class EventLivingFeedBrowserTests(
         Assert.Equal("arrival", await page.EvaluateAsync<string>("async () => (await getSharedEvents())[0].Id"));
         Assert.Equal("New Athlete", await page.EvaluateAsync<string>("async () => (await getSharedAthletes())[0].Name"));
         var link = page.Locator("tr.main-row .event-message a[data-athlete-slug]").First;
-        await link.ScrollIntoViewIfNeededAsync();
-        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await PreparePreviewTargetAsync(link);
         await link.HoverAsync();
         await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#eventAthletePreview")).ToContainTextAsync("#2");
@@ -176,6 +186,43 @@ public sealed class EventLivingFeedBrowserTests(
     }
 
     [Fact]
+    public async Task Chunks_AppendWithoutMovingFocusedRowsOrMonthHeadings()
+    {
+        var events = Enumerable.Range(0, 200).Select(i => new
+        {
+            Id = "idle-" + i, Type = 1, Text = "slug[feed-a]",
+            OccurredAt = new DateTime(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc).AddDays(-i).ToString("O")
+        });
+        await using var context = await OpenAsync(events:JsonSerializer.Serialize(events));
+        var page = context.Pages[0];
+        await page.Clock.InstallAsync(new() { Time = "2026-10-24T04:00:00Z" });
+        await page.Clock.PauseAtAsync(new DateTime(2026, 10, 24, 4, 0, 1, DateTimeKind.Utc));
+        Assert.True(await page.Locator(".main-row").CountAsync() < 200);
+        var link = page.Locator(".main-row[data-event-id='idle-30'] .event-message a[data-athlete-slug]");
+        await page.Keyboard.PressAsync("Tab");
+        await link.FocusAsync();
+        await page.Clock.RunForAsync(50);
+        await link.EvaluateAsync("""
+            link => {
+                window.chunkReader = {link, top:link.getBoundingClientRect().top, blurs:0,
+                    headings:[...document.querySelectorAll('.events-month-row')]};
+                link.addEventListener('blur', () => chunkReader.blurs++);
+            }
+            """);
+        await page.Clock.RunForAsync(5500);
+        await Assertions.Expect(page.Locator(".main-row")).ToHaveCountAsync(200);
+        await Assertions.Expect(link).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeVisibleAsync();
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => chunkReader.blurs === 0
+                && Math.abs(chunkReader.link.getBoundingClientRect().top - chunkReader.top) <= 1
+                && chunkReader.headings.every(heading => heading.isConnected)
+                && [...document.querySelectorAll('#eventsTable tbody')].every(body =>
+                    body.dataset.month && body.querySelectorAll('.events-month-row').length === 1)
+            """));
+    }
+
+    [Fact]
     public async Task ClockAndVisibility_RefreshAtLocalDayBoundaryAndStopWhenHidden()
     {
         await using var context = await OpenAsync();
@@ -240,7 +287,11 @@ public sealed class EventLivingFeedBrowserTests(
             await page.Keyboard.PressAsync("Tab");
             await link.FocusAsync();
         }
-        else await link.HoverAsync();
+        else
+        {
+            await PreparePreviewTargetAsync(link);
+            await link.HoverAsync();
+        }
         // Scrolling a link into view can deliver its event after focusin or
         // pointerover. Exercise that ordering without relying on frame timing.
         await page.EvaluateAsync("() => dispatchEvent(new Event('scroll'))");
@@ -262,7 +313,9 @@ public sealed class EventLivingFeedBrowserTests(
     {
         await using var context = await OpenAsync();
         var page = context.Pages[0];
-        await page.Locator(".event-message a[data-athlete-slug='feed-a']").HoverAsync();
+        var link = page.Locator(".event-message a[data-athlete-slug='feed-a']");
+        await PreparePreviewTargetAsync(link);
+        await link.HoverAsync();
         await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeVisibleAsync();
         var popup = await context.RunAndWaitForPageAsync(
             () => page.Locator(".event-athlete-preview-name").ClickAsync(new() { Modifiers = [KeyboardModifier.Control] }));
@@ -277,11 +330,12 @@ public sealed class EventLivingFeedBrowserTests(
     [InlineData(true)]
     public async Task Preview_LongPressSuppressesOnlyThatTap_AndPortraitFlightCleansUp(bool reduced)
     {
-        await using var context = await OpenAsync(width:390,height:844,reduced:reduced);
+        // Direct navigation avoids racing the separate delayed heading animation
+        // while the CDP touch gesture uses coordinates captured in an earlier frame.
+        await using var context = await OpenAsync(route:"/events?event=joined",width:390,height:844,reduced:reduced);
         var page=context.Pages[0];
         var link=page.Locator(".event-message a[data-athlete-slug='feed-a']");
-        await link.ScrollIntoViewIfNeededAsync();
-        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await PreparePreviewTargetAsync(link);
         // CDP touch coordinates do not get Playwright's actionability wait.
         // Let the row finish entering before choosing the press location.
         await link.EvaluateAsync("async link=>await Promise.all(link.closest('tr').getAnimations({subtree:true}).filter(a=>a.effect.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})))");
@@ -348,7 +402,9 @@ public sealed class EventLivingFeedBrowserTests(
         await NavigateAndSettleAsync(page,"/events");
         await Assertions.Expect(page.Locator(".main-row")).ToHaveCountAsync(2);
         Assert.Equal(0,await page.Locator(".main-row:not(.is-visible)").CountAsync());
-        await page.Locator(".event-message a[data-athlete-slug='feed-a']").HoverAsync();
+        var link = page.Locator(".event-message a[data-athlete-slug='feed-a']");
+        await PreparePreviewTargetAsync(link);
+        await link.HoverAsync();
         await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeVisibleAsync();
         await page.EvaluateAsync("()=>dispatchEvent(new PageTransitionEvent('pagehide'))");
         await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeHiddenAsync();
@@ -373,8 +429,7 @@ public sealed class EventLivingFeedBrowserTests(
         var page=context.Pages[0];
         await page.EvaluateAsync("()=>document.documentElement.style.fontSize='24px'");
         var link=page.Locator(".event-message a[data-athlete-slug='feed-a']");
-        await link.ScrollIntoViewIfNeededAsync();
-        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await PreparePreviewTargetAsync(link);
         await link.HoverAsync();
         var card=page.Locator("#eventAthletePreview");
         await Assertions.Expect(card).ToBeVisibleAsync();

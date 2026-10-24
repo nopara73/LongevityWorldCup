@@ -840,6 +840,19 @@ const eventsPageAssets = document.currentScript.dataset;
     // day's date stays quiet under the first event of that day.
     // On the Highlights page every month opens with its own heading row.
     let monthHeadingObserver=null;
+    function appendMonthHeading(table, group, month){
+        const [y,m]=month.split('-').map(Number);
+        const date=new Date(0);
+        date.setFullYear(y,m-1,1);
+        const heading=document.createElement('tr');
+        heading.className='events-month-row';
+        heading.dataset.month=month;
+        heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span></th>`;
+        group.appendChild(heading);
+        monthHeadingObserver?.observe(heading);
+        observeMonthReveal(table, heading);
+    }
+
     function markFeedGroups(tbody){
         const chapters=!!tbody.closest('.event-board-page');
         if (chapters) monthRevealObserver?.disconnect();
@@ -873,16 +886,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 else delete group.dataset.month;
             }
             if(chapters&&monthStarts&&month){
-                const [y,m]=month.split('-').map(Number);
-                const date=new Date(0);
-                date.setFullYear(y,m-1,1);
-                const heading=document.createElement('tr');
-                heading.className='events-month-row';
-                heading.dataset.month=month;
-                heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span></th>`;
-                group.appendChild(heading);
-                monthHeadingObserver?.observe(heading);
-                observeMonthReveal(table, heading);
+                appendMonthHeading(table, group, month);
             }
             if(chapters){
                 const details=r.nextElementSibling?.classList.contains('details-row')?r.nextElementSibling:null;
@@ -1096,15 +1100,34 @@ const eventsPageAssets = document.currentScript.dataset;
         table.querySelector('tbody.events-more')?.remove();
     }
 
-    function flattenFeedBodies(table){
-        const first = table.tBodies[0];
-        [...table.tBodies].slice(1).forEach(body => {
-            if (body.classList.contains('events-more')) { body.remove(); return; }
-            first.append(...body.children);
-            body.remove();
+    function appendFeedUnits(table, units){
+        table.querySelector('tbody.events-more')?.remove();
+        let group = [...table.tBodies].at(-1);
+        let previous = [...table.querySelectorAll('tr.main-row')].at(-1);
+        // Extend the final month without detaching existing rows. Regrouping
+        // the whole table loses focus and moves the reader during idle batches.
+        units.forEach(unit => {
+            const row = unit[0], day = row.dataset.day || '';
+            const month = day.split('-').slice(0,2).join('-');
+            const previousDay = previous?.dataset.day || '';
+            const previousMonth = previousDay.split('-').slice(0,2).join('-');
+            const dayStarts = !day || day !== previousDay;
+            const monthStarts = !month || month !== previousMonth;
+            row.classList.toggle('day-start', dayStarts);
+            row.classList.toggle('day-repeat', !dayStarts);
+            row.classList.toggle('month-start', monthStarts);
+            row.classList.add('month-end');
+            if (previous) previous.classList.toggle('month-end', monthStarts);
+            if (monthStarts) {
+                group = document.createElement('tbody');
+                if (month) group.dataset.month = month;
+                table.appendChild(group);
+                if (month) appendMonthHeading(table, group, month);
+            }
+            group.append(...unit);
+            previous = row;
         });
-        first.querySelectorAll('tr.events-month-row').forEach(row => row.remove());
-        return first;
+        applyZebraStriping(group);
     }
 
     function mountFeedMore(table){
@@ -1137,10 +1160,7 @@ const eventsPageAssets = document.currentScript.dataset;
             table._feedLoadingMore = false;
             const units = table._feedPending.splice(0, FEED_CHUNK);
             if (!units.length) return;
-            const first = flattenFeedBodies(table);
-            units.forEach(unit => first.append(...unit));
-            applyZebraStriping(first);
-            markFeedGroups(first);
+            appendFeedUnits(table, units);
             mountFeedMore(table);
             queueMonthHandoff();
             const fresh = table.querySelectorAll('.row-appear:not(.is-visible)');
@@ -1160,10 +1180,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 if (!table._feedPending?.length) return;
                 window.clearTimeout(table._feedMoreTimer);
                 table._feedLoadingMore = false;
-                const first = flattenFeedBodies(table);
-                table._feedPending.splice(0).forEach(unit => first.append(...unit));
-                applyZebraStriping(first);
-                markFeedGroups(first);
+                appendFeedUnits(table, table._feedPending.splice(0));
                 mountFeedMore(table);
                 table.querySelectorAll('.row-appear').forEach(row => row.classList.add('is-visible'));
             });

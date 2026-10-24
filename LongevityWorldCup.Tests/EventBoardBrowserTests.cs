@@ -180,7 +180,13 @@ public sealed class EventBoardBrowserTests(
                 const words = [...range.getClientRects()].pop();
                 const chevron = expander.getBoundingClientRect();
                 const glyph = getComputedStyle(expander, '::before');
-                if (chevron.width < 44 || chevron.height < 44) issues.push('chevron touch target is small');
+                // Translation can report 43.9999847 for a 44px box. Tolerate
+                // floating-point noise while still rejecting actual scaling.
+                if (chevron.width + .001 < 44 || chevron.height + .001 < 44) {
+                    const transforms=[];
+                    for(let node=expander;node;node=node.parentElement){const value=getComputedStyle(node).transform;if(value!=='none')transforms.push([node.tagName,node.className,value]);}
+                    issues.push(`chevron touch target is small (${chevron.width}x${chevron.height}; ${JSON.stringify(transforms)})`);
+                }
                 // After the last word, or (when the title fills its line) starting the next line under it.
                 const afterWords = Math.abs(chevron.top + chevron.height / 2 - (words.top + words.height / 2)) <= 4
                     && chevron.left >= words.right - 1 && chevron.left - words.right <= 16;
