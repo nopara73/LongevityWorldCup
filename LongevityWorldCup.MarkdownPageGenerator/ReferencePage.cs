@@ -455,7 +455,7 @@ internal static partial class ReferencePage
             const faq = document.querySelector(".ruleset-faq");
             // Browsers without hidden-until-found support keep every answer and
             // rule readable and searchable instead of treating it as ordinary hidden.
-            if (!("onbeforematch" in document.body)) {
+            if (!("onbeforematch" in document.body) || document.querySelector(".ruleset-document.has-rule-folds")) {
                 return;
             }
             // Folds slide open and shut when the reading system is loaded; without
@@ -533,6 +533,13 @@ internal static partial class ReferencePage
             });
             faq.classList.add("is-enhanced");
 
+            window.LwcDocumentationRevealTarget = target => {
+                const rule = target?.closest(".ruleset-rule");
+                if (rule) setRuleOpen(rule, true, false);
+                const item = target?.closest(".ruleset-faq-item");
+                if (item) setOpen(item, true, false);
+            };
+
             // A link to a question opens its answer and lands on it.
             const openFromHash = () => {
                 let id;
@@ -542,10 +549,7 @@ internal static partial class ReferencePage
                     return;
                 }
                 const target = id ? document.getElementById(id) : null;
-                const rule = target?.closest(".ruleset-rule.is-folded");
-                if (rule) {
-                    setRuleOpen(rule, true, false);
-                }
+                window.LwcDocumentationRevealTarget(target);
                 const item = target?.closest(".ruleset-faq-item");
                 if (!item) {
                     return;
@@ -553,7 +557,8 @@ internal static partial class ReferencePage
                 setOpen(item, true, false);
                 const stickyHeader = document.getElementById("site-sticky-header");
                 const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
-                const offset = ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
+                const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--documentation-anchor-offset")) ||
+                    ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
                 window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
                 window.LwcDocumentationArrive?.(target);
             };

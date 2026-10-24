@@ -12,6 +12,7 @@ var websiteRoot = args.Length > 1
     : Path.Combine(repoRoot, "LongevityWorldCup.Website");
 
 ScopedStylesheetGenerator.Generate(websiteRoot);
+ReadingFeel.Generate(websiteRoot);
 
 var pages = new[]
 {
@@ -1305,7 +1306,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav-links {
-                max-height: min(65svh, 30rem, var(--documentation-list-height, 65svh));
+                max-height: var(--documentation-list-height, 65svh);
                 overflow-y: auto;
                 overscroll-behavior: contain;
             }
@@ -1461,7 +1462,8 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 transition: none;
             }
         }
-    </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}{{ReadingFeel.Style}}
+    </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
+    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">
 </head>
 <body>
     <!--HEADER-->

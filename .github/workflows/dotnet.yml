@@ -104,6 +104,7 @@ jobs:
 
         # Prove Node-free publishing recreates ignored assets in a clean checkout.
         rm -f LongevityWorldCup.Website/wwwroot/css/athlete-dialog/*.css
+        rm -f LongevityWorldCup.Website/wwwroot/css/documentation-reading.css
         rm -f LongevityWorldCup.Website/wwwroot/assets/media-kit/MediaKit.zip
 
         PATH="$deny_node_bin:$PATH" dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj \
@@ -130,6 +131,8 @@ jobs:
           cmp "LongevityWorldCup.Website/wwwroot/css/athlete-dialog/$stylesheet.css" \
               "$publish_output/wwwroot/css/athlete-dialog/$stylesheet.css"
         done
+        cmp LongevityWorldCup.Website/wwwroot/css/documentation-reading.css \
+            "$publish_output/wwwroot/css/documentation-reading.css"
         cmp LongevityWorldCup.Documentation/MediaKit.zip \
             "$publish_output/wwwroot/assets/media-kit/MediaKit.zip"
     - name: Install Playwright Chromium

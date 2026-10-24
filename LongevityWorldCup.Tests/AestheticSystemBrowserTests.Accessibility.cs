@@ -187,6 +187,18 @@ public sealed class AestheticAccessibilityBrowserTests(
             var href = await link.GetAttributeAsync("href");
             await link.ClickAsync();
 
+            // A normal-motion jump travels to its destination. Once it arrives,
+            // the reading position, focus and contents pane must remain stable.
+            await page.WaitForFunctionAsync("""
+                href => {
+                    const heading = document.getElementById(decodeURIComponent(href.slice(1)));
+                    const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--documentation-anchor-offset'));
+                    const top = Math.max(0, Math.min(heading.getBoundingClientRect().top + scrollY - offset,
+                        document.documentElement.scrollHeight - innerHeight));
+                    return Math.abs(scrollY - top) < 1;
+                }
+                """, href);
+
             var stableArrival = await page.EvaluateAsync<bool>(
                 """
                 async href => {

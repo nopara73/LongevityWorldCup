@@ -4,6 +4,7 @@ if (documentationCanonicalPath) {
 }
 const documentationReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const documentationMotionAllowed = () => !documentationReducedMotion.matches;
+const documentationFolds = new Map();
 
 // Folds (ruleset rules and FAQ answers) slide between their heights. A fold that
 // is interrupted turns around from wherever it is. Closed folds stay findable.
@@ -14,10 +15,12 @@ window.LwcDocumentationFold = (region, open, animate = true) => {
     const fromHeight = region.getBoundingClientRect().height;
     const fromOpacity = running.length ? getComputedStyle(region).opacity : (open ? "0" : "1");
     running.forEach(animation => animation.cancel());
+    documentationFolds.delete(region);
 
     if (open) {
         region.removeAttribute("hidden");
     }
+    region.inert = false;
     if (!animate || !documentationMotionAllowed() || typeof region.animate !== "function") {
         if (!open) {
             region.setAttribute("hidden", "until-found");
@@ -41,10 +44,29 @@ window.LwcDocumentationFold = (region, open, animate = true) => {
             ? [{ ...(running.length ? from : zero), overflow: "hidden", boxSizing: "border-box" }, { ...full, overflow: "hidden", boxSizing: "border-box" }]
             : [{ ...from, paddingTop: style.paddingTop, paddingBottom: style.paddingBottom, overflow: "hidden", boxSizing: "border-box" }, { ...zero, overflow: "hidden", boxSizing: "border-box" }],
         { id: "documentation-fold", duration, easing: open ? "cubic-bezier(0.2, 0, 0, 1)" : "cubic-bezier(0.4, 0, 0.9, 0.6)" });
-    if (!open) {
-        animation.onfinish = () => region.setAttribute("hidden", "until-found");
-    }
+    // While closing, its fading links are already dismissed. Once hidden,
+    // remove inert so native find-in-page can still reveal the region.
+    region.inert = !open;
+    documentationFolds.set(region, { animation, open });
+    animation.onfinish = () => {
+        if (!open) region.setAttribute("hidden", "until-found");
+        region.inert = false;
+        documentationFolds.delete(region);
+    };
 };
+
+const finishDocumentationFolds = () => {
+    for (const [region, { animation, open }] of documentationFolds) {
+        animation.cancel();
+        if (!open) region.setAttribute("hidden", "until-found");
+        region.inert = false;
+    }
+    documentationFolds.clear();
+};
+documentationReducedMotion.addEventListener("change", event => {
+    if (event.matches) finishDocumentationFolds();
+});
+window.addEventListener("beforeprint", finishDocumentationFolds);
 
 // The section a jump lands on is briefly emphasised.
 window.LwcDocumentationArrive = target => {
@@ -75,6 +97,9 @@ function setDocumentationNavOpen(documentationNav, open) {
     }
     documentationNav.classList.toggle("is-open", open);
     documentationNavToggle.setAttribute("aria-expanded", String(open));
+    // The closing decoration must not keep an already dismissed menu in the tab order.
+    const list = documentationNav.querySelector(".documentation-nav-links");
+    if (list) list.inert = !open && window.matchMedia("(max-width: 900px)").matches;
     const icon = documentationNavToggle.querySelector(".documentation-nav-toggle-icon");
     if (icon) {
         icon.textContent = open ? "−" : "+";
@@ -305,21 +330,22 @@ function setDocumentationNavOpen(documentationNav, open) {
             event.preventDefault();
             if (window.matchMedia("(max-width: 900px)").matches) {
                 setDocumentationNavOpen(documentationNav, false);
+                documentationNavToggle?.focus({ preventScroll: true });
             }
             // A folded rule opens before the jump measures where it lands.
-            const rule = target.closest(".ruleset-rule.is-folded");
-            rule?.querySelector(".ruleset-rule-toggle")?.click();
+            window.LwcDocumentationRevealTarget?.(target);
             revealUpTo(target);
             const top = Math.min(
                 target.getBoundingClientRect().top + window.scrollY - getOffset(),
                 document.documentElement.scrollHeight - window.innerHeight);
-            history.pushState(null, "", link.getAttribute("href"));
-            target.setAttribute("tabindex", "-1");
-            target.focus({ preventScroll: true });
+            history.pushState(history.state, "", link.getAttribute("href"));
 
             const land = () => {
+                jump?.cleanup();
                 jump = null;
                 navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
+                target.setAttribute("tabindex", "-1");
+                target.focus({ preventScroll: true });
                 setActive(target.id);
                 window.LwcDocumentationArrive(target);
             };
@@ -332,25 +358,40 @@ function setDocumentationNavOpen(documentationNav, open) {
 
             // Smooth jump: the contents move to the destination at once, and the
             // heading is emphasised once the page settles there.
-            const token = {};
+            jump?.cleanup();
+            const token = { cleanup: () => {}, land, top };
             jump = token;
             setActive(target.id);
-            window.scrollTo({ top, behavior: "smooth" });
-            const settle = () => {
-                if (jump === token) {
+            let arrivalFrame = 0;
+            const startY = window.scrollY;
+            const started = performance.now();
+            const duration = Math.min(900, 250 + distance * 0.12);
+            const step = now => {
+                if (jump !== token) return;
+                const progress = Math.min(1, (now - started) / duration);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                window.scrollTo({ top: startY + (top - startY) * eased, behavior: "instant" });
+                if (progress === 1) {
                     land();
+                } else {
+                    arrivalFrame = requestAnimationFrame(step);
                 }
             };
-            window.addEventListener("scrollend", settle, { once: true });
-            setTimeout(settle, Math.min(1400, 450 + distance / 6));
+            // Own the animation frame so input can stop it without a queued
+            // compositor scroll or a stale scrollend moving the reader afterward.
+            arrivalFrame = requestAnimationFrame(step);
+            token.cleanup = () => cancelAnimationFrame(arrivalFrame);
         });
     });
 
     // Any reader input during a smooth jump hands control back to the scroll position.
     for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) {
         window.addEventListener(type, event => {
-            if (jump && !(event.target instanceof Element && event.target.closest(".documentation-nav"))) {
+            if (jump) {
+                jump.cleanup();
                 jump = null;
+                navigationDestination = null;
+                updateActiveFromScroll();
             }
         }, { passive: true });
     }
@@ -396,6 +437,22 @@ function setDocumentationNavOpen(documentationNav, open) {
             }
         }
     }
+    const revealRestoredView = () => {
+        for (const block of Array.from(pendingBlocks)) {
+            if (block.getBoundingClientRect().top < window.innerHeight * 1.1) revealBlock(block, 0, true);
+        }
+    };
+    documentationReducedMotion.addEventListener("change", event => {
+        if (!event.matches) return;
+        Array.from(pendingBlocks).forEach(block => revealBlock(block, 0, true));
+        revealObserver?.disconnect();
+        if (jump) {
+            window.scrollTo({ top: jump.top, behavior: "instant" });
+            jump.land();
+        }
+        document.querySelectorAll(".is-arriving").forEach(target => target.classList.remove("is-arriving"));
+        updateActiveFromScroll();
+    });
     if (revealObserver) {
         const blocks = [];
         for (const child of documentationArticle.children) {
@@ -525,6 +582,7 @@ function setDocumentationNavOpen(documentationNav, open) {
         const offset = getOffset();
         document.documentElement.style.setProperty("--documentation-anchor-offset", `${offset}px`);
         if (documentationNavToggle) {
+            if (linksContainer) linksContainer.inert = window.matchMedia("(max-width: 900px)").matches && !documentationNav.classList.contains("is-open");
             const available = Math.max(44, innerHeight - documentationNavToggle.getBoundingClientRect().bottom - 8);
             documentationNav.style.setProperty("--documentation-list-height", `${available}px`);
         }
@@ -553,16 +611,29 @@ function setDocumentationNavOpen(documentationNav, open) {
     window.addEventListener("resize", () => {
         updateGeometry();
         revealActiveLink();
+        placeInk(false);
     });
     window.addEventListener("hashchange", () => window.requestAnimationFrame(synchronizeNavigationFromHash));
     window.addEventListener("pageshow", event => {
+        revealRestoredView();
+        updateGeometry();
+        // Some history restorations apply their scroll position after pageshow.
+        window.requestAnimationFrame(revealRestoredView);
         if (!event.persisted && window.location.hash) {
             synchronizeNavigationFromHash();
         }
     });
+    window.addEventListener("pagehide", () => {
+        jump?.cleanup();
+        jump = null;
+        finishDocumentationFolds();
+    });
 
-    const geometryObserver = new ResizeObserver(updateGeometry);
-    for (const element of [document.getElementById("site-sticky-header"), documentationNavToggle, documentationArticle]) {
+    const geometryObserver = new ResizeObserver(() => {
+        updateGeometry();
+        placeInk(false);
+    });
+    for (const element of [document.getElementById("site-sticky-header"), documentationNavToggle, documentationArticle, linksContainer]) {
         if (element) geometryObserver.observe(element);
     }
     // The header publishes its measured height after its own animation frame.

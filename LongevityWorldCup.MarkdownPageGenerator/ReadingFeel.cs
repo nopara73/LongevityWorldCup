@@ -6,9 +6,15 @@
 // of the static page: without scripts, or with reduced motion, the page reads the same.
 internal static class ReadingFeel
 {
-    public const string Style = """
+    public static void Generate(string websiteRoot)
+    {
+        var path = System.IO.Path.Combine(websiteRoot, "wwwroot", "css", "documentation-reading.css");
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+        System.IO.File.WriteAllText(path, Css);
+    }
 
-    <style>
+    private const string Css = """
+
         @property --documentation-arrive-sweep {
             syntax: "<number>";
             inherits: false;
@@ -64,7 +70,7 @@ internal static class ReadingFeel
 
         .documentation-nav.has-ink a[href^="#"]:has(~ a.is-active),
         .documentation-nav.has-ink a[href^="#"].is-active {
-            border-left-color: color-mix(in srgb, var(--lwc-accent) 38%, var(--lwc-border));
+            border-left-color: var(--lwc-accent);
         }
 
         .documentation-nav a[href^="#"] {
@@ -154,6 +160,12 @@ internal static class ReadingFeel
             transform: translateY(16px);
         }
 
+        /* Focusing a link reveals its block immediately. Keep its hit target
+           stationary between pointer down and click while that happens. */
+        .documentation-reveal:has(a, button, input, select, textarea):not(.is-revealed) {
+            transform: none;
+        }
+
         .documentation-reveal.is-instant,
         .documentation-reveal.is-instant *,
         .documentation-reveal.is-instant::before,
@@ -241,7 +253,7 @@ internal static class ReadingFeel
 
         /* Narrow tables: each row is one compact line. Rank, then the name, with a
            three-column row's value held at the right edge. */
-        @container documentation-table (max-width: 24rem) {
+        @container documentation-table (min-width: 18rem) and (max-width: 24rem) {
             .documentation-document .documentation-table tbody tr:has(> td:nth-child(3):last-child) {
                 grid-template-columns: 1.85rem minmax(0, 1fr) auto;
                 align-items: center;
@@ -329,11 +341,11 @@ internal static class ReadingFeel
         }
 
         @keyframes documentation-sheet-in {
-            from { opacity: 0; transform: translateY(-10px) scaleY(0.94); }
+            from { opacity: 0; transform: translateY(-10px); }
         }
 
         @keyframes documentation-sheet-out {
-            to { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
+            to { opacity: 0; transform: translateY(-8px); }
         }
 
         @keyframes documentation-sheet-item {
@@ -354,6 +366,19 @@ internal static class ReadingFeel
             .documentation-reveal * {
                 opacity: 1 !important;
                 transform: none !important;
+            }
+
+            .ruleset-rule-toggle,
+            .ruleset-faq-toggle {
+                display: none !important;
+            }
+
+            .ruleset-rule-body,
+            .ruleset-faq-answer {
+                content-visibility: visible !important;
+                height: auto !important;
+                opacity: 1 !important;
+                overflow: visible !important;
             }
         }
 
@@ -395,6 +420,5 @@ internal static class ReadingFeel
                 transition: none !important;
             }
         }
-    </style>
 """;
 }
