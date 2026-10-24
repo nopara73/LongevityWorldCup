@@ -637,17 +637,14 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return string.Empty;
             }
 
+            // Keep the generated bootstrap compact: shared imports appear in
+            // every document, including the embedded athlete-dialog runtime.
             var imports = string.Join(
-                "," + Environment.NewLine,
-                modulePaths.Select(path => $"        import(`{_assetVersionProvider.AppendVersion(path)}`)"));
+                ",",
+                modulePaths.Select(path => $"import(`{_assetVersionProvider.AppendVersion(path)}`)"));
             var scriptAttributes = startDuringParsing ? string.Empty : " type=\"module\"";
-            return
-$@"<script{scriptAttributes}>
-    window.{readinessProperty} = Promise.all([
-{imports}
-    ]);
-    window.{readinessProperty}.catch(() => {{}});
-</script>";
+            return $"<script{scriptAttributes}>window.{readinessProperty} = Promise.all([{imports}]);"
+                + $"window.{readinessProperty}.catch(() => {{}});</script>";
         }
 
         private static HeadAssetConfig GetHeadAssetConfig(string path)
