@@ -279,8 +279,7 @@ public sealed class BioageEntrySheetBrowserTests(
         var initialAge = await page.EvaluateAsync<double>("clock => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge", clock);
         await page.Locator("#wbc").FillAsync("7.54");
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeHiddenAsync();
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await page.WaitForFunctionAsync("({ clock, initialAge }) => (clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge) !== initialAge && !document.getElementById('continueButton').disabled", new { clock, initialAge });
         await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeVisibleAsync();
         var editedAge = await page.EvaluateAsync<double>("clock => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge", clock);
         Assert.NotEqual(initialAge, editedAge);
