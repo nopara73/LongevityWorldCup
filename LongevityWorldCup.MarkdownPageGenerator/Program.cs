@@ -57,7 +57,8 @@ foreach (var page in pages)
         documentHtml = Regex.Replace(documentHtml, "<h1(?<attributes>[^>]*)>(?<title>.*?)</h1>", match =>
             $"<h1{match.Groups["attributes"].Value} aria-label=\"{WebUtility.HtmlEncode(title)}\">" +
             Regex.Replace(match.Groups["title"].Value, "[Ll]ongevity", word =>
-                $"<span class=\"page-title-word\">{word.Value[..3]}&shy;gev&shy;ity</span>") + "</h1>");
+                $"<span class=\"page-title-word\">{word.Value[..3]}&shy;gev&shy;ity</span>")
+                .Replace("History", "His&shy;tory", StringComparison.Ordinal) + "</h1>");
     }
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
     documentHtml = BuildTimeline(documentHtml);
