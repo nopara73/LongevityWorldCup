@@ -126,7 +126,8 @@ public sealed class HomepageArrivalBrowserTests(
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
             await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
             // The preload scanner can request a script before the parser gets
-            // there. Wait for Highlights, immediately before that script.
+            // there. Wait for the Highlights root immediately before that script;
+            // it stays steady, leaving six entrance targets before the countdown.
             await Assertions.Expect(page.Locator("#events-root-index")).ToBeAttachedAsync();
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
@@ -135,7 +136,7 @@ public sealed class HomepageArrivalBrowserTests(
             Assert.Equal(new[] { "main-logo-image", "bannertext", "podium-item first", "podium-item second",
                 "podium-item third", "athleteLeaderboard" },
                 await page.EvaluateAsync<string[]>("arrivalTargets"));
-            Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
+            Assert.DoesNotContain("events-root-index", await page.EvaluateAsync<string[]>("arrivalTargets"));
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
         }
         finally
@@ -147,6 +148,7 @@ public sealed class HomepageArrivalBrowserTests(
         await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
         Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
         Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.DoesNotContain("lwc-countdown-box", await page.EvaluateAsync<string[]>("arrivalTargets"));
         Assert.Equal(0, await page.EvaluateAsync<int>("document.getAnimations().filter(a => a.id === 'homepage-arrival').length"));
         await CaptureAsync(page, $"{width}-late-parsed");
     }
@@ -181,6 +183,9 @@ public sealed class HomepageArrivalBrowserTests(
     public async Task EarlyInteraction_ImmediatelyFinishesArrival(string interaction)
     {
         await using var context = await NewContextAsync(1440);
+        // Exercise interaction on the first animation frame after the parser
+        // has attached the focusable athlete name inside the podium card.
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             const animate = Element.prototype.animate;
             Element.prototype.animate = function(...args) {
@@ -248,7 +253,7 @@ public sealed class HomepageArrivalBrowserTests(
 
     private static Task HoldOpeningFrameAsync(IBrowserContext context) => context.AddInitScriptAsync("""
         // Make static-content availability explicit. Parser-blocking scripts may
-        // otherwise consume the bounded entrance before its eighth target exists.
+        // otherwise consume the bounded entrance before its seventh target exists.
         // The late-parser test releases this frame while the final target is absent.
         const requestFrame = window.requestAnimationFrame.bind(window);
         let holdOpeningFrame = true;
