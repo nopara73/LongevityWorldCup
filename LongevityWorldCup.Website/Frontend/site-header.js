@@ -619,6 +619,7 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         menu.dataset.layout = sheetQuery.matches ? 'sheet' : 'panel';
         positionPanel(opener);
         menu.hidden = false;
+        menu.toggleAttribute('data-page-scrollbar', innerWidth > document.documentElement.clientWidth);
         document.body.classList.add('site-menu-open');
         menu.showModal();
         toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
@@ -669,7 +670,7 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         // toggle. Keep a usable viewport-contained panel in that case.
         const top = Math.max(12, Math.min(rect.bottom + 10, innerHeight - 240));
         menu.style.setProperty('--site-menu-top', Math.round(top) + 'px');
-        menu.style.setProperty('--site-menu-right', Math.max(12, Math.round(document.documentElement.clientWidth - rect.right)) + 'px');
+        menu.style.setProperty('--site-menu-right', Math.max(12, Math.round(innerWidth - rect.right)) + 'px');
         menu.style.setProperty('--site-menu-origin', Math.round(rect.width / 2) + 'px');
     }
     function fitLabels() {

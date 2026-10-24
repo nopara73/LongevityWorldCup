@@ -2744,7 +2744,8 @@ header[role="banner"] .site-header-actions .join-game { margin: 0; }
 }
 
 
-html:has(#site-menu[open]) { overflow: hidden; scrollbar-gutter: stable; }
+html:has(#site-menu[open]) { overflow: hidden; }
+html:has(#site-menu[open][data-page-scrollbar]) { scrollbar-gutter: stable; }
 .site-menu.is-open .site-menu-body .footer-link:focus-visible { animation: none; }
 #site-menu .site-menu-follow .footer-link { scroll-margin-block: 3rem; }
 #site-menu .site-menu-follow .footer-link-label {
