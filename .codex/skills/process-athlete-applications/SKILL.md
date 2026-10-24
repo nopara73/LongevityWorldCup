@@ -159,6 +159,8 @@ For ordinary/full-application replies, prefer requester `Reply-To` or `Account e
 
 Continue the latest direct exchange in a warm, concise human voice. The conversation and user-approved wording take precedence over a generic welcome template. Match demonstrated sender style from actual correspondence (brevity, punctuation, emoji, headings, calls to action). Avoid stacked prose praise; repeated completion emoji may fit established style. Greet only in the first direct human reply in a thread. Acknowledge relevant supplied proof/corrections, not unrelated side topics. Before saving, compare the reply with the latest inbound and prior human replies, including related threads; remove repeated introductions, already-covered requests, and unrelated promotional copy.
 
+For simple informational or pre-application questions, answer only the question and relevant eligibility condition. Do not turn them into an application review by adding document requests, missing-attachment commentary, payment instructions, or other next steps unless explicitly requested or necessary for an actual active submission. A general inquiry without an attachment is not a proof-blocked application.
+
 Do not use em dashes in newly written replies. Use periods or commas instead; preserve original quoted correspondence unchanged.
 
 Language priority: explicit user/athlete instruction; otherwise a clearly non-English `Why` field; otherwise latest direct exchange; otherwise English. Localize the entire reply, retaining names, URLs, biomarker labels, and exact values. Lab-report language alone does not establish preference.
