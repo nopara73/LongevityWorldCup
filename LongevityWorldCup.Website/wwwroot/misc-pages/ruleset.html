@@ -1242,6 +1242,111 @@
             color: var(--lwc-accent-hover);
         }
 
+        /* Rules fold under their heading: a chevron sits at the end of the
+           heading row, and a folded rule's number tile turns hollow. */
+        .ruleset-rule {
+            --rule-head-top: 1.6rem;
+            position: relative;
+        }
+
+        .documentation-cover + .ruleset-rule {
+            --rule-head-top: 0rem;
+        }
+
+        .has-rule-folds .ruleset-rule > h2 {
+            padding-right: 3.4rem;
+        }
+
+        .ruleset-rule-body {
+            display: flow-root;
+        }
+
+        .ruleset-rule-body > :last-child {
+            margin-bottom: 0;
+        }
+
+        .ruleset-rule-body[hidden] {
+            margin: 0;
+            padding: 0;
+        }
+
+        .ruleset-rule-toggle {
+            box-sizing: border-box;
+            position: absolute;
+            top: calc(var(--rule-head-top) - 0.075rem);
+            right: -0.35rem;
+            display: inline-grid;
+            place-items: center;
+            width: 2.75rem;
+            height: 2.75rem;
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: var(--lwc-radius-pill);
+            background: transparent;
+            color: var(--lwc-accent);
+            font: inherit;
+            cursor: pointer;
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), border-color var(--lwc-duration-fast) var(--lwc-ease), transform var(--lwc-motion-press, 90ms) var(--lwc-ease);
+        }
+
+        .ruleset-rule-toggle::before {
+            content: "";
+            width: 0.6rem;
+            height: 0.6rem;
+            margin-top: 0.3rem;
+            border-right: 2.5px solid currentColor;
+            border-bottom: 2.5px solid currentColor;
+            transform: rotate(-135deg);
+            transition: transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, var(--lwc-ease)), margin var(--lwc-motion-move, 260ms) var(--lwc-ease);
+        }
+
+        .ruleset-rule.is-folded .ruleset-rule-toggle::before {
+            margin-top: -0.3rem;
+            transform: rotate(45deg);
+        }
+
+        .ruleset-rule-toggle:hover,
+        .ruleset-rule-toggle:focus-visible {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+        }
+
+        .ruleset-rule-toggle:active {
+            transform: scale(var(--lwc-motion-press-scale, 0.97));
+        }
+
+        .ruleset-rule-toggle:focus-visible {
+            outline: 3px solid var(--lwc-accent-bright);
+            outline-offset: 1px;
+        }
+
+        .documentation-document .ruleset-rule > h2::before {
+            transition: background-color var(--lwc-duration-normal) var(--lwc-ease), color var(--lwc-duration-normal) var(--lwc-ease), box-shadow var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .documentation-document .ruleset-rule.is-folded > h2::before {
+            background: transparent;
+            box-shadow: inset 0 0 0 2px var(--lwc-accent);
+            color: var(--lwc-accent-hover);
+        }
+
+        .documentation-document .ruleset-rule.is-folded > h2 {
+            margin-bottom: 0;
+        }
+
+        /* FAQ chevrons swing with a small overshoot, like the rule chevrons. */
+        .ruleset-faq-toggle::before {
+            transition: transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, var(--lwc-ease)), margin var(--lwc-motion-move, 260ms) var(--lwc-ease);
+        }
+
+        .ruleset-faq-item {
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .ruleset-faq-item.is-open > h4 {
+            transition: color var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
         /* Lists of lab names read as a grid of chips. */
         .documentation-document .ruleset-term-list {
             display: grid;
@@ -1289,9 +1394,416 @@
             }
         }
 
+        @media (max-width: 600px) {
+            .ruleset-rule {
+                --rule-head-top: 1.35rem;
+            }
+
+            .ruleset-rule-toggle {
+                top: calc(var(--rule-head-top) - 0.25rem);
+                right: -0.55rem;
+            }
+
+            .has-rule-folds .ruleset-rule > h2 {
+                padding-right: 2.6rem;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-            .ruleset-faq-toggle::before {
+            .ruleset-faq-toggle::before,
+            .ruleset-rule-toggle,
+            .ruleset-rule-toggle::before,
+            .ruleset-faq-item,
+            .documentation-document .ruleset-rule > h2::before {
                 transition: none;
+            }
+        }
+    </style>
+    <style>
+        @property --documentation-arrive-sweep {
+            syntax: "<number>";
+            inherits: false;
+            initial-value: 1;
+        }
+
+        @property --documentation-arrive-alpha {
+            syntax: "<number>";
+            inherits: false;
+            initial-value: 0;
+        }
+
+        /* Reading progress: a hairline under the site header that fills with the
+           accent as the document is read. Phones show it on the contents bar. */
+        .documentation-progress {
+            position: fixed;
+            top: var(--site-sticky-height, 0px);
+            right: 0;
+            left: 0;
+            z-index: 40;
+            height: 3px;
+            background: color-mix(in srgb, var(--lwc-border) 55%, transparent);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), top var(--lwc-motion-move, 260ms) var(--lwc-ease, ease);
+        }
+
+        .documentation-progress::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 0 2px 2px 0;
+            background: var(--lwc-accent);
+            transform: scaleX(var(--documentation-progress, 0));
+            transform-origin: left center;
+        }
+
+        .documentation-progress.is-visible {
+            opacity: 1;
+        }
+
+        @media (max-width: 900px) and (min-height: 500px) {
+            .documentation-progress {
+                display: none;
+            }
+        }
+
+        /* Contents rail: the trail up to the current section is a soft accent, and
+           one solid marker glides to the section being read. */
+        .documentation-nav-links {
+            position: relative;
+        }
+
+        .documentation-nav.has-ink a[href^="#"]:has(~ a.is-active),
+        .documentation-nav.has-ink a[href^="#"].is-active {
+            border-left-color: color-mix(in srgb, var(--lwc-accent) 38%, var(--lwc-border));
+        }
+
+        .documentation-nav a[href^="#"] {
+            transition: border-color var(--lwc-motion-move, 260ms) var(--lwc-ease, ease),
+                background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+                color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        }
+
+        .documentation-nav-ink {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            width: 3px;
+            height: var(--ink-h, 0px);
+            border-radius: 0 2px 2px 0;
+            background: var(--lwc-accent);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-accent) 0%, transparent);
+            opacity: 0;
+            transform: translate(var(--ink-x, 0px), var(--ink-y, 0px));
+            pointer-events: none;
+        }
+
+        .documentation-nav.has-ink .documentation-nav-ink {
+            opacity: 1;
+        }
+
+        .documentation-nav.is-ink-ready .documentation-nav-ink {
+            transition: transform var(--lwc-motion-slow, 280ms) var(--lwc-ease-standard, ease),
+                height var(--lwc-motion-slow, 280ms) var(--lwc-ease-standard, ease),
+                width var(--lwc-motion-fast, 140ms) var(--lwc-ease, ease);
+        }
+
+        .documentation-nav.is-ink-moving .documentation-nav-ink {
+            width: 5px;
+        }
+
+        /* A jump lands with a soft accent band sweeping under the heading, and a
+           number tile or timeline marker gives a small bounce. */
+        .documentation-document .is-arriving {
+            background-image: linear-gradient(90deg,
+                color-mix(in srgb, var(--lwc-accent-soft) calc(var(--documentation-arrive-alpha) * 100%), transparent),
+                color-mix(in srgb, var(--lwc-accent-soft) calc(var(--documentation-arrive-alpha) * 100%), transparent));
+            background-clip: content-box;
+            background-origin: content-box;
+            background-repeat: no-repeat;
+            background-size: calc(var(--documentation-arrive-sweep) * 100%) 100%;
+            border-radius: var(--lwc-radius-sm);
+            animation: documentation-arrive 1500ms var(--lwc-ease-standard, ease) both;
+        }
+
+        .documentation-document .is-arriving::before {
+            animation: documentation-tile-pop 560ms var(--lwc-ease-pop, ease) 120ms both;
+        }
+
+        .documentation-timeline-entry:has(> .is-arriving)::before {
+            animation: documentation-marker-ring 900ms var(--lwc-ease-standard, ease) 120ms both;
+        }
+
+        @keyframes documentation-arrive {
+            0% { --documentation-arrive-sweep: 0; --documentation-arrive-alpha: 1; }
+            22% { --documentation-arrive-sweep: 1; --documentation-arrive-alpha: 1; }
+            60% { --documentation-arrive-alpha: 1; }
+            100% { --documentation-arrive-sweep: 1; --documentation-arrive-alpha: 0; }
+        }
+
+        @keyframes documentation-tile-pop {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.16) rotate(-4deg); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes documentation-marker-ring {
+            0% { box-shadow: 0 0 0 4px var(--lwc-surface), 0 0 0 4px color-mix(in srgb, var(--lwc-accent) 60%, transparent); transform: scale(1); }
+            35% { transform: scale(1.35); }
+            100% { box-shadow: 0 0 0 4px var(--lwc-surface), 0 0 0 14px color-mix(in srgb, var(--lwc-accent) 0%, transparent); transform: scale(1); }
+        }
+
+        /* Blocks below the fold settle in as they reach the reader. */
+        .documentation-reveal {
+            transition: opacity 360ms var(--lwc-ease-enter, ease-out) var(--reveal-delay, 0ms),
+                transform 420ms var(--lwc-ease-enter, ease-out) var(--reveal-delay, 0ms);
+        }
+
+        .documentation-reveal:not(.is-revealed) {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        .documentation-reveal.is-instant,
+        .documentation-reveal.is-instant *,
+        .documentation-reveal.is-instant::before,
+        .documentation-reveal-marker.is-instant::before {
+            transition: none !important;
+        }
+
+        /* Chapter and rule tiles pop in a beat after their heading. */
+        .documentation-document h2.documentation-reveal::before {
+            transition: transform 460ms var(--lwc-ease-pop, ease) calc(var(--reveal-delay, 0ms) + 90ms),
+                background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+        }
+
+        .documentation-document h2.documentation-reveal:not(.is-revealed)::before {
+            transform: scale(0.55);
+        }
+
+        /* Timeline markers pop onto the rail. */
+        .documentation-timeline-entry.documentation-reveal-marker::before {
+            transition: transform 460ms var(--lwc-ease-pop, ease) calc(var(--reveal-delay, 0ms) + 80ms);
+        }
+
+        .documentation-timeline-entry.documentation-reveal-marker:not(.is-revealed)::before {
+            transform: scale(0.2);
+        }
+
+        /* Table rows count in from the top, like a leaderboard filling up. */
+        .documentation-table.documentation-reveal tbody tr {
+            transition: opacity 280ms var(--lwc-ease-enter, ease-out), transform 340ms var(--lwc-ease-enter, ease-out), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            transition-delay: calc(var(--row, 0) * 30ms + var(--reveal-delay, 0ms) + 80ms), calc(var(--row, 0) * 30ms + var(--reveal-delay, 0ms) + 80ms), 0ms;
+        }
+
+        .documentation-table.documentation-reveal:not(.is-revealed) tbody tr {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        /* History's rail fills with the accent up to the entry being read. */
+        .documentation-timeline::after {
+            content: "";
+            position: absolute;
+            top: 0.55rem;
+            bottom: 0.35rem;
+            left: 0.4rem;
+            width: 2px;
+            border-radius: 1px;
+            background: var(--lwc-accent);
+            transform: scaleY(var(--timeline-fill, 0));
+            transform-origin: top center;
+            pointer-events: none;
+        }
+
+        .documentation-timeline-entry::before {
+            z-index: 1;
+        }
+
+        /* Podium ranks wear the accent. */
+        .documentation-document tbody tr:nth-child(-n + 3) td.is-numeric:first-child {
+            color: var(--lwc-accent-hover);
+        }
+
+        /* Next-step tiles lift toward the pointer and their arrow leans forward. */
+        .documentation-page #where-to-go-next + ul > li {
+            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+                box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+                transform var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease);
+        }
+
+        .documentation-page #where-to-go-next + ul > li::before {
+            transition: transform var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease);
+        }
+
+        .documentation-page #where-to-go-next + ul > li:hover {
+            transform: translateY(-2px);
+        }
+
+        .documentation-page #where-to-go-next + ul > li:hover::before,
+        .documentation-page #where-to-go-next + ul > li:focus-within::before {
+            transform: translateX(4px);
+        }
+
+        .documentation-page #where-to-go-next + ul > li:active {
+            transform: translateY(0) scale(0.99);
+        }
+
+        /* Narrow tables: each row is one compact line. Rank, then the name, with a
+           three-column row's value held at the right edge. */
+        @container documentation-table (max-width: 24rem) {
+            .documentation-document .documentation-table tbody tr:has(> td:nth-child(3):last-child) {
+                grid-template-columns: 1.85rem minmax(0, 1fr) auto;
+                align-items: center;
+                min-height: 2.75rem;
+                padding: 0.4rem 0.75rem;
+            }
+
+            .documentation-document .documentation-table tbody tr:has(> td:nth-child(3):last-child) > td:first-child {
+                grid-row: 1;
+            }
+
+            .documentation-document .documentation-table tbody tr:has(> td:nth-child(3):last-child) > td:nth-child(3) {
+                grid-row: 1;
+                grid-column: 3;
+                color: var(--lwc-ink);
+                font-size: var(--lwc-type-sm, 0.875rem);
+                font-weight: 700;
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            .documentation-document .documentation-table tbody td.is-numeric:first-child {
+                box-sizing: border-box;
+                display: inline-grid;
+                place-items: center;
+                width: 1.85rem;
+                min-width: 0;
+                height: 1.85rem;
+                border-radius: var(--lwc-radius-sm, 4px);
+                background: var(--lwc-surface-muted);
+                font-family: Roboto, sans-serif;
+                font-size: var(--lwc-type-xs, 0.75rem);
+                text-align: center;
+            }
+
+            .documentation-document .documentation-table tbody tr:nth-child(-n + 3) td.is-numeric:first-child {
+                background: var(--lwc-accent);
+                color: var(--lwc-on-accent);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .documentation-timeline::after {
+                left: 5px;
+            }
+        }
+
+        /* Phones: the contents list drops open as a sheet, its entries following
+           in a quick cascade, and the bar's section name rolls up when it changes. */
+        @media (max-width: 900px) {
+            .documentation-nav.is-open .documentation-nav-links {
+                transform-origin: top center;
+                animation: documentation-sheet-in 240ms var(--lwc-ease-enter, ease-out) both;
+            }
+
+            .documentation-nav.is-open .documentation-nav-links > a {
+                animation: documentation-sheet-item 260ms var(--lwc-ease-enter, ease-out) both;
+                animation-delay: calc(min(var(--i, 0), 10) * 16ms + 40ms);
+            }
+
+            .documentation-nav.documentation-nav.is-closing:not(.is-open) .documentation-nav-links {
+                display: block;
+                animation: documentation-sheet-out 160ms var(--lwc-ease-exit, ease-in) both;
+            }
+
+            .documentation-nav-current-text {
+                animation: documentation-label-in 240ms var(--lwc-ease-enter, ease-out) both;
+            }
+
+            .documentation-nav-current[data-number]::before {
+                transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+            }
+
+            .documentation-nav-toggle-icon {
+                transition: transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            }
+
+            .documentation-nav.is-open .documentation-nav-toggle-icon {
+                transform: rotate(180deg);
+            }
+
+            .documentation-nav .documentation-nav-toggle::after {
+                transition: transform 120ms linear;
+            }
+        }
+
+        @keyframes documentation-sheet-in {
+            from { opacity: 0; transform: translateY(-10px) scaleY(0.94); }
+        }
+
+        @keyframes documentation-sheet-out {
+            to { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
+        }
+
+        @keyframes documentation-sheet-item {
+            from { opacity: 0; transform: translateY(-6px); }
+        }
+
+        @keyframes documentation-label-in {
+            from { opacity: 0; transform: translateY(0.55em); }
+        }
+
+        @media print {
+            .documentation-progress,
+            .documentation-nav-ink {
+                display: none;
+            }
+
+            .documentation-reveal,
+            .documentation-reveal * {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .documentation-progress,
+            .documentation-nav a[href^="#"],
+            .documentation-nav.is-ink-ready .documentation-nav-ink,
+            .documentation-page #where-to-go-next + ul > li,
+            .documentation-page #where-to-go-next + ul > li::before,
+            .documentation-nav-toggle-icon,
+            .documentation-nav .documentation-nav-toggle::after {
+                transition: none;
+            }
+
+            .documentation-page #where-to-go-next + ul > li:hover,
+            .documentation-page #where-to-go-next + ul > li:hover::before,
+            .documentation-page #where-to-go-next + ul > li:focus-within::before {
+                transform: none;
+            }
+
+            .documentation-document .is-arriving,
+            .documentation-document .is-arriving::before,
+            .documentation-timeline-entry:has(> .is-arriving)::before,
+            .documentation-nav.is-open .documentation-nav-links,
+            .documentation-nav.is-open .documentation-nav-links > a,
+            .documentation-nav-current-text {
+                animation: none;
+            }
+
+            .documentation-nav.documentation-nav.is-closing:not(.is-open) .documentation-nav-links {
+                display: none;
+                animation: none;
+            }
+
+            .documentation-reveal,
+            .documentation-reveal * {
+                opacity: 1 !important;
+                transform: none !important;
+                transition: none !important;
             }
         }
     </style>
@@ -1325,23 +1837,28 @@
 </div>
 <section class="ruleset-section ruleset-rule">
 <h2 id="seasons--schedule"><span class="ruleset-rule-title">Seasons &amp; schedule</span></h2>
+<div class="ruleset-rule-body" id="seasons--schedule-body">
 <ul>
 <li>A <strong>Season</strong> is the yearly competition window for <strong>seasonal clocks</strong> (for example the Season 2026 <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a> competition).</li>
 <li>Seasonal clocks typically start and end around mid-January, and <strong>only accept results from the given calendar year</strong> (January 1 to December 31). At <strong>season close</strong>, final rankings lock for that season.</li>
 <li>Some clocks may run as <strong>all-time competitions</strong> instead of seasonal competitions. <strong>The all-time competition currently uses <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a></strong>.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582" alt="Season duration defines the competition cycle, while test validity defines test acceptance" /></p>
+</div>
 </section>
 <section class="ruleset-section ruleset-rule">
 <h2 id="tracks"><span class="ruleset-rule-title">Tracks</span></h2>
+<div class="ruleset-rule-body" id="tracks-body">
 <p>The Longevity World Cup has multiple tracks: <strong>Amateur</strong> and <strong>Professional</strong>. These use different clocks and rules.</p>
 <ul>
 <li><strong>Amateur</strong>: designed for accessibility. In Season 2026 this track is centered around <strong><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a> (all-time)</strong> submissions.</li>
 <li><strong>Pro</strong>: the flagship <strong>seasonal</strong> competition. In Season 2026 this track uses <strong><a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a></strong> as its seasonal clock and includes prize money.</li>
 </ul>
+</div>
 </section>
 <section class="ruleset-section ruleset-rule">
 <h2 id="point-system-ranking"><span class="ruleset-rule-title">Point system (ranking)</span></h2>
+<div class="ruleset-rule-body" id="point-system-ranking-body">
 <ul>
 <li>What counts is <strong>biological age reduction</strong>: the more your biological age is below your chronological age, the higher you rank.</li>
 <li>You can submit as many tests as you want.
@@ -1354,9 +1871,11 @@
 <li>The competition also uses <strong>leagues</strong> (for example generation-based or other category-based rankings). You can rank globally and still compete within your generation league.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11" alt="Multiple submissions may improve ranking at higher cost, while one strategic submission is cheaper but may miss the optimum" /></p>
+</div>
 </section>
 <section class="ruleset-section ruleset-rule">
 <h2 id="prizes-and-payouts"><span class="ruleset-rule-title">Prizes and payouts</span></h2>
+<div class="ruleset-rule-body" id="prizes-and-payouts-body">
 <ul>
 <li>Prize money is awarded to the top three athletes in the Ultimate League.</li>
 <li>Bitcoin donations fund the prize money pool.</li>
@@ -1364,6 +1883,7 @@
 <li>Payouts are made in Bitcoin in mid-January. If you need a Bitcoin wallet, we'll help you set one up. We recommend <a href="https://blockstream.com/green/" target="_blank" rel="noopener noreferrer">Green Wallet</a> for mobile or <a href="https://wasabiwallet.io/" target="_blank" rel="noopener noreferrer">Wasabi Wallet</a> for desktop. Fun fact: Wasabi Wallet and the Longevity World Cup share the same creator.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2" alt="Prize money timeline from Bitcoin donations through allocation, funding, costs, wallet setup, and January payouts" /></p>
+</div>
 </section>
 <section class="ruleset-section ruleset-faq">
 <h2 id="faq">FAQ</h2>
@@ -1560,39 +2080,73 @@
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const faq = document.querySelector(".ruleset-faq");
+            // Browsers without hidden-until-found support keep every answer and
+            // rule readable and searchable instead of treating it as ordinary hidden.
+            if (!("onbeforematch" in document.body)) {
+                return;
+            }
+            // Folds slide open and shut when the reading system is loaded; without
+            // it they still switch in place.
+            const fold = window.LwcDocumentationFold || ((region, open) => {
+                if (open) {
+                    region.removeAttribute("hidden");
+                } else {
+                    region.setAttribute("hidden", "until-found");
+                }
+            });
+
+            const makeToggle = (className, region, label) => {
+                const toggle = document.createElement("button");
+                toggle.type = "button";
+                toggle.className = className;
+                toggle.setAttribute("aria-controls", region.id);
+                toggle.setAttribute("aria-labelledby", label.id);
+                label.after(toggle);
+                return toggle;
+            };
+
+            // Rules start open; the chevron folds a rule under its heading.
+            const setRuleOpen = (rule, open, animate = true) => {
+                const body = rule.querySelector(".ruleset-rule-body");
+                const toggle = rule.querySelector(".ruleset-rule-toggle");
+                if (!open && body.contains(document.activeElement)) {
+                    toggle?.focus({ preventScroll: true });
+                }
+                rule.classList.toggle("is-folded", !open);
+                toggle?.setAttribute("aria-expanded", String(open));
+                fold(body, open, animate);
+            };
+            const rules = Array.from(document.querySelectorAll(".ruleset-rule"))
+                .filter(rule => rule.querySelector(":scope > h2[id]") && rule.querySelector(":scope > .ruleset-rule-body"));
+            rules.forEach(rule => {
+                const heading = rule.querySelector(":scope > h2");
+                const body = rule.querySelector(":scope > .ruleset-rule-body");
+                const toggle = makeToggle("ruleset-rule-toggle", body, heading);
+                toggle.setAttribute("aria-expanded", "true");
+                toggle.addEventListener("click", () => setRuleOpen(rule, rule.classList.contains("is-folded")));
+                body.addEventListener("beforematch", () => setRuleOpen(rule, true, false));
+            });
+            document.querySelector(".ruleset-document")?.classList.add("has-rule-folds");
+
             if (!faq || faq.classList.contains("is-enhanced")) {
                 return;
             }
 
             const items = Array.from(faq.querySelectorAll(".ruleset-faq-item"));
-            // Browsers without hidden-until-found support keep the answers readable
-            // and searchable instead of treating the value as ordinary hidden.
-            if (!("onbeforematch" in document.body)) {
-                return;
-            }
-            const setOpen = (item, open) => {
+            const setOpen = (item, open, animate = true) => {
                 const answer = item.querySelector(".ruleset-faq-answer");
                 if (!open && answer.contains(document.activeElement)) {
                     item.querySelector(".ruleset-faq-toggle")?.focus({ preventScroll: true });
                 }
                 item.classList.toggle("is-open", open);
                 item.querySelector(".ruleset-faq-toggle")?.setAttribute("aria-expanded", String(open));
-                if (open) {
-                    answer.removeAttribute("hidden");
-                } else {
-                    answer.setAttribute("hidden", "until-found");
-                }
+                fold(answer, open, animate);
             };
 
             items.forEach(item => {
                 const question = item.querySelector("h4");
                 const answer = item.querySelector(".ruleset-faq-answer");
-                const toggle = document.createElement("button");
-                toggle.type = "button";
-                toggle.className = "ruleset-faq-toggle";
-                toggle.setAttribute("aria-controls", answer.id);
-                toggle.setAttribute("aria-labelledby", question.id);
-                question.after(toggle);
+                const toggle = makeToggle("ruleset-faq-toggle", answer, question);
                 toggle.addEventListener("click", () => setOpen(item, !item.classList.contains("is-open")));
                 question.addEventListener("click", event => {
                     if (!event.target.closest("a") && !window.getSelection()?.toString()) {
@@ -1601,8 +2155,8 @@
                     }
                 });
                 // Find in page reveals a collapsed answer.
-                answer.addEventListener("beforematch", () => setOpen(item, true));
-                setOpen(item, false);
+                answer.addEventListener("beforematch", () => setOpen(item, true, false));
+                setOpen(item, false, false);
             });
             faq.classList.add("is-enhanced");
 
@@ -1615,15 +2169,20 @@
                     return;
                 }
                 const target = id ? document.getElementById(id) : null;
+                const rule = target?.closest(".ruleset-rule.is-folded");
+                if (rule) {
+                    setRuleOpen(rule, true, false);
+                }
                 const item = target?.closest(".ruleset-faq-item");
                 if (!item) {
                     return;
                 }
-                setOpen(item, true);
+                setOpen(item, true, false);
                 const stickyHeader = document.getElementById("site-sticky-header");
                 const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
                 const offset = ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
                 window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
+                window.LwcDocumentationArrive?.(target);
             };
             window.addEventListener("hashchange", openFromHash);
             openFromHash();

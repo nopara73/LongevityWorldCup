@@ -1461,7 +1461,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 transition: none;
             }
         }
-    </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
+    </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}{{ReadingFeel.Style}}
 </head>
 <body>
     <!--HEADER-->

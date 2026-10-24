@@ -43,6 +43,12 @@ internal static partial class ReferencePage
                 {
                     section = SectionHeading().Replace(section,
                         "${start}<span class=\"ruleset-rule-title\">${title}</span></h2>", 1);
+                    // The rule's text sits in one body, so the rule can fold under its heading.
+                    var heading = SectionHeading().Match(section);
+                    var id = HeadingId().Match(heading.Value).Groups["id"].Value;
+                    var headingEnd = heading.Index + heading.Length;
+                    section = section[..headingEnd]
+                        + $"\n<div class=\"ruleset-rule-body\" id=\"{id}-body\">\n{section[headingEnd..].Trim()}\n</div>";
                 }
             }
 
@@ -263,6 +269,111 @@ internal static partial class ReferencePage
             color: var(--lwc-accent-hover);
         }
 
+        /* Rules fold under their heading: a chevron sits at the end of the
+           heading row, and a folded rule's number tile turns hollow. */
+        .ruleset-rule {
+            --rule-head-top: 1.6rem;
+            position: relative;
+        }
+
+        .documentation-cover + .ruleset-rule {
+            --rule-head-top: 0rem;
+        }
+
+        .has-rule-folds .ruleset-rule > h2 {
+            padding-right: 3.4rem;
+        }
+
+        .ruleset-rule-body {
+            display: flow-root;
+        }
+
+        .ruleset-rule-body > :last-child {
+            margin-bottom: 0;
+        }
+
+        .ruleset-rule-body[hidden] {
+            margin: 0;
+            padding: 0;
+        }
+
+        .ruleset-rule-toggle {
+            box-sizing: border-box;
+            position: absolute;
+            top: calc(var(--rule-head-top) - 0.075rem);
+            right: -0.35rem;
+            display: inline-grid;
+            place-items: center;
+            width: 2.75rem;
+            height: 2.75rem;
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: var(--lwc-radius-pill);
+            background: transparent;
+            color: var(--lwc-accent);
+            font: inherit;
+            cursor: pointer;
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), border-color var(--lwc-duration-fast) var(--lwc-ease), transform var(--lwc-motion-press, 90ms) var(--lwc-ease);
+        }
+
+        .ruleset-rule-toggle::before {
+            content: "";
+            width: 0.6rem;
+            height: 0.6rem;
+            margin-top: 0.3rem;
+            border-right: 2.5px solid currentColor;
+            border-bottom: 2.5px solid currentColor;
+            transform: rotate(-135deg);
+            transition: transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, var(--lwc-ease)), margin var(--lwc-motion-move, 260ms) var(--lwc-ease);
+        }
+
+        .ruleset-rule.is-folded .ruleset-rule-toggle::before {
+            margin-top: -0.3rem;
+            transform: rotate(45deg);
+        }
+
+        .ruleset-rule-toggle:hover,
+        .ruleset-rule-toggle:focus-visible {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+        }
+
+        .ruleset-rule-toggle:active {
+            transform: scale(var(--lwc-motion-press-scale, 0.97));
+        }
+
+        .ruleset-rule-toggle:focus-visible {
+            outline: 3px solid var(--lwc-accent-bright);
+            outline-offset: 1px;
+        }
+
+        .documentation-document .ruleset-rule > h2::before {
+            transition: background-color var(--lwc-duration-normal) var(--lwc-ease), color var(--lwc-duration-normal) var(--lwc-ease), box-shadow var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .documentation-document .ruleset-rule.is-folded > h2::before {
+            background: transparent;
+            box-shadow: inset 0 0 0 2px var(--lwc-accent);
+            color: var(--lwc-accent-hover);
+        }
+
+        .documentation-document .ruleset-rule.is-folded > h2 {
+            margin-bottom: 0;
+        }
+
+        /* FAQ chevrons swing with a small overshoot, like the rule chevrons. */
+        .ruleset-faq-toggle::before {
+            transition: transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, var(--lwc-ease)), margin var(--lwc-motion-move, 260ms) var(--lwc-ease);
+        }
+
+        .ruleset-faq-item {
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .ruleset-faq-item.is-open > h4 {
+            transition: color var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
         /* Lists of lab names read as a grid of chips. */
         .documentation-document .ruleset-term-list {
             display: grid;
@@ -310,8 +421,27 @@ internal static partial class ReferencePage
             }
         }
 
+        @media (max-width: 600px) {
+            .ruleset-rule {
+                --rule-head-top: 1.35rem;
+            }
+
+            .ruleset-rule-toggle {
+                top: calc(var(--rule-head-top) - 0.25rem);
+                right: -0.55rem;
+            }
+
+            .has-rule-folds .ruleset-rule > h2 {
+                padding-right: 2.6rem;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-            .ruleset-faq-toggle::before {
+            .ruleset-faq-toggle::before,
+            .ruleset-rule-toggle,
+            .ruleset-rule-toggle::before,
+            .ruleset-faq-item,
+            .documentation-document .ruleset-rule > h2::before {
                 transition: none;
             }
         }
@@ -323,39 +453,73 @@ internal static partial class ReferencePage
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const faq = document.querySelector(".ruleset-faq");
+            // Browsers without hidden-until-found support keep every answer and
+            // rule readable and searchable instead of treating it as ordinary hidden.
+            if (!("onbeforematch" in document.body)) {
+                return;
+            }
+            // Folds slide open and shut when the reading system is loaded; without
+            // it they still switch in place.
+            const fold = window.LwcDocumentationFold || ((region, open) => {
+                if (open) {
+                    region.removeAttribute("hidden");
+                } else {
+                    region.setAttribute("hidden", "until-found");
+                }
+            });
+
+            const makeToggle = (className, region, label) => {
+                const toggle = document.createElement("button");
+                toggle.type = "button";
+                toggle.className = className;
+                toggle.setAttribute("aria-controls", region.id);
+                toggle.setAttribute("aria-labelledby", label.id);
+                label.after(toggle);
+                return toggle;
+            };
+
+            // Rules start open; the chevron folds a rule under its heading.
+            const setRuleOpen = (rule, open, animate = true) => {
+                const body = rule.querySelector(".ruleset-rule-body");
+                const toggle = rule.querySelector(".ruleset-rule-toggle");
+                if (!open && body.contains(document.activeElement)) {
+                    toggle?.focus({ preventScroll: true });
+                }
+                rule.classList.toggle("is-folded", !open);
+                toggle?.setAttribute("aria-expanded", String(open));
+                fold(body, open, animate);
+            };
+            const rules = Array.from(document.querySelectorAll(".ruleset-rule"))
+                .filter(rule => rule.querySelector(":scope > h2[id]") && rule.querySelector(":scope > .ruleset-rule-body"));
+            rules.forEach(rule => {
+                const heading = rule.querySelector(":scope > h2");
+                const body = rule.querySelector(":scope > .ruleset-rule-body");
+                const toggle = makeToggle("ruleset-rule-toggle", body, heading);
+                toggle.setAttribute("aria-expanded", "true");
+                toggle.addEventListener("click", () => setRuleOpen(rule, rule.classList.contains("is-folded")));
+                body.addEventListener("beforematch", () => setRuleOpen(rule, true, false));
+            });
+            document.querySelector(".ruleset-document")?.classList.add("has-rule-folds");
+
             if (!faq || faq.classList.contains("is-enhanced")) {
                 return;
             }
 
             const items = Array.from(faq.querySelectorAll(".ruleset-faq-item"));
-            // Browsers without hidden-until-found support keep the answers readable
-            // and searchable instead of treating the value as ordinary hidden.
-            if (!("onbeforematch" in document.body)) {
-                return;
-            }
-            const setOpen = (item, open) => {
+            const setOpen = (item, open, animate = true) => {
                 const answer = item.querySelector(".ruleset-faq-answer");
                 if (!open && answer.contains(document.activeElement)) {
                     item.querySelector(".ruleset-faq-toggle")?.focus({ preventScroll: true });
                 }
                 item.classList.toggle("is-open", open);
                 item.querySelector(".ruleset-faq-toggle")?.setAttribute("aria-expanded", String(open));
-                if (open) {
-                    answer.removeAttribute("hidden");
-                } else {
-                    answer.setAttribute("hidden", "until-found");
-                }
+                fold(answer, open, animate);
             };
 
             items.forEach(item => {
                 const question = item.querySelector("h4");
                 const answer = item.querySelector(".ruleset-faq-answer");
-                const toggle = document.createElement("button");
-                toggle.type = "button";
-                toggle.className = "ruleset-faq-toggle";
-                toggle.setAttribute("aria-controls", answer.id);
-                toggle.setAttribute("aria-labelledby", question.id);
-                question.after(toggle);
+                const toggle = makeToggle("ruleset-faq-toggle", answer, question);
                 toggle.addEventListener("click", () => setOpen(item, !item.classList.contains("is-open")));
                 question.addEventListener("click", event => {
                     if (!event.target.closest("a") && !window.getSelection()?.toString()) {
@@ -364,8 +528,8 @@ internal static partial class ReferencePage
                     }
                 });
                 // Find in page reveals a collapsed answer.
-                answer.addEventListener("beforematch", () => setOpen(item, true));
-                setOpen(item, false);
+                answer.addEventListener("beforematch", () => setOpen(item, true, false));
+                setOpen(item, false, false);
             });
             faq.classList.add("is-enhanced");
 
@@ -378,15 +542,20 @@ internal static partial class ReferencePage
                     return;
                 }
                 const target = id ? document.getElementById(id) : null;
+                const rule = target?.closest(".ruleset-rule.is-folded");
+                if (rule) {
+                    setRuleOpen(rule, true, false);
+                }
                 const item = target?.closest(".ruleset-faq-item");
                 if (!item) {
                     return;
                 }
-                setOpen(item, true);
+                setOpen(item, true, false);
                 const stickyHeader = document.getElementById("site-sticky-header");
                 const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
                 const offset = ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
                 window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
+                window.LwcDocumentationArrive?.(target);
             };
             window.addEventListener("hashchange", openFromHash);
             openFromHash();
@@ -399,6 +568,9 @@ internal static partial class ReferencePage
 
     [GeneratedRegex("(?<start><h2 id=\"[^\"]+\">)(?<title>.*?)</h2>", RegexOptions.Singleline)]
     private static partial Regex SectionHeading();
+
+    [GeneratedRegex("^<h2 id=\"(?<id>[^\"]+)\">")]
+    private static partial Regex HeadingId();
 
     [GeneratedRegex("<section class=\"ruleset-section ruleset-rule\">\\s*<h2 id=\"(?<id>[^\"]+)\">")]
     private static partial Regex RuleHeading();
