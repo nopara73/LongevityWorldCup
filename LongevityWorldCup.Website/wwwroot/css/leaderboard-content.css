@@ -5816,11 +5816,11 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     to{ opacity:1; transform:none; }
 }
 @keyframes athlete-step-next{
-    from{ opacity:0; transform:translateX(24px); }
+    from{ opacity:0; transform:translateX(var(--athlete-step-distance, 48px)); }
     to{ opacity:1; transform:none; }
 }
 @keyframes athlete-step-previous{
-    from{ opacity:0; transform:translateX(-24px); }
+    from{ opacity:0; transform:translateX(calc(-1 * var(--athlete-step-distance, 48px))); }
     to{ opacity:1; transform:none; }
 }
 #detailsModal .modal-content{
@@ -5909,4 +5909,25 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     #detailsModal .modal-content,
     #detailsModal .modal-content[data-athlete-step] #athlete-profile{ animation:none; }
     #detailsModal.fade-out .modal-content{ transform:none; transition:none; }
+}
+
+/* 19) Browsing motion (athlete-browse-motion.js): a horizontal swipe on the
+   profile steps between athletes, so it leaves vertical panning to the page,
+   and an age that counts in keeps its real text while an overlay counts. */
+#detailsModal .modal-content:not(.guess-mode) #athlete-profile{ touch-action:pan-y pinch-zoom; }
+#detailsModal [data-lwc-count]{
+    position:relative;
+    color:transparent !important;
+}
+#detailsModal [data-lwc-count]::after{
+    content:attr(data-lwc-count);
+    content:attr(data-lwc-count) / "";
+    position:absolute;
+    inset:0 auto auto 0;
+    min-width:100%;
+    color:var(--lwc-count-color, currentColor);
+    text-align:inherit;
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+    pointer-events:none;
 }
