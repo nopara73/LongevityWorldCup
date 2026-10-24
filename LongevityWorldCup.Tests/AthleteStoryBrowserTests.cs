@@ -58,6 +58,9 @@ public sealed class AthleteStoryBrowserTests(
         Assert.True(await page.Locator("tr.result-summary").Last.EvaluateAsync<bool>("row => !row.dataset.draw && +getComputedStyle(row.cells[0]).opacity === 1"));
         Assert.Equal(1, await page.Locator("#athlete-biomarkers").EvaluateAsync<double>("e => +getComputedStyle(e).opacity"));
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        // Media-query change delivery is asynchronous. First observe cleanup,
+        // then outwait the original entrances to catch any late resurrection.
+        await Expect(page.Locator("#detailsModal [data-story], #detailsModal [data-unlock], #detailsModal [data-draw], #detailsModal [data-pressed], #detailsModal .biomarker-overview-current[data-lwc-count]")).ToHaveCountAsync(0);
         await page.WaitForTimeoutAsync(1800);
         var pending = await page.Locator("#detailsModal [data-story], #detailsModal [data-unlock], #detailsModal [data-draw], #detailsModal [data-pressed], #detailsModal .biomarker-overview-current[data-lwc-count]").EvaluateAllAsync<string[]>("es => es.map(e => JSON.stringify({tag:e.tagName, data:{...e.dataset}}))");
         Assert.True(pending.Length == 0, await page.EvaluateAsync<string>("() => JSON.stringify({reduced:matchMedia('(prefers-reduced-motion: reduce)').matches, assets:[...document.scripts].map(s=>s.src).filter(s=>s.includes('athlete-story'))})") + string.Join("\n", pending));
