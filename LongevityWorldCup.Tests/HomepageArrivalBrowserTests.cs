@@ -214,6 +214,9 @@ public sealed class HomepageArrivalBrowserTests(
     public async Task ReplacingAnArrivingCard_PreservesTheOriginalAnimationDeadline()
     {
         await using var context = await NewContextAsync(1440);
+        // This exercises replacement during an active entrance. Keep parsing
+        // from consuming that entrance before the podium card is attached.
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             window.podiumStartTimes = [];
             const animate = Element.prototype.animate;

@@ -317,12 +317,43 @@ public sealed class EventLivingFeedBrowserTests(
         await PreparePreviewTargetAsync(link);
         await link.HoverAsync();
         await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeVisibleAsync();
-        var popup = await context.RunAndWaitForPageAsync(
-            () => page.Locator(".event-athlete-preview-name").ClickAsync(new() { Modifiers = [KeyboardModifier.Control] }));
-        await popup.BringToFrontAsync();
-        await popup.WaitForURLAsync("**/athlete/feed-a", new() { WaitUntil = WaitUntilState.Commit });
-        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
-        await popup.CloseAsync();
+        var originalUrl = page.Url;
+        var destination = new Uri(App.BaseAddress, "/athlete/feed-a").ToString();
+        var session = await context.NewCDPSessionAsync(page);
+        string? openedTarget = null;
+        try
+        {
+            var source = (await session.SendAsync("Target.getTargetInfo"))!.Value.GetProperty("targetInfo");
+            var contextId = source.GetProperty("browserContextId").GetString();
+            // Chromium can create and navigate a background tab before Playwright
+            // finishes publishing its Page object under load. Inspect the native
+            // target in this context, retaining the exact destination assertion.
+            await page.Locator(".event-athlete-preview-name").ClickAsync(new() { Modifiers = [KeyboardModifier.ControlOrMeta] });
+            var deadline = System.Diagnostics.Stopwatch.StartNew();
+            while (openedTarget is null && deadline.Elapsed < TimeSpan.FromSeconds(10))
+            {
+                var targets = (await session.SendAsync("Target.getTargets"))!.Value.GetProperty("targetInfos");
+                foreach (var target in targets.EnumerateArray())
+                {
+                    if (target.GetProperty("type").GetString() == "page"
+                        && target.TryGetProperty("browserContextId", out var targetContext)
+                        && targetContext.GetString() == contextId
+                        && target.GetProperty("targetId").GetString() != source.GetProperty("targetId").GetString()
+                        && target.GetProperty("url").GetString() == destination)
+                        openedTarget = target.GetProperty("targetId").GetString();
+                }
+                if (openedTarget is null) await Task.Delay(50);
+            }
+            Assert.NotNull(openedTarget);
+            Assert.Equal(originalUrl, page.Url);
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        }
+        finally
+        {
+            if (openedTarget is not null)
+                await session.SendAsync("Target.closeTarget", new() { ["targetId"] = openedTarget });
+            await session.DetachAsync();
+        }
     }
 
     [Theory]
