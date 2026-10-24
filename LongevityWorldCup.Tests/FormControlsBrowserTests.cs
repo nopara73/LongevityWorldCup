@@ -8,6 +8,29 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task StandaloneDesigner_KeepsPinkSwitchesAndNativeActivation(int width)
+    {
+        await using var context = await ContextAsync();
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/internal/custom-event-designer.html");
+        var toggle = page.GetByRole(AriaRole.Switch, new() { Name = "Webpage", Exact = true });
+        await Assertions.Expect(toggle).ToBeCheckedAsync();
+        await Assertions.Expect(toggle).ToHaveCSSAsync("background-color", "rgb(255, 64, 129)");
+        Assert.True(await toggle.EvaluateAsync<bool>("""
+            el => { const r=el.getBoundingClientRect(); return r.width>r.height && el.closest('label').getBoundingClientRect().height>=44; }
+            """));
+        await toggle.FocusAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Assertions.Expect(toggle).Not.ToBeCheckedAsync();
+        await page.Locator("label.check").Filter(new() { Has = toggle }).ClickAsync();
+        await Assertions.Expect(toggle).ToBeCheckedAsync();
+        Assert.False(await page.EvaluateAsync<bool>("() => Boolean(window.LwcFormControls)"));
+    }
+
+    [Theory]
     [InlineData(195, 422)]
     [InlineData(320, 390)]
     [InlineData(720, 450)]

@@ -258,7 +258,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            min-height: 40px;
+            min-height: 44px;
             padding: 8px 10px;
             border-radius: var(--radius-sm);
             background: var(--panel);
@@ -272,9 +272,43 @@
 
         .check input {
             flex: 0 0 auto;
+            appearance: none;
+            display: inline-grid;
+            place-content: center start;
+            width: 40px;
+            height: 24px;
             margin: 0;
-            --lwc-control-tone: var(--pink);
+            padding: 2px;
+            border: 1px solid var(--line-strong);
+            border-radius: 999px;
+            background: var(--well);
             cursor: pointer;
+        }
+
+        /* This standalone tool deliberately keeps its own visual system. */
+        .check input::before {
+            content: "";
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--muted);
+            translate: 0 0;
+        }
+
+        .check input:checked { background: var(--pink); border-color: var(--pink); }
+        .check input:checked::before { background: var(--text); translate: 16px 0; }
+        .check input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .check input { transition: background-color 140ms ease, border-color 140ms ease; }
+            .check input::before { transition: translate 140ms ease, background-color 140ms ease; }
+        }
+
+        @media (forced-colors: active) {
+            .check input { background: Canvas; border-color: ButtonText; }
+            .check input::before { background: ButtonText; }
+            .check input:checked { background: Highlight; border-color: Highlight; }
+            .check input:checked::before { background: HighlightText; }
         }
 
         .check:has(input:checked) {
