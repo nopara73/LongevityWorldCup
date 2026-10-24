@@ -37,7 +37,7 @@ public sealed class BioageRankPreviewBrowserTests(
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, path);
         await page.WaitForFunctionAsync("() => Boolean(window.LwcBioAgeRankPreview)");
         await page.EvaluateAsync(
             """
@@ -62,9 +62,8 @@ public sealed class BioageRankPreviewBrowserTests(
         Assert.Null(await preview.GetAttributeAsync("aria-live"));
         Assert.Equal("false", await preview.GetAttributeAsync("aria-busy"));
         Assert.Equal("alert", await error.GetAttributeAsync("role"));
-        Assert.True(await error.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Retry" }).IsVisibleAsync());
-
         var retry = error.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Retry" });
+        await Assertions.Expect(retry).ToBeVisibleAsync();
         await retry.FocusAsync();
         await page.Keyboard.PressAsync("Enter");
         await preview.Locator(".bioage-rank-summary").WaitForAsync();
