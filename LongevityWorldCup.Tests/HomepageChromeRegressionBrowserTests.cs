@@ -489,6 +489,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
                     ActionRight: actionRect.right,
                     ActionWidth: actionRect.width,
                     ActionHeight: actionRect.height,
+                    ActionFontSize: parseFloat(actionStyle.fontSize),
                     ActionOverlapsBrand: intersects,
                     ActionBackgroundAlpha: background[3] ?? 1,
                     LogoNaturalWidth: logo.naturalWidth,
@@ -598,6 +599,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
         public double ActionRight { get; set; }
         public double ActionWidth { get; set; }
         public double ActionHeight { get; set; }
+        public double ActionFontSize { get; set; }
         public bool ActionOverlapsBrand { get; set; }
         public double ActionBackgroundAlpha { get; set; }
         public double LogoNaturalWidth { get; set; }

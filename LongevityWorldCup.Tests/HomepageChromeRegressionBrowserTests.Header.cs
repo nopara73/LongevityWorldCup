@@ -71,8 +71,11 @@ public sealed class HomepageHeaderBrowserTests(
             Assert.True(diagnostics.ActionVisible,
                 $"Homepage Play action was hidden at {viewport.Width}x{viewport.Height}.");
             Assert.Equal("PLAY THE GAME", diagnostics.ActionText);
-            Assert.True(diagnostics.ActionWidth >= 44 && diagnostics.ActionHeight >= 44,
+            Assert.True(diagnostics.ActionWidth >= 180 && diagnostics.ActionHeight >= 56,
                 $"Homepage Play action collapsed to {diagnostics.ActionWidth:F1}x{diagnostics.ActionHeight:F1}px at " +
+                $"{viewport.Width}x{viewport.Height}.");
+            Assert.True(diagnostics.ActionFontSize >= 20,
+                $"Homepage Play text fell back to ordinary navigation sizing ({diagnostics.ActionFontSize:F1}px) at " +
                 $"{viewport.Width}x{viewport.Height}.");
             Assert.True(diagnostics.ActionLeft >= -0.5 && diagnostics.ActionRight <= viewport.Width + 0.5,
                 $"Homepage Play action left the viewport at {viewport.Width}x{viewport.Height}.");

@@ -1791,8 +1791,13 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 }
 
 :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
-    min-height: 50px;
-    font-size: 1rem;
+    /* The homepage's primary action must lead the navigation, even after its
+       invitation animation ends or when motion is disabled. */
+    width: max-content;
+    min-width: 15rem;
+    min-height: 60px;
+    padding: var(--space-4) var(--space-6);
+    font-size: 1.25rem;
 }
 
 /* Sticky bar: the same lockup, compacted and aligned to the same column. */
@@ -2005,7 +2010,9 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         max-width: 26rem;
         align-self: center;
         margin-left: 0;
-        min-height: 48px;
+        min-height: 60px;
+        padding-inline: var(--space-4);
+        font-size: 1.25rem;
         box-sizing: border-box;
     }
 
@@ -2080,7 +2087,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     }
 
     :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
-        width: auto;
+        width: max-content;
         margin-left: auto;
         align-self: center;
     }
