@@ -328,58 +328,91 @@
     </div>
   </main>
   <script>
-    // Try again checks the site first: it reloads once the site answers, and
-    // otherwise says "not yet" with a shake. A quiet check also runs every 20s.
+    // Keep this inline: these pages must recover while application assets are unavailable.
     (function () {
       var card = document.querySelector(".error-card");
-      var button = document.querySelector("[data-retry]");
+      var button = document.querySelector("button[data-retry]");
       var meter = document.querySelector(".retry-meter");
-      if (!card || !button || !window.fetch) return;
-      var busy = false;
+      if (!card || !button) return;
+      if (!window.fetch || !window.AbortController) {
+        button.addEventListener("click", function () { window.location.reload(); });
+        return;
+      }
       var timer = 0;
-      var period = 20000;
-      function wait(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+      var deadline = 0;
+      var transition = 0;
+      var probe = null;
+      var active = true;
+      var motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
+      function stop() {
+        clearTimeout(timer);
+        clearTimeout(deadline);
+        clearTimeout(transition);
+        var previous = probe;
+        probe = null;
+        if (previous) previous.abort();
+        button.removeAttribute("aria-busy");
+        card.removeAttribute("data-retry");
+        if (meter) meter.classList.remove("is-running");
+      }
       function schedule() {
         clearTimeout(timer);
+        if (!active || document.visibilityState !== "visible" || probe) return;
         if (meter) {
           meter.classList.remove("is-running");
           void meter.offsetWidth;
           meter.classList.add("is-running");
         }
-        timer = setTimeout(function () {
-          if (document.visibilityState === "visible") check(); else schedule();
-        }, period);
+        timer = setTimeout(check, 20000);
       }
       async function check() {
-        if (busy) return;
-        busy = true;
+        if (probe || !active || document.visibilityState !== "visible") return;
+        var controller = new AbortController();
+        probe = controller;
         clearTimeout(timer);
+        if (meter) meter.classList.remove("is-running");
         card.setAttribute("data-retry", "checking");
         button.setAttribute("aria-busy", "true");
         var started = Date.now();
-        var ok = false;
+        var recovered = false;
+        deadline = setTimeout(function () { controller.abort(); }, 8000);
         try {
-          var response = await fetch(window.location.href, { method: "HEAD", cache: "no-store" });
-          ok = response.ok;
+          var response = await fetch(window.location.href, {
+            method: "HEAD", cache: "no-store", signal: controller.signal
+          });
+          // A recovered route may legitimately deny access or be missing.
+          recovered = response.status > 0 && response.status < 500;
         } catch (_) {
+          // Offline, timeout and server failures all leave the control retryable.
+        } finally {
+          if (probe === controller) clearTimeout(deadline);
         }
-        // Long enough to read as a check, never a flicker.
-        await wait(Math.max(0, 700 - (Date.now() - started)));
-        if (ok) {
-          card.setAttribute("data-retry", "back");
-          await wait(260);
-          window.location.reload();
-          return;
-        }
-        busy = false;
-        button.removeAttribute("aria-busy");
-        card.setAttribute("data-retry", "still");
-        schedule();
+        if (probe !== controller) return;
+        transition = setTimeout(function () {
+          if (probe !== controller) return;
+          if (recovered) {
+            card.setAttribute("data-retry", "back");
+            transition = setTimeout(function () {
+              if (probe === controller) window.location.reload();
+            }, motion.matches ? 260 : 0);
+          } else {
+            probe = null;
+            button.removeAttribute("aria-busy");
+            card.setAttribute("data-retry", "still");
+            schedule();
+          }
+        }, motion.matches ? Math.max(0, 700 - (Date.now() - started)) : 0);
       }
       button.addEventListener("click", check);
       card.addEventListener("animationend", function (event) {
-        if (event.animationName === "outage-still") card.removeAttribute("data-retry");
+        if (event.animationName === "outage-still" && card.getAttribute("data-retry") === "still")
+          card.removeAttribute("data-retry");
       });
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") schedule(); else stop();
+      });
+      window.addEventListener("pagehide", function () { active = false; stop(); });
+      window.addEventListener("pageshow", function () { active = true; schedule(); });
       schedule();
     })();
   </script>

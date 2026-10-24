@@ -138,7 +138,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
 
         var html = await client.GetStringAsync(path);
 
-        Assert.Contains("/css/error-system.css?v=20261020-2", html);
+        Assert.Contains("/css/error-system.css?v=20261024-1", html);
         Assert.Contains("<figure class=\"visual\">", html);
         Assert.Contains("src=\"/error/herold.png\"", html);
         Assert.Contains("alt=\"Herold waiting through a temporary outage\" width=\"1024\" height=\"1536\"", html);
@@ -154,5 +154,25 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         var html = await client.GetStringAsync("/internal/custom-event-designer.html");
 
         Assert.DoesNotContain("/css/aesthetic-system.css", html);
+    }
+
+    [Theory]
+    [InlineData("/error/404.html")]
+    [InlineData("/unsubscribe")]
+    [InlineData("/media")]
+    [InlineData("/application-review")]
+    public async Task StandaloneMotion_UsesTheCanonicalVersionedStylesheet(string path)
+    {
+        using var client = sharedFactory.CreateClient();
+        var response = await client.GetAsync(path);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("{{ASSET_STANDALONE_FEEL_CSS}}", html);
+        var asset = System.Text.RegularExpressions.Regex.Match(html,
+            "href=\"(/css/standalone-feel\\.css\\?v=[A-Za-z0-9_-]+)\"");
+        Assert.True(asset.Success, "The rendered page must use the canonical asset fingerprint.");
+        Assert.DoesNotContain("20261024-1", asset.Value);
+        using var stylesheet = await client.GetAsync(asset.Groups[1].Value);
+        stylesheet.EnsureSuccessStatusCode();
+        Assert.Contains(".nf-score", await stylesheet.Content.ReadAsStringAsync());
     }
 }
