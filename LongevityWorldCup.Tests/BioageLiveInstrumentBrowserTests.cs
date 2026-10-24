@@ -139,6 +139,23 @@ public sealed class BioageLiveInstrumentBrowserTests(
     }
 
     [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    public async Task InvalidBortzWbc_RemainsSilentAndCannotReuseThePreviousReading(string value)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, "bortz");
+        await page.EvaluateAsync("() => { window.__alerts = []; customAlert = message => { window.__alerts.push(message); return Promise.resolve(); }; }");
+        await page.Locator("#wbc").FillAsync(value);
+        await page.WaitForTimeoutAsync(600);
+        Assert.Empty(await page.EvaluateAsync<string[]>("window.__alerts"));
+        Assert.True(await page.Locator("#continueButton").IsDisabledAsync());
+        var handedOff = await page.EvaluateAsync<bool>("() => { let handedOff=false; storeBortzResultForNextStep=()=>{ handedOff=true; return false; }; proceedToNextPage(); return handedOff; }");
+        Assert.False(handedOff);
+    }
+
+    [Theory]
     [InlineData("pheno")]
     [InlineData("bortz")]
     public async Task ManualUnitSelection_IsNotUndoneByLiveOrExplicitCalculation(string clock)
@@ -151,5 +168,101 @@ public sealed class BioageLiveInstrumentBrowserTests(
         Assert.Equal("0.1", await page.Locator("#albuminUnit").InputValueAsync());
         await page.EvaluateAsync("calculateResult()");
         Assert.Equal("0.1", await page.Locator("#albuminUnit").InputValueAsync());
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task UpdateMode_KeepsItsExplicitCalculationAndExistingPresentation(string clock)
+    {
+        await using var context = await NewContextAsync();
+        await context.AddInitScriptAsync("sessionStorage.setItem('selectedAthlete', JSON.stringify({Name:'Browser Test Athlete',DateOfBirth:{Year:1980,Month:5,Day:20},Biomarkers:[]}))");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"/{clock}-age?update=1");
+        await page.WaitForFunctionAsync("() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+        await FillBloodDrawDateAsync(page, "2026-09-01");
+        if (clock == "bortz") await FillBortzBiomarkersAsync(page);
+        else await FillPhenoBiomarkersAsync(page);
+        await page.WaitForTimeoutAsync(600);
+        Assert.False(await page.Locator("#continueButton").IsVisibleAsync());
+        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
+        Assert.Equal(0, await page.Locator(".bioage-live-instrument, .bioage-live-readout, .bioage-gap-meter, [data-bioage-range], [data-bioage-wake]").CountAsync());
+    }
+
+    [Theory]
+    [InlineData("pheno", ColorScheme.Light)]
+    [InlineData("pheno", ColorScheme.Dark)]
+    [InlineData("bortz", ColorScheme.Light)]
+    [InlineData("bortz", ColorScheme.Dark)]
+    public async Task NarrowPanelWithNativeScrollbar_KeepsEveryUnitReadable(string clock, ColorScheme theme)
+    {
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new()
+        {
+            Headless = true, IgnoreDefaultArgs = ["--hide-scrollbars"]
+        });
+        await using var context = await browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(), Locale = "en-US",
+            ViewportSize = new() { Width = 160, Height = 450 },
+            ColorScheme = theme, ReducedMotion = ReducedMotion.Reduce
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var clipped = await page.Locator("#lwc-step-2 select").EvaluateAllAsync<string[]>(
+            """
+            selects => {
+                const context = document.createElement('canvas').getContext('2d');
+                return selects.flatMap(select => {
+                    if (!select.getBoundingClientRect().width) return [];
+                    const style = getComputedStyle(select);
+                    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                    const width = select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    return [...select.options].filter(option => context.measureText(option.textContent.trim()).width > width + 1)
+                        .map(option => `${select.id}: ${option.textContent} exceeds ${width}px`);
+                });
+            }
+            """);
+        Assert.Empty(clipped);
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
+    [InlineData("pheno", ColorScheme.Light)]
+    [InlineData("pheno", ColorScheme.Dark)]
+    [InlineData("bortz", ColorScheme.Light)]
+    [InlineData("bortz", ColorScheme.Dark)]
+    public async Task WaitingDomains_KeepTheirFieldNamesReadable(string clock, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = theme });
+        await page.GotoAsync($"/{clock}-age");
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        var contrast = await page.Locator("[data-bioage-wake='dormant'] .biomarker-card-header").First.EvaluateAsync<double>(
+            """
+            element => {
+                const parse = value => value.match(/[\d.]+/g).map(Number);
+                const foreground = parse(getComputedStyle(element).color);
+                const opacity = Number(getComputedStyle(element.closest('fieldset')).opacity);
+                let parent = element, background;
+                while (parent) {
+                    const color = parse(getComputedStyle(parent).backgroundColor);
+                    if (color.length === 3 || color[3] > 0) { background = color; break; }
+                    parent = parent.parentElement;
+                }
+                background ||= [255,255,255];
+                const effective = foreground.slice(0,3).map((value,index) => value * opacity + background[index] * (1-opacity));
+                const luminance = color => color.slice(0,3).map(value => {
+                    value /= 255; return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+                }).reduce((total,value,index) => total + value * [.2126,.7152,.0722][index], 0);
+                const light = luminance(effective), dark = luminance(background);
+                return (Math.max(light,dark) + .05) / (Math.min(light,dark) + .05);
+            }
+            """);
+        Assert.True(contrast >= 4.5, $"{clock} {theme}: waiting field names have only {contrast:F2}:1 contrast.");
     }
 }

@@ -2308,6 +2308,7 @@ interface Window {
             && !!drawDate?.value && drawDate.validity.valid
             && Number.isFinite(birth.getTime()) && Number.isFinite(draw.getTime())
             && birth <= draw
+            && (controller.clock !== 'bortz' || Number(form.querySelector<HTMLInputElement>('#wbc')?.value) > 0)
             && controller.inputs.length > 0
             && controller.inputs.every(isCompleteBiomarkerInput);
     }
