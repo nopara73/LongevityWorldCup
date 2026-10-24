@@ -126,9 +126,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
-    [InlineData(390, ColorScheme.Light)]
-    [InlineData(1280, ColorScheme.Dark)]
-    public async Task RitualMotion_SaveIsOptimisticAndRollsBackGracefully(int width, ColorScheme theme)
+    [InlineData(390, ColorScheme.Light, 1)]
+    [InlineData(1280, ColorScheme.Dark, 1)]
+    [InlineData(1280, ColorScheme.Dark, 8)]
+    public async Task RitualMotion_SaveIsOptimisticAndRollsBackGracefully(int width, ColorScheme theme, int cpuSlowdown)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -137,6 +138,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var state = CheckInWorkspaceState();
         await context.AddInitScriptAsync(MotionLogScript);
         var page = await OpenCheckInWorkspaceAsync(context, state);
+        // A busy renderer must paint rollback feedback before its cleanup timer
+        // can remove it. Throttle only this interaction, not page loading.
+        var session = await context.NewCDPSessionAsync(page);
+        await session.SendAsync("Emulation.setCPUThrottlingRate", new Dictionary<string, object> { ["rate"] = cpuSlowdown });
         var form = page.Locator(".lmx-checkin-card");
         var save = form.Locator("button[type='submit']");
         var boardDay = page.Locator(".lmx-board-row--self .lmx-cell[data-day='17']");

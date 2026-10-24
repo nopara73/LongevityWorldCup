@@ -9,6 +9,31 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task DiscussionReliability_OpenMentionsKeepHeldSubmitOnItsButton(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 900 } });
+        var state = ConversationWorkspaceState();
+        state["public"]!["leaderboard"]!.AsArray().Add(JsonSerializer.SerializeToNode(MentionLeaderboardRow("pointer", "Pointer Tester")));
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var payloads = new List<JsonObject>();
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route => {
+            payloads.Add(JsonNode.Parse(route.Request.PostData!)!.AsObject());
+            await route.FulfillAsync(new() { Status = 503 });
+        });
+        var thread = DiscussionThread(page, "p7", 5);
+        await thread.Locator("[data-discussion-quick-reply]").ClickAsync();
+        await thread.Locator("textarea").FillAsync("Hello @Pointer");
+        await Assertions.Expect(thread.Locator(".lmx-mention-option")).ToHaveCountAsync(1);
+        await thread.Locator("[data-reply-submit]").ClickAsync(new() { Delay = 150 });
+        await Assertions.Expect(thread.Locator("[data-reply-submit]")).ToHaveTextAsync("Retry");
+        Assert.Single(payloads);
+        Assert.Equal("Hello @Pointer", payloads[0]["body"]!.GetValue<string>());
+        await Assertions.Expect(thread.Locator("textarea")).ToHaveValueAsync("Hello @Pointer");
+    }
+
+    [Theory]
     [InlineData(1280, ColorScheme.Light, false)]
     [InlineData(390, ColorScheme.Dark, true)]
     public async Task DiscussionReliability_ReloadRestoresContextSelectionAndRetryIdentity(int width, ColorScheme theme, bool dialog)

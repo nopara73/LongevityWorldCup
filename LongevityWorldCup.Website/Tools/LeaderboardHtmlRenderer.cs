@@ -50,7 +50,7 @@ public static class LeaderboardHtmlRenderer
         foreach (var row in snapshot.Rows)
         {
             if (separateTracks && !ordering.IsCustom && previousTier == "pro" && row.Tier == "amateur")
-                sb.AppendLine("<tr class=\"tier-separator\" aria-label=\"Start of Amateur track (Pheno Age) section\"><td colspan=\"5\" class=\"tier-separator-cell\"><span class=\"tier-separator-label\">Amateur track |<a href=\"https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf\" target=\"_blank\" rel=\"noopener\" class=\"tier-separator-link\">Pheno Age</a></span></td></tr>");
+                sb.Append("<tr class=\"tier-separator\" aria-label=\"Start of Amateur track (Pheno Age) section\"><td colspan=\"5\" class=\"tier-separator-cell\"><span class=\"tier-separator-label\">Amateur track |<a href=\"https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf\" target=\"_blank\" rel=\"noopener\" class=\"tier-separator-link\">Pheno Age</a></span></td></tr>");
             AppendRow(sb, row, metricLabel, ordering);
             previousTier = row.Tier;
         }
@@ -77,7 +77,7 @@ public static class LeaderboardHtmlRenderer
             .Append(tier)
             .Append("\" data-athlete-name=\"")
             .Append(EncodeAttribute(row.AthleteName ?? row.DisplayName))
-            .AppendLine("\">");
+            .Append("\">");
         sb.Append("<td data-label=\"Rank\" class=\"rank-td\"><span class=\"rank\"");
         if (row.Rank is >= 1 and <= 3)
         {
@@ -85,8 +85,8 @@ public static class LeaderboardHtmlRenderer
         }
         sb.Append('>')
             .Append(rank)
-            .AppendLine("</span></td>");
-        sb.AppendLine("<td data-label=\"Athlete\" class=\"athlete-td\">");
+            .Append("</span></td>");
+        sb.Append("<td data-label=\"Athlete\" class=\"athlete-td\">");
         if (!string.IsNullOrWhiteSpace(thumbnail))
         {
             sb.Append("<a class=\"portrait-wrapper athlete-profile-link\" href=\"")
@@ -97,24 +97,24 @@ public static class LeaderboardHtmlRenderer
                 .Append(EncodeAttribute(thumbnail))
                 .Append("\" alt=\"")
                 .Append(EncodeAttribute($"{row.DisplayName} portrait"))
-                .AppendLine("\" class=\"portrait\" loading=\"lazy\"></a>");
+                .Append("\" class=\"portrait\" loading=\"lazy\"></a>");
         }
         sb.Append("<div class=\"athlete-identity\"><a class=\"athlete-name\" href=\"")
             .Append(athletePath)
             .Append("\">")
             .Append(displayName)
-            .AppendLine("</a><span class=\"athlete-name-links\"></span></div>");
-        sb.AppendLine("<div class=\"badge-section\"></div>");
-        sb.AppendLine("</td>");
-        sb.AppendLine("<td data-label=\"Sponsor\" class=\"sponsor-td\"></td>");
+            .Append("</a><span class=\"athlete-name-links\"></span></div>");
+        sb.Append("<div class=\"badge-section\"></div>");
+        sb.Append("</td>");
+        sb.Append("<td data-label=\"Sponsor\" class=\"sponsor-td\"></td>");
         sb.Append("<td data-label=\"").Append(EncodeAttribute(metricLabel)).Append("\" class=\"age-reduction-td\"><span class=\"age-reduction\">")
             .Append(ageReduction)
-            .AppendLine("</span></td>");
-        foreach (var field in ordering.Columns) sb.AppendLine(LeaderboardOrderingHtmlRenderer.Cell(row, field));
+            .Append("</span></td>");
+        foreach (var field in ordering.Columns) sb.Append(LeaderboardOrderingHtmlRenderer.Cell(row, field));
         sb.Append("<td data-label=\"Media contact\" class=\"media-contact-td\">")
             .Append(RenderMediaContact(row))
-            .AppendLine("</td>");
-        sb.AppendLine("</tr>");
+            .Append("</td>");
+        sb.Append("</tr>");
     }
 
     private static string RenderMediaContact(LeaderboardSnapshotRow row)
