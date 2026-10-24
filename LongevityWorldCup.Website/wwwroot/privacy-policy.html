@@ -928,7 +928,7 @@
             }
 
             .documentation-nav-links {
-                max-height: min(65svh, 30rem, var(--documentation-list-height, 65svh));
+                max-height: var(--documentation-list-height, 65svh);
                 overflow-y: auto;
                 overscroll-behavior: contain;
             }
@@ -1085,6 +1085,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{{ASSET_DOCUMENTATION_READING_CSS}}">
 </head>
 <body>
     <!--HEADER-->

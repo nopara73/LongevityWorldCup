@@ -484,7 +484,11 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         const url = event.activation?.entry?.url;
         if (!event.viewTransition || !url) return;
         const destination = new URL(url);
-        if (destination.origin !== location.origin || !journeyPath.test(destination.pathname)) {
+        const homeBoard = location.pathname === '/' && !location.search && !location.hash
+            && !destination.search && !destination.hash && /^\/leaderboard\/?$/i.test(destination.pathname)
+            && event.activation?.navigationType !== 'traverse'
+            && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (destination.origin !== location.origin || (!journeyPath.test(destination.pathname) && !homeBoard)) {
             event.viewTransition.skipTransition();
         }
     });
@@ -492,7 +496,14 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
 
 // The navigation dialog mirrors the footer. Native modality keeps background
 // links out of keyboard and assistive-technology navigation, including late content.
-(function () {
+(function initializeSiteNavigation() {
+    // Parsing an HTML fragment during the main parse can release Chromium's
+    // pending rel=expect links. Build only once the receiving page is complete,
+    // so native transitions still capture the server-rendered board.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeSiteNavigation, { once: true });
+        return;
+    }
     // Script-only controls stay in the shared asset, keeping page HTML small.
     const primary = document.createElement('button');
     primary.type = 'button';
@@ -760,3 +771,19 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     panel.addEventListener('pointercancel', resetDrag);
     panel.addEventListener('lostpointercapture', resetDrag);
 })();
+
+// Name only the receiving half of a home-to-board handoff. Other native
+// transitions on the full leaderboard must not capture its table.
+window.addEventListener('pagereveal', event => {
+    const from = window.navigation?.activation?.from?.url;
+    if (!event.viewTransition || !from || window.navigation.activation.navigationType === 'traverse'
+        || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const source = new URL(from);
+    if (source.origin !== location.origin || source.pathname !== '/' || source.search || source.hash
+        || location.search || location.hash || !/^\/leaderboard\/?$/i.test(location.pathname)) return;
+    const board = document.querySelector('main[data-leaderboard-page="full"] #athleteLeaderboard');
+    if (!board) return;
+    board.style.viewTransitionName = 'lwc-board';
+    const clear = () => { board.style.viewTransitionName = ''; };
+    event.viewTransition.finished.then(clear, clear);
+});
