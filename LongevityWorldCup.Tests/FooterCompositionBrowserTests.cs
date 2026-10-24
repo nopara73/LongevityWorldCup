@@ -106,7 +106,16 @@ public sealed class FooterCompositionBrowserTests(
         {
             Assert.Equal(1, await current.CountAsync());
             Assert.Equal(path, await current.GetAttributeAsync("href"));
-            Assert.NotEqual("none", await current.EvaluateAsync<string>("l => getComputedStyle(l).boxShadow"));
+            var indicator = page.Locator(".footer .nav-glide.is-shown.is-current");
+            await Assertions.Expect(indicator).ToBeVisibleAsync();
+            Assert.NotEqual("none", await indicator.EvaluateAsync<string>("el => getComputedStyle(el).boxShadow"));
+            Assert.True(await current.EvaluateAsync<bool>("""
+                link => {
+                    const indicator = link.parentElement.querySelector('.nav-glide');
+                    const target = link.getBoundingClientRect(), actual = indicator.getBoundingClientRect();
+                    return ['left', 'top', 'width', 'height'].every(key => Math.abs(actual[key] - target[key]) <= 1);
+                }
+                """), "The current-page indicator must cover the current link.");
         }
         else Assert.Equal(0, await current.CountAsync());
         BrowserContrast.AssertMinimum("footer", await BrowserContrast.MeasureVisibleTextAsync(page, ".footer-link-label"));

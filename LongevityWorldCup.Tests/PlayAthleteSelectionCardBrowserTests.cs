@@ -120,16 +120,8 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
         await page.WaitForFunctionAsync("size => Math.abs(parseFloat(getComputedStyle(document.documentElement).fontSize) - size) < 0.1", fontSize);
         // Rem-based padding starts its own reduced-motion transition after the
         // root font changes; measure the card only after that layout settles.
-        await page.EvaluateAsync("""
-            async () => {
-                await document.fonts.ready;
-                document.body.getBoundingClientRect();
-                await Promise.all(document.getAnimations()
-                    .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
-                    .map(animation => animation.finished.catch(() => {})));
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            }
-            """);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await WaitForFiniteAnimationsAsync(page);
 
         const string measure = """
             () => {

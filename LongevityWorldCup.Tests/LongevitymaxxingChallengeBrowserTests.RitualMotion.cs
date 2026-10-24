@@ -93,10 +93,29 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Null(await form.GetAttributeAsync("data-lmx-moment"));
         Assert.DoesNotContain("lmx-rail-ready", await TakeMotionLogAsync(page));
 
+        // The moment lasts 760 ms. Observe its mutation and animation start in
+        // the page rather than racing a protocol round trip on a busy runner.
+        await form.EvaluateAsync("""
+            form => {
+                window.__lmxCompletionMoment = null;
+                window.__lmxCompletionDuration = null;
+                const observer = new MutationObserver(() => {
+                    if (form.dataset.lmxMoment !== 'complete') return;
+                    window.__lmxCompletionMoment = form.dataset.lmxMoment;
+                    observer.disconnect();
+                });
+                observer.observe(form, { attributes: true, attributeFilter: ['data-lmx-moment'] });
+                form.addEventListener('animationstart', event => {
+                    if (event.animationName !== 'lmx-rail-ready') return;
+                    window.__lmxCompletionDuration = form.getAnimations({ subtree: true })
+                        .find(animation => animation.animationName === 'lmx-rail-ready')?.effect.getComputedTiming().duration;
+                });
+            }
+            """);
         await AnswerHabitAsync(form, "vices", "yes");
-        Assert.Equal("complete", await form.GetAttributeAsync("data-lmx-moment"));
+        Assert.Equal("complete", await page.EvaluateAsync<string>("window.__lmxCompletionMoment"));
         await page.WaitForFunctionAsync("() => ['lmx-rail-ready', 'lmx-save-ready'].every(name => window.__lmxMotion.includes(name))");
-        Assert.True(await page.EvaluateAsync<bool>("() => document.getAnimations().filter(a => a.animationName === 'lmx-rail-ready').every(a => a.effect.getComputedTiming().duration <= 800)"));
+        Assert.InRange(await page.EvaluateAsync<double>("window.__lmxCompletionDuration"), 1, 800);
 
         // The moment is short and plays once: it clears itself and changing an answer does not replay it.
         await Assertions.Expect(form).Not.ToHaveAttributeAsync("data-lmx-moment", "complete", new() { Timeout = 2000 });

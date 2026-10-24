@@ -133,7 +133,8 @@ function handleScroll(scrollPos, remeasure = false) {
     if (!willBeVisible && (stickyHeader.contains(document.activeElement) || document.activeElement === scrolledJoinButton)) {
         const target = document.activeElement === scrolledJoinButton && mainJoinButtonVisible
             ? joinGameBtn
-            : mainHeader.querySelector('.header-link');
+            : document.activeElement?.matches('.site-menu-toggle')
+                ? mainHeader.querySelector('.site-menu-toggle') : mainHeader.querySelector('.header-link');
         target?.focus({ preventScroll: true });
     }
     stickyHeader.classList.toggle('visible', willBeVisible);
@@ -149,19 +150,34 @@ function handleScroll(scrollPos, remeasure = false) {
 
 function fitStickyHeader(stickyHeader) {
     const action = scrolledJoinButton?.getBoundingClientRect();
+    const toggle = stickyHeader.querySelector('.site-menu-toggle')?.getBoundingClientRect();
     const hasAction = action && action.width > 0;
-    const right = hasAction ? innerWidth - action.right : 0;
-    stickyHeader.style.setProperty('--site-sticky-action-space', hasAction ? `${action.width + right + 8}px` : '0px');
-    stickyHeader.style.setProperty('--site-sticky-action-height', hasAction ? `${action.height}px` : '0px');
+    const hasToggle = toggle && toggle.width > 0;
+    const controls = [hasAction && action, hasToggle && toggle].filter(Boolean);
+    const actionHeight = Math.max(0, ...controls.map(rect => rect.height));
+    const reserved = controls.length ? document.documentElement.clientWidth - Math.min(...controls.map(rect => rect.left)) + 8 : 0;
+    stickyHeader.style.setProperty('--site-sticky-action-space', `${reserved}px`);
+    stickyHeader.style.setProperty('--site-sticky-action-height', `${actionHeight}px`);
     stickyHeader.classList.remove('is-stacked');
     const style = getComputedStyle(stickyHeader);
     const link = stickyHeader.querySelector('.site-sticky-header-link');
     const available = stickyHeader.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const stacked = hasAction && link && link.getBoundingClientRect().width > available + 1;
+    // offsetWidth is the layout box; the arrival animation must not change fitting.
+    const stacked = controls.length && link && link.offsetWidth > available + 1;
     stickyHeader.classList.toggle('is-stacked', Boolean(stacked));
+    // Let the lockup settle from a larger size only while it stays clear of
+    // the action row. The entrance must fit as well as its final layout.
+    const fittedStyle = getComputedStyle(stickyHeader);
+    const arrivalWidth = stickyHeader.clientWidth - parseFloat(fittedStyle.paddingLeft) - parseFloat(fittedStyle.paddingRight);
     const height = stickyHeader.getBoundingClientRect().height;
+    const rowGap = stacked && link ? height - actionHeight - 4 - link.offsetTop - link.offsetHeight : Infinity;
+    const arrivalY = Math.min(6, Math.max(0, rowGap - 1));
+    const verticalScale = link?.offsetHeight ? 1 + 2 * Math.max(0, rowGap - arrivalY - 1) / link.offsetHeight : 1;
+    stickyHeader.style.setProperty('--site-sticky-arrival-scale', String(link?.offsetWidth
+        ? Math.max(1, Math.min(1.22, verticalScale, arrivalWidth / link.offsetWidth)) : 1));
+    stickyHeader.style.setProperty('--site-sticky-arrival-y', `${arrivalY}px`);
     if (hasAction) {
-        scrolledJoinButton.style.top = `${stacked ? height - action.height - 4 : (height - action.height) / 2}px`;
+        scrolledJoinButton.style.top = `${stacked ? height - actionHeight - 4 + (actionHeight - action.height) / 2 : (height - action.height) / 2}px`;
     }
     document.documentElement.style.setProperty('--site-sticky-height', `${height}px`);
     return height;
@@ -476,6 +492,284 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
             event.viewTransition.skipTransition();
         }
     });
+})();
+
+// The navigation dialog mirrors the footer. Native modality keeps background
+// links out of keyboard and assistive-technology navigation, including late content.
+(function initializeSiteNavigation() {
+    // Parsing an HTML fragment during the main parse can release Chromium's
+    // pending rel=expect links. Build only once the receiving page is complete,
+    // so native transitions still capture the server-rendered board.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeSiteNavigation, { once: true });
+        return;
+    }
+    // Script-only controls stay in the shared asset, keeping page HTML small.
+    const primary = document.createElement('button');
+    primary.type = 'button';
+    primary.className = 'site-menu-toggle';
+    primary.hidden = true;
+    primary.setAttribute('aria-label', 'Menu');
+    primary.setAttribute('aria-expanded', 'false');
+    primary.setAttribute('aria-controls', 'site-menu');
+    primary.setAttribute('aria-haspopup', 'dialog');
+    primary.innerHTML = '<span class="site-menu-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>';
+    document.querySelector('.site-header-actions')?.append(primary);
+    const stickyToggle = primary.cloneNode(true);
+    stickyToggle.classList.add('site-sticky-menu-toggle');
+    document.getElementById('site-sticky-header')?.append(stickyToggle);
+    const dialog = document.createElement('dialog');
+    dialog.id = 'site-menu';
+    dialog.className = 'site-menu';
+    dialog.hidden = true;
+    dialog.setAttribute('aria-label', 'Site menu');
+    dialog.innerHTML = `<div class="site-menu-backdrop" data-site-menu-close></div>
+        <nav class="site-menu-panel" aria-label="Site" tabindex="-1">
+        <div class="site-menu-toolbar"><span class="site-menu-grip" aria-hidden="true"></span><button type="button" class="site-menu-close" aria-label="Close menu" data-site-menu-close><span aria-hidden="true"></span></button></div>
+        <div class="site-menu-body"></div></nav>`;
+    document.body.append(dialog);
+    const stickyHeader = document.getElementById('site-sticky-header');
+    const menu = document.getElementById('site-menu');
+    const panel = menu?.querySelector('.site-menu-panel');
+    const body = menu?.querySelector('.site-menu-body');
+    const toggles = Array.from(document.querySelectorAll('.site-menu-toggle'));
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const sheetQuery = matchMedia('(max-width: 640px)');
+    let lastY = window.scrollY;
+    let travel = 0;
+    let anchorScroll = false;
+    let anchorTimer = 0;
+    function setTucked(tucked) {
+        if (!stickyHeader) return;
+        if (tucked && (stickyHeader.contains(document.activeElement)
+            || document.activeElement === scrolledJoinButton || menu?.open || anchorScroll)) tucked = false;
+        stickyHeader.classList.toggle('is-tucked', tucked);
+        scrolledJoinButton?.classList.toggle('is-tucked', tucked);
+    }
+    function reveal() { travel = 0; lastY = window.scrollY; setTucked(false); }
+    function revealAnchor() {
+        anchorScroll = true;
+        reveal();
+        clearTimeout(anchorTimer);
+        anchorTimer = setTimeout(() => { anchorScroll = false; }, 250);
+    }
+    window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        const delta = y - lastY;
+        lastY = y;
+        if (anchorScroll) { revealAnchor(); return; }
+        if (Math.abs(delta) > 600) { reveal(); return; }
+        if (!stickyHeader?.classList.contains('visible') || y < 1) { reveal(); return; }
+        travel = Math.sign(delta) === Math.sign(travel) ? travel + delta : delta;
+        if (travel > 48) setTucked(true);
+        else if (travel < -12) setTucked(false);
+    }, { passive: true });
+    document.addEventListener('click', event => {
+        const link = event.target instanceof Element && event.target.closest('a[href]');
+        if (link && link.origin === location.origin && link.pathname === location.pathname && link.hash) revealAnchor();
+    }, true);
+    window.addEventListener('hashchange', revealAnchor);
+    window.addEventListener('pageshow', reveal);
+    stickyHeader?.addEventListener('focusin', reveal);
+    scrolledJoinButton?.addEventListener('focus', reveal);
+
+    if (!menu || !panel || !body || !toggles.length) return;
+    let builtFrom = null;
+    function build() {
+        const footer = document.querySelector('.footer');
+        if (!footer || builtFrom === footer) return Boolean(footer);
+        builtFrom = footer;
+        const nodes = [];
+        for (const [selector, className] of [['.footer-column--explore', 'site-menu-pages'], ['.footer-column--follow', 'site-menu-follow']]) {
+            const source = footer.querySelector(selector);
+            if (!source) continue;
+            const copy = source.cloneNode(true);
+            copy.className = source.className + ' ' + className;
+            copy.querySelectorAll('[id], [data-label-dismissed]').forEach(element => {
+                element.removeAttribute('id');
+                element.removeAttribute('data-label-dismissed');
+            });
+            copy.querySelectorAll('.nav-glide').forEach(element => element.remove());
+            nodes.push(copy);
+        }
+        body.replaceChildren(...nodes);
+        body.querySelectorAll('.footer-link').forEach((link, index) => link.style.setProperty('--site-menu-i', String(index)));
+        window.LwcNavGlide?.(body.querySelector('.site-menu-pages'));
+        return true;
+    }
+    let navigationAvailable = null;
+    const initialize = () => {
+        const footer = document.querySelector('.footer');
+        const available = Boolean(footer && getComputedStyle(footer).display !== 'none');
+        if (available === navigationAvailable) return;
+        navigationAvailable = available;
+        document.body.classList.toggle('has-site-menu', available);
+        toggles.forEach(toggle => { toggle.hidden = !available; });
+        if (available) {
+            document.querySelector('.site-header-actions')?.append(primary);
+            stickyHeader?.append(stickyToggle);
+            document.body.append(menu);
+        } else {
+            close(false, true);
+            toggles.forEach(toggle => toggle.remove());
+            menu.remove();
+        }
+        handleScroll(window.scrollY, true);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
+    else initialize();
+    new MutationObserver(initialize).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    let opener = null;
+    let closeTimer = 0;
+    let drag = null;
+    const isOpen = () => menu.open && !menu.classList.contains('is-closing');
+    function resetDrag() {
+        if (drag && panel.hasPointerCapture(drag.id)) panel.releasePointerCapture(drag.id);
+        drag = null;
+        panel.classList.remove('is-dragging');
+        panel.style.removeProperty('translate');
+        menu.style.removeProperty('--site-menu-drag');
+    }
+    function open(fromToggle) {
+        if (isOpen() || !customAlertDialog.hidden || !loadingDialog.hidden || !build()) return;
+        clearTimeout(closeTimer);
+        opener = fromToggle || document.activeElement;
+        resetDrag();
+        menu.classList.remove('is-closing');
+        menu.dataset.layout = sheetQuery.matches ? 'sheet' : 'panel';
+        positionPanel(opener);
+        menu.hidden = false;
+        menu.toggleAttribute('data-page-scrollbar', innerWidth > document.documentElement.clientWidth);
+        document.body.classList.add('site-menu-open');
+        menu.showModal();
+        toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
+        reveal();
+        panel.getBoundingClientRect();
+        menu.classList.add('is-open');
+        const current = body.querySelector('.site-menu-pages [aria-current="page"]') || body.querySelector('.footer-link');
+        (current || panel).focus({ preventScroll: true });
+        if (current) {
+            const link = current.getBoundingClientRect(), viewport = body.getBoundingClientRect();
+            body.scrollTop += Math.max(0, link.bottom - viewport.bottom) + Math.min(0, link.top - viewport.top);
+        }
+    }
+    function finishClose(restoreFocus) {
+        clearTimeout(closeTimer);
+        const previous = opener;
+        opener = null;
+        menu.close();
+        menu.hidden = true;
+        menu.classList.remove('is-open', 'is-closing');
+        document.body.classList.remove('site-menu-open');
+        resetDrag();
+        const usable = element => {
+            if (!element?.isConnected || element.closest('[hidden], [inert]')) return false;
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+        };
+        if (restoreFocus) {
+            reveal();
+            const target = usable(previous) ? previous : toggles.find(usable);
+            target?.focus({ preventScroll: true });
+        }
+        if (menu.contains(document.activeElement)) document.activeElement.blur();
+    }
+    function close(restoreFocus = true, immediately = false) {
+        if (!menu.open) return;
+        resetDrag();
+        menu.classList.remove('is-open');
+        menu.classList.add('is-closing');
+        toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
+        clearTimeout(closeTimer);
+        if (immediately || reduceMotion.matches) finishClose(restoreFocus);
+        else closeTimer = setTimeout(() => finishClose(restoreFocus), 240);
+    }
+    function positionPanel(toggle) {
+        const rect = (toggle || toggles[0]).getBoundingClientRect();
+        // A short landscape or enlarged banner can leave no room beneath its
+        // toggle. Keep a usable viewport-contained panel in that case.
+        const top = Math.max(12, Math.min(rect.bottom + 10, innerHeight - 240));
+        menu.style.setProperty('--site-menu-top', Math.round(top) + 'px');
+        menu.style.setProperty('--site-menu-right', Math.max(12, Math.round(innerWidth - rect.right)) + 'px');
+        menu.style.setProperty('--site-menu-origin', Math.round(rect.width / 2) + 'px');
+    }
+    function fitLabels() {
+        if (!isOpen()) return;
+        const viewport = body.getBoundingClientRect();
+        for (const label of body.querySelectorAll('.site-menu-follow .footer-link-label')) {
+            label.style.removeProperty('--footer-label-shift');
+            label.classList.remove('is-below');
+            if (getComputedStyle(label).clipPath !== 'none') continue;
+            let rect = label.getBoundingClientRect();
+            if (rect.top < viewport.top + 3) {
+                label.classList.add('is-below');
+                rect = label.getBoundingClientRect();
+            }
+            const shift = Math.max(viewport.left + 3 - rect.left, Math.min(0, viewport.right - 3 - rect.right));
+            label.style.setProperty('--footer-label-shift', `${shift}px`);
+        }
+    }
+    for (const eventName of ['focusin', 'pointerover', 'scroll']) {
+        body.addEventListener(eventName, () => requestAnimationFrame(fitLabels), { passive: true });
+    }
+    window.addEventListener('resize', () => requestAnimationFrame(fitLabels));
+    toggles.forEach(toggle => toggle.addEventListener('click', () => isOpen() ? close() : open(toggle)));
+    menu.addEventListener('click', event => {
+        if (!(event.target instanceof Element)) return;
+        if (event.target.closest('[data-site-menu-close]')) close();
+        else if (event.target.closest('a[href]')) close(true, true);
+    });
+    menu.addEventListener('cancel', event => { event.preventDefault(); close(); });
+    menu.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+        else trapFocusWithin(panel, event);
+    });
+    sheetQuery.addEventListener('change', () => close(true, true));
+    window.addEventListener('pagehide', () => close(false, true));
+    window.addEventListener('resize', () => { if (isOpen()) { resetDrag(); positionPanel(opener); } });
+    reduceMotion.addEventListener('change', () => {
+        resetDrag();
+        if (menu.classList.contains('is-closing')) finishClose(true);
+    });
+    // Alert/loading panels can arrive asynchronously while navigation is open.
+    const overlayObserver = new MutationObserver(() => {
+        if (menu.open && (!customAlertDialog.hidden || !loadingDialog.hidden)) {
+            const returnFocus = opener;
+            close(false, true);
+            if (menu.contains(customAlertPreviousFocus)) customAlertPreviousFocus = returnFocus;
+            if (menu.contains(loadingDialogPreviousFocus)) loadingDialogPreviousFocus = returnFocus;
+            if (!customAlertDialog.hidden) customAlertCloseButton.focus({ preventScroll: true });
+            else loadingDialog.querySelector('.loading-dialog-panel')?.focus({ preventScroll: true });
+        }
+    });
+    for (const overlay of [customAlertDialog, loadingDialog]) overlayObserver.observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
+
+    // Only the grip owns a drag. The link area always keeps native vertical
+    // scrolling; touch-action on an ancestor must not suppress that scrolling.
+    panel.addEventListener('pointerdown', event => {
+        if (menu.dataset.layout !== 'sheet' || event.pointerType === 'mouse' || !isOpen()
+            || !event.target.closest('.site-menu-grip') || !event.isPrimary) return;
+        drag = { id: event.pointerId, y: event.clientY, t: event.timeStamp, dy: 0 };
+        panel.setPointerCapture(event.pointerId);
+        panel.classList.add('is-dragging');
+    });
+    panel.addEventListener('pointermove', event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        drag.dy = Math.max(0, event.clientY - drag.y);
+        event.preventDefault();
+        panel.style.translate = '0 ' + drag.dy + 'px';
+        menu.style.setProperty('--site-menu-drag', String(Math.min(1, drag.dy / panel.offsetHeight)));
+    });
+    panel.addEventListener('pointerup', event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const { dy, t } = drag;
+        const dismiss = dy > panel.offsetHeight * 0.3 || dy > 24 && dy / Math.max(1, event.timeStamp - t) > 0.6;
+        resetDrag();
+        if (dismiss) close();
+    });
+    panel.addEventListener('pointercancel', resetDrag);
+    panel.addEventListener('lostpointercapture', resetDrag);
 })();
 
 // Name only the receiving half of a home-to-board handoff. Other native
