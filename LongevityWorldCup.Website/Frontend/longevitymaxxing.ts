@@ -6535,7 +6535,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const draft = profileTimeZoneDraft;
         if (!accessToken || !participantState || !draft || draft.saving || !hasProfileTimeZoneChanges()) return;
         const currentAccessToken = accessToken;
-        let responseGeneration = stateAcceptanceGeneration;
+        let responseState = participantState;
         const submittedTimeZone = draft.timeZoneId;
         const pictureBeforeSave = participantState.participant.profileImageUrl;
         draft.saving = true;
@@ -6544,8 +6544,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         try {
             let result = await postJson(`${API}/edit`, { accessToken: currentAccessToken, timeZoneId: submittedTimeZone });
             // A check-in may have completed while this older profile snapshot was in flight.
-            while (accessToken === currentAccessToken && responseGeneration !== stateAcceptanceGeneration) {
-                responseGeneration = stateAcceptanceGeneration;
+            // Picture-only updates are merged below without replacing the whole state.
+            while (accessToken === currentAccessToken && responseState !== participantState) {
+                responseState = participantState;
                 result = await postJson(`${API}/participant`, { token: currentAccessToken });
             }
             if (profileTimeZoneDraft !== draft || accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
