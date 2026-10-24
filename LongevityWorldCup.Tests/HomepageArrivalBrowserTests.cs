@@ -127,10 +127,16 @@ public sealed class HomepageArrivalBrowserTests(
             // there. Wait for the seventh target, immediately before that script.
             await Assertions.Expect(page.Locator("#events-root-index")).ToBeAttachedAsync();
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+            // Settle the partial page's cold layout before releasing its held
+            // opening frame; stylesheet work must not consume the short entrance.
+            await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
+            await page.EvaluateAsync("() => document.body.getBoundingClientRect().height");
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
             await page.EvaluateAsync("window.releaseOpeningFrame()");
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
-            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalTargets.length"));
+            Assert.Equal(new[] { "main-logo-image", "bannertext", "podium-item first", "podium-item second",
+                "podium-item third", "athleteLeaderboard", "events-root-index" },
+                await page.EvaluateAsync<string[]>("arrivalTargets"));
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
         }
         finally
