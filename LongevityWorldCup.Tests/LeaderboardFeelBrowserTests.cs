@@ -126,6 +126,8 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
         var (context, page) = await OpenAsync(width, true);
         await using var _ = context;
         await page.Locator("#athleteSearch").FillAsync("a");
+        // The initial rows also satisfy the rail predicate while search is debounced.
+        await page.WaitForFunctionAsync("() => new URLSearchParams(location.search).get('search') === 'a'");
         await page.WaitForFunctionAsync("""
             () => {
                 const rows = [...document.querySelectorAll('#athleteLeaderboard > table > tbody > tr[data-athlete-name]')].filter(r => r.getClientRects().length);
@@ -140,7 +142,8 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
         var tick = page.Locator("button.lb-rail-tick").Nth(2);
         await tick.FocusAsync();
         await tick.PressAsync("Enter");
-        Assert.True(await page.EvaluateAsync<bool>("""
+        // Keyboard activation does not wait for the scroll/layout callbacks.
+        await page.WaitForFunctionAsync("""
             () => {
                 const tick = document.querySelectorAll('button.lb-rail-tick')[2];
                 const rows = [...document.querySelectorAll('#athleteLeaderboard > table > tbody > tr[data-athlete-name]')].filter(r => r.getClientRects().length);
@@ -150,7 +153,7 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
                 const clearance = row.getBoundingClientRect().top - header.getBoundingClientRect().bottom - head.getBoundingClientRect().height;
                 return clearance >= 0 && clearance <= 10 && document.querySelector('#athleteLeaderboard > table').getBoundingClientRect().right < document.querySelector('.lb-rail').getBoundingClientRect().left;
             }
-            """));
+            """);
         var name = await page.Locator(Rows + ":visible").First.GetAttributeAsync("data-athlete-name");
         await page.Locator("#athleteSearch").FillAsync(name!);
         await page.WaitForFunctionAsync("() => !document.querySelector('.lb-rail').classList.contains('is-visible') && document.querySelector('.lb-rail').inert");

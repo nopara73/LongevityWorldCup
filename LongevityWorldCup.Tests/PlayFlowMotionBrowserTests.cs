@@ -82,6 +82,27 @@ public sealed class PlayFlowMotionBrowserTests(
         });
         var page = await OpenAsync(context, "/select-athlete");
         await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        // Exercise the prepared transition deterministically. Slow preparation
+        // intentionally replaces the outgoing screen with a loading card, so it
+        // cannot supply a ghost; that path has separate coverage below.
+        await page.EvaluateAsync("""
+            async () => {
+                const flow = window.playAthleteFlow;
+                const athlete = flow.getStoredSelectedAthlete();
+                await Promise.all([
+                    flow.renderAthleteDashboardHeader(athlete, {
+                        titleElement: document.getElementById('athleteDashboardTitle'),
+                        frameElement: document.getElementById('athleteDashboardPicture')
+                    }),
+                    flow.renderDashboardActions(athlete, {
+                        dynamicActionsElement: document.getElementById('athleteDashboardDynamicActions'),
+                        discountElement: document.getElementById('athleteDashboardDiscounts')
+                    })
+                ]);
+                flow.renderAthleteDashboardHeader = () => Promise.resolve();
+                flow.renderDashboardActions = () => Promise.resolve();
+            }
+            """);
         // Measure in the frame that creates the move. A protocol round trip can
         // otherwise outlive a 160ms exit on a busy runner.
         await page.EvaluateAsync("""

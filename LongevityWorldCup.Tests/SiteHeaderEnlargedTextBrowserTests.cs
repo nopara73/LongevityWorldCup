@@ -4,7 +4,7 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.WorkloadB)]
+[Collection(BrowserTestCollections.WorkloadD)]
 public sealed class SiteHeaderEnlargedTextBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
@@ -177,7 +177,9 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
     {
         // Real wheel input cancels Highlights' optional opening scroll even when
         // it has not started, and avoids the homepage's programmatic guard.
-        await page.Mouse.WheelAsync(0, -10000);
+        // scrollY may already be zero before Chromium delivers the wheel event.
+        // Observe that input before measuring, so the opening timer is cancelled.
+        await page.WheelAndWaitForInputAsync(0, -10000);
         await page.WaitForFunctionAsync("() => window.scrollY === 0");
     }
 
@@ -243,7 +245,7 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
                 for (const target of [link, action].filter(visible)) {
                     const rect = target.getBoundingClientRect();
                     const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
-                    if (!hit || !target.contains(hit)) issues.push('header target obscured');
+                    if (!hit || !target.contains(hit)) issues.push(`header target obscured: ${target.className}, scrollY=${scrollY}, center=${(rect.left + rect.right) / 2},${(rect.top + rect.bottom) / 2}, hit=${hit?.tagName}.${hit?.className}`);
                 }
                 return [...new Set(issues)];
             }
