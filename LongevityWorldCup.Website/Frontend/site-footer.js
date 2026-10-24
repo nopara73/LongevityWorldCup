@@ -90,5 +90,15 @@ document.querySelector('.footer a.footer-crest')?.addEventListener('click', even
     event.preventDefault();
     const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
-    document.querySelector('header[role="banner"] .header-link')?.focus({ preventScroll: true });
+    const source = document.activeElement;
+    const started = performance.now();
+    function focusAtTop() {
+        // Do not move keyboard focus off-screen during the smooth scroll, or
+        // steal it if the reader has already chosen another control.
+        if (document.activeElement !== source) return;
+        if (window.scrollY <= 1) {
+            document.querySelector('header[role="banner"] .header-link')?.focus({ preventScroll: true });
+        } else if (performance.now() - started < 2000) requestAnimationFrame(focusAtTop);
+    }
+    focusAtTop();
 });

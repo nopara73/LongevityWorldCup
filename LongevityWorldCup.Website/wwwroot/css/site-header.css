@@ -2243,7 +2243,7 @@ header[role="banner"] > .site-menu-toggle {
     translate: none;
 }
 
-body:has(.footer) .scrolled-button {
+body.has-site-menu .scrolled-button {
     right: calc(max(var(--chrome-gutter), env(safe-area-inset-right, 0px)) + var(--site-nav-toggle) + var(--space-2));
 }
 
@@ -2473,7 +2473,7 @@ body.site-menu-open {
     border-radius: 20px 20px 0 0;
     translate: 0 105%;
     transition: translate var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease-in);
-    touch-action: pan-x;
+    touch-action: auto;
 }
 
 .site-menu[data-layout="sheet"].is-open .site-menu-panel {
@@ -2510,11 +2510,12 @@ body.site-menu-open {
 #site-menu .site-menu-pages {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
     max-width: none;
     margin: 0;
-    overflow: hidden;
+    overflow: visible;
+    flex-shrink: 0;
     border: 1px solid var(--chrome-line);
     border-radius: var(--lwc-radius-lg, 12px);
     background: rgba(255, 255, 255, 0.025);
@@ -2528,11 +2529,11 @@ body.site-menu-open {
     font-size: 1rem;
 }
 
-#site-menu .site-menu-pages .footer-link:nth-child(odd) {
+#site-menu .site-menu-pages .footer-link:nth-of-type(odd) {
     border-right: 1px solid var(--chrome-line);
 }
 
-#site-menu .site-menu-pages .footer-link:nth-child(n + 3) {
+#site-menu .site-menu-pages .footer-link:nth-of-type(n + 3) {
     border-top: 1px solid var(--chrome-line);
 }
 
@@ -2592,33 +2593,15 @@ body.site-menu-open {
 
 @media (max-width: 640px) {
     :root {
-        --site-nav-toggle: 40px;
+        --site-nav-toggle: 44px;
     }
 
-    /* Mark, wordmark, PLAY and the toggle share one row. */
-    header[role="banner"] {
-        flex-wrap: nowrap;
-        gap: var(--space-2);
-    }
-
-    header[role="banner"] .header-link {
-        min-width: 0;
-        column-gap: var(--space-2);
-    }
-
-    header[role="banner"] .bannertext {
-        font-size: clamp(0.95rem, 4.2vw, 1.2rem);
-    }
-
-    header[role="banner"] > .site-menu-toggle {
-        margin-left: 0;
-    }
-
-    /* The front door centres its lockup; the toggle keeps the band's corner. */
+    /* Allow the brand and actions to wrap instead of overlapping enlarged text. */
+    header[role="banner"] { flex-wrap: wrap; gap: var(--space-2); }
+    header[role="banner"] > .site-menu-toggle { margin-left: 0; }
     :where(body.home-page) header[role="banner"] > .site-menu-toggle {
-        position: absolute;
-        top: max(var(--space-4), env(safe-area-inset-top, 0px));
-        right: var(--chrome-gutter);
+        position: static;
+        align-self: center;
         margin: 0;
     }
 
@@ -2626,7 +2609,7 @@ body.site-menu-open {
         right: max(var(--space-3), env(safe-area-inset-right, 0px));
     }
 
-    body:has(.footer) .scrolled-button {
+    body.has-site-menu .scrolled-button {
         right: calc(max(var(--space-3), env(safe-area-inset-right, 0px)) + var(--site-nav-toggle) + var(--space-2));
     }
 }
@@ -2680,9 +2663,10 @@ body.site-menu-open {
     }
 }
 
-/* Inside a glide rail the travelling tile draws the ring. */
+/* The travelling tint supplements the focused link's own visible outline. */
 .has-nav-glide > .footer-link.footer-link:focus-visible {
-    outline-color: transparent;
+    outline-color: var(--site-nav-accent);
+    outline-offset: -3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2694,3 +2678,80 @@ body.site-menu-open {
         transition: none;
     }
 }
+
+/* Native modality and a reachable close action on every layout. */
+.site-menu {
+    width: 100vw; height: 100dvh; max-width: none; max-height: none;
+    margin: 0; padding: 0; border: 0; background: transparent; overflow: clip;
+}
+.site-menu::backdrop { background: transparent; }
+.site-menu-toggle[hidden] { display: none; }
+.site-menu-toolbar { display: flex; align-items: center; justify-content: flex-end; flex: 0 0 auto; position: relative; }
+.site-menu-close {
+    display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px;
+    padding: 0; margin: 0; border: 1px solid var(--chrome-line-strong); border-radius: 50%;
+    background: rgba(255,255,255,.04); color: #fff; cursor: pointer;
+}
+.site-menu-close > span { position: relative; width: 18px; height: 18px; }
+.site-menu-close > span::before,
+.site-menu-close > span::after { content: ''; position: absolute; left: 0; top: 8px; width: 18px; height: 2px; background: currentColor; transform: rotate(45deg); }
+.site-menu-close > span::after { transform: rotate(-45deg); }
+.site-menu-close:hover { background: rgba(25,195,209,.1); border-color: var(--site-nav-accent); }
+.site-menu-close:focus-visible { outline: 3px solid var(--site-nav-accent); outline-offset: 2px; }
+.site-menu[data-layout="sheet"] .site-menu-grip {
+    position: absolute; left: 50%; top: 0; width: 64px; height: 44px; margin: 0;
+    transform: translateX(-50%); background: transparent; box-shadow: none; touch-action: none;
+}
+.site-menu-grip::after {
+    content: ''; position: absolute; width: 40px; height: 5px; top: 19px; left: 12px;
+    border-radius: 999px; background: var(--chrome-line-strong);
+}
+.site-menu-body { padding: 3px; margin: -3px; container-type: inline-size; flex: 0 1 auto; }
+#site-menu .site-menu-pages .footer-link { min-width: 0; overflow-wrap: anywhere; }
+#site-menu .site-menu-follow { flex-shrink: 0; --footer-ink-soft: #cbd5e1; --footer-accent: #19c3d1; --footer-line-strong: var(--chrome-line-strong); }
+@container (max-width: 16em) {
+    #site-menu .site-menu-pages { grid-template-columns: minmax(0, 1fr); }
+    #site-menu .site-menu-pages .footer-link { border-right: 0; }
+    #site-menu .site-menu-pages .footer-link + .footer-link { border-top: 1px solid var(--chrome-line); }
+}
+.site-menu[data-layout="sheet"] .site-menu-panel {
+    padding-inline: max(var(--space-4), env(safe-area-inset-left, 0px)) max(var(--space-4), env(safe-area-inset-right, 0px));
+}
+.site-menu[data-layout="panel"] .site-menu-panel { max-height: calc(100dvh - var(--site-menu-top, 80px) - 12px); }
+.site-sticky-header.is-stacked .site-sticky-menu-toggle { bottom: calc(4px + (var(--site-sticky-action-height) - var(--site-nav-toggle)) / 2); }
+@media (max-width: 280px) {
+    header[role="banner"] > .site-menu-toggle { align-self: center; }
+    .site-menu[data-layout="sheet"] .site-menu-grip { left: calc((100% - 52px) / 2); }
+}
+@media (forced-colors: active) {
+    .site-menu-close { border-color: ButtonText; }
+    .has-nav-glide > .footer-link.footer-link:focus-visible { outline-color: Highlight; }
+}
+
+/* Keep PLAY and Menu together when the complete lockup needs its own row. */
+.site-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); flex: 0 0 auto; margin-left: auto; }
+header[role="banner"] { flex-wrap: wrap; }
+header[role="banner"] .site-header-actions .join-game { margin: 0; }
+@media (min-width: 281px) and (max-width: 932px) {
+    :where(body:not(.home-page)) header[role="banner"] .header-link { flex: 1 1 min-content; }
+}
+@media (max-width: 640px) {
+    :where(body.home-page) header[role="banner"] .site-header-actions { align-self: center; width: 100%; max-width: calc(26rem + 52px); margin: 0; }
+    :where(body.home-page) header[role="banner"] .site-header-actions .join-game { flex: 1 1 auto; min-width: 0; width: auto; }
+}
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    :where(body.home-page) header[role="banner"] .site-header-actions { width: auto; margin-left: auto; }
+}
+
+
+html:has(#site-menu[open]) { overflow: hidden; scrollbar-gutter: stable; }
+.site-menu.is-open .site-menu-body .footer-link:focus-visible { animation: none; }
+#site-menu .site-menu-follow .footer-link { scroll-margin-block: 3rem; }
+#site-menu .site-menu-follow .footer-link-label {
+    box-sizing: border-box;
+    max-width: calc(100cqw - 8px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    transform: translateX(var(--footer-label-shift, 0px));
+}
+#site-menu .site-menu-follow .footer-link-label.is-below { bottom: auto; top: calc(100% + 0.55rem); }

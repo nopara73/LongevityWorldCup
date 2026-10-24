@@ -35,7 +35,7 @@ public sealed class SiteChromeSystemBrowserTests(
                 const brand = document.querySelector('header[role=banner] .header-link').getBoundingClientRect();
                 const logo = document.querySelector('header[role=banner] .main-logo-image').getBoundingClientRect();
                 const play = document.querySelector('header[role=banner] .join-game:not(.scrolled-button)').getBoundingClientRect();
-                return [brand.left, logo.left, play.right, document.documentElement.clientWidth, play.top + play.height / 2, logo.top + logo.height / 2];
+                return [brand.left, logo.left, document.querySelector('header .site-header-actions').getBoundingClientRect().right, document.documentElement.clientWidth, play.top + play.height / 2, logo.top + logo.height / 2];
             }
             """);
         Assert.InRange(box[1], gutter - 2, gutter + 2);
@@ -128,7 +128,7 @@ public sealed class SiteChromeSystemBrowserTests(
                 const title = document.querySelector('.site-sticky-header-title');
                 const play = document.querySelector('.scrolled-button').getBoundingClientRect();
                 const bar = document.getElementById('site-sticky-header').getBoundingClientRect();
-                return [logo.left, document.documentElement.clientWidth - play.right, parseFloat(getComputedStyle(title).borderLeftWidth),
+                return [logo.left, document.documentElement.clientWidth - document.querySelector('.site-sticky-menu-toggle').getBoundingClientRect().right, parseFloat(getComputedStyle(title).borderLeftWidth),
                     play.top - bar.top, bar.bottom - play.bottom, parseFloat(getComputedStyle(document.getElementById('site-sticky-header')).borderBottomWidth)];
             }
             """);
@@ -153,7 +153,7 @@ public sealed class SiteChromeSystemBrowserTests(
                 const header = document.querySelector('header[role=banner]').getBoundingClientRect();
                 const brand = document.querySelector('header[role=banner] .header-link').getBoundingClientRect();
                 const play = document.querySelector('header[role=banner] .join-game:not(.scrolled-button)').getBoundingClientRect();
-                return [header.width, brand.left + brand.width / 2, play.width, play.top - brand.bottom, play.left + play.width / 2];
+                return [header.width, brand.left + brand.width / 2, document.querySelector('header .site-header-actions').getBoundingClientRect().width, play.top - brand.bottom, document.querySelector('header .site-header-actions').getBoundingClientRect().left + document.querySelector('header .site-header-actions').getBoundingClientRect().width / 2];
             }
             """);
         Assert.InRange(Math.Abs(box[1] - box[0] / 2), 0, 2);
@@ -190,7 +190,7 @@ public sealed class SiteChromeSystemBrowserTests(
                     EqualHeights: boxes.every(b => Math.abs(b.height - boxes[0].height) < 1),
                     CrestCentered: Math.abs(crestBox.left + crestBox.width / 2 - (footer.left + footer.width / 2)) < 1.5,
                     CrestOnEdge: Math.abs(crestBox.top + crestBox.height / 2 - footer.top) < 1.5,
-                    CrestHidden: crest.getAttribute('aria-hidden') === 'true' && mark.alt === ''
+                    CrestNamed: crest.getAttribute('aria-label') === 'Back to top' && crest.tagName === 'A' && mark.alt === ''
                 };
             }
             """);
@@ -200,7 +200,7 @@ public sealed class SiteChromeSystemBrowserTests(
         Assert.Equal(5, rail.Dividers);
         Assert.True(rail.EqualHeights);
         Assert.True(rail.CrestCentered && rail.CrestOnEdge, "The crest should sit centred on the footer's top edge.");
-        Assert.True(rail.CrestHidden, "The decorative crest should stay out of the accessibility tree.");
+        Assert.True(rail.CrestNamed, "The back-to-top crest must have an accessible name and decorative image.");
         await page.WaitForFunctionAsync("() => { const i = document.querySelector('.footer-crest img'); return i.complete && i.naturalWidth > 0; }");
     }
 
@@ -284,7 +284,8 @@ public sealed class SiteChromeSystemBrowserTests(
                     if (bar.getAttribute('aria-hidden') !== 'false') continue;
                     const b = bar.getBoundingClientRect();
                     const a = document.querySelector('.scrolled-button').getBoundingClientRect();
-                    samples.push([b.top, Math.abs(a.top + a.height / 2 - b.top - b.height / 2)]);
+                    const target = bar.classList.contains('is-stacked') ? b.bottom - 4 - parseFloat(getComputedStyle(bar).getPropertyValue('--site-sticky-action-height')) / 2 : b.top + b.height / 2;
+                    samples.push([b.top, Math.abs(a.top + a.height / 2 - target)]);
                 }
                 return samples;
             }
@@ -597,6 +598,6 @@ public sealed class SiteChromeSystemBrowserTests(
         public bool EqualHeights { get; set; }
         public bool CrestCentered { get; set; }
         public bool CrestOnEdge { get; set; }
-        public bool CrestHidden { get; set; }
+        public bool CrestNamed { get; set; }
     }
 }

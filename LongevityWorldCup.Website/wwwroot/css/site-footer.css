@@ -431,7 +431,7 @@
 }
 
 .has-nav-glide > .footer-link:focus-visible {
-    outline-color: transparent;
+    outline-color: var(--footer-accent, #19c3d1);
 }
 
 .nav-glide {
@@ -493,6 +493,8 @@
         background: Highlight;
         opacity: 0.35;
     }
+    .nav-glide:not(.is-shown) { opacity: 0; }
+    .has-nav-glide > .footer-link:focus-visible { outline-color: Highlight; }
 }
 
 /* The crest doubles as the way back up: it lifts toward the top on hover. */
@@ -546,6 +548,10 @@ a.footer-crest:hover .footer-crest-mark {
         opacity: 0;
         translate: 0 18px;
     }
+}
+
+.footer:focus-within :is(.footer-column--explore, .footer-follow-links, .footer-subscriptions) {
+    animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
