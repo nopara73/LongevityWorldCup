@@ -19,6 +19,7 @@ public sealed class FrontendTypeScriptBuildTests
         "initial-view",
         "longevitymaxxing",
         "motion",
+        "touch",
         "site-statistics",
         "site-statistics-tracking"
     ];

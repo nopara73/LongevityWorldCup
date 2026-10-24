@@ -19,12 +19,6 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Long-press callouts and text selection would fight a press on cards. */
-:root[data-lwc-touch="touch"] :is(button, label.view-badge, .option-button, .podium-item, [role="button"], [data-lwc-tap]) {
-    -webkit-touch-callout: none;
-    user-select: none;
-}
-
 /* motion.css presses on :active, which Android also applies while a finger
  * scrolls past. Touch screens press through data-lwc-pressed instead. */
 :root[data-lwc-touch] :is(button, [role="button"], [role="tab"], summary, a, .view-badge, .podium-item, input[type="submit"], input[type="button"]):active:not([data-lwc-pressed]) {
@@ -87,12 +81,6 @@
 :root[data-lwc-touch] [data-lwc-scroller] {
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
-    scroll-padding-inline: var(--lwc-space-3, 12px);
-    scrollbar-width: none;
-}
-
-:root[data-lwc-touch] [data-lwc-scroller]::-webkit-scrollbar {
-    display: none;
 }
 
 :root[data-lwc-touch] :is(.proof-review-filmstrip, .modal-badge-strip, .view-switcher-chips, .leaderboard-selection-chips, [data-lwc-scroller="snap"]) {
@@ -103,7 +91,7 @@
     scroll-snap-align: start;
 }
 
-[data-lwc-scroller][data-lwc-fade] {
+:root[data-lwc-touch] [data-lwc-scroller][data-lwc-fade] {
     --lwc-fade-size: 28px;
     --lwc-fade-start: 0px;
     --lwc-fade-end: 0px;
@@ -118,18 +106,13 @@
 @property --lwc-fade-end { syntax: "<length>"; inherits: false; initial-value: 0px; }
 
 @media (prefers-reduced-motion: no-preference) {
-    [data-lwc-scroller][data-lwc-fade] {
+    :root[data-lwc-touch] [data-lwc-scroller][data-lwc-fade] {
         transition: --lwc-fade-start var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), --lwc-fade-end var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
     }
 }
 
 /* 5) Sibling views: the surface lets the browser keep vertical scrolling and
  * hands horizontal drags to the swipe. */
-:root[data-lwc-touch] [data-lwc-swipe-views],
-:root[data-lwc-touch] main[data-lwc-swipe-back] {
-    touch-action: pan-y pinch-zoom;
-}
-
 :root[data-lwc-touch] [data-lwc-swipe-views][data-lwc-swiping] {
     will-change: translate, opacity;
     user-select: none;
@@ -211,7 +194,6 @@
     }
 
     :root[data-lwc-touch] [data-lwc-sheet][data-lwc-sheet-dragging] {
-        opacity: calc(1 - var(--lwc-sheet-progress, 0) * 0.6);
         transition: none;
     }
 
@@ -313,6 +295,9 @@ main[data-lwc-pull][data-lwc-pulling="refreshing"] .lwc-pull-ring svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .lwc-swipe-back-peek { translate: 8px 0; scale: 1; }
+    .lwc-pull-ring { translate: none; scale: 1; }
+
     main[data-lwc-pull][data-lwc-pulling] > :not(.lwc-pull-ring) {
         translate: none;
     }

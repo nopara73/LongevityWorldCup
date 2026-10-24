@@ -35,6 +35,8 @@ interface LwcTouchPullDetail {
 }
 
 interface LwcTouchApi {
+    readonly claim: (owner: object) => boolean;
+    readonly release: (owner: object) => void;
     readonly isTouch: () => boolean;
     readonly views: (surface: HTMLElement, options: LwcTouchViewsOptions) => void;
     readonly sheet: (overlay: HTMLElement, options: LwcTouchSheetOptions) => void;
@@ -49,7 +51,7 @@ interface Window {
 
 (() => {
     const root = document.documentElement;
-    const touchOnly = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const touchOnly = window.matchMedia("(hover: none) and (pointer: coarse) and (any-hover: none)");
     const coarse = window.matchMedia("(pointer: coarse)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -61,7 +63,7 @@ interface Window {
     ].join(", ");
     const notTappable = ":disabled, [aria-disabled='true'], .no-results, .tier-separator, .leaderboard-skeleton-row, .events-skeleton-row";
     // Gestures never start on something that already owns a drag.
-    const gestureExclusions = "input:not([type='radio'], [type='checkbox']), select, textarea, canvas, iframe, video, [contenteditable]:not([contenteditable='false']), [role='slider'], [data-lwc-no-gesture]";
+    const gestureExclusions = "a, button, input, select, textarea, canvas, iframe, video, [contenteditable]:not([contenteditable='false']), [role='button'], [role='slider'], [role='spinbutton'], [role='menu'], [role='listbox'], .athlete-share-menu, .site-menu, .sidebar-filter-list, [data-lwc-no-gesture]";
     const smallControls = [
         "button", "[role='button']", "summary", "label.view-badge", "a.modal-link",
         ".athlete-step", ".close", ".sticky-close-btn", ".clear-icon", ".image-nav",
@@ -78,6 +80,42 @@ interface Window {
     const pressDelay = 60;
     const pressHold = 110;
     const slop = 10;
+
+    let owner: object | null = null;
+    const cancellations = new Map<HTMLElement, Set<() => void>>();
+    function registerCancellation(element: HTMLElement, cancel: () => void): void {
+        const callbacks = cancellations.get(element) ?? new Set<() => void>();
+        callbacks.add(cancel);
+        cancellations.set(element, callbacks);
+    }
+    let multipleTouches = false;
+    function claim(candidate: object): boolean {
+        if (multipleTouches || (owner && owner !== candidate) || !window.getSelection()?.isCollapsed) return false;
+        owner = candidate;
+        clearPress(press, 0);
+        press = null;
+        return true;
+    }
+    function release(candidate: object): void { if (owner === candidate) owner = null; }
+    function cancelGestures(): void {
+        cancellations.forEach(callbacks => callbacks.forEach(cancel => cancel()));
+        document.dispatchEvent(new Event("lwc:gesture-cancel"));
+        owner = null;
+        clearPress(press, 0);
+        press = null;
+    }
+    document.addEventListener("touchstart", event => {
+        multipleTouches = event.touches.length !== 1;
+        if (multipleTouches) cancelGestures();
+    }, { capture: true, passive: true });
+    document.addEventListener("touchend", event => { if (!event.touches.length) multipleTouches = false; }, { capture: true, passive: true });
+    document.addEventListener("touchcancel", cancelGestures, { capture: true, passive: true });
+    window.addEventListener("blur", cancelGestures);
+    document.addEventListener("keydown", cancelGestures, { capture: true });
+    document.addEventListener("contextmenu", cancelGestures, { capture: true });
+    document.addEventListener("pointercancel", cancelGestures, { capture: true, passive: true });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) cancelGestures(); });
+    document.addEventListener("selectionchange", () => { if (!window.getSelection()?.isCollapsed) cancelGestures(); });
 
     function isTouch(): boolean {
         return root.dataset["lwcTouch"] === "touch";
@@ -112,6 +150,40 @@ interface Window {
         return false;
     }
 
+    // A nested scroll region keeps its whole gesture, including at its boundary.
+    // Never turn the tail of a native scroll into a page refresh or dismissal.
+    function scrollsVertically(from: Element | null, stop: Element | null): boolean {
+        for (let node = from; node && node !== stop && node !== document.body; node = node.parentElement) {
+            if (node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY)) return true;
+        }
+        return false;
+    }
+
+    // Recognize before the browser hands a pan to its compositor. Setting
+    // touch-action on a whole main/card also disables nested native sliders;
+    // a non-passive move listener can instead claim only a deliberate gesture.
+    function gestureListener(element: HTMLElement, type: string, handler: (event: PointerEvent) => void, _options?: AddEventListenerOptions): void {
+        const touchType: Record<string, string> = { pointerdown: 'touchstart', pointermove: 'touchmove', pointerup: 'touchend', pointercancel: 'touchcancel' };
+        element.addEventListener(type, event => {
+            if (!event.isTrusted) handler(event as PointerEvent);
+        });
+        const mapped = touchType[type];
+        if (!mapped) return;
+        element.addEventListener(mapped, raw => {
+            const event = raw as TouchEvent;
+            const touch = event.changedTouches[0];
+            if (!touch) return;
+            if (type === 'pointermove' && !event.cancelable) { cancelGestures(); return; }
+            const pointer = new PointerEvent(type, {
+                pointerType: 'touch', pointerId: touch.identifier + 1, isPrimary: event.touches.length <= 1,
+                clientX: touch.clientX, clientY: touch.clientY
+            });
+            Object.defineProperty(pointer, 'target', { value: event.target });
+            handler(pointer);
+            if (type === 'pointermove' && owner === element && event.touches.length === 1 && event.cancelable) event.preventDefault();
+        }, { passive: type !== 'pointermove' });
+    }
+
     // ---------------------------------------------------------------- mode
     function syncMode(): void {
         if (touchOnly.matches) root.dataset["lwcTouch"] = "touch";
@@ -120,17 +192,18 @@ interface Window {
     }
 
     syncMode();
-    touchOnly.addEventListener("change", () => { syncMode(); refresh(); });
-    coarse.addEventListener("change", () => { syncMode(); refresh(); });
+    touchOnly.addEventListener("change", () => { cancelGestures(); syncMode(); refresh(); });
+    coarse.addEventListener("change", () => { cancelGestures(); syncMode(); refresh(); });
 
     // -------------------------------------------------------- sticky hover
     // :hover on a touch-only screen latches after a tap. Rewriting it to
     // :not(*) keeps every rule's other branches (focus, active) intact.
-    const strippedSheets = new WeakSet<CSSStyleSheet>();
+    const originalSelectors = new Map<CSSStyleRule, string>();
 
     function stripRules(rules: CSSRuleList): void {
         for (const rule of Array.from(rules)) {
             if (rule instanceof CSSStyleRule && rule.selectorText.includes(":hover")) {
+                if (!originalSelectors.has(rule)) originalSelectors.set(rule, rule.selectorText);
                 rule.selectorText = rule.selectorText.replace(/:hover\b/g, ":not(*)");
             }
             if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) {
@@ -140,16 +213,18 @@ interface Window {
     }
 
     function stripHover(): void {
-        if (!touchOnly.matches) return;
+        if (!touchOnly.matches) {
+            originalSelectors.forEach((selector, rule) => { rule.selectorText = selector; });
+            originalSelectors.clear();
+            return;
+        }
         for (const sheet of Array.from(document.styleSheets)) {
-            if (strippedSheets.has(sheet)) continue;
             let rules: CSSRuleList;
             try {
                 rules = sheet.cssRules;
             } catch {
                 continue; // Cross-origin sheets (icon fonts) carry no hover states we own.
             }
-            strippedSheets.add(sheet);
             stripRules(rules);
         }
     }
@@ -190,7 +265,7 @@ interface Window {
     }
 
     document.addEventListener("pointerdown", event => {
-        if (event.pointerType !== "touch" || !event.isPrimary || !(event.target instanceof Element)) return;
+        if (event.pointerType !== "touch" || !event.isPrimary || multipleTouches || !(event.target instanceof Element)) return;
         clearPress(press, 0);
         const target = event.target.closest<HTMLElement>(tappable);
         if (!target || target.matches(notTappable) || target.closest("[inert]")) { press = null; return; }
@@ -217,7 +292,7 @@ interface Window {
         clearPress(state, pressHold);
     }, { capture: true, passive: true });
 
-    for (const type of ["pointercancel", "scroll", "dragstart"]) {
+    for (const type of ["pointercancel", "lostpointercapture", "scroll", "dragstart"]) {
         document.addEventListener(type, () => { clearPress(press, 0); press = null; }, { capture: true, passive: true });
     }
 
@@ -227,10 +302,25 @@ interface Window {
     // ----------------------------------------------------------- hit areas
     function growTargets(scope: ParentNode): void {
         if (!coarse.matches) return;
+        document.querySelectorAll<HTMLElement>('[data-lwc-hit]').forEach(element => {
+            delete element.dataset['lwcHit'];
+            delete element.dataset['lwcHitAnchor'];
+        });
+        const targets = Array.from(document.querySelectorAll<HTMLElement>(tappable)).filter(element => visible(element) && !element.closest('[inert]'));
+        const boxes = targets.map(element => ({ element, rect: element.getBoundingClientRect() }));
         for (const element of Array.from(scope.querySelectorAll<HTMLElement>(smallControls))) {
-            if (element.dataset["lwcHit"] !== undefined || !visible(element)) continue;
+            if (!visible(element) || element.closest('[inert]')) continue;
             const rect = element.getBoundingClientRect();
             if (rect.width >= minTarget && rect.height >= minTarget) continue;
+            const padX = Math.min(10, Math.max(0, (minTarget - rect.width) / 2));
+            const padY = Math.min(10, Math.max(0, (minTarget - rect.height) / 2));
+            if (boxes.some(({ element: other, rect: box }) => {
+                if (other === element || other.contains(element) || element.contains(other)) return false;
+                const x = Math.min(10, Math.max(0, (minTarget - box.width) / 2));
+                const y = Math.min(10, Math.max(0, (minTarget - box.height) / 2));
+                return rect.left - padX < box.right + x && rect.right + padX > box.left - x
+                    && rect.top - padY < box.bottom + y && rect.bottom + padY > box.top - y;
+            })) continue;
             const style = getComputedStyle(element);
             if (style.display === "inline" || style.display === "contents") continue;
             const free = (pseudo: string) => getComputedStyle(element, pseudo).content === "none";
@@ -242,6 +332,24 @@ interface Window {
     }
 
     // ------------------------------------------------------------ scrollers
+    const cleanups = new Map<HTMLElement, Array<() => void>>();
+    function cleanupFor(element: HTMLElement, cleanup: () => void): void {
+        const existing = cleanups.get(element) ?? [];
+        existing.push(cleanup);
+        cleanups.set(element, existing);
+    }
+    function cleanRemoved(): void {
+        cancellations.forEach((callbacks, element) => {
+            if (element.isConnected) return;
+            callbacks.forEach(cancel => cancel());
+            cancellations.delete(element);
+        });
+        cleanups.forEach((callbacks, element) => {
+            if (element.isConnected) return;
+            callbacks.forEach(callback => callback());
+            cleanups.delete(element);
+        });
+    }
     const scrollers = new WeakSet<HTMLElement>();
     const resize = new ResizeObserver(entries => {
         for (const entry of entries) if (entry.target instanceof HTMLElement) edges(entry.target);
@@ -262,7 +370,9 @@ interface Window {
         if (scrollers.has(element)) return;
         scrollers.add(element);
         element.dataset["lwcScroller"] ??= "";
-        element.addEventListener("scroll", () => edges(element), { passive: true });
+        const update = () => edges(element);
+        element.addEventListener("scroll", update, { passive: true });
+        cleanupFor(element, () => { resize.unobserve(element); element.removeEventListener("scroll", update); scrollers.delete(element); });
         resize.observe(element);
         edges(element);
     }
@@ -272,44 +382,41 @@ interface Window {
     }
 
     // --------------------------------------------------------- swipe views
-    // Horizontal swipes on a surface step through sibling views. The surface
-    // follows the finger, the next view slides in from the side it came from.
+    // Horizontal swipes step through sibling views. Row FLIP retains ownership
+    // of layout movement; a restrained fade communicates the finger's intent.
     function views(surface: HTMLElement, options: LwcTouchViewsOptions): void {
         if (surface.dataset["lwcSwipeViews"] !== undefined) return;
         surface.dataset["lwcSwipeViews"] = "";
         let drag: { id: number; x: number; y: number; t: number; dx: number; active: boolean } | null = null;
 
-        surface.addEventListener("pointerdown", event => {
-            if (event.pointerType !== "touch" || !event.isPrimary || !(event.target instanceof Element)) return;
-            if (event.target.closest(gestureExclusions) || scrollsSideways(event.target, surface.parentElement)) return;
+        gestureListener(surface, "pointerdown", event => {
+            registerCancellation(surface, cancel);
+            if (event.pointerType !== "touch" || !event.isPrimary || multipleTouches || !(event.target instanceof Element) || !window.getSelection()?.isCollapsed) return;
+            if (event.clientX < 20 || event.clientX > innerWidth - 20 || event.target.closest(gestureExclusions) || scrollsSideways(event.target, surface.parentElement)) return;
             drag = { id: event.pointerId, x: event.clientX, y: event.clientY, t: performance.now(), dx: 0, active: false };
         }, { passive: true });
 
-        surface.addEventListener("pointermove", event => {
+        gestureListener(surface, "pointermove", event => {
             if (!drag || event.pointerId !== drag.id) return;
             const dx = event.clientX - drag.x;
             const dy = event.clientY - drag.y;
             if (!drag.active) {
                 if (Math.abs(dy) > slop && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
-                if (Math.abs(dx) < slop * 1.6) return;
+                if (Math.abs(dx) < slop * 1.6 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                if (!claim(surface)) { drag = null; return; }
                 drag.active = true;
                 surface.dataset["lwcSwiping"] = "";
             }
             drag.dx = dx;
             if (!moves()) return;
-            const items = options.items();
-            const index = options.current();
-            const edge = (dx > 0 && index <= 0) || (dx < 0 && index >= items.length - 1);
-            // Past the last view the surface resists like a rubber band.
-            const shift = edge ? dx * 0.18 : Math.sign(dx) * Math.min(Math.abs(dx) * 0.45, 72);
-            surface.style.translate = `${shift}px 0`;
-            surface.style.opacity = String(1 - Math.min(0.35, Math.abs(shift) / 220));
+            surface.style.opacity = String(1 - Math.min(0.25, Math.abs(dx) / 600));
         }, { passive: true });
 
         const settle = (event: PointerEvent) => {
             if (!drag || event.pointerId !== drag.id) return;
             const { dx, t, active } = drag;
             drag = null;
+            release(surface);
             if (!active) return;
             delete surface.dataset["lwcSwiping"];
             const velocity = Math.abs(dx) / Math.max(1, performance.now() - t);
@@ -317,23 +424,29 @@ interface Window {
             const index = options.current();
             const step = event.type === "pointerup" && (Math.abs(dx) > 64 || (Math.abs(dx) > 28 && velocity > 0.45)) ? (dx < 0 ? 1 : -1) : 0;
             const next = items[index + step];
-            const from = surface.style.translate || "0 0";
             const opacity = surface.style.opacity || "1";
-            surface.style.translate = "";
             surface.style.opacity = "";
             if (!step || !next) {
-                if (moves()) surface.animate([{ translate: from, opacity }, { translate: "0 0", opacity: 1 }], { duration: token("--lwc-motion-base", 200), easing: ease("--lwc-ease-pop") });
+                if (moves()) surface.animate([{ opacity }, { opacity: 1 }], { duration: token("--lwc-motion-base", 200), easing: ease("--lwc-ease-pop") });
                 return;
             }
             options.activate(next);
-            if (!moves()) return;
-            // The new view arrives from the side the finger pushed towards.
-            const enter = `${step * 40}px 0`;
-            surface.animate([{ translate: enter, opacity: 0.4 }, { translate: "0 0", opacity: 1 }], { duration: token("--lwc-motion-move", 260), easing: ease("--lwc-ease-enter") });
-            if (navigator.vibrate) navigator.vibrate(4);
+
         };
-        surface.addEventListener("pointerup", settle);
-        surface.addEventListener("pointercancel", settle);
+        gestureListener(surface, "pointerup", settle);
+        gestureListener(surface, "pointercancel", settle);
+        surface.addEventListener("lostpointercapture", event => {
+            if (event.isTrusted) return; // Native implicit capture ends before touchend.
+            if (drag && !surface.hasPointerCapture(event.pointerId)) settle(event);
+        });
+        const cancel = () => {
+            if (drag) settle(new PointerEvent("pointercancel", { pointerId: drag.id }));
+        };
+        registerCancellation(surface, cancel);
+        surface.addEventListener("touchmove", event => {
+            if (drag?.active && event.touches.length === 1 && event.cancelable) event.preventDefault();
+        }, { passive: false });
+
     }
 
     // ---------------------------------------------------------- swipe back
@@ -358,23 +471,26 @@ interface Window {
         let drag: { id: number; x: number; y: number; t: number; dx: number; active: boolean; button: HTMLElement } | null = null;
         const threshold = 88;
 
-        main.addEventListener("pointerdown", event => {
-            if (event.pointerType !== "touch" || !event.isPrimary || !(event.target instanceof Element)) return;
+        gestureListener(main, "pointerdown", event => {
+            registerCancellation(main, cancel);
+            if (event.pointerType !== "touch" || !event.isPrimary || multipleTouches || !(event.target instanceof Element) || !window.getSelection()?.isCollapsed) return;
             // Leave the outermost strip to the browser's own back gesture.
-            if (event.clientX < 16 || event.target.closest(gestureExclusions) || event.target.closest("[data-lwc-swipe-views], dialog, [role='dialog']")) return;
-            if (scrollsSideways(event.target, main.parentElement)) return;
+            if (event.clientX < 20 || event.clientX > innerWidth - 20 || event.target.closest(gestureExclusions) || event.target.closest("[data-lwc-swipe-views], dialog, [role='dialog']")) return;
+            if (scrollsSideways(event.target, main.parentElement)
+                || Array.from(document.querySelectorAll("[aria-modal='true']:not([hidden]), dialog[open]")).some(visible)) return;
             const button = currentBack();
             if (!button) return;
             drag = { id: event.pointerId, x: event.clientX, y: event.clientY, t: performance.now(), dx: 0, active: false, button };
         }, { passive: true });
 
-        main.addEventListener("pointermove", event => {
+        gestureListener(main, "pointermove", event => {
             if (!drag || event.pointerId !== drag.id) return;
             const dx = event.clientX - drag.x;
             const dy = event.clientY - drag.y;
             if (!drag.active) {
                 if ((Math.abs(dy) > slop && Math.abs(dy) > Math.abs(dx)) || dx < -slop) { drag = null; return; }
-                if (dx < slop * 1.6) return;
+                if (dx < slop * 1.6 || dx < Math.abs(dy) * 1.5) return;
+                if (!claim(main)) { drag = null; return; }
                 drag.active = true;
                 backPeek ??= document.body.appendChild(Object.assign(document.createElement("div"), { className: "lwc-swipe-back-peek" }));
                 backPeek.setAttribute("aria-hidden", "true");
@@ -392,6 +508,7 @@ interface Window {
             if (!drag || event.pointerId !== drag.id) return;
             const { dx, t, active, button } = drag;
             drag = null;
+            release(main);
             if (!active) return;
             const velocity = dx / Math.max(1, performance.now() - t);
             const go = event.type === "pointerup" && (dx >= threshold || (dx > 40 && velocity > 0.5));
@@ -404,8 +521,20 @@ interface Window {
                 button.click();
             }
         };
-        main.addEventListener("pointerup", settle);
-        main.addEventListener("pointercancel", settle);
+        gestureListener(main, "pointerup", settle);
+        gestureListener(main, "pointercancel", settle);
+        main.addEventListener("lostpointercapture", event => {
+            if (event.isTrusted) return;
+            if (drag && !main.hasPointerCapture(event.pointerId)) settle(event);
+        });
+        const cancel = () => {
+            if (drag) settle(new PointerEvent("pointercancel", { pointerId: drag.id }));
+        };
+        registerCancellation(main, cancel);
+        main.addEventListener("touchmove", event => {
+            if (drag?.active && event.touches.length === 1 && event.cancelable) event.preventDefault();
+        }, { passive: false });
+
     }
 
     // --------------------------------------------------------------- sheets
@@ -417,12 +546,13 @@ interface Window {
         overlay.dataset["lwcSheet"] = "";
         let drag: { id: number; y: number; x: number; t: number; dy: number; active: boolean; panel: HTMLElement } | null = null;
 
-        overlay.addEventListener("pointerdown", event => {
-            if (event.pointerType !== "touch" || !event.isPrimary || !options.isOpen() || !(event.target instanceof Element)) return;
+        gestureListener(overlay, "pointerdown", event => {
+            registerCancellation(overlay, cancel);
+            if (event.pointerType !== "touch" || !event.isPrimary || multipleTouches || !options.isOpen() || !(event.target instanceof Element)) return;
             const panel = options.panel();
             if (!panel || !panel.contains(event.target) || event.target.closest(gestureExclusions)) return;
             const scroller = options.scroller?.() ?? panel;
-            if (scroller.scrollTop > 0) return;
+            if (scroller.scrollTop > 0 || scrollsVertically(event.target, scroller) || scrollsSideways(event.target, panel)) return;
             drag = { id: event.pointerId, y: event.clientY, x: event.clientX, t: performance.now(), dy: 0, active: false, panel };
         }, { passive: true });
 
@@ -432,16 +562,16 @@ interface Window {
             if (drag?.active && event.cancelable) event.preventDefault();
         }, { passive: false });
 
-        overlay.addEventListener("pointermove", event => {
+        gestureListener(overlay, "pointermove", event => {
             if (!drag || event.pointerId !== drag.id) return;
             const dy = event.clientY - drag.y;
             const dx = event.clientX - drag.x;
             if (!drag.active) {
                 if (dy < -slop || (Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy))) { drag = null; return; }
-                if (dy < slop) return;
+                if (dy < slop || dy < Math.abs(dx) * 1.5) return;
+                if (!claim(overlay)) { drag = null; return; }
                 drag.active = true;
                 overlay.dataset["lwcSheetDragging"] = "";
-                try { drag.panel.setPointerCapture(event.pointerId); } catch { /* synthetic pointers */ }
             }
             drag.dy = Math.max(0, dy - slop);
             const height = drag.panel.getBoundingClientRect().height || 1;
@@ -452,8 +582,10 @@ interface Window {
 
         const settle = (event: PointerEvent) => {
             if (!drag || event.pointerId !== drag.id) return;
-            const { dy, t, active, panel } = drag;
+            const { dy, t, active, panel, id } = drag;
             drag = null;
+            release(overlay);
+            if (panel.hasPointerCapture(id)) panel.releasePointerCapture(id);
             if (!active) return;
             delete overlay.dataset["lwcSheetDragging"];
             const height = panel.getBoundingClientRect().height || 1;
@@ -463,20 +595,24 @@ interface Window {
             panel.style.translate = "";
             overlay.style.removeProperty("--lwc-sheet-progress");
             if (close) {
-                if (moves()) {
-                    // Finish the throw, then let the dialog's own close run.
-                    const remaining = Math.max(90, Math.min(200, (height - dy) / Math.max(velocity, 1.2)));
-                    const throwOut = panel.animate([{ translate: from }, { translate: `0 ${height}px` }], { duration: remaining, easing: ease("--lwc-ease-exit"), fill: "forwards" });
-                    throwOut.finished.then(() => { options.dismiss(); window.setTimeout(() => throwOut.cancel(), 320); }, () => undefined);
-                } else {
-                    options.dismiss();
-                }
+                options.dismiss();
                 return;
             }
             if (moves()) panel.animate([{ translate: from }, { translate: "0 0" }], { duration: token("--lwc-motion-move", 260), easing: ease("--lwc-ease-pop") });
         };
-        overlay.addEventListener("pointerup", settle);
-        overlay.addEventListener("pointercancel", settle);
+        gestureListener(overlay, "pointerup", settle);
+        gestureListener(overlay, "pointercancel", settle);
+        overlay.addEventListener("lostpointercapture", event => {
+            if (event.isTrusted) return;
+            if (drag && !overlay.hasPointerCapture(event.pointerId)
+                && !("panel" in drag && drag.panel instanceof HTMLElement && drag.panel.hasPointerCapture(event.pointerId))) settle(event);
+        });
+        const cancel = () => {
+            if (drag) settle(new PointerEvent("pointercancel", { pointerId: drag.id }));
+        };
+        registerCancellation(overlay, cancel);
+        overlay.addEventListener("athlete-dialog-closing", cancel);
+
     }
 
     // ---------------------------------------------------------------- pull
@@ -506,8 +642,10 @@ interface Window {
         };
 
         surface.addEventListener("touchstart", event => {
+            registerCancellation(surface, cancel);
             const touch = event.touches[0];
-            if (busy || event.touches.length !== 1 || !touch || !(event.target instanceof Element)) return;
+            if (busy || event.touches.length !== 1 || !touch || !(event.target instanceof Element)) { start = null; return; }
+            if (window.scrollY > 0 || scrollsVertically(event.target, surface) || scrollsSideways(event.target, surface) || !window.getSelection()?.isCollapsed) return;
             if (event.target.closest(gestureExclusions) || document.querySelector("[aria-modal='true']:not([hidden]), dialog[open]")?.contains(event.target)) return;
             start = { y: touch.clientY, x: touch.clientX };
             distance = 0;
@@ -516,14 +654,15 @@ interface Window {
 
         surface.addEventListener("touchmove", event => {
             const touch = event.touches[0];
-            if (!start || !touch) return;
+            if (!start || !touch || event.touches.length !== 1) return;
             const dy = touch.clientY - start.y;
             const dx = touch.clientX - start.x;
             if (!pulling) {
                 // Scrolling back up to the top turns into a pull without lifting the finger.
-                if (window.scrollY > 0) { start = { y: touch.clientY, x: touch.clientX }; return; }
+                if (window.scrollY > 0) { start = null; return; }
                 if (dy < 0 || Math.abs(dx) > Math.abs(dy)) { if (Math.abs(dy) > slop || Math.abs(dx) > slop) start = null; return; }
-                if (dy < slop) return;
+                if (dy < slop || dy < Math.abs(dx) * 1.5) return;
+                if (!claim(surface)) { start = null; return; }
                 pulling = true;
             }
             if (event.cancelable) event.preventDefault();
@@ -531,12 +670,13 @@ interface Window {
             draw();
         }, { passive: false });
 
-        const release = () => {
+        const finishPull = (cancelled = false) => {
+            release(surface);
             if (!start) return;
             start = null;
             if (!pulling) return;
             pulling = false;
-            if (distance < threshold) {
+            if (cancelled || distance < threshold) {
                 // Spring back first; dropping the state ends the translate.
                 distance = 0;
                 surface.dataset["lwcPulling"] = "done";
@@ -549,7 +689,7 @@ interface Window {
             if (navigator.vibrate) navigator.vibrate(6);
             surface.dataset["lwcPulling"] = "refreshing";
             surface.style.setProperty("--lwc-pull", "56px");
-            const work: Promise<unknown>[] = [new Promise(resolve => window.setTimeout(resolve, 650))];
+            const work: Promise<unknown>[] = [];
             const detail: LwcTouchPullDetail = { waitUntil: promise => { work.push(promise.catch(() => undefined)); } };
             surface.dispatchEvent(new CustomEvent<LwcTouchPullDetail>("lwc:pull-refresh", { bubbles: true, detail }));
             Promise.all(work).then(() => {
@@ -559,10 +699,12 @@ interface Window {
                 window.setTimeout(() => { delete surface.dataset["lwcPulling"]; busy = false; distance = 0; }, token("--lwc-motion-move", 260));
             });
         };
-        surface.addEventListener("touchend", release, { passive: true });
-        // Chrome cancels the touch when it hands a gesture that began as a scroll
-        // to the compositor; an armed pull still counts, a partial one springs back.
-        surface.addEventListener("touchcancel", release, { passive: true });
+        surface.addEventListener("touchend", event => finishPull(event.touches.length !== 0), { passive: true });
+        // Cancellation belongs to native scrolling, pinch or interruption.
+        // It must never count as a completed refresh.
+        surface.addEventListener("touchcancel", () => finishPull(true), { passive: true });
+        const cancel = () => finishPull(true);
+        registerCancellation(surface, cancel);
     }
 
     // ------------------------------------------------------------- opt-ins
@@ -606,7 +748,7 @@ interface Window {
         // The board and the feed pull to refresh.
         const feed = document.querySelector<HTMLElement>("main.event-board-page");
         const fullBoard = document.querySelector<HTMLElement>("main[data-leaderboard-page='full']");
-        for (const surface of [feed, fullBoard]) if (surface) pull(surface);
+        for (const surface of [feed, fullBoard]) if (surface?.hasAttribute("data-lwc-refresh-ready")) pull(surface);
 
         swipeBack();
     }
@@ -624,19 +766,44 @@ interface Window {
         });
     }
 
-    // Late stylesheets and rendered rows join the layer as they arrive.
-    new MutationObserver(records => {
-        for (const record of records) {
-            for (const node of Array.from(record.addedNodes)) {
-                if (node instanceof HTMLLinkElement) node.addEventListener("load", refresh, { once: true });
-                if (node instanceof Element) { refresh(); return; }
+    // Scope ordinary additions; a full scan is reserved for explicit refresh,
+    // viewport/input changes, and initial load.
+    const additions = new Set<Element>();
+    let mutationFrame = 0;
+    const observer = new MutationObserver(records => {
+        cleanRemoved();
+        for (const record of records) for (const node of record.addedNodes) {
+            if (!(node instanceof Element)) continue;
+            if (node.matches("link[rel=stylesheet], style") || node.querySelector("link[rel=stylesheet], style")) {
+                stripHover();
+                for (const link of [node, ...node.querySelectorAll("link[rel=stylesheet]")]) {
+                    if (link instanceof HTMLLinkElement) link.addEventListener("load", stripHover, { once: true });
+                }
             }
+            additions.add(node);
         }
-    }).observe(document.documentElement, { childList: true, subtree: true });
+        if (!additions.size || mutationFrame) return;
+        mutationFrame = requestAnimationFrame(() => {
+            mutationFrame = 0;
+            let controlsChanged = false;
+            additions.forEach(node => {
+                if (!node.isConnected) return;
+                const scope = node.parentElement ?? node;
+                if (node.matches(smallControls) || node.querySelector(smallControls)) controlsChanged = true;
+                if (node.matches(scrollerSelectors) || node.querySelector(scrollerSelectors)) findScrollers(scope);
+            });
+            if (controlsChanged) growTargets(document);
+            additions.clear();
+            adopt();
+        });
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    window.addEventListener("resize", refresh, { passive: true });
+    reduced.addEventListener("change", cancelGestures);
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", refresh, { once: true });
     else refresh();
     window.addEventListener("load", refresh, { once: true });
 
-    window.LwcTouch = { isTouch, views, sheet, pull, scroller, refresh };
+    window.LwcTouch = { claim, release, isTouch, views, sheet, pull, scroller, refresh };
 })();

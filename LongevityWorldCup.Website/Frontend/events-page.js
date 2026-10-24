@@ -1738,6 +1738,15 @@ const eventsPageAssets = document.currentScript.dataset;
     }
 
     window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true,options=null){
+        const feed = document.querySelector('main.event-board-page');
+        if (feed && !feed.hasAttribute('data-lwc-refresh-ready')) {
+            feed.setAttribute('data-lwc-refresh-ready', '');
+            feed.addEventListener('lwc:pull-refresh', event => {
+                event.detail.waitUntil(window.loadEventsTable(maxRows, showViewAll, athleteId, linkNames,
+                    { ...options, useSharedEvents: true, force: true, preserveExistingRows: true }));
+            });
+            window.LwcTouch?.refresh();
+        }
         const requestedPreserveExistingRows = !!(options && options.preserveExistingRows);
         const useSharedEvents = !!(options && options.useSharedEvents);
         setEventsLoadingState(requestedPreserveExistingRows || !!document.querySelector('.event-board-page tr.main-row'));
@@ -1746,11 +1755,11 @@ const eventsPageAssets = document.currentScript.dataset;
         const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
 
         const eventsReq=useSharedEvents
-            ? window.getSharedEvents()
+            ? window.getSharedEvents({ force: !!options?.force })
             : window.fetchPublicJson("/api/events");
-        const athletesReq=window.getSharedAthletes();
+        const athletesReq=window.getSharedAthletes({ force: !!options?.force });
 
-        Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
+        return Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
             const athletesIndex=buildAthleteIndex(athletes);
             eventBoardMarkupOptions = {
                 mentionResolver: slug => resolveMentionName(slug, athletesIndex),

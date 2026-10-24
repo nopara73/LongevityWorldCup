@@ -1165,12 +1165,24 @@ function processRowRevealQueue() {
     }, rowRevealStaggerMs);
 }
 
-function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh = false) {
     window.initializeSharedPageData();
     includePodiumGlobal = includePodium;
     maxAthletesGlobal = maxAthletes;
     athleteResultsReady = false;
-    setLeaderboardLoadingState(includePodium, maxAthletes);
+    if (!refresh) setLeaderboardLoadingState(includePodium, maxAthletes);
+    const fullBoard = document.querySelector('main[data-leaderboard-page="full"]');
+    if (fullBoard && !fullBoard.hasAttribute('data-lwc-refresh-ready')) {
+        fullBoard.setAttribute('data-lwc-refresh-ready', '');
+        fullBoard.addEventListener('lwc:pull-refresh', event => {
+            // Resolve fresh public data before touching the visible selection.
+            event.detail.waitUntil(window.getSharedAthletes({ force: true }).then(() =>
+                LoadLeaderboard(includePodiumGlobal, maxAthletesGlobal, true)).catch(() => {
+                    setLeaderboardStatus('Leaderboard could not load.', true);
+                }));
+        });
+        window.LwcTouch?.refresh();
+    }
 
     const currentLoadPromise = window.getSharedAthletes()
         .then(athletes => {
@@ -1891,7 +1903,9 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             const leagueRouteState = getLeagueRouteState(window.location.pathname);
             const flagRouteState = getFlagRouteState(window.location.pathname);
             const athleteParam = getInitialAthleteSlug();
-            if (athleteParam) {
+            if (refresh) {
+                // Current inputs remain authoritative during a refresh.
+            } else if (athleteParam) {
                 const normalizedAthlete = window.slugifyName(athleteParam, false);
                 const athleteData = getAthleteData(normalizedAthlete);
                 if (athleteData) {
