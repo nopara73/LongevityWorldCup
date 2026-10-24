@@ -1642,14 +1642,15 @@
         }
 
         function calculateResultIfResultAlreadyCalculated() {
-            if (isResultCalculated) hideCalculatedResult();
+            // The live instrument recalculates (or dims) the result itself.
+            if (isResultCalculated && !bioageFlow.isLiveInstrumentBound()) hideCalculatedResult();
         }
 
         function correctCorrectableUnits() {
             const parse = (id) => parseFloat(document.getElementById(id).value);
             const setUnit = (id, val) => {
                 const unitEl = document.getElementById(id);
-                if (!unitEl) return;
+                if (!unitEl || !bioageFlow.canAutoCorrectUnit(unitEl)) return;
 
                 unitEl.value = String(val);
                 bioageFlow.updateBiomarkerExamplePlaceholder(unitEl);
@@ -1691,6 +1692,9 @@
         }
 
         function calculateResult() {
+            bioageFlow.beginCalculation();
+            lastCalculatedPhenoAge = NaN;
+            isResultCalculated = false;
             syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);
 
             // Fill missing biomarker fields on update
@@ -1833,6 +1837,8 @@
 
             // Check if the result is not infinite
             if (!isFinite(phenoAge)) {
+                document.getElementById('continueButton').classList.remove('show');
+                updateCalculateButton();
                 resultElement.classList.add('show');
                 bioageFlow.syncBioageResultVisibility();
                 bioageFlow.animateBioageResult(resultElement, phenoAge, { instant: true });
@@ -1881,6 +1887,7 @@
             renderPhenoRankPreview();
 
             document.getElementById('continueButton').classList.add('show');
+            document.getElementById('continueButton').disabled = false;
             updateCalculateButton();
             bioageFlow.animateBioageResult(resultElement, phenoAge);
 
@@ -2243,6 +2250,12 @@
                 isUpdate,
                 restoreDraft: !isFake && !hasExplicitBiomarkerPrefill
             });
+            bioageFlow.bindLiveInstrument({
+                clock: 'pheno',
+                calculate: calculateResult,
+                hide: hideCalculatedResult,
+                getStep: () => lwcCurrentStep
+            });
 
             if (isUpdate && hasSelectedAthlete) {
                 hideUpdateModeStepNavigation();
@@ -2341,6 +2354,7 @@
         }
 
         function proceedToNextPage() {
+            if (!bioageFlow.flushLiveInstrument()) return;
             syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);
 
             if (isUpdate && touchedBiomarkers.size === 0) {
