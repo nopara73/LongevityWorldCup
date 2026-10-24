@@ -473,3 +473,176 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         }
     });
 })();
+
+// Getting around: the sticky bar tucks away while reading down and returns on
+// the first scroll up, and one menu (a sheet on phones, a panel on wider
+// screens) carries the footer's pages and platforms to the top of every page.
+(function () {
+    const stickyHeader = document.getElementById('site-sticky-header');
+    const menu = document.getElementById('site-menu');
+    const panel = menu?.querySelector('.site-menu-panel');
+    const body = menu?.querySelector('.site-menu-body');
+    const toggles = Array.from(document.querySelectorAll('.site-menu-toggle'));
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const sheetQuery = matchMedia('(max-width: 640px)');
+
+    // Headroom: direction is judged over a short distance so trackpad jitter
+    // never flickers the bar, and long programmatic jumps (anchors, restored
+    // scroll) leave it as it was.
+    let lastY = window.scrollY;
+    let travel = 0;
+    function setTucked(tucked) {
+        if (!stickyHeader) return;
+        if (tucked && (stickyHeader.contains(document.activeElement)
+            || document.activeElement === scrolledJoinButton || (menu && !menu.hidden))) tucked = false;
+        stickyHeader.classList.toggle('is-tucked', tucked);
+        scrolledJoinButton?.classList.toggle('is-tucked', tucked);
+    }
+    window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        const delta = y - lastY;
+        lastY = y;
+        if (Math.abs(delta) > 600) { travel = 0; return; }
+        travel = Math.sign(delta) === Math.sign(travel) ? travel + delta : delta;
+        if (!stickyHeader?.classList.contains('visible')) { setTucked(false); return; }
+        if (travel > 48) setTucked(true);
+        else if (travel < -12) setTucked(false);
+    }, { passive: true });
+    stickyHeader?.addEventListener('focusin', () => setTucked(false));
+    scrolledJoinButton?.addEventListener('focus', () => setTucked(false));
+
+    if (!menu || !panel || !body || !toggles.length) return;
+
+    // The menu mirrors the footer, so each page and platform is named once.
+    let builtFrom = null;
+    function build() {
+        const footer = document.querySelector('.footer');
+        if (!footer || builtFrom === footer) return Boolean(footer);
+        builtFrom = footer;
+        const nodes = [];
+        for (const [selector, className] of [['.footer-column--explore', 'site-menu-pages'], ['.footer-column--follow', 'site-menu-follow']]) {
+            const source = footer.querySelector(selector);
+            if (!source) continue;
+            const copy = source.cloneNode(true);
+            copy.className = source.className + ' ' + className;
+            copy.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+            copy.querySelectorAll('.nav-glide').forEach(element => element.remove());
+            nodes.push(copy);
+        }
+        body.replaceChildren(...nodes);
+        body.querySelectorAll('.footer-link').forEach((link, index) => link.style.setProperty('--site-menu-i', String(index)));
+        window.LwcNavGlide?.(body.querySelector('.site-menu-pages'));
+        return true;
+    }
+
+    let opener = null;
+    let closeTimer = 0;
+    const isOpen = () => !menu.hidden && !menu.classList.contains('is-closing');
+
+    function open(fromToggle) {
+        if (isOpen() || !build()) return;
+        clearTimeout(closeTimer);
+        opener = fromToggle || document.activeElement;
+        menu.classList.remove('is-closing');
+        menu.dataset.layout = sheetQuery.matches ? 'sheet' : 'panel';
+        positionPanel(fromToggle);
+        panel.style.removeProperty('translate');
+        menu.hidden = false;
+        document.body.classList.add('site-menu-open');
+        toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
+        setTucked(false);
+        panel.getBoundingClientRect();
+        menu.classList.add('is-open');
+        const current = body.querySelector('.site-menu-pages [aria-current="page"]') || body.querySelector('.footer-link');
+        (current || panel).focus({ preventScroll: true });
+    }
+
+    function close(restoreFocus = true) {
+        if (!isOpen()) return;
+        panel.style.removeProperty('translate');
+        menu.classList.remove('is-open');
+        menu.classList.add('is-closing');
+        document.body.classList.remove('site-menu-open');
+        toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
+        const finish = () => {
+            menu.hidden = true;
+            menu.classList.remove('is-closing');
+            panel.style.removeProperty('translate');
+        };
+        if (reduceMotion.matches) finish();
+        else closeTimer = setTimeout(finish, 240);
+        const usable = element => element?.isConnected && element.getClientRects().length && !element.closest('[inert]');
+        const target = usable(opener) ? opener : toggles.find(usable);
+        if (restoreFocus && menu.contains(document.activeElement)) target?.focus({ preventScroll: true });
+        opener = null;
+    }
+
+    // Wider screens drop the panel from the toggle that opened it.
+    function positionPanel(toggle) {
+        const rect = (toggle || toggles[0]).getBoundingClientRect();
+        menu.style.setProperty('--site-menu-top', Math.round(rect.bottom + 10) + 'px');
+        menu.style.setProperty('--site-menu-right', Math.max(12, Math.round(innerWidth - rect.right)) + 'px');
+        menu.style.setProperty('--site-menu-origin', Math.round(rect.width / 2) + 'px');
+    }
+
+    toggles.forEach(toggle => toggle.addEventListener('click', () => (isOpen() ? close() : open(toggle))));
+    menu.addEventListener('click', event => {
+        if (event.target instanceof Element && event.target.closest('[data-site-menu-close]')) close();
+    });
+    document.addEventListener('pointerdown', event => {
+        if (isOpen() && menu.dataset.layout === 'panel' && event.target instanceof Element
+            && !panel.contains(event.target) && !event.target.closest('.site-menu-toggle')) close(false);
+    });
+    menu.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+        } else if (typeof trapFocusWithin === 'function') trapFocusWithin(panel, event);
+    });
+    sheetQuery.addEventListener('change', () => close(false));
+    window.addEventListener('pagehide', () => close(false));
+    window.addEventListener('resize', () => { if (isOpen() && menu.dataset.layout === 'panel') positionPanel(opener); });
+
+    // Swipe the sheet down to close it: it follows the finger, the backdrop
+    // clears with it, and a short or slow pull springs back.
+    let drag = null;
+    panel.addEventListener('pointerdown', event => {
+        if (menu.dataset.layout !== 'sheet' || event.pointerType === 'mouse' || !isOpen()) return;
+        if (body.scrollTop > 0 && !event.target.closest('.site-menu-grip')) return;
+        drag = { id: event.pointerId, y: event.clientY, t: event.timeStamp, dy: 0, active: false };
+    });
+    panel.addEventListener('pointermove', event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        drag.dy = Math.max(0, event.clientY - drag.y);
+        if (!drag.active && drag.dy > 6) {
+            drag.active = true;
+            panel.setPointerCapture(event.pointerId);
+            panel.classList.add('is-dragging');
+        }
+        if (drag.active) {
+            event.preventDefault();
+            panel.style.translate = '0 ' + drag.dy + 'px';
+            menu.style.setProperty('--site-menu-drag', String(Math.min(1, drag.dy / panel.offsetHeight)));
+        }
+    });
+    function endDrag(event) {
+        if (!drag || event.pointerId !== drag.id) return;
+        const { dy, t, active } = drag;
+        drag = null;
+        panel.classList.remove('is-dragging');
+        menu.style.removeProperty('--site-menu-drag');
+        if (!active) return;
+        panel.dataset.dragged = '1';
+        setTimeout(() => delete panel.dataset.dragged, 80);
+        const velocity = dy / Math.max(1, event.timeStamp - t);
+        if (dy > panel.offsetHeight * 0.3 || velocity > 0.6) close();
+        else panel.style.removeProperty('translate');
+    }
+    panel.addEventListener('pointerup', endDrag);
+    panel.addEventListener('pointercancel', endDrag);
+    // A drag that starts on a link must not also follow it.
+    panel.addEventListener('click', event => {
+        if (panel.dataset.dragged) { event.preventDefault(); delete panel.dataset.dragged; }
+    }, true);
+})();

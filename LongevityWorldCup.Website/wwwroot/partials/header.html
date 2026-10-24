@@ -24,6 +24,9 @@ longevity leaderboards
 <a href="/play" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
 <strong>PLAY</strong>
 </a>
+<button type="button" class="site-menu-toggle" aria-label="Menu" aria-expanded="false" aria-controls="site-menu">
+<span class="site-menu-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+</button>
 </header>
 <div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" data-tone="info" hidden>
 <div class="custom-alert-panel" tabindex="-1">
@@ -49,6 +52,16 @@ height="32"
 loading="lazy">
 <span class="site-sticky-header-title">Longevity World&nbsp;Cup</span>
 </a>
+<button type="button" class="site-menu-toggle site-sticky-menu-toggle" aria-label="Menu" aria-expanded="false" aria-controls="site-menu">
+<span class="site-menu-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+</button>
+</div>
+<div id="site-menu" class="site-menu" hidden>
+<div class="site-menu-backdrop" data-site-menu-close></div>
+<nav class="site-menu-panel" aria-label="Site" tabindex="-1">
+<span class="site-menu-grip" aria-hidden="true"></span>
+<div class="site-menu-body"></div>
+</nav>
 </div>
 
 <script src="{{ASSET_SITE_HEADER_JS}}"></script>
