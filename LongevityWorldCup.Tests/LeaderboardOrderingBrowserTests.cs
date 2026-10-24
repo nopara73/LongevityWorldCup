@@ -870,6 +870,67 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     }
 
     [Fact]
+    public async Task ToolbarContainerBoundaries_ReflowAtNormalAndEnlargedTextSizes()
+    {
+        var conditions = GetResponsiveContainerInventory().Where(condition => condition.Name == "lwc-bar").ToArray();
+        Assert.NotEmpty(conditions);
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await AssertResponsiveContainerBoundariesAsync(page, conditions);
+    }
+
+    [Theory]
+    [InlineData("/", false)]
+    [InlineData("/", true)]
+    [InlineData("/leaderboard", false)]
+    [InlineData("/leaderboard", true)]
+    public async Task EnlargedToolbarText_KeepsRankingLabelsClearOfSearch(string route, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(route + "?sort=phenoPercent");
+        await Loaded(page);
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        await page.Locator("#athleteSearch").FocusAsync();
+        await page.Locator(".leaderboard-controls").EvaluateAsync("element => scrollTo(0, scrollY + element.getBoundingClientRect().top - 120)");
+        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        var labels = page.Locator(".leaderboard-view-switcher .view-badge:visible");
+        Assert.True(await labels.CountAsync() >= 2);
+        var problems = await labels.EvaluateAllAsync<string[]>("""
+            labels => {
+                const search = document.querySelector('.search-container').getBoundingClientRect();
+                const problems = [];
+                for (const label of labels) {
+                    const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        if (!walker.currentNode.textContent.trim()) continue;
+                        const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+                        for (const rect of range.getClientRects()) {
+                            if (!rect.width || !rect.height) continue;
+                            if (Math.min(rect.right, search.right) > Math.max(rect.left, search.left) + 1
+                                && Math.min(rect.bottom, search.bottom) > Math.max(rect.top, search.top) + 1)
+                                problems.push(`Search overlaps ranking text: ${label.textContent.trim()}`);
+                            if (!label.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)))
+                                problems.push(`Ranking text is obscured: ${label.textContent.trim()}`);
+                        }
+                    }
+                }
+                return problems;
+            }
+            """);
+        Assert.True(problems.Length == 0, string.Join("\n", problems));
+        Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
+        await page.Locator("#view-ultimate").FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToBeFocusedAsync();
+    }
+
+    [Fact]
     public async Task HomepageOrdering_NewlyVisibleAthletesKeepTheirSelectedLeagueRankAndScore()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });

@@ -4,6 +4,7 @@
     <title>Unsubscribe - Longevity World Cup</title>
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_LANDING_PAGE_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_STANDALONE_FEEL_CSS}}">
     <style>
         .join-game {
             display: none !important;
@@ -268,7 +269,16 @@
             const emailInput = document.getElementById("email");
             const button = document.getElementById("unsubscribe-button");
             const message = document.getElementById("message");
+            const panel = form.closest(".unsubscribe-panel");
             let submitting = false;
+
+            // The panel's state drives the press, the send-off and the shake (standalone-feel.css).
+            function setState(state) {
+                panel.removeAttribute("data-unsubscribe-state");
+                if (!state) return;
+                void panel.offsetWidth;
+                panel.setAttribute("data-unsubscribe-state", state);
+            }
             let retryEmail = "";
 
             function setMessage(text, isError) {
@@ -294,6 +304,7 @@
             }
 
             emailInput.addEventListener("input", () => {
+                if (!submitting) setState("");
                 retryEmail = "";
                 emailInput.removeAttribute("aria-invalid");
                 setMessage("", false);
@@ -309,6 +320,7 @@
                 if (!emailInput.checkValidity()) {
                     setMessage(email ? "Enter a valid email address." : "Enter your email address.", true);
                     emailInput.setAttribute("aria-invalid", "true");
+                    setState("error");
                     emailInput.focus();
                     return;
                 }
@@ -317,6 +329,7 @@
                 retryEmail = "";
                 setMessage("", false);
                 submitting = true;
+                setState("busy");
                 renderAction();
                 const controller = new AbortController();
                 // Keep the timeout active through error-body reads as well.
@@ -335,14 +348,18 @@
                         const explanation = response.status === 400 && response.headers.get("content-type")?.includes("text/plain") && serverMessage
                             ? serverMessage : "Couldn’t confirm the removal. Try again.";
                         showFailure(email, explanation);
+                        setState(emailInput.value.trim() === email ? "error" : "");
                         return;
                     }
 
                     // Confirm only the submitted address, preserving a later edit.
-                    if (emailInput.value.trim() === email) emailInput.value = "";
+                    const unchanged = emailInput.value.trim() === email;
+                    if (unchanged) emailInput.value = "";
                     setMessage(`Removed ${email} from the yearly newsletter.`, false);
+                    setState(unchanged ? "done" : "");
                 } catch (_) {
                     showFailure(email, "Couldn’t confirm the removal. Try again.");
+                    setState(emailInput.value.trim() === email ? "error" : "");
                 } finally {
                     clearTimeout(timeout);
                     submitting = false;

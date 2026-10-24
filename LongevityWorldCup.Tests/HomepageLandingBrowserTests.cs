@@ -313,6 +313,60 @@ public sealed class HomepageLandingBrowserTests(
             """), "Refitting must retain the reader's expanded row, control and focus.");
     }
 
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task Highlights_LoadAsOneListAndKeepDecodedIconsDuringLayoutRefits(int width)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.NoPreference);
+        await context.AddInitScriptAsync("""
+            localStorage.setItem('lwcHomepageVisitCount:v1', '4');
+            window.highlightPaints = [];
+            window.highlightGhosts = 0;
+            const sampleHighlights = () => {
+                const rows = [...document.querySelectorAll('#events-root-index tr.main-row')];
+                if (rows.length) {
+                    const ids = rows.map(row => row.dataset.eventId).join(',');
+                    if (highlightPaints.at(-1) !== ids) highlightPaints.push(ids);
+                    highlightGhosts = Math.max(highlightGhosts, document.querySelectorAll('.events-exit-ghost').length);
+                }
+                window.highlightFrame = requestAnimationFrame(sampleHighlights);
+            };
+            requestAnimationFrame(sampleHighlights);
+            """);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForSelectorAsync("#events-root-index tr.main-row");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.WaitForTimeoutAsync(1800);
+        await page.EvaluateAsync("() => cancelAnimationFrame(highlightFrame)");
+        Assert.Single(await page.EvaluateAsync<string[]>("highlightPaints"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("highlightGhosts"));
+
+        var stable = await page.EvaluateAsync<bool>("""
+            async () => {
+                const root = document.querySelector('#events-root-index');
+                const images = [...root.querySelectorAll('img.avatar')];
+                const rows = [...root.querySelectorAll('tr.main-row')];
+                let removals = 0;
+                const observer = new MutationObserver(records => {
+                    for (const record of records) for (const node of record.removedNodes)
+                        if (node.nodeType === 1)
+                            removals += node.matches('img.avatar') ? 1 : node.querySelectorAll('img.avatar').length;
+                });
+                observer.observe(root, { childList: true, subtree: true });
+                await fitHomepageHighlights();
+                document.fonts.dispatchEvent(new Event('loadingdone'));
+                await new Promise(resolve => setTimeout(resolve, 500));
+                observer.disconnect();
+                return removals === 0 && rows.every(row => row.isConnected)
+                    && images.every(image => image.isConnected);
+            }
+            """);
+        Assert.True(stable, "A layout refit must not detach decoded icons or replay feed animations.");
+    }
+
     private static Task<int> CountHighlightsAsync(IPage page) =>
         page.EvaluateAsync<int>("() => document.querySelectorAll('#events-root-index tr.main-row').length");
 

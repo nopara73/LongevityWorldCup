@@ -928,7 +928,7 @@
             }
 
             .documentation-nav-links {
-                max-height: min(65svh, 30rem, var(--documentation-list-height, 65svh));
+                max-height: var(--documentation-list-height, 65svh);
                 overflow-y: auto;
                 overscroll-behavior: contain;
             }
@@ -1242,6 +1242,111 @@
             color: var(--lwc-accent-hover);
         }
 
+        /* Rules fold under their heading: a chevron sits at the end of the
+           heading row, and a folded rule's number tile turns hollow. */
+        .ruleset-rule {
+            --rule-head-top: 1.6rem;
+            position: relative;
+        }
+
+        .documentation-cover + .ruleset-rule {
+            --rule-head-top: 0rem;
+        }
+
+        .has-rule-folds .ruleset-rule > h2 {
+            padding-right: 3.4rem;
+        }
+
+        .ruleset-rule-body {
+            display: flow-root;
+        }
+
+        .ruleset-rule-body > :last-child {
+            margin-bottom: 0;
+        }
+
+        .ruleset-rule-body[hidden] {
+            margin: 0;
+            padding: 0;
+        }
+
+        .ruleset-rule-toggle {
+            box-sizing: border-box;
+            position: absolute;
+            top: calc(var(--rule-head-top) - 0.075rem);
+            right: -0.35rem;
+            display: inline-grid;
+            place-items: center;
+            width: 2.75rem;
+            height: 2.75rem;
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: var(--lwc-radius-pill);
+            background: transparent;
+            color: var(--lwc-accent);
+            font: inherit;
+            cursor: pointer;
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), border-color var(--lwc-duration-fast) var(--lwc-ease), transform var(--lwc-motion-press, 90ms) var(--lwc-ease);
+        }
+
+        .ruleset-rule-toggle::before {
+            content: "";
+            width: 0.6rem;
+            height: 0.6rem;
+            margin-top: 0.3rem;
+            border-right: 2.5px solid currentColor;
+            border-bottom: 2.5px solid currentColor;
+            transform: rotate(-135deg);
+            transition: transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, var(--lwc-ease)), margin var(--lwc-motion-move, 260ms) var(--lwc-ease);
+        }
+
+        .ruleset-rule.is-folded .ruleset-rule-toggle::before {
+            margin-top: -0.3rem;
+            transform: rotate(45deg);
+        }
+
+        .ruleset-rule-toggle:hover,
+        .ruleset-rule-toggle:focus-visible {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+        }
+
+        .ruleset-rule-toggle:active {
+            transform: scale(var(--lwc-motion-press-scale, 0.97));
+        }
+
+        .ruleset-rule-toggle:focus-visible {
+            outline: 3px solid var(--lwc-accent-bright);
+            outline-offset: 1px;
+        }
+
+        .documentation-document .ruleset-rule > h2::before {
+            transition: background-color var(--lwc-duration-normal) var(--lwc-ease), color var(--lwc-duration-normal) var(--lwc-ease), box-shadow var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .documentation-document .ruleset-rule.is-folded > h2::before {
+            background: transparent;
+            box-shadow: inset 0 0 0 2px var(--lwc-accent);
+            color: var(--lwc-accent-hover);
+        }
+
+        .documentation-document .ruleset-rule.is-folded > h2 {
+            margin-bottom: 0;
+        }
+
+        /* FAQ chevrons swing with a small overshoot, like the rule chevrons. */
+        .ruleset-faq-toggle::before {
+            transition: transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, var(--lwc-ease)), margin var(--lwc-motion-move, 260ms) var(--lwc-ease);
+        }
+
+        .ruleset-faq-item {
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .ruleset-faq-item.is-open > h4 {
+            transition: color var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
         /* Lists of lab names read as a grid of chips. */
         .documentation-document .ruleset-term-list {
             display: grid;
@@ -1289,12 +1394,32 @@
             }
         }
 
+        @media (max-width: 600px) {
+            .ruleset-rule {
+                --rule-head-top: 1.35rem;
+            }
+
+            .ruleset-rule-toggle {
+                top: calc(var(--rule-head-top) - 0.25rem);
+                right: -0.55rem;
+            }
+
+            .has-rule-folds .ruleset-rule > h2 {
+                padding-right: 2.6rem;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-            .ruleset-faq-toggle::before {
+            .ruleset-faq-toggle::before,
+            .ruleset-rule-toggle,
+            .ruleset-rule-toggle::before,
+            .ruleset-faq-item,
+            .documentation-document .ruleset-rule > h2::before {
                 transition: none;
             }
         }
     </style>
+    <link rel="stylesheet" href="{{ASSET_DOCUMENTATION_READING_CSS}}">
 </head>
 <body>
     <!--HEADER-->
@@ -1325,23 +1450,28 @@
 </div>
 <section class="ruleset-section ruleset-rule">
 <h2 id="seasons--schedule"><span class="ruleset-rule-title">Seasons &amp; schedule</span></h2>
+<div class="ruleset-rule-body" id="seasons--schedule-body">
 <ul>
 <li>A <strong>Season</strong> is the yearly competition window for <strong>seasonal clocks</strong> (for example the Season 2026 <a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a> competition).</li>
 <li>Seasonal clocks typically start and end around mid-January, and <strong>only accept results from the given calendar year</strong> (January 1 to December 31). At <strong>season close</strong>, final rankings lock for that season.</li>
 <li>Some clocks may run as <strong>all-time competitions</strong> instead of seasonal competitions. <strong>The all-time competition currently uses <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a></strong>.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582" alt="Season duration defines the competition cycle, while test validity defines test acceptance" /></p>
+</div>
 </section>
 <section class="ruleset-section ruleset-rule">
 <h2 id="tracks"><span class="ruleset-rule-title">Tracks</span></h2>
+<div class="ruleset-rule-body" id="tracks-body">
 <p>The Longevity World Cup has multiple tracks: <strong>Amateur</strong> and <strong>Professional</strong>. These use different clocks and rules.</p>
 <ul>
 <li><strong>Amateur</strong>: designed for accessibility. In Season 2026 this track is centered around <strong><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a> (all-time)</strong> submissions.</li>
 <li><strong>Pro</strong>: the flagship <strong>seasonal</strong> competition. In Season 2026 this track uses <strong><a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a></strong> as its seasonal clock and includes prize money.</li>
 </ul>
+</div>
 </section>
 <section class="ruleset-section ruleset-rule">
 <h2 id="point-system-ranking"><span class="ruleset-rule-title">Point system (ranking)</span></h2>
+<div class="ruleset-rule-body" id="point-system-ranking-body">
 <ul>
 <li>What counts is <strong>biological age reduction</strong>: the more your biological age is below your chronological age, the higher you rank.</li>
 <li>You can submit as many tests as you want.
@@ -1354,9 +1484,11 @@
 <li>The competition also uses <strong>leagues</strong> (for example generation-based or other category-based rankings). You can rank globally and still compete within your generation league.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11" alt="Multiple submissions may improve ranking at higher cost, while one strategic submission is cheaper but may miss the optimum" /></p>
+</div>
 </section>
 <section class="ruleset-section ruleset-rule">
 <h2 id="prizes-and-payouts"><span class="ruleset-rule-title">Prizes and payouts</span></h2>
+<div class="ruleset-rule-body" id="prizes-and-payouts-body">
 <ul>
 <li>Prize money is awarded to the top three athletes in the Ultimate League.</li>
 <li>Bitcoin donations fund the prize money pool.</li>
@@ -1364,6 +1496,7 @@
 <li>Payouts are made in Bitcoin in mid-January. If you need a Bitcoin wallet, we'll help you set one up. We recommend <a href="https://blockstream.com/green/" target="_blank" rel="noopener noreferrer">Green Wallet</a> for mobile or <a href="https://wasabiwallet.io/" target="_blank" rel="noopener noreferrer">Wasabi Wallet</a> for desktop. Fun fact: Wasabi Wallet and the Longevity World Cup share the same creator.</li>
 </ul>
 <p><img src="https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2" alt="Prize money timeline from Bitcoin donations through allocation, funding, costs, wallet setup, and January payouts" /></p>
+</div>
 </section>
 <section class="ruleset-section ruleset-faq">
 <h2 id="faq">FAQ</h2>
@@ -1560,39 +1693,73 @@
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const faq = document.querySelector(".ruleset-faq");
+            // Browsers without hidden-until-found support keep every answer and
+            // rule readable and searchable instead of treating it as ordinary hidden.
+            if (!("onbeforematch" in document.body) || document.querySelector(".ruleset-document.has-rule-folds")) {
+                return;
+            }
+            // Folds slide open and shut when the reading system is loaded; without
+            // it they still switch in place.
+            const fold = window.LwcDocumentationFold || ((region, open) => {
+                if (open) {
+                    region.removeAttribute("hidden");
+                } else {
+                    region.setAttribute("hidden", "until-found");
+                }
+            });
+
+            const makeToggle = (className, region, label) => {
+                const toggle = document.createElement("button");
+                toggle.type = "button";
+                toggle.className = className;
+                toggle.setAttribute("aria-controls", region.id);
+                toggle.setAttribute("aria-labelledby", label.id);
+                label.after(toggle);
+                return toggle;
+            };
+
+            // Rules start open; the chevron folds a rule under its heading.
+            const setRuleOpen = (rule, open, animate = true) => {
+                const body = rule.querySelector(".ruleset-rule-body");
+                const toggle = rule.querySelector(".ruleset-rule-toggle");
+                if (!open && body.contains(document.activeElement)) {
+                    toggle?.focus({ preventScroll: true });
+                }
+                rule.classList.toggle("is-folded", !open);
+                toggle?.setAttribute("aria-expanded", String(open));
+                fold(body, open, animate);
+            };
+            const rules = Array.from(document.querySelectorAll(".ruleset-rule"))
+                .filter(rule => rule.querySelector(":scope > h2[id]") && rule.querySelector(":scope > .ruleset-rule-body"));
+            rules.forEach(rule => {
+                const heading = rule.querySelector(":scope > h2");
+                const body = rule.querySelector(":scope > .ruleset-rule-body");
+                const toggle = makeToggle("ruleset-rule-toggle", body, heading);
+                toggle.setAttribute("aria-expanded", "true");
+                toggle.addEventListener("click", () => setRuleOpen(rule, rule.classList.contains("is-folded")));
+                body.addEventListener("beforematch", () => setRuleOpen(rule, true, false));
+            });
+            document.querySelector(".ruleset-document")?.classList.add("has-rule-folds");
+
             if (!faq || faq.classList.contains("is-enhanced")) {
                 return;
             }
 
             const items = Array.from(faq.querySelectorAll(".ruleset-faq-item"));
-            // Browsers without hidden-until-found support keep the answers readable
-            // and searchable instead of treating the value as ordinary hidden.
-            if (!("onbeforematch" in document.body)) {
-                return;
-            }
-            const setOpen = (item, open) => {
+            const setOpen = (item, open, animate = true) => {
                 const answer = item.querySelector(".ruleset-faq-answer");
                 if (!open && answer.contains(document.activeElement)) {
                     item.querySelector(".ruleset-faq-toggle")?.focus({ preventScroll: true });
                 }
                 item.classList.toggle("is-open", open);
                 item.querySelector(".ruleset-faq-toggle")?.setAttribute("aria-expanded", String(open));
-                if (open) {
-                    answer.removeAttribute("hidden");
-                } else {
-                    answer.setAttribute("hidden", "until-found");
-                }
+                fold(answer, open, animate);
             };
 
             items.forEach(item => {
                 const question = item.querySelector("h4");
                 const answer = item.querySelector(".ruleset-faq-answer");
-                const toggle = document.createElement("button");
-                toggle.type = "button";
-                toggle.className = "ruleset-faq-toggle";
-                toggle.setAttribute("aria-controls", answer.id);
-                toggle.setAttribute("aria-labelledby", question.id);
-                question.after(toggle);
+                const toggle = makeToggle("ruleset-faq-toggle", answer, question);
                 toggle.addEventListener("click", () => setOpen(item, !item.classList.contains("is-open")));
                 question.addEventListener("click", event => {
                     if (!event.target.closest("a") && !window.getSelection()?.toString()) {
@@ -1601,10 +1768,17 @@
                     }
                 });
                 // Find in page reveals a collapsed answer.
-                answer.addEventListener("beforematch", () => setOpen(item, true));
-                setOpen(item, false);
+                answer.addEventListener("beforematch", () => setOpen(item, true, false));
+                setOpen(item, false, false);
             });
             faq.classList.add("is-enhanced");
+
+            window.LwcDocumentationRevealTarget = target => {
+                const rule = target?.closest(".ruleset-rule");
+                if (rule) setRuleOpen(rule, true, false);
+                const item = target?.closest(".ruleset-faq-item");
+                if (item) setOpen(item, true, false);
+            };
 
             // A link to a question opens its answer and lands on it.
             const openFromHash = () => {
@@ -1615,15 +1789,18 @@
                     return;
                 }
                 const target = id ? document.getElementById(id) : null;
+                window.LwcDocumentationRevealTarget(target);
                 const item = target?.closest(".ruleset-faq-item");
                 if (!item) {
                     return;
                 }
-                setOpen(item, true);
+                setOpen(item, true, false);
                 const stickyHeader = document.getElementById("site-sticky-header");
                 const measuredHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-sticky-height"));
-                const offset = ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
+                const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--documentation-anchor-offset")) ||
+                    ((stickyHeader && stickyHeader.offsetHeight) || measuredHeight || 52) + 18;
                 window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: "instant" });
+                window.LwcDocumentationArrive?.(target);
             };
             window.addEventListener("hashchange", openFromHash);
             openFromHash();
