@@ -2216,14 +2216,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!lmxMotionAllowed()) return;
         const key = checkInDayKey(form);
         if (elapsed === 0) checkInMoments.set(key, { kind, startedAt: performance.now() });
+        const moment = checkInMoments.get(key);
         form.dataset.lmxMoment = kind;
         form.style.setProperty("--lmx-moment-offset", `${-Math.round(elapsed)}ms`);
         const remaining = Math.max(0, CHECK_IN_MOMENT_MS[kind] - elapsed);
-        window.setTimeout(() => {
-            if (form.dataset.lmxMoment !== kind) return;
-            delete form.dataset.lmxMoment;
-            form.style.removeProperty("--lmx-moment-offset");
-        }, remaining);
+        // Rendering the optimistic board can occupy the rest of this task on a
+        // slow device. Give CSS a rendering frame before starting its cleanup
+        // clock, otherwise the entire moment can expire before it is painted.
+        requestAnimationFrame(() => {
+            if (!form.isConnected || checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
+            if (elapsed === 0 && moment) moment.startedAt = performance.now();
+            window.setTimeout(() => {
+                if (checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
+                delete form.dataset.lmxMoment;
+                form.style.removeProperty("--lmx-moment-offset");
+            }, remaining);
+        });
     }
 
     /** A rebuilt card picks up a moment its predecessor was still playing. */
