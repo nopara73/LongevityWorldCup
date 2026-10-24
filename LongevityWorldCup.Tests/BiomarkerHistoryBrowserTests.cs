@@ -249,6 +249,8 @@ public sealed class BiomarkerHistoryBrowserTests(
     [InlineData(1280, false)]
     [InlineData(390, false)]
     [InlineData(320, true)]
+    [InlineData(195, false)]
+    [InlineData(160, true)]
     public async Task RawComparison_HoverAndTouchTooltipsShowExactValuesAndStayInsideChart(int width, bool touch)
     {
         await using var context = await NewContextAsync(width, true, touch: touch);
@@ -271,7 +273,7 @@ public sealed class BiomarkerHistoryBrowserTests(
         await WaitForChartAsync(page);
         Assert.Equal("scatter", await page.EvaluateAsync<string>("Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).config.type"));
         Assert.Equal(5, await page.EvaluateAsync<int>("Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).data.datasets[0].data.length"));
-        Assert.Equal("Chronological age (years)", await page.EvaluateAsync<string>("Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).options.scales.x.title.text"));
+        Assert.Equal("Chronological age (years)", await page.EvaluateAsync<string>("() => { const text = Chart.getChart(document.querySelector('.result-detail-row:not([hidden]) canvas')).options.scales.x.title.text; return Array.isArray(text) ? text.join(' ') : text; }"));
         foreach (var index in new[] { 0, 4 })
         {
             await HoverPointAsync(page, 0, index, touch);

@@ -362,6 +362,7 @@
     };
     let loadGeneration = 0;
     let trafficChartObserver: ResizeObserver | null = null;
+    let disposeTrafficCrosshair: (() => void) | undefined;
     let selectedTrafficDay: string | null = null;
 
     function calculatorFunnel(selectionLabel: string): FunnelDefinition[] {
@@ -771,6 +772,8 @@
 
     function renderTrafficOverview(): void {
         const host = el("trafficOverview");
+        disposeTrafficCrosshair?.();
+        disposeTrafficCrosshair = undefined;
         trafficChartObserver?.disconnect();
         trafficChartObserver = null;
         el("statsWindow").textContent = formatTrafficWindow();
@@ -960,6 +963,7 @@
         };
         select.addEventListener("change", () => selectDay(select.value));
         svg.addEventListener("click", event => {
+            if (window.LwcCharts) return;
             const bounds = svg.getBoundingClientRect();
             const x = event.clientX - bounds.left;
             if (x < 44 || x > bounds.width - 12) return;
@@ -973,6 +977,22 @@
         trafficChartObserver = new ResizeObserver(draw);
         trafficChartObserver.observe(svg.parentElement!);
         draw();
+        // The shared crosshair reads the same day the bar click would pick.
+        disposeTrafficCrosshair = window.LwcCharts?.crosshair(svg, {
+            points: () => Array.from(svg.querySelectorAll<SVGRectElement>("rect[data-day]")).map(bar => {
+                const day = bar.dataset["day"] || "";
+                const point = points.find(item => item.day === day);
+                const x = bar.x.baseVal.value + bar.width.baseVal.value / 2;
+                return {
+                    key: day,
+                    x,
+                    y: bar.y.baseVal.value,
+                    title: formatTrafficDay(day) + (isPartialTrafficDay(day) ? " · partial day" : ""),
+                    lines: point ? [`${formatNumber(point.sessions)} sessions`, `${formatNumber(point.pageViews)} page views`] : []
+                };
+            }),
+            onPick: selectDay
+        });
     }
 
     function drawTrafficChart(svg: SVGSVGElement, points: TrafficDailyPoint[]): void {
@@ -1003,7 +1023,7 @@
             ${points.map((point, index) => {
                 const x = left + slot * (index + 0.5);
                 const showLabel = index === points.length - 1 || index % labelEvery === 0 && (index === 0 || index < points.length - labelEvery / 2);
-                return `<rect data-day="${escAttr(point.day)}" x="${x - barWidth / 2}" y="${y(point.sessions)}" width="${barWidth}" height="${bottom - y(point.sessions)}" rx="2" class="traffic-session-bar${isPartialTrafficDay(point.day) ? " partial" : ""}"><title>${esc(`${formatDay(point.day)}: ${formatNumber(point.sessions)} sessions${isPartialTrafficDay(point.day) ? ", partial day" : ""}`)}</title></rect>
+                return `<rect data-day="${escAttr(point.day)}" x="${x - barWidth / 2}" y="${y(point.sessions)}" width="${barWidth}" height="${bottom - y(point.sessions)}" rx="2" style="--lwc-bar-index:${index}" class="traffic-session-bar${isPartialTrafficDay(point.day) ? " partial" : ""}"><title>${esc(`${formatDay(point.day)}: ${formatNumber(point.sessions)} sessions${isPartialTrafficDay(point.day) ? ", partial day" : ""}`)}</title></rect>
                     ${slot >= 35 ? `<text x="${x}" y="${y(point.sessions) - 7}" text-anchor="middle" class="traffic-bar-value">${formatNumber(point.sessions)}</text>` : ""}
                     ${showLabel ? `<text class="traffic-date-label" x="${index === 0 ? left : index === points.length - 1 ? width - right : x}" y="${height - 9}" text-anchor="${index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}">${esc(formatTrafficDay(point.day))}</text>` : ""}`;
             }).join("")}`;
@@ -1011,6 +1031,12 @@
         const lastLabel = labels[labels.length - 1];
         if (!lastLabel) return;
         const lastLeft = lastLabel.getBoundingClientRect().left;
+        // At browser zoom the two endpoint dates can be wider than the plot.
+        // Use the free space below the y-axis before removing any middle ticks.
+        const firstLabel = labels[0];
+        if (firstLabel && firstLabel !== lastLabel && firstLabel.getBoundingClientRect().right + 8 > lastLeft) {
+            firstLabel.setAttribute("x", "0");
+        }
         let previousRight = -Infinity;
         labels.forEach((label, index) => {
             const bounds = label.getBoundingClientRect();

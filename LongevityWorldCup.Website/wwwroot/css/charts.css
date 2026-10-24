@@ -1,0 +1,246 @@
+/* Shared charts and numbers (charts.js).
+   One look for every chart, bar, sparkline and figure: the existing palette
+   only, tabular figures, one tooltip shape, one draw-in. Every animated state
+   here is set by the script only while motion is allowed. */
+
+:root {
+    --lwc-chart-font: Roboto, system-ui, sans-serif;
+    --lwc-chart-ink: var(--lwc-ink, #17212b);
+    --lwc-chart-muted: var(--lwc-muted, #52606d);
+    --lwc-chart-grid: color-mix(in srgb, var(--lwc-border, #d7e0e6) 80%, transparent);
+    --lwc-chart-accent: var(--lwc-accent, #087685);
+    --lwc-chart-track: var(--lwc-surface-muted, #eef2f5);
+    --lwc-chart-tip-bg: var(--lwc-ink, #17212b);
+    --lwc-chart-tip-ink: var(--lwc-surface, #ffffff);
+    --lwc-chart-draw: 760ms;
+    --lwc-chart-ease: var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1));
+    --lwc-chart-glide: 160ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --lwc-chart-tip-bg: var(--lwc-surface-muted, #202d38);
+        --lwc-chart-tip-ink: var(--lwc-ink, #e6edf3);
+    }
+}
+
+/* The athlete dialog wears its own dark chart palette. */
+#detailsModal {
+    --lwc-chart-ink: var(--athlete-modal-text, rgba(255,255,255,.94));
+    --lwc-chart-muted: var(--athlete-modal-muted, rgba(255,255,255,.68));
+    --lwc-chart-grid: var(--athlete-modal-chart-grid, rgba(255,255,255,.16));
+    --lwc-chart-accent: var(--athlete-modal-chart-pheno, rgba(135,229,229,.96));
+    --lwc-chart-track: rgba(255,255,255,.08);
+    --lwc-chart-tip-bg: var(--athlete-modal-chart-tooltip, #102028);
+    --lwc-chart-tip-ink: var(--athlete-modal-text, rgba(255,255,255,.94));
+}
+
+.stats-page {
+    --lwc-chart-accent: var(--cyan);
+    --lwc-chart-muted: var(--muted);
+    --lwc-chart-tip-bg: var(--panel-2);
+    --lwc-chart-tip-ink: var(--text);
+}
+
+/* ---- Figures: tabular, so values never jitter as they change or count ---- */
+
+.age-diff,
+.age-bio-age,
+.biomarker-overview-current,
+.biomarker-overview-change,
+.clock-history-reading,
+.biomarker-history-table td,
+.result-field-count,
+.traffic-metric strong,
+.traffic-outcome strong,
+.traffic-ranked-row > span:last-child,
+.traffic-chart text,
+.stats-panel td,
+.prize-money,
+.podium-score,
+.lwc-countdown-box,
+#animatedAge,
+[data-lwc-number] {
+    font-variant-numeric: tabular-nums;
+}
+
+/* A counting figure keeps its real text; an overlay draws the rolling value. */
+[data-lwc-count] {
+    position: relative;
+    color: transparent !important;
+}
+[data-lwc-count]::after {
+    content: attr(data-lwc-count);
+    content: attr(data-lwc-count) / "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    min-width: 100%;
+    color: var(--lwc-count-color, currentColor);
+    text-align: inherit;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
+/* ---- Draw-in: lines sweep from the left, the radar opens from its centre ---- */
+
+canvas[data-lwc-draw="wait"],
+svg[data-lwc-draw="wait"] {
+    opacity: .85;
+}
+canvas[data-lwc-draw="in"],
+svg[data-lwc-draw="in"] {
+    opacity: 1;
+    transition: opacity var(--lwc-chart-draw) var(--lwc-chart-ease);
+}
+canvas[data-lwc-chart="radar"][data-lwc-draw="wait"] {
+    opacity: .85;
+}
+canvas[data-lwc-chart="radar"][data-lwc-draw="in"] {
+    opacity: 1;
+    transition: opacity 240ms var(--lwc-chart-ease);
+}
+
+/* Bars rise from the axis one after another; meters fill from the left. */
+.traffic-chart svg[data-lwc-draw] {
+    clip-path: none;
+}
+.traffic-chart svg[data-lwc-draw] rect[data-day] {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+}
+.traffic-chart svg[data-lwc-draw="wait"] rect[data-day] {
+    opacity: .85;
+}
+.traffic-chart svg[data-lwc-draw="in"] rect[data-day] {
+    transform: none;
+    transition: transform 620ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    transition-delay: calc(var(--lwc-bar-index, 0) * 18ms);
+}
+.traffic-meter[data-lwc-draw] > i,
+.sub-progress-track[data-lwc-draw] > *,
+#progressFill[data-lwc-draw] {
+    transform-origin: 0 50%;
+}
+.traffic-meter[data-lwc-draw="wait"] > i,
+.sub-progress-track[data-lwc-draw="wait"] > *,
+#progressFill[data-lwc-draw="wait"] {
+    transform: scaleX(0);
+}
+.traffic-meter[data-lwc-draw="in"] > i,
+.sub-progress-track[data-lwc-draw="in"] > *,
+#progressFill[data-lwc-draw="in"] {
+    transform: none;
+    transition: transform var(--lwc-chart-draw) var(--lwc-chart-ease);
+}
+
+/* ---- Crosshair and tooltip for SVG charts (LwcCharts.crosshair) ---- */
+
+.lwc-chart-host {
+    position: relative;
+}
+.lwc-chart-host svg {
+    cursor: crosshair;
+    touch-action: pan-y;
+}
+.lwc-chart-guide,
+.lwc-chart-dot,
+.lwc-chart-tip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 140ms var(--lwc-ease-standard, ease), transform var(--lwc-chart-glide);
+}
+.lwc-chart-guide {
+    top: var(--lwc-guide-top, 0);
+    height: var(--lwc-guide-height, 100%);
+    width: 0;
+    border-left: 1px dashed var(--lwc-chart-muted);
+    transform: translateX(var(--lwc-guide-x, 0));
+}
+.lwc-chart-dot {
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--lwc-chart-accent) 24%, transparent);
+    box-shadow: 0 0 0 1.5px var(--lwc-chart-accent) inset;
+    transform: translate(var(--lwc-guide-x, 0), var(--lwc-guide-y, 0)) scale(.4);
+}
+.lwc-chart-tip {
+    position: fixed;
+    display: grid;
+    box-sizing: border-box;
+    gap: 2px;
+    min-width: 0;
+    width: max-content;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    padding: 8px 10px;
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-chart-tip-bg);
+    color: var(--lwc-chart-tip-ink);
+    border: 1px solid color-mix(in srgb, var(--lwc-chart-accent) 70%, transparent);
+    box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, .1));
+    font: 400 .875rem/1.4 var(--lwc-chart-font);
+    font-variant-numeric: tabular-nums;
+    white-space: normal;
+    z-index: 100;
+    pointer-events: auto;
+    transition: opacity 140ms ease;
+}
+.lwc-chart-tip[hidden] { display: none; }
+.lwc-chart-tip strong {
+    font-weight: 600;
+}
+.lwc-chart-host[data-lwc-reading] .lwc-chart-guide,
+.lwc-chart-host[data-lwc-reading] .lwc-chart-tip {
+    opacity: 1;
+}
+.lwc-chart-host[data-lwc-reading] .lwc-chart-dot {
+    opacity: 1;
+    transform: translate(var(--lwc-guide-x, 0), var(--lwc-guide-y, 0)) scale(1);
+}
+
+/* ---- Athlete dialog: sparklines and results share the system ---- */
+
+#detailsModal .result-plot {
+    border-radius: var(--lwc-radius-md, 8px);
+}
+#detailsModal .result-plot canvas[data-lwc-chart] {
+    cursor: crosshair;
+}
+#detailsModal .result-plot-legend span::before {
+    transition: transform var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+}
+#detailsModal .result-plot:hover ~ * .result-legend-athlete::before,
+#detailsModal .result-detail:has(.result-plot:hover) .result-legend-athlete::before {
+    transform: scale(1.35);
+}
+#detailsModal .biomarker-overview-change {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-lwc-draw],
+    [data-lwc-draw] > *,
+    .traffic-chart svg[data-lwc-draw] rect[data-day] {
+        clip-path: none !important;
+        transform: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+    }
+    .lwc-chart-guide,
+    .lwc-chart-dot,
+    .lwc-chart-tip {
+        transition: none;
+    }
+    [data-lwc-count] {
+        color: inherit !important;
+    }
+    [data-lwc-count]::after {
+        content: none;
+    }
+}

@@ -13,6 +13,7 @@ public sealed class FrontendTypeScriptBuildTests
         "athlete-browse-motion",
         "athlete-story",
         "bioage-flow",
+        "charts",
         "custom-event-markup",
         "field-validation",
         "flow-action-dock",

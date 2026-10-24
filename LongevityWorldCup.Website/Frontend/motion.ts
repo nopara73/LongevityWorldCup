@@ -219,4 +219,5 @@ interface Window {
     });
 
     window.LwcMotion = Object.freeze({ enabled, flip, afterExit, settle });
+
 })();
