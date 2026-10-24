@@ -65,7 +65,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             await save.ClickAsync();
             await submitted.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            await Assertions.Expect(save).ToHaveTextAsync("Saving…");
+            // Optimistic: the button already reads Saved while the request is busy.
+            await Assertions.Expect(save).ToHaveTextAsync("Saved");
             await Assertions.Expect(save).ToBeDisabledAsync();
             await Assertions.Expect(save).ToHaveAttributeAsync("aria-busy", "true");
             await Assertions.Expect(progress).ToBeEmptyAsync();

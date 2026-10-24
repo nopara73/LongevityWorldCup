@@ -226,8 +226,10 @@ public sealed class AthleteDialogLinkBrowserTests(
         }
     }
 
-    [Fact]
-    public async Task AboutAthleteLink_QueuesUntilHydratedAndCloseRestoresTheCallingPage()
+    [Theory]
+    [InlineData("misc")]
+    [InlineData("flags")]
+    public async Task AboutAthleteLink_QueuesUntilHydratedAndCloseRestoresTheCallingPage(string delayedModule)
     {
         var app = App;
         var browser = Browser;
@@ -244,12 +246,12 @@ public sealed class AthleteDialogLinkBrowserTests(
             });
             """);
 
-        var miscModuleRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseMiscModuleResponse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await context.RouteAsync("**/js/misc.js*", async route =>
+        var dialogModuleRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseDialogModuleResponse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync($"**/js/{delayedModule}.js*", async route =>
         {
-            miscModuleRequestReceived.TrySetResult();
-            await releaseMiscModuleResponse.Task;
+            dialogModuleRequestReceived.TrySetResult();
+            await releaseDialogModuleResponse.Task;
             await route.ContinueAsync();
         });
         var athleteRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -310,7 +312,7 @@ public sealed class AthleteDialogLinkBrowserTests(
                 "element => document.activeElement === element"));
 
             await athleteLink.ClickAsync();
-            await miscModuleRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await dialogModuleRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
             // A click made before either the modules or athlete index are ready
             // must remain in this document. Falling through to the anchor would
@@ -320,7 +322,7 @@ public sealed class AthleteDialogLinkBrowserTests(
             Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
                 "element => element.classList.contains('is-loading')"));
 
-            releaseMiscModuleResponse.TrySetResult();
+            releaseDialogModuleResponse.TrySetResult();
             await athleteRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
             releaseAthleteResponse.TrySetResult();
             await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
@@ -365,7 +367,7 @@ public sealed class AthleteDialogLinkBrowserTests(
         }
         finally
         {
-            releaseMiscModuleResponse.TrySetResult();
+            releaseDialogModuleResponse.TrySetResult();
             releaseAthleteResponse.TrySetResult();
         }
     }
