@@ -35,7 +35,7 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead .sponsor-
     display:block; overflow:hidden; max-height:2.5em; opacity:1;
     transition:max-height var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease), opacity var(--lwc-motion-fast, 140ms) linear;
 }
-main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > table > thead .sponsor-coming-soon{ max-height:0; opacity:0; }
+main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > table > thead .sponsor-coming-soon{ min-height:0; max-height:0; opacity:0; visibility:hidden; }
 main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > table > thead br{ display:none; }
 
 /* Progress hairline under the stuck heads: how far through the board you are. */

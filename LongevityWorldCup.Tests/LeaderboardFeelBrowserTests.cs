@@ -32,6 +32,27 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
     }
 
     [Fact]
+    public async Task CondensedSponsorHeading_DropsTheHiddenLinkTargetAndCentersItsLabel()
+    {
+        var (context, page) = await OpenAsync(reduce: true);
+        await using var _ = context;
+        await page.Locator(Rows).Nth(20).ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'true'");
+        await Assertions.Expect(page.Locator("#athleteLeaderboard .sponsor-coming-soon")).ToBeHiddenAsync();
+        Assert.True(await page.Locator("#athleteLeaderboard .sponsor-th").EvaluateAsync<bool>("""
+            th => {
+                const link = th.querySelector('.sponsor-coming-soon');
+                const node = [...th.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.textContent.includes('Sponsor'));
+                const range = document.createRange();
+                const start = node.textContent.indexOf('Sponsor');
+                range.setStart(node, start); range.setEnd(node, start + 'Sponsor'.length);
+                const label = range.getBoundingClientRect(), cell = th.getBoundingClientRect();
+                return link.getBoundingClientRect().height === 0 && Math.abs(label.top + label.height / 2 - cell.top - cell.height / 2) < 2;
+            }
+            """));
+    }
+
+    [Fact]
     public async Task ScrollIndicators_RespectInitialAndReducedMotionGates()
     {
         var (context, page) = await OpenAsync(390);
