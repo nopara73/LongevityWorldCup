@@ -371,7 +371,9 @@ public sealed class EntryJourneyBrowserTests(
 
     [Theory]
     [InlineData("/join", "/leaderboard")]
-    [InlineData("/", "/leaderboard")]
+    [InlineData("/?search=one", "/leaderboard")]
+    [InlineData("/#faq", "/leaderboard")]
+    [InlineData("/", "/leaderboard?view=pheno")]
     [InlineData("/apply", "/ruleset")]
     [InlineData("/join", "/ruleset")]
     public async Task LeavingTheJourney_OptsOutOfTheTransitionWithoutAPageError(string from, string to)
