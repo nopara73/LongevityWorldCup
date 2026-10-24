@@ -237,6 +237,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();
             builder.Services.AddSingleton<LeaderboardFactsService>();
+            builder.Services.AddSingleton<PublicStandingsService>();
             builder.Services.AddSingleton(sp => new ContentRevisionStore(Path.Combine(
                 Path.GetDirectoryName(sp.GetRequiredService<DatabaseManager>().DbPath)!, "public-content-revisions.json")));
             builder.Services.AddSingleton<PublicContentFreshness>();
