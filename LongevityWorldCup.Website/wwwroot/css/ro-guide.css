@@ -1202,3 +1202,29 @@
     }
     .ro-row-link .ro-climb { margin-right: 0; }
 }
+
+/* Enlarged text needs the same vertical race strip as a narrow viewport. */
+.ro-timeline { container: ro-timeline / inline-size; }
+@container ro-timeline (max-width: 36rem) {
+    .ro-milestones { grid-template-columns: minmax(0, 1fr); }
+    .ro-milestones li {
+        padding-top: 0;
+        padding-left: calc(var(--ro-node) + var(--lwc-space-4));
+    }
+    .ro-milestones li::before { top: 2px; }
+    .ro-milestones li:not(:last-child)::after {
+        top: calc(2px + var(--ro-node));
+        bottom: calc(-1 * var(--lwc-space-5) - 2px);
+        left: calc((var(--ro-node) - var(--ro-track)) / 2);
+        right: auto;
+        width: var(--ro-track);
+        height: auto;
+        background: linear-gradient(180deg,
+            var(--ro-racing) calc(var(--ro-leg) * 100%), var(--ro-lane) calc(var(--ro-leg) * 100%));
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .ro-timeline.ro-reveal .ro-milestones li::after { transform-origin: 50% 0; }
+        .ro-timeline.ro-reveal:not(.is-in) .ro-milestones li::after { transform: scaleY(0); }
+        .ro-guide .ro-milestones li[data-ro-state='next'] time::before { top: 2px; }
+    }
+}

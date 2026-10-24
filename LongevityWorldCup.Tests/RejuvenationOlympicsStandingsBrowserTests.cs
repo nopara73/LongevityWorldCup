@@ -43,6 +43,9 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
                 .every(e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1)
             """));
         Assert.Equal(0, await page.Locator(".ro-standings").EvaluateAsync<int>("e => e.getAnimations({subtree:true}).filter(a=>a.playState==='running').length"));
+        Assert.True(await page.Locator(".ro-clock-part").Last.EvaluateAsync<bool>("""
+            e => { const cells=[...e.children].map(c=>c.getBoundingClientRect()); return cells.every(c=>Math.abs(c.top-cells[0].top)<1); }
+            """), "The hours, minutes and seconds must remain readable as one time at supported widths.");
         await ExpectNoHorizontalOverflowAsync(page);
         await links.First.FocusAsync();
         await page.Keyboard.PressAsync("Tab");

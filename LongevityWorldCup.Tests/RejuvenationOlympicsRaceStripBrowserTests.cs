@@ -123,6 +123,11 @@ public sealed class RejuvenationOlympicsRaceStripBrowserTests(
         var page = await context.NewPageAsync();
         await page.Clock.SetFixedTimeAsync(DateTime.Parse("2027-01-14T12:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal));
         await page.GotoAsync("/rejuvenation-olympics");
+        // Contrast belongs to the revealed reading state, after its entrance has settled.
+        await page.Locator(".ro-timeline").ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(page.Locator(".ro-milestones li[data-ro-state=past] time"))
+            .ToHaveCSSAsync("opacity", "1");
+        await page.WaitForFunctionAsync("() => [...document.querySelectorAll('.ro-milestones li > :is(time,h3,p)')].every(e => getComputedStyle(e).opacity === '1')");
         Assert.True(await page.Locator(".ro-milestones li[data-ro-state=past] > :is(time,h3,p)")
             .EvaluateAllAsync<bool>("elements => elements.every(e => getComputedStyle(e).opacity === '1')"),
             "Fading milestone children compounds with their text alpha and loses contrast.");
