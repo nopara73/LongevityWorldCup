@@ -559,8 +559,7 @@ public sealed class PlayFlowMotionBrowserTests(
         var pressed = await back.EvaluateAsync<string>("button => getComputedStyle(button).scale");
         await page.Mouse.MoveAsync(5, 5);
         await page.Mouse.UpAsync();
-        Assert.True(double.TryParse(pressed, System.Globalization.CultureInfo.InvariantCulture, out var scale) && scale < 0.99,
-            $"A pressed command should give way, got scale '{pressed}'.");
+        Assert.Equal("0.965", pressed);
     }
 
     [Theory]
