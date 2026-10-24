@@ -226,6 +226,33 @@ public sealed class EventLivingFeedBrowserTests(
     }
 
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Preview_PendingIntentSurvivesInitialScroll_AndLaterScrollDismissesIt(bool keyboard)
+    {
+        await using var context = await OpenAsync(width:844,height:390,dark:true);
+        var page = context.Pages[0];
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 32px !important; }" });
+        var link = page.Locator(".event-message a[data-athlete-slug='feed-a']");
+        if (keyboard)
+        {
+            await page.Keyboard.PressAsync("Tab");
+            await link.FocusAsync();
+        }
+        else await link.HoverAsync();
+        // Scrolling a link into view can deliver its event after focusin or
+        // pointerover. Exercise that ordering without relying on frame timing.
+        await page.EvaluateAsync("() => dispatchEvent(new Event('scroll'))");
+        var preview = page.Locator("#eventAthletePreview");
+        await Assertions.Expect(preview).ToBeVisibleAsync();
+        await page.EvaluateAsync("() => dispatchEvent(new Event('scroll'))");
+        await Assertions.Expect(preview).ToBeHiddenAsync();
+        await page.WaitForTimeoutAsync(550);
+        await Assertions.Expect(preview).ToBeHiddenAsync();
+        if (keyboard) await Assertions.Expect(link).ToBeFocusedAsync();
+    }
+
     [Fact]
     public async Task Preview_NamePreservesModifiedLinkActivation()
     {

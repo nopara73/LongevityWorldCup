@@ -1264,6 +1264,7 @@ const eventsPageAssets = document.currentScript.dataset;
     const athletePreview = (function(){
         const SELECTOR = '.events-board a[href*="/athlete/"]:not(.badge-clickable):not(.placement-link)';
         let card = null, anchor = null, showTimer = 0, hideTimer = 0, pressTimer = 0, leaveTimer = 0;
+        let pendingPreview = null;
         let pressing = false, pressStart = null, suppressClickFor = null;
 
         function build(){
@@ -1331,6 +1332,8 @@ const eventsPageAssets = document.currentScript.dataset;
         }
 
         function show(link){
+            window.clearTimeout(showTimer);
+            pendingPreview = null;
             if (!link.isConnected || document.hidden) return;
             const slug = slugFromAthleteLink(link);
             const athlete = slug ? feedAthletesIndex.get(slug) : null;
@@ -1355,12 +1358,14 @@ const eventsPageAssets = document.currentScript.dataset;
 
         function hide(immediate=false){
             window.clearTimeout(showTimer);
+            pendingPreview = null;
             window.clearTimeout(hideTimer);
             window.clearTimeout(leaveTimer);
             cancelPress();
             if (!card || card.hidden) { anchor = null; return; }
             if (card.contains(document.activeElement)) anchor?.focus({ preventScroll: true });
             window.clearTimeout(showTimer);
+            pendingPreview = null;
             anchor?.removeAttribute('aria-controls');
             anchor = null;
             if (immediate || prefersReducedMotion()) { card.hidden = true; card.classList.remove('is-entering', 'is-leaving'); return; }
@@ -1369,14 +1374,20 @@ const eventsPageAssets = document.currentScript.dataset;
             leaveTimer = window.setTimeout(() => { if (card.classList.contains('is-leaving')) { card.hidden = true; card.classList.remove('is-leaving'); } }, 130);
         }
 
-        function scheduleShow(link, delay){
+        function scheduleShow(link, delay, keyboard=false){
             window.clearTimeout(showTimer);
             window.clearTimeout(hideTimer);
+            pendingPreview = null;
             if (anchor === link && card && !card.hidden) return;
+            pendingPreview = { link, keyboard };
             showTimer = window.setTimeout(() => show(link), card && !card.hidden ? 60 : delay);
         }
         function scheduleHide(){
+            // Scrolling a newly focused link into view can also move the pointer
+            // away from it. Keyboard intent survives that incidental pointerout.
+            if (pendingPreview?.keyboard && pendingPreview.link === document.activeElement) return;
             window.clearTimeout(showTimer);
+            pendingPreview = null;
             window.clearTimeout(hideTimer);
             hideTimer = window.setTimeout(() => {
                 if (!card?.contains(document.activeElement) && !card?.matches(':hover') && !document.querySelector('.badge-tip:not([hidden]):hover')) hide();
@@ -1396,7 +1407,7 @@ const eventsPageAssets = document.currentScript.dataset;
         document.addEventListener('focusin', event => {
             if (card?.contains(event.target)) { window.clearTimeout(hideTimer); return; }
             const link = event.target.closest?.(SELECTOR);
-            if (link && link.matches(':focus-visible')) scheduleShow(link, 450);
+            if (link && link.matches(':focus-visible')) scheduleShow(link, 450, true);
         });
         document.addEventListener('focusout', event => {
             if (event.target.closest?.(SELECTOR) || card?.contains(event.target)) scheduleHide();
@@ -1442,7 +1453,21 @@ const eventsPageAssets = document.currentScript.dataset;
             else if (event.shiftKey && event.target === controls[0]) { event.preventDefault(); anchor?.focus(); }
             else if (!event.shiftKey && event.target === controls.at(-1)) hide(true);
         });
-        window.addEventListener('scroll', () => hide(true), { passive: true });
+        window.addEventListener('scroll', () => {
+            const pending = pendingPreview;
+            hide(true);
+            // A link scrolled into view can receive focus/hover before the scroll
+            // event. Preserve that intent only while the link is still targeted;
+            // scrolling an already open preview still dismisses it.
+            const link = pending?.link;
+            const targeted = pending?.keyboard
+                ? link === document.activeElement && link.matches(':focus-visible')
+                : link?.matches(':hover');
+            if (link?.isConnected && targeted) {
+                const bounds = link.getBoundingClientRect();
+                if (bounds.bottom > 0 && bounds.top < window.innerHeight) scheduleShow(link, pending.keyboard ? 450 : 280, pending.keyboard);
+            }
+        }, { passive: true });
         window.addEventListener('resize', () => hide(true), { passive: true });
         document.addEventListener('visibilitychange', () => { if (document.hidden) { hide(true); suppressClickFor = null; } });
         window.addEventListener('pagehide', () => { hide(true); suppressClickFor = null; });

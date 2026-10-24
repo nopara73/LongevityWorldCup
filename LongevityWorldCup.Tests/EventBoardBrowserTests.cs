@@ -224,16 +224,23 @@ public sealed class EventBoardBrowserTests(
         ILocator row,
         ILocator expander)
     {
-        var rowBox = Assert.IsType<LocatorBoundingBoxResult>(await row.BoundingBoxAsync());
-        var expanderBox = Assert.IsType<LocatorBoundingBoxResult>(await expander.BoundingBoxAsync());
+        // Entrance motion moves both elements together. Sample their geometry
+        // in one frame so movement between protocol calls cannot skew the result.
+        var bounds = await row.EvaluateAsync<float[]>("""
+            row => {
+                const rowBox = row.getBoundingClientRect();
+                const expanderBox = row.querySelector('.custom-event-expander').getBoundingClientRect();
+                return [rowBox.top, rowBox.bottom, expanderBox.top, expanderBox.bottom];
+            }
+            """);
         var transform = await expander.EvaluateAsync<string>("element => getComputedStyle(element).transform");
-        var rowCenter = rowBox.Y + (rowBox.Height / 2);
-        var expanderCenter = expanderBox.Y + (expanderBox.Height / 2);
+        var rowCenter = (bounds[0] + bounds[1]) / 2;
+        var expanderCenter = (bounds[2] + bounds[3]) / 2;
 
         Assert.Equal("none", transform);
         Assert.True(
-            expanderBox.Y >= rowBox.Y && expanderBox.Y + expanderBox.Height <= rowBox.Y + rowBox.Height,
-            $"Expected the expander to stay within the row. Row: {rowBox.Y}-{rowBox.Y + rowBox.Height}; expander: {expanderBox.Y}-{expanderBox.Y + expanderBox.Height}.");
+            bounds[2] >= bounds[0] && bounds[3] <= bounds[1],
+            $"Expected the expander to stay within the row. Row: {bounds[0]}-{bounds[1]}; expander: {bounds[2]}-{bounds[3]}.");
         Assert.True(
             Math.Abs(rowCenter - expanderCenter) < 1,
             $"Expected the expander to be vertically centered. Row center: {rowCenter}; expander center: {expanderCenter}.");
