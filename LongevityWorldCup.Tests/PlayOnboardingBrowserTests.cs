@@ -73,7 +73,9 @@ public sealed class PlayOnboardingBrowserTests(
                 if (Math.abs(f.bottom - p.bottom) > 2 || f.left < p.left - 1 || f.right > p.right + 1) issues.push('foot is not the card foot');
                 for (const card of panel.querySelectorAll('.play-join-card')) {
                     const c = card.getBoundingClientRect();
-                    if (c.top < h.bottom || c.bottom > f.top || c.left < p.left || c.right > p.right) issues.push('track tile sits outside the card body');
+                    // The tiles rise out of the band's lower edge, below its lead line.
+                    const intro = panel.querySelector('.play-join-intro').getBoundingClientRect();
+                    if (c.top < intro.bottom || c.top >= h.bottom || c.bottom > f.top || c.left < p.left || c.right > p.right) issues.push('track tile does not rise out of the band into the card body');
                 }
                 const back = document.getElementById('joinTrackBackBtn');
                 const actions = document.querySelector('.play-join-actions');
@@ -359,7 +361,7 @@ public sealed class PlayOnboardingBrowserTests(
     [InlineData(390, 844, false)]
     [InlineData(390, 844, true)]
     [InlineData(320, 640, true)]
-    public async Task PhoneJoin_OpensWithTheBandAndKeepsTheDetourAboveTheDockReserve(int width, int height, bool dark)
+    public async Task PhoneJoin_OpensOnTheStageAndKeepsTheDetourAboveTheDockReserve(int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -379,11 +381,14 @@ public sealed class PlayOnboardingBrowserTests(
                 const head = document.querySelector('.play-join-head');
                 if (!head) return ['no band'];
                 const hs = getComputedStyle(head);
-                if (hs.color !== 'rgb(255, 255, 255)' || parseFloat(hs.borderTopLeftRadius) < 8) issues.push('band is not a rounded night card');
+                if (hs.color !== 'rgb(255, 255, 255)' || parseFloat(hs.borderTopLeftRadius) > 0) issues.push('band is not an edge-to-edge night stage');
                 const h = head.getBoundingClientRect();
+                const header = document.querySelector('header[role=banner]').getBoundingClientRect();
+                if (h.top - header.bottom > 1) issues.push(`stage starts ${Math.round(h.top - header.bottom)}px under the site header`);
                 const cards = [...document.querySelectorAll('.play-join-card')].map(c => c.getBoundingClientRect());
-                if (cards[0].top < h.bottom) issues.push('tracks start under the band');
-                if (Math.abs(h.left - cards[0].left) > 1 || Math.abs(h.right - cards[0].right) > 1) issues.push('band and tiles do not share edges');
+                const intro = document.querySelector('.play-join-intro').getBoundingClientRect();
+                if (cards[0].top < intro.bottom || cards[0].top >= h.bottom) issues.push('tracks do not rise out of the stage');
+                if (Math.abs(h.left - cards[0].left) > 1 || Math.abs(h.right - cards[0].right) > 1) issues.push('stage content and tiles do not share edges');
                 const note = document.querySelector('.play-join-challenge-note').getBoundingClientRect();
                 const reserve = document.querySelector('.play-join-foot > .flow-action-dock-placeholder');
                 if (note.top < cards[1].bottom) issues.push('detour overlaps the pro track');
