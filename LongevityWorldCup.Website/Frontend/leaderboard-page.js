@@ -1893,13 +1893,17 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             const flagRouteState = getFlagRouteState(window.location.pathname);
             const athleteParam = getInitialAthleteSlug();
             if (athleteParam) {
-                const normalizedAthlete = window.slugifyName(athleteParam, false);
-                const athleteData = getAthleteData(normalizedAthlete);
-                if (athleteData) {
-                    fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
-                } else {
-                    // Redirect to the .NET 404 endpoint
-                    window.location.href = '/error/404';
+                // A profile selected while the index was loading takes priority
+                // over the containing page's initial URL (including close/back).
+                if (currentAthleteModalRequestId === 0) {
+                    const normalizedAthlete = window.slugifyName(athleteParam, false);
+                    const athleteData = getAthleteData(normalizedAthlete);
+                    if (athleteData) {
+                        fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
+                    } else {
+                        // Redirect to the .NET 404 endpoint
+                        window.location.href = '/error/404';
+                    }
                 }
             } else {
                 let searchOrFilterApplied = false; // Flag to check if filter was applied

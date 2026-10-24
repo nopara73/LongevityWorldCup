@@ -130,7 +130,7 @@ function initializeLeaderboardFeel(): void {
         primary = next;
         primaryDirection = nextDirection;
         primaryBox = next?.getBoundingClientRect() ?? null;
-        if (!moving() || !next || !primaryBox) return;
+        if (!moving() || !next || !primaryBox || typeof next.animate !== "function") return;
 
         const arrow = next.querySelector<SVGElement>(".order-indicator svg");
         if (was !== next) {
@@ -202,9 +202,11 @@ function initializeLeaderboardFeel(): void {
     ghosts.setAttribute("aria-hidden", "true");
     ghosts.inert = true;
     board.append(ghosts);
+    const ghostAnimations = new Set<Animation>();
 
     function clearGhosts(): void {
-        for (const animation of ghosts.getAnimations({ subtree: true })) animation.cancel();
+        for (const animation of ghostAnimations) animation.cancel();
+        ghostAnimations.clear();
         ghosts.replaceChildren();
     }
     reduced.addEventListener("change", clearGhosts);
@@ -239,7 +241,8 @@ function initializeLeaderboardFeel(): void {
         const baseFlip = shared.flip;
         const flip = (elements: readonly Element[], mutate: () => void): void => {
             clearGhosts();
-            if (!moving() || !elements.some(element => element.parentElement === body)) {
+            if (!moving() || typeof Element.prototype.animate !== "function"
+                || !elements.some(element => element.parentElement === body)) {
                 baseFlip(elements, mutate);
                 return;
             }
@@ -264,11 +267,14 @@ function initializeLeaderboardFeel(): void {
                 ghosts.append(...leaving);
                 const duration = token("--lwc-motion-base", 200);
                 leaving.forEach((copy, index) => {
-                    const animation = copy.animate(
-                        [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateX(-14px) scale(0.98)" }],
-                        { duration, delay: Math.min(index * 12, 96), easing: ease("--lwc-ease-exit"), fill: "forwards" });
-                    const drop = () => copy.remove();
-                    void animation.finished.then(drop, drop);
+                    try {
+                        const animation = copy.animate(
+                            [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateX(-14px) scale(0.98)" }],
+                            { duration, delay: Math.min(index * 12, 96), easing: ease("--lwc-ease-exit"), fill: "forwards" });
+                        ghostAnimations.add(animation);
+                        const drop = () => { ghostAnimations.delete(animation); copy.remove(); };
+                        void animation.finished.then(drop, drop);
+                    } catch { copy.remove(); }
                 });
             }
 
@@ -278,7 +284,7 @@ function initializeLeaderboardFeel(): void {
                 if (before.has(row)) continue;
                 const box = row.getBoundingClientRect();
                 if (box.bottom < 0 || box.top > window.innerHeight) continue;
-                for (const animation of row.getAnimations()) {
+                for (const animation of row.getAnimations?.() ?? []) {
                     if (typeof CSSTransition !== "undefined" && animation instanceof CSSTransition) continue;
                     animation.effect?.updateTiming({ delay: Math.min(order * 22, 176), fill: "backwards" });
                 }
@@ -297,6 +303,7 @@ function initializeLeaderboardFeel(): void {
     document.body.append(peek);
     let peekTimer = 0;
     let peekRow: HTMLTableRowElement | null = null;
+    let peekAnimation: Animation | null = null;
 
     function sparkline(placements: readonly (number | null)[], rank: number): SVGSVGElement | null {
         // API order is yesterday, week, month, year. Draw oldest to newest,
@@ -401,7 +408,8 @@ function initializeLeaderboardFeel(): void {
         window.clearTimeout(peekTimer);
         peekRow?.querySelector(".athlete-name")?.removeAttribute("aria-describedby");
         peekRow = null;
-        for (const animation of peek.getAnimations()) animation.cancel();
+        peekAnimation?.cancel();
+        peekAnimation = null;
         peek.classList.remove("is-open");
         peek.hidden = true;
     }
@@ -414,10 +422,13 @@ function initializeLeaderboardFeel(): void {
         peekRow = row;
         row.querySelector(".athlete-name")?.setAttribute("aria-describedby", peek.id);
         placePeek(row);
-        if (moving()) {
-            peek.animate(
-                [{ opacity: 0, translate: "0 6px", scale: "0.97" }, { opacity: 1, translate: "0 0", scale: "1" }],
-                { duration: token("--lwc-motion-base", 200), easing: ease("--lwc-ease-enter") });
+        if (moving() && typeof peek.animate === "function") {
+            peekAnimation?.cancel();
+            try {
+                peekAnimation = peek.animate(
+                    [{ opacity: 0, translate: "0 6px", scale: "0.97" }, { opacity: 1, translate: "0 0", scale: "1" }],
+                    { duration: token("--lwc-motion-base", 200), easing: ease("--lwc-ease-enter") });
+            } catch { peekAnimation = null; }
         }
     }
 
@@ -448,6 +459,7 @@ function initializeLeaderboardFeel(): void {
     peek.addEventListener("focusout", hidePeek);
     document.addEventListener("pointerdown", event => { if (!peek.contains(event.target as Node | null)) hidePeek(); }, true);
     window.addEventListener("resize", hidePeek);
+    reduced.addEventListener("change", hidePeek);
     window.addEventListener("scroll", () => { if (!peek.hidden || peekRow) hidePeek(); }, { passive: true });
     document.addEventListener("keydown", event => {
         if (event.key !== "Escape") return;
