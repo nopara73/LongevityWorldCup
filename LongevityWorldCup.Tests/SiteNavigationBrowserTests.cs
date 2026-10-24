@@ -127,7 +127,7 @@ public sealed class SiteNavigationBrowserTests(
             await page.WaitForTimeoutAsync(25);
         }
         await cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
-        await page.WaitForFunctionAsync("document.querySelector('.site-menu-body').scrollTop > 30");
+        await page.WaitForFunctionAsync("() => document.querySelector('.site-menu-body').scrollTop > 30");
         Assert.True(await page.Locator("#site-menu").EvaluateAsync<bool>("e => e.open"));
 
         var grip = (await page.Locator(".site-menu-grip").BoundingBoxAsync())!;
@@ -223,7 +223,7 @@ public sealed class SiteNavigationBrowserTests(
         await page.EvaluateAsync("scrollTo(0, 800)");
         await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
         await page.EvaluateAsync("scrollBy(0, 100)");
-        await page.WaitForFunctionAsync("document.querySelector('#site-sticky-header').classList.contains('is-tucked')");
+        await page.WaitForFunctionAsync("() => document.querySelector('#site-sticky-header').classList.contains('is-tucked')");
         await page.Locator(".site-sticky-menu-toggle").FocusAsync();
         Assert.False(await page.Locator("#site-sticky-header").EvaluateAsync<bool>("e => e.classList.contains('is-tucked')"));
         await page.EvaluateAsync("scrollBy(0, 150)");
