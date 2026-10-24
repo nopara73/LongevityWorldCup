@@ -329,7 +329,12 @@ public sealed class AthleteBrowseMotionBrowserTests(
             var rows = (await ReadAnimationsAsync(page)).Where(entry => entry.Tag == "TR").ToArray();
             var moved = rows.Count(entry => entry.First.Contains("\"translate\":", StringComparison.Ordinal));
             Assert.True(moved >= 2, $"{pass}: rows should glide from their old places ({moved} moved).");
-            Assert.All(rows, entry => Assert.Contains("\"translate\":\"0 0\"", entry.Last, StringComparison.Ordinal));
+            Assert.All(rows, entry =>
+            {
+                using var frame = JsonDocument.Parse(entry.Last);
+                var translation = frame.RootElement.GetProperty("translate").GetString()!;
+                Assert.All(translation.Split(' '), component => Assert.Contains(component, new[] { "0", "0px" }));
+            });
             Assert.True(await page.EvaluateAsync<bool>(
                 "() => { const rows = window.__motion.animations.filter(entry => entry.tag === 'TR'); return new Set(rows.map(entry => entry.row)).size === rows.length; }"),
                 "The shared motion controller should animate each row only once.");
