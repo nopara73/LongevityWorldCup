@@ -122,6 +122,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await context.NewPageAsync();
         await page.GotoAsync("/longevitymaxxing");
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        // A hidden loading grid exposes the authored repeat()/minmax() formula,
+        // not its used columns. Measure the resolved public view, including its questions.
+        await Assertions.Expect(page.Locator(".lmx-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await Assertions.Expect(page.Locator("#lmxHabitGrid")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#lmxHabitGrid .lmx-habit-question")).ToHaveCountAsync(4);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var problems = await page.Locator("#lmxHabitGrid").EvaluateAsync<string[]>("""
             (grid, percent) => {
