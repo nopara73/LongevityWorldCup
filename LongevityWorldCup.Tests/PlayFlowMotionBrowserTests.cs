@@ -267,8 +267,17 @@ public sealed class PlayFlowMotionBrowserTests(
     public async Task PendingNavigation_CancelsOldMotionAndCannotReopenAfterBack()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
-        var page = await OpenAsync(context, "/play");
+        var page = await OpenAsync(context, "/select-athlete");
         var name = await PickAmateurAsync(page);
+        // Prime the controller's own request before deliberately freezing motion.
+        // The fixture-name lookup does not populate its autocomplete data.
+        var input = page.Locator("#playAthleteInput");
+        await input.FillAsync(name);
+        await Assertions.Expect(page.Locator("#playAthleteInput-autocomplete-list [role=option]").First).ToBeVisibleAsync();
+        await input.FillAsync(string.Empty);
+        await page.Locator("#playSelectionBackBtn").ClickAsync();
+        await page.WaitForURLAsync("**/play");
+        await WaitForMoveToSettleAsync(page);
         await page.EvaluateAsync("""
             () => {
                 const render = window.playAthleteFlow.renderAthleteDashboardHeader;
@@ -280,11 +289,21 @@ public sealed class PlayFlowMotionBrowserTests(
             }
             """);
         await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-panel-transitioning')");
-        await page.EvaluateAsync("() => document.getElementById('athleteSelectionPanel').getAnimations().forEach(animation => animation.pause())");
-        await page.Locator("#playAthleteInput").FillAsync(name);
-        await page.Locator("#playAthleteInput").PressAsync("Enter");
-        await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeEnabledAsync();
-        await page.Locator("#playConfirmAthleteBtn").EvaluateAsync("button => button.click()");
+        await page.EvaluateAsync("""
+            name => {
+                const animations = document.getElementById('athleteSelectionPanel').getAnimations();
+                if (!animations.length) throw new Error('The previous panel must still be moving.');
+                animations.forEach(animation => animation.pause());
+                const input = document.getElementById('playAthleteInput');
+                input.focus({ preventScroll: true });
+                input.value = name;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                const confirm = document.getElementById('playConfirmAthleteBtn');
+                if (confirm.disabled) throw new Error('The loaded athlete must be selected.');
+                confirm.click();
+            }
+            """, name);
         await page.WaitForFunctionAsync("() => window.__releaseHeader && location.pathname === '/dashboard'");
         await Task.Delay(700);
         Assert.True(await page.EvaluateAsync<bool>("""
