@@ -384,9 +384,10 @@ function setDocumentationNavOpen(documentationNav, open) {
         });
     });
 
-    // Any reader input during a smooth jump hands control back to the scroll position.
-    for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) {
-        window.addEventListener(type, event => {
+    // Reader input or native history/fragment navigation supersedes a jump.
+    // Otherwise its next frame can overwrite the browser's restored position.
+    for (const type of ["wheel", "touchstart", "keydown", "pointerdown", "popstate", "hashchange"]) {
+        window.addEventListener(type, () => {
             if (jump) {
                 jump.cleanup();
                 jump = null;

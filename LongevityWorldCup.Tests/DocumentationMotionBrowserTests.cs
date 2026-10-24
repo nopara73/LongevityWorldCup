@@ -85,7 +85,7 @@ public sealed class DocumentationMotionBrowserTests(PlaywrightBrowserFixture bro
         await NavigateAndSettleAsync(page, "/history");
         await page.EvaluateAsync("history.replaceState({returnTo:'reader'}, '', location.href)");
         await page.Locator(".documentation-nav a[href^='#']").Last.EvaluateAsync("e => e.click()");
-        await page.WaitForFunctionAsync("scrollY > 30");
+        await page.WaitForFunctionAsync("() => scrollY > 30");
         var stopped = await page.EvaluateAsync<double>("() => { window.dispatchEvent(new Event('touchstart')); return scrollY; }");
         await page.WaitForTimeoutAsync(500);
         Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("scrollY") - stopped), 0, 1);
@@ -124,7 +124,7 @@ public sealed class DocumentationMotionBrowserTests(PlaywrightBrowserFixture bro
         Assert.True(await toggle.EvaluateAsync<bool>("e => document.activeElement === e"));
         Assert.True(await page.Locator(".documentation-nav-links").EvaluateAsync<bool>("e => e.inert"));
         await page.SetViewportSizeAsync(1440, 900);
-        await page.WaitForFunctionAsync("!document.querySelector('.documentation-nav-links').inert");
+        await page.WaitForFunctionAsync("() => !document.querySelector('.documentation-nav-links').inert");
     }
 
     [Fact]
