@@ -16,6 +16,7 @@ public sealed class FrontendTypeScriptBuildTests
         "flow-action-dock",
         "initial-view",
         "longevitymaxxing",
+        "motion",
         "site-statistics",
         "site-statistics-tracking"
     ];
