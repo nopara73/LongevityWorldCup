@@ -595,11 +595,13 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            // Motion and the shared share sheet come first so the aesthetic system stays the last stylesheet in the head.
+            // Shared interaction styles come first so the aesthetic system stays the last stylesheet in the head.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/share-sheet.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/share-sheet.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/charts.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
         }

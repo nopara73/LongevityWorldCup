@@ -75,6 +75,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_SITE_DARK_WEBMANIFEST}}"] = "/assets/site-dark.webmanifest",
         ["{{ASSET_STANDALONE_FEEL_CSS}}"] = "/css/standalone-feel.css",
         ["{{ASSET_SITE_STATISTICS_CSS}}"] = "/css/site-statistics.css",
+        ["{{ASSET_CHARTS_CSS}}"] = "/css/charts.css",
+        ["{{ASSET_CHARTS_JS}}"] = "/js/charts.js",
         ["{{ASSET_SITE_STATISTICS_JS}}"] = "/js/site-statistics.js",
         ["{{ASSET_SITE_STATISTICS_TRACKING_JS}}"] = "/js/site-statistics-tracking.js",
         ["{{ASSET_SITE_WEBMANIFEST}}"] = "/assets/site.webmanifest",
