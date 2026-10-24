@@ -126,13 +126,15 @@ public sealed class HomepageArrivalBrowserTests(
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
             await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
             // The preload scanner can request a script before the parser gets
-            // there. Wait for the seventh target, immediately before that script.
+            // there. Wait for Highlights, immediately before that script; it
+            // stays outside the arrival choreography.
             await Assertions.Expect(page.Locator("#events-root-index")).ToBeAttachedAsync();
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
             await page.EvaluateAsync("window.releaseOpeningFrame()");
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
-            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalTargets.length"));
+            Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+            Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
         }
         finally
@@ -143,7 +145,8 @@ public sealed class HomepageArrivalBrowserTests(
         await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
         Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
-        Assert.Equal(7, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
         Assert.Equal(0, await page.EvaluateAsync<int>("document.getAnimations().filter(a => a.id === 'homepage-arrival').length"));
         await CaptureAsync(page, $"{width}-late-parsed");
     }
