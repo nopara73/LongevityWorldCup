@@ -1,0 +1,442 @@
+/*
+ * The small pages, alive.
+ *
+ * The 404, /unsubscribe, /media and the application review page are short
+ * visits. Each gets one moment that answers the visitor:
+ *
+ * - 404: the score rolls in like a stadium board and the last 4 trips over
+ *   the line, because this page didn't qualify. Herold leans toward the
+ *   pointer and shakes his head when tapped.
+ * - Unsubscribe: the button gives way, sweeps while it works, then the
+ *   envelope is sent off and comes back stamped with a check. A refusal
+ *   shakes the field once.
+ * - Media: tiles rise in order, pictures sharpen out of a blur, hovering
+ *   leans the picture forward and the download drops its arrow into the tray.
+ * - Review: the current step's hourglass keeps turning, quietly.
+ *
+ * Colours are the existing --lwc-* tokens and durations follow motion.css.
+ * Everything that moves sits behind prefers-reduced-motion: no-preference;
+ * the resting state is always the finished picture.
+ */
+
+/* ---------- 404: the stadium board ---------- */
+
+.nf-score {
+    display: inline-flex;
+    gap: 0.08em;
+    margin-right: 0.12em;
+    vertical-align: bottom;
+}
+
+/* Each digit is a tile on the stadium board, in the header's chrome. */
+.nf-digit {
+    position: relative;
+    display: inline-block;
+    height: 1.24em;
+    min-width: 0.78em;
+    padding-inline: 0.06em;
+    border-radius: var(--lwc-radius-sm, 4px);
+    background: #101820 linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
+    box-shadow: inset 0 -0.06em 0 rgba(255, 255, 255, 0.06), 0 0.08em 0.18em rgba(15, 23, 42, 0.28);
+    color: #ffffff;
+    line-height: 1.24em;
+    text-align: center;
+    overflow: hidden;
+    transform-origin: 10% 100%;
+}
+
+/* On a dark card the tiles keep an edge. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .nf-digit {
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0.08em 0.18em rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* The flap's hinge. */
+.nf-digit::after {
+    content: "";
+    position: absolute;
+    inset: calc(50% - 0.5px) 0 auto;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.55);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.nf-reel {
+    display: block;
+}
+
+.nf-reel::before {
+    display: none;
+    content: attr(data-reel);
+    white-space: pre;
+}
+
+.not-found-visual {
+    perspective: 900px;
+}
+
+.not-found-visual picture {
+    display: block;
+    position: absolute;
+    inset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .nf-reel::before {
+        display: block;
+    }
+
+    .nf-reel {
+        animation: nf-roll 760ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)) both;
+        animation-delay: calc(240ms + var(--nf-i, 0) * 150ms);
+    }
+
+    .nf-digit:nth-child(2) { --nf-i: 1; }
+    .nf-digit:nth-child(3) { --nf-i: 2; }
+
+    /* The last digit lands, catches its toe and steadies itself. */
+    .nf-digit:nth-child(3) {
+        animation: nf-stumble 720ms 1080ms var(--lwc-ease-standard, ease) both;
+    }
+
+    .not-found-title .nf-rest {
+        display: inline-block;
+        animation: nf-arrive 420ms 1000ms var(--lwc-ease-enter, ease-out) backwards;
+    }
+
+    .not-found-copy {
+        animation: nf-arrive 420ms 1180ms var(--lwc-ease-enter, ease-out) backwards;
+    }
+
+    .not-found-actions {
+        animation: nf-arrive 420ms 1300ms var(--lwc-ease-enter, ease-out) backwards;
+    }
+
+    /* Herold arrives a beat before the score, then follows the pointer. */
+    .not-found-visual .illustration {
+        transform:
+            rotateY(calc(var(--nf-tilt-x, 0) * 7deg))
+            rotateX(calc(var(--nf-tilt-y, 0) * -5deg))
+            scale(var(--nf-zoom, 1));
+        transition: transform 420ms var(--lwc-ease-standard, ease);
+        animation: nf-herold-in 900ms 60ms var(--lwc-ease-enter, ease-out) backwards;
+    }
+
+    .not-found-card:hover .not-found-visual {
+        --nf-zoom: 1.035;
+    }
+
+    .not-found-visual[data-nope] .illustration {
+        animation: nf-nope 560ms var(--lwc-ease-standard, ease);
+    }
+
+    .not-found-actions .option-button .fa-home {
+        transition: transform var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease);
+    }
+
+    .not-found-actions .option-button:hover .fa-home,
+    .not-found-actions .option-button:focus-visible .fa-home {
+        transform: translateY(-3px) scale(1.12);
+    }
+}
+
+@keyframes nf-roll {
+    from { translate: 0 0; }
+    to { translate: 0 calc(-100% + 1.24em); }
+}
+
+@keyframes nf-stumble {
+    0% { rotate: 0deg; }
+    28% { rotate: 13deg; }
+    52% { rotate: -5deg; }
+    74% { rotate: 3deg; }
+    100% { rotate: 0deg; }
+}
+
+@keyframes nf-arrive {
+    from { opacity: 0; translate: 0 10px; }
+}
+
+@keyframes nf-herold-in {
+    from { opacity: 0; scale: 1.08; filter: saturate(0.4); }
+}
+
+@keyframes nf-nope {
+    0%, 100% { translate: 0 0; }
+    18% { translate: -9px 0; rotate: -1.5deg; }
+    38% { translate: 8px 0; rotate: 1.2deg; }
+    58% { translate: -5px 0; rotate: -0.6deg; }
+    78% { translate: 3px 0; }
+}
+
+/* ---------- Unsubscribe: sent off, stamped, done ---------- */
+
+.unsubscribe-form .unsubscribe-button {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.unsubscribe-mark::after {
+    content: "\f00c";
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--lwc-surface);
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-success);
+    color: var(--lwc-on-accent, #fff);
+    font-family: "Font Awesome 6 Free";
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    opacity: 0;
+    transform: scale(0.4);
+}
+
+.unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-mark::after {
+    opacity: 1;
+    transform: none;
+}
+
+.unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-mark {
+    border-color: color-mix(in srgb, var(--lwc-success) 45%, var(--lwc-border));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Working: a soft light runs across the pressed button. */
+    .unsubscribe-panel[data-unsubscribe-state="busy"] .unsubscribe-button::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--lwc-on-accent, #fff) 26%, transparent) 50%, transparent 80%) no-repeat;
+        background-size: 60% 100%;
+        animation: unsub-sweep 900ms var(--lwc-ease-standard, ease) infinite;
+    }
+
+    .unsubscribe-panel[data-unsubscribe-state="busy"] .unsubscribe-mark i {
+        animation: unsub-wait 1100ms var(--lwc-ease-standard, ease) infinite;
+    }
+
+    /* Done: the envelope flies off the corner and comes back stamped. */
+    .unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-mark i {
+        animation: unsub-send 760ms var(--lwc-ease-standard, ease) both;
+    }
+
+    .unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-mark {
+        animation: unsub-stamp 420ms 640ms var(--lwc-ease-pop, ease) both;
+    }
+
+    .unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-mark::after {
+        transition: opacity 160ms 700ms, transform 360ms 700ms var(--lwc-ease-pop, ease);
+    }
+
+    .unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-message:not(:empty) {
+        animation: unsub-banner 380ms 200ms var(--lwc-ease-enter, ease-out) backwards;
+    }
+
+    .unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-message:not(:empty)::before {
+        animation: unsub-check 420ms 420ms var(--lwc-ease-pop, ease) backwards;
+    }
+
+    .unsubscribe-panel[data-unsubscribe-state="done"] .unsubscribe-form input {
+        animation: unsub-calm 900ms 380ms var(--lwc-ease-standard, ease);
+    }
+
+    /* Refused: the field shakes its head once; the banner slides in under it. */
+    .unsubscribe-panel[data-unsubscribe-state="error"] .unsubscribe-form input {
+        animation: unsub-shake 420ms var(--lwc-ease-standard, ease);
+    }
+
+    .unsubscribe-panel[data-unsubscribe-state="error"] .unsubscribe-message:not(:empty) {
+        animation: unsub-banner 300ms var(--lwc-ease-enter, ease-out) backwards;
+    }
+}
+
+@keyframes unsub-sweep {
+    from { background-position: -80% 0; }
+    to { background-position: 180% 0; }
+}
+
+@keyframes unsub-wait {
+    0%, 100% { transform: none; }
+    50% { transform: translateY(-3px) rotate(-6deg); }
+}
+
+@keyframes unsub-send {
+    0% { transform: none; opacity: 1; }
+    40% { transform: translate(26px, -30px) rotate(18deg) scale(0.7); opacity: 0; }
+    41% { transform: translate(-18px, 14px) scale(0.6); opacity: 0; }
+    100% { transform: none; opacity: 1; }
+}
+
+@keyframes unsub-stamp {
+    0% { transform: rotate(-8deg) scale(1); }
+    40% { transform: rotate(-14deg) scale(1.18); }
+    100% { transform: rotate(-8deg) scale(1); }
+}
+
+@keyframes unsub-banner {
+    from { opacity: 0; translate: 0 -8px; }
+}
+
+@keyframes unsub-check {
+    from { transform: scale(0); }
+}
+
+@keyframes unsub-calm {
+    0% { border-color: var(--lwc-border-strong); box-shadow: 0 0 0 0 transparent; }
+    35% { border-color: var(--lwc-success); box-shadow: 0 0 0 4px var(--lwc-success-soft); }
+    100% { border-color: var(--lwc-border-strong); box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes unsub-shake {
+    0%, 100% { translate: 0 0; }
+    20% { translate: -7px 0; }
+    40% { translate: 6px 0; }
+    60% { translate: -4px 0; }
+    80% { translate: 2px 0; }
+}
+
+/* ---------- Media: tiles you want to pick up ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Tiles rise in reading order as the archive opens. */
+    .media-kit-groups .media-file-tile {
+        animation: media-tile-in 420ms var(--lwc-ease-enter, ease-out) backwards;
+        animation-delay: calc(min(var(--media-tile-i, 0), 14) * 45ms);
+    }
+
+    .media-kit-groups .media-kit-group-head {
+        animation: media-tile-in 360ms var(--lwc-ease-enter, ease-out) backwards;
+    }
+
+    /* Pictures sharpen out of their own blur. */
+    .media-file-thumb img {
+        filter: blur(10px);
+        scale: 1.04;
+        transition:
+            opacity var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
+            filter 520ms var(--lwc-ease-standard, ease),
+            scale 520ms var(--lwc-ease-standard, ease),
+            transform 360ms var(--lwc-ease-standard, ease);
+    }
+
+    .media-file-thumb[data-state="ready"] img {
+        filter: none;
+        scale: 1;
+    }
+
+    .media-file-thumb[data-fill="photo"]::before {
+        transition: transform 600ms var(--lwc-ease-standard, ease);
+    }
+
+    /* Hover preview: the picture leans forward in its well. */
+    @media (hover: hover) {
+        .media-file-tile:hover .media-file-thumb[data-state="ready"] img {
+            transform: scale(1.06);
+        }
+
+        .media-file-tile:hover .media-file-thumb[data-fill="photo"]::before {
+            transform: scale(1.12);
+        }
+
+        .media-file-tile:not(.media-file-doc) .media-file-button {
+            transition:
+                background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+                color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+                transform var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease),
+                box-shadow var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease);
+        }
+
+        .media-file-tile:hover .media-file-button {
+            transform: scale(1.08);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.3);
+        }
+
+        .media-file-tile:hover .media-file-name {
+            color: var(--lwc-accent);
+        }
+
+        .media-file-doc:hover .media-file-doc-thumb .media-file-icon {
+            animation: media-doc-lift 520ms var(--lwc-ease-pop, ease);
+        }
+    }
+
+    /* Download press: the arrow drops into the tray, a ring spreads, then a check. */
+    .media-file-button[data-downloaded]::before {
+        animation: media-drop 560ms var(--lwc-ease-standard, ease) both;
+    }
+
+    .media-file-button[data-downloaded]::after {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        pointer-events: none;
+        animation: media-ring 640ms 180ms var(--lwc-ease-enter, ease-out) both;
+    }
+
+    .media-file-button[data-download-failed] {
+        animation: unsub-shake 380ms var(--lwc-ease-standard, ease);
+    }
+}
+
+.media-file-tile .media-file-button[data-downloaded] {
+    background: var(--lwc-success);
+    color: var(--lwc-on-accent, #fff);
+}
+
+.media-file-tile .media-file-button[data-downloaded]::before {
+    content: "\f00c";
+}
+
+@keyframes media-tile-in {
+    from { opacity: 0; translate: 0 14px; }
+}
+
+@keyframes media-doc-lift {
+    0%, 100% { transform: none; }
+    45% { transform: translateY(-4px) rotate(-5deg); }
+}
+
+@keyframes media-drop {
+    0% { content: "\f019"; transform: translateY(0); opacity: 1; }
+    40% { content: "\f019"; transform: translateY(9px); opacity: 0; }
+    41% { content: "\f00c"; transform: scale(0.3); opacity: 0; }
+    100% { content: "\f00c"; transform: none; opacity: 1; }
+}
+
+@keyframes media-ring {
+    from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-success) 55%, transparent); }
+    to { box-shadow: 0 0 0 14px transparent; }
+}
+
+/* ---------- Review: the hourglass keeps turning ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    .application-review-trail li.is-current .application-review-step {
+        animation: review-current 2600ms 1500ms var(--lwc-ease-standard, ease) infinite;
+    }
+
+    .application-review-trail li.is-current .fa-hourglass-half {
+        animation: review-hourglass 7000ms 1500ms var(--lwc-ease-standard, ease) infinite;
+    }
+}
+
+@keyframes review-current {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-accent) 40%, transparent); }
+    60% { box-shadow: 0 0 0 9px transparent; }
+}
+
+@keyframes review-hourglass {
+    0%, 35% { rotate: 0deg; }
+    50%, 85% { rotate: 180deg; }
+    100% { rotate: 360deg; }
+}

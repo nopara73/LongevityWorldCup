@@ -4,6 +4,7 @@
     <title>Media kit | Longevity World Cup</title>
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_LANDING_PAGE_CSS}}">
+    <link rel="stylesheet" href="/css/standalone-feel.css?v=20261024-1">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -914,11 +915,16 @@
                             // Allow the browser to consume the download before revoking.
                             setTimeout(() => releaseFileUrl(url), 60000);
                             btn.removeAttribute('data-download-failed');
+                            // The press lands: the arrow drops into a check for a moment.
+                            btn.setAttribute('data-downloaded', '');
+                            clearTimeout(btn.downloadedTimer);
+                            btn.downloadedTimer = setTimeout(() => btn.removeAttribute('data-downloaded'), 1600);
                             btn.removeAttribute('aria-description');
                             btn.removeAttribute('title');
                             status.textContent = '';
                         } catch (_) {
                             const message = `${filename}: Download failed. Try again or use the ZIP link above.`;
+                            btn.removeAttribute('data-downloaded');
                             btn.setAttribute('data-download-failed', '');
                             btn.setAttribute('aria-description', message);
                             btn.title = message;
@@ -934,7 +940,11 @@
                 function createList(className, items) {
                     const list = document.createElement('ul');
                     list.className = `media-kit-file-list media-kit-tiles ${className}`.trim();
-                    for (const item of items) list.appendChild(item.li);
+                    // Tiles rise in reading order (standalone-feel.css).
+                    items.forEach((item, index) => {
+                        item.li.style.setProperty('--media-tile-i', String(index));
+                        list.appendChild(item.li);
+                    });
                     if (balancedLists) balancedLists.observe(list);
                     return list;
                 }

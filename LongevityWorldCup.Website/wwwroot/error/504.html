@@ -296,7 +296,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="/css/error-system.css?v=20261020-2">
+  <link rel="stylesheet" href="/css/error-system.css?v=20261024-1">
 </head>
 <body>
   <main class="error-card" aria-labelledby="page-title">
@@ -310,6 +310,8 @@
       <div class="code">504 Gateway Timeout</div>
     </div>
 
+    <span class="retry-meter" aria-hidden="true"></span>
+
     <div class="card-body">
       <figure class="visual">
         <img src="/error/herold.png" alt="Herold waiting through a temporary outage" width="1024" height="1536" decoding="async">
@@ -320,10 +322,66 @@
         <p class="joke">Brief pause. No retirement.</p>
         <p class="note">A fresh version is deploying. Please try again in a moment.</p>
         <div class="actions">
-          <button type="button" onclick="window.location.reload()">Try again</button>
+          <button type="button" data-retry>Try again</button>
         </div>
       </section>
     </div>
   </main>
+  <script>
+    // Try again checks the site first: it reloads once the site answers, and
+    // otherwise says "not yet" with a shake. A quiet check also runs every 20s.
+    (function () {
+      var card = document.querySelector(".error-card");
+      var button = document.querySelector("[data-retry]");
+      var meter = document.querySelector(".retry-meter");
+      if (!card || !button || !window.fetch) return;
+      var busy = false;
+      var timer = 0;
+      var period = 20000;
+      function wait(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+      function schedule() {
+        clearTimeout(timer);
+        if (meter) {
+          meter.classList.remove("is-running");
+          void meter.offsetWidth;
+          meter.classList.add("is-running");
+        }
+        timer = setTimeout(function () {
+          if (document.visibilityState === "visible") check(); else schedule();
+        }, period);
+      }
+      async function check() {
+        if (busy) return;
+        busy = true;
+        clearTimeout(timer);
+        card.setAttribute("data-retry", "checking");
+        button.setAttribute("aria-busy", "true");
+        var started = Date.now();
+        var ok = false;
+        try {
+          var response = await fetch(window.location.href, { method: "HEAD", cache: "no-store" });
+          ok = response.ok;
+        } catch (_) {
+        }
+        // Long enough to read as a check, never a flicker.
+        await wait(Math.max(0, 700 - (Date.now() - started)));
+        if (ok) {
+          card.setAttribute("data-retry", "back");
+          await wait(260);
+          window.location.reload();
+          return;
+        }
+        busy = false;
+        button.removeAttribute("aria-busy");
+        card.setAttribute("data-retry", "still");
+        schedule();
+      }
+      button.addEventListener("click", check);
+      card.addEventListener("animationend", function (event) {
+        if (event.animationName === "outage-still") card.removeAttribute("data-retry");
+      });
+      schedule();
+    })();
+  </script>
 </body>
 </html>

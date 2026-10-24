@@ -4,6 +4,7 @@
     <title>404 Not Found - Longevity World Cup</title>
     <script id="pageAnalyticsPrivacy">window.LwcDisableGoogleAnalytics = true;</script>
     <!--HEAD-->
+    <link rel="stylesheet" href="/css/standalone-feel.css?v=20261024-1">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -183,7 +184,7 @@
             </picture>
         </div>
         <div class="not-found-body">
-        <h1 id="appReviewTitle" class="not-found-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">404 not found</h1>
+        <h1 id="appReviewTitle" class="not-found-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200"><span class="nf-score"><span class="nf-digit"><span class="nf-reel" data-reel="7&#10;1&#10;9&#10;2">4</span></span><span class="nf-digit"><span class="nf-reel" data-reel="8&#10;3&#10;6&#10;5&#10;9">0</span></span><span class="nf-digit"><span class="nf-reel" data-reel="2&#10;8&#10;1&#10;6&#10;3&#10;7">4</span></span></span> <span class="nf-rest">not found</span></h1>
         <p class="not-found-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             This page didn’t qualify for the Longevity World Cup
         </p>
@@ -196,5 +197,34 @@
         </section>
     </main>
     <!--FOOTER-->
+    <script>
+        // Herold leans toward the pointer and shakes his head when tapped.
+        (function () {
+            const card = document.querySelector(".not-found-card");
+            const visual = document.querySelector(".not-found-visual");
+            if (!card || !visual || !window.matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
+            if (window.matchMedia("(hover: hover)").matches) {
+                card.addEventListener("pointermove", event => {
+                    const box = visual.getBoundingClientRect();
+                    const x = Math.max(-1, Math.min(1, (event.clientX - box.left) / box.width * 2 - 1));
+                    const y = Math.max(-1, Math.min(1, (event.clientY - box.top) / box.height * 2 - 1));
+                    visual.style.setProperty("--nf-tilt-x", x.toFixed(3));
+                    visual.style.setProperty("--nf-tilt-y", y.toFixed(3));
+                });
+                card.addEventListener("pointerleave", () => {
+                    visual.style.removeProperty("--nf-tilt-x");
+                    visual.style.removeProperty("--nf-tilt-y");
+                });
+            }
+            visual.addEventListener("click", () => {
+                visual.removeAttribute("data-nope");
+                void visual.offsetWidth;
+                visual.setAttribute("data-nope", "");
+            });
+            visual.addEventListener("animationend", event => {
+                if (event.animationName === "nf-nope") visual.removeAttribute("data-nope");
+            });
+        })();
+    </script>
 </body>
 </html>
