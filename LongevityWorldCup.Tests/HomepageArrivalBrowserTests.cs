@@ -148,6 +148,7 @@ public sealed class HomepageArrivalBrowserTests(
         await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
         Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
         Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
         Assert.DoesNotContain("lwc-countdown-box", await page.EvaluateAsync<string[]>("arrivalTargets"));
         Assert.Equal(0, await page.EvaluateAsync<int>("document.getAnimations().filter(a => a.id === 'homepage-arrival').length"));
         await CaptureAsync(page, $"{width}-late-parsed");
@@ -256,7 +257,7 @@ public sealed class HomepageArrivalBrowserTests(
 
     private static Task HoldOpeningFrameAsync(IBrowserContext context) => context.AddInitScriptAsync("""
         // Make static-content availability explicit. Parser-blocking scripts may
-        // otherwise consume the bounded entrance before its seventh target exists.
+        // otherwise consume the bounded entrance before its final target exists.
         // The late-parser test releases this frame while the final target is absent.
         const requestFrame = window.requestAnimationFrame.bind(window);
         let holdOpeningFrame = true;
