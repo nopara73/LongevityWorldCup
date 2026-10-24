@@ -173,7 +173,12 @@ interface Window {
             const event = raw as TouchEvent;
             const touch = event.changedTouches[0];
             if (!touch) return;
-            if (type === 'pointermove' && !event.cancelable) { cancelGestures(); return; }
+            if (type === 'pointermove' && !event.cancelable) {
+                // Native controls and the profile's pointer gesture can still
+                // own this stream. Only abandon this surface's recognizers.
+                cancellations.get(element)?.forEach(cancel => cancel());
+                return;
+            }
             const pointer = new PointerEvent(type, {
                 pointerType: 'touch', pointerId: touch.identifier + 1, isPrimary: event.touches.length <= 1,
                 clientX: touch.clientX, clientY: touch.clientY
