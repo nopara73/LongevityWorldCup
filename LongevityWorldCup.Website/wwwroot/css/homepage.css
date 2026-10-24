@@ -2429,7 +2429,7 @@ html body:has(> main.homepage-main > .homepage-panel-pair:last-child) > .footer 
 
 /* ===== Living scoreboard =====
    The home page behaves like a scoreboard from its first second. Figures
-   count up and land, the preview rows settle into rank order (homepage.js),
+   count up and land, the preview rows fade in rank order (homepage.js),
    the page keeps a thin progress rail while the story below the board
    reveals itself on scroll, and calls to action answer the pointer. Motion
    uses the shared tokens; reduced motion keeps every state, only still. */
@@ -2442,10 +2442,15 @@ html body main.homepage-main .btc-status-value {
     font-variant-numeric: tabular-nums;
 }
 
+/* Counting and landing must keep the same line boxes when cancelled. */
+html body main.homepage-main .podium-score .age-reduction,
+html body main.homepage-main #athleteLeaderboard .age-reduction-td .age-reduction {
+    display: inline-block;
+}
+
 @media (prefers-reduced-motion: no-preference) {
     /* A figure that lands gives a short pop, like a board flipping its last digit. */
     html body main.homepage-main .podium-item.is-landed .podium-score .age-reduction {
-        display: inline-block;
         animation: home-figure-land var(--lwc-motion-slow) var(--lwc-ease-pop) both;
     }
 
@@ -2454,7 +2459,6 @@ html body main.homepage-main .btc-status-value {
     }
 
     html body main.homepage-main #athleteLeaderboard tr.is-landed .age-reduction-td .age-reduction {
-        display: inline-block;
         animation: home-figure-land var(--lwc-motion-base) var(--lwc-ease-pop) both;
     }
 
@@ -2626,27 +2630,7 @@ html body main.homepage-main .btc-status-value {
             animation-timeline: scroll(root block);
         }
 
-        /* Depth: the champion stays a beat longer than the runners-up as the
-           podium scrolls away. */
-        html body main.homepage-main.home-scoreboard-live .podium-item:not(.podium-skeleton-item) {
-            animation: home-podium-depth linear both;
-            animation-timeline: view();
-            animation-range: exit 0% exit 100%;
-        }
-
-        html body main.homepage-main.home-scoreboard-live .podium-item.first:not(.podium-skeleton-item) {
-            --home-depth: -36px;
-        }
-
-        /* Each later act rises into place as it enters, its title band
-           underline drawing across as it settles. */
-        html body main.homepage-main.home-scoreboard-live > :is(#hall-of-fame, #faq, .homepage-panel-pair),
-        html body main.homepage-main.home-scoreboard-live #lwc-countdown-box {
-            animation: home-act-rise linear both;
-            animation-timeline: view();
-            animation-range: entry 0% entry 55%;
-        }
-
+        /* Draw accents without moving the sections and their click targets. */
         html body main.homepage-main.home-scoreboard-live .section-container > h2 {
             position: relative;
         }
@@ -2663,35 +2647,6 @@ html body main.homepage-main .btc-status-value {
             animation-range: entry 20% cover 35%;
         }
 
-        /* Hall of fame: medals arrive gold, silver, bronze. */
-        html body main.homepage-main.home-scoreboard-live .archive-table tbody td,
-        html body main.homepage-main.home-scoreboard-live .archive-mobile-card-winner {
-            animation: home-medal-in linear both;
-            animation-timeline: view();
-            animation-range: entry 10% entry 80%;
-        }
-
-        html body main.homepage-main.home-scoreboard-live .archive-table tbody td:nth-child(4),
-        html body main.homepage-main.home-scoreboard-live .archive-mobile-card-winner:nth-child(2) {
-            animation-range: entry 25% entry 95%;
-        }
-
-        html body main.homepage-main.home-scoreboard-live .archive-table tbody td:nth-child(5),
-        html body main.homepage-main.home-scoreboard-live .archive-mobile-card-winner:nth-child(3) {
-            animation-range: entry 40% cover 40%;
-        }
-
-        /* FAQ tiles fan in one after another. */
-        html body main.homepage-main.home-scoreboard-live .homepage-faq-item:nth-child(n) {
-            animation: home-tile-in linear both;
-            animation-timeline: view();
-            animation-range: entry 5% entry 70%;
-        }
-
-        html body main.homepage-main.home-scoreboard-live .homepage-faq-item:nth-child(even) {
-            animation-range: entry 20% entry 85%;
-        }
-
         /* The prize pool fills as it comes into view. */
         html body main.homepage-main.home-scoreboard-live .btc-status-fill {
             transform-origin: 0 50%;
@@ -2706,28 +2661,9 @@ html body main.homepage-main .btc-status-value {
         to { transform: scaleX(1); }
     }
 
-    @keyframes home-podium-depth {
-        to { translate: 0 var(--home-depth, -14px); opacity: 0.7; }
-    }
-
-    @keyframes home-act-rise {
-        from { translate: 0 12px; }
-        to { translate: 0 0; }
-    }
-
     @keyframes home-title-draw {
         from { transform: scaleX(0); }
         to { transform: scaleX(1); }
-    }
-
-    @keyframes home-medal-in {
-        from { translate: 0 8px; }
-        to { opacity: 1; translate: 0 0; }
-    }
-
-    @keyframes home-tile-in {
-        from { translate: 0 8px; }
-        to { opacity: 1; translate: 0 0; }
     }
 
     @keyframes home-pool-fill {

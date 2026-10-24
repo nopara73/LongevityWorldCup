@@ -135,6 +135,47 @@ public sealed class HomeScoreboardBrowserTests(
     }
 
     [Fact]
+    public async Task Cancellation_DoesNotMoveALinkOutFromUnderAnEdgeClick()
+    {
+        await using var context = await Browser.NewContextAsync();
+        var page = await ScoreboardAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                document.querySelector('#leaderboardStatus').textContent='Leaderboard loaded.';
+                enter(); started.forEach(a=>{a.pause();a.currentTime=0;});
+                document.querySelector('tbody a').style.cssText='display:inline-block;height:44px;line-height:44px';
+            }
+            """);
+        var target = (await page.Locator("tbody a").First.BoundingBoxAsync())!;
+        await page.Mouse.ClickAsync(target.X + target.Width / 2, target.Y + target.Height - 1);
+        Assert.EndsWith("/#one", page.Url);
+    }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task Cancellation_KeepsScrolledPodiumLinkTargetsInPlace(int width, int height)
+    {
+        await using var context = await Browser.NewContextAsync(new() { ViewportSize = new() { Width=width, Height=height } });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(App.BaseAddress.ToString());
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; }");
+        await page.WaitForTimeoutAsync(2000);
+        await page.Locator(".podium-item.first").EvaluateAsync("e=>scrollTo(0,scrollY+e.getBoundingClientRect().top+40)");
+        await page.WaitForTimeoutAsync(100);
+        var links = page.Locator(".podium a.athlete-name");
+        var before = await links.EvaluateAllAsync<double[]>("es=>es.map(e=>e.getBoundingClientRect().top)");
+        await page.EvaluateAsync("() => window.dispatchEvent(new Event('pointerdown'))");
+        var after = await links.EvaluateAllAsync<double[]>("es=>es.map(e=>e.getBoundingClientRect().top)");
+        Assert.NotEmpty(before);
+        Assert.Equal(before.Length, after.Length);
+        for (var i = 0; i < before.Length; i++) Assert.InRange(Math.Abs(before[i] - after[i]), 0, 0.5);
+        Assert.Equal(0, await page.Locator(".home-scoreboard-live").CountAsync());
+    }
+
+    [Fact]
     public async Task TimerDeadline_ReleasesCountsWhenFramesNeverRun()
     {
         await using var context = await Browser.NewContextAsync();

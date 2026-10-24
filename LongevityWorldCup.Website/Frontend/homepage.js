@@ -895,8 +895,8 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
     const realRows = () => [...main.querySelectorAll('#athleteLeaderboard tbody tr')]
         .filter(row => !row.matches('.tier-separator, .no-results, .leaderboard-skeleton-row') && row.getClientRects().length);
 
-    // Keep visual and DOM rank order identical; every row arrives from the
-    // same small offset, leaving targets usable even while frames are paused.
+    // Fade rows in canonical order without moving their hitboxes. Cancelling
+    // on pointer-down must not move a link away before pointer-up can click it.
     function settleBoard() {
         if (!canRun()) return false;
         const rows = realRows().slice(0, 12);
@@ -907,8 +907,8 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
         try { rows.forEach((row, index) => {
             const delay = index * 45;
             const animation = row.animate([
-                { transform: 'translateY(8px)', opacity: 0.65 },
-                { transform: 'none', opacity: 1 }
+                { opacity: 0.65 },
+                { opacity: 1 }
             ], { duration: 560, delay, easing, fill: 'backwards' });
             animation.id = 'home-board-settle';
             settleAnimations.push(animation);
