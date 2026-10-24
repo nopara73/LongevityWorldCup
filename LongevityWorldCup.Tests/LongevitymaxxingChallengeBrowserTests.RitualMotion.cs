@@ -69,6 +69,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Contains("transform", motion);
         Assert.Contains(motion, name => name.StartsWith("web-animation:lmx-question-icon"));
         Assert.Contains(motion, name => name.StartsWith("web-animation:lmx-answer-face"));
+        Assert.DoesNotContain(motion, name => name.StartsWith("web-animation:lmx-answer-input"));
         await page.WaitForFunctionAsync("() => getComputedStyle(document.querySelector('.lmx-checkin-actions')).getPropertyValue('--lmx-fill-exercise').trim() === '1'");
         Assert.Equal("1", await face.EvaluateAsync<string>("e => getComputedStyle(e, '::before').opacity"));
         Assert.Equal("0", await form.Locator(".lmx-checkin-actions").EvaluateAsync<string>("e => getComputedStyle(e).getPropertyValue('--lmx-fill-sleep').trim()"));
