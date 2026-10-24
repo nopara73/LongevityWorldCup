@@ -20,7 +20,7 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
         await context.RouteAsync("**/api/site-statistics/dashboard?**", route => route.FulfillAsync(new()
         {
             ContentType = "application/json", Body = """
-            {"generatedAtUtc":"2026-10-17T12:00:00Z","filters":{"fromUtc":"2026-10-16T00:00:00Z","toUtc":"2026-10-17T00:00:00Z"},"events":[],"previousEvents":[],
+            {"generatedAtUtc":"2026-10-17T12:00:00Z","filters":{"fromUtc":"2026-10-10T00:00:00Z","toUtc":"2026-10-17T00:00:00Z"},"events":[],"previousEvents":[],
             "trafficSummary":{"totals":{"sessions":2,"pageViews":3,"events":4},"previousTotals":{"sessions":0,"pageViews":0,"events":0},"cleanTotals":{"sessions":2,"pageViews":3,"events":4},"quality":{},"daily":[{"day":"2026-10-16","sessions":2,"pageViews":3,"events":4}],"topPages":[],"sources":[],"referrers":[],"devices":[],"browsers":[],"outcomes":{}}}
             """
         }));
@@ -30,6 +30,7 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
         finally { release.TrySetResult(); }
         await navigation;
         await page.Locator("#trafficDailyChart").FocusAsync();
+        await page.Locator("#trafficDailyChart").PressAsync("End");
         await Expect(page.Locator(".lwc-chart-tip")).ToBeVisibleAsync();
         await Expect(page.Locator(".lwc-chart-tip")).ToContainTextAsync("2 sessions");
         var urls = await page.EvaluateAsync<string[]>("() => [...document.querySelectorAll('script[src],link[rel=stylesheet]')].map(e=>e.src||e.href).filter(u=>/\\/(charts|motion)\\.(js|css)/.test(u))");
@@ -40,6 +41,9 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
         await Expect(page.Locator("#trafficDayDetail")).ToContainTextAsync("2 sessions · 3 page views");
         await page.Locator("#statsRange").SelectOptionAsync("7d");
         await Expect(page.Locator(".lwc-chart-tip")).ToHaveCountAsync(1);
+        await page.SetViewportSizeAsync(160, 422);
+        await page.WaitForFunctionAsync("() => { const s=document.querySelector('#trafficDailyChart'); return Math.abs(s.viewBox.baseVal.width-s.parentElement.clientWidth)<1; }");
+        Assert.True(await page.Locator("#trafficDailyChart .traffic-date-label").EvaluateAllAsync<bool>("es => es.every((e,i)=>!i || es[i-1].getBoundingClientRect().right+4<=e.getBoundingClientRect().left)"));
     }
 
     [Theory]

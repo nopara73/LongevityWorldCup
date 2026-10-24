@@ -1031,6 +1031,12 @@
         const lastLabel = labels[labels.length - 1];
         if (!lastLabel) return;
         const lastLeft = lastLabel.getBoundingClientRect().left;
+        // At browser zoom the two endpoint dates can be wider than the plot.
+        // Use the free space below the y-axis before removing any middle ticks.
+        const firstLabel = labels[0];
+        if (firstLabel && firstLabel !== lastLabel && firstLabel.getBoundingClientRect().right + 8 > lastLeft) {
+            firstLabel.setAttribute("x", "0");
+        }
         let previousRight = -Infinity;
         labels.forEach((label, index) => {
             const bounds = label.getBoundingClientRect();

@@ -6895,14 +6895,13 @@ function drawResultPlot(state) {
             grid: { color: color('--athlete-modal-chart-grid'), drawTicks: false },
             ticks: { color: muted, padding: 8, font: { family: 'Roboto', size: 11 }, maxRotation: 0 },
             title: { display: true, color: muted, font: { family: 'Roboto', size: 11 } } };
-        const titleLines = text => {
+        const wrapPlotText = (text, available, font = '600 12px Roboto') => {
             // Browser zoom can leave less room than the usual phone layout.
             // Measure the bold title font (also safely bounds body text) rather
             // than guessing a character count or reducing readable type.
             const context = canvas.getContext('2d');
             context.save();
-            context.font = '600 12px Roboto';
-            const available = Math.max(1, plot.clientWidth - 32);
+            context.font = font;
             const lines = [];
             let line = '';
             for (const word of String(text).split(/\s+/)) {
@@ -6922,6 +6921,7 @@ function drawResultPlot(state) {
             context.restore();
             return lines;
         };
+        const titleLines = text => wrapPlotText(text, Math.max(1, plot.clientWidth - 32));
         state.chart = new window.Chart(canvas, {
             type: 'scatter', data: { datasets },
             options: {
@@ -6948,7 +6948,8 @@ function drawResultPlot(state) {
                 scales: {
                     x: { ...axis, grid: { display: false },
                         min: low, max: high,
-                        title: { ...axis.title, text: 'Chronological age (years)' },
+                        title: { ...axis.title, text: context => context.chart.width < 180
+                            ? ['Chronological', 'age (years)'] : 'Chronological age (years)' },
                         ticks: { ...axis.ticks, maxTicksLimit: compact() ? 3 : 5 } },
                     y: { ...axis, ...(measure.clock ? clockBounds : { grace: '8%' }), ticks: { ...axis.ticks, maxTicksLimit: 6 },
                         title: { ...axis.title, text: `${measure.name} (${measure.unit})` } }
