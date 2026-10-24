@@ -32,10 +32,39 @@
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const chapterSelector = "#athleteRankings, #modalBadgeStrip, #athleteBio, #ageVisualization, #athlete-stats, #athlete-biomarkers, #athlete-proofs, .events-embed";
     let gateOpen = false;
+    const timers = new Set<number>();
+    const frames = new Set<number>();
+    const animations = new Set<Animation>();
+    const counters = new Set<HTMLElement>();
+    let cancelScrub = (): void => {};
+
+    function later(callback: () => void, delay: number): void {
+        const id = window.setTimeout(() => { timers.delete(id); callback(); }, delay);
+        timers.add(id);
+    }
+
+    function frame(callback: FrameRequestCallback): void {
+        const id = requestAnimationFrame(now => { frames.delete(id); callback(now); });
+        frames.add(id);
+    }
+
+    function animate(element: HTMLElement | null, keyframes: Keyframe[], options: KeyframeAnimationOptions): void {
+        if (!element) return;
+        // A result can change again before its previous transition has landed.
+        for (const animation of animations) {
+            if ((animation.effect as KeyframeEffect | null)?.target === element) {
+                animation.cancel();
+                animations.delete(animation);
+            }
+        }
+        const animation = element.animate(keyframes, options);
+        animations.add(animation);
+        animation.finished.then(() => animations.delete(animation), () => animations.delete(animation));
+    }
 
     function enabled(): boolean {
         return !reduced.matches && (gateOpen || root.dataset["lwcMotion"] === "on")
-            && !scroller.classList.contains("guess-mode");
+            && isOpen() && !scroller.matches(".guess-mode, .is-loading, .has-load-error");
     }
 
     function openGate(event: Event): void {
@@ -56,9 +85,10 @@
 
     // --- Chapters rise as they scroll in -------------------------------------------
 
-    const seen = new WeakSet<Element>();
+    let seen = new WeakSet<Element>();
+    let rowsSeen = new WeakSet<Element>();
     const chapterObserver = new IntersectionObserver(entries => entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
+        if (!entry.isIntersecting || !enabled()) return;
         chapterObserver.unobserve(entry.target);
         reveal(entry.target as HTMLElement);
     }), { root: scroller, rootMargin: "0px 0px -8% 0px", threshold: 0.06 });
@@ -68,13 +98,14 @@
     }
 
     function reveal(chapter: HTMLElement): void {
+        if (!enabled() || chapter.dataset["story"] !== "wait") return;
         if (chapter.dataset["story"] === "wait") chapter.dataset["story"] = "in";
         settleLater(chapter, "story", 700);
         chapterArrived(chapter, false);
     }
 
     function settleLater(element: HTMLElement, key: string, ms: number): void {
-        window.setTimeout(() => { if (element.dataset[key] === "in") delete element.dataset[key]; }, ms);
+        later(() => { if (element.dataset[key] === "in") delete element.dataset[key]; }, ms);
     }
 
     // Each chapter plays its own entrance once its section is on screen.
@@ -106,12 +137,13 @@
         if (!enabled()) return;
         const items = Array.from(strip.querySelectorAll<HTMLElement>(".modal-badge-item")).filter(shown);
         items.forEach((item, index) => {
+            if (item.contains(document.activeElement)) return;
             item.dataset["unlock"] = "locked";
-            window.setTimeout(() => {
+            later(() => {
                 if (item.dataset["unlock"] !== "locked") return;
                 item.dataset["unlock"] = "open";
                 // The open state is only an entrance; a settled badge has no animation.
-                window.setTimeout(() => { if (item.dataset["unlock"] === "open") delete item.dataset["unlock"]; }, 900);
+                later(() => { if (item.dataset["unlock"] === "open") delete item.dataset["unlock"]; }, 900);
             }, delay + index * 85);
         });
     }
@@ -129,45 +161,49 @@
             piece.className = "age-story-gap-" + part;
             gap!.appendChild(piece);
         });
-        summary.querySelector(".age-bio-age")?.before(gap) ?? summary.appendChild(gap);
+        const age = summary.querySelector(".age-bio-age");
+        if (age) age.before(gap);
+        else summary.appendChild(gap);
         return gap;
     }
 
     function readNumber(element: Element | null): number {
-        const text = (element?.textContent || "").replace(/[−–]/g, "-").replace(/[^0-9+.-]/g, "");
-        return parseFloat(text);
+        const text = (element?.textContent || "").trim().replace(/[−–]/g, "-");
+        // Censored lab readings (e.g. <0.5) are bounds, not exact values.
+        return /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:\s+years?)?$/.test(text) ? parseFloat(text) : NaN;
     }
 
     // Twenty years either side of the calendar age fills the whole track.
     function gapFor(visualization: Element | null, fromCalendar: boolean): void {
-        const summary = (visualization ?? document).querySelector<HTMLElement>("#ageRadarCenter");
-        if (!summary) return;
-        const gap = gauge(summary);
-        const diff = readNumber(summary.querySelector("#ageRadarCenterValue"));
-        const ratio = Number.isFinite(diff) ? Math.max(-1, Math.min(1, diff / 20)) : 0;
-        // A younger result wears the chosen clock's colour; an older one the summary's own.
-        const canvas = document.getElementById("ageRadarChart");
-        const clock = canvas?.dataset["clock"] === "pheno" ? "pheno" : "bortz";
-        gap.dataset["direction"] = ratio < 0 ? "younger" : ratio > 0 ? "older" : "even";
-        gap.dataset["clock"] = clock;
-        const value = summary.querySelector<HTMLElement>(".age-diff");
-        if (value && ratio > 0) gap.style.setProperty("--story-gap-color", getComputedStyle(value).color);
-        else gap.style.removeProperty("--story-gap-color");
-        const visual = document.getElementById("ageVisualization");
-        if (visual) visual.dataset["storyClock"] = clock;
-        if (!enabled()) {
-            gap.dataset["still"] = "";
-            gap.style.setProperty("--story-gap", String(ratio));
-            return;
-        }
-        delete gap.dataset["still"];
-        if (fromCalendar) {
-            gap.dataset["still"] = "";
-            gap.style.setProperty("--story-gap", "0");
-            void gap.offsetWidth;
+        (visualization ?? document).querySelectorAll<HTMLElement>("#ageRadarCenter, #ageRadarFallback").forEach(summary => {
+            const gap = gauge(summary);
+            const diff = readNumber(summary.querySelector(".age-diff"));
+            gap.hidden = !Number.isFinite(diff);
+            const ratio = Number.isFinite(diff) ? Math.max(-1, Math.min(1, diff / 20)) : 0;
+            // A younger result wears the chosen clock's colour; an older one the summary's own.
+            const canvas = document.getElementById("ageRadarChart");
+            const clock = canvas?.dataset["clock"] === "pheno" ? "pheno" : "bortz";
+            gap.dataset["direction"] = ratio < 0 ? "younger" : ratio > 0 ? "older" : "even";
+            gap.dataset["clock"] = clock;
+            const value = summary.querySelector<HTMLElement>(".age-diff");
+            if (value && ratio > 0) gap.style.setProperty("--story-gap-color", getComputedStyle(value).color);
+            else gap.style.removeProperty("--story-gap-color");
+            const visual = document.getElementById("ageVisualization");
+            if (visual) visual.dataset["storyClock"] = clock;
+            if (!enabled()) {
+                gap.dataset["still"] = "";
+                gap.style.setProperty("--story-gap", String(ratio));
+                return;
+            }
             delete gap.dataset["still"];
-        }
-        requestAnimationFrame(() => gap.style.setProperty("--story-gap", String(ratio)));
+            if (fromCalendar) {
+                gap.dataset["still"] = "";
+                gap.style.setProperty("--story-gap", "0");
+                void gap.offsetWidth;
+                delete gap.dataset["still"];
+            }
+            frame(() => gap.style.setProperty("--story-gap", String(ratio)));
+        });
     }
 
     function redrawRadar(): void {
@@ -238,7 +274,12 @@
         timeline.dataset["count"] = String(options.length);
         if (enabled()) {
             timeline.dataset["draw"] = "wait";
-            requestAnimationFrame(() => requestAnimationFrame(() => { if (timeline) timeline.dataset["draw"] = "in"; }));
+            frame(() => frame(() => {
+                if (timeline && enabled()) {
+                    timeline.dataset["draw"] = "in";
+                    settleLater(timeline, "draw", 900);
+                }
+            }));
         } else delete timeline?.dataset["draw"];
         lastIndex = -1;
         markSelected();
@@ -264,16 +305,26 @@
     function stepFeel(direction: number): void {
         if (!enabled()) return;
         const date = document.getElementById("ageResultDate");
-        date?.animate([
+        animate(date, [
             { transform: `translateX(${direction * 14}px)`, opacity: 0 },
             { transform: "none", opacity: 1 }
         ], { duration: 220, easing: "cubic-bezier(0, 0, 0, 1)" });
         const summary = document.getElementById("ageRadarCenter");
-        summary?.animate([{ transform: "scale(.985)" }, { transform: "none" }], { duration: 260, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+        animate(summary, [{ transform: "scale(.985)" }, { transform: "none" }], { duration: 260, easing: "cubic-bezier(0.2, 0, 0, 1)" });
     }
 
     function bindScrub(track: HTMLElement): void {
         let dragging = -1;
+        let startX = 0;
+        let startY = 0;
+        let active = false;
+        cancelScrub = (): void => {
+            const id = dragging;
+            dragging = -1;
+            active = false;
+            track.classList.remove("is-scrubbing");
+            if (id >= 0 && track.hasPointerCapture(id)) track.releasePointerCapture(id);
+        };
         const choose = (clientX: number): void => {
             const found = picker();
             if (!found) return;
@@ -283,42 +334,70 @@
             const ratio = (clientX - bounds.left) / bounds.width;
             const index = Math.max(0, Math.min(count - 1, Math.round((ratio * 100 - 4) / 92 * (count - 1))));
             if (index === found.select.selectedIndex) return;
-            found.select.value = String(index);
+            found.select.selectedIndex = index;
             found.select.dispatchEvent(new Event("change", { bubbles: true }));
         };
         track.addEventListener("pointerdown", event => {
-            if (event.button !== 0) return;
+            if (!event.isPrimary || dragging >= 0) { cancelScrub(); return; }
+            if (event.button !== 0 || !isOpen()) return;
+            // This control owns horizontal gestures; the surrounding profile
+            // must not also interpret the same drag as an athlete switch.
+            event.stopPropagation();
             dragging = event.pointerId;
-            track.setPointerCapture(event.pointerId);
-            track.classList.add("is-scrubbing");
-            choose(event.clientX);
+            startX = event.clientX;
+            startY = event.clientY;
+            active = event.pointerType === "mouse";
+            if (active) {
+                track.setPointerCapture(event.pointerId);
+                track.classList.add("is-scrubbing");
+                choose(event.clientX);
+            }
         });
         track.addEventListener("pointermove", event => {
-            if (event.pointerId === dragging) choose(event.clientX);
+            if (event.pointerId !== dragging) return;
+            if (!active) {
+                const dx = Math.abs(event.clientX - startX);
+                const dy = Math.abs(event.clientY - startY);
+                if (dy > 8 && dy >= dx) { cancelScrub(); return; }
+                if (dx < 8 || dx < dy * 1.5) return;
+                active = true;
+                track.setPointerCapture(event.pointerId);
+                track.classList.add("is-scrubbing");
+            }
+            choose(event.clientX);
         });
         const stop = (event: PointerEvent): void => {
             if (event.pointerId !== dragging) return;
-            dragging = -1;
-            track.classList.remove("is-scrubbing");
+            if (event.type === "pointerup") choose(event.clientX);
+            cancelScrub();
         };
         track.addEventListener("pointerup", stop);
         track.addEventListener("pointercancel", stop);
+        track.addEventListener("lostpointercapture", event => {
+            // Touch initially captures the hit dot. Promoting that capture to
+            // the track must not cancel the scrub when the dot releases it.
+            if (event.target === track) stop(event);
+        });
+        window.addEventListener("blur", cancelScrub);
     }
 
     // --- Results over time draw in ---------------------------------------------------
 
     const rowObserver = new IntersectionObserver(entries => {
+        if (!enabled()) return;
         const arriving = entries.filter(entry => entry.isIntersecting).map(entry => entry.target as HTMLElement);
         arriving.forEach((row, index) => {
             rowObserver.unobserve(row);
-            window.setTimeout(() => drawRow(row), index * 70);
+            later(() => drawRow(row), index * 70);
         });
     }, { root: scroller, rootMargin: "0px 0px -6% 0px", threshold: 0.2 });
 
     function armRows(section: HTMLElement): void {
         if (!enabled()) return;
         section.querySelectorAll<HTMLElement>("tr.result-summary").forEach(row => {
-            if (row.dataset["draw"]) return;
+            if (rowsSeen.has(row) || !shown(row)) return;
+            rowsSeen.add(row);
+            if (row.contains(document.activeElement)) return;
             row.dataset["draw"] = "wait";
             row.querySelectorAll<SVGGeometryElement>(".biomarker-overview-history svg line:not(.sparkline-track):not(.sparkline-tick)")
                 .forEach(line => line.setAttribute("pathLength", "1"));
@@ -329,10 +408,10 @@
     }
 
     function drawRow(row: HTMLElement): void {
-        if (row.dataset["draw"] !== "wait") return;
+        if (row.dataset["draw"] !== "wait" || !row.isConnected || !enabled()) return;
         row.dataset["draw"] = "in";
         countFromFirst(row);
-        window.setTimeout(() => {
+        later(() => {
             if (row.dataset["draw"] !== "in") return;
             delete row.dataset["draw"];
             row.querySelectorAll(".biomarker-overview-history svg line[pathLength]").forEach(line => line.removeAttribute("pathLength"));
@@ -353,15 +432,22 @@
         const start = performance.now();
         const duration = 760;
         current.style.setProperty("--lwc-count-color", getComputedStyle(current).color);
+        counters.add(current);
         const tick = (now: number): void => {
-            if (!current.isConnected || current.textContent !== text) { delete current.dataset["lwcCount"]; return; }
+            if (!enabled() || !current.isConnected || current.textContent !== text || row.dataset["draw"] !== "in") { clearCount(current); return; }
             const progress = Math.min(1, (now - start) / duration);
             const value = from + (latest - from) * (1 - Math.pow(1 - progress, 3));
-            if (progress >= 1) { delete current.dataset["lwcCount"]; current.style.removeProperty("--lwc-count-color"); return; }
-            current.dataset["lwcCount"] = text.replace(/-?[0-9]+(\.[0-9]+)?/, value.toFixed(decimals));
-            requestAnimationFrame(tick);
+            if (progress >= 1) { clearCount(current); return; }
+            current.dataset["lwcCount"] = text.replace(/[+−–-]?[0-9]+(\.[0-9]+)?/, value.toFixed(decimals));
+            frame(tick);
         };
-        requestAnimationFrame(tick);
+        frame(tick);
+    }
+
+    function clearCount(current: HTMLElement): void {
+        delete current.dataset["lwcCount"];
+        current.style.removeProperty("--lwc-count-color");
+        counters.delete(current);
     }
 
     // --- Links answer the press ------------------------------------------------------
@@ -372,12 +458,46 @@
         delete link.dataset["pressed"];
         void link.offsetWidth;
         link.dataset["pressed"] = "";
-        window.setTimeout(() => delete link.dataset["pressed"], 520);
+        later(() => delete link.dataset["pressed"], 520);
+    });
+
+    // Keyboard focus reveals content immediately, even before intersection
+    // callbacks run, and never leaves its control behind an entrance effect.
+    function revealForInteraction(target: Element): void {
+        for (let element: Element | null = target; element && element !== dialog; element = element.parentElement) {
+            if (!(element instanceof HTMLElement)) continue;
+            if (element.matches(chapterSelector)) seen.add(element);
+            if (element.matches("tr.result-summary")) rowsSeen.add(element);
+            delete element.dataset["story"];
+            delete element.dataset["unlock"];
+            delete element.dataset["draw"];
+            chapterObserver.unobserve(element);
+            rowObserver.unobserve(element);
+            element.querySelectorAll<HTMLElement>(".biomarker-overview-current").forEach(clearCount);
+        }
+    }
+    dialog.addEventListener("focusin", event => {
+        if (event.target instanceof Element) revealForInteraction(event.target);
+    });
+    dialog.addEventListener("pointerover", event => {
+        if (event.target instanceof Element && event.target.closest(".badge-class, .athlete-links a, .athlete-share-wrapper button"))
+            revealForInteraction(event.target);
     });
 
     // --- Lifecycle ---------------------------------------------------------------------
 
     function clearAll(): void {
+        window.clearTimeout(pending);
+        timers.forEach(id => window.clearTimeout(id));
+        timers.clear();
+        frames.forEach(id => cancelAnimationFrame(id));
+        frames.clear();
+        animations.forEach(animation => animation.cancel());
+        animations.clear();
+        counters.forEach(clearCount);
+        chapterObserver.disconnect();
+        rowObserver.disconnect();
+        cancelScrub();
         scroller.querySelectorAll<HTMLElement>("[data-story]").forEach(element => {
             delete element.dataset["story"];
             chapterObserver.unobserve(element);
@@ -387,13 +507,15 @@
             delete element.dataset["draw"];
             rowObserver.unobserve(element);
         });
-        scroller.querySelectorAll("line[pathLength]").forEach(line => line.removeAttribute("pathLength"));
+        scroller.querySelectorAll(".biomarker-overview-history line[pathLength]").forEach(line => line.removeAttribute("pathLength"));
+        scroller.querySelectorAll<HTMLElement>("[data-pressed]").forEach(element => delete element.dataset["pressed"]);
         lastIndex = -1;
     }
 
     function forget(): void {
         clearAll();
-        scroller.querySelectorAll(chapterSelector).forEach(chapter => seen.delete(chapter));
+        seen = new WeakSet<Element>();
+        rowsSeen = new WeakSet<Element>();
     }
 
     let openedAt = 0;
@@ -410,20 +532,32 @@
     }
 
     new MutationObserver(records => {
-        if (!isOpen()) return;
+        if (!isOpen() || scroller.matches(".guess-mode, .is-loading, .has-load-error")) return;
         let pickerChanged = false;
         let resultChanged = false;
+        let relevant = false;
         for (const record of records) {
             const target = record.target instanceof Element ? record.target : record.target.parentElement;
             if (!target) continue;
             if (target.closest(".age-story-gap, .age-story-timeline") || target.matches?.("[data-lwc-count]")) continue;
+            relevant = true;
             if (target.closest("#ageResultSelect")) pickerChanged = true;
-            else if (target.closest("#ageResultDate, #ageRadarCenter")) resultChanged = true;
+            else if (target.closest("#ageResultDate, #ageRadarCenter, #ageRadarFallback")) resultChanged = true;
         }
         if (pickerChanged) buildTimeline();
         if (resultChanged) { markSelected(); gapFor(document.getElementById("ageVisualization"), false); }
-        schedule();
+        if (relevant) schedule();
     }).observe(scroller, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
+
+    let unavailable = scroller.matches(".guess-mode, .is-loading, .has-load-error");
+    new MutationObserver(() => {
+        const blocked = scroller.matches(".guess-mode, .is-loading, .has-load-error");
+        if (blocked !== unavailable) {
+            if (blocked) clearAll();
+            else if (isOpen()) { buildTimeline(); schedule(); }
+        }
+        unavailable = blocked;
+    }).observe(scroller, { attributes: true, attributeFilter: ["class"] });
 
     let wasOpen = isOpen();
     new MutationObserver(() => {

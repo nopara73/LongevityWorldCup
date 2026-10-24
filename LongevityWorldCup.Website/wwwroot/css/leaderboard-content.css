@@ -5993,7 +5993,8 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 
 /* The gap gauge: the calendar age is the middle tick; the biological age is
    the dot, younger to the left, and the span between them is the gap. */
-#detailsModal .age-radar-summary .age-story-gap{
+#detailsModal .age-radar-summary .age-story-gap,
+#detailsModal #ageRadarFallback .age-story-gap{
     --story-gap:0;
     position:relative;
     display:block;
@@ -6002,6 +6003,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     margin:.15rem .25rem .1rem;
     color:var(--story-gap-color, var(--athlete-modal-chart-bortz));
 }
+#detailsModal .age-story-gap[hidden]{ display:none; }
 #detailsModal .age-story-gap[data-clock="pheno"]{ color:var(--story-gap-color, var(--athlete-modal-chart-pheno)); }
 #detailsModal .age-story-gap-track{
     position:absolute;
@@ -6057,7 +6059,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     height:44px;
     margin:.35rem auto .35rem;
     cursor:ew-resize;
-    touch-action:pan-y;
+    touch-action:pan-y pinch-zoom;
     user-select:none;
     -webkit-user-select:none;
     -webkit-tap-highlight-color:transparent;
