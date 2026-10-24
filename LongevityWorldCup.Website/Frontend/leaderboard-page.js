@@ -1165,15 +1165,34 @@ function processRowRevealQueue() {
     }, rowRevealStaggerMs);
 }
 
-function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh = false) {
     window.initializeSharedPageData();
     includePodiumGlobal = includePodium;
     maxAthletesGlobal = maxAthletes;
     athleteResultsReady = false;
-    setLeaderboardLoadingState(includePodium, maxAthletes);
+    if (!refresh) setLeaderboardLoadingState(includePodium, maxAthletes);
+    const fullBoard = pageDocument.querySelector('main[data-leaderboard-page="full"]');
+    if (fullBoard && !fullBoard.hasAttribute('data-lwc-refresh-ready')) {
+        fullBoard.setAttribute('data-lwc-refresh-ready', '');
+        fullBoard.addEventListener('lwc:pull-refresh', event => {
+            // Resolve fresh public data before touching the visible selection.
+            event.detail.waitUntil(window.getSharedAthletes(true).then(() =>
+                LoadLeaderboard(includePodiumGlobal, maxAthletesGlobal, true)).catch(() => {
+                    setLeaderboardStatus('Leaderboard could not load.', true);
+                }));
+        });
+        window.LwcTouch?.refresh();
+    }
 
     const currentLoadPromise = window.getSharedAthletes()
         .then(athletes => {
+            // A pull refresh can finish before the initial request. Only the
+            // latest load owns the visible board, including failure handling.
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
+            const selectedFilters = refresh ? new Set(Array.from(document.querySelectorAll('.sidebar input:checked'))
+                .map(input => `${input.name}\n${input.value}`)) : null;
+            const refreshFocus = refresh ? document.activeElement : null;
+            const refreshScroll = refresh ? window.scrollY : null;
             // Array to store athletes with their lowest PhenoAge and age reduction
             updateViewAllAthletesButton(athletes.length);
             const nowForCrowdAgeUtc = new Date();
@@ -1613,6 +1632,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
                 generateLeagueTrackFilters(athleteResults);
+                if (selectedFilters) {
+                    document.querySelectorAll('.sidebar input').forEach(input => {
+                        input.checked = selectedFilters.has(`${input.name}\n${input.value}`);
+                    });
+                }
             }
 
             // Sort the athletes by age reduction in ascending order
@@ -1892,7 +1916,9 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             const leagueRouteState = getLeagueRouteState(window.location.pathname);
             const flagRouteState = getFlagRouteState(window.location.pathname);
             const athleteParam = getInitialAthleteSlug();
-            if (athleteParam) {
+            if (refresh) {
+                // Current inputs remain authoritative during a refresh.
+            } else if (athleteParam) {
                 // A profile selected while the index was loading takes priority
                 // over the containing page's initial URL (including close/back).
                 if (currentAthleteModalRequestId === 0) {
@@ -2002,6 +2028,14 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 }
             }
             setLeaderboardStatus('Leaderboard loaded.');
+            if (refreshFocus && !refreshFocus.isConnected) {
+                const replacement = Array.from(document.querySelectorAll('.sidebar input, .leaderboard a')).find(element =>
+                    refreshFocus instanceof HTMLInputElement
+                        ? element.name === refreshFocus.name && element.value === refreshFocus.value
+                        : refreshFocus instanceof HTMLAnchorElement && element.getAttribute('href') === refreshFocus.getAttribute('href'));
+                replacement?.focus({ preventScroll: true });
+            }
+            if (refreshScroll !== null) window.scrollTo({ top: refreshScroll, behavior: 'instant' });
 
             // Pick up dynamically inserted [data-aos] nodes
             if (window.AOS && typeof AOS.refreshHard === 'function') {
@@ -2011,6 +2045,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             }
         })
         .catch(error => {
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
             athleteResultsReady = false;
             athleteResultsLoadPromise = null;
             const tableBody = document.querySelector('.leaderboard table tbody');
