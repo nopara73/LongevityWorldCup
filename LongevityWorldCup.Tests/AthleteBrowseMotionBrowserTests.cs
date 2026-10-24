@@ -58,7 +58,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(width, height, dark, reducedMotion: false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, path);
+        await NavigateToLeaderboardAsync(page, path);
 
         var source = path == "/" ? page.Locator(".podium-item[data-athlete-name]").First : page.Locator(Rows + ":visible").Nth(4);
         await source.ScrollIntoViewIfNeededAsync();
@@ -121,7 +121,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(width, height, dark, reducedMotion: false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
         await rows.Nth(4).ScrollIntoViewIfNeededAsync();
         var names = await rows.EvaluateAllAsync<string[]>("rows => rows.slice(0, 8).map(row => row.dataset.athleteName)");
@@ -158,7 +158,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(390, 844, dark: false, reducedMotion: true);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
         await rows.Nth(1).ScrollIntoViewIfNeededAsync();
         var names = await rows.EvaluateAllAsync<string[]>("rows => rows.slice(0, 20).map(row => row.dataset.athleteName)");
@@ -200,7 +200,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(1280, 860, dark: true, reducedMotion: false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
         var names = await rows.EvaluateAllAsync<string[]>("rows => rows.slice(0, 4).map(row => row.dataset.athleteName)");
         await rows.Nth(1).Locator("a.athlete-name").ClickAsync();
@@ -229,7 +229,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(390, 844, dark: false, reducedMotion: false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
         var names = await rows.EvaluateAllAsync<string[]>("rows => rows.slice(0, 4).map(row => row.dataset.athleteName)");
         await rows.Nth(1).Locator("a.athlete-name").TapAsync();
@@ -278,7 +278,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(1440, 900, dark: false, reducedMotion: false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         var row = page.Locator($"{Rows}[data-tier='pro']:visible").Nth(4);
         await row.Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
@@ -317,7 +317,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(width, height, dark, reducedMotion: false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         var pheno = page.Locator("label[for='view-pheno']").First;
         await pheno.ScrollIntoViewIfNeededAsync();
 
@@ -353,7 +353,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(390, 844, false, false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         await page.Locator(Rows + ":visible").Nth(1).Locator("a.athlete-name").TapAsync();
         await WaitForProfileAsync(page);
         var name = await page.Locator("#athleteName").InnerTextAsync();
@@ -386,7 +386,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(390, 844, false, reducedMotion);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
         var next = await rows.Nth(2).Locator("a.athlete-name").GetAttributeAsync("href");
         await rows.Nth(1).Locator("a.athlete-name").TapAsync();
@@ -433,7 +433,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         await page.Locator(Rows + ":visible").Nth(1).Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
         await page.WaitForTimeoutAsync(500);
@@ -450,7 +450,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(1440, 900, false, false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         await page.Locator(Rows + "[data-tier='pro']:visible").Nth(4).Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
         await page.Locator("#athlete-stats").ScrollIntoViewIfNeededAsync();
@@ -477,7 +477,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(390, 844, false, false);
         var page = await context.NewPageAsync();
-        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateToLeaderboardAsync(page, "/leaderboard");
         await page.Locator(Rows + ":visible").Nth(1).Locator("a.athlete-name").TapAsync();
         await WaitForProfileAsync(page);
         var name = await page.Locator("#athleteName").InnerTextAsync();
@@ -526,6 +526,15 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var transform = document.RootElement.GetProperty("transform").GetString()!;
         var start = transform.IndexOf("scale(", StringComparison.Ordinal) + "scale(".Length;
         return double.Parse(transform[start..transform.IndexOf(')', start)], CultureInfo.InvariantCulture);
+    }
+
+    private static async Task NavigateToLeaderboardAsync(IPage page, string path)
+    {
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, path);
+        // The server-rendered podium is replaced when athlete data arrives.
+        // Fonts and styles can settle before that replacement, so measure and
+        // interact with rows only after the leaderboard finishes hydrating.
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
     }
 
     private static Task WaitForProfileAsync(IPage page) => page.WaitForFunctionAsync(

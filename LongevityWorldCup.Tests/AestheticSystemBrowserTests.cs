@@ -1233,6 +1233,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/ro-guide.css":
+                    await AssertRejuvenationContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "onboarding/convergence.html":
                     await AssertApplicationContainerBoundariesAsync(page, source.ToArray());
                     break;
@@ -1254,6 +1257,75 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
             }
+        }
+    }
+
+    private static async Task AssertRejuvenationContainerBoundariesAsync(
+        IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await page.SetViewportSizeAsync(1920, 1080);
+        var wasReduced = await page.EvaluateAsync<bool>("() => matchMedia('(prefers-reduced-motion: reduce)').matches");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        try
+        {
+            await NavigateAndSettleAsync(page, "/rejuvenation-olympics");
+            await page.WaitForSelectorAsync(".ro-standings.is-ready");
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+                foreach (var condition in conditions)
+                {
+                    Assert.Equal("max", condition.Bound);
+                    Assert.Equal("rem", condition.Unit);
+                    if (condition.Name == "ro-timeline") Assert.Equal(36, condition.Value);
+                    else
+                    {
+                        Assert.Null(condition.Name);
+                        Assert.Contains(condition.Value, new double[] { 12, 28 });
+                    }
+                    var threshold = condition.Value * fontSize;
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var width = threshold + delta;
+                        var diagnostics = await page.EvaluateAsync<double[]>("""
+                            async ({ Width, Name, Boundary }) => {
+                                const timeline = Name === 'ro-timeline';
+                                const container = document.querySelector(timeline ? '.ro-timeline' : '.ro-standings');
+                                Object.assign(container.style, { boxSizing: 'content-box', width: `${Width}px`, maxWidth: 'none', maxInlineSize: 'none' });
+                                await document.fonts.ready;
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                let compact, companion;
+                                if (timeline) {
+                                    const [first, second] = [...container.querySelectorAll('.ro-milestones li')].map(e => e.getBoundingClientRect());
+                                    compact = second.top >= first.bottom - 1;
+                                    companion = getComputedStyle(container.querySelector('.ro-milestones')).gridTemplateColumns.split(' ').length === 1;
+                                } else if (Boundary === 28) {
+                                    compact = getComputedStyle(container.querySelector('.ro-podium')).gridTemplateColumns.split(' ').length === 1;
+                                    const row = container.querySelector('.ro-row-link');
+                                    companion = row.querySelector('.ro-row-score').getBoundingClientRect().top >= row.querySelector('.ro-row-name').getBoundingClientRect().bottom - 1;
+                                } else {
+                                    compact = getComputedStyle(container.querySelector('.ro-step-link')).display === 'flex';
+                                    companion = getComputedStyle(container.querySelector('.ro-row-link')).gridTemplateColumns.split(' ').length === 2;
+                                }
+                                const text = [...container.querySelectorAll('.ro-step-name,.ro-step-score,.ro-row-name,.ro-row-score,.ro-clock')];
+                                return [parseFloat(getComputedStyle(container).width), compact ? 1 : 0, companion ? 1 : 0,
+                                    Math.max(0, container.scrollWidth - container.clientWidth),
+                                    Math.max(0, ...text.map(e => Math.max(e.scrollWidth - e.clientWidth, e.scrollHeight - e.clientHeight)))];
+                            }
+                            """, new { Width = width, condition.Name, Boundary = condition.Value });
+                        Assert.Equal(width, diagnostics[0], 1);
+                        Assert.Equal(width <= threshold ? 1 : 0, diagnostics[1]);
+                        Assert.Equal(width <= threshold ? 1 : 0, diagnostics[2]);
+                        Assert.True(diagnostics[3] <= 1, $"Rejuvenation {condition.Name ?? "standings"} overflowed at {width}px with {fontSize}px text.");
+                        Assert.True(diagnostics[4] <= 1, $"Rejuvenation names, scores or countdown clipped at {width}px with {fontSize}px text.");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
+            await page.EmulateMediaAsync(new() { ReducedMotion = wasReduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference });
         }
     }
 
