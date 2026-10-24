@@ -2428,6 +2428,13 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     --bioage-live-spring: cubic-bezier(0.3, 1.35, 0.45, 1);
 }
 
+/* Keep the explicit Calculate action in the editable panel after a live
+   reading. Only the result actions dock; an idle update must not remove a
+   control the user is about to activate. */
+body.bioage-result-ready .bioage-live-instrument #lwcStepTwoActions {
+    display: flex !important;
+}
+
 /* Focus: the row label leans toward the field and the unit cap lights up. */
 :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card-header {
     transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
@@ -2640,7 +2647,8 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     display: inline-flex;
     align-items: center;
     gap: 0.55rem;
-    min-height: 38px;
+    min-height: 44px;
+    max-width: calc(100vw - 32px);
     padding: 0.3rem 0.45rem 0.3rem 0.8rem;
     box-sizing: border-box;
     border: 1px solid color-mix(in srgb, var(--bioage-readout-color) 40%, var(--lwc-border, #d7e0e6));
@@ -2664,6 +2672,10 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
 
 .bioage-live-readout[hidden] {
     display: none;
+}
+
+body.flow-input-keyboard-open .bioage-live-readout {
+    visibility: hidden;
 }
 
 .bioage-live-readout--shown {
@@ -2783,11 +2795,11 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     }
 
     /* The card drops in and settles, then the rolling number takes over. */
-    :is(#phenoAgeResult, #bortzAgeResult).show {
+    body:has(.bioage-live-instrument) :is(#phenoAgeResult, #bortzAgeResult).show {
         animation: bioage-card-settle 640ms cubic-bezier(0.22, 1.25, 0.36, 1) backwards;
     }
 
-    :is(#phenoAgeResult, #bortzAgeResult).show.bioage-result--arrived {
+    body:has(.bioage-live-instrument) :is(#phenoAgeResult, #bortzAgeResult).show.bioage-result--arrived {
         animation: bioage-card-settle 640ms cubic-bezier(0.22, 1.25, 0.36, 1) backwards, bioage-card-ring 900ms var(--lwc-ease, ease);
     }
 
@@ -2800,12 +2812,16 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     }
 
     /* Path onward: the result actions rise in and the primary one calls once. */
-    :is(.phenoage-result-actions, .bioage-result-actions):not([hidden]) {
-        animation: bioage-actions-arrive 360ms var(--lwc-ease, ease) backwards;
-    }
-
-    #continueButton.show {
+    body:has(.bioage-live-instrument) #continueButton.show {
         animation: bioage-next-call 1400ms var(--lwc-ease, ease) 420ms 1 backwards;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bioage-live-instrument *,
+    :is(#phenoAgeResult, #bortzAgeResult) *,
+    .bioage-live-readout {
+        transition: none !important;
     }
 }
 
