@@ -380,3 +380,37 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
             });
     });
 }
+
+// The tiny head hook observes the incoming native transition before blocking
+// resources: a slow arrival can be skipped before pagereveal, which then has
+// no transition. Keep later lifecycle handling here, out of every HTML page.
+(function () {
+    const observed = new WeakSet();
+    function observe(transition) {
+        if (!transition || observed.has(transition)) return;
+        observed.add(transition);
+        transition.ready.catch(error => {
+            if (!(error instanceof DOMException)
+                || !['AbortError', 'InvalidStateError', 'TimeoutError'].includes(error.name)) throw error;
+        });
+    }
+    for (const name of ['pageswap', 'pagereveal']) {
+        window.addEventListener(name, event => observe(event.viewTransition));
+    }
+
+    if (!document.querySelector('link[href*="entry-journey"]') || !window.navigation) return;
+    const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
+    const optOut = document.createElement('style');
+    optOut.media = 'not all';
+    optOut.textContent = '@view-transition { navigation: none; }';
+    document.head.append(optOut);
+    const restore = () => { optOut.media = 'not all'; };
+    window.navigation.addEventListener('navigate', event => {
+        if (event.destination.sameDocument) return;
+        const destination = new URL(event.destination.url);
+        optOut.media = destination.origin === location.origin && journeyPath.test(destination.pathname)
+            ? 'not all' : 'all';
+        event.signal.addEventListener('abort', restore, { once: true });
+    });
+    window.addEventListener('pageshow', restore);
+})();

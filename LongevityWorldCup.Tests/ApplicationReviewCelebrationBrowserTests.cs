@@ -195,12 +195,16 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         Assert.Equal(2, Volatile.Read(ref requests));
     }
 
-    [Fact]
-    public async Task Review_PageHideAbortsTheLookupAndIgnoresALatePaidResponse()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Review_PageHideAbortsTheLookupAndIgnoresALatePaidResponse(bool initiallyHidden)
     {
         await using var context = await NewReviewContextAsync(390, 844, "light");
         await context.AddInitScriptAsync($$"""
             sessionStorage.setItem('pendingPaymentInvoice', {{System.Text.Json.JsonSerializer.Serialize(PendingInvoice)}});
+            window.__reviewHidden = {{initiallyHidden.ToString().ToLowerInvariant()}};
+            Object.defineProperty(document, 'hidden', { configurable: true, get: () => window.__reviewHidden });
             const actualFetch = window.fetch;
             window.fetch = (url, options) => {
                 if (url !== '/api/application/payment-status') return actualFetch(url, options);
@@ -211,6 +215,14 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
             """);
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/review");
+        if (initiallyHidden)
+        {
+            Assert.False(await page.EvaluateAsync<bool>("() => typeof window.finishPaymentLookup === 'function'"));
+            await page.EvaluateAsync("() => { window.__reviewHidden = false; document.dispatchEvent(new Event('visibilitychange')); }");
+        }
+        // Cancellation requires an in-flight request. Page layout being ready
+        // does not establish that the visibility-gated lookup has started.
+        await page.WaitForFunctionAsync("() => typeof window.finishPaymentLookup === 'function' && window.paymentSignal?.aborted === false");
         await page.EvaluateAsync("() => { window.dispatchEvent(new PageTransitionEvent('pagehide')); window.finishPaymentLookup(); }");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(resolve))");
         Assert.True(await page.EvaluateAsync<bool>("window.paymentSignal.aborted"));
