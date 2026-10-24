@@ -2728,8 +2728,8 @@ body.site-menu-open {
     .has-nav-glide > .footer-link.footer-link:focus-visible { outline-color: Highlight; }
 }
 
-/* Keep PLAY and Menu together when the complete lockup needs its own row. */
-.site-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); flex: 0 0 auto; margin-left: auto; }
+/* Group PLAY and Menu, wrapping the controls only when their row cannot fit. */
+.site-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); flex: 0 1 auto; min-width: 0; max-width: 100%; margin-left: auto; }
 header[role="banner"] { flex-wrap: wrap; }
 header[role="banner"] .site-header-actions .join-game { margin: 0; }
 @media (min-width: 281px) and (max-width: 932px) {
