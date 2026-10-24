@@ -12,7 +12,8 @@ html[data-initial-view] .initial-view-main > :not(.initial-view-recovery) * {
     transition: none !important;
 }
 
-html[data-initial-view="pending"] .initial-view-main::before {
+/* The title screen keeps its spinner; other hub entries show the hub's card. */
+html[data-initial-view="pending"][data-play-entry="start"] .initial-view-main:where(.play-hub-main)::before {
     content: "";
     position: absolute;
     top: 3rem;
@@ -23,7 +24,42 @@ html[data-initial-view="pending"] .initial-view-main::before {
     border: 2px solid var(--lwc-border, #cdd5dd);
     border-top-color: var(--lwc-accent, #007f8b);
     border-radius: 50%;
-    animation: initial-view-loading 1s linear infinite;
+    animation: initial-view-spin 1s linear infinite;
+}
+
+/* The game hub keeps its own title screen and hydration card. Every other
+   task gets a sketch of a task card instead of a lone spinner: a title, a
+   line of help, a field and an action, in the surface tokens of the theme.
+   It sits where the task's card starts and fades out as the task fades in. */
+html[data-initial-view="pending"] .initial-view-main:not(.play-hub-main)::before,
+html[data-lwc-revealed] .initial-view-main:not(.play-hub-main)::before {
+    content: "";
+    position: absolute;
+    top: clamp(1.5rem, 6vh, 3rem);
+    left: 50%;
+    width: min(calc(100% - 2rem), 26rem);
+    height: 10.5rem;
+    translate: -50% 0;
+    box-sizing: border-box;
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background:
+        linear-gradient(var(--lwc-surface-muted, #eef2f5), var(--lwc-surface-muted, #eef2f5)) 1.25rem 1.25rem / 45% 0.9rem no-repeat,
+        linear-gradient(var(--lwc-border, #d7e0e6), var(--lwc-border, #d7e0e6)) 1.25rem 2.75rem / 70% 0.55rem no-repeat,
+        linear-gradient(var(--lwc-surface-muted, #eef2f5), var(--lwc-surface-muted, #eef2f5)) 1.25rem 4.25rem / calc(100% - 2.5rem) 2.75rem no-repeat,
+        linear-gradient(var(--lwc-accent-soft, #dff5f7), var(--lwc-accent-soft, #dff5f7)) calc(100% - 1.25rem) calc(100% - 1.25rem) / 7rem 1.75rem no-repeat,
+        var(--lwc-surface, #ffffff);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    animation: initial-view-loading 1.6s var(--lwc-ease, ease) infinite alternate;
+    pointer-events: none;
+}
+
+html[data-lwc-revealed] .initial-view-main:not(.play-hub-main) {
+    position: relative;
+}
+
+html[data-lwc-revealed] .initial-view-main:not(.play-hub-main)::before {
+    animation: initial-view-handover var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
 }
 
 /* Inline return navigation is usable even before asynchronous modules arrive. */
@@ -65,7 +101,10 @@ html[data-initial-view="failed"] .initial-view-main > :not(.initial-view-recover
     outline-offset: 3px;
 }
 
-@keyframes initial-view-loading { to { transform: rotate(360deg); } }
+@keyframes initial-view-loading { from { opacity: 1; } to { opacity: 0.55; } }
+@keyframes initial-view-handover { to { opacity: 0; } }
+@keyframes initial-view-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
     html[data-initial-view="pending"] .initial-view-main::before { animation: none; }
+    html[data-lwc-revealed] .initial-view-main:not(.play-hub-main)::before { display: none; }
 }

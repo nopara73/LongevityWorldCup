@@ -5142,18 +5142,18 @@ a.lmx-note-mention:focus-visible {
 
 /* Keep the first paint neutral until the public or private view is resolved. */
 .lmx-page[aria-busy="true"] {
-    min-height: calc(100svh - 8rem);
+    min-height: 100svh;
 }
 
 .lmx-page[aria-busy="true"] .lmx-hero {
     grid-template-columns: 1fr !important;
 }
 
+/* Neutral, but in place: the panel keeps its padding and border width, so the
+   title does not jump when the resolved view draws the card around it. */
 .lmx-page[aria-busy="true"] #lmxTitlePanel,
 .lmx-page[aria-busy="true"] .lmx-action-card {
-    padding: 0;
-    border: 0;
-    border-radius: 0;
+    border-color: transparent;
     box-shadow: none;
     background: transparent;
 }
