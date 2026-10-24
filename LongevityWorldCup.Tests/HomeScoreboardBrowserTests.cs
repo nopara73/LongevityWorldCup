@@ -203,12 +203,33 @@ public sealed class HomeScoreboardBrowserTests(
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.AddInitScriptAsync("""
             window.boardTransition=false;
+            window.boardParsedAtReveal=false;
             window.addEventListener('pagereveal', e=>{
+                if(e.viewTransition) window.boardParsedAtReveal=!!document.querySelector('#athleteLeaderboard')
+                    && !!document.querySelector('#leaderboardBackAction');
                 if(e.viewTransition) e.viewTransition.ready.then(()=>{
                     window.boardTransition=document.querySelector('#athleteLeaderboard')?.style.viewTransitionName==='lwc-board';
                 },()=>{});
             });
             """);
+        // Hold parsing after the shared header has run. Menu construction must
+        // not release the receiving page's rel=expect render blocker early.
+        await context.RouteAsync("**/leaderboard", async route =>
+        {
+            var response = await route.FetchAsync();
+            var html = await response.TextAsync();
+            await route.FulfillAsync(new()
+            {
+                Response = response,
+                Body = html.Replace("<main data-leaderboard-page=\"full\">",
+                    "<script src=\"/test-board-parser-pause.js\"></script><main data-leaderboard-page=\"full\">")
+            });
+        });
+        await context.RouteAsync("**/test-board-parser-pause.js", async route =>
+        {
+            await Task.Delay(500);
+            await route.FulfillAsync(new() { ContentType = "text/javascript", Body = "" });
+        });
         var page=await context.NewPageAsync();
         var errors=new List<string>(); page.PageError+=(_,error)=>errors.Add(error);
         await page.GotoAsync("/");
@@ -216,6 +237,7 @@ public sealed class HomeScoreboardBrowserTests(
         await page.Locator(".rankings-btn").ClickAsync();
         await page.WaitForURLAsync("**/leaderboard");
         await page.WaitForFunctionAsync("() => window.boardTransition");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.boardParsedAtReveal"));
         await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').style.viewTransitionName===''");
         Assert.Empty(errors);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");

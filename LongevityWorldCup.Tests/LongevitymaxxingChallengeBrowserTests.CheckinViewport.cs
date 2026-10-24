@@ -105,6 +105,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
 
     private static async Task AssertHabitControlsFitAsync(IPage page, ILocator form, int width, int height)
     {
+        // Answer feedback briefly scales the faces and Save button. Measure
+        // their settled layout after both initial loading and the fourth answer.
+        await WaitForFiniteAnimationsAsync(page);
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
         var questions = form.Locator(".lmx-question");
         Assert.Equal(4, await questions.CountAsync());
@@ -120,7 +123,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             Assert.True(box.Y + box.Height <= footer.Y + 1,
                 $"The {width}x{height} check-in footer at {footer.Y}px covers a habit ending at {box.Y + box.Height}px.");
         }
-        var targets = await form.Locator(".lmx-answer-face, button[type='submit']").AllAsync();
+        // The label owns the tap region; its decorative face animates inside it.
+        var targets = await form.Locator(".lmx-answer-option, button[type='submit']").AllAsync();
         Assert.Equal(13, targets.Count);
         foreach (var target in targets)
         {

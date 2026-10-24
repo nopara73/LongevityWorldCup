@@ -56,7 +56,7 @@ public sealed class EntryJourneyBrowserTests(
     }
 
     private static Task SettleAnimationsAsync(IPage page)
-        => page.EvaluateAsync("() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})))");
+        => WaitForFiniteAnimationsAsync(page);
 
     [Fact]
     public async Task CanceledTrackNavigation_RestoresChoicesAndKeepsTheSavedOffer()
@@ -301,8 +301,8 @@ public sealed class EntryJourneyBrowserTests(
             () => {
                 const issues = [];
                 document.getElementById('{{(pro ? "joinGoProButton" : "joinStartAmateurBtn")}}').click();
-                document.getAnimations().forEach(a => a.finish());
                 const panel = document.getElementById('joinTrackPanel');
+                panel.getAnimations({ subtree: true }).forEach(a => a.finish());
                 if (panel.dataset.joinChoice !== '{{(pro ? "pro" : "amateur")}}') issues.push(`choice is ${panel.dataset.joinChoice}`);
                 const chosen = document.querySelector('{{chosen}}'), other = document.querySelector('{{other}}');
                 if (!/0px 0px 0px [23]px/.test(getComputedStyle(chosen).boxShadow)) issues.push(`chosen ring: ${getComputedStyle(chosen).boxShadow}`);

@@ -17,14 +17,7 @@ public sealed class PlayFlowMotionBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    private const string WaitForSettledMotion = """
-        async () => {
-            await Promise.all(document.getAnimations()
-                .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
-                .map(animation => animation.finished.catch(() => {})));
-            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        }
-        """;
+    private static Task WaitForSettledMotionAsync(IPage page) => WaitForFiniteAnimationsAsync(page);
 
     private async Task<IPage> OpenAsync(IBrowserContext context, string path)
     {
@@ -37,7 +30,7 @@ public sealed class PlayFlowMotionBrowserTests(
                 && [...document.querySelectorAll('.flow-action')].some(button => !button.disabled && button.getClientRects().length > 0)
             """);
         await page.EvaluateAsync("() => document.fonts.ready");
-        await page.EvaluateAsync(WaitForSettledMotion);
+        await WaitForSettledMotionAsync(page);
         return page;
     }
 
@@ -66,7 +59,7 @@ public sealed class PlayFlowMotionBrowserTests(
         await Assertions.Expect(page.Locator("#playAthleteInput-autocomplete-list [role=option]").First).ToBeVisibleAsync();
         await input.PressAsync("Enter");
         await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeEnabledAsync();
-        await page.EvaluateAsync(WaitForSettledMotion);
+        await WaitForSettledMotionAsync(page);
     }
 
     private static Task<bool> IsTransitioningAsync(IPage page) =>
@@ -337,7 +330,7 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.GoBackAsync();
         await page.WaitForFunctionAsync("() => location.pathname === '/select-athlete' && !document.body.classList.contains('play-route-hydrating')");
         await page.EvaluateAsync("() => window.__releaseHeader()");
-        await page.EvaluateAsync(WaitForSettledMotion);
+        await WaitForSettledMotionAsync(page);
         Assert.True(await page.Locator("#athleteDashboardPanel").IsHiddenAsync());
         Assert.True(await page.Locator("#athleteSelectionPanel").IsVisibleAsync());
         Assert.Null(await page.Locator("body").GetAttributeAsync("aria-busy"));
@@ -359,23 +352,30 @@ public sealed class PlayFlowMotionBrowserTests(
         await input.ClickAsync();
         await input.PressSequentiallyAsync("a");
         await Assertions.Expect(page.Locator(".autocomplete-items [role=option]").First).ToBeVisibleAsync();
-        await page.EvaluateAsync(WaitForSettledMotion);
-        await page.EvaluateAsync("() => { window.__rows = [...document.querySelectorAll('#playAthleteInput-autocomplete-list [role=option]')]; }");
-
-        await input.PressAsync("n");
-        var change = await page.EvaluateAsync<int[]>("""
+        await WaitForSettledMotionAsync(page);
+        // Capture the list change in its own frame. A protocol round trip on a
+        // busy runner can outlive the short leaving animation.
+        await page.EvaluateAsync("""
             () => {
                 const list = document.getElementById('playAthleteInput-autocomplete-list');
-                const options = [...list.querySelectorAll(':scope > [role=option]')];
-                const kept = options.filter(option => window.__rows.includes(option)).length;
-                const leaving = [...list.querySelectorAll('.autocomplete-item--leaving')];
-                const cleanLeaving = leaving.every(item => !item.id && !item.hasAttribute('role') && item.getAttribute('aria-hidden') === 'true');
-                const animated = options.filter(option => option.getAnimations().length > 0).length
-                    + leaving.filter(item => item.getAnimations().length > 0).length;
-                return [options.length, kept, leaving.length, cleanLeaving ? 1 : 0, animated,
-                    options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0];
+                const rows = [...list.querySelectorAll(':scope > [role=option]')];
+                const observer = new MutationObserver(() => {
+                    const options = [...list.querySelectorAll(':scope > [role=option]')];
+                    const kept = options.filter(option => rows.includes(option)).length;
+                    const leaving = [...list.querySelectorAll('.autocomplete-item--leaving')];
+                    const cleanLeaving = leaving.every(item => !item.id && !item.hasAttribute('role') && item.getAttribute('aria-hidden') === 'true');
+                    const animated = options.filter(option => option.getAnimations().length > 0).length
+                        + leaving.filter(item => item.getAnimations().length > 0).length;
+                    window.__rowChange = [options.length, kept, leaving.length, cleanLeaving ? 1 : 0, animated,
+                        options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0];
+                    observer.disconnect();
+                });
+                observer.observe(list, { childList: true });
             }
             """);
+        await input.PressAsync("n");
+        await page.WaitForFunctionAsync("() => window.__rowChange");
+        var change = await page.EvaluateAsync<int[]>("() => window.__rowChange");
         Assert.True(change[0] > 0, "Typing a letter should still list matches.");
         Assert.True(change[1] > 0, "Rows that still match should stay the same rows, not be redrawn.");
         Assert.True(change[2] > 0 && change[3] == 1, "Rows that stop matching should fade out, already gone from the listbox.");
@@ -412,7 +412,7 @@ public sealed class PlayFlowMotionBrowserTests(
         {
             await input.FillAsync("a");
             await Assertions.Expect(page.Locator("#playAthleteInput-autocomplete-list [role=option]")).ToHaveCountAsync(5);
-            await page.EvaluateAsync(WaitForSettledMotion);
+            await WaitForSettledMotionAsync(page);
             var frames = await page.EvaluateAsync<int[][]>("""
                 async retainLastRow => {
                     const input = document.getElementById('playAthleteInput');
@@ -504,7 +504,7 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.WaitForFunctionAsync("() => !document.querySelector('.play-price-settling')");
         Assert.Equal(finalText, (await page.Locator("#athleteDashboardActions .pro-new-price").TextContentAsync())?.Trim());
         await WaitForMoveToSettleAsync(page);
-        await page.EvaluateAsync(WaitForSettledMotion);
+        await WaitForSettledMotionAsync(page);
         Assert.Equal(accessiblePrice, await priceButton.AriaSnapshotAsync());
 
         if (width >= 1280)
@@ -621,7 +621,7 @@ public sealed class PlayFlowMotionBrowserTests(
             Assert.NotEqual("rgba(0, 0, 0, 0)", await page.Locator("#athleteDashboardActions .pro-new-price").EvaluateAsync<string>("price => getComputedStyle(price).color"));
         }
         await WaitForMoveToSettleAsync(page);
-        await page.EvaluateAsync(WaitForSettledMotion);
+        await WaitForSettledMotionAsync(page);
         Assert.Equal("1", await page.Locator("#athleteDashboardPanel").EvaluateAsync<string>("card => getComputedStyle(card).opacity"));
         Assert.Matches(@"^\$\d+$", (await page.Locator("#athleteDashboardActions .pro-new-price").TextContentAsync())!.Trim());
         Assert.False(await page.EvaluateAsync<bool>("() => document.documentElement.hasAttribute('data-flow-dock-hold')"));
