@@ -84,6 +84,23 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         /// <summary>
+        /// The current top of the Ultimate League, for pages that show a live standings board.
+        /// Each row carries last month's placement so the board can show who climbed.
+        /// </summary>
+        [HttpGet("standings")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public IActionResult GetStandings([FromServices] PublicStandingsService standings)
+        {
+            var snapshot = standings.Get();
+            var eTag = snapshot.ETag;
+            PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AthleteSnapshotCacheControl, PublicGetCacheHeaders.AthleteSnapshotMaxAgeSeconds, eTag);
+            if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
+            return Ok(snapshot.Rows);
+        }
+
+        /// <summary>
         /// Calculate a Pheno Age result.
         /// </summary>
         /// <remarks>
