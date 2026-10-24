@@ -106,10 +106,22 @@ public sealed class AthleteShareSheetBrowserTests(
     public async Task Preview_UsesTheSharedProfilesCurrentSignatureAcrossPageContexts(string path)
     {
         await using var context = await CreateAsync(390, 844, false, false);
+        // An explicit profile choice made during hydration must beat the
+        // containing page's initial athlete, regardless of network timing.
+        var releaseData = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await releaseData.Task;
+            await route.ContinueAsync();
+        });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => typeof window.openAthleteModalBySlug === 'function'");
-        await page.EvaluateAsync("() => window.openAthleteModalBySlug('ron-lugbill', {suppressGuessMyAge:true})");
+        try
+        {
+            await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.WaitForFunctionAsync("() => typeof window.openAthleteModalBySlug === 'function'");
+            await page.EvaluateAsync("() => window.openAthleteModalBySlug('ron-lugbill', {suppressGuessMyAge:true})");
+        }
+        finally { releaseData.TrySetResult(); }
         await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content')?.dataset.athleteSlug === 'ron-lugbill' && !document.querySelector('#detailsModal .modal-content').matches('.is-loading,.has-load-error')");
         await page.Locator("#shareAthleteProfile").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview')?.classList.contains('is-loaded')");
