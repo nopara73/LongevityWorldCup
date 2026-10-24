@@ -5,6 +5,7 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_APPLY_FLOW_FEEL_CSS}}">
     <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
     <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
@@ -717,9 +718,16 @@
         function setTrailStep(step, state) {
             const item = document.querySelector(`.application-review-trail [data-step="${step}"]`);
             if (!item) return;
+            const crossed = state === 'is-done' && item.classList.contains('is-waiting');
             item.hidden = false;
             item.classList.remove('is-done', 'is-current', 'is-waiting', 'is-failed');
             if (state) item.classList.add(state);
+            // A step that was waiting and just finished crosses its line once. The
+            // attributes stay: removing them would replay the page's entrance motion.
+            if (crossed) {
+                item.dataset.applyCrossed = 'true';
+                document.querySelector('.application-review-panel')?.setAttribute('data-apply-crossing', 'true');
+            }
         }
 
         function initializeReviewTrail() {
