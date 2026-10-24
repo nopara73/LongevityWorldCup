@@ -1687,7 +1687,10 @@ interface Window {
         liveResultValues.set(resultElement, finalAge);
         if (isLiveInstrumentBound()) {
             syncGapMeter(resultElement);
-            if (!liveRunActive) scheduleBioageResultReveal(resultElement);
+            // Place an explicitly requested live result before its number reveal
+            // starts; a smooth scroll can outlast the bounded animation start and
+            // race the instant alignment performed by that animation.
+            if (!liveRunActive) scheduleBioageResultReveal(resultElement, { instant: true });
         }
         syncLiveReadout(previousValue === undefined || finalAge >= previousValue ? 1 : -1);
         if (liveRunActive && !animationOptions.instant && !prefersReducedBioageResultMotion()) {
