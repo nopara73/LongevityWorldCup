@@ -258,7 +258,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            min-height: 40px;
+            min-height: 44px;
             padding: 8px 10px;
             border-radius: var(--radius-sm);
             background: var(--panel);
@@ -272,11 +272,43 @@
 
         .check input {
             flex: 0 0 auto;
-            width: 16px;
-            height: 16px;
+            appearance: none;
+            display: inline-grid;
+            place-content: center start;
+            width: 40px;
+            height: 24px;
             margin: 0;
-            accent-color: var(--pink);
+            padding: 2px;
+            border: 1px solid var(--line-strong);
+            border-radius: 999px;
+            background: var(--well);
             cursor: pointer;
+        }
+
+        /* This standalone tool deliberately keeps its own visual system. */
+        .check input::before {
+            content: "";
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--muted);
+            translate: 0 0;
+        }
+
+        .check input:checked { background: var(--pink); border-color: var(--pink); }
+        .check input:checked::before { background: var(--text); translate: 16px 0; }
+        .check input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .check input { transition: background-color 140ms ease, border-color 140ms ease; }
+            .check input::before { transition: translate 140ms ease, background-color 140ms ease; }
+        }
+
+        @media (forced-colors: active) {
+            .check input { background: Canvas; border-color: ButtonText; }
+            .check input::before { background: ButtonText; }
+            .check input:checked { background: Highlight; border-color: Highlight; }
+            .check input:checked::before { background: HighlightText; }
         }
 
         .check:has(input:checked) {
@@ -1045,17 +1077,17 @@
             <section class="editor-section">
                 <div class="field-label">Send to</div>
                 <div class="checks">
-                    <label class="check"><input id="sendWebpage" type="checkbox" checked /><span>Webpage</span></label>
-                    <label class="check"><input id="sendSlack" type="checkbox" checked /><span>Slack</span></label>
-                    <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
-                    <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
-                    <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
-                    <label class="check"><input id="sendMastodon" type="checkbox" /><span>Mastodon</span></label>
-                    <label class="check"><input id="sendNostr" type="checkbox" /><span>Nostr</span></label>
-                    <label class="check"><input id="sendReddit" type="checkbox" /><span>Reddit</span></label>
-                    <label class="check"><input id="sendBluesky" type="checkbox" /><span>Bluesky</span></label>
-                    <label class="check"><input id="sendWebPush" type="checkbox" /><span>Website push</span></label>
-                    <label class="check"><input id="sendInstagram" type="checkbox" /><span>Instagram</span></label>
+                    <label class="check"><input id="sendWebpage" type="checkbox" role="switch" checked /><span>Webpage</span></label>
+                    <label class="check"><input id="sendSlack" type="checkbox" role="switch" checked /><span>Slack</span></label>
+                    <label class="check"><input id="sendX" type="checkbox" role="switch" checked /><span>X</span></label>
+                    <label class="check"><input id="sendThreads" type="checkbox" role="switch" /><span>Threads</span></label>
+                    <label class="check"><input id="sendFacebook" type="checkbox" role="switch" /><span>Facebook</span></label>
+                    <label class="check"><input id="sendMastodon" type="checkbox" role="switch" /><span>Mastodon</span></label>
+                    <label class="check"><input id="sendNostr" type="checkbox" role="switch" /><span>Nostr</span></label>
+                    <label class="check"><input id="sendReddit" type="checkbox" role="switch" /><span>Reddit</span></label>
+                    <label class="check"><input id="sendBluesky" type="checkbox" role="switch" /><span>Bluesky</span></label>
+                    <label class="check"><input id="sendWebPush" type="checkbox" role="switch" /><span>Website push</span></label>
+                    <label class="check"><input id="sendInstagram" type="checkbox" role="switch" /><span>Instagram</span></label>
                 </div>
             </section>
 

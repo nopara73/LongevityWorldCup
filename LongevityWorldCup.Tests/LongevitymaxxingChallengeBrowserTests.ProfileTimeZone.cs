@@ -82,6 +82,35 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.False(await ProfileExitGuardAsync(page));
     }
 
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(1280, 480)]
+    [InlineData(390, 844)]
+    public async Task ProfileTimeZone_ClosingPickerKeepsTheNextPointerPressOnSave(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }
+        });
+        var page = await OpenProfileWorkspaceAsync(context);
+        var submissions = new List<string>();
+        await page.RouteAsync("**/api/longevitymaxxing/edit", route =>
+        {
+            submissions.Add(JsonNode.Parse(route.Request.PostData!)!["timeZoneId"]!.GetValue<string>());
+            return FulfillJsonAsync(route, ProfileWorkspaceState(timeZone: "Europe/London").ToJsonString());
+        });
+        await ChooseProfileTimeZoneAsync(page, "London", "Europe/London");
+        await Assertions.Expect(page.Locator("#lmxEditTimeZone")).ToHaveValueAsync("Europe/London");
+        var save = page.Locator("#lmxSaveProfileButton");
+        // A human press spans frames. Closing the in-flow picker must not move
+        // this next action between pointerdown and pointerup.
+        await save.ClickAsync(new() { Delay = 150 });
+        await Assertions.Expect(save).ToHaveAttributeAsync("aria-disabled", "true");
+        await WaitForTimeZoneSaveAsync(page);
+        Assert.Equal(new[] { "Europe/London" }, submissions);
+        Assert.False(await ProfileExitGuardAsync(page));
+    }
+
     [Fact]
     public async Task ProfileTimeZone_SaveResponseKeepsAnOpenSearchAndItsFocus()
     {

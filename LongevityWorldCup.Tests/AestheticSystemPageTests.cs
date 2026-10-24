@@ -61,6 +61,14 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         var stylesheetIndex = html.IndexOf("/css/aesthetic-system.css?v=", StringComparison.Ordinal);
         var closingHeadIndex = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
 
+        var motionIndex = html.IndexOf("/css/motion.css?v=", StringComparison.Ordinal);
+        var controlsScriptIndex = html.IndexOf("/js/form-controls.js?v=", StringComparison.Ordinal);
+        var controlsStyleIndex = html.IndexOf("/css/form-controls.css?v=", StringComparison.Ordinal);
+        Assert.True(motionIndex >= 0 && controlsScriptIndex > motionIndex);
+        Assert.True(controlsStyleIndex > controlsScriptIndex && controlsStyleIndex < stylesheetIndex);
+        Assert.Equal(1, html.Split("/js/form-controls.js?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/css/form-controls.css?v=", StringSplitOptions.None).Length - 1);
+
         Assert.True(stylesheetIndex >= 0);
         Assert.True(closingHeadIndex > stylesheetIndex);
         var stylesheetTagEnd = html.IndexOf('>', stylesheetIndex);

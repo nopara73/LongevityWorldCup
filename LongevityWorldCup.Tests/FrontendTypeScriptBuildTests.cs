@@ -16,6 +16,7 @@ public sealed class FrontendTypeScriptBuildTests
         "custom-event-markup",
         "field-validation",
         "flow-action-dock",
+        "form-controls",
         "initial-view",
         "leaderboard-feel",
         "longevitymaxxing",

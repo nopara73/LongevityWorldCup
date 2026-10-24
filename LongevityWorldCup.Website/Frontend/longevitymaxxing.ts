@@ -2216,14 +2216,28 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!lmxMotionAllowed()) return;
         const key = checkInDayKey(form);
         if (elapsed === 0) checkInMoments.set(key, { kind, startedAt: performance.now() });
+        const moment = checkInMoments.get(key);
         form.dataset.lmxMoment = kind;
         form.style.setProperty("--lmx-moment-offset", `${-Math.round(elapsed)}ms`);
         const remaining = Math.max(0, CHECK_IN_MOMENT_MS[kind] - elapsed);
-        window.setTimeout(() => {
-            if (form.dataset.lmxMoment !== kind) return;
-            delete form.dataset.lmxMoment;
-            form.style.removeProperty("--lmx-moment-offset");
-        }, remaining);
+        // Board rendering and other frame callbacks can delay CSS animation
+        // creation. Resolve the actual animation before arranging cleanup;
+        // even a timer started in rAF can expire before the first style pass.
+        requestAnimationFrame(() => {
+            if (!form.isConnected || checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
+            if (elapsed === 0 && moment) moment.startedAt = performance.now();
+            const finish = (): void => {
+                if (!form.isConnected || checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
+                delete form.dataset.lmxMoment;
+                form.style.removeProperty("--lmx-moment-offset");
+                checkInMoments.delete(key);
+            };
+            const name = kind === "complete" ? "lmx-rail-ready" : kind === "saved" ? "lmx-card-saved" : "lmx-retry-nudge";
+            const animation = form.getAnimations({ subtree: true }).find(candidate =>
+                typeof CSSAnimation !== "undefined" && candidate instanceof CSSAnimation && candidate.animationName === name);
+            if (animation) void animation.finished.then(finish, finish);
+            else window.setTimeout(finish, remaining);
+        });
     }
 
     /** A rebuilt card picks up a moment its predecessor was still playing. */
