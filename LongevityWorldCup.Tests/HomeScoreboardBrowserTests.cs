@@ -10,7 +10,7 @@ public sealed class HomeScoreboardBrowserTests(
 {
     // Isolate the production IIFE with controllable frames/intersections. These
     // are synthetic lifecycle fixtures, separate from the real-page checks.
-    private async Task<IPage> ScoreboardAsync(IBrowserContext context, string mode = "")
+    private async Task<IPage> ScoreboardAsync(IBrowserContext context, string mode = "", bool realTimers = false)
     {
         var page = await context.NewPageAsync();
         await page.GotoAsync(App.BaseAddress + "health");
@@ -24,6 +24,11 @@ public sealed class HomeScoreboardBrowserTests(
             <tr id="rank-6"><td><a href="#three">Three</a></td><td class="age-reduction-td"><span class="age-reduction">+1.0</span></td></tr>
             </tbody></table><div id="leaderboardStatus">Loading</div></main>
             """);
+        if (!realTimers)
+        {
+            await page.Clock.InstallAsync();
+            await page.Clock.PauseAtAsync(DateTime.UtcNow.AddMinutes(1));
+        }
         await page.EvaluateAsync("""
             mode => {
                 history.replaceState(null, '', '/' + (mode === 'hash' ? '#faq' : mode === 'shared' ? '?search=one' : ''));
@@ -133,7 +138,7 @@ public sealed class HomeScoreboardBrowserTests(
     public async Task TimerDeadline_ReleasesCountsWhenFramesNeverRun()
     {
         await using var context = await Browser.NewContextAsync();
-        var page = await ScoreboardAsync(context);
+        var page = await ScoreboardAsync(context, realTimers: true);
         // rAF is deliberately stalled, including Playwright's default polling.
         await page.WaitForFunctionAsync("() => !document.querySelector('[data-home-count]')", null,
             new() { PollingInterval = 50 });
