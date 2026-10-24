@@ -455,6 +455,7 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 
 /* Side by side while both cards have room; enlarged text stacks them instead of splitting words. */
 .play-join-cards {
+    container: play-track / inline-size;
     width: 100%;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
@@ -463,7 +464,6 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 }
 
 .play-join-card {
-    container: play-track / inline-size;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1651,7 +1651,7 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     }
 
     .play-join-cards {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
         gap: 1rem;
     }
 
@@ -2463,31 +2463,56 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 }
 
-/* Join: the band. */
+/* ===== Join: one entry stage =====
+   The track choice opens on the start screen's night stage: the same italic
+   title with its accent rule and the crest's halo. The two tracks rise out of
+   the stage's lower edge as tiles, each led by its entry price. Back and the lifestyle detour share the
+   muted foot band the apply card uses. */
 .play-hub-main .play-join-head {
     position: relative;
     width: 100%;
-    margin: 0 0 1rem;
-    padding: 1.5rem 1.5rem 1.4rem;
-    border-radius: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: var(--play-track-it-bg, #101820);
+    margin: 0;
+    padding: 1.75rem 1.5rem 4.5rem;
+    border: 0;
+    border-radius: 0;
+    background:
+        radial-gradient(ellipse 34rem 15rem at 50% 0%,
+            rgba(25, 195, 209, 0.18) 0%,
+            rgba(25, 195, 209, 0.06) 55%,
+            rgba(25, 195, 209, 0) 100%),
+        var(--play-track-it-bg, #101820);
     color: #ffffff;
     text-align: center;
     box-sizing: border-box;
-    box-shadow: var(--lwc-shadow-sm);
+    box-shadow: none;
 }
 
 .play-hub-main .play-join-head .play-join-title {
-    margin: 0 0 0.45rem;
+    margin: 0;
     color: #ffffff;
-    font-size: 2.25rem;
-    line-height: 1.1;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    font-size: 2.45rem;
+    font-weight: 700;
+    font-style: italic;
+    font-synthesis: style;
+    line-height: 1.05;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    text-shadow: 0 3px 10px rgba(0, 0, 0, 0.42);
+}
+
+/* The start screen's accent rule, under the title. */
+.play-hub-main .play-join-head .play-join-title::after {
+    content: "";
+    display: block;
+    width: 5.5rem;
+    height: 4px;
+    margin: 0.8rem auto 0.85rem;
+    border-radius: 999px;
+    background: var(--lwc-accent-bright, #19c3d1);
 }
 
 .play-hub-main .play-join-head .play-join-intro {
-    width: min(100%, 52rem);
+    width: min(100%, 44rem);
     margin: 0 auto;
     color: rgba(255, 255, 255, 0.78);
     font-size: 1rem;
@@ -2497,17 +2522,25 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     color: #ffffff;
 }
 
-/* Join: each track is a tile with a head band and a spec list. */
+/* The tiles overlap the stage's lower edge. */
+.play-hub-main .play-join-cards {
+    position: relative;
+    z-index: 1;
+    margin-top: -3rem;
+}
+
+/* Each track: head, the price-led spec rows, then the biomarker list and the
+   action at the tile's foot. */
 .play-hub-main .play-join-card {
     padding: 0;
     border-radius: 12px;
     background: var(--lwc-surface);
-    box-shadow: var(--lwc-shadow-sm);
+    box-shadow: var(--lwc-shadow-md);
 }
 
 .play-hub-main .play-join-card--pro {
     border-color: var(--lwc-success, #1f7a38);
-    box-shadow: 0 0 0 1px var(--lwc-success, #1f7a38), var(--lwc-shadow-sm);
+    box-shadow: 0 0 0 1px var(--lwc-success, #1f7a38), var(--lwc-shadow-md);
 }
 
 .play-join-card-head {
@@ -2565,6 +2598,52 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     overflow-wrap: anywhere;
 }
 
+/* The entry price leads each tile as its headline figure; its label sits on
+   the price line even when a discount note follows the price. */
+.play-hub-main .play-join-card {
+    --join-price-size: 2.35rem;
+    --join-price-pad: 0.85rem;
+}
+
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type,
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type + dd {
+    padding-block: var(--join-price-pad) calc(var(--join-price-pad) + 0.1rem);
+}
+
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type {
+    display: flex;
+    align-items: center;
+    align-self: start;
+    min-height: calc(var(--join-price-size) * 1.05 + var(--join-price-pad) * 2 + 0.1rem);
+}
+
+.play-hub-main .play-join-card .join-amateur-entry-cell > .pro-new-price,
+.play-hub-main .play-join-card #joinProEntryPrice {
+    display: inline-block;
+    min-width: 0;
+    color: var(--lwc-ink);
+    font-size: var(--join-price-size);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+.play-hub-main .play-join-card #joinProEntryPrice {
+    color: var(--lwc-success, #1f7a38);
+}
+
+.play-hub-main .play-join-card #joinProEntryPrice .pro-new-price {
+    font-weight: inherit;
+}
+
+.play-hub-main .play-join-card #joinProEntryPrice .pro-old-price {
+    color: var(--lwc-muted);
+    font-size: 0.5em;
+    font-weight: 600;
+    vertical-align: 0.35em;
+}
+
 /* The tagline clears the corner ribbon; once the ribbon turns into a badge
    (cards at or under 18rem) the clearance collapses to nothing. */
 .play-hub-main .play-join-card--pro .play-join-tagline {
@@ -2609,11 +2688,46 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     padding-top: 1rem;
 }
 
+/* Share the comparison rows as well as the actions. A discount belongs to the
+   entry row, so it must not push every following Pro spec out of alignment.
+   Query the track area instead of containing each tile; tiles need intrinsic
+   row sizes for subgrid. Tiles below 18rem only occur in the stacked layout. */
+@supports (grid-template-rows: subgrid) {
+    .play-hub-main .play-join-card {
+        display: grid;
+        grid-row: span 7;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        display: grid;
+        grid-row: span 6;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta {
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+    }
+
+    .play-hub-main .play-join-card .play-join-biomarkers {
+        margin-top: 0;
+        align-self: start;
+    }
+
+    .play-hub-main .play-join-card .play-join-card-actions {
+        align-self: end;
+    }
+}
+
 .play-hub-main .play-join-foot {
     width: 100%;
 }
 
-/* Tablets and desktops: one card, like the player card. */
+/* Tablets and desktops: one card with the stage as its head and the apply
+   card's muted foot band. */
 @media (min-width: 761px) and (min-height: 600px) {
     .play-hub-main .play-join-panel:not([hidden]) {
         --join-pad: 1.5rem;
@@ -2621,6 +2735,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         margin: clamp(1rem, 3.5dvh, 2rem) auto 1.5rem;
         padding: 0;
         align-items: stretch;
+        overflow: hidden;
         border: 1px solid var(--lwc-border);
         border-radius: 16px;
         background: var(--lwc-surface);
@@ -2629,15 +2744,36 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 
     .play-hub-main .play-join-head {
-        margin: 0;
-        padding: 1.6rem var(--join-pad) 1.5rem;
-        border-radius: 15px 15px 0 0;
-        box-shadow: none;
+        padding: 1.5rem var(--join-pad) 4.25rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-intro {
+        width: min(100%, 54rem);
+    }
+
+    .play-hub-main .play-join-head .play-join-title::after {
+        margin-block: 0.65rem 0.7rem;
+    }
+
+    .play-hub-main .play-join-cards {
+        margin-top: -2.85rem;
+    }
+
+    .play-hub-main .play-join-card {
+        --join-price-pad: 0.6rem;
+    }
+
+    .play-hub-main .play-join-card-head {
+        padding-block: 1rem 0.85rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        padding-bottom: 1.15rem;
     }
 
     .play-hub-main .play-join-cards {
         gap: 1.25rem;
-        padding: var(--join-pad);
+        padding: 0 var(--join-pad) var(--join-pad);
         box-sizing: border-box;
     }
 
@@ -2647,8 +2783,9 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         align-items: center;
         justify-content: space-between;
         gap: 0.75rem 1.25rem;
-        padding: 1rem var(--join-pad);
+        padding: 0.9rem var(--join-pad);
         border-top: 1px solid var(--lwc-border);
+        background: var(--lwc-surface-muted);
         box-sizing: border-box;
     }
 
@@ -2657,6 +2794,10 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         width: auto;
         min-width: 9rem;
         margin: 0;
+    }
+
+    .play-hub-main .play-join-foot .play-join-actions:not(.flow-action-stack--docked) #joinTrackBackBtn {
+        background: var(--lwc-surface);
     }
 
     .play-hub-main .play-join-foot .play-join-challenge-note {
@@ -2676,16 +2817,20 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 
     .play-hub-main .play-join-head {
-        padding-block: 0.85rem 0.8rem;
+        padding-block: 1rem 3.4rem;
     }
 
     .play-hub-main .play-join-head .play-join-title {
-        margin-bottom: 0.25rem;
-        font-size: 1.85rem;
+        font-size: 2.05rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-title::after {
+        margin-block: 0.5rem 0.55rem;
     }
 
     .play-hub-main .play-join-cards {
         gap: 1rem;
+        margin-top: -2.4rem;
     }
 
     .play-hub-main .play-join-card-head {
@@ -2703,6 +2848,11 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     .play-hub-main .play-join-card .play-join-meta dt,
     .play-hub-main .play-join-card .play-join-meta dd {
         padding-block: 0.3rem;
+    }
+
+    .play-hub-main .play-join-card {
+        --join-price-size: 2rem;
+        --join-price-pad: 0.45rem;
     }
 
     .play-hub-main .play-join-card .play-join-meta {
@@ -2726,14 +2876,35 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 }
 
-/* Phones and short landscape screens: the band and tiles stack in the page. */
+/* Phones and short landscape screens: the stage runs edge to edge under the
+   site header and the tiles stack out of it. The band paints past the page
+   gutters with a spread shadow clipped to its own height, so it never adds
+   horizontal scroll. */
 @media (max-width: 760px), (max-height: 599px) {
     .play-hub-main .play-join-panel:not([hidden]) {
-        padding-top: 1rem;
+        padding-top: 0;
+    }
+
+    .play-hub-main .play-join-head {
+        padding: 1.5rem 0.25rem 3.75rem;
+        /* The halo fades out by the band's own edges, so it meets the painted
+           gutters without a seam. */
+        background:
+            radial-gradient(ellipse 50% 100% at 50% 0%,
+                rgba(25, 195, 209, 0.18) 0%,
+                rgba(25, 195, 209, 0.06) 55%,
+                rgba(25, 195, 209, 0) 100%),
+            var(--play-track-it-bg, #101820);
+        box-shadow: 0 0 0 100vmax var(--play-track-it-bg, #101820);
+        clip-path: inset(0 -100vmax);
     }
 
     .play-hub-main .play-join-head .play-join-intro {
         font-size: 0.95rem;
+    }
+
+    .play-hub-main .play-join-cards {
+        margin-top: -2.5rem;
     }
 
     /* The detour reads right under the tracks; the dock's reserve follows it. */
@@ -2753,11 +2924,16 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
 @media (max-width: 600px) {
     .play-hub-main .play-join-head {
-        padding: 1.2rem 1rem 1.1rem;
+        padding: 1.35rem 0 3.5rem;
     }
 
     .play-hub-main .play-join-head .play-join-title {
-        font-size: 1.85rem;
+        font-size: 2rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-title::after {
+        width: 4.5rem;
+        margin-block: 0.65rem 0.7rem;
     }
 
     .play-hub-main .play-join-card-head {
@@ -2767,13 +2943,24 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     .play-hub-main .play-join-card .play-join-details {
         padding: 0.25rem min(1rem, 16px) 1rem;
     }
+
+    .play-hub-main .play-join-card {
+        --join-price-size: 2rem;
+    }
 }
 
 /* Pair each term with its value when a narrow tile or enlarged text needs
    another line. The divider belongs to the pair, not both stacked cells. */
 @container play-track (max-width: 18rem) {
+    .play-hub-main .play-join-card,
+    .play-hub-main .play-join-card .play-join-details {
+        display: flex;
+    }
+
     .play-hub-main .play-join-card .play-join-meta {
         grid-template-columns: minmax(0, 1fr);
+        /* Label/value pairs use separate rows once the cards stack narrowly. */
+        grid-template-rows: none;
     }
 
     .play-hub-main .play-join-card .play-join-meta dt {
@@ -2784,5 +2971,162 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     .play-hub-main .play-join-card .play-join-meta dd {
         padding-top: 0;
         border-top: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta dt:first-of-type {
+        min-height: 0;
+    }
+}
+
+/* ===== Join in motion =====
+   Entering: the title rises on the stage, its accent rule draws, then the two
+   tracks rise out of the stage's edge one after the other. The foot only
+   fades, so the action dock always measures it in place. Hover lifts a track,
+   pressing its action gives way, and the chosen track holds the ring while the
+   other steps back as the apply flow takes over. */
+.play-hub-main .play-join-card {
+    transition:
+        transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.play-hub-main .play-join-card .play-join-card-actions .flow-action {
+    transition:
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.play-hub-main .play-join-card .play-join-card-actions .flow-action > i {
+    transition: transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .play-hub-main .play-join-panel:not([data-join-choice]) .play-join-card:hover {
+        transform: translate3d(0, -4px, 0);
+        box-shadow: 0 0 0 1px var(--lwc-accent, #087685), 0 16px 36px rgba(15, 23, 42, 0.16);
+    }
+
+    .play-hub-main .play-join-panel:not([data-join-choice]) .play-join-card--pro:hover {
+        box-shadow: 0 0 0 2px var(--lwc-success, #1f7a38), 0 16px 36px rgba(15, 23, 42, 0.16);
+    }
+
+    .play-hub-main .play-join-card:hover .play-join-card-actions .flow-action:not(:disabled) > i {
+        transform: translate3d(3px, 0, 0);
+    }
+}
+
+.play-hub-main .play-join-card .play-join-card-actions .flow-action:not(:disabled):active,
+.play-hub-main .play-join-actions .play-join-mobile-track-action:not(:disabled):active {
+    transform: scale(0.97);
+}
+
+/* The choice is made: the chosen track keeps the ring, the other steps back. */
+.play-hub-main .play-join-panel[data-join-choice] .play-join-card {
+    pointer-events: none;
+}
+
+.play-hub-main .play-join-panel[data-join-choice="amateur"] .play-join-card:not(.play-join-card--pro),
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card--pro {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: 0 0 0 2px var(--lwc-accent, #087685), 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card--pro {
+    box-shadow: 0 0 0 3px var(--lwc-success, #1f7a38), 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.play-hub-main .play-join-panel[data-join-choice="amateur"] .play-join-card--pro,
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card:not(.play-join-card--pro) {
+    box-shadow: var(--lwc-shadow-sm);
+    transform: scale(0.98);
+}
+
+/* The tile's surface stays solid over the stage; only its contents fade. */
+.play-hub-main .play-join-card > * {
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.play-hub-main .play-join-panel[data-join-choice="amateur"] .play-join-card--pro > *,
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card:not(.play-join-card--pro) > * {
+    opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .play-join-panel:not([hidden]) .play-join-head .play-join-title {
+        animation: play-join-title-rise 300ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-head .play-join-title::after {
+        animation: play-rule-draw 260ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 100ms both;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-head .play-join-intro {
+        animation: play-join-fade 240ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 80ms both;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-card {
+        animation: play-join-tile-rise 300ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 90ms backwards;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-card--pro {
+        animation-delay: 150ms;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-foot {
+        animation: play-join-fade 220ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 220ms backwards;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .play-hub-main .play-join-card,
+    .play-hub-main .play-join-card > *,
+    .play-hub-main .play-join-card .play-join-card-actions .flow-action,
+    .play-hub-main .play-join-card .play-join-card-actions .flow-action > i {
+        transition: none;
+    }
+
+    .play-hub-main .play-join-panel[data-join-choice] .play-join-card,
+    .play-hub-main .play-join-panel:not([data-join-choice]) .play-join-card:hover,
+    .play-hub-main .play-join-card:hover .play-join-card-actions .flow-action:not(:disabled) > i,
+    .play-hub-main .play-join-card .play-join-card-actions .flow-action:active,
+    .play-hub-main .play-join-actions .play-join-mobile-track-action:active {
+        transform: none;
+    }
+}
+
+@keyframes play-join-title-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 0.35em, 0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes play-join-tile-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 28px, 0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes play-join-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
     }
 }

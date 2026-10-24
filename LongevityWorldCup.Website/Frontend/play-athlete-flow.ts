@@ -561,6 +561,8 @@ function createAthleteSelectionController(
     let currentFocus = -1;
     let athleteAutocompleteReady = false;
     let athleteLoadPromise: Promise<PlayAthlete[]> | null = null;
+    let athleteLoadController: AbortController | null = null;
+    let resumeAthleteLoad = false;
     let isBound = false;
     let hasUserEditedInput = false;
     const geometryObserver = new ResizeObserver(positionAthleteMatches);
@@ -932,9 +934,12 @@ function createAthleteSelectionController(
         if (athleteLoadPromise) return athleteLoadPromise;
         errorElement.replaceChildren();
         errorElement.setAttribute("role", "status");
-        athleteLoadPromise = fetch(athleteApiPath)
+        const controller = new AbortController();
+        athleteLoadController = controller;
+        const request = fetch(athleteApiPath, { signal: controller.signal })
             .then(response => response.ok ? response.json() : Promise.reject(new Error("Athlete list request failed")))
             .then((data: unknown) => {
+                if (controller.signal.aborted) return athletes;
                 if (!Array.isArray(data)) {
                     throw new Error("Athlete list response was invalid");
                 }
@@ -956,14 +961,18 @@ function createAthleteSelectionController(
                 return athletes;
             })
             .catch((error: unknown) => {
+                // Only our own page-lifecycle cancellation is quiet. Transport
+                // and data errors on the active page still expose Retry.
+                if (controller.signal.aborted) return athletes;
                 console.error("Error fetching athletes:", error);
                 renderAthleteLoadError();
                 throw error;
             })
             .finally(() => {
-                athleteLoadPromise = null;
+                if (athleteLoadPromise === request) athleteLoadPromise = null;
+                if (athleteLoadController === controller) athleteLoadController = null;
             });
-
+        athleteLoadPromise = request;
         return athleteLoadPromise;
     }
 
@@ -976,6 +985,17 @@ function createAthleteSelectionController(
     function bind(): AthleteSelectionController {
         if (isBound) return api;
         isBound = true;
+        window.addEventListener('pagehide', () => {
+            resumeAthleteLoad = athleteLoadController !== null;
+            athleteLoadController?.abort();
+            closeAllLists();
+        });
+        window.addEventListener('pageshow', event => {
+            if (!event.persisted || !resumeAthleteLoad) return;
+            resumeAthleteLoad = false;
+            if (athleteLoadPromise) void athleteLoadPromise.then(retryAthleteLoad, retryAthleteLoad);
+            else retryAthleteLoad();
+        });
 
         input.addEventListener("focus", () => {
             retryAthleteLoad();
