@@ -9,7 +9,8 @@
 // - Rows glide to their new places when filters, order or division change.
 // - Closing returns scroll and focus to the row of the athlete you ended on.
 //
-// This classic script only observes the board and the dialog. It never delays
+// This classic script observes content and receives explicit dialog lifecycle
+// events for deterministic scroll and focus return. It never delays
 // or replaces their own behaviour and never blocks input: every moving copy
 // lives in an inert, pointer-transparent layer and the real elements stay
 // interactive throughout. Motion waits for the visitor's first press, matching
@@ -23,7 +24,7 @@
     type SharedMotion = { readonly flip?: unknown };
     type Hold = { readonly element: HTMLElement; readonly animation: Animation };
     type Source = { readonly row: HTMLElement; readonly slug: string; readonly at: number };
-    type CloseState = { readonly slug: string; readonly row: HTMLElement | null; readonly scrollTo: number | null };
+    type CloseReturn = { scrollTop: number; returnFocusTo: HTMLElement | null };
     type Figure = { readonly prefix: string; readonly sign: string; readonly value: number; readonly decimals: number; readonly suffix: string };
     type Leaving = { readonly at: number; readonly copies: ReadonlyArray<readonly [HTMLElement, DOMRect, Element]> };
     type Swipe = { readonly id: number; readonly x: number; readonly y: number; readonly t: number; dx: number; active: boolean; readonly profile: HTMLElement };
@@ -33,7 +34,7 @@
     const rowSelector = "tr[data-athlete-name], .podium-item[data-athlete-name]";
     const boardSelector = ".leaderboard table tbody, .podium";
     const figureSelector = ".age-board-figure, #ageRadarCenterValue, #ageRadarCenterBio";
-    const swipeExclusions = "input, select, textarea, canvas, iframe, [role='slider'], [role='tablist'], [role='listbox'], [role='menu'], .age-clock-switch, .athlete-share-menu";
+    const swipeExclusions = "a, button, input, select, textarea, canvas, iframe, [contenteditable]:not([contenteditable='false']), [role='button'], [role='slider'], [role='tablist'], [role='listbox'], [role='menu'], .age-clock-switch, .athlete-share-menu";
     let gateOpen = false;
 
     function sharedMotion(): SharedMotion | undefined {
@@ -213,6 +214,7 @@
         const style = getComputedStyle(source);
         const copy = source.cloneNode(true) as HTMLElement;
         copy.removeAttribute("id");
+        copy.querySelectorAll("[id]").forEach(child => child.removeAttribute("id"));
         Object.assign(copy.style, { font: style.font, color: style.color, whiteSpace: "nowrap", display: "inline-block", textAlign: "center" });
         return place(copy, rect);
     }
@@ -274,6 +276,22 @@
 
     let pendingSource: Source | null = null;
     let openerSlug = "";
+    let generation = 0;
+    let cardEntrance: Animation | null = null;
+
+    function clearMotion(): void {
+        generation++;
+        cancelSwipe(false);
+        cardEntrance?.cancel();
+        cardEntrance = null;
+        releaseHolds(true);
+        layerElement?.getAnimations({ subtree: true }).forEach(animation => animation.cancel());
+        layerElement?.replaceChildren();
+    }
+
+    function playSafely(action: () => void): void {
+        try { action(); } catch { clearMotion(); }
+    }
 
     document.addEventListener("click", event => {
         if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -313,7 +331,7 @@
         ], { duration: total });
         retire(surface);
         // The real card fades in over the growing surface; it takes input throughout.
-        card.animate([{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }], { duration });
+        cardEntrance = card.animate([{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }], { duration });
 
         const title = dialogTitle();
         const pairs: Array<[HTMLElement | null, HTMLElement | null, string]> = [
@@ -349,8 +367,6 @@
     }
 
     // --- Closing: the profile shrinks back into its row --------------------------
-
-    let closeState: CloseState | null = null;
 
     // While the dialog is open the page is held by a fixed body offset. When
     // the athlete on screen is not where the visitor left the board, move that
@@ -416,29 +432,18 @@
         hold(card, duration + 240);
     }
 
-    function onClosing(): void {
+    function onClosing(state: CloseReturn): void {
+        clearMotion();
+        resetCounts();
         const slug = currentSlug();
         const row = findRow(slug);
         const scrollTo = row && slug !== openerSlug ? bringRowIntoView(row) : null;
-        closeState = { slug, row, scrollTo };
-        cancelSwipe();
-        if (row && enabled()) morphClose(row);
-    }
-
-    function onClosed(): void {
-        releaseHolds(false);
-        const state = closeState;
-        closeState = null;
-        if (!state) return;
-        if (state.scrollTo !== null) window.scrollTo({ top: state.scrollTo, left: 0, behavior: "instant" });
-        // Return to the athlete on screen, not only to the one first opened.
-        if (state.row?.isConnected && state.slug && state.slug !== openerSlug) {
-            const link = state.row.querySelector<HTMLElement>("a.athlete-name") || state.row.querySelector<HTMLElement>("a.athlete-profile-link");
-            const active = document.activeElement;
-            if (link && shown(link) && (!active || active === document.body || !modal!.contains(active))) {
-                link.focus({ preventScroll: true });
-            }
+        if (scrollTo !== null) state.scrollTop = scrollTo;
+        if (row && slug !== openerSlug) {
+            const link = row.querySelector<HTMLElement>("a.athlete-name") || row.querySelector<HTMLElement>("a.athlete-profile-link");
+            if (shown(link)) state.returnFocusTo = link;
         }
+        if (row && enabled() && !content()?.matches(".guess-mode, .is-loading, .has-load-error")) playSafely(() => morphClose(row));
     }
 
     // --- Stepping: the old athlete leaves one way, the next arrives ----------------
@@ -456,6 +461,7 @@
             if (!inViewport(rect)) continue;
             const copy = source.cloneNode(source.tagName !== "IMG") as HTMLElement;
             copy.removeAttribute("id");
+            copy.querySelectorAll("[id]").forEach(child => child.removeAttribute("id"));
             if (copy instanceof HTMLImageElement) copy.loading = "eager";
             copies.push([copy, rect, source]);
         }
@@ -513,21 +519,27 @@
         return button && !button.disabled ? button : null;
     }
 
-    function cancelSwipe(): void {
+    let swipeReturn: Animation | null = null;
+    function cancelSwipe(animate = true): void {
+        swipeReturn?.cancel();
+        swipeReturn = null;
         if (!swipe) return;
-        const { profile, active } = swipe;
+        const { profile, active, id } = swipe;
         swipe = null;
+        if (profile.hasPointerCapture(id)) profile.releasePointerCapture(id);
         if (!active) return;
         const from = profile.style.translate;
         profile.style.translate = "";
         profile.style.opacity = "";
-        if (from && enabled()) {
-            profile.animate([{ translate: from }, { translate: "0 0" }], { duration: token("--lwc-motion-fast", 140), easing: standardEase() });
+        if (from && animate && enabled()) {
+            swipeReturn = profile.animate([{ translate: from }, { translate: "0 0" }], { duration: token("--lwc-motion-fast", 140), easing: standardEase() });
         }
     }
 
     modal.addEventListener("pointerdown", event => {
+        if (event.pointerType === "touch" && !event.isPrimary) { cancelSwipe(); return; }
         if (event.pointerType !== "touch" || !event.isPrimary || !(event.target instanceof Element)) return;
+        cancelSwipe(false);
         const card = content();
         const profile = event.target.closest<HTMLElement>("#athlete-profile");
         if (!card || !profile || !isOpen() || isClosing() || card.matches(".guess-mode, .is-loading, .has-load-error")) return;
@@ -547,6 +559,9 @@
             }
             if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
             swipe.active = true;
+            // Capture only after horizontal intent; native vertical pan and
+            // pinch still cancel the gesture through pointercancel.
+            if (event.isTrusted) swipe.profile.setPointerCapture(event.pointerId);
         }
         swipe.dx = dx;
         if (!enabled()) return;
@@ -567,13 +582,13 @@
             return;
         }
         // The dragged athlete leaves from where the finger let go.
-        snapshotLeaving();
-        swipe = null;
-        profile.style.translate = "";
-        profile.style.opacity = "";
         button.click();
+        cancelSwipe(false);
     });
-    modal.addEventListener("pointercancel", cancelSwipe);
+    modal.addEventListener("pointercancel", () => cancelSwipe());
+    modal.addEventListener("lostpointercapture", () => cancelSwipe());
+    window.addEventListener("blur", () => cancelSwipe(false));
+    document.addEventListener("visibilitychange", () => { if (document.hidden) cancelSwipe(false); });
 
     // --- Ages count in --------------------------------------------------------------
 
@@ -649,7 +664,7 @@
         };
         const tick = (now: number): void => {
             const progress = Math.min(1, (now - start) / duration);
-            if (progress >= 1 || !figure.isConnected || (figure.textContent || "") !== text) {
+            if (progress >= 1 || !enabled() || !isOpen() || isClosing() || !figure.isConnected || (figure.textContent || "") !== text) {
                 stopCount(figure);
                 return;
             }
@@ -692,7 +707,6 @@
     // --- Dialog lifecycle --------------------------------------------------------------
 
     let wasOpen = isOpen();
-    let closingSeen = isClosing();
     let observedContent: HTMLElement | null = null;
     let figuresFor = "";
 
@@ -700,7 +714,8 @@
         const card = content();
         if (!card) return;
         const own = (name: string) => records.some(record => record.type === "attributes" && record.target === card && record.attributeName === name);
-        if (own("data-athlete-step") && card.dataset["athleteStep"]) playLeaving(card.dataset["athleteStep"]);
+        const direction = card.dataset["athleteStep"];
+        if (own("data-athlete-step") && direction) playSafely(() => playLeaving(direction));
         if (own("class")) {
             if (card.classList.contains("is-loading")) {
                 resetCounts();
@@ -734,29 +749,42 @@
 
     new MutationObserver(() => {
         const open = isOpen();
-        const closing = isClosing();
         if (open && !wasOpen) {
             observeContent();
             const source = pendingSource && performance.now() - pendingSource.at < 1500 ? pendingSource : null;
             pendingSource = null;
             openerSlug = source?.slug || currentSlug();
-            closeState = null;
             releaseHolds(true);
-            if (source && enabled()) requestAnimationFrame(() => morphOpen(source));
+            const currentGeneration = generation;
+            if (source && enabled()) requestAnimationFrame(() => {
+                if (currentGeneration === generation && enabled()) playSafely(() => morphOpen(source));
+            });
         } else if (!open && wasOpen) {
-            onClosed();
+            releaseHolds(false);
             resetCounts();
             figuresFor = "";
         }
-        if (open && closing && !closingSeen) onClosing();
-        closingSeen = closing;
         wasOpen = open;
     }).observe(modal, { attributes: true, attributeFilter: ["style", "class"] });
+    modal.addEventListener("athlete-dialog-loading", event => {
+        if (!isOpen() || isClosing()) openerSlug = (event as CustomEvent<{ slug: string }>).detail.slug;
+        clearMotion();
+        resetCounts();
+        figuresFor = "";
+    });
+    modal.addEventListener("athlete-dialog-closing", event => onClosing((event as CustomEvent<CloseReturn>).detail));
+    modal.addEventListener("athlete-dialog-closed", () => releaseHolds(false));
     observeContent();
 
     // --- Boards: rows glide to their new places ----------------------------------
 
     let rowSnapshot: { readonly at: number; readonly rects: Map<Element, DOMRect> } = { at: 0, rects: new Map() };
+    const rowAnimations = new Set<Animation>();
+    function animateRow(item: HTMLElement, frames: Keyframe[], options: KeyframeAnimationOptions): void {
+        const animation = item.animate(frames, options);
+        rowAnimations.add(animation);
+        animation.finished.catch(() => undefined).finally(() => rowAnimations.delete(animation));
+    }
     const boards = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>(boardSelector)].filter(board => !modal.contains(board));
 
     function snapshotRows(): void {
@@ -780,6 +808,8 @@
         const snapshot = rowSnapshot;
         if (!snapshot.at || performance.now() - snapshot.at > 1200 || !enabled() || sharedMotion()?.flip || isOpen()) return;
         rowSnapshot = { at: 0, rects: new Map() };
+        rowAnimations.forEach(animation => animation.cancel());
+        rowAnimations.clear();
         const move = token("--lwc-motion-move", 260);
         const enter = token("--lwc-motion-base", 200);
         const limit = innerHeight / 3;
@@ -793,7 +823,7 @@
                 const before = snapshot.rects.get(item);
                 if (!before) {
                     animated++;
-                    item.animate(
+                    animateRow(item,
                         [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }],
                         { duration: enter, delay: Math.min(entered++ * 18, 180), easing: enterEase(), fill: "backwards" });
                     continue;
@@ -802,7 +832,7 @@
                 const dx = Math.max(-limit, Math.min(limit, before.left - after.left));
                 if (Math.abs(dy) < 1 && Math.abs(dx) < 1) continue;
                 animated++;
-                item.animate(
+                animateRow(item,
                     [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
                     { duration: move, easing: standardEase(), composite: "add" });
             }
@@ -827,8 +857,9 @@
 
     reduced.addEventListener("change", () => {
         if (!reduced.matches) return;
-        releaseHolds(true);
+        clearMotion();
         resetCounts();
-        layerElement?.replaceChildren();
+        rowAnimations.forEach(animation => animation.cancel());
+        rowAnimations.clear();
     });
 })();

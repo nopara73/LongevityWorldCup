@@ -331,6 +331,165 @@ public sealed class AthleteBrowseMotionBrowserTests(
 
     private static Task ClearLogAsync(IPage page) => page.EvaluateAsync("() => { window.__motion.animations.length = 0; window.__motion.counts.length = 0; }");
 
+    [Theory]
+    [InlineData("second-touch")]
+    [InlineData("cancel")]
+    [InlineData("lost-capture")]
+    [InlineData("blur")]
+    public async Task InterruptedSwipe_DoesNotStepOrLeaveTheProfileDisplaced(string interruption)
+    {
+        await using var context = await NewContextAsync(390, 844, false, false);
+        var page = await context.NewPageAsync();
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await page.Locator(Rows + ":visible").Nth(1).Locator("a.athlete-name").TapAsync();
+        await WaitForProfileAsync(page);
+        var name = await page.Locator("#athleteName").InnerTextAsync();
+        await page.EvaluateAsync(
+            """
+            interruption => {
+                const profile = document.getElementById('athlete-profile');
+                const send = (type, extra = {}) => profile.dispatchEvent(new PointerEvent(type, {
+                    bubbles: true, pointerType: 'touch', pointerId: 17, isPrimary: true,
+                    clientX: 300, clientY: 450, ...extra
+                }));
+                send('pointerdown');
+                send('pointermove', { clientX: 160 });
+                if (interruption === 'second-touch') send('pointerdown', { pointerId: 18, isPrimary: false });
+                else if (interruption === 'blur') window.dispatchEvent(new Event('blur'));
+                else send(interruption === 'cancel' ? 'pointercancel' : 'lostpointercapture');
+                send('pointerup', { clientX: 160 });
+            }
+            """, interruption);
+        await page.WaitForTimeoutAsync(500);
+        Assert.Equal(name, await page.Locator("#athleteName").InnerTextAsync());
+        Assert.Equal("", await page.Locator("#athlete-profile").EvaluateAsync<string>("p => p.style.translate"));
+        Assert.Equal("", await page.Locator("#athlete-profile").EvaluateAsync<string>("p => p.style.opacity"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CloseThenReopenInTheSameTask_ReleasesOldMotionAndKeepsTheNewDialogLocked(bool reducedMotion)
+    {
+        await using var context = await NewContextAsync(390, 844, false, reducedMotion);
+        var page = await context.NewPageAsync();
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        var rows = page.Locator(Rows + ":visible");
+        var next = await rows.Nth(2).Locator("a.athlete-name").GetAttributeAsync("href");
+        await rows.Nth(1).Locator("a.athlete-name").TapAsync();
+        await WaitForProfileAsync(page);
+        if (!reducedMotion)
+        {
+            await page.WaitForFunctionAsync("() => document.querySelector('.athlete-motion-layer')?.childElementCount > 0");
+            await page.EvaluateAsync("() => document.querySelector('.athlete-motion-layer').getAnimations({ subtree: true }).forEach(a => a.pause())");
+        }
+        var staleCopies = await page.EvaluateAsync<int>(
+            """
+            href => {
+                window.closeModal({ fromHistory: true });
+                window.openAthleteModalBySlug(href.split('/').pop(), { suppressGuessMyAge: true });
+                return document.querySelector('.athlete-motion-layer')?.childElementCount || 0;
+            }
+            """, next);
+        Assert.Equal(0, staleCopies);
+        await WaitForProfileAsync(page);
+        await page.WaitForTimeoutAsync(600);
+        Assert.Equal("fixed", await page.EvaluateAsync<string>("() => document.body.style.position"));
+        Assert.True(await page.Locator("#detailsModal").IsVisibleAsync());
+        Assert.Equal(1, await page.Locator("#detailsModal .modal-content").EvaluateAsync<double>("c => +getComputedStyle(c).opacity"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => document.querySelector('.athlete-motion-layer')?.childElementCount || 0"));
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        Assert.Equal("", await page.EvaluateAsync<string>("() => document.body.style.position"));
+        Assert.False(await page.EvaluateAsync<bool>("() => document.body.classList.contains('no-scroll')"));
+        Assert.False(await page.EvaluateAsync<bool>("() => !!document.activeElement?.closest('[inert]')"));
+    }
+
+    [Fact]
+    public async Task AnimationFailure_DoesNotLeaveCopiesOrHideRealContent()
+    {
+        await using var context = await NewContextAsync(1440, 900, false, false);
+        await context.AddInitScriptAsync(
+            """
+            const originalAnimate = Element.prototype.animate;
+            Element.prototype.animate = function (...args) {
+                if (this.dataset.athleteMotionCopy === 'portrait') throw new Error('Animation unavailable');
+                return originalAnimate.apply(this, args);
+            };
+            """);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await page.Locator(Rows + ":visible").Nth(1).Locator("a.athlete-name").ClickAsync();
+        await WaitForProfileAsync(page);
+        await page.WaitForTimeoutAsync(500);
+        Assert.DoesNotContain(errors, error => error.Contains("Animation unavailable", StringComparison.Ordinal));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => document.querySelector('.athlete-motion-layer')?.childElementCount || 0"));
+        Assert.Equal(1, await page.Locator("#modalProfilePic").EvaluateAsync<double>("p => +getComputedStyle(p).opacity"));
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        Assert.Equal("", await page.EvaluateAsync<string>("() => document.body.style.position"));
+    }
+
+    [Fact]
+    public async Task CountOverlays_PreserveSignedAndMissingValuesAndClearWhenMotionChanges()
+    {
+        await using var context = await NewContextAsync(1440, 900, false, false);
+        var page = await context.NewPageAsync();
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await page.Locator(Rows + "[data-tier='pro']:visible").Nth(4).Locator("a.athlete-name").ClickAsync();
+        await WaitForProfileAsync(page);
+        await page.Locator("#athlete-stats").ScrollIntoViewIfNeededAsync();
+        await page.WaitForTimeoutAsync(600);
+        // Synthetic values isolate formatting from the athlete calculation pipeline.
+        foreach (var value in new[] { "−5.4", "+3.2", "0.84", "—" })
+        {
+            await ClearLogAsync(page);
+            await page.Locator("#lowestBortzAge").EvaluateAsync("(f, value) => { f.textContent = value; }", value);
+            await page.WaitForTimeoutAsync(600);
+            Assert.Equal(value, await page.Locator("#lowestBortzAge").InnerTextAsync());
+            Assert.False(await page.Locator("#lowestBortzAge").EvaluateAsync<bool>("f => f.hasAttribute('data-lwc-count')"));
+            Assert.False(await page.EvaluateAsync<bool>("() => window.__motion.counts.some(c => c.id === 'lowestBortzAge' && c.text !== document.getElementById('lowestBortzAge').textContent)"));
+            if (value == "—") Assert.Equal(0, await page.EvaluateAsync<int>("() => window.__motion.counts.filter(c => c.id === 'lowestBortzAge').length"));
+        }
+        await page.Locator("#lowestBortzAge").EvaluateAsync("f => { f.textContent = '28.0'; }");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.WaitForFunctionAsync("() => !document.querySelector('[data-lwc-count]')");
+        Assert.Equal("28.0", await page.Locator("#lowestBortzAge").InnerTextAsync());
+    }
+
+    [Fact]
+    public async Task TouchVerticalPanScrollsWithoutStepping_AndControlsDoNotStartSwipes()
+    {
+        await using var context = await NewContextAsync(390, 844, false, false);
+        var page = await context.NewPageAsync();
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/leaderboard");
+        await page.Locator(Rows + ":visible").Nth(1).Locator("a.athlete-name").TapAsync();
+        await WaitForProfileAsync(page);
+        var name = await page.Locator("#athleteName").InnerTextAsync();
+        var touch = await context.NewCDPSessionAsync(page);
+        for (var step = 0; step <= 10; step++)
+            await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
+            {
+                ["type"] = step == 0 ? "touchStart" : "touchMove",
+                ["touchPoints"] = new[] { new { x = 190, y = 700 - step * 30, id = 1 } }
+            });
+        await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
+        await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content').scrollTop > 100");
+        Assert.Equal(name, await page.Locator("#athleteName").InnerTextAsync());
+        await page.Locator("#shareAthleteProfile").EvaluateAsync(
+            """
+            control => {
+                for (const [type, x] of [['pointerdown', 300], ['pointermove', 100], ['pointerup', 100]])
+                    control.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: 'touch', pointerId: 19, isPrimary: true, clientX: x, clientY: 450 }));
+            }
+            """);
+        await page.WaitForTimeoutAsync(300);
+        Assert.Equal(name, await page.Locator("#athleteName").InnerTextAsync());
+        Assert.Equal("", await page.Locator("#athlete-profile").EvaluateAsync<string>("p => p.style.translate"));
+    }
+
     private static async Task<MotionEntry[]> ReadAnimationsAsync(IPage page)
     {
         var entries = await page.EvaluateAsync<JsonElement>("() => window.__motion.animations");
