@@ -461,7 +461,7 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     }
 
     if (!document.querySelector('link[href*="entry-journey"]')) return;
-    const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
+    const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review|leaderboard)?\/?$/i;
     // Decide at capture time, using the final URL after redirects. A stylesheet
     // change during navigate can miss the browser's transition opt-in snapshot.
     window.addEventListener('pageswap', event => {
