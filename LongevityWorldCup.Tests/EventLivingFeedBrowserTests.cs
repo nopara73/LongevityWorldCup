@@ -236,6 +236,10 @@ public sealed class EventLivingFeedBrowserTests(
         var link=page.Locator(".event-message a[data-athlete-slug='feed-a']");
         await link.ScrollIntoViewIfNeededAsync();
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        // CDP touch coordinates do not get Playwright's actionability wait.
+        // Let the row finish entering before choosing the press location.
+        await link.EvaluateAsync("async link=>await Promise.all(link.closest('tr').getAnimations({subtree:true}).filter(a=>a.effect.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})))");
+        await link.TapAsync(new() { Trial = true });
         await page.EvaluateAsync("""
             () => {
                 window.profileOpens=0;
