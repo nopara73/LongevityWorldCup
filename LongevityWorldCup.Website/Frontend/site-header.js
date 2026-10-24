@@ -456,19 +456,16 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         window.addEventListener(name, event => observe(event.viewTransition));
     }
 
-    if (!document.querySelector('link[href*="entry-journey"]') || !window.navigation) return;
+    if (!document.querySelector('link[href*="entry-journey"]')) return;
     const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
-    const optOut = document.createElement('style');
-    optOut.media = 'not all';
-    optOut.textContent = '@view-transition { navigation: none; }';
-    document.head.append(optOut);
-    const restore = () => { optOut.media = 'not all'; };
-    window.navigation.addEventListener('navigate', event => {
-        if (event.destination.sameDocument) return;
-        const destination = new URL(event.destination.url);
-        optOut.media = destination.origin === location.origin && journeyPath.test(destination.pathname)
-            ? 'not all' : 'all';
-        event.signal.addEventListener('abort', restore, { once: true });
+    // Decide at capture time, using the final URL after redirects. A stylesheet
+    // change during navigate can miss the browser's transition opt-in snapshot.
+    window.addEventListener('pageswap', event => {
+        const url = event.activation?.entry?.url;
+        if (!event.viewTransition || !url) return;
+        const destination = new URL(url);
+        if (destination.origin !== location.origin || !journeyPath.test(destination.pathname)) {
+            event.viewTransition.skipTransition();
+        }
     });
-    window.addEventListener('pageshow', restore);
 })();
