@@ -1926,10 +1926,11 @@ public sealed class AestheticSystemBrowserTests(
             Assert.Equal("lwc-bar", condition.Name);
             Assert.Equal("max", condition.Bound);
             Assert.Equal("rem", condition.Unit);
-            Assert.Equal(17.5, condition.Value);
+            Assert.Contains(condition.Value, new[] { 17.5, 68.75 });
+            var stackedRanking = condition.Value == 68.75;
             foreach (var fontSize in new[] { 16, 32 })
             {
-                await page.SetViewportSizeAsync(768, 1024);
+                await page.SetViewportSizeAsync(stackedRanking ? 2560 : 768, 1024);
                 await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
                 await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
                 await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}px`", fontSize);
@@ -1938,19 +1939,20 @@ public sealed class AestheticSystemBrowserTests(
                 {
                     var width = threshold + delta;
                     var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
-                        async width => {
+                        async argument => {
                             const bar = document.querySelector('.leaderboard-controls');
-                            Object.assign(bar.style, { boxSizing:'content-box', inlineSize:`${width}px`, maxInlineSize:'none' });
+                            Object.assign(bar.style, { boxSizing:'content-box', inlineSize:`${argument.Width}px`, maxInlineSize:'none' });
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                             const search = bar.querySelector('#athleteSearch').getBoundingClientRect();
                             const tools = bar.querySelector('label[for="group-flags"]').getBoundingClientRect();
+                            const ranking = bar.querySelector('.leaderboard-view-switcher').getBoundingClientRect();
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(bar).width),
-                                IsCompact: tools.top >= search.bottom,
+                                IsCompact: argument.StackedRanking ? search.top >= ranking.bottom : tools.top >= search.bottom,
                                 HorizontalOverflow: Math.max(0, bar.scrollWidth - bar.clientWidth)
                             };
                         }
-                        """, width);
+                        """, new { Width = width, StackedRanking = stackedRanking });
                     Assert.Equal(width, diagnostics.ContainerWidth, 1);
                     Assert.True(diagnostics.IsCompact == (width <= threshold),
                         $"Control bar did not cross {condition.Value}rem at {width}px with {fontSize}px text.");

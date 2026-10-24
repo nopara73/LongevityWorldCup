@@ -87,6 +87,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LEADERBOARD_CONTENT_CSS}}"] = "/css/leaderboard-content.css",
         ["{{ASSET_LEADERBOARD_PAGE_JS}}"] = "/js/leaderboard-page.js",
         ["{{ASSET_ATHLETE_BROWSE_MOTION_JS}}"] = "/js/athlete-browse-motion.js",
+        ["{{ASSET_ATHLETE_STORY_JS}}"] = "/js/athlete-story.js",
         ["{{ASSET_LEADERBOARD_ORDERING_JS}}"] = "/js/leaderboard-ordering.js",
         ["{{ASSET_LEADERBOARD_ORDERING_CSS}}"] = "/css/leaderboard-ordering.css",
         ["{{ASSET_LEADERBOARD_EMBED_LISTENER_JS}}"] = "/js/leaderboard-embed-listener.js",
