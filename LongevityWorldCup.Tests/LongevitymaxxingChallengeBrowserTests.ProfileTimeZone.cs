@@ -83,14 +83,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
-    [InlineData(1280, 720)]
-    [InlineData(1280, 480)]
-    [InlineData(390, 844)]
-    public async Task ProfileTimeZone_ClosingPickerKeepsTheNextPointerPressOnSave(int width, int height)
+    [InlineData(1280, 720, false)]
+    [InlineData(1280, 480, false)]
+    [InlineData(390, 844, false)]
+    [InlineData(1280, 720, true)]
+    [InlineData(390, 844, true)]
+    public async Task ProfileTimeZone_ClosingPickerKeepsTheNextPointerPressOnSave(int width, int height, bool openSearch)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = width, Height = height }
+            ViewportSize = new() { Width = width, Height = height }, HasTouch = width == 390 && openSearch
         });
         var page = await OpenProfileWorkspaceAsync(context);
         var submissions = new List<string>();
@@ -101,10 +103,16 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         });
         await ChooseProfileTimeZoneAsync(page, "London", "Europe/London");
         await Assertions.Expect(page.Locator("#lmxEditTimeZone")).ToHaveValueAsync("Europe/London");
+        if (openSearch)
+        {
+            await page.Locator("#lmxEditTimeZoneButton").ClickAsync();
+            await page.Locator("#lmxEditTimeZoneSearch").FillAsync("Bangkok");
+        }
         var save = page.Locator("#lmxSaveProfileButton");
         // A human press spans frames. Closing the in-flow picker must not move
         // this next action between pointerdown and pointerup.
-        await save.ClickAsync(new() { Delay = 150 });
+        if (width == 390 && openSearch) await save.TapAsync();
+        else await save.ClickAsync(new() { Delay = 150 });
         await Assertions.Expect(save).ToHaveAttributeAsync("aria-disabled", "true");
         await WaitForTimeZoneSaveAsync(page);
         Assert.Equal(new[] { "Europe/London" }, submissions);
