@@ -519,6 +519,7 @@ interface Window {
     LwcBadges?: {
         celebrate(scope: Element | null | undefined): void;
         rarity(badge: ServerBadge): 'legendary' | 'rare' | '';
+        stashOverflow(owner: HTMLElement, html: string): void;
     };
     setBadges(athlete: BadgeAthlete, athleteCell: HTMLElement | null | undefined): void;
     computeBadges: (...args: unknown[]) => unknown;
