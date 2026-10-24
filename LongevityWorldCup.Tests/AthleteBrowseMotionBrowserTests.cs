@@ -27,6 +27,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
             const animate = Element.prototype.animate;
             Element.prototype.animate = function (keyframes, options) {
                 const animation = animate.call(this, keyframes, options);
+                if (window.__pauseMotionCopies && this.dataset?.athleteMotionCopy) animation.pause();
                 try {
                     const frames = Array.isArray(keyframes) ? keyframes : [];
                     window.__motion.animations.push({
@@ -389,16 +390,19 @@ public sealed class AthleteBrowseMotionBrowserTests(
         await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
         var next = await rows.Nth(2).Locator("a.athlete-name").GetAttributeAsync("href");
+        // Hold copies when they are created: waiting until profile readiness can
+        // miss the entire short animation on a loaded browser worker.
+        if (!reducedMotion) await page.EvaluateAsync("() => window.__pauseMotionCopies = true");
         await rows.Nth(1).Locator("a.athlete-name").TapAsync();
         await WaitForProfileAsync(page);
         if (!reducedMotion)
         {
             await page.WaitForFunctionAsync("() => document.querySelector('.athlete-motion-layer')?.childElementCount > 0");
-            await page.EvaluateAsync("() => document.querySelector('.athlete-motion-layer').getAnimations({ subtree: true }).forEach(a => a.pause())");
         }
         var staleCopies = await page.EvaluateAsync<int>(
             """
             href => {
+                window.__pauseMotionCopies = false;
                 window.closeModal({ fromHistory: true });
                 window.openAthleteModalBySlug(href.split('/').pop(), { suppressGuessMyAge: true });
                 return document.querySelector('.athlete-motion-layer')?.childElementCount || 0;
