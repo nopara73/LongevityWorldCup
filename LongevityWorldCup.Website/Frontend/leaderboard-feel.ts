@@ -25,6 +25,7 @@ function initializeLeaderboardFeel(): void {
     if (!main || !board || !table || !table.tHead || !table.tBodies[0]) return;
     const head = table.tHead;
     const body = table.tBodies[0];
+    const byFlag = document.getElementById("group-flags") as HTMLInputElement | null;
 
     type PeekAthlete = {
         readonly chronologicalAge: number;
@@ -479,7 +480,7 @@ function initializeLeaderboardFeel(): void {
         track.replaceChildren();
         const count = railRows.length;
         const fits = phone.matches && window.innerWidth >= 360 && window.innerHeight >= 500
-            && parseFloat(getComputedStyle(root).fontSize) <= 20 && board!.dataset["byFlag"] !== "true";
+            && parseFloat(getComputedStyle(root).fontSize) <= 20 && !byFlag?.checked;
         board!.classList.toggle("has-rank-rail", count >= 30 && fits);
         if (count < 30 || !fits) { hideRail(); return; }
         const stops = [0, 0.25, 0.5, 0.75, 1].map(fraction => Math.min(count - 1, Math.round(fraction * (count - 1))));
@@ -520,7 +521,7 @@ function initializeLeaderboardFeel(): void {
     }
 
     function railActive(): boolean {
-        if (!board!.classList.contains("has-rank-rail") || board!.dataset["byFlag"] === "true"
+        if (!board!.classList.contains("has-rank-rail") || byFlag?.checked
             || document.querySelector("dialog[open], .modal[style*='display: block'], .sidebar-overlay.active")) return false;
         const box = table!.getBoundingClientRect();
         return box.top < window.innerHeight * 0.5 && box.bottom > window.innerHeight * 0.6;
@@ -607,12 +608,12 @@ function initializeLeaderboardFeel(): void {
     queueRail();
 
     // 7) By Flag: the two views crossfade instead of swapping.
-    const byFlag = document.getElementById("group-flags") as HTMLInputElement | null;
-    const syncFlagState = () => { board!.dataset["byFlag"] = String(Boolean(byFlag?.checked)); invalidateRows(); };
     let replaying = false;
     let transitioning = false;
-    byFlag?.addEventListener("change", syncFlagState);
-    syncFlagState();
+    // Chips, Clear all and history restoration can set checked without a
+    // change event. Rail checks read the current form state directly.
+    byFlag?.addEventListener("change", invalidateRows);
+    invalidateRows();
     byFlag?.addEventListener("click", event => {
         const start = (document as Document & { startViewTransition?: (update: () => void) => { finished: Promise<void> } }).startViewTransition;
         if (replaying || !moving()) return;

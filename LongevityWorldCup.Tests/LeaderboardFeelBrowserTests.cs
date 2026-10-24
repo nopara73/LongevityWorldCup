@@ -105,6 +105,22 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
     }
 
     [Theory]
+    [InlineData("chip")]
+    [InlineData("clear")]
+    public async Task Rail_ReturnsWhenGroupingIsRemovedWithoutAChangeEvent(string mode)
+    {
+        var (context, page) = await OpenAsync(390, true);
+        await using var _ = context;
+        await page.Locator("#group-flags").CheckAsync(new() { Force = true });
+        await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').classList.contains('leaderboard--flags')");
+        await page.Locator(mode == "chip" ? "button[aria-label='Remove By Flag filter']" : "#clearLeaderboardSelection").ClickAsync();
+        await Assertions.Expect(page.Locator("#group-flags")).Not.ToBeCheckedAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').classList.contains('has-rank-rail')");
+        await page.Locator(Rows + ":visible").Nth(10).ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(page.Locator(".lb-rail")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-visible"));
+    }
+
+    [Theory]
     [InlineData("ultimate")]
     [InlineData("bortz")]
     [InlineData("pheno")]
