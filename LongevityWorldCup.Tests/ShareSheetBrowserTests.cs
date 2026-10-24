@@ -234,12 +234,15 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await OpenPageAsync(page, "/leaderboard");
         await page.EvaluateAsync("() => document.documentElement.style.fontSize='32px'");
         await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();
-        await page.WaitForTimeoutAsync(300);
+        await ExpectPreviewAsync(page);
         var sheet = page.Locator(".lwc-share");
         Assert.True(await sheet.EvaluateAsync<bool>("e => e.scrollHeight > e.clientHeight"));
         var touch = await context.NewCDPSessionAsync(page);
         for (var step = 0; step <= 10; step++)
             await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = step == 0 ? "touchStart" : "touchMove", ["touchPoints"] = new[] { new { x = 190, y = 300 - step * 20, id = 1 } } });
+        // Release a resting finger so the content-scroll check cannot fling the
+        // handle away while the independent dismissal gesture targets it.
+        await page.WaitForTimeoutAsync(200);
         await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
         await page.WaitForFunctionAsync("() => document.querySelector('.lwc-share').scrollTop > 50");
         await Assertions.Expect(sheet).ToBeVisibleAsync();
@@ -253,6 +256,7 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
                 ["type"] = step == 0 ? "touchStart" : "touchMove",
                 ["touchPoints"] = new[] { new { x = handle.X + handle.Width / 2, y = handle.Y + handle.Height / 2 + step * 24, id = 1 } }
             });
+            if (step == 0) await Assertions.Expect(sheet).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bis-dragging\b"));
             await page.WaitForTimeoutAsync(20);
         }
         await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });

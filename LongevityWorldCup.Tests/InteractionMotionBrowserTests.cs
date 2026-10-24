@@ -241,11 +241,15 @@ public sealed class InteractionMotionBrowserTests(
         await page.EvaluateAsync("""
             () => {
                 window.__backdropMotion = [];
+                window.__backdropPhase = 'enter';
                 const backdrop = document.getElementById('detailsModal');
+                // Transition events can be delivered after close cleanup removes
+                // fade-out. Keep the direction from the actual close lifecycle.
+                backdrop.addEventListener('athlete-dialog-closing', () => window.__backdropPhase = 'exit');
                 for (const type of ['transitionrun', 'transitionend']) {
                     backdrop.addEventListener(type, event => {
                         if (event.target !== backdrop || event.propertyName !== 'opacity') return;
-                        window.__backdropMotion.push((backdrop.classList.contains('fade-out') ? 'exit:' : 'enter:') + type);
+                        window.__backdropMotion.push(window.__backdropPhase + ':' + type);
                     });
                 }
             }

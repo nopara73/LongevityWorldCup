@@ -77,7 +77,7 @@ public sealed class HomeScoreboardBrowserTests(
                 } else window.dispatchEvent(new Event(trigger));
             }
             """, trigger);
-        await page.WaitForTimeoutAsync(100);
+        await Assertions.Expect(page.Locator("[data-home-count], .is-counting, .is-landed, .home-board-settling")).ToHaveCountAsync(0);
         await page.EvaluateAsync("""
             () => {
                 const podium=document.querySelector('.podium'); podium.innerHTML=podium.innerHTML;
