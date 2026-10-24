@@ -1576,6 +1576,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                         : bortzAgeDifference,
                     podcastLink: athlete.PodcastLink,
                     lastMonthRank: lastMonthRank,
+                    placements: athlete.Placements || [],
                     rankImproved: rankImproved,
                     isNew: !!athlete.IsNew,
                     Badges: athlete.Badges || [],
@@ -7624,6 +7625,20 @@ function updateYourGuess() {
 // Keep the small public surface used by page bootstraps, Guess My Age, and
 // existing browser tests while the controller itself remains isolated.
 window.LoadLeaderboard = LoadLeaderboard;
+window.getLeaderboardPeek = name => {
+    const athlete = athleteResults.find(item => item.name === name);
+    if (!athlete) return null;
+    return Object.freeze({
+        chronologicalAge: athlete.chronologicalAge,
+        lowestBortzAge: athlete.lowestBortzAge,
+        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
+        lowestPhenoAge: athlete.lowestPhenoAge,
+        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        crowdAge: athlete.crowdAge,
+        crowdCount: athlete.crowdCount,
+        placements: athlete.placements
+    });
+};
 window.openEnlargedView = openEnlargedView;
 window.closeEnlargedView = closeEnlargedView;
 window.populateProofsGallery = populateProofsGallery;

@@ -15,6 +15,7 @@ public sealed class FrontendTypeScriptBuildTests
         "field-validation",
         "flow-action-dock",
         "initial-view",
+        "leaderboard-feel",
         "longevitymaxxing",
         "motion",
         "site-statistics",

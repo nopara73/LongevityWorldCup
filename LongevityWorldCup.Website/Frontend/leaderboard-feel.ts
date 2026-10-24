@@ -18,7 +18,7 @@
 // the shared gate (first trusted press) and prefers-reduced-motion keeps all of
 // it off; the peek and rail still work without motion.
 
-(() => {
+function initializeLeaderboardFeel(): void {
     const main = document.querySelector<HTMLElement>('main[data-leaderboard-page="full"]');
     const board = document.getElementById("athleteLeaderboard");
     const table = board?.querySelector<HTMLTableElement>(":scope > table");
@@ -26,13 +26,15 @@
     const head = table.tHead;
     const body = table.tBodies[0];
 
-    type RawAthlete = {
-        readonly Name?: string;
-        readonly DateOfBirth?: { readonly Year: number; readonly Month: number; readonly Day: number };
-        readonly CrowdAge?: number | null;
-        readonly CrowdCount?: number | null;
-        readonly Placements?: readonly number[] | null;
-        readonly ProfilePicLeaderboardThumb?: string;
+    type PeekAthlete = {
+        readonly chronologicalAge: number;
+        readonly lowestBortzAge: number | null;
+        readonly chronoAtLowestBortzAge: number | null;
+        readonly lowestPhenoAge: number;
+        readonly chronoAtLowestPhenoAge: number;
+        readonly crowdAge: number | null;
+        readonly crowdCount: number;
+        readonly placements: readonly (number | null)[];
     };
 
     const root = document.documentElement;
@@ -87,10 +89,9 @@
         const travelled = top + headHeight - box.top;
         const span = Math.max(1, box.height - window.innerHeight + top + headHeight);
         const fraction = Math.min(1, Math.max(0, travelled / span));
-        const headBox = head.getBoundingClientRect();
         progress.style.left = `${box.left}px`;
         progress.style.width = `${box.width}px`;
-        progress.style.top = `${headBox.bottom - 2}px`;
+        progress.style.top = `${top + headHeight - 2}px`;
         progress.style.setProperty("--lb-progress", fraction.toFixed(4));
     }
 
@@ -111,7 +112,7 @@
     function glideHead(): void {
         const next = head.querySelector<HTMLElement>("th[data-order-level='1']");
         const nextDirection = next?.dataset["orderDirection"] ?? "";
-        const before = primaryBox;
+        const before = primary?.getBoundingClientRect() ?? null;
         const was = primary;
         const wasDirection = primaryDirection;
         primary = next;
@@ -172,9 +173,13 @@
         chips.classList.add("has-ink");
         chips.addEventListener("change", () => requestAnimationFrame(placeInk));
         // Restored and URL-driven selections change checked without an event.
-        new MutationObserver(() => requestAnimationFrame(placeInk)).observe(chips, { subtree: true, attributes: true, attributeFilter: ["checked", "class"] });
+        new MutationObserver(records => {
+            if (records.some(record => record.target !== ink)) requestAnimationFrame(placeInk);
+        }).observe(chips, { subtree: true, attributes: true, attributeFilter: ["checked", "class"] });
         if (typeof ResizeObserver === "function") new ResizeObserver(() => { inkPlaced = false; placeInk(); }).observe(chips);
         document.addEventListener("click", () => requestAnimationFrame(placeInk), true);
+        window.addEventListener("pageshow", () => requestAnimationFrame(placeInk));
+        window.addEventListener("popstate", () => requestAnimationFrame(placeInk));
         placeInk();
     }
 
@@ -186,7 +191,15 @@
     ghosts.inert = true;
     board.append(ghosts);
 
-    function ghostOf(row: HTMLTableRowElement, rowBox: DOMRect, cellWidths: readonly number[], boardBox: DOMRect): HTMLElement {
+    function clearGhosts(): void {
+        for (const animation of ghosts.getAnimations({ subtree: true })) animation.cancel();
+        ghosts.replaceChildren();
+    }
+    reduced.addEventListener("change", clearGhosts);
+    window.addEventListener("pagehide", clearGhosts);
+    window.addEventListener("scroll", clearGhosts, { passive: true });
+
+    function ghostOf(row: HTMLTableRowElement, rowBox: DOMRect, cellWidths: readonly number[]): HTMLElement {
         const copy = row.cloneNode(true) as HTMLTableRowElement;
         for (const element of [copy, ...Array.from(copy.querySelectorAll<HTMLElement>("[id], [data-athlete-name]"))]) {
             element.removeAttribute("id");
@@ -202,8 +215,8 @@
         const group = document.createElement("tbody");
         group.append(copy);
         frame.append(group);
-        frame.style.left = `${rowBox.left - boardBox.left}px`;
-        frame.style.top = `${rowBox.top - boardBox.top}px`;
+        frame.style.left = `${rowBox.left}px`;
+        frame.style.top = `${rowBox.top}px`;
         frame.style.width = `${rowBox.width}px`;
         frame.style.height = `${rowBox.height}px`;
         return frame;
@@ -213,26 +226,27 @@
     if (shared) {
         const baseFlip = shared.flip;
         const flip = (elements: readonly Element[], mutate: () => void): void => {
+            clearGhosts();
             if (!moving() || !elements.some(element => element.parentElement === body)) {
                 baseFlip(elements, mutate);
                 return;
             }
             const viewTop = -40;
             const viewBottom = window.innerHeight + 40;
-            const before = new Map<HTMLTableRowElement, { box: DOMRect; widths: number[] }>();
+            const before = new Map<HTMLTableRowElement, HTMLElement>();
             for (const row of shownRows()) {
                 const box = row.getBoundingClientRect();
                 if (box.bottom < viewTop || box.top > viewBottom) continue;
-                before.set(row, { box, widths: Array.from(row.cells).map(cell => cell.getBoundingClientRect().width) });
+                // Capture before hiding or changing a row's contents.
+                before.set(row, ghostOf(row, box, Array.from(row.cells).map(cell => cell.getBoundingClientRect().width)));
             }
-            const boardBox = board.getBoundingClientRect();
             baseFlip(elements, mutate);
 
             const leaving: HTMLElement[] = [];
-            for (const [row, { box, widths }] of before) {
+            for (const [row, copy] of before) {
                 if (row.isConnected && row.style.display !== "none" && row.getClientRects().length) continue;
                 if (leaving.length >= 24) break;
-                leaving.push(ghostOf(row, box, widths, boardBox));
+                leaving.push(copy);
             }
             if (leaving.length) {
                 ghosts.append(...leaving);
@@ -265,52 +279,30 @@
     // 5) Peek: rest the pointer on a row to see that athlete's key numbers.
     const peek = document.createElement("div");
     peek.className = "lb-peek";
-    peek.setAttribute("aria-hidden", "true");
+    peek.id = "leaderboard-peek";
+    peek.setAttribute("role", "tooltip");
     peek.hidden = true;
     document.body.append(peek);
-    let athletesByName: Map<string, RawAthlete> | null = null;
     let peekTimer = 0;
     let peekRow: HTMLTableRowElement | null = null;
 
-    const loadAthletes = (): void => {
-        if (athletesByName) return;
-        athletesByName = new Map();
-        const source = (window as unknown as { getSharedAthletes?: () => Promise<readonly RawAthlete[]> }).getSharedAthletes;
-        source?.().then(list => {
-            for (const athlete of list) if (athlete.Name) athletesByName!.set(athlete.Name, athlete);
-        }, () => { athletesByName = null; });
-    };
-
-    function yearsSince(date: { readonly Year: number; readonly Month: number; readonly Day: number }): number {
-        const born = Date.UTC(date.Year, date.Month - 1, date.Day);
-        return (Date.now() - born) / (365.2425 * 24 * 3600 * 1000);
-    }
-
-    function sparkline(placements: readonly number[]): SVGSVGElement | null {
-        const points = placements.filter(value => Number.isFinite(value) && value > 0);
+    function sparkline(placements: readonly (number | null)[], rank: number): SVGSVGElement | null {
+        // API order is yesterday, week, month, year. Draw oldest to newest,
+        // retaining missing observations instead of closing their gaps.
+        const history = [...placements.slice(0, 4)].reverse().concat(rank);
+        const points = history.flatMap((value, index) => value != null && Number.isFinite(value) && value > 0 ? [{ value, index }] : []);
         if (points.length < 2) return null;
         const ns = "http://www.w3.org/2000/svg";
         const svg = document.createElementNS(ns, "svg");
         svg.setAttribute("viewBox", "0 0 120 32");
         svg.setAttribute("class", "lb-peek-spark");
-        const worst = Math.max(...points);
-        const best = Math.min(...points);
-        const range = Math.max(1, worst - best);
-        const coords = points.map((value, index) => [
-            4 + (index / (points.length - 1)) * 112,
-            4 + ((value - best) / range) * 24
-        ] as const);
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", "Ultimate rank history, oldest to newest: " + history.map(value => value ?? "unavailable").join(", "));
+        const best = Math.min(...points.map(point => point.value));
+        const range = Math.max(1, Math.max(...points.map(point => point.value)) - best);
         const line = document.createElementNS(ns, "polyline");
-        line.setAttribute("points", coords.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" "));
+        line.setAttribute("points", points.map(point => `${4 + point.index * 28},${4 + (point.value - best) / range * 24}`).join(" "));
         svg.append(line);
-        const last = coords[coords.length - 1];
-        if (last) {
-            const dot = document.createElementNS(ns, "circle");
-            dot.setAttribute("cx", last[0].toFixed(1));
-            dot.setAttribute("cy", last[1].toFixed(1));
-            dot.setAttribute("r", "3");
-            svg.append(dot);
-        }
         return svg;
     }
 
@@ -330,11 +322,12 @@
 
     function fillPeek(row: HTMLTableRowElement): boolean {
         const name = row.dataset["athleteName"] || "";
-        const athlete = athletesByName?.get(name);
+        // Reuse the page's calculated clock values. Display metrics can be
+        // percentages or improvements, and must never be parsed back into ages.
+        const athlete = (window as unknown as { getLeaderboardPeek?: (name: string) => PeekAthlete | null }).getLeaderboardPeek?.(name);
         const rank = row.querySelector(".rank")?.textContent?.trim() || "";
         const metric = row.querySelector(".age-reduction")?.textContent?.trim() || "";
         const portrait = row.querySelector<HTMLImageElement>("img.portrait");
-        const flag = row.querySelector<HTMLElement>(".badge-section [class*='flag'], .flag-icon");
         peek.replaceChildren();
 
         const top = cell("lb-peek-top");
@@ -344,29 +337,38 @@
             picture.alt = "";
             top.append(picture);
         }
-        top.append(cell("lb-peek-id", cell("lb-peek-rank", rank), cell("lb-peek-name", name)));
-        if (flag) top.append(flag.cloneNode(true));
+        top.append(cell("lb-peek-id", cell("lb-peek-rank", rank), cell("lb-peek-name", row.querySelector(".athlete-name")?.textContent?.trim() || name)));
         peek.append(top);
         if (metric) peek.append(cell("lb-peek-metric", metric));
 
         const facts = cell("lb-peek-facts");
-        if (athlete?.DateOfBirth) {
-            const age = yearsSince(athlete.DateOfBirth);
-            const reduction = /^([+-−]?\d+(?:\.\d+)?)\s/.exec(metric.replace("−", "-"));
+        if (athlete) {
             const view = main!.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value;
-            const change = reduction && view === "ultimate" ? parseFloat(reduction[1] ?? "") : NaN;
-            const ages = cell("lb-peek-ages", icon("fa-hourglass-half"), cell("lb-peek-age", age.toFixed(1)));
-            if (Number.isFinite(change)) {
-                ages.append(icon("fa-arrow-right-long"), cell("lb-peek-age is-bio", (age + change).toFixed(1)));
+            const bortz = view === "bortz" || (view === "ultimate" && athlete.lowestBortzAge != null);
+            const clock = bortz || view === "pheno" || view === "ultimate";
+            const age = clock ? (bortz ? athlete.chronoAtLowestBortzAge : athlete.chronoAtLowestPhenoAge) : athlete.chronologicalAge;
+            const bio = clock ? (bortz ? athlete.lowestBortzAge : athlete.lowestPhenoAge) : null;
+            if (age != null && Number.isFinite(age)) {
+                const ages = cell("lb-peek-ages", icon("fa-hourglass-half"), cell("lb-peek-age", age.toFixed(1)));
+                ages.setAttribute("aria-label", clock ? "Chronological age at test" : "Chronological age");
+                if (bio != null && Number.isFinite(bio)) {
+                    const value = cell("lb-peek-age is-bio", bio.toFixed(1));
+                    value.setAttribute("aria-label", bortz ? "bortz age" : "Pheno age");
+                    ages.append(icon("fa-arrow-right-long"), value);
+                }
+                facts.append(ages);
             }
-            facts.append(ages);
         }
-        if (athlete && (athlete.CrowdCount ?? 0) > 0 && Number.isFinite(athlete.CrowdAge)) {
-            facts.append(cell("lb-peek-crowd", icon("fa-people-group"), cell("lb-peek-age", String(Math.round(athlete.CrowdAge ?? 0)))));
+        if (athlete && athlete.crowdCount > 0 && athlete.crowdAge != null && Number.isFinite(athlete.crowdAge)) {
+            const crowd = cell("lb-peek-crowd", icon("fa-people-group"), cell("lb-peek-age", athlete.crowdAge.toFixed(1)));
+            crowd.setAttribute("aria-label", "Crowd age");
+            facts.append(crowd);
         }
         if (facts.childNodes.length) peek.append(facts);
-        const spark = athlete?.Placements ? sparkline(athlete.Placements) : null;
-        if (spark) peek.append(spark);
+        if (athlete && main!.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value === "ultimate") {
+            const spark = sparkline(athlete.placements, Number(row.dataset["rank"]));
+            if (spark) peek.append(spark);
+        }
         return Boolean(rank || metric);
     }
 
@@ -380,27 +382,25 @@
         const above = rowBox.top - height - 8;
         const top = above > stickyTop() + head.getBoundingClientRect().height ? above : rowBox.bottom + 8;
         peek.style.left = `${left}px`;
-        peek.style.top = `${Math.min(window.innerHeight - height - 8, top)}px`;
+        peek.style.top = `${Math.max(8, Math.min(window.innerHeight - height - 8, top))}px`;
     }
 
     function hidePeek(): void {
         window.clearTimeout(peekTimer);
+        peekRow?.querySelector(".athlete-name")?.removeAttribute("aria-describedby");
         peekRow = null;
-        if (peek.hidden) return;
+        for (const animation of peek.getAnimations()) animation.cancel();
         peek.classList.remove("is-open");
-        if (moving()) {
-            const animation = peek.animate([{ opacity: 1 }, { opacity: 0, translate: "0 4px" }], { duration: token("--lwc-motion-fast", 140), easing: ease("--lwc-ease-exit") });
-            const done = () => { if (!peek.classList.contains("is-open")) peek.hidden = true; };
-            void animation.finished.then(done, done);
-        } else {
-            peek.hidden = true;
-        }
+        peek.hidden = true;
     }
 
     function showPeek(row: HTMLTableRowElement): void {
-        if (!row.isConnected || row.style.display === "none" || !fillPeek(row)) return;
+        if (phone.matches || !row.isConnected || row.style.display === "none" || !fillPeek(row)) return;
         peek.hidden = false;
         peek.classList.add("is-open");
+        peek.tabIndex = peek.scrollHeight > peek.clientHeight + 1 ? 0 : -1;
+        peekRow = row;
+        row.querySelector(".athlete-name")?.setAttribute("aria-describedby", peek.id);
         placePeek(row);
         if (moving()) {
             peek.animate(
@@ -411,33 +411,63 @@
 
     body.addEventListener("pointerover", event => {
         if (!finePointer.matches || event.pointerType !== "mouse" || !(event.target instanceof Element)) return;
+        // Badge explainers and other row links own their own hover surfaces.
+        if (event.target.closest(".badge-class, .badge-section, .athlete-name-links, button")) { hidePeek(); return; }
         const row = event.target.closest<HTMLTableRowElement>(rowSelector);
         if (!row || row === peekRow || !body.contains(row)) return;
-        loadAthletes();
         hidePeek();
         peekRow = row;
         // Already peeking: move straight to the next row; otherwise wait for a rest.
         peekTimer = window.setTimeout(() => { if (peekRow === row) showPeek(row); }, 420);
     });
-    body.addEventListener("pointerleave", hidePeek);
-    body.addEventListener("pointerdown", hidePeek);
+    body.addEventListener("pointerleave", () => {
+        window.clearTimeout(peekTimer);
+        peekTimer = window.setTimeout(() => { if (!peek.matches(":hover")) hidePeek(); }, 160);
+    });
+    peek.addEventListener("pointerenter", () => window.clearTimeout(peekTimer));
+    peek.addEventListener("pointerleave", hidePeek);
+    body.addEventListener("focusin", event => {
+        if (!(event.target instanceof Element) || !event.target.matches(".athlete-name:focus-visible")) return;
+        const row = event.target.closest<HTMLTableRowElement>(rowSelector);
+        hidePeek();
+        if (row) showPeek(row);
+    });
+    body.addEventListener("focusout", event => { if (!peek.contains(event.relatedTarget as Node | null)) hidePeek(); });
+    peek.addEventListener("focusout", hidePeek);
+    document.addEventListener("pointerdown", event => { if (!peek.contains(event.target as Node | null)) hidePeek(); }, true);
+    window.addEventListener("resize", hidePeek);
     window.addEventListener("scroll", () => { if (!peek.hidden || peekRow) hidePeek(); }, { passive: true });
-    document.addEventListener("keydown", event => { if (event.key === "Escape") hidePeek(); });
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        if (peek.contains(document.activeElement)) peekRow?.querySelector<HTMLElement>(".athlete-name")?.focus({ preventScroll: true });
+        hidePeek();
+    });
 
     // 6) Phone rank rail: where you are in the long list, and a way to jump.
     const rail = document.createElement("div");
     rail.className = "lb-rail";
-    rail.setAttribute("aria-hidden", "true");
+    rail.setAttribute("aria-label", "Rank navigation");
+    rail.setAttribute("role", "navigation");
+    rail.inert = true;
     const track = document.createElement("div");
     track.className = "lb-rail-track";
     const thumb = document.createElement("span");
     thumb.className = "lb-rail-thumb";
+    thumb.setAttribute("aria-hidden", "true");
     rail.append(track, thumb);
     document.body.append(rail);
     let railRows: HTMLTableRowElement[] = [];
     let railFrame = 0;
     let railHide = 0;
     let scrubbing = false;
+    let railDirty = true;
+
+    function hideRail(): void {
+        window.clearTimeout(railHide);
+        rail.classList.remove("is-visible", "is-scrubbing");
+        rail.inert = true;
+        scrubbing = false;
+    }
 
     function rankOf(row: HTMLTableRowElement): string {
         return row.querySelector(".rank")?.textContent?.trim() || row.dataset["rank"] || "";
@@ -445,18 +475,22 @@
 
     function buildRail(): void {
         railRows = shownRows();
+        railDirty = false;
         track.replaceChildren();
         const count = railRows.length;
-        if (count < 30) return;
+        const fits = phone.matches && window.innerWidth >= 360 && window.innerHeight >= 500
+            && parseFloat(getComputedStyle(root).fontSize) <= 20 && board!.dataset["byFlag"] !== "true";
+        board!.classList.toggle("has-rank-rail", count >= 30 && fits);
+        if (count < 30 || !fits) { hideRail(); return; }
         const stops = [0, 0.25, 0.5, 0.75, 1].map(fraction => Math.min(count - 1, Math.round(fraction * (count - 1))));
         for (const index of new Set(stops)) {
             const row = railRows[index];
             if (!row) continue;
             const tick = document.createElement("button");
             tick.type = "button";
-            tick.tabIndex = -1;
             tick.className = "lb-rail-tick";
             tick.textContent = rankOf(row);
+            tick.setAttribute("aria-label", `Jump to rank ${rankOf(row)}`);
             tick.style.top = `${(index / (count - 1)) * 100}%`;
             tick.dataset["index"] = String(index);
             track.append(tick);
@@ -467,29 +501,39 @@
             if (after > 0) {
                 const mark = document.createElement("button");
                 mark.type = "button";
-                mark.tabIndex = -1;
                 mark.className = "lb-rail-tick is-section";
+                mark.setAttribute("aria-label", `Jump to Amateur, rank ${rankOf(railRows[after]!)}`);
                 mark.style.top = `${(after / (count - 1)) * 100}%`;
                 mark.dataset["index"] = String(after);
                 track.append(mark);
             }
         }
+        // Keep boundary and rank targets distinct even when their ranks are
+        // close. Scrubbing still uses the continuous row index scale.
+        const ticks = Array.from(track.querySelectorAll<HTMLButtonElement>("button"))
+            .sort((a, b) => Number(a.dataset["index"]) - Number(b.dataset["index"]));
+        const positions = ticks.map(tick => Number(tick.dataset["index"]) / (count - 1) * track.clientHeight);
+        for (let i = 1; i < positions.length; i++) positions[i] = Math.max(positions[i]!, positions[i - 1]! + 44);
+        if (positions.length) positions[positions.length - 1] = Math.min(positions[positions.length - 1]!, track.clientHeight);
+        for (let i = positions.length - 2; i >= 0; i--) positions[i] = Math.min(positions[i]!, positions[i + 1]! - 44);
+        ticks.forEach((tick, i) => { tick.style.top = `${positions[i]}px`; track.append(tick); });
     }
 
     function railActive(): boolean {
-        if (!phone.matches || board!.dataset["byFlag"] === "true") return false;
+        if (!board!.classList.contains("has-rank-rail") || board!.dataset["byFlag"] === "true"
+            || document.querySelector("dialog[open], .modal[style*='display: block'], .sidebar-overlay.active")) return false;
         const box = table!.getBoundingClientRect();
         return box.top < window.innerHeight * 0.5 && box.bottom > window.innerHeight * 0.6;
     }
 
     function syncRail(): void {
         railFrame = 0;
+        if (railDirty || !railRows[0]?.isConnected) buildRail();
         if (!railActive()) {
-            rail.classList.remove("is-visible");
+            hideRail();
             return;
         }
-        if (!railRows.length || !railRows[0]?.isConnected) buildRail();
-        if (railRows.length < 30) return;
+        if (railRows.length < 30) { hideRail(); return; }
         const line = stickyTop() + head.getBoundingClientRect().height + 8;
         let low = 0;
         let high = railRows.length - 1;
@@ -500,10 +544,11 @@
         }
         const current = railRows[low];
         thumb.textContent = current ? rankOf(current) : "";
-        thumb.style.top = `${(low / (railRows.length - 1)) * 100}%`;
+        thumb.style.top = `${12 + (low / (railRows.length - 1)) * track.clientHeight}px`;
         rail.classList.add("is-visible");
+        rail.inert = false;
         window.clearTimeout(railHide);
-        if (!scrubbing) railHide = window.setTimeout(() => rail.classList.remove("is-visible"), 1100);
+        if (!scrubbing && !rail.contains(document.activeElement)) railHide = window.setTimeout(hideRail, 1600);
     }
 
     function queueRail(): void {
@@ -511,11 +556,12 @@
     }
 
     function jumpTo(index: number, smooth: boolean): void {
+        if (railDirty) buildRail();
         const row = railRows[Math.max(0, Math.min(railRows.length - 1, index))];
-        if (!row) return;
+        if (!row || !row.getClientRects().length) return;
         const offset = stickyTop() + head.getBoundingClientRect().height + 4;
         const y = row.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top: y, behavior: smooth && !reduced.matches ? "smooth" : "instant" });
+        window.scrollTo({ top: y, behavior: smooth && moving() ? "smooth" : "instant" });
     }
 
     function indexAt(clientY: number): number {
@@ -527,16 +573,19 @@
     rail.addEventListener("pointerdown", event => {
         if (!(event.target instanceof Element)) return;
         const tick = event.target.closest<HTMLElement>(".lb-rail-tick");
-        if (tick) {
-            jumpTo(Number(tick.dataset["index"]), true);
-            return;
-        }
+        if (tick) return;
         scrubbing = true;
         rail.classList.add("is-scrubbing");
         rail.setPointerCapture(event.pointerId);
         jumpTo(indexAt(event.clientY), false);
         event.preventDefault();
     });
+    rail.addEventListener("click", event => {
+        const tick = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button.lb-rail-tick") : null;
+        if (tick) jumpTo(Number(tick.dataset["index"]), true);
+    });
+    rail.addEventListener("focusin", () => window.clearTimeout(railHide));
+    rail.addEventListener("focusout", queueRail);
     rail.addEventListener("pointermove", event => {
         if (scrubbing) jumpTo(indexAt(event.clientY), false);
     });
@@ -548,30 +597,56 @@
     };
     rail.addEventListener("pointerup", endScrub);
     rail.addEventListener("pointercancel", endScrub);
+    rail.addEventListener("lostpointercapture", endScrub);
 
     window.addEventListener("scroll", queueRail, { passive: true });
-    new MutationObserver(() => { railRows = []; }).observe(body, { childList: true, subtree: false, attributes: true, attributeFilter: ["style"] });
+    const invalidateRows = () => { railDirty = true; hidePeek(); queueRail(); queueHead(); requestAnimationFrame(placeInk); };
+    new MutationObserver(invalidateRows).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "hidden"], characterData: true });
+    window.addEventListener("resize", invalidateRows, { passive: true });
+    if (typeof ResizeObserver === "function") new ResizeObserver(invalidateRows).observe(table);
+    queueRail();
 
     // 7) By Flag: the two views crossfade instead of swapping.
     const byFlag = document.getElementById("group-flags") as HTMLInputElement | null;
-    const syncFlagState = () => { board!.dataset["byFlag"] = String(Boolean(byFlag?.checked)); };
+    const syncFlagState = () => { board!.dataset["byFlag"] = String(Boolean(byFlag?.checked)); invalidateRows(); };
     let replaying = false;
+    let transitioning = false;
     byFlag?.addEventListener("change", syncFlagState);
     syncFlagState();
     byFlag?.addEventListener("click", event => {
         const start = (document as Document & { startViewTransition?: (update: () => void) => { finished: Promise<void> } }).startViewTransition;
         if (replaying || !moving()) return;
+        // Let rapid subsequent inputs take their normal path, without another
+        // deferred replay overturning the user's newest selection.
+        if (transitioning) return;
         if (typeof start !== "function") {
             requestAnimationFrame(() => window.LwcMotion?.settle(board!));
             return;
         }
         event.preventDefault();
+        transitioning = true;
         board!.classList.add("lb-crossfade");
-        const transition = start.call(document, () => {
+        let applied = false;
+        const apply = () => {
+            if (applied) return;
+            applied = true;
             replaying = true;
             try { byFlag.click(); } finally { replaying = false; }
+        };
+        const done = () => { transitioning = false; board!.classList.remove("lb-crossfade"); };
+        // Checkbox cancellation restores its value after this event dispatch.
+        // Starting in a microtask also makes a synchronous fallback safe.
+        queueMicrotask(() => {
+            try {
+                const transition = start.call(document, apply);
+                void transition.finished.then(done, () => { apply(); done(); });
+            } catch { apply(); done(); }
         });
-        const done = () => board!.classList.remove("lb-crossfade");
-        void transition.finished.then(done, done);
     });
-})();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeLeaderboardFeel, { once: true });
+} else {
+    initializeLeaderboardFeel();
+}
