@@ -85,7 +85,13 @@ function initializeLeaderboardFeel(): void {
         const box = table!.getBoundingClientRect();
         const headHeight = head.getBoundingClientRect().height;
         const stuck = box.top < top - 1 && box.bottom > top + headHeight * 2;
-        if ((board!.dataset["headStuck"] === "true") !== stuck) board!.dataset["headStuck"] = String(stuck);
+        if ((board!.dataset["headStuck"] === "true") !== stuck) {
+            // Folding the sponsor note must not move the rows beneath a pointer
+            // or keyboard focus. Keep the head's flow height while its contents
+            // condense; natural content growth can still enlarge the table row.
+            head.style.height = stuck ? `${headHeight}px` : "";
+            board!.dataset["headStuck"] = String(stuck);
+        }
         if (!stuck) return;
         const travelled = top + headHeight - box.top;
         const span = Math.max(1, box.height - window.innerHeight + top + headHeight);
@@ -101,7 +107,12 @@ function initializeLeaderboardFeel(): void {
     }
 
     window.addEventListener("scroll", queueHead, { passive: true });
-    window.addEventListener("resize", queueHead, { passive: true });
+    window.addEventListener("resize", () => {
+        // Re-measure the expanded head at the new viewport/zoom in one frame.
+        head.style.height = "";
+        board.dataset["headStuck"] = "false";
+        queueHead();
+    }, { passive: true });
     queueHead();
 
     // 2) Ordered column: the underline glides from the previous column and the

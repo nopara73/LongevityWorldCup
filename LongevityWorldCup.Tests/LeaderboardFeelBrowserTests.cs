@@ -52,6 +52,28 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
             """));
     }
 
+    [Theory]
+    [InlineData(1440, false)]
+    [InlineData(1440, true)]
+    [InlineData(768, true)]
+    [InlineData(390, true)]
+    public async Task CondensingHead_KeepsRowsStationaryInTheDocument(int width, bool reduce)
+    {
+        var (context, page) = await OpenAsync(width, reduce: reduce);
+        await using var _ = context;
+        await page.Locator("#athleteSearch").ClickAsync();
+        const string rowDocumentTop = "() => document.querySelector('#athleteLeaderboard > table > tbody').getBoundingClientRect().top + scrollY";
+        var before = await page.EvaluateAsync<double>(rowDocumentTop);
+        await page.Locator(Rows).Nth(20).ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'true'");
+        await page.WaitForTimeoutAsync(300); // include the normal-motion folding transition
+        Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
+        await page.EvaluateAsync("scrollTo(0, 0)");
+        await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'false'");
+        await page.WaitForTimeoutAsync(300);
+        Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
+    }
+
     [Fact]
     public async Task ScrollIndicators_RespectInitialAndReducedMotionGates()
     {
