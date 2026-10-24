@@ -2442,14 +2442,8 @@ html body main.homepage-main .btc-status-value {
     font-variant-numeric: tabular-nums;
 }
 
-/* Counting and landing must keep the same line boxes when cancelled. */
-html body main.homepage-main .podium-score .age-reduction,
-html body main.homepage-main #athleteLeaderboard .age-reduction-td .age-reduction {
-    display: inline-block;
-}
-
 @media (prefers-reduced-motion: no-preference) {
-    /* A figure that lands gives a short pop, like a board flipping its last digit. */
+    /* Pop the existing score box without changing its display or line breaks. */
     html body main.homepage-main .podium-item.is-landed .podium-score .age-reduction {
         animation: home-figure-land var(--lwc-motion-slow) var(--lwc-ease-pop) both;
     }

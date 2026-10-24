@@ -166,12 +166,15 @@ public sealed class HomeScoreboardBrowserTests(
         await page.Locator(".podium-item.first").EvaluateAsync("e=>scrollTo(0,scrollY+e.getBoundingClientRect().top+40)");
         await page.WaitForTimeoutAsync(100);
         var links = page.Locator(".podium a.athlete-name");
+        var scores = page.Locator(".podium-score");
+        foreach (var text in await scores.AllInnerTextsAsync()) Assert.Contains("\nreduced", text.Replace("\r\n", "\n"));
         var before = await links.EvaluateAllAsync<double[]>("es=>es.map(e=>e.getBoundingClientRect().top)");
         await page.EvaluateAsync("() => window.dispatchEvent(new Event('pointerdown'))");
         var after = await links.EvaluateAllAsync<double[]>("es=>es.map(e=>e.getBoundingClientRect().top)");
         Assert.NotEmpty(before);
         Assert.Equal(before.Length, after.Length);
         for (var i = 0; i < before.Length; i++) Assert.InRange(Math.Abs(before[i] - after[i]), 0, 0.5);
+        foreach (var text in await scores.AllInnerTextsAsync()) Assert.Contains("\nreduced", text.Replace("\r\n", "\n"));
         Assert.Equal(0, await page.Locator(".home-scoreboard-live").CountAsync());
     }
 
