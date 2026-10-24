@@ -1642,7 +1642,8 @@
         }
 
         function calculateResultIfResultAlreadyCalculated() {
-            if (isResultCalculated) hideCalculatedResult();
+            // The live instrument recalculates (or dims) the result itself.
+            if (isResultCalculated && !bioageFlow.isLiveInstrumentBound()) hideCalculatedResult();
         }
 
         function correctCorrectableUnits() {
@@ -2242,6 +2243,12 @@
                 form: document.getElementById('phenoAgeForm'),
                 isUpdate,
                 restoreDraft: !isFake && !hasExplicitBiomarkerPrefill
+            });
+            bioageFlow.bindLiveInstrument({
+                clock: 'pheno',
+                calculate: calculateResult,
+                hide: hideCalculatedResult,
+                getStep: () => lwcCurrentStep
             });
 
             if (isUpdate && hasSelectedAthlete) {
