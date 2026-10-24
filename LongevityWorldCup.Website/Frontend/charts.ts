@@ -54,6 +54,9 @@ interface Window {
     if (window.LwcCharts) return;
     const root = document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Keep the observed state: reading matches during an animation frame can
+    // consume Chromium's pending change before the cleanup listener receives it.
+    let prefersReducedMotion = reduced.matches;
     const loadedAt = performance.now();
     const minus = "−";
 
@@ -68,7 +71,7 @@ interface Window {
     }
 
     function motion(): boolean {
-        return !reduced.matches;
+        return !prefersReducedMotion;
     }
 
     // A chart that is already visible during the first moments of a page load
@@ -235,8 +238,9 @@ interface Window {
         drawWatch.observe(watched);
     }
 
-    reduced.addEventListener("change", () => {
-        if (!reduced.matches) return;
+    reduced.addEventListener("change", event => {
+        prefersReducedMotion = event.matches;
+        if (!prefersReducedMotion) return;
         document.querySelectorAll<HTMLElement>("[data-lwc-draw]").forEach(element => delete element.dataset["lwcDraw"]);
         counting.forEach((_, element) => stopCount(element));
         drawWatch?.disconnect();

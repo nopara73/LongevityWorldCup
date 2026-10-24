@@ -153,6 +153,38 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
     }
 
     [Fact]
+    public async Task ReducedMotion_ClearsPendingOffscreenDrawsAcrossPreferenceChanges()
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(), ReducedMotion = ReducedMotion.NoPreference
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/site-statistics.html");
+        await page.EvaluateAsync("() => document.body.replaceChildren()");
+        for (var cycle = 0; cycle < 12; cycle++)
+        {
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await page.WaitForFunctionAsync("() => LwcCharts.motion()");
+            await page.EvaluateAsync("""
+                () => {
+                    document.body.innerHTML='<div style="position:absolute;top:10000px"><svg id="pendingChart" width="200" height="200"></svg></div>';
+                    LwcCharts.reveal(document.getElementById('pendingChart'));
+                }
+                """);
+            await Expect(page.Locator("#pendingChart")).ToHaveAttributeAsync("data-lwc-draw", "wait");
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+            // Reading the public preference must not consume the native change
+            // event before pending draws and observers have been cleaned up.
+            await page.WaitForFunctionAsync("() => !LwcCharts.motion()");
+            await Expect(page.Locator("#pendingChart")).Not.ToHaveAttributeAsync(
+                "data-lwc-draw", new System.Text.RegularExpressions.Regex(".*"));
+            Assert.Equal("1", await page.Locator("#pendingChart").EvaluateAsync<string>("e => getComputedStyle(e).opacity"));
+        }
+    }
+
+    [Fact]
     public async Task Counters_KeepExactText_AndCancelOnChangesHiddenHostsAndReducedMotion()
     {
         await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
