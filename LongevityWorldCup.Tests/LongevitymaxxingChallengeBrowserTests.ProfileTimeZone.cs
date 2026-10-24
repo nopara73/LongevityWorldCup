@@ -273,21 +273,54 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         finally { gate.TrySetResult(); }
     }
 
-    [Fact]
-    public async Task ProfileTimeZone_WrongParticipantResponseCannotReplaceTheCurrentProfile()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProfileTimeZone_WrongParticipantResponseCannotReplaceTheCurrentProfile(bool concurrentCheckIn)
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        var page = await OpenProfileWorkspaceAsync(context);
-        var wrong = ProfileWorkspaceState(timeZone: "Asia/Tokyo");
+        var state = concurrentCheckIn ? CheckInWorkspaceState() : ProfileWorkspaceState();
+        foreach (var day in state["eligibleDays"]!.AsArray()) day!["existing"] = SavedCheckIn("");
+        var page = await OpenProfileWorkspaceAsync(context, state);
+        var wrong = state.DeepClone().AsObject();
+        wrong["participant"]!["timeZoneId"] = "Asia/Tokyo";
         wrong["participant"]!["id"] = "someone-else";
         wrong["participant"]!["displayName"] = "Different participant";
-        await page.RouteAsync("**/api/longevitymaxxing/edit", route => FulfillJsonAsync(route, wrong.ToJsonString()));
-        await ChooseProfileTimeZoneAsync(page, "London", "Europe/London");
-        await page.Locator("#lmxSaveProfileButton").ClickAsync();
-        await Assertions.Expect(page.Locator("#lmxSaveProfileButton")).ToHaveTextAsync("Retry");
-        await Assertions.Expect(page.Locator("#lmxProfileIdentity")).ToContainTextAsync("Browser Tester");
-        await Assertions.Expect(page.Locator("#lmxEditTimeZone")).ToHaveValueAsync("Europe/London");
-        Assert.True(await ProfileExitGuardAsync(page));
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/longevitymaxxing/edit", async route =>
+        {
+            started.TrySetResult();
+            if (concurrentCheckIn) await release.Task;
+            await FulfillJsonAsync(route, wrong.ToJsonString());
+        });
+        await page.RouteAsync("**/api/longevitymaxxing/check-in", async route =>
+        {
+            state["eligibleDays"]![0]!["existing"] = SavedCheckIn("", 2);
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        try
+        {
+            await ChooseProfileTimeZoneAsync(page, "London", "Europe/London");
+            await page.Locator("#lmxSaveProfileButton").ClickAsync();
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            if (concurrentCheckIn)
+            {
+                await page.Locator("#lmxCheckinTab").ClickAsync();
+                await page.Locator(".lmx-checkin-switcher button[data-day='17']").ClickAsync();
+                var form = page.Locator(".lmx-checkin-card");
+                await AnswerAllHabitsAsync(form);
+                await form.Locator("button[type='submit']").ClickAsync();
+                await Assertions.Expect(page.Locator(".lmx-checkin-switcher button[data-day='17'] em")).ToHaveTextAsync("Saved");
+                await page.Locator("#lmxProfileTab").ClickAsync();
+            }
+            release.TrySetResult();
+            await Assertions.Expect(page.Locator("#lmxSaveProfileButton")).ToHaveTextAsync("Retry");
+            await Assertions.Expect(page.Locator("#lmxProfileIdentity")).ToContainTextAsync("Browser Tester");
+            await Assertions.Expect(page.Locator("#lmxEditTimeZone")).ToHaveValueAsync("Europe/London");
+            Assert.True(await ProfileExitGuardAsync(page));
+        }
+        finally { release.TrySetResult(); }
     }
 
     [Fact]

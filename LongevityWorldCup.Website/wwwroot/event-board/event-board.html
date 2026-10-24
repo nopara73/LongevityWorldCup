@@ -38,16 +38,26 @@
         const headingEl = document.querySelector('.event-board-heading');
         const requestedEventId = new URLSearchParams(window.location.search).get('event')?.trim();
         if (headingEl && headingEl.scrollIntoView && !requestedEventId) {
-            const interactions = ['pointerdown', 'touchstart', 'wheel', 'keydown'];
-            let scrollTimer;
-            const cancelOpeningScroll = () => {
+            const interactions = ['pointermove', 'pointerdown', 'touchstart', 'wheel', 'keydown', 'focusin'];
+            let scrollTimer, cleanupTimer, scrolling = false;
+            const finishOpeningScroll = () => {
                 window.clearTimeout(scrollTimer);
+                window.clearTimeout(cleanupTimer);
                 interactions.forEach(type => window.removeEventListener(type, cancelOpeningScroll));
+            };
+            const cancelOpeningScroll = () => {
+                finishOpeningScroll();
+                if (scrolling) window.scrollTo({ left: window.scrollX, top: window.scrollY, behavior: 'instant' });
             };
             interactions.forEach(type => window.addEventListener(type, cancelOpeningScroll, { once: true, passive: true }));
             scrollTimer = window.setTimeout(() => {
-                cancelOpeningScroll();
                 const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+                if (behavior === 'smooth') {
+                    scrolling = true;
+                    // Keep the cancellation window through the animation. A queued
+                    // scrollend from earlier positioning may arrive after it starts.
+                    cleanupTimer = window.setTimeout(finishOpeningScroll, 1500);
+                } else finishOpeningScroll();
                 headingEl.scrollIntoView({ behavior, block: 'start' });
             }, 500);
         }

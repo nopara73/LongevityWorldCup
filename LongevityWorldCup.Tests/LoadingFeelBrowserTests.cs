@@ -111,7 +111,8 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         finally { release.TrySetResult(); }
 
         await Assertions.Expect(page.Locator("#events-root")).ToHaveAttributeAsync("aria-busy", "false", new() { Timeout = 20_000 });
-        await Assertions.Expect(page.Locator("#events-root .events-skeleton-row")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#events-root tbody:not(.events-more) > .events-skeleton-row")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("#events-root tr.main-row").First).ToBeVisibleAsync();
         Assert.True(await page.EvaluateAsync<bool>("""
             () => document.querySelector('#eventsTable tbody').getAnimations()
                 .some(animation => animation.animationName === 'lwc-content-arrive')
