@@ -29,6 +29,7 @@ public sealed class HomepageArrivalBrowserTests(
                     const timing = animation.effect.getTiming();
                     window.arrivalStarts.push({
                         podium: this.classList.contains('podium-item'),
+                        highlights: this.id === 'events-root-index',
                         startTime: animation.startTime,
                         end: timing.duration + timing.delay,
                         opacity: Number(getComputedStyle(this).opacity)
@@ -61,7 +62,8 @@ public sealed class HomepageArrivalBrowserTests(
             await Assertions.Expect(page.Locator("header .join-game:not(.scrolled-button)")).ToBeVisibleAsync();
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
             Assert.Equal(3, await page.EvaluateAsync<int>("arrivalStarts.filter(a => a.podium).length"));
-            Assert.Equal(8, await page.EvaluateAsync<int>("arrivalStarts.length"));
+            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalStarts.length"));
+            Assert.False(await page.EvaluateAsync<bool>("arrivalStarts.some(a => a.highlights)"));
             Assert.True(await page.EvaluateAsync<bool>("arrivalStarts.every(a => a.opacity >= 0.2 && a.end <= 1000)"));
             var startTimes = await page.EvaluateAsync<double[]>("arrivalStarts.map(a => a.startTime)");
             // Browser timestamp conversion can round fractional milliseconds.
