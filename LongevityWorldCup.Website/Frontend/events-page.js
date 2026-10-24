@@ -919,7 +919,7 @@ const eventsPageAssets = document.currentScript.dataset;
         try { if (ms > readSeenAt(mode)) window.localStorage.setItem(FEED_SEEN_KEY + mode, String(ms)); } catch(_) {}
     }
 
-    function captureFeedRows(table, nextIds){
+    function captureFeedRows(table, nextIds, animate = true){
         const rows = [...table.querySelectorAll('tr.main-row[data-event-id]')];
         if (!rows.length) return null;
         const vh = window.innerHeight || document.documentElement.clientHeight;
@@ -931,7 +931,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const onscreen = rect.bottom > 0 && rect.top < vh && rect.height > 0;
             positions.set(row.dataset.eventId, { top: rect.top, onscreen });
             if (onscreen && !anchor && rect.top >= 0) anchor = { id: row.dataset.eventId, top: rect.top };
-            if (onscreen && nextIds && !nextIds.has(row.dataset.eventId)) ghosts.push(makeExitGhost(table, row, rect));
+            if (animate && onscreen && nextIds && !nextIds.has(row.dataset.eventId)) ghosts.push(makeExitGhost(table, row, rect));
         });
         return { positions, ghosts, anchor, rendered: rows.length };
     }
@@ -967,8 +967,8 @@ const eventsPageAssets = document.currentScript.dataset;
         return ghost;
     }
 
-    function settleFeedRerender(table, previous, newIds){
-        const reduced = prefersReducedMotion() || document.hidden;
+    function settleFeedRerender(table, previous, newIds, animate = true){
+        const reduced = !animate || prefersReducedMotion() || document.hidden;
         // Keep the reader's place: the row they were looking at stays put even
         // when something new lands above it.
         if (previous.anchor && window.scrollY > 120) {
@@ -1585,7 +1585,7 @@ const eventsPageAssets = document.currentScript.dataset;
             index: [...focusedRow.querySelectorAll('a, button')].indexOf(active)
         } : null;
         const nextIds = new Set((Array.isArray(rows) ? rows : []).map(r => r && r.id ? String(r.id) : '').filter(Boolean));
-        const previousFeed = captureFeedRows(table, nextIds);
+        const previousFeed = captureFeedRows(table, nextIds, !options?.layoutOnly);
         resetFeedMore(table);
         // Reconcile by event identity. Retained rows carry their controls and
         // open details into the new order, including across month boundaries.
@@ -1595,14 +1595,14 @@ const eventsPageAssets = document.currentScript.dataset;
         tbody.querySelectorAll('tr.events-month-row').forEach(row=>row.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
-        tbody.replaceChildren();
+        if (chapters) tbody.replaceChildren();
 
         if (!Array.isArray(rows) || rows.length === 0){
             tbody.innerHTML = `<tr class="events-empty-row"><td colspan="3">No events yet</td></tr>`;
             return;
         }
 
-        const frag = document.createDocumentFragment();
+        const nextNodes = [];
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const rowsToRender = rows;
 
@@ -1632,12 +1632,17 @@ const eventsPageAssets = document.currentScript.dataset;
                 : "";
 
             const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
-            const signature = JSON.stringify([r, dateLabel, (r.slugs || []).map(slug => athletesIndex.get(slug)), linkNames, openLinksInNewTab, allowBadgeClicks]);
+            // Selection bookkeeping can change during fitting without changing
+            // the event's content or its already decoded portrait.
+            const { homepageHighlightSelection, ...content } = r;
+            const signature = JSON.stringify([content, dateLabel, (r.slugs || []).map(slug => athletesIndex.get(slug)), linkNames, openLinksInNewTab, allowBadgeClicks]);
             const retained = existingRows.get(String(r.id));
             if (retained?._feedSignature === signature) {
                 retained.dataset.rowIndex = String(idx);
-                frag.appendChild(retained);
-                if (retained._feedDetails) frag.appendChild(retained._feedDetails);
+                if (homepageHighlightSelection) retained.dataset.highlightSelection = homepageHighlightSelection;
+                else delete retained.dataset.highlightSelection;
+                nextNodes.push(retained);
+                if (retained._feedDetails) nextNodes.push(retained._feedDetails);
                 return;
             }
             const detailsId = `custom-event-details-${encodeURIComponent(String(r.id || idx))}`;
@@ -2042,7 +2047,7 @@ const eventsPageAssets = document.currentScript.dataset;
                     imgEl.replaceWith(fallback);
                 }, { once: true });
             }
-            frag.appendChild(tr);
+            nextNodes.push(tr);
 
             if (isCustomEvent) {
                 tr.classList.add("custom-event-row");
@@ -2100,12 +2105,14 @@ const eventsPageAssets = document.currentScript.dataset;
                 };
                 tr.addEventListener('click', tr._feedToggle);
 
-                frag.appendChild(detailsTr);
+                nextNodes.push(detailsTr);
             }
         });
 
         if (chapters) {
             // Long timelines render a first chunk; the rest follows on scroll.
+            const frag = document.createDocumentFragment();
+            frag.append(...nextNodes);
             const units = splitIntoUnits(frag);
             const requestedId = getRequestedEventId();
             const requestedIndex = requestedId ? units.findIndex(unit => unit[0].dataset?.eventId === requestedId) : -1;
@@ -2114,7 +2121,18 @@ const eventsPageAssets = document.currentScript.dataset;
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
         } else {
-            tbody.appendChild(frag);
+            // Keep unchanged rows and their images attached. Reattaching the
+            // whole table restarts image decoding and produces visible flashes.
+            let cursor = tbody.firstChild;
+            for (const node of nextNodes) {
+                if (node === cursor) cursor = cursor.nextSibling;
+                else tbody.insertBefore(node, cursor);
+            }
+            while (cursor) {
+                const next = cursor.nextSibling;
+                cursor.remove();
+                cursor = next;
+            }
         }
 
         applyZebraStriping(tbody);
@@ -2123,7 +2141,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
         const seenMode = options?.seenMode;
         if (previousFeed) {
-            settleFeedRerender(table, previousFeed, nextIds);
+            settleFeedRerender(table, previousFeed, nextIds, !options?.layoutOnly);
         } else if (seenMode) {
             // Moments that happened since the last visit drop in at the top.
             const seenAt = readSeenAt(seenMode);
@@ -2634,7 +2652,8 @@ const eventsPageAssets = document.currentScript.dataset;
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
             renderRows(rows,athletesIndex,!!linkNames,{
-                seenMode: (!live && mode !== "athlete") ? mode : null
+                seenMode: (!live && mode !== "athlete") ? mode : null,
+                layoutOnly: !!options?.layoutOnly && !live
             });
             if (mode !== "athlete") {
                 feedLoads.set(loadKey, [maxRows, showViewAll, athleteId, linkNames, options && { ...options, live: false }]);

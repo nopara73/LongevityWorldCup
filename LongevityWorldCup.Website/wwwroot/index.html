@@ -60,7 +60,6 @@
                         ['.podium-item.second:not(.podium-skeleton-item)', beat * 1.5, duration * 3, .22, 'translateY(14px)'],
                         ['.podium-item.third:not(.podium-skeleton-item)', beat * 2, duration * 3, .22, 'translateY(14px)'],
                         ['.leaderboard', beat * 2.5, duration * 2, .55, 'none'],
-                        ['#events-root-index', beat * 2, duration * 2, .55, 'none'],
                         ['#lwc-countdown-box', beat * 2.5, duration * 2, .55, 'none']
                     ].map(([selector, delay, length, opacity, transform]) => ({ selector, delay, length, opacity, transform, easing }));
                     cleanupTimer = setTimeout(finish, Math.max(...choreography.map(track => track.delay + track.length)) + 50);
