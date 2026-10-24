@@ -51,7 +51,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var save = form.Locator("button[type='submit']");
         await save.ClickAsync();
         await Assertions.Expect(page.Locator("html")).ToHaveAttributeAsync("data-stalled-checkin-body", "true");
-        await Assertions.Expect(save).ToHaveTextAsync("Saving…");
+        await Assertions.Expect(save).ToHaveTextAsync("Saved");
+        await Assertions.Expect(save).ToHaveAccessibleNameAsync("Saving…");
+        await Assertions.Expect(save).ToHaveAttributeAsync("aria-busy", "true");
+        await Assertions.Expect(form.Locator("[data-checkin-progress]")).ToBeEmptyAsync();
         await page.Clock.FastForwardAsync(65001);
         await Assertions.Expect(save).ToHaveTextAsync("Retry");
         await Assertions.Expect(save).ToBeEnabledAsync();
