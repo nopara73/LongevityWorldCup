@@ -906,7 +906,9 @@ function ensureBadgeTip(): HTMLElement {
 }
 
 function fillBadgeTip(tip: HTMLElement, text: string): void {
-    tip.replaceChildren();
+    const content = document.createElement('div');
+    content.className = 'badge-tip-content';
+    tip.replaceChildren(content);
     const lines = text.split('\n').filter(Boolean);
     lines.forEach(line => {
         const row = document.createElement('span');
@@ -922,7 +924,7 @@ function fillBadgeTip(tip: HTMLElement, text: string): void {
             detail.textContent = line.slice(colon + 1).trim();
             row.appendChild(detail);
         }
-        tip.appendChild(row);
+        content.appendChild(row);
     });
 }
 

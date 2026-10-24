@@ -4771,10 +4771,15 @@ a.lmx-note-mention:focus-visible {
     }
 }
 
-.lmx-answer-input {
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input {
     position: absolute;
-    width: 1px;
-    height: 1px;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    min-height: 0;
+    padding: 0;
+    border: 0;
     margin: 0;
     opacity: 0;
     pointer-events: none;
@@ -7154,4 +7159,194 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 /* Resting rows keep the rank column, so names stay on one edge. */
 .lmx-rank-slot {
     min-width: 2.25rem;
+}
+
+/* ==========================================================================
+   Ritual motion
+   The daily check-in answers every tap at once: a face gives way under the
+   finger and fills with its answer colour, the Save rail fills segment by
+   segment, and the fourth answer gets one short ready moment. Saving is
+   optimistic (the check draws in at once), a failed save nudges Retry, and
+   undo rewinds the answers it changes. Timings follow the shared motion
+   tokens (90ms press to 280ms surface), falling back to the same values.
+   Everything here is off under prefers-reduced-motion.
+   ========================================================================== */
+
+@property --lmx-rail-sleep { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-rail-exercise { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-rail-nutrition { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-rail-vices { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-fill-sleep { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lmx-fill-exercise { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lmx-fill-nutrition { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lmx-fill-vices { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="sleep"] .lmx-answer-input:checked) { --lmx-fill-sleep: 1; }
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="exercise"] .lmx-answer-input:checked) { --lmx-fill-exercise: 1; }
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="nutrition"] .lmx-answer-input:checked) { --lmx-fill-nutrition: 1; }
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="vices"] .lmx-answer-input:checked) { --lmx-fill-vices: 1; }
+
+/* Each segment fills from its left edge in its habit colour. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions::before {
+    transform-origin: 50% 50%;
+    background:
+        linear-gradient(90deg,
+            var(--lmx-rail-sleep) 0 calc((25% - 2px) * var(--lmx-fill-sleep)), var(--lmx-surface-muted) 0 calc(25% - 2px), transparent 0 25%,
+            var(--lmx-rail-exercise) 0 calc(25% + (25% - 2px) * var(--lmx-fill-exercise)), var(--lmx-surface-muted) 0 calc(50% - 2px), transparent 0 50%,
+            var(--lmx-rail-nutrition) 0 calc(50% + (25% - 2px) * var(--lmx-fill-nutrition)), var(--lmx-surface-muted) 0 calc(75% - 2px), transparent 0 75%,
+            var(--lmx-rail-vices) 0 calc(75% + 25% * var(--lmx-fill-vices)), var(--lmx-surface-muted) 0 100%);
+}
+
+/* The chosen face fills with a soft wash of its answer colour. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face {
+    position: relative;
+    isolation: isolate;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    z-index: -1;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--lmx-answer-accent) 14%, transparent);
+    opacity: 0;
+    transform: scale(0.35);
+    pointer-events: none;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face::before {
+    opacity: 1;
+    transform: none;
+}
+
+/* Saving is optimistic: the locked card keeps its full colour instead of dimming. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-optimistic] .lmx-answer-option {
+    cursor: default;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-optimistic] .lmx-checkin-save-row > .lmx-button[type="submit"]:disabled {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions {
+        transition:
+            --lmx-fill-sleep var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-fill-exercise var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-fill-nutrition var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-fill-vices var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-sleep var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-exercise var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-nutrition var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-vices var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face {
+        transition:
+            border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            box-shadow var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    }
+
+    /* Press: the face gives way under the finger and springs back on release. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option:has(.lmx-answer-input:not(:disabled)):active > .lmx-answer-face {
+        scale: 0.9;
+        transition-duration: var(--lwc-motion-press, 90ms);
+        transition-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face::before {
+        transition:
+            opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1)),
+            transform var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1));
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face::before {
+        transition:
+            opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)),
+            transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    }
+
+    /* Undo walks answers back on the slower, decelerating curve. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question[data-lmx-rewind] .lmx-answer-face::before {
+        transition-duration: var(--lwc-motion-slow, 280ms);
+    }
+
+    /* Ready: the fourth answer lifts the rail once and springs Save. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="complete"] .lmx-checkin-actions::before {
+        animation: lmx-rail-ready 620ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) both;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="complete"] .lmx-checkin-save-row > .lmx-button[type="submit"] {
+        animation: lmx-save-ready 380ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) calc(var(--lmx-moment-offset, 0ms) + 120ms) backwards;
+    }
+
+    /* Saved: the check draws in, the rail glows and the card breathes once. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="saved"] .lmx-checkin-save-row > .lmx-button[type="submit"] > .fa-check {
+        animation: lmx-check-in 380ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) backwards;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="saved"] .lmx-checkin-actions::before {
+        animation: lmx-rail-ready 820ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) both;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="saved"] {
+        animation: lmx-card-saved 900ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) backwards;
+    }
+
+    /* Rollback: Retry nudges once and the reason slides in under it. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="rollback"] .lmx-checkin-save-row > .lmx-button[type="submit"] {
+        animation: lmx-retry-nudge 360ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) backwards;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="rollback"] [data-checkin-status] {
+        animation: lmx-status-in var(--lwc-motion-base, 200ms) var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
+    }
+}
+
+@keyframes lmx-rail-ready {
+    35% {
+        transform: scaleY(1.75);
+        filter: saturate(1.35) brightness(1.1);
+    }
+}
+
+@keyframes lmx-save-ready {
+    45% {
+        transform: scale(1.06);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--lmx-accent) 24%, transparent);
+    }
+}
+
+@keyframes lmx-check-in {
+    from {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.25);
+        opacity: 1;
+    }
+}
+
+@keyframes lmx-card-saved {
+    30% {
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--lmx-accent) 18%, transparent);
+    }
+}
+
+@keyframes lmx-retry-nudge {
+    20% { transform: translateX(-4px); }
+    45% { transform: translateX(4px); }
+    70% { transform: translateX(-2px); }
+}
+
+@keyframes lmx-status-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
 }
