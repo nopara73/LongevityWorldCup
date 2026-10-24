@@ -1104,3 +1104,299 @@
     position: relative;
     margin-block: 0;
 }
+
+/* ---- Living feed -------------------------------------------------------
+   Rows remain readable as soon as they mount. Existing rows keep their place
+   during refreshes, names preview their athlete and the portrait carries over
+   into the profile. */
+:root {
+    --feed-ease: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    --feed-ease-exit: var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1));
+    --feed-ease-pop: var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    --feed-fast: var(--lwc-motion-fast, 140ms);
+    --feed-move: var(--lwc-motion-move, 260ms);
+}
+
+.events-board .row-appear,
+.events-board .row-appear.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+}
+
+/* Rows that leave fade out over their old place while the rest close up. */
+.events-exit-ghost {
+    position: absolute;
+    z-index: 4;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    pointer-events: none;
+}
+
+.events-exit-ghost .events-board {
+    display: block;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.events-exit-ghost table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.events-exit-ghost tr {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* "joined 3 days ago" rolls to its next value as the days pass. */
+.event-rel:has(> .event-rel-in) {
+    display: inline-grid;
+    overflow: hidden;
+    vertical-align: bottom;
+}
+
+.event-rel > .event-rel-in,
+.event-rel > .event-rel-out {
+    grid-area: 1 / 1;
+    white-space: nowrap;
+}
+
+.event-rel > .event-rel-out {
+    animation: lwc-feed-roll-out 420ms var(--feed-ease) both;
+}
+
+.event-rel > .event-rel-in {
+    animation: lwc-feed-roll-in 420ms var(--feed-ease) both;
+}
+
+@keyframes lwc-feed-roll-out {
+    to { opacity: 0; transform: translateY(-90%); }
+}
+
+@keyframes lwc-feed-roll-in {
+    from { opacity: 0; transform: translateY(90%); }
+}
+
+/* Name preview: a small profile card in the header band's language. */
+.event-athlete-preview {
+    position: fixed;
+    z-index: 1200;
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+    width: min(264px, calc(100vw - 16px));
+    box-sizing: border-box;
+    padding: 0 16px 14px;
+    overflow: auto;
+    border: 1px solid var(--lwc-border, var(--events-border));
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--card-bg, var(--lwc-surface, #fff));
+    color: var(--events-text);
+    box-shadow: 0 18px 40px -12px rgba(15, 23, 42, .32), 0 2px 6px rgba(15, 23, 42, .08);
+    cursor: pointer;
+    transform-origin: var(--preview-origin-x, 50%) top;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.event-athlete-preview[data-side="above"] {
+    transform-origin: var(--preview-origin-x, 50%) bottom;
+}
+
+.event-athlete-preview[hidden] {
+    display: none;
+}
+
+.event-athlete-preview.is-entering {
+    animation: lwc-preview-in 200ms var(--feed-ease) both;
+}
+
+.event-athlete-preview.is-leaving {
+    animation: lwc-preview-out 120ms var(--feed-ease-exit) both;
+    pointer-events: none;
+}
+
+.event-athlete-preview[data-side="above"].is-entering {
+    animation-name: lwc-preview-in-above;
+}
+
+@keyframes lwc-preview-in {
+    from { opacity: 0; transform: translateY(-6px) scale(.94); }
+}
+
+@keyframes lwc-preview-in-above {
+    from { opacity: 0; transform: translateY(6px) scale(.94); }
+}
+
+@keyframes lwc-preview-out {
+    to { opacity: 0; transform: scale(.97); }
+}
+
+.event-athlete-preview-band {
+    justify-self: stretch;
+    height: 44px;
+    margin: 0 -16px;
+    border-bottom: 1px solid var(--events-border);
+    background: var(--events-header-bg);
+}
+
+.event-athlete-preview-portrait {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-top: -34px;
+    margin-bottom: 4px;
+    border: 3px solid var(--card-bg, var(--lwc-surface, #fff));
+    border-radius: 50%;
+    background: var(--events-header-bg);
+    box-shadow: 0 4px 12px -4px rgba(15, 23, 42, .35);
+    overflow: hidden;
+}
+
+.event-athlete-preview-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.event-athlete-preview-portrait .avatar-fallback {
+    width: 100%;
+    height: 100%;
+    font-size: 1.1rem;
+}
+
+.event-athlete-preview.is-entering .event-athlete-preview-portrait {
+    animation: lwc-preview-portrait 320ms var(--feed-ease-pop) 40ms both;
+}
+
+@keyframes lwc-preview-portrait {
+    from { transform: scale(.7); }
+}
+
+.event-athlete-preview-name {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--events-header-action);
+}
+
+.event-athlete-preview-rank {
+    margin-left: 2px;
+    color: var(--events-muted);
+    font-size: .875em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.event-athlete-preview-rank .rank-icon {
+    margin-right: 3px;
+    font-size: .9em;
+}
+
+.event-athlete-preview-meta {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    color: var(--events-muted);
+    font-size: var(--lwc-type-sm, .875rem);
+    line-height: 1.35;
+}
+
+.event-athlete-preview-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--badge-gap);
+    margin-top: 8px;
+}
+
+.event-athlete-preview.is-entering .event-athlete-preview-badges > * {
+    animation: lwc-preview-badge 260ms var(--feed-ease-pop) both;
+}
+
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(2) { animation-delay: 30ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(3) { animation-delay: 60ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(4) { animation-delay: 90ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(5) { animation-delay: 120ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(6) { animation-delay: 150ms; }
+
+@keyframes lwc-preview-badge {
+    from { opacity: 0; transform: translateY(4px) scale(.8); }
+}
+
+.event-athlete-preview:hover .event-athlete-preview-name {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* The name being previewed stays marked while its card is open. */
+.events-board a[aria-controls="eventAthletePreview"] {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+/* Opening a profile: the row answers the press and the portrait flies over. */
+.events-board tr.main-row.is-launching {
+    animation: lwc-feed-launch 650ms var(--feed-ease);
+}
+
+@keyframes lwc-feed-launch {
+    0% { background-color: var(--events-hover-bg); }
+    30% { background-color: var(--details-bg); }
+}
+
+.events-board img.avatar.is-lifted {
+    opacity: 0;
+}
+
+.event-portrait-flight {
+    position: fixed;
+    z-index: 2147483000;
+    margin: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    pointer-events: none;
+    box-shadow: 0 16px 36px -10px rgba(15, 23, 42, .45);
+    transform-origin: center;
+    will-change: transform, opacity;
+}
+
+/* Long-pressing a name previews it instead of opening the system menu. */
+@media (hover: none) {
+    .events-board a[href*="/athlete/"] {
+        -webkit-touch-callout: none;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .event-athlete-preview {
+        box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .events-board .row-appear,
+    .events-board .row-appear.is-visible {
+        opacity: 1;
+        transform: none;
+        transition: none !important;
+    }
+
+    .events-board tr.main-row.is-arriving,
+    .events-board tr.main-row.is-arriving .event-avatar-frame::after,
+    .events-board tr.main-row.is-launching,
+    .event-rel > *,
+    .event-athlete-preview,
+    .event-athlete-preview * {
+        animation: none !important;
+    }
+}

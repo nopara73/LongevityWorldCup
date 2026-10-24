@@ -1046,7 +1046,10 @@ public sealed class AestheticSystemBrowserTests(
         var repositoryRoot = FindRepositoryRoot();
         var webRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website", "wwwroot");
         var containerPattern = new Regex(
-            """@container(?:\s+(?<name>[\w-]+))?\s*\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|em|px)\s*\)""",
+            """@container(?:\s+(?<name>[\w-]+))?\s*(?<query>\([^{};]+)\{""",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var widthPattern = new Regex(
+            """\(\s*(?<bound>min|max)-width\s*:\s*(?<value>\d+(?:\.\d+)?)(?<unit>rem|em|px)\s*\)""",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         var conditions = new List<ResponsiveContainerCondition>();
 
@@ -1074,12 +1077,16 @@ public sealed class AestheticSystemBrowserTests(
             var text = Regex.Replace(File.ReadAllText(path), "/\\*.*?\\*/", "", RegexOptions.Singleline);
             foreach (Match match in containerPattern.Matches(text))
             {
-                conditions.Add(new ResponsiveContainerCondition(
-                    match.Groups["bound"].Value.ToLowerInvariant(),
-                    double.Parse(match.Groups["value"].Value, System.Globalization.CultureInfo.InvariantCulture),
-                    match.Groups["unit"].Value.ToLowerInvariant(),
-                    relativePath,
-                    match.Groups["name"].Success ? match.Groups["name"].Value : null));
+                // A bounded range has two edges; inventory every width clause.
+                foreach (Match width in widthPattern.Matches(match.Groups["query"].Value))
+                {
+                    conditions.Add(new ResponsiveContainerCondition(
+                        width.Groups["bound"].Value.ToLowerInvariant(),
+                        double.Parse(width.Groups["value"].Value, System.Globalization.CultureInfo.InvariantCulture),
+                        width.Groups["unit"].Value.ToLowerInvariant(),
+                        relativePath,
+                        match.Groups["name"].Success ? match.Groups["name"].Value : null));
+                }
             }
         }
 
@@ -1252,6 +1259,9 @@ public sealed class AestheticSystemBrowserTests(
                     // These pages share the generator's table CSS. History has
                     // the standings table that actually exercises that component.
                     await AssertDocumentationTableContainerBoundariesAsync(page, source.ToArray());
+                    break;
+                case "css/documentation-reading.css":
+                    await AssertDocumentationReadingContainerBoundariesAsync(page, source.ToArray());
                     break;
                 default:
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
@@ -1546,6 +1556,41 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.Equal(width, diagnostics[0], 1);
                 Assert.Equal(width <= threshold ? 1 : 0, diagnostics[1]);
                 Assert.True(diagnostics[2] <= 1, $"Documentation standings overflowed at {width}px.");
+            }
+        }
+    }
+
+    private static async Task AssertDocumentationReadingContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        Assert.Contains(conditions, condition => condition.Bound == "min" && condition.Value == 18);
+        Assert.Contains(conditions, condition => condition.Bound == "max" && condition.Value == 24);
+        await NavigateAndSettleAsync(page, "/history");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '20px'");
+        var rootFont = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var condition in conditions)
+        {
+            Assert.Equal("documentation-table", condition.Name);
+            Assert.Equal("rem", condition.Unit);
+            Assert.True(condition.Bound == "min" && condition.Value == 18
+                || condition.Bound == "max" && condition.Value == 24);
+            foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+            {
+                var width = condition.Value * rootFont + delta;
+                var diagnostics = await page.EvaluateAsync<double[]>("""
+                    async width => {
+                        const frame = document.querySelector('.documentation-table');
+                        Object.assign(frame.style, { boxSizing: 'content-box', inlineSize: width + 'px', maxInlineSize: 'none' });
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        const row = frame.querySelector('tbody tr');
+                        const value = row.querySelector('td:nth-child(3)');
+                        return [parseFloat(getComputedStyle(frame).width),
+                            getComputedStyle(row).display === 'grid' && getComputedStyle(value).gridColumnStart === '3' ? 1 : 0,
+                            Math.max(0, frame.scrollWidth - frame.clientWidth)];
+                    }
+                    """, width);
+                Assert.Equal(width, diagnostics[0], 1);
+                Assert.Equal(width >= 18 * rootFont && width <= 24 * rootFont ? 1 : 0, diagnostics[1]);
+                Assert.True(diagnostics[2] <= 1, $"Documentation reading rows overflowed at {width}px.");
             }
         }
     }
@@ -1881,10 +1926,11 @@ public sealed class AestheticSystemBrowserTests(
             Assert.Equal("lwc-bar", condition.Name);
             Assert.Equal("max", condition.Bound);
             Assert.Equal("rem", condition.Unit);
-            Assert.Equal(17.5, condition.Value);
+            Assert.Contains(condition.Value, new[] { 17.5, 68.75 });
+            var stackedRanking = condition.Value == 68.75;
             foreach (var fontSize in new[] { 16, 32 })
             {
-                await page.SetViewportSizeAsync(768, 1024);
+                await page.SetViewportSizeAsync(stackedRanking ? 2560 : 768, 1024);
                 await NavigateAndSettleAsync(page, "/leaderboard?sort=pheno&then=age");
                 await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
                 await page.EvaluateAsync("size => document.documentElement.style.fontSize = `${size}px`", fontSize);
@@ -1893,19 +1939,20 @@ public sealed class AestheticSystemBrowserTests(
                 {
                     var width = threshold + delta;
                     var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
-                        async width => {
+                        async argument => {
                             const bar = document.querySelector('.leaderboard-controls');
-                            Object.assign(bar.style, { boxSizing:'content-box', inlineSize:`${width}px`, maxInlineSize:'none' });
+                            Object.assign(bar.style, { boxSizing:'content-box', inlineSize:`${argument.Width}px`, maxInlineSize:'none' });
                             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                             const search = bar.querySelector('#athleteSearch').getBoundingClientRect();
                             const tools = bar.querySelector('label[for="group-flags"]').getBoundingClientRect();
+                            const ranking = bar.querySelector('.leaderboard-view-switcher').getBoundingClientRect();
                             return {
                                 ContainerWidth: parseFloat(getComputedStyle(bar).width),
-                                IsCompact: tools.top >= search.bottom,
+                                IsCompact: argument.StackedRanking ? search.top >= ranking.bottom : tools.top >= search.bottom,
                                 HorizontalOverflow: Math.max(0, bar.scrollWidth - bar.clientWidth)
                             };
                         }
-                        """, width);
+                        """, new { Width = width, StackedRanking = stackedRanking });
                     Assert.Equal(width, diagnostics.ContainerWidth, 1);
                     Assert.True(diagnostics.IsCompact == (width <= threshold),
                         $"Control bar did not cross {condition.Value}rem at {width}px with {fontSize}px text.");

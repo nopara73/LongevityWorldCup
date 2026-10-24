@@ -208,8 +208,17 @@ public sealed class DocumentationReadingSystemBrowserTests(
                         range.selectNodeContents(row.cells[2]);
                         if (Math.abs(range.getBoundingClientRect().right - (years.right - parseFloat(getComputedStyle(row.cells[2]).paddingRight))) > 1.5)
                             issues.push('age reduction is not right-aligned');
-                    } else if (athlete.left < rank.right || years.left < rank.right || years.top < athlete.bottom - 1) {
-                        issues.push('compact rows do not stack the athlete over the age reduction beside the rank');
+                    } else {
+                        const oneLine = frame.clientWidth >= 18 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+                        if (athlete.left < rank.right || years.left < rank.right) issues.push('rank overlaps the athlete or age reduction');
+                        if (oneLine) {
+                            if (years.left < athlete.right - 1 || Math.abs(years.top + years.height / 2 - athlete.top - athlete.height / 2) > 1)
+                                issues.push('compact columns overlap or do not share a center line');
+                        } else if (years.top < athlete.bottom - 1) issues.push('narrow rows do not stack the athlete over the age reduction');
+                        const range = document.createRange();
+                        range.selectNodeContents(row.cells[1]);
+                        if ([...range.getClientRects()].some(r => r.left < athlete.left - 1 || r.right > athlete.right + 1))
+                            issues.push('athlete name escapes its column');
                     }
                 }
                 if (tabular !== (frame.clientWidth > 24 * parseFloat(getComputedStyle(document.documentElement).fontSize)))
