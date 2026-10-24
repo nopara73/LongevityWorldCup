@@ -720,6 +720,35 @@ function computeOrder(b: ServerBadge): number {
     return 4.90;
 }
 
+/* -------------------------------------------------
+   RARITY: podium places are the badges worth collecting
+   ------------------------------------------------- */
+type BadgeRarity = 'legendary' | 'rare' | '';
+
+function getBadgeRarity(b: ServerBadge): BadgeRarity {
+    const label = getLabel(b);
+    const place = getPlace(b);
+    if (!place || place > 3) return '';
+    const ranked =
+        label === 'Age reduction' ||
+        isCrowdMedalLabel(label) ||
+        isSeasonBadgeLabel(label) ||
+        label === 'First applicants' ||
+        label === 'Chronological age – oldest' ||
+        label === 'Chronological age – youngest' ||
+        label === 'Pheno Age – lowest' ||
+        label === 'Bortz Age – lowest' ||
+        label === 'Pheno pace of aging' ||
+        label === 'Bortz pace of aging';
+    if (!ranked) return '';
+    return place === 1 ? 'legendary' : 'rare';
+}
+
+function rarityAttr(b: ServerBadge): string {
+    const rarity = getBadgeRarity(b);
+    return rarity ? ` data-badge-rarity="${rarity}"` : '';
+}
+
 // Build one server badge bubble HTML
 function buildServerBadgeHtml(b: ServerBadge, athlete: BadgeAthlete): RenderedBadgeItem {
     const icon = pickIconForServerBadge(b);
@@ -731,12 +760,13 @@ function buildServerBadgeHtml(b: ServerBadge, athlete: BadgeAthlete): RenderedBa
     const label = getLabel(b);
     const typeClass = label === 'Podcast' ? 'badge-podcast' : '';
     const className = `badge-class ${familyClass}${typeClass ? ` ${typeClass}` : ''}`;
+    const rarity = rarityAttr(b);
 
     if (url && label === 'Podcast') {
         return {
             order,
             searchText: tooltip,
-            html: `<a class="${className} badge-clickable" href="${escapeAttr(url)}" target="_blank" rel="noopener" aria-label="${escapeAttr(tooltip)}. Open podcast" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}" aria-hidden="true"></i></a>`
+            html: `<a class="${className} badge-clickable" href="${escapeAttr(url)}" target="_blank" rel="noopener" aria-label="${escapeAttr(tooltip)}. Open podcast" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"${rarity}><i class="fa ${icon}" aria-hidden="true"></i></a>`
         };
     }
 
@@ -744,10 +774,13 @@ function buildServerBadgeHtml(b: ServerBadge, athlete: BadgeAthlete): RenderedBa
         order,
         searchText: tooltip,
         html: url
-            ? `<a class="${className} badge-clickable" href="${escapeAttr(url)}" aria-label="${escapeAttr(tooltip)}. Open league" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}" aria-hidden="true"></i></a>`
-            : `<span class="${className} badge-explained" tabindex="0" aria-label="${escapeAttr(tooltip)}" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}" aria-hidden="true"></i></span>`
+            ? `<a class="${className} badge-clickable" href="${escapeAttr(url)}" aria-label="${escapeAttr(tooltip)}. Open league" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"${rarity}><i class="fa ${icon}" aria-hidden="true"></i></a>`
+            : `<span class="${className} badge-explained" tabindex="0" aria-label="${escapeAttr(tooltip)}" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"${rarity}><i class="fa ${icon}" aria-hidden="true"></i></span>`
     };
 }
+
+interface StashedBadge { readonly text: string; readonly html: string; }
+const overflowStash = new WeakMap<HTMLElement, readonly StashedBadge[]>();
 
 /* =========================
    Public API
@@ -856,6 +889,13 @@ window.setBadges = function (athlete, athleteCell) {
 
     badgeContainer.innerHTML = renderedItems.map(x => x.html).join('');
 
+    // The +N tile keeps the badges it hides, so its explanation can lay them
+    // out as a small tray of the actual badges instead of a bare list of names.
+    const overflowTile = badgeContainer.querySelector<HTMLElement>('.badge-overflow-count');
+    if (overflowTile && renderedItems !== items) {
+        overflowStash.set(overflowTile, items.slice(3).map(x => ({ text: x.searchText, html: x.html })));
+    }
+
     try {
         if (!isModalStrip) {
             Array.from(badgeContainer.children).forEach((badge: Element) => {
@@ -905,37 +945,134 @@ function ensureBadgeTip(): HTMLElement {
     return badgeTip;
 }
 
-function fillBadgeTip(tip: HTMLElement, text: string): void {
+type BadgeTipMode = 'peek' | 'card';
+let badgeTipMode: BadgeTipMode = 'peek';
+let badgeTipScrim: HTMLElement | null = null;
+const badgeSheetQuery = window.matchMedia('(max-width: 640px)');
+const badgeReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+// The card's medallion hangs over its top edge by this much.
+const BADGE_CARD_OVERHANG = 30;
+
+function badgeRarityOf(el: Element): string {
+    const explicit = el.getAttribute('data-badge-rarity');
+    if (explicit) return explicit;
+    // Surfaces that build their own badge markup still carry the medal colours.
+    const style = (el.getAttribute('style') || '').toLowerCase();
+    if (style.includes('#ffd700')) return 'legendary';
+    if (style.includes('#c0c0c0') || style.includes('#cd7f32')) return 'rare';
+    return '';
+}
+
+function makeBadgeMedal(source: Element, extraClass: string): HTMLElement {
+    const medal = document.createElement('span');
+    const keep = Array.from(source.classList).filter(c => c === 'badge-class' || c.startsWith('badge-family-'));
+    medal.className = [...keep, extraClass].join(' ');
+    const style = source.getAttribute('style');
+    if (style) medal.setAttribute('style', style);
+    const rarity = badgeRarityOf(source);
+    if (rarity) medal.dataset['badgeRarity'] = rarity;
+    medal.setAttribute('aria-hidden', 'true');
+    const icon = source.querySelector('i');
+    if (icon) medal.appendChild(icon.cloneNode(true));
+    return medal;
+}
+
+function makeBadgeTipRow(line: string, index: number): HTMLElement {
+    const row = document.createElement('span');
+    row.className = 'badge-tip-row';
+    row.style.setProperty('--row-i', String(index));
+    const colon = line.indexOf(':');
+    const title = document.createElement('strong');
+    title.className = 'badge-tip-title';
+    title.textContent = colon > 0 ? line.slice(0, colon) : line;
+    row.appendChild(title);
+    if (colon > 0) {
+        const detail = document.createElement('span');
+        detail.className = 'badge-tip-detail';
+        detail.textContent = line.slice(colon + 1).trim();
+        row.appendChild(detail);
+    }
+    return row;
+}
+
+function fillBadgeTip(tip: HTMLElement, text: string, owner: HTMLElement, mode: BadgeTipMode): void {
+    const stash = overflowStash.get(owner);
+    const rarity = badgeRarityOf(owner);
+    tip.classList.toggle('is-card', mode === 'card' && !stash);
+    tip.classList.toggle('has-tray', !!stash);
+    if (rarity) tip.dataset['rarity'] = rarity;
+    else delete tip.dataset['rarity'];
+
+    const parts: HTMLElement[] = [];
+    if (mode === 'card' && !stash) {
+        // The unlock stage: the badge itself, larger, minted again in front of light rays.
+        const stage = document.createElement('div');
+        stage.className = 'badge-tip-stage';
+        stage.setAttribute('aria-hidden', 'true');
+        const rays = document.createElement('span');
+        rays.className = 'badge-tip-rays';
+        stage.append(rays, makeBadgeMedal(owner, 'badge-tip-medal'));
+        parts.push(stage);
+    }
+
     const content = document.createElement('div');
     content.className = 'badge-tip-content';
-    tip.replaceChildren(content);
-    const lines = text.split('\n').filter(Boolean);
-    lines.forEach(line => {
-        const row = document.createElement('span');
-        row.className = 'badge-tip-row';
-        const colon = line.indexOf(':');
-        const title = document.createElement('strong');
-        title.className = 'badge-tip-title';
-        title.textContent = colon > 0 ? line.slice(0, colon) : line;
-        row.appendChild(title);
-        if (colon > 0) {
-            const detail = document.createElement('span');
-            detail.className = 'badge-tip-detail';
-            detail.textContent = line.slice(colon + 1).trim();
-            row.appendChild(detail);
-        }
-        content.appendChild(row);
-    });
+    if (stash) {
+        // An overflow tile expands into the badges it stands for.
+        stash.forEach((entry, index) => {
+            const template = document.createElement('template');
+            template.innerHTML = entry.html.trim();
+            const source = template.content.firstElementChild;
+            const row = makeBadgeTipRow(entry.text, index);
+            row.classList.add('has-medal');
+            if (source) row.prepend(makeBadgeMedal(source, 'badge-tip-mini'));
+            content.appendChild(row);
+        });
+    } else {
+        text.split('\n').filter(Boolean).forEach((line, index) => content.appendChild(makeBadgeTipRow(line, index)));
+    }
+    parts.push(content);
+    tip.replaceChildren(...parts);
+}
+
+function isBadgeSheet(): boolean {
+    return badgeTipMode === 'card' && badgeSheetQuery.matches;
+}
+
+function setBadgeScrim(host: Element, open: boolean): void {
+    if (!open) {
+        if (badgeTipScrim) badgeTipScrim.classList.remove('is-open');
+        return;
+    }
+    if (!badgeTipScrim) {
+        badgeTipScrim = document.createElement('div');
+        badgeTipScrim.className = 'badge-tip-scrim';
+        badgeTipScrim.setAttribute('aria-hidden', 'true');
+    }
+    if (badgeTipScrim.parentElement !== host) host.appendChild(badgeTipScrim);
+    // Restart the fade when the sheet reopens.
+    badgeTipScrim.classList.remove('is-open');
+    void badgeTipScrim.offsetWidth;
+    badgeTipScrim.classList.add('is-open');
 }
 
 function placeBadgeTip(tip: HTMLElement, badge: HTMLElement): void {
+    if (isBadgeSheet()) {
+        // On a phone the card is a bottom sheet: the thumb that tapped stays near it.
+        tip.dataset['side'] = 'sheet';
+        tip.style.left = '';
+        tip.style.top = '';
+        tip.style.maxHeight = '';
+        return;
+    }
+    const overhang = tip.classList.contains('is-card') ? BADGE_CARD_OVERHANG : 0;
     const gap = 10;
     const edge = 8;
     const rect = badge.getBoundingClientRect();
     tip.style.maxHeight = '';
     let tipRect = tip.getBoundingClientRect();
-    const aboveRoom = rect.top - gap - edge;
-    const belowRoom = window.innerHeight - rect.bottom - gap - edge;
+    const aboveRoom = rect.top - gap - edge - overhang;
+    const belowRoom = window.innerHeight - rect.bottom - gap - edge - overhang;
     const below = tipRect.height > aboveRoom && belowRoom > aboveRoom;
     // A long overflow list scrolls beside its owner instead of covering the
     // badge during touch activation or growing the document under the pointer.
@@ -943,18 +1080,48 @@ function placeBadgeTip(tip: HTMLElement, badge: HTMLElement): void {
     tipRect = tip.getBoundingClientRect();
     const center = rect.left + rect.width / 2;
     const left = Math.min(Math.max(center - tipRect.width / 2, edge), window.innerWidth - tipRect.width - edge);
-    const top = Math.max(edge, Math.min(below ? rect.bottom + gap : rect.top - tipRect.height - gap,
+    const top = Math.max(edge + overhang, Math.min(below ? rect.bottom + gap + overhang : rect.top - tipRect.height - gap,
         window.innerHeight - tipRect.height - edge));
-    tip.dataset.side = below ? 'below' : 'above';
+    tip.dataset['side'] = below ? 'below' : 'above';
     tip.style.left = `${Math.round(left)}px`;
     tip.style.top = `${Math.round(top)}px`;
     tip.style.setProperty('--badge-tip-arrow', `${Math.round(Math.max(12, Math.min(center - left, tipRect.width - 12)))}px`);
+    // The card grows out of the badge that was chosen.
+    tip.style.setProperty('--badge-tip-origin', `${Math.round(center - left)}px ${below ? '0' : '100%'}`);
 }
 
-function showBadgeTip(badge: HTMLElement): void {
+function openBadgeCard(tip: HTMLElement, badge: HTMLElement, text: string): void {
+    badgeTipMode = 'card';
+    fillBadgeTip(tip, text, badge, 'card');
+    placeBadgeTip(tip, badge);
+    const host = tip.parentElement || document.body;
+    setBadgeScrim(host, isBadgeSheet());
+    if (isBadgeSheet() && badgeTipScrim) host.insertBefore(badgeTipScrim, tip);
+    badge.classList.add('is-badge-tip-owner');
+}
+
+function leaveBadgeTip(tip: HTMLElement): void {
+    // A short exit for the card: a detached copy fades out while the live
+    // popover is already free for the next badge.
+    if (badgeReducedMotion.matches || tip.hidden || !tip.classList.contains('is-card')) return;
+    const ghost = tip.cloneNode(true) as HTMLElement;
+    ghost.removeAttribute('id');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.classList.add('is-leaving');
+    tip.after(ghost);
+    const drop = () => ghost.remove();
+    ghost.addEventListener('animationend', event => { if (event.target === ghost) drop(); });
+    window.setTimeout(drop, 400);
+}
+
+function showBadgeTip(badge: HTMLElement, mode: BadgeTipMode = 'peek'): void {
     cancelBadgeTipDismiss();
     if (badgeTipOwner === badge) {
         badgeTipHadOwnerFocus ||= badge.contains(document.activeElement);
+        // A hover peek becomes the full card when the badge is chosen.
+        if (mode === 'card' && badgeTipMode !== 'card' && badgeTip && !overflowStash.has(badge)) {
+            openBadgeCard(badgeTip, badge, getBadgeTipText(badge));
+        }
         return;
     }
     const text = getBadgeTipText(badge);
@@ -972,9 +1139,11 @@ function showBadgeTip(badge: HTMLElement): void {
     // Tooltips in an embedded athlete dialog must share its non-inert portal.
     const host = badge.closest('#athleteDialogRuntime') || document.body;
     if (tip.parentElement !== host) host.appendChild(tip);
-    fillBadgeTip(tip, text);
+    badgeTipMode = 'peek';
+    fillBadgeTip(tip, text, badge, 'peek');
     tip.hidden = false;
-    placeBadgeTip(tip, badge);
+    if (mode === 'card' && !overflowStash.has(badge)) openBadgeCard(tip, badge, text);
+    else placeBadgeTip(tip, badge);
     // Most badge names already include the explanation. Repeating it as an
     // accessible description makes screen readers announce the same text twice.
     const alreadyNamed = (badge.getAttribute('aria-label') || '').toLowerCase().includes(text.toLowerCase());
@@ -1011,8 +1180,14 @@ function hideBadgeTip(restoreFocus = false): void {
     badgeTipOwnerBounds = null;
     badgeTipPointerDown = false;
     badgeTipHadOwnerFocus = false;
-    if (badgeTip) badgeTip.hidden = true;
+    if (badgeTip) {
+        leaveBadgeTip(badgeTip);
+        badgeTip.hidden = true;
+    }
+    badgeTipMode = 'peek';
+    setBadgeScrim(document.body, false);
     if (!owner) return;
+    owner.classList.remove('is-badge-tip-owner');
     // Do not overwrite a title deliberately changed by a renderer while open.
     if (!owner.hasAttribute('title') && badgeTipOriginalTitle !== null) owner.setAttribute('title', badgeTipOriginalTitle);
     if (badgeTipOriginalData === null) owner.removeAttribute('data-badge-tip');
@@ -1080,6 +1255,14 @@ if (!window.__lwcBadgeTipBound) {
             hideBadgeTip(true);
         }
     }, true);
+    // Enter or Space on a focused badge opens the full card, as a tap does.
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const badge = badgeTipTarget(event.target);
+        if (!badge || badge.matches('a')) return;
+        event.preventDefault();
+        showBadgeTip(badge, 'card');
+    });
     document.addEventListener('pointerdown', event => {
         badgeTipPointerDown = event.target instanceof Node && !!badgeTip?.contains(event.target);
         badgeTipTouchTarget = event.pointerType === 'touch' ? badgeTipTarget(event.target) : null;
@@ -1095,7 +1278,7 @@ if (!window.__lwcBadgeTipBound) {
     // intercept the pointerup/click that is still on its way to the badge.
     document.addEventListener('click', event => {
         const badge = badgeTipTarget(event.target);
-        if (badge && !badge.matches('a')) showBadgeTip(badge);
+        if (badge && !badge.matches('a')) showBadgeTip(badge, 'card');
         else if (!badge && !(event.target instanceof Node && badgeTip?.contains(event.target))) hideBadgeTip();
         badgeTipTouchTarget = null;
         badgeTipPointerDown = false;
@@ -1112,12 +1295,133 @@ if (!window.__lwcBadgeTipBound) {
     window.addEventListener('pagehide', () => hideBadgeTip());
 }
 
+/* =========================
+   Collectible light
+   =========================
+   A pointer over a badge moves a soft highlight across its face and nudges
+   the glyph the other way, so the badge reads as a struck coin, not a sticker.
+   Only custom properties change; the badge box never moves. */
+let badgeLightTarget: HTMLElement | null = null;
+let badgeLightEvent: PointerEvent | null = null;
+let badgeLightFrame = 0;
+
+function clearBadgeLight(): void {
+    const target = badgeLightTarget;
+    if (!target) return;
+    ['--badge-mx', '--badge-my', '--badge-px', '--badge-py'].forEach(name => target.style.removeProperty(name));
+    badgeLightTarget = null;
+}
+
+function applyBadgeLight(): void {
+    badgeLightFrame = 0;
+    const event = badgeLightEvent;
+    if (!event) return;
+    const badge = event.target instanceof Element ? event.target.closest<HTMLElement>('.badge-class') : null;
+    if (badge !== badgeLightTarget) clearBadgeLight();
+    if (!badge || badge.classList.contains('badge-overflow-count') || badge.closest('.athlete-name-links')) return;
+    const rect = badge.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    badge.style.setProperty('--badge-mx', `${(x * 100).toFixed(1)}%`);
+    badge.style.setProperty('--badge-my', `${(y * 100).toFixed(1)}%`);
+    badge.style.setProperty('--badge-px', `${((0.5 - x) * 3).toFixed(2)}px`);
+    badge.style.setProperty('--badge-py', `${((0.5 - y) * 3).toFixed(2)}px`);
+    badgeLightTarget = badge;
+}
+
+if (!window.__lwcBadgeLightBound) {
+    window.__lwcBadgeLightBound = true;
+    document.addEventListener('pointermove', event => {
+        if (event.pointerType === 'touch' || badgeReducedMotion.matches) return;
+        badgeLightEvent = event;
+        if (!badgeLightFrame) badgeLightFrame = window.requestAnimationFrame(applyBadgeLight);
+    }, { passive: true });
+    document.addEventListener('pointerleave', clearBadgeLight);
+}
+
+/* =========================
+   Newly earned
+   =========================
+   A badge earned in the last few days arrives in the feed with a short mint:
+   it pops in, a ring rolls off it and a glint crosses its face. Each event
+   celebrates once per visit. */
+const BADGE_FRESH_DAYS = 7;
+const BADGE_CELEBRATED_KEY = 'lwcBadgeCelebrated:v1';
+
+function celebrateBadges(scope: Element | null | undefined): void {
+    if (!scope || badgeReducedMotion.matches) return;
+    const badges = Array.from(scope.querySelectorAll<HTMLElement>('.badge-class:not(.badge-overflow-count)'))
+        .filter(el => !el.closest('.athlete-name-links'));
+    badges.forEach((badge, index) => {
+        badge.style.setProperty('--badge-i', String(index));
+        badge.classList.remove('badge-earned');
+        void badge.offsetWidth;
+        badge.classList.add('badge-earned');
+        window.setTimeout(() => {
+            badge.classList.remove('badge-earned');
+            badge.style.removeProperty('--badge-i');
+        }, 1500 + index * 90);
+    });
+}
+
+function isFreshBadgeRow(row: HTMLElement): boolean {
+    const cell = row.querySelector('.event-message-cell');
+    if (!cell || !cell.querySelector('.badge-class:not(.badge-overflow-count)')) return false;
+    if (/\blost\b/i.test(cell.textContent || '')) return false;
+    const parts = (row.dataset['day'] || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(n => !Number.isFinite(n))) return false;
+    const [year, month, day] = parts as [number, number, number];
+    return Date.now() - new Date(year, month - 1, day).getTime() <= BADGE_FRESH_DAYS * 864e5;
+}
+
+function initBadgeFeedCelebrations(): void {
+    if (!('IntersectionObserver' in window) || !document.body) return;
+    let celebrated: Set<string>;
+    try { celebrated = new Set(JSON.parse(sessionStorage.getItem(BADGE_CELEBRATED_KEY) || '[]')); }
+    catch { celebrated = new Set(); }
+    const keyOf = (row: HTMLElement) => row.dataset['eventId']
+        || `${row.dataset['day'] || ''}|${(row.querySelector('.event-message-cell')?.textContent || '').trim().slice(0, 80)}`;
+    const watched = new WeakSet<Element>();
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            observer.unobserve(entry.target);
+            const row = entry.target as HTMLElement;
+            const key = keyOf(row);
+            if (celebrated.has(key)) return;
+            celebrated.add(key);
+            try { sessionStorage.setItem(BADGE_CELEBRATED_KEY, JSON.stringify(Array.from(celebrated).slice(-200))); } catch {}
+            celebrateBadges(row.querySelector('.event-message-cell'));
+        });
+    }, { threshold: 0.75 });
+    let frame = 0;
+    const scan = () => {
+        frame = 0;
+        document.querySelectorAll<HTMLElement>('.events-board tr.main-row').forEach(row => {
+            if (watched.has(row)) return;
+            watched.add(row);
+            if (isFreshBadgeRow(row)) observer.observe(row);
+        });
+    };
+    new MutationObserver(() => { if (!frame) frame = window.requestAnimationFrame(scan); })
+        .observe(document.body, { childList: true, subtree: true });
+    scan();
+}
+
+if (!window.LwcBadges) {
+    window.LwcBadges = { celebrate: celebrateBadges, rarity: getBadgeRarity };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBadgeFeedCelebrations, { once: true });
+    else initBadgeFeedCelebrations();
+}
+
 window.computeBadges = window.computeBadges || function () {};
 window.pickIconForServerBadge = pickIconForServerBadge;
 window.pickBackgroundForServerBadge = pickBackgroundForServerBadge;
 window.makeTooltipFromServerBadge = makeTooltipFromServerBadge;
 window.pickClickUrl = pickClickUrl;
 window.getBadgeFamilyClass = getBadgeFamilyClass;
+window.getBadgeRarity = getBadgeRarity;
 window.styleWithBadgeVars = styleWithBadgeVars;
 
 export {};

@@ -514,6 +514,12 @@ interface Window {
     getBadgeFamilyClass?(badge: ServerBadge): string;
     styleWithBadgeVars?(style: string): string;
     __lwcBadgeTipBound?: boolean;
+    __lwcBadgeLightBound?: boolean;
+    getBadgeRarity?(badge: ServerBadge): 'legendary' | 'rare' | '';
+    LwcBadges?: {
+        celebrate(scope: Element | null | undefined): void;
+        rarity(badge: ServerBadge): 'legendary' | 'rare' | '';
+    };
     setBadges(athlete: BadgeAthlete, athleteCell: HTMLElement | null | undefined): void;
     computeBadges: (...args: unknown[]) => unknown;
     openAthleteModalBySlug?(
