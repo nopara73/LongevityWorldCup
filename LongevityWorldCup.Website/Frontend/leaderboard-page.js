@@ -1576,6 +1576,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                         : bortzAgeDifference,
                     podcastLink: athlete.PodcastLink,
                     lastMonthRank: lastMonthRank,
+                    placements: athlete.Placements || [],
                     rankImproved: rankImproved,
                     isNew: !!athlete.IsNew,
                     Badges: athlete.Badges || [],
@@ -1892,13 +1893,17 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             const flagRouteState = getFlagRouteState(window.location.pathname);
             const athleteParam = getInitialAthleteSlug();
             if (athleteParam) {
-                const normalizedAthlete = window.slugifyName(athleteParam, false);
-                const athleteData = getAthleteData(normalizedAthlete);
-                if (athleteData) {
-                    fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
-                } else {
-                    // Redirect to the .NET 404 endpoint
-                    window.location.href = '/error/404';
+                // A profile selected while the index was loading takes priority
+                // over the containing page's initial URL (including close/back).
+                if (currentAthleteModalRequestId === 0) {
+                    const normalizedAthlete = window.slugifyName(athleteParam, false);
+                    const athleteData = getAthleteData(normalizedAthlete);
+                    if (athleteData) {
+                        fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
+                    } else {
+                        // Redirect to the .NET 404 endpoint
+                        window.location.href = '/error/404';
+                    }
                 }
             } else {
                 let searchOrFilterApplied = false; // Flag to check if filter was applied
@@ -7658,6 +7663,20 @@ function updateYourGuess() {
 // Keep the small public surface used by page bootstraps, Guess My Age, and
 // existing browser tests while the controller itself remains isolated.
 window.LoadLeaderboard = LoadLeaderboard;
+window.getLeaderboardPeek = name => {
+    const athlete = athleteResults.find(item => item.name === name);
+    if (!athlete) return null;
+    return Object.freeze({
+        chronologicalAge: athlete.chronologicalAge,
+        lowestBortzAge: athlete.lowestBortzAge,
+        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
+        lowestPhenoAge: athlete.lowestPhenoAge,
+        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        crowdAge: athlete.crowdAge,
+        crowdCount: athlete.crowdCount,
+        placements: athlete.placements
+    });
+};
 window.openEnlargedView = openEnlargedView;
 window.closeEnlargedView = closeEnlargedView;
 window.populateProofsGallery = populateProofsGallery;
