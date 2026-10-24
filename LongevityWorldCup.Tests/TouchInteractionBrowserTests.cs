@@ -149,4 +149,36 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
         Assert.Equal(0, await page.EvaluateAsync<int>("() => window.dismisses"));
         Assert.Equal("", await page.Locator("#panel").EvaluateAsync<string>("e => e.style.translate"));
     }
+
+    [Fact]
+    public async Task BoardRefresh_FetchesFreshDataAndPreservesCurrentSelection()
+    {
+        await using var context = await ContextAsync(true);
+        var requests = 0;
+        using var client = App.CreateClient();
+        var data = await client.GetStringAsync("/api/data/athletes");
+        await context.RouteAsync("**/api/data/athletes", route => {
+            requests++;
+            return route.FulfillAsync(new() { ContentType = "application/json", Body = data });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(new Uri(App.BaseAddress, "/leaderboard?view=pheno").ToString());
+        await Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator(".sidebar input[name=division]").First.EvaluateAsync("e => e.click()");
+        var state = "() => JSON.stringify({view:document.querySelector('input[name=leaderboardView]:checked').value, filters:[...document.querySelectorAll('.sidebar input:checked')].map(e=>[e.name,e.value]), rows:[...document.querySelectorAll('.leaderboard tr[data-athlete-name]')].filter(e=>e.getClientRects().length).map(e=>[e.dataset.athleteName,e.querySelector('.rank')?.textContent]),url:location.href})";
+        var before = await page.EvaluateAsync<string>(state);
+        Assert.True(await page.Locator(".sidebar input[name=division]:checked").CountAsync() > 0);
+        var initialRequests = requests;
+        await page.EvaluateAsync("""
+            async () => {
+                const work=[];
+                document.querySelector('main[data-leaderboard-page=full]').dispatchEvent(new CustomEvent('lwc:pull-refresh', {
+                    detail:{waitUntil:p=>work.push(p)}
+                }));
+                await Promise.all(work);
+            }
+            """);
+        Assert.Equal(initialRequests + 1, requests);
+        Assert.Equal(before, await page.EvaluateAsync<string>(state));
+    }
 }

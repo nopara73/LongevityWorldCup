@@ -1171,7 +1171,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
     maxAthletesGlobal = maxAthletes;
     athleteResultsReady = false;
     if (!refresh) setLeaderboardLoadingState(includePodium, maxAthletes);
-    const fullBoard = document.querySelector('main[data-leaderboard-page="full"]');
+    const fullBoard = pageDocument.querySelector('main[data-leaderboard-page="full"]');
     if (fullBoard && !fullBoard.hasAttribute('data-lwc-refresh-ready')) {
         fullBoard.setAttribute('data-lwc-refresh-ready', '');
         fullBoard.addEventListener('lwc:pull-refresh', event => {
@@ -1186,6 +1186,10 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
     const currentLoadPromise = window.getSharedAthletes()
         .then(athletes => {
+            const selectedFilters = refresh ? new Set(Array.from(document.querySelectorAll('.sidebar input:checked'))
+                .map(input => `${input.name}\n${input.value}`)) : null;
+            const refreshFocus = refresh ? document.activeElement : null;
+            const refreshScroll = refresh ? window.scrollY : null;
             // Array to store athletes with their lowest PhenoAge and age reduction
             updateViewAllAthletesButton(athletes.length);
             const nowForCrowdAgeUtc = new Date();
@@ -1624,6 +1628,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
                 generateLeagueTrackFilters(athleteResults);
+                if (selectedFilters) {
+                    document.querySelectorAll('.sidebar input').forEach(input => {
+                        input.checked = selectedFilters.has(`${input.name}\n${input.value}`);
+                    });
+                }
             }
 
             // Sort the athletes by age reduction in ascending order
@@ -2011,6 +2020,14 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 }
             }
             setLeaderboardStatus('Leaderboard loaded.');
+            if (refreshFocus && !refreshFocus.isConnected) {
+                const replacement = Array.from(document.querySelectorAll('.sidebar input, .leaderboard a')).find(element =>
+                    refreshFocus instanceof HTMLInputElement
+                        ? element.name === refreshFocus.name && element.value === refreshFocus.value
+                        : refreshFocus instanceof HTMLAnchorElement && element.getAttribute('href') === refreshFocus.getAttribute('href'));
+                replacement?.focus({ preventScroll: true });
+            }
+            if (refreshScroll !== null) window.scrollTo({ top: refreshScroll, behavior: 'instant' });
 
             // Pick up dynamically inserted [data-aos] nodes
             if (window.AOS && typeof AOS.refreshHard === 'function') {

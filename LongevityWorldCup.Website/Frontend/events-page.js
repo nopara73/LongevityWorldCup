@@ -2463,12 +2463,14 @@ const eventsPageAssets = document.currentScript.dataset;
     }
 
     window.loadEventsTable=function(maxRows=null,showViewAll=true,athleteId=null,linkNames=true,options=null){
-        const feed = document.querySelector('main.event-board-page');
+        const feed = window.document.querySelector('main.event-board-page');
         if (feed && !feed.hasAttribute('data-lwc-refresh-ready')) {
             feed.setAttribute('data-lwc-refresh-ready', '');
             feed.addEventListener('lwc:pull-refresh', event => {
-                event.detail.waitUntil(window.loadEventsTable(maxRows, showViewAll, athleteId, linkNames,
-                    { ...options, live: true, preserveExistingRows: true }));
+                const reload = () => window.loadEventsTable(maxRows, showViewAll, athleteId, linkNames,
+                    { ...options, live: true, preserveExistingRows: true });
+                event.detail.waitUntil(typeof window.callScoped === 'function'
+                    ? window.callScoped(loadRoot.parentElement, reload) : reload());
             });
             window.LwcTouch?.refresh();
         }
