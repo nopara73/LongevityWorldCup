@@ -205,6 +205,9 @@ function closeCustomAlert() {
         previousFocus.focus({ preventScroll: true });
     }
 
+    // Body or a removed opener cannot receive focus. Do not leave the old
+    // control focused while a discrete display transition retains its paint.
+    if (customAlertDialog.contains(document.activeElement)) document.activeElement.blur();
     dismissed?.resolve();
     // Existing .then callbacks (including field focus/navigation) run before the next alert opens.
     queueMicrotask(showNextCustomAlert);
@@ -376,6 +379,7 @@ function hideLoading() {
         loadingDialogPreviousFocus.focus({ preventScroll: true });
     }
 
+    if (loadingDialog.contains(document.activeElement)) document.activeElement.blur();
     loadingDialogPreviousFocus = null;
 }
 

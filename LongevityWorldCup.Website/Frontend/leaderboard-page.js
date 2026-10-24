@@ -4248,27 +4248,31 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     // Reorder tbody so visible rows match the athletes actually shown in the table.
     const visibleOrdered = tableVisibleAthletes.map(a => rowsByName.get(a.name)).filter(Boolean);
     const visibleRows = new Set(visibleOrdered);
-    rowsByName.forEach(row => {
-        const display = visibleRows.has(row) ? '' : 'none';
-        if (row.style.display !== display) row.style.display = display;
+    // Rows keep their identity, so a reorder or filter glides instead of jumping.
+    const moveRows = window.LwcMotion?.flip || ((rows, mutate) => mutate());
+    moveRows(allRows, () => {
+        rowsByName.forEach(row => {
+            const display = visibleRows.has(row) ? '' : 'none';
+            if (row.style.display !== display) row.style.display = display;
+        });
+        const separator = allRows.find(r => r.classList.contains('tier-separator'));
+        const hiddenRows = allRows.filter(r => r !== separator && !visibleRows.has(r));
+        const orderedRows = [...visibleOrdered];
+        const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
+        const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
+        if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
+            orderedRows.splice(firstAmateurIndex, 0, separator);
+        } else {
+            if (separator) orderedRows.push(separator);
+        }
+        orderedRows.push(...hiddenRows);
+        let nextRow = tableBody.firstElementChild;
+        for (const row of orderedRows) {
+            if (row === nextRow) nextRow = nextRow.nextElementSibling;
+            else tableBody.insertBefore(row, nextRow);
+        }
     });
-    const separator = allRows.find(r => r.classList.contains('tier-separator'));
-    const hiddenRows = allRows.filter(r => r !== separator && !visibleRows.has(r));
-    const orderedRows = [...visibleOrdered];
-    const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-    const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
-    const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
-    if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
-        orderedRows.splice(firstAmateurIndex, 0, separator);
-    } else {
-        if (separator) orderedRows.push(separator);
-    }
-    orderedRows.push(...hiddenRows);
-    let nextRow = tableBody.firstElementChild;
-    for (const row of orderedRows) {
-        if (row === nextRow) nextRow = nextRow.nextElementSibling;
-        else tableBody.insertBefore(row, nextRow);
-    }
 
     // An ordering change cannot alter the search or sidebar membership. Keep
     // their DOM and computed counts intact instead of rebuilding them per click.
