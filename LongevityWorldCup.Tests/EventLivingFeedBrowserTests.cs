@@ -320,7 +320,9 @@ public sealed class EventLivingFeedBrowserTests(
         var popup = await context.RunAndWaitForPageAsync(
             () => page.Locator(".event-athlete-preview-name").ClickAsync(new() { Modifiers = [KeyboardModifier.Control] }));
         await popup.BringToFrontAsync();
-        await popup.WaitForURLAsync("**/athlete/feed-a", new() { WaitUntil = WaitUntilState.Commit });
+        // The popup may already have committed before its event reaches us.
+        // Assert the destination directly instead of waiting for another load state.
+        await Assertions.Expect(popup).ToHaveURLAsync(App.BaseAddress + "athlete/feed-a");
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
         await popup.CloseAsync();
     }
