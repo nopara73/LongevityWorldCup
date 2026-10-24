@@ -831,10 +831,14 @@ function createAthleteSelectionController(
 
         const previous = new Map<string, HTMLDivElement>();
         const previousTops = new Map<HTMLDivElement, number>();
+        const previousBoxes = new Map<HTMLDivElement, { top: number; left: number; width: number; height: number }>();
         getMatchOptions(list).forEach(item => {
             previous.set(item.dataset.value || "", item);
-            if (animate) previousTops.set(item, item.offsetTop);
             item.getAnimations?.().forEach(animation => animation.cancel());
+            if (animate) {
+                previousTops.set(item, item.offsetTop);
+                previousBoxes.set(item, { top: item.offsetTop, left: item.offsetLeft, width: item.offsetWidth, height: item.offsetHeight });
+            }
         });
         list.querySelectorAll(".autocomplete-item--leaving").forEach(item => item.remove());
 
@@ -853,20 +857,30 @@ function createAthleteSelectionController(
         });
 
         const leaving = Array.from(previous.values());
-        const leavingTops = leaving.map(item => item.offsetTop);
+        // Only current options determine the popup's size and sibling spacing.
+        // Departing rows may animate inside that content, never extend its scroll area.
+        leaving.forEach(item => item.remove());
         ordered.forEach(item => list.appendChild(item));
-        leaving.forEach((item, index) => {
+        input.setAttribute("aria-expanded", "true");
+        input.closest(".play-athlete-panel")?.classList.add("athlete-search-open");
+        positionAthleteMatches();
+        const contentTop = ordered[0]?.offsetTop ?? 0;
+        const last = ordered[ordered.length - 1];
+        const contentBottom = last ? last.offsetTop + last.offsetHeight : contentTop;
+        leaving.forEach(item => {
             item.removeAttribute("role");
             item.removeAttribute("id");
             item.removeAttribute("aria-selected");
             item.setAttribute("aria-hidden", "true");
             item.inert = true;
-            if (!animate) {
-                item.remove();
-                return;
-            }
+            const box = previousBoxes.get(item);
+            if (!animate || !box || box.top < contentTop || box.top + box.height > contentBottom
+                || box.left + box.width > list.clientWidth) return;
             item.classList.add("autocomplete-item--leaving");
-            item.style.top = `${leavingTops[index] ?? 0}px`;
+            item.style.top = `${box.top}px`;
+            item.style.left = `${box.left}px`;
+            item.style.width = `${box.width}px`;
+            list.appendChild(item);
             const exit = animateAthleteSearch(item, [
                 { opacity: 1, transform: "none" },
                 { opacity: 0, transform: "translateX(-10px) scale(0.98)" }
@@ -887,7 +901,10 @@ function createAthleteSelectionController(
                     entering += 1;
                     return;
                 }
-                const shift = before - item.offsetTop;
+                // A retained row can move only within the new content bounds;
+                // its old position may be below a now much shorter popup.
+                const startTop = Math.max(contentTop, Math.min(before, contentBottom - item.offsetHeight));
+                const shift = startTop - item.offsetTop;
                 if (Math.abs(shift) < 1) return;
                 animateAthleteSearch(item, [
                     { transform: `translateY(${shift}px)` },
@@ -896,8 +913,6 @@ function createAthleteSelectionController(
             });
         }
 
-        input.setAttribute("aria-expanded", "true");
-        input.closest(".play-athlete-panel")?.classList.add("athlete-search-open");
         geometryObserver.observe(input);
         geometryObserver.observe(input.parentElement || input);
         const panel = input.closest(".play-athlete-panel");

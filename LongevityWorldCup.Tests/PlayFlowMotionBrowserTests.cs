@@ -352,6 +352,54 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.WaitForFunctionAsync("() => !document.querySelector('.autocomplete-items')");
     }
 
+    [Theory]
+    [InlineData(1280, 900, false, false)]
+    [InlineData(1280, 900, true, true)]
+    [InlineData(390, 844, true, false)]
+    [InlineData(390, 844, false, true)]
+    public async Task Search_ShrinkingResultsNeverScrollForDepartingOrMovingRows(int width, int height, bool dark, bool enlargedText)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
+        });
+        var page = await OpenAsync(context, "/select-athlete");
+        if (enlargedText) await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        var input = page.Locator("#playAthleteInput");
+        // Cover both a new single match and the last existing row moving into first place.
+        foreach (var retainLastRow in new[] { false, true })
+        {
+            await input.FillAsync("a");
+            await Assertions.Expect(page.Locator("#playAthleteInput-autocomplete-list [role=option]")).ToHaveCountAsync(5);
+            await page.EvaluateAsync(WaitForSettledMotion);
+            var frames = await page.EvaluateAsync<int[][]>("""
+                async retainLastRow => {
+                    const input = document.getElementById('playAthleteInput');
+                    const list = document.getElementById('playAthleteInput-autocomplete-list');
+                    const rows = [...list.querySelectorAll('[role=option]')];
+                    input.value = retainLastRow ? rows.at(-1).dataset.value : 'Ron Lugbill';
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    const frames = [];
+                    const started = performance.now();
+                    do {
+                        frames.push([list.querySelectorAll('[role=option]').length,
+                            list.scrollHeight - list.clientHeight, list.scrollWidth - list.clientWidth]);
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                    } while (performance.now() - started < 350);
+                    return frames;
+                }
+                """, retainLastRow);
+            Assert.True(frames.Length > 1, "Inspect the initial frame and the moving popup, not only its settled state.");
+            Assert.All(frames, frame =>
+            {
+                Assert.Equal(1, frame[0]);
+                Assert.True(frame[1] <= 1 && frame[2] <= 1,
+                    $"A single result must fit throughout motion; extra scroll area was {frame[1]}px tall and {frame[2]}px wide.");
+            });
+        }
+    }
+
     [Fact]
     public async Task SlowPreparation_RevealsAndFocusesTheArrivingPanelBeforeMotionFinishes()
     {

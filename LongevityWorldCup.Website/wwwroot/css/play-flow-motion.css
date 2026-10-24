@@ -170,8 +170,7 @@ body.play-route-pending {
    while the remaining rows slide into place. */
 .autocomplete-items > .autocomplete-item--leaving {
     position: absolute;
-    right: 0;
-    left: 0;
+    margin-top: 0;
     z-index: 0;
     pointer-events: none;
 }
