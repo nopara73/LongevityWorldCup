@@ -32,6 +32,21 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
     }
 
     [Fact]
+    public async Task ScrollIndicators_RespectInitialAndReducedMotionGates()
+    {
+        var (context, page) = await OpenAsync(390);
+        await using var _ = context;
+        const string noTransitions = """
+            () => [...document.querySelectorAll('.lb-head-progress, #athleteLeaderboard > table > thead, .lb-rail, .lb-tab-ink')]
+                .every(el => getComputedStyle(el).transitionDuration.split(',').every(value => parseFloat(value) === 0))
+            """;
+        Assert.True(await page.EvaluateAsync<bool>(noTransitions));
+        await page.Locator("#athleteSearch").ClickAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        Assert.True(await page.EvaluateAsync<bool>(noTransitions));
+    }
+
+    [Fact]
     public async Task DeferredMotion_FilterGhostsKeepVisibleContentAndAlwaysCleanUp()
     {
         var (context, page) = await OpenAsync();

@@ -196,10 +196,10 @@ main[data-leaderboard-page="full"] #athleteLeaderboard.lb-crossfade{ view-transi
 @media (prefers-reduced-motion:reduce){
     ::view-transition-group(lb-board), ::view-transition-old(lb-board), ::view-transition-new(lb-board){ animation:none !important; }
 }
-html:not([data-lwc-motion="on"]) :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink),
-html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard :is(th, .portrait, .rank, .sponsor-coming-soon),
+html:not([data-lwc-motion="on"]) :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg),
 html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard th::after{ transition:none !important; }
 @media (prefers-reduced-motion:reduce){
-    :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink),
-    main[data-leaderboard-page="full"] #athleteLeaderboard :is(th, .portrait, .rank, .sponsor-coming-soon){ transition:none !important; }
+    :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+    main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg){ transition:none !important; }
 }
