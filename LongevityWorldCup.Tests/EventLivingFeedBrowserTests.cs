@@ -246,7 +246,11 @@ public sealed class EventLivingFeedBrowserTests(
         await page.EvaluateAsync("() => dispatchEvent(new Event('scroll'))");
         var preview = page.Locator("#eventAthletePreview");
         await Assertions.Expect(preview).ToBeVisibleAsync();
+        // A delayed notification for the same scroll position must also leave
+        // an already opened card alone. Actual wheel movement still dismisses it.
         await page.EvaluateAsync("() => dispatchEvent(new Event('scroll'))");
+        await Assertions.Expect(preview).ToBeVisibleAsync();
+        await page.Mouse.WheelAsync(0, 80);
         await Assertions.Expect(preview).ToBeHiddenAsync();
         await page.WaitForTimeoutAsync(550);
         await Assertions.Expect(preview).ToBeHiddenAsync();
@@ -303,6 +307,7 @@ public sealed class EventLivingFeedBrowserTests(
         var box=(await link.BoundingBoxAsync())!;
         var cdp=await context.NewCDPSessionAsync(page);
         await cdp.SendAsync("Input.dispatchTouchEvent",new(){{"type","touchStart"},{"touchPoints",new[]{new{x=box.X+box.Width/2,y=box.Y+box.Height/2}}}});
+        await page.EvaluateAsync("() => dispatchEvent(new Event('scroll'))");
         await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeVisibleAsync();
         await cdp.SendAsync("Input.dispatchTouchEvent",new(){{"type","touchEnd"},{"touchPoints",Array.Empty<object>()}});
         Assert.Equal(0,await page.EvaluateAsync<int>("profileOpens"));

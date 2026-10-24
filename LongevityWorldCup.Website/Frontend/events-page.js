@@ -1266,6 +1266,12 @@ const eventsPageAssets = document.currentScript.dataset;
         let card = null, anchor = null, showTimer = 0, hideTimer = 0, pressTimer = 0, leaveTimer = 0;
         let pendingPreview = null;
         let pressing = false, pressStart = null, suppressClickFor = null;
+        let scrollX = window.scrollX, scrollY = window.scrollY;
+
+        function rememberScroll(){
+            scrollX = window.scrollX;
+            scrollY = window.scrollY;
+        }
 
         function build(){
             if (card) return card;
@@ -1335,6 +1341,7 @@ const eventsPageAssets = document.currentScript.dataset;
             window.clearTimeout(showTimer);
             pendingPreview = null;
             if (!link.isConnected || document.hidden) return;
+            rememberScroll();
             const slug = slugFromAthleteLink(link);
             const athlete = slug ? feedAthletesIndex.get(slug) : null;
             if (!athlete) return;
@@ -1375,6 +1382,7 @@ const eventsPageAssets = document.currentScript.dataset;
         }
 
         function scheduleShow(link, delay, keyboard=false){
+            rememberScroll();
             window.clearTimeout(showTimer);
             window.clearTimeout(hideTimer);
             pendingPreview = null;
@@ -1418,6 +1426,7 @@ const eventsPageAssets = document.currentScript.dataset;
             suppressClickFor = null;
             const link = event.target.closest?.(SELECTOR);
             if (!link) return;
+            rememberScroll();
             pressing = true;
             pressStart = { x: event.clientX, y: event.clientY };
             window.clearTimeout(pressTimer);
@@ -1454,6 +1463,11 @@ const eventsPageAssets = document.currentScript.dataset;
             else if (!event.shiftKey && event.target === controls.at(-1)) hide(true);
         });
         window.addEventListener('scroll', () => {
+            // Scroll notifications can arrive after the gesture that targeted
+            // the link. A notification without new movement must not cancel a
+            // press or dismiss the preview that was positioned after that scroll.
+            if (scrollX === window.scrollX && scrollY === window.scrollY) return;
+            rememberScroll();
             const pending = pendingPreview;
             hide(true);
             // A link scrolled into view can receive focus/hover before the scroll
