@@ -4771,10 +4771,15 @@ a.lmx-note-mention:focus-visible {
     }
 }
 
-.lmx-answer-input {
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input {
     position: absolute;
-    width: 1px;
-    height: 1px;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    min-height: 0;
+    padding: 0;
+    border: 0;
     margin: 0;
     opacity: 0;
     pointer-events: none;
@@ -7222,11 +7227,6 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 
 :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-optimistic] .lmx-checkin-save-row > .lmx-button[type="submit"]:disabled {
     opacity: 1;
-}
-
-/* A day whose score is still on its way keeps its height. */
-.lmx-page .lmx-board .lmx-cell[data-score-pending] .lmx-cell-score {
-    min-height: 1em;
 }
 
 @media (prefers-reduced-motion: no-preference) {

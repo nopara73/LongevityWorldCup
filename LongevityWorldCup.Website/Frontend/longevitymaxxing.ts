@@ -837,9 +837,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const checkInResetUndo = new Map<string, { values: CheckInFormDraft; photos: File[] }>();
     const checkInErrors = new Map<string, string>();
     const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
-    let checkInSaving: { key: string; day: number; values: string } | null = null;
+    let checkInSaving: { key: string; day: number } | null = null;
     // A submitted check-in shows on the dashboard and board before the server answers.
-    let optimisticCheckIn: { participantId: string; challengeDay: number; values: Record<HabitKey, number> } | null = null;
+    let optimisticCheckIn: { participantId: string; challengeDay: number; date: string; values: Record<HabitKey, number> } | null = null;
     const checkInMoments = new Map<string, { kind: CheckInMoment; startedAt: number }>();
     let profilePictureDraft: ProfilePictureDraft | null = null;
     let profileTimeZoneDraft: ProfileTimeZoneDraft | null = null;
@@ -2112,9 +2112,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return !reducedMotionQuery?.matches && typeof Element.prototype.animate === "function";
     }
 
-    function lmxAnimate(element: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions): void {
-        if (!lmxMotionAllowed()) return;
-        try { element.animate(keyframes, options); } catch { /* Motion is decoration; the state is already in place. */ }
+    function lmxAnimate(element: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions): boolean {
+        if (!lmxMotionAllowed()) return false;
+        try {
+            const styles = getComputedStyle(document.documentElement);
+            const easing = options.easing === LMX_EASE_STANDARD ? styles.getPropertyValue("--lwc-ease-standard").trim()
+                : options.easing === LMX_EASE_ENTER ? styles.getPropertyValue("--lwc-ease-enter").trim() : "";
+            const animation = element.animate(keyframes, { ...options, ...(easing ? { easing } : {}) });
+            const stop = () => { if (reducedMotionQuery?.matches) animation.cancel(); };
+            reducedMotionQuery?.addEventListener("change", stop);
+            void animation.finished.catch(() => {}).finally(() => reducedMotionQuery?.removeEventListener("change", stop));
+            return true;
+        } catch { return false; /* Motion is decoration; the state is already in place. */ }
     }
 
     /** Counts a number from its previous value to the new one while it slides into place. */
@@ -2124,20 +2133,37 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const start = performance.now();
         const duration = 560;
         element.dataset.lmxRolling = rising ? "up" : "down";
-        element.textContent = format(from);
-        lmxAnimate(element, [
+        const animated = lmxAnimate(element, [
             { transform: `translateY(${rising ? "0.4em" : "-0.4em"})`, opacity: 0.3 },
             { transform: "none", opacity: 1 }
         ], { duration: 280, easing: LMX_EASE_ENTER });
+        if (!animated) {
+            delete element.dataset.lmxRolling;
+            return;
+        }
+        // Assistive technology reads the confirmed value throughout the visual count-up.
+        const confirmed = document.createElement("span");
+        confirmed.className = "visually-hidden";
+        confirmed.textContent = format(to);
+        element.after(confirmed);
+        element.setAttribute("aria-hidden", "true");
+        element.textContent = format(from);
+        const finish = () => {
+            element.textContent = format(to);
+            delete element.dataset.lmxRolling;
+            element.removeAttribute("aria-hidden");
+            confirmed.remove();
+        };
         const step = (now: number) => {
-            if (!element.isConnected) return;
+            if (!element.isConnected || !lmxMotionAllowed()) { finish(); return; }
             const progress = Math.min(1, Math.max(0, now - start) / duration);
             const eased = 1 - Math.pow(1 - progress, 3);
             element.textContent = format(progress >= 1 ? to : Math.round(from + ((to - from) * eased)));
-            if (progress < 1) window.requestAnimationFrame(step);
-            else delete element.dataset.lmxRolling;
+            if (progress < 1) {
+                try { window.requestAnimationFrame(step); } catch { finish(); }
+            } else finish();
         };
-        window.requestAnimationFrame(step);
+        try { window.requestAnimationFrame(step); } catch { finish(); }
     }
 
     /** Remembers each keyed cell's state so the next render can animate only what changed. */
@@ -2247,9 +2273,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function withOptimisticCheckIn(state: PublicState): PublicState {
         const pending = optimisticCheckIn;
-        if (!pending) return state;
+        if (!pending || participantState?.participant.id !== pending.participantId) return state;
         const index = state.leaderboard.findIndex(row => row.participantId === pending.participantId);
-        if (index < 0 || !state.days.some(day => day.challengeDay === pending.challengeDay)) return state;
+        if (index < 0 || !state.days.some(day => day.challengeDay === pending.challengeDay && day.date === pending.date)) return state;
         const row = state.leaderboard[index];
         if (!row) return state;
         const previous = row.cells.find(cell => cell.challengeDay === pending.challengeDay);
@@ -2279,6 +2305,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderCheckInEcho(): void {
         const state = displayedState();
         if (!state) return;
+        renderBoardSummary(state);
         renderHeroContext(state);
         renderChallengeVisuals(state);
         renderBoard(state);
@@ -3175,7 +3202,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" data-key="${item.key}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
         // An optimistic day has no server score yet; its habits show while the score is on its way.
         const pending = typeof cell.score !== "number";
-        const cellTitle = pending ? `Day ${cell.challengeDay}: ${breakdown.map(item => `${item.label} ${item.value}/2`).join(", ")}` : title;
+        const cellTitle = pending ? `Day ${cell.challengeDay}: saving; ${breakdown.map(item => `${item.label} ${item.value}/2`).join(", ")}${reportingDayTitle(cell.challengeDay, state)}` : title;
         return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}${reportingClasses}" data-day="${escAttr(cell.challengeDay)}"${pending ? ' data-score-pending="true"' : ""} title="${escAttr(cellTitle)}" aria-label="${escAttr(cellTitle)}">
             <span class="lmx-cell-score">${pending ? "" : score}</span>
             <span class="lmx-habit-marks">${marks}</span>
@@ -6142,6 +6169,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
         const currentAccessToken = accessToken;
         const currentParticipantId = participantState.participant.id;
+        let responseGeneration = stateAcceptanceGeneration;
         if (!hasCheckInChanged(form) && !checkInErrors.has(key)) return;
         const draft = collectCheckInDraft(form);
         if (!isCompleteCheckInDraft(draft)) {
@@ -6155,12 +6183,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
         const values = JSON.stringify({ ...draft, note: draft.note.trim() });
-        checkInSaving = { key, day: Number(form.dataset.day), values };
+        checkInSaving = { key, day: Number(form.dataset.day) };
         checkInErrors.delete(key);
         // Optimistic: the day reads as saved and lands on the dashboard and board at once.
         optimisticCheckIn = {
             participantId: currentParticipantId,
             challengeDay: Number(form.dataset.day),
+            date: submittedDay.date,
             values: { sleep: draft.sleep, exercise: draft.exercise, nutrition: draft.nutrition, vices: draft.vices }
         };
         updateCheckInSaveState(form);
@@ -6185,9 +6214,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 note: draft.note.trim() || null,
                 submissionId: submission.id
             };
-            const result = notePhotos.length
+            let result = notePhotos.length
                 ? await postCheckInWithPhotos(payload, notePhotos)
                 : await postJson(`${API}/check-in`, payload);
+            // Whole snapshots can arrive after a newer timezone or discussion response.
+            // Keep the final generation check and state acceptance in the same turn.
+            while (accessToken === currentAccessToken && responseGeneration !== stateAcceptanceGeneration) {
+                responseGeneration = stateAcceptanceGeneration;
+                result = await postJson(`${API}/participant`, { token: currentAccessToken });
+            }
             if (accessToken !== currentAccessToken) return;
             const saved = result.eligibleDays.find(day => checkInDraftKey(day, result.participant.id) === key)?.existing;
             // A delayed reply or an idempotent retry can arrive after this day leaves the editable window.
@@ -6379,6 +6414,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : saved ? `<i class="fas fa-check" aria-hidden="true"></i>Saved`
                     : checkInErrors.has(key) ? "Retry" : "Save";
             if (button.innerHTML !== label) button.innerHTML = label;
+            if (savingThisDay) button.setAttribute("aria-label", "Saving…");
+            else button.removeAttribute("aria-label");
         }
         form.dataset.lmxComplete = String(complete);
         form.toggleAttribute("data-lmx-optimistic", savingThisDay);
@@ -6498,13 +6535,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const draft = profileTimeZoneDraft;
         if (!accessToken || !participantState || !draft || draft.saving || !hasProfileTimeZoneChanges()) return;
         const currentAccessToken = accessToken;
+        let responseGeneration = stateAcceptanceGeneration;
         const submittedTimeZone = draft.timeZoneId;
         const pictureBeforeSave = participantState.participant.profileImageUrl;
         draft.saving = true;
         draft.error = "";
         renderProfileTimeZoneControls();
         try {
-            const result = await postJson(`${API}/edit`, { accessToken: currentAccessToken, timeZoneId: submittedTimeZone });
+            let result = await postJson(`${API}/edit`, { accessToken: currentAccessToken, timeZoneId: submittedTimeZone });
+            // A check-in may have completed while this older profile snapshot was in flight.
+            while (accessToken === currentAccessToken && responseGeneration !== stateAcceptanceGeneration) {
+                responseGeneration = stateAcceptanceGeneration;
+                result = await postJson(`${API}/participant`, { token: currentAccessToken });
+            }
             if (profileTimeZoneDraft !== draft || accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
             if (result.participant.id !== draft.participantId) throw invalidApiResponse(`${API}/edit`);
             if (participantState.participant.profileImageUrl !== pictureBeforeSave) {

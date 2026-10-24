@@ -21,12 +21,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     // Logs every animation and transition that starts, so short motion is caught however slow the machine is.
     private const string MotionLogScript = """
         window.__lmxMotion = [];
+        window.__lmxMotionTargets = [];
         for (const type of ['animationstart', 'transitionrun'])
             document.addEventListener(type, e => window.__lmxMotion.push(e.animationName || e.propertyName), true);
         const animate = Element.prototype.animate;
         Element.prototype.animate = function (...args) {
             const name = this.getAttribute('class') || '';
             window.__lmxMotion.push('web-animation:' + name);
+            window.__lmxMotionTargets.push({ className: name, opsKey: this.dataset.opsKey, participantId: this.dataset.participantId, moving: this.dataset.lmxMoving });
             return animate.apply(this, args);
         };
         """;
@@ -50,11 +52,12 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var face = option.Locator(".lmx-answer-face");
 
         // Press: the face gives way under the pointer before the tap completes.
-        await option.ScrollIntoViewIfNeededAsync();
+        // Wait for the closing dialog and sticky header to leave the actual tap target clear.
+        await option.ClickAsync(new() { Trial = true });
         var box = (await option.BoundingBoxAsync())!;
         await page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2));
         await page.Mouse.DownAsync();
-        await page.WaitForTimeoutAsync(150);
+        await page.WaitForFunctionAsync("e => getComputedStyle(e).scale === '0.9'", await face.ElementHandleAsync());
         var pressed = await face.EvaluateAsync<string>("e => getComputedStyle(e).scale");
         await page.Mouse.UpAsync();
         Assert.True(pressed == "0.9", $"Pressed face scale was {pressed}");
@@ -111,6 +114,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var save = form.Locator("button[type='submit']");
         var boardDay = page.Locator(".lmx-board-row--self .lmx-cell[data-day='17']");
         var historyDay = page.Locator("#lmxTrack .lmx-category-day[data-day='17']").First;
+        var initialMeta = await page.Locator("#lmxBoardMeta").InnerTextAsync();
+        var initialStandings = await page.Locator("#lmxHeroHighlights").InnerTextAsync();
         await Assertions.Expect(boardDay).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bempty\b"));
         await AnswerAllHabitsAsync(form);
 
@@ -129,19 +134,27 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             // The tap never waits on the network: the day reads saved and lands on the board and history at once.
             await Assertions.Expect(save).ToHaveTextAsync("Saved");
             await Assertions.Expect(save).ToHaveAttributeAsync("aria-busy", "true");
+            await Assertions.Expect(save).ToHaveAccessibleNameAsync("Saving…");
             await Assertions.Expect(form.Locator("[data-checkin-progress]")).ToBeEmptyAsync();
             await Assertions.Expect(boardDay).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bempty\b"));
             await Assertions.Expect(boardDay).ToHaveAttributeAsync("data-score-pending", "true");
             await Assertions.Expect(historyDay).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bfull\b"));
-            Assert.Equal("saved", await form.GetAttributeAsync("data-lmx-moment"));
+            await Assertions.Expect(page.Locator("#lmxBoardMeta")).ToContainTextAsync("22 check-ins");
+            Assert.Equal(initialStandings, await page.Locator("#lmxHeroHighlights").InnerTextAsync());
+            await Assertions.Expect(boardDay.Locator(".lmx-cell-score")).ToBeEmptyAsync();
+            var scoreHeights = await page.Locator(".lmx-board-row--self .lmx-cell-score").EvaluateAllAsync<double[]>("cells => cells.map(e => e.getBoundingClientRect().height)");
+            Assert.True(scoreHeights.Max() - scoreHeights.Min() < 0.1, "Pending and scored cells must reserve the same score height.");
+            await page.WaitForFunctionAsync("() => window.__lmxMotion.includes('lmx-card-saved')");
         }
         finally { release.TrySetResult(); }
 
         // Rollback: the optimistic day leaves again, Retry nudges once, and the answers stay.
         await Assertions.Expect(save).ToHaveTextAsync("Retry");
-        await Assertions.Expect(form).ToHaveAttributeAsync("data-lmx-moment", "rollback");
+        await page.WaitForFunctionAsync("() => window.__lmxMotion.includes('lmx-retry-nudge')");
         await Assertions.Expect(boardDay).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bempty\b"));
         await Assertions.Expect(historyDay).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bempty\b"));
+        await Assertions.Expect(page.Locator("#lmxBoardMeta")).ToHaveTextAsync(initialMeta);
+        Assert.Equal(initialStandings, await page.Locator("#lmxHeroHighlights").InnerTextAsync());
         await Assertions.Expect(form.Locator("[data-checkin-status]")).ToContainTextAsync("Not saved. Connection interrupted");
         Assert.True(await form.Locator(".lmx-question[data-key='vices'] input[value='2']").IsCheckedAsync());
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
@@ -188,8 +201,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await form.Locator("button[type='submit']").ClickAsync();
 
         // The streak counts up instead of jumping, and the participant's row glides above the rival.
-        await page.WaitForFunctionAsync("() => document.querySelector(\"#lmxHeroHighlights strong[data-ops-key='streak']\")?.dataset.lmxRolling === 'up'");
-        await page.WaitForFunctionAsync("() => document.querySelector(\".lmx-board-row[data-participant-id='p1']\")?.dataset.lmxMoving === 'up'");
+        await page.WaitForFunctionAsync("() => window.__lmxMotionTargets.some(target => target.opsKey === 'streak')");
+        await page.WaitForFunctionAsync("() => window.__lmxMotionTargets.some(target => target.participantId === 'p1' && target.moving === 'up')");
         await Assertions.Expect(streak).ToHaveTextAsync((startStreak + 3).ToString());
         await Assertions.Expect(streak).Not.ToHaveAttributeAsync("data-lmx-rolling", new System.Text.RegularExpressions.Regex(".*"));
         Assert.Equal("p1", await page.Locator(".lmx-board-row[data-participant-id]").First.GetAttributeAsync("data-participant-id"));
@@ -198,8 +211,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(page.Locator("#lmxQuoteDialog")).ToBeHiddenAsync();
         await page.Locator(".lmx-habit-history summary").ClickAsync();
-        await Assertions.Expect(page.Locator(".lmx-dashboard-grid")).ToHaveAttributeAsync("data-lmx-entering", "true");
-        Assert.True(await page.EvaluateAsync<int>("() => document.getAnimations().filter(a => a.effect?.target?.classList?.contains('lmx-category-day')).length") > 10);
+        await page.WaitForFunctionAsync("() => window.__lmxMotionTargets.filter(target => target.className.includes('lmx-category-day')).length > 10");
     }
 
     [Theory]
