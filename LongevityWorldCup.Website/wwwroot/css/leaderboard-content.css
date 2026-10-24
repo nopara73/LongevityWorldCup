@@ -4446,8 +4446,8 @@ main:is([data-leaderboard-page="full"], .homepage-main) select:disabled + .order
 /* The page already reserves the sticky header; leave only focus-ring clearance here. */
 main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-panel :is(select, button){ scroll-margin-block:12px; }
 
-/* Laptop and tablet: tabs across the first row, the whole bar across the second. */
-@media (max-width: 1100px){
+/* Follow the available width and text size: ranking tabs above the tool bar. */
+@container lwc-bar (max-width: 68.75rem){
     main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
         grid-template-columns:minmax(0, 1fr) repeat(4, auto); padding-bottom:var(--lwc-space-3);
     }
