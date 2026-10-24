@@ -21,6 +21,7 @@ public sealed class FrontendTypeScriptBuildTests
         "leaderboard-feel",
         "longevitymaxxing",
         "motion",
+        "touch",
         "site-statistics",
         "site-statistics-tracking"
     ];
