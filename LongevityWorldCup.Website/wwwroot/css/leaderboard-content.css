@@ -4309,35 +4309,35 @@ main[data-leaderboard-page="full"] .leaderboard{
 }
 
 /* Header band: ranking tabs underline on the band's edge; tools sit at the end. */
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
     align-items:stretch; column-gap:var(--lwc-space-4); row-gap:0; padding:0 var(--lwc-space-4);
 }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{
     align-self:stretch; align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-3); max-width:100%;
 }
-main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-switcher-label{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher .view-switcher-label{
     align-self:center; margin:0; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em;
 }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
     align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-1); min-height:0; padding:0; max-width:100%;
     background:transparent; border:0; border-radius:0;
 }
-html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-badge{
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher .view-badge{
     min-height:60px; padding:0 var(--lwc-space-3); border-radius:0; background:transparent;
     min-width:min-content; overflow-wrap:normal; word-break:normal;
     color:var(--lwc-muted); font-size:var(--lwc-type-sm); font-weight:700;
     box-shadow:inset 0 -3px 0 transparent;
 }
-html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-badge:hover{
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher .view-badge:hover{
     background:transparent; color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-border);
 }
-html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
     background:transparent; color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-accent);
 }
-html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable::after{
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable::after{
     background:var(--lwc-accent-soft); color:var(--lwc-accent);
 }
-html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[name="leaderboardView"]:is(:focus-visible, .is-keyboard-focus) + .view-badge{
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher input[name="leaderboardView"]:is(:focus-visible, .is-keyboard-focus) + .view-badge{
     outline:3px solid var(--lwc-accent); outline-offset:-3px; background:var(--lwc-accent-soft); color:var(--lwc-accent-hover);
     box-shadow:inset 0 -3px 0 var(--lwc-accent);
 }
@@ -4346,167 +4346,167 @@ html body main[data-leaderboard-page="full"] .leaderboard-view-switcher input[na
    single bordered tool, so the band reads as "pick a ranking, then narrow
    it" instead of four loose buttons. The Order composer opens as a strip
    inside the card, under the bar that opened it, not as a floating card. */
-main[data-leaderboard-page="full"]{ --bar-height:max(44px, 2.75rem); --bar-pad:var(--lwc-space-4); }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{
+main:is([data-leaderboard-page="full"], .homepage-main){ --bar-height:max(44px, 2.75rem); --bar-pad:var(--lwc-space-4); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
     display:grid; grid-template-columns:auto minmax(var(--lwc-space-4), 1fr) minmax(12rem, 22rem) repeat(4, auto);
     align-items:center; gap:0; padding:0 var(--bar-pad);
 }
-main[data-leaderboard-page="full"] .leaderboard-controls{ container:lwc-bar / inline-size; }
-main[data-leaderboard-page="full"] .leaderboard-controls :is(.search-wrapper, .leaderboard-actions, .leaderboard-order-tools:not([hidden])){ display:contents; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{ grid-row:1; grid-column:1; display:flex; align-self:stretch; }
-main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ grid-row:1; grid-column:3; max-width:none; margin:0; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-group-switcher{ grid-row:1; grid-column:4; display:flex; align-self:center; margin:0; padding:0; border:0; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle{ grid-row:1; grid-column:5; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset{ grid-row:1; grid-column:6; }
-main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{ grid-row:1; grid-column:7; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{ grid-row:2; grid-column:1 / -1; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls{ container:lwc-bar / inline-size; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.search-wrapper, .leaderboard-actions, .leaderboard-order-tools:not([hidden])){ display:contents; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{ grid-row:1; grid-column:1; display:flex; align-self:stretch; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ grid-row:1; grid-column:3; max-width:none; margin:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-group-switcher{ grid-row:1; grid-column:4; display:flex; align-self:center; margin:0; padding:0; border:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle{ grid-row:1; grid-column:5; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ grid-row:1; grid-column:6; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ grid-row:1; grid-column:7; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-row:2; grid-column:1 / -1; }
 
 /* Segments: one outline, hairline dividers, rounded only at the bar's ends. */
-main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch,
-main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge,
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle,
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset,
-main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{
     position:relative; box-sizing:border-box; height:var(--bar-height); min-height:var(--bar-height); max-width:none; margin:0;
     border:1px solid var(--lwc-border-strong); border-radius:0; background:var(--lwc-surface);
     color:var(--lwc-accent); box-shadow:none; transform:none;
 }
-main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch{
     padding-inline-start:var(--lwc-space-3); border-radius:var(--lwc-radius-md) 0 0 var(--lwc-radius-md);
     color:var(--lwc-ink);
 }
-main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge,
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle,
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset,
-main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{ margin-inline-start:-1px; }
-main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ margin-inline-start:-1px; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{
     gap:var(--lwc-space-2); padding:0 var(--lwc-space-4); color:var(--lwc-ink); font-size:var(--lwc-type-sm); font-weight:700;
 }
-main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge i{ color:var(--lwc-accent); }
-main[data-leaderboard-page="full"] .leaderboard-controls :is(.leaderboard-order-toggle, .sidebar-toggle){
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge i{ color:var(--lwc-accent); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .sidebar-toggle){
     display:inline-grid; place-items:center; width:var(--bar-height); padding:0; font-size:1.1rem;
 }
-main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle i{ color:inherit; font-size:1.1rem; }
-main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{ border-radius:0 var(--lwc-radius-md) var(--lwc-radius-md) 0; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset{ width:var(--bar-height); background:var(--lwc-accent-soft); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle i{ color:inherit; font-size:1.1rem; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ border-radius:0 var(--lwc-radius-md) var(--lwc-radius-md) 0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ width:var(--bar-height); background:var(--lwc-accent-soft); }
 
-main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge:hover,
-main[data-leaderboard-page="full"] .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle):hover:enabled{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge:hover,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle):hover:enabled{
     z-index:1; background:var(--lwc-accent-soft); border-color:var(--lwc-accent); color:var(--lwc-accent-hover); transform:none;
 }
 /* On: the segment fills and its outline sits above its neighbours'. */
-main[data-leaderboard-page="full"] .leaderboard-group-switcher input:checked + label,
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]),
-main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle:is(.active, .has-active-state),
-main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch:is(:focus, :not(:placeholder-shown)){
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:checked + label,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]),
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle:is(.active, .has-active-state),
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch:is(:focus, :not(:placeholder-shown)){
     z-index:1; border-color:var(--lwc-accent);
 }
-main[data-leaderboard-page="full"] .leaderboard-group-switcher input:checked + label,
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]),
-main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle:is(.active, .has-active-state){
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:checked + label,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]),
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle:is(.active, .has-active-state){
     background:var(--lwc-accent-soft); color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-accent);
 }
-main[data-leaderboard-page="full"] .leaderboard-group-switcher input:checked + label i{ color:var(--lwc-accent-hover); }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]){ border-radius:0; }
-main[data-leaderboard-page="full"] .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle):focus-visible,
-main[data-leaderboard-page="full"] .leaderboard-group-switcher input:focus-visible + label{ z-index:2; outline:3px solid var(--lwc-accent); outline-offset:-3px; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle:disabled{ opacity:1; color:var(--lwc-muted); }
-main[data-leaderboard-page="full"] .leaderboard-controls .search-icon{ font-size:1rem; color:var(--lwc-muted); }
-main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ z-index:0; }
-main[data-leaderboard-page="full"] .leaderboard-controls .search-container:focus-within{ z-index:1; }
-main[data-leaderboard-page="full"] .leaderboard-controls .search-container:focus-within .search-icon{ color:var(--lwc-accent); }
-main[data-leaderboard-page="full"] .leaderboard-controls .search-container .clear-icon{ z-index:2; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:checked + label i{ color:var(--lwc-accent-hover); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]){ border-radius:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle):focus-visible,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:focus-visible + label{ z-index:2; outline:3px solid var(--lwc-accent); outline-offset:-3px; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:disabled{ opacity:1; color:var(--lwc-muted); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-icon{ font-size:1rem; color:var(--lwc-muted); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ z-index:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container:focus-within{ z-index:1; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container:focus-within .search-icon{ color:var(--lwc-accent); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container .clear-icon{ z-index:2; }
 
 /* The Order strip: the board's second band, its fields laid out as a sentence. */
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{
     position:static; z-index:auto; box-sizing:border-box; width:auto; max-width:none !important; max-height:none !important;
     grid-template-columns:minmax(0, 1fr) var(--bar-height) minmax(0, 1fr); align-items:end; column-gap:var(--lwc-space-3);
     margin:0 calc(-1 * var(--bar-pad)); padding:var(--lwc-space-3) var(--bar-pad) var(--lwc-space-4);
     border:0; border-top:1px solid var(--lwc-border); border-radius:0; background:var(--lwc-surface-muted); box-shadow:none;
     overflow:visible; transform:none;
 }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-rows{ display:contents; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:1; gap:var(--lwc-space-1); }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:3; margin:0; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-swap{ grid-row:1; grid-column:2; width:var(--bar-height); height:var(--bar-height); justify-self:center; }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-swap svg{ transform:rotate(90deg); }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row label{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-rows{ display:contents; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:1; gap:var(--lwc-space-1); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:3; margin:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap{ grid-row:1; grid-column:2; width:var(--bar-height); height:var(--bar-height); justify-self:center; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap svg{ transform:rotate(90deg); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row label{
     color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase;
 }
-main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-field{ border-color:var(--lwc-border-strong); border-radius:var(--lwc-radius-md); background:var(--lwc-surface); }
-main[data-leaderboard-page="full"] .leaderboard-order-select:has(.order-selected-value) select{
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-field{ border-color:var(--lwc-border-strong); border-radius:var(--lwc-radius-md); background:var(--lwc-surface); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-select:has(.order-selected-value) select{
     position:absolute; inset:0; z-index:1; height:100% !important; opacity:0;
 }
-main[data-leaderboard-page="full"] .order-selected-value{
+main:is([data-leaderboard-page="full"], .homepage-main) .order-selected-value{
     display:flex; align-items:center; box-sizing:border-box; min-height:max(44px, 2.75rem);
     padding:.5rem 2rem .5rem min(.75rem, 12px); font-size:.9rem; line-height:1.25;
     overflow-wrap:anywhere; pointer-events:none;
 }
-main[data-leaderboard-page="full"] select:disabled + .order-selected-value{ color:var(--lwc-muted); }
+main:is([data-leaderboard-page="full"], .homepage-main) select:disabled + .order-selected-value{ color:var(--lwc-muted); }
 /* The page already reserves the sticky header; leave only focus-ring clearance here. */
-main[data-leaderboard-page="full"] .leaderboard-order-panel :is(select, button){ scroll-margin-block:12px; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-panel :is(select, button){ scroll-margin-block:12px; }
 
 /* Laptop and tablet: tabs across the first row, the whole bar across the second. */
 @media (max-width: 1100px){
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
         grid-template-columns:minmax(0, 1fr) repeat(4, auto); padding-bottom:var(--lwc-space-3);
     }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{
         grid-column:1 / -1; width:auto; max-width:none; margin:0 calc(-1 * var(--bar-pad)) var(--lwc-space-3); padding-inline:var(--bar-pad);
         border-bottom:1px solid var(--lwc-border);
     }
-    main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ grid-row:2; grid-column:1; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-group-switcher{ grid-row:2; grid-column:2; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle{ grid-row:2; grid-column:3; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset{ grid-row:2; grid-column:4; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{ grid-row:2; grid-column:5; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{ grid-row:3; margin:var(--lwc-space-3) calc(-1 * var(--bar-pad)) calc(-1 * var(--lwc-space-3)); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ grid-row:2; grid-column:1; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-group-switcher{ grid-row:2; grid-column:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle{ grid-row:2; grid-column:3; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ grid-row:2; grid-column:4; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ grid-row:2; grid-column:5; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-row:3; margin:var(--lwc-space-3) calc(-1 * var(--bar-pad)) calc(-1 * var(--lwc-space-3)); }
 }
 
 /* Phones: no title row. The tabs run edge to edge, the bar keeps By Flag as
    its flag, and the Order strip stacks its two fields beside one swap. */
 @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
-    main[data-leaderboard-page="full"]{ --bar-pad:var(--lwc-space-3); }
-    main[data-leaderboard-page="full"] .leaderboard-controls{ margin-top:0; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-label{
+    main:is([data-leaderboard-page="full"], .homepage-main){ --bar-pad:var(--lwc-space-3); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls{ margin-top:0; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-switcher-label{
         position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;
     }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{ padding-inline:var(--lwc-space-1); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{ padding-inline:var(--lwc-space-1); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
         display:flex; flex:1 1 auto; flex-wrap:wrap; width:100%; gap:0; margin:0; padding:0; border:0;
     }
-    html body main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher .view-badge{ flex:1 1 0; min-height:52px; padding:0 var(--lwc-space-1); }
-    main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge{ width:var(--bar-height); justify-content:center; padding:0; font-size:0; }
-    main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge i{ font-size:1.05rem; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{ grid-template-columns:var(--bar-height) minmax(0, 1fr); align-items:center; row-gap:var(--lwc-space-3); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-swap{ grid-row:1 / span 2; grid-column:1; align-self:center; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-swap svg{ transform:none; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:2; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-row:2; grid-column:2; }
-    main[data-leaderboard-page="full"] .leaderboard-controls-status{ padding-inline:var(--bar-pad); }
+    html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-badge{ flex:1 1 0; min-height:52px; padding:0 var(--lwc-space-1); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{ width:var(--bar-height); justify-content:center; padding:0; font-size:0; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge i{ font-size:1.05rem; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-template-columns:var(--bar-height) minmax(0, 1fr); align-items:center; row-gap:var(--lwc-space-3); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap{ grid-row:1 / span 2; grid-column:1; align-self:center; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap svg{ transform:none; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-row:2; grid-column:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls-status{ padding-inline:var(--bar-pad); }
 }
 /* Enlarged text on a phone: the query gets the whole row and the tools close
    ranks under it, wrapping rather than pushing the page sideways. */
 @container lwc-bar (max-width: 17.5rem){
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-toolbar{ display:flex; flex-direction:row; flex-wrap:wrap; justify-content:flex-start; align-items:center; row-gap:var(--lwc-space-2); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-view-switcher{ order:0; flex:1 0 100%; box-sizing:border-box; margin-bottom:var(--lwc-space-1); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .search-container{ order:1; flex:1 0 100%; }
-    main[data-leaderboard-page="full"] .leaderboard-controls #athleteSearch{ border-radius:var(--lwc-radius-md); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-group-switcher{ order:2; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-toggle{ order:3; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-reset{ order:4; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .sidebar-toggle{ order:5; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{ order:6; flex:1 0 calc(100% + 2 * var(--bar-pad)); margin-bottom:calc(-1 * var(--lwc-space-3)); }
-    main[data-leaderboard-page="full"] .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle),
-    main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge{ width:max(44px, 2.5rem); }
-    main[data-leaderboard-page="full"] .leaderboard-group-switcher .view-badge{ margin-inline-start:0; border-radius:var(--lwc-radius-md) 0 0 var(--lwc-radius-md); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-panel{ grid-template-columns:minmax(0, 1fr); }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row{ grid-column:1; grid-row:1; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:1; grid-row:2; }
-    main[data-leaderboard-page="full"] .leaderboard-controls .leaderboard-order-swap{ grid-column:1; grid-row:3; justify-self:end; }
-    main[data-leaderboard-page="full"] .leaderboard-order-select{ grid-column:1 / -1; }
-    main[data-leaderboard-page="full"] .leaderboard-order-direction{ grid-column:2; border-top:1px solid var(--lwc-border); }
-    main[data-leaderboard-page="full"] .leaderboard-order-clear{ grid-column:3; border-top:1px solid var(--lwc-border); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{ display:flex; flex-direction:row; flex-wrap:wrap; justify-content:flex-start; align-items:center; row-gap:var(--lwc-space-2); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{ order:0; flex:1 0 100%; box-sizing:border-box; margin-bottom:var(--lwc-space-1); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ order:1; flex:1 0 100%; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch{ border-radius:var(--lwc-radius-md); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-group-switcher{ order:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle{ order:3; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ order:4; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ order:5; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ order:6; flex:1 0 calc(100% + 2 * var(--bar-pad)); margin-bottom:calc(-1 * var(--lwc-space-3)); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle),
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{ width:max(44px, 2.5rem); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{ margin-inline-start:0; border-radius:var(--lwc-radius-md) 0 0 var(--lwc-radius-md); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-template-columns:minmax(0, 1fr); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row{ grid-column:1; grid-row:1; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:1; grid-row:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap{ grid-column:1; grid-row:3; justify-self:end; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-select{ grid-column:1 / -1; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-direction{ grid-column:2; border-top:1px solid var(--lwc-border); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-clear{ grid-column:3; border-top:1px solid var(--lwc-border); }
 }
 /* Column heads: the site's small uppercase titles, held under the header
    while the rows scroll, so every score keeps its name. */
