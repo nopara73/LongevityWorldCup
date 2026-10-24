@@ -2646,8 +2646,8 @@ body.site-menu-open {
 
 @starting-style {
     .site-sticky-header.visible .site-sticky-header-link {
-        scale: 1.22;
-        translate: 0 6px;
+        scale: var(--site-sticky-arrival-scale, 1);
+        translate: 0 var(--site-sticky-arrival-y, 0px);
         opacity: 0.4;
     }
 }

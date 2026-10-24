@@ -165,7 +165,17 @@ function fitStickyHeader(stickyHeader) {
     // offsetWidth is the layout box; the arrival animation must not change fitting.
     const stacked = controls.length && link && link.offsetWidth > available + 1;
     stickyHeader.classList.toggle('is-stacked', Boolean(stacked));
+    // Let the lockup settle from a larger size only while it stays clear of
+    // the action row. The entrance must fit as well as its final layout.
+    const fittedStyle = getComputedStyle(stickyHeader);
+    const arrivalWidth = stickyHeader.clientWidth - parseFloat(fittedStyle.paddingLeft) - parseFloat(fittedStyle.paddingRight);
     const height = stickyHeader.getBoundingClientRect().height;
+    const rowGap = stacked && link ? height - actionHeight - 4 - link.offsetTop - link.offsetHeight : Infinity;
+    const arrivalY = Math.min(6, Math.max(0, rowGap - 1));
+    const verticalScale = link?.offsetHeight ? 1 + 2 * Math.max(0, rowGap - arrivalY - 1) / link.offsetHeight : 1;
+    stickyHeader.style.setProperty('--site-sticky-arrival-scale', String(link?.offsetWidth
+        ? Math.max(1, Math.min(1.22, verticalScale, arrivalWidth / link.offsetWidth)) : 1));
+    stickyHeader.style.setProperty('--site-sticky-arrival-y', `${arrivalY}px`);
     if (hasAction) {
         scrolledJoinButton.style.top = `${stacked ? height - actionHeight - 4 + (actionHeight - action.height) / 2 : (height - action.height) / 2}px`;
     }
@@ -611,7 +621,7 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         menu.style.removeProperty('--site-menu-drag');
     }
     function open(fromToggle) {
-        if (isOpen() || !build()) return;
+        if (isOpen() || !customAlertDialog.hidden || !loadingDialog.hidden || !build()) return;
         clearTimeout(closeTimer);
         opener = fromToggle || document.activeElement;
         resetDrag();
@@ -714,7 +724,10 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     // Alert/loading panels can arrive asynchronously while navigation is open.
     const overlayObserver = new MutationObserver(() => {
         if (menu.open && (!customAlertDialog.hidden || !loadingDialog.hidden)) {
+            const returnFocus = opener;
             close(false, true);
+            if (menu.contains(customAlertPreviousFocus)) customAlertPreviousFocus = returnFocus;
+            if (menu.contains(loadingDialogPreviousFocus)) loadingDialogPreviousFocus = returnFocus;
             if (!customAlertDialog.hidden) customAlertCloseButton.focus({ preventScroll: true });
             else loadingDialog.querySelector('.loading-dialog-panel')?.focus({ preventScroll: true });
         }

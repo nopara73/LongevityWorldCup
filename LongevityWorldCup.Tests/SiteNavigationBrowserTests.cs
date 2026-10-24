@@ -140,6 +140,57 @@ public sealed class SiteNavigationBrowserTests(
         Assert.Equal("", await page.Locator(".site-menu-panel").EvaluateAsync<string>("e => e.style.translate"));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Menu_YieldsToAsyncOverlaysAndPreservesTheirReturnFocus(bool alert)
+    {
+        await using var context = await ContextAsync(390, 844);
+        var page = await context.NewPageAsync();
+        await OpenAsync(page);
+        await page.EvaluateAsync(alert ? "() => { void customAlert('Navigation test'); }" : "() => showLoading()");
+        await Assertions.Expect(page.Locator("#site-menu")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(alert ? "#custom-alert-close" : ".loading-dialog-panel")).ToBeFocusedAsync();
+        await page.Locator("header .site-menu-toggle").EvaluateAsync("e => e.click()");
+        Assert.False(await page.Locator("#site-menu").EvaluateAsync<bool>("e => e.open"));
+        await page.EvaluateAsync(alert ? "() => closeCustomAlert()" : "() => hideLoading()");
+        await Assertions.Expect(page.Locator("header .site-menu-toggle")).ToBeFocusedAsync();
+        Assert.False(await page.EvaluateAsync<bool>("document.body.matches('.site-menu-open,.no-scroll')"));
+    }
+
+    [Theory]
+    [InlineData(320)]
+    [InlineData(390)]
+    [InlineData(844)]
+    public async Task StickyArrival_KeepsTheAnimatedBrandClearOfBothControls(int width)
+    {
+        await using var context = await ContextAsync(width, 720);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.Load });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var overlaps = await page.EvaluateAsync<int>("""
+            async () => {
+                const sticky = document.querySelector('#site-sticky-header');
+                const brand = sticky.querySelector('.site-sticky-header-link');
+                const controls = [document.querySelector('.scrolled-button'), sticky.querySelector('.site-menu-toggle')];
+                scrollTo(0, document.querySelector('header[role=banner]').offsetHeight + 1);
+                let overlaps = 0;
+                for (let frame = 0; frame < 32; frame++) {
+                    await new Promise(requestAnimationFrame);
+                    const b = brand.getBoundingClientRect();
+                    for (const control of controls) {
+                        const a = control.getBoundingClientRect();
+                        if (a.width && b.width && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) overlaps++;
+                    }
+                }
+                return overlaps;
+            }
+            """);
+        Assert.Equal(0, overlaps);
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
+    }
+
     [Fact]
     public async Task Headroom_RevealsFocusedControlsAndRestoredScroll()
     {
