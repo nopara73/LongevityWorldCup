@@ -108,15 +108,14 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
    so an explanation reads the same in rows, boards and both themes. */
 .badge-tip{
     position:fixed;
+    display:flex;
+    flex-direction:column;
     z-index:10050;
     box-sizing:border-box;
     width:max-content;
     max-width:min(20rem,calc(100vw - 16px));
     max-height:calc(100dvh - 16px);
-    overflow-y:auto;
-    overscroll-behavior:contain;
     overflow-wrap:anywhere;
-    padding:.55rem .75rem;
     border:1px solid rgba(255,255,255,.14);
     border-radius:var(--lwc-radius-sm,8px);
     background:#17212b;
@@ -130,6 +129,15 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     animation:badge-tip-in var(--lwc-duration-fast,140ms) var(--lwc-ease,ease)
 }
 .badge-tip[hidden]{display:none}
+/* Only the text scrolls. Keeping the arrow outside that scrollport prevents
+   its overhang from creating a scrollbar on an otherwise fitting card. */
+.badge-tip-content{
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:.55rem .75rem;
+    border-radius:inherit;
+}
 .badge-tip::after{
     content:"";
     position:absolute;
