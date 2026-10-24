@@ -944,6 +944,9 @@ public sealed class PlayAthleteFlowBrowserTests(
         await page.WaitForFunctionAsync("() => window.location.pathname === '/select-athlete'");
         await athleteRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        // Fast in-flow preparation keeps the previous screen available. A
+        // genuinely delayed request must still reach the loading state.
+        await page.WaitForFunctionAsync("() => document.body.classList.contains('play-route-hydrating')");
         Assert.True(await page.Locator("body").EvaluateAsync<bool>(
             "body => body.classList.contains('play-route-hydrating') && body.getAttribute('aria-busy') === 'true'"));
         Assert.False(await page.Locator("#newGameBtn").IsVisibleAsync());

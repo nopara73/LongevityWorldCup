@@ -62,6 +62,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_PLAY_ATHLETE_FLOW_CSS}}"] = "/css/play-athlete-flow.css",
         ["{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}"] = "/assets/content-images/play-athlete-placeholder.jpg",
         ["{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}"] = "/assets/content-images/play-athlete-placeholder.webp",
+        ["{{ASSET_PLAY_FLOW_MOTION_CSS}}"] = "/css/play-flow-motion.css",
         ["{{ASSET_PLAY_MENU_CSS}}"] = "/css/play-menu.css",
         ["{{ASSET_POPPINS_BOLD}}"] = "/assets/fonts/Poppins-Bold.ttf",
         ["{{ASSET_POPPINS_REGULAR}}"] = "/assets/fonts/Poppins-Regular.ttf",
