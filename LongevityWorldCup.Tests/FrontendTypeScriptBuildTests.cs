@@ -9,6 +9,7 @@ public sealed class FrontendTypeScriptBuildTests
 {
     private static readonly string[] ClassicScripts =
     [
+        "athlete-browse-motion",
         "bioage-flow",
         "custom-event-markup",
         "field-validation",
