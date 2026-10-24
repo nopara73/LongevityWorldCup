@@ -84,6 +84,50 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         /// <summary>
+        /// The current top of the Ultimate League, for pages that show a live standings board.
+        /// Each row carries last month's placement so the board can show who climbed.
+        /// </summary>
+        [HttpGet("standings")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public IActionResult GetStandings()
+        {
+            var board = new PublicLeaderboardSnapshot(_svc.GetAthletesSnapshot(), DateTime.UtcNow.Date);
+            var rows = board.Athletes.Take(StandingsRows).Select(a => new
+            {
+                rank = a.Row.Rank,
+                name = a.Row.DisplayName,
+                path = a.Row.AthletePath,
+                thumb = a.Row.LeaderboardThumbnailUrl,
+                ageReduction = a.Row.EffectiveAgeReductionYears,
+                decimals = a.Row.MetricDecimals,
+                lastMonthRank = LastMonthPlacement(a.Source)
+            }).ToList();
+
+            var eTag = PublicGetCacheHeaders.BuildWeakContentETag(JsonSerializer.Serialize(rows));
+            PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AthleteSnapshotCacheControl, PublicGetCacheHeaders.AthleteSnapshotMaxAgeSeconds, eTag);
+            if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
+            return Ok(rows);
+        }
+
+        private const int StandingsRows = 8;
+
+        // Placements are [yesterday, last week, last month, last year].
+        private static int? LastMonthPlacement(System.Text.Json.Nodes.JsonObject athlete)
+        {
+            var node = athlete["Placements"];
+            if (node is System.Text.Json.Nodes.JsonValue text && text.TryGetValue<string>(out var raw))
+            {
+                try { node = System.Text.Json.Nodes.JsonNode.Parse(raw); } catch (JsonException) { return null; }
+            }
+            return node is System.Text.Json.Nodes.JsonArray placements && placements.Count > 2
+                   && placements[2] is System.Text.Json.Nodes.JsonValue month && month.TryGetValue<int>(out var rank)
+                ? rank
+                : null;
+        }
+
+        /// <summary>
         /// Calculate a Pheno Age result.
         /// </summary>
         /// <remarks>
