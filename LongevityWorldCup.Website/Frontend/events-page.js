@@ -498,7 +498,7 @@ const eventsPageAssets = document.currentScript.dataset;
     let openLinksInNewTab = false;
     let eventBoardMarkupOptions = {};
 
-    function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
+    function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null, links=allowBadgeClicks){
         try{
             const ownedBadge = findServerBadgeOnAthleteStrict(athlete,label,leagueCategory,leagueValue,place);
             const ownedNow = !!ownedBadge;
@@ -510,7 +510,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const tip=typeof window.makeTooltipFromServerBadge==='function'
                 ? window.makeTooltipFromServerBadge(b, athlete||null, { suppressValues: !ownedNow })
                 : String(label);
-            const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
+            const url=(links && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
             const familyClass=typeof window.getBadgeFamilyClass==='function'?window.getBadgeFamilyClass(b):'badge-family-utility';
             if(url){
                 const isPodcast=String(label||'').trim().toLowerCase()==='podcast';
@@ -842,6 +842,7 @@ const eventsPageAssets = document.currentScript.dataset;
     let monthHeadingObserver=null;
     function markFeedGroups(tbody){
         const chapters=!!tbody.closest('.event-board-page');
+        if (chapters) monthRevealObserver?.disconnect();
         if(chapters&&typeof ResizeObserver==='function'){
             monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>{
                 target.parentElement?.style.setProperty('--event-month-height',`${target.getBoundingClientRect().height}px`);
@@ -905,6 +906,7 @@ const eventsPageAssets = document.currentScript.dataset;
     const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let feedAthletesIndex = new Map();
     const feedLoads = new Map();
+    const feedRequests = new WeakMap();
 
     function readSeenAt(mode){
         try { return Number(window.localStorage.getItem(FEED_SEEN_KEY + mode)) || 0; } catch(_) { return 0; }
@@ -934,6 +936,7 @@ const eventsPageAssets = document.currentScript.dataset;
     // that stay can already slide into the gap beneath it.
     function makeExitGhost(table, row, rect){
         const ghost = document.createElement('div');
+        ghost._feedHost = table.closest('#events-root-index') || document.body;
         ghost.className = 'events-exit-ghost';
         if (table.closest('.event-board-page')) ghost.classList.add('event-board-page');
         ghost.setAttribute('aria-hidden', 'true');
@@ -961,7 +964,7 @@ const eventsPageAssets = document.currentScript.dataset;
     }
 
     function settleFeedRerender(table, previous, newIds){
-        const reduced = prefersReducedMotion();
+        const reduced = prefersReducedMotion() || document.hidden;
         // Keep the reader's place: the row they were looking at stays put even
         // when something new lands above it.
         if (previous.anchor && window.scrollY > 120) {
@@ -993,7 +996,13 @@ const eventsPageAssets = document.currentScript.dataset;
         });
         previous.ghosts.forEach(ghost => {
             if (reduced) return;
-            document.body.appendChild(ghost);
+            ghost._feedHost.appendChild(ghost);
+            const parent = ghost.offsetParent;
+            if (parent && parent !== document.body) {
+                const origin = parent.getBoundingClientRect();
+                ghost.style.left = `${parseFloat(ghost.style.left) - origin.left - window.scrollX - parent.clientLeft + parent.scrollLeft}px`;
+                ghost.style.top = `${parseFloat(ghost.style.top) - origin.top - window.scrollY - parent.clientTop + parent.scrollTop}px`;
+            }
             const anim = ghost.animate([
                 { opacity: 1, transform: 'none' },
                 { opacity: 0, transform: 'translateY(6px) scale(.985)' }
@@ -1079,7 +1088,11 @@ const eventsPageAssets = document.currentScript.dataset;
     function resetFeedMore(table){
         if (!table) return;
         table._feedPending = [];
+        window.clearTimeout(table._feedMoreTimer);
+        window.clearTimeout(table._feedIdleTimer);
+        table._feedLoadingMore = false;
         table._feedMoreObserver?.disconnect();
+        monthRevealObserver?.disconnect();
         table.querySelector('tbody.events-more')?.remove();
     }
 
@@ -1095,6 +1108,7 @@ const eventsPageAssets = document.currentScript.dataset;
     }
 
     function mountFeedMore(table){
+        window.clearTimeout(table._feedIdleTimer);
         table.querySelector('tbody.events-more')?.remove();
         if (!table._feedPending?.length) return;
         const more = document.createElement('tbody');
@@ -1102,20 +1116,24 @@ const eventsPageAssets = document.currentScript.dataset;
         more.setAttribute('aria-hidden', 'true');
         more.innerHTML = buildEventSkeletonRows(3);
         table.appendChild(more);
+        if (document.hidden) return;
         if (typeof IntersectionObserver !== 'function') { loadFeedMore(table); return; }
         table._feedMoreObserver ??= new IntersectionObserver(entries => {
             if (entries.some(entry => entry.isIntersecting)) loadFeedMore(table);
         }, { rootMargin: '0px 0px 320px 0px' });
         table._feedMoreObserver.disconnect();
         table._feedMoreObserver.observe(more);
+        // Finish mounting in quiet batches so browser Find and keyboard users
+        // can reach the complete timeline without having to scroll first.
+        if (!document.hidden) table._feedIdleTimer = window.setTimeout(() => loadFeedMore(table, true), 1000);
     }
 
-    function loadFeedMore(table){
+    function loadFeedMore(table, immediate=false){
         if (table._feedLoadingMore || !table._feedPending?.length) return;
         table._feedLoadingMore = true;
         table.querySelector('tbody.events-more')?.classList.add('is-loading');
-        const dwell = prefersReducedMotion() ? 0 : 260;
-        window.setTimeout(() => {
+        const dwell = immediate || prefersReducedMotion() ? 0 : 260;
+        table._feedMoreTimer = window.setTimeout(() => {
             table._feedLoadingMore = false;
             const units = table._feedPending.splice(0, FEED_CHUNK);
             if (!units.length) return;
@@ -1136,6 +1154,28 @@ const eventsPageAssets = document.currentScript.dataset;
         }, dwell);
     }
 
+    document.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+            document.querySelectorAll('.event-board-page #eventsTable').forEach(table => {
+                if (!table._feedPending?.length) return;
+                window.clearTimeout(table._feedMoreTimer);
+                table._feedLoadingMore = false;
+                const first = flattenFeedBodies(table);
+                table._feedPending.splice(0).forEach(unit => first.append(...unit));
+                applyZebraStriping(first);
+                markFeedGroups(first);
+                mountFeedMore(table);
+                table.querySelectorAll('.row-appear').forEach(row => row.classList.add('is-visible'));
+            });
+        }
+    });
+    document.addEventListener('focusin', event => {
+        const table = event.target.closest?.('.event-board-page #eventsTable');
+        if (!table?._feedPending?.length) return;
+        const rows = [...table.querySelectorAll('tr.main-row')];
+        if (rows.slice(-3).includes(event.target.closest('tr'))) loadFeedMore(table, true);
+    });
+
     // Relative labels ("joined 3 days ago") follow the clock, rolling to the
     // new value instead of waiting for a reload.
     function tickRelativeLabels(){
@@ -1144,14 +1184,56 @@ const eventsPageAssets = document.currentScript.dataset;
             const next = relativeDayLabel(el.dataset.relAt);
             const current = el.dataset.relHtml ?? el.innerHTML;
             el.dataset.relHtml = next;
-            if (next === current) return;
             if (reduced) { el.innerHTML = next; return; }
+            if (next === current) return;
             el.innerHTML = `<span class="event-rel-out" aria-hidden="true">${current}</span><span class="event-rel-in">${next}</span>`;
             window.setTimeout(() => { if (el.dataset.relHtml === next) el.innerHTML = next; }, 520);
         });
     }
-    window.setInterval(tickRelativeLabels, 60000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) { tickRelativeLabels(); refreshLiveFeeds(); } });
+    let relativeTimer = 0, liveTimer = 0;
+    function stopFeedClocks(){
+        window.clearInterval(relativeTimer);
+        window.clearInterval(liveTimer);
+        relativeTimer = liveTimer = 0;
+        document.querySelectorAll('#eventsTable').forEach(table => {
+            window.clearTimeout(table._feedMoreTimer);
+            window.clearTimeout(table._feedIdleTimer);
+            table._feedLoadingMore = false;
+            table._feedMoreObserver?.disconnect();
+        });
+        document.querySelectorAll('.event-portrait-flight, .events-exit-ghost').forEach(el => {
+            el.getAnimations().forEach(animation => animation.cancel());
+            el.remove();
+        });
+        document.querySelectorAll('.is-lifted').forEach(el => el.classList.remove('is-lifted'));
+    }
+    function startFeedClocks(){
+        if (document.hidden || relativeTimer) return;
+        relativeTimer = window.setInterval(tickRelativeLabels, 60000);
+        liveTimer = window.setInterval(refreshLiveFeeds, 90000);
+        document.querySelectorAll('.event-board-page #eventsTable').forEach(mountFeedMore);
+        tickRelativeLabels();
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopFeedClocks();
+        else { startFeedClocks(); refreshLiveFeeds(); }
+    });
+    window.addEventListener('pagehide', stopFeedClocks);
+    window.addEventListener('pageshow', startFeedClocks);
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
+        if (!event.matches) return;
+        rowObserver?.disconnect();
+        monthRevealObserver?.disconnect();
+        document.querySelectorAll('.events-board .row-appear').forEach(row => row.classList.add('is-visible'));
+        document.querySelectorAll('.events-month-row').forEach(row => row.classList.add('is-revealed', 'is-settled'));
+        document.querySelectorAll('.events-board .main-row, .event-athlete-preview, .event-portrait-flight, .events-exit-ghost').forEach(el => {
+            el.getAnimations().forEach(animation => animation.cancel());
+            el.classList.remove('is-arriving', 'is-launching');
+            if (el.matches('.event-portrait-flight, .events-exit-ghost')) el.remove();
+        });
+        document.querySelectorAll('.is-lifted').forEach(el => el.classList.remove('is-lifted'));
+        tickRelativeLabels();
+    });
 
     // New moments find their way in while the page is open.
     let lastLiveRefresh = Date.now();
@@ -1168,7 +1250,7 @@ const eventsPageAssets = document.currentScript.dataset;
             else run();
         });
     }
-    window.setInterval(refreshLiveFeeds, 90000);
+    startFeedClocks();
     window.refreshEventsFeed = () => refreshLiveFeeds(true);
 
     function slugFromAthleteLink(link){
@@ -1181,7 +1263,7 @@ const eventsPageAssets = document.currentScript.dataset;
     // Hovering (or pressing and holding) a name previews the athlete.
     const athletePreview = (function(){
         const SELECTOR = '.events-board a[href*="/athlete/"]:not(.badge-clickable):not(.placement-link)';
-        let card = null, anchor = null, showTimer = 0, hideTimer = 0, pressTimer = 0;
+        let card = null, anchor = null, showTimer = 0, hideTimer = 0, pressTimer = 0, leaveTimer = 0;
         let pressing = false, pressStart = null, suppressClickFor = null;
 
         function build(){
@@ -1189,13 +1271,14 @@ const eventsPageAssets = document.currentScript.dataset;
             card = document.createElement('div');
             card.id = 'eventAthletePreview';
             card.className = 'event-athlete-preview';
-            card.setAttribute('role', 'tooltip');
+            card.setAttribute('role', 'group');
             card.hidden = true;
             card.addEventListener('pointerenter', () => window.clearTimeout(hideTimer));
             card.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') scheduleHide(); });
-            card.addEventListener('click', () => {
+            card.addEventListener('click', event => {
+                if (event.target.closest('.badge-class')) return;
+                event.preventDefault();
                 const link = anchor;
-                hide(true);
                 if (link?.isConnected) link.click();
             });
             document.body.appendChild(card);
@@ -1211,17 +1294,17 @@ const eventsPageAssets = document.currentScript.dataset;
             const badgeList = Array.isArray(athlete?.[map['badges']]) ? athlete[map['badges']] : [];
             const badges = badgeList.slice(0, 6).map(b => {
                 const bm = lowerKeyMap(b);
-                return renderBadgeBubbleForLabel(b[bm['badgelabel']] || b[bm['label']] || '', athlete, b[bm['leaguecategory']] ?? null, b[bm['leaguevalue']] ?? null, b[bm['place']] ?? null)
-                    .replace(/<a\b/, '<span').replace(/<\/a>$/, '</span>').replace(/\shref="[^"]*"/, '').replace(/\starget="[^"]*"/, '').replace(/\stabindex="0"/, '');
+                return renderBadgeBubbleForLabel(b[bm['badgelabel']] || b[bm['label']] || '', athlete, b[bm['leaguecategory']] ?? null, b[bm['leaguevalue']] ?? null, b[bm['place']] ?? null, false);
             }).join('');
             const portrait = pic
                 ? `<img src="${esc(pic)}" alt="" decoding="async" referrerpolicy="no-referrer">`
                 : `<span class="avatar-fallback">${esc(initialsFromName(name))}</span>`;
             card.dataset.slug = slug;
+            card.setAttribute('aria-label', name);
             card.innerHTML = `
                 <span class="event-athlete-preview-band" aria-hidden="true"></span>
                 <span class="event-athlete-preview-portrait">${portrait}</span>
-                <span class="event-athlete-preview-name">${esc(name)}${placement ? ` <span class="event-athlete-preview-rank">${podiumIcon(placement)}#${placement}</span>` : ''}</span>
+                <a class="event-athlete-preview-name" href="${esc(makeAthleteUrlFromSlug(slug))}">${esc(name)}${placement ? ` <span class="event-athlete-preview-rank">${podiumIcon(placement)}#${placement}</span>` : ''}</a>
                 ${meta.length ? `<span class="event-athlete-preview-meta">${meta.map(esc).join(' · ')}</span>` : ''}
                 ${badges ? `<span class="event-athlete-preview-badges">${badges}</span>` : ''}`;
             card.querySelector('img')?.addEventListener('error', event => {
@@ -1233,10 +1316,13 @@ const eventsPageAssets = document.currentScript.dataset;
             const r = link.getBoundingClientRect();
             const vw = document.documentElement.clientWidth;
             const vh = window.innerHeight;
+            card.style.maxHeight = '';
+            const belowRoom = vh - r.bottom - 18, aboveRoom = r.top - 18;
+            const below = card.offsetHeight <= belowRoom || belowRoom >= aboveRoom;
+            card.style.maxHeight = `${Math.max(48, Math.min(vh - 16, below ? belowRoom : aboveRoom))}px`;
             const cw = card.offsetWidth, ch = card.offsetHeight;
-            const below = r.bottom + 10 + ch <= vh - 8 || r.top - 10 - ch < 8;
             const left = Math.min(Math.max(8, r.left + Math.min(r.width, 160) / 2 - cw / 2), vw - cw - 8);
-            const top = below ? r.bottom + 10 : r.top - 10 - ch;
+            const top = Math.max(8, Math.min(below ? r.bottom + 10 : r.top - 10 - ch, vh - ch - 8));
             card.dataset.side = below ? 'below' : 'above';
             card.style.left = `${Math.round(left)}px`;
             card.style.top = `${Math.round(top)}px`;
@@ -1244,19 +1330,21 @@ const eventsPageAssets = document.currentScript.dataset;
         }
 
         function show(link){
+            if (!link.isConnected || document.hidden) return;
             const slug = slugFromAthleteLink(link);
             const athlete = slug ? feedAthletesIndex.get(slug) : null;
             if (!athlete) return;
             build();
             window.clearTimeout(hideTimer);
-            if (anchor && anchor !== link) anchor.removeAttribute('aria-describedby');
+            window.clearTimeout(leaveTimer);
+            if (anchor && anchor !== link) anchor.removeAttribute('aria-controls');
             anchor = link;
             if (card.dataset.slug !== slug || card.hidden) fill(athlete, slug, link);
             const wasHidden = card.hidden;
             card.hidden = false;
             card.classList.remove('is-leaving');
             place(link);
-            link.setAttribute('aria-describedby', card.id);
+            link.setAttribute('aria-controls', card.id);
             if (wasHidden && !prefersReducedMotion()) {
                 card.classList.remove('is-entering');
                 void card.offsetWidth;
@@ -1267,13 +1355,17 @@ const eventsPageAssets = document.currentScript.dataset;
         function hide(immediate=false){
             window.clearTimeout(showTimer);
             window.clearTimeout(hideTimer);
+            window.clearTimeout(leaveTimer);
+            cancelPress();
             if (!card || card.hidden) { anchor = null; return; }
-            anchor?.removeAttribute('aria-describedby');
+            if (card.contains(document.activeElement)) anchor?.focus({ preventScroll: true });
+            window.clearTimeout(showTimer);
+            anchor?.removeAttribute('aria-controls');
             anchor = null;
             if (immediate || prefersReducedMotion()) { card.hidden = true; card.classList.remove('is-entering', 'is-leaving'); return; }
             card.classList.remove('is-entering');
             card.classList.add('is-leaving');
-            window.setTimeout(() => { if (card.classList.contains('is-leaving')) { card.hidden = true; card.classList.remove('is-leaving'); } }, 130);
+            leaveTimer = window.setTimeout(() => { if (card.classList.contains('is-leaving')) { card.hidden = true; card.classList.remove('is-leaving'); } }, 130);
         }
 
         function scheduleShow(link, delay){
@@ -1285,7 +1377,9 @@ const eventsPageAssets = document.currentScript.dataset;
         function scheduleHide(){
             window.clearTimeout(showTimer);
             window.clearTimeout(hideTimer);
-            hideTimer = window.setTimeout(() => hide(), 160);
+            hideTimer = window.setTimeout(() => {
+                if (!card?.contains(document.activeElement) && !card?.matches(':hover') && !document.querySelector('.badge-tip:not([hidden]):hover')) hide();
+            }, 160);
         }
 
         document.addEventListener('pointerover', event => {
@@ -1299,15 +1393,17 @@ const eventsPageAssets = document.currentScript.dataset;
             if (link && !link.contains(event.relatedTarget) && !card?.contains(event.relatedTarget)) scheduleHide();
         });
         document.addEventListener('focusin', event => {
+            if (card?.contains(event.target)) { window.clearTimeout(hideTimer); return; }
             const link = event.target.closest?.(SELECTOR);
             if (link && link.matches(':focus-visible')) scheduleShow(link, 450);
         });
         document.addEventListener('focusout', event => {
-            if (event.target.closest?.(SELECTOR)) scheduleHide();
+            if (event.target.closest?.(SELECTOR) || card?.contains(event.target)) scheduleHide();
         });
         document.addEventListener('pointerdown', event => {
             if (card && !card.hidden && !card.contains(event.target) && !event.target.closest?.(SELECTOR)) hide();
             if (event.pointerType === 'mouse') return;
+            suppressClickFor = null;
             const link = event.target.closest?.(SELECTOR);
             if (!link) return;
             pressing = true;
@@ -1321,7 +1417,7 @@ const eventsPageAssets = document.currentScript.dataset;
         }, { passive: true });
         const cancelPress = () => { pressing = false; window.clearTimeout(pressTimer); };
         document.addEventListener('pointerup', cancelPress, { passive: true });
-        document.addEventListener('pointercancel', cancelPress, { passive: true });
+        document.addEventListener('pointercancel', () => { cancelPress(); suppressClickFor = null; }, { passive: true });
         document.addEventListener('pointermove', event => {
             if (pressing && pressStart && Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > 10) cancelPress();
         }, { passive: true });
@@ -1336,9 +1432,19 @@ const eventsPageAssets = document.currentScript.dataset;
         document.addEventListener('contextmenu', event => {
             if (suppressClickFor && event.target.closest?.(SELECTOR) === suppressClickFor) event.preventDefault();
         });
-        document.addEventListener('keydown', event => { if (event.key === 'Escape') hide(); });
-        window.addEventListener('scroll', () => { if (card && !card.hidden) hide(); }, { passive: true });
+        document.addEventListener('keydown', event => {
+            if (!card || card.hidden) return;
+            if (event.key === 'Escape' && !document.querySelector('.badge-tip:not([hidden])')) { event.preventDefault(); hide(true); }
+            if (event.key !== 'Tab') return;
+            const controls = [...card.querySelectorAll('a, [tabindex="0"]')];
+            if (!event.shiftKey && event.target === anchor) { event.preventDefault(); controls[0]?.focus(); }
+            else if (event.shiftKey && event.target === controls[0]) { event.preventDefault(); anchor?.focus(); }
+            else if (!event.shiftKey && event.target === controls.at(-1)) hide(true);
+        });
+        window.addEventListener('scroll', () => hide(true), { passive: true });
         window.addEventListener('resize', () => hide(true), { passive: true });
+        document.addEventListener('visibilitychange', () => { if (document.hidden) { hide(true); suppressClickFor = null; } });
+        window.addEventListener('pagehide', () => { hide(true); suppressClickFor = null; });
 
         return {
             isOpen: () => !!(card && !card.hidden),
@@ -1358,6 +1464,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const source = athletePreview.portraitFor(slug)
             || row?.querySelector(`.avatar-link[data-athlete-slug="${CSS.escape(slug)}"] img.avatar`)
             || (row?.dataset.primarySlug === slug ? row.querySelector('img.avatar') : null);
+        const from = source?.getBoundingClientRect();
         athletePreview.hide(true);
         if (row && !prefersReducedMotion()) {
             row.classList.remove('is-launching');
@@ -1365,11 +1472,10 @@ const eventsPageAssets = document.currentScript.dataset;
             row.classList.add('is-launching');
             window.setTimeout(() => row.classList.remove('is-launching'), 700);
         }
-        if (source && !prefersReducedMotion()) flyPortrait(source);
+        if (source && !prefersReducedMotion()) flyPortrait(source, from);
     });
 
-    function flyPortrait(img){
-        const from = img.getBoundingClientRect();
+    function flyPortrait(img, from=img.getBoundingClientRect()){
         if (!from.width || !(img.currentSrc || img.src)) return;
         const ghost = document.createElement('img');
         ghost.src = img.currentSrc || img.src;
@@ -1380,6 +1486,7 @@ const eventsPageAssets = document.currentScript.dataset;
         document.body.appendChild(ghost);
         img.classList.add('is-lifted');
         requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!ghost.isConnected || document.hidden || prefersReducedMotion()) { ghost.remove(); img.classList.remove('is-lifted'); return; }
             const target = document.getElementById('modalProfilePic');
             let to = target && target.getClientRects().length ? target.getBoundingClientRect() : null;
             if (!to || to.width < 8 || to.bottom < 0 || to.top > window.innerHeight) {
@@ -1406,7 +1513,9 @@ const eventsPageAssets = document.currentScript.dataset;
         // Reobserve only the surviving, unrevealed rows after reconciliation.
         rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
-        const timelineRows = chapters ? [...table.querySelectorAll('tr.main-row')] : [];
+        const timelineRows = [...table.querySelectorAll('tr.main-row')];
+        const existingRows = new Map(timelineRows.map(row => [row.dataset.eventId, row]));
+        for (const unit of table._feedPending || []) existingRows.set(unit[0].dataset.eventId, unit[0]);
         const expandedEvents = new Set(timelineRows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId));
         const active = document.activeElement;
         const focusedRow = active?.closest('tr');
@@ -1418,30 +1527,18 @@ const eventsPageAssets = document.currentScript.dataset;
             label: active.getAttribute('aria-label') || active.textContent,
             index: [...focusedRow.querySelectorAll('a, button')].indexOf(active)
         } : null;
-        const appendFromIndex = options && Number.isFinite(options.appendFromIndex) ? Math.max(0, Math.floor(options.appendFromIndex)) : 0;
-        const shouldAppend = !!(options && options.preserveExistingRows && appendFromIndex > 0);
         const nextIds = new Set((Array.isArray(rows) ? rows : []).map(r => r && r.id ? String(r.id) : '').filter(Boolean));
-        const previousFeed = shouldAppend ? null : captureFeedRows(table, nextIds);
+        const previousFeed = captureFeedRows(table, nextIds);
         resetFeedMore(table);
-        // Flatten the previous chapters before reconciling; retain the actual rows,
-        // their handlers and open details when reusing a shared prefix.
+        // Reconcile by event identity. Retained rows carry their controls and
+        // open details into the new order, including across month boundaries.
         [...table.tBodies].slice(1).forEach(body=>{
-            if(shouldAppend) tbody.append(...body.children);
             body.remove();
         });
         tbody.querySelectorAll('tr.events-month-row').forEach(row=>row.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
-        if (!shouldAppend) {
-            tbody.innerHTML = "";
-        } else {
-            // Responsive fitting may reduce the row count. Keep the shared prefix,
-            // including its open details and focus, and remove only the trailing rows.
-            [...tbody.querySelectorAll('tr.main-row')].slice(appendFromIndex).forEach(row => {
-                if (row.nextElementSibling?.classList.contains('details-row')) row.nextElementSibling.remove();
-                row.remove();
-            });
-        }
+        tbody.replaceChildren();
 
         if (!Array.isArray(rows) || rows.length === 0){
             tbody.innerHTML = `<tr class="events-empty-row"><td colspan="3">No events yet</td></tr>`;
@@ -1450,7 +1547,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
         const frag = document.createDocumentFragment();
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const rowsToRender = shouldAppend ? rows.slice(appendFromIndex) : rows;
+        const rowsToRender = rows;
 
         const afterNameWithCurrentRankFor = () => (slug, aObj) => {
             if (!aObj) return "";
@@ -1470,7 +1567,7 @@ const eventsPageAssets = document.currentScript.dataset;
         };
 
         rowsToRender.forEach((r, localIdx) => {
-            const idx = shouldAppend ? appendFromIndex + localIdx : localIdx;
+            const idx = localIdx;
             const occurredAt = r.displayOccurredAt || r.occurredAt;
             const dateLabel = occurredAt ? (chapters?formatListDateHtml(occurredAt):esc(formatListDate(occurredAt))) : "";
             const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
@@ -1478,6 +1575,15 @@ const eventsPageAssets = document.currentScript.dataset;
                 : "";
 
             const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
+            const signature = JSON.stringify([r, dateLabel, (r.slugs || []).map(slug => athletesIndex.get(slug)), linkNames, openLinksInNewTab, allowBadgeClicks]);
+            const retained = existingRows.get(String(r.id));
+            if (retained?._feedSignature === signature) {
+                retained.dataset.rowIndex = String(idx);
+                frag.appendChild(retained);
+                if (retained._feedDetails) frag.appendChild(retained._feedDetails);
+                return;
+            }
+            const detailsId = `custom-event-details-${encodeURIComponent(String(r.id || idx))}`;
 
             const isCustomEvent = r.type === EVENT_TYPE.CustomEvent;
             const isLongevitymaxxingResult = r.type === EVENT_TYPE.LongevitymaxxingChallengeResult;
@@ -1831,7 +1937,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 msgHtml = `<span class="custom-event-title">${renderCustomMarkup(titleSingle)}${
                     hasDetails
-                        ? `<button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="custom-event-details-${idx}" aria-label="Show details" title="Show details"></button>`
+                        ? `<button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="${esc(detailsId)}" aria-label="Show details" title="Show details"></button>`
                         : ``
                 }</span>`;
             } else {
@@ -1844,7 +1950,15 @@ const eventsPageAssets = document.currentScript.dataset;
                 msgHtml = r.type === EVENT_TYPE.Joined ? `${tokenHtml} joined ${rel}` : `${tokenHtml}`;
             }
 
-            const tr = document.createElement("tr");
+            const tr = retained || document.createElement("tr");
+            if (tr._feedToggle) tr.removeEventListener('click', tr._feedToggle);
+            tr._feedToggle = null;
+            tr._setCustomEventExpanded = null;
+            tr._feedDetails = null;
+            tr._feedSignature = signature;
+            delete tr.dataset.primarySlug;
+            delete tr.dataset.highlightSelection;
+            delete tr.dataset.day;
             tr.className = "row-appear main-row";
             tr.dataset.rowIndex = String(idx);
             tr.dataset.groupId = `g_${idx}`;
@@ -1893,7 +2007,8 @@ const eventsPageAssets = document.currentScript.dataset;
                 detailsTr.className = "details-row custom-event-details";
                 if (r.id) detailsTr.dataset.eventId = String(r.id);
                 detailsTr.innerHTML =
-                    `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content" inert aria-hidden="true"><div class="custom-event-body">${artworkHtml}${contentHtml}</div></div></td>`;
+                    `<td colspan="3" class="details-cell"><div id="${esc(detailsId)}" class="custom-event-content" inert aria-hidden="true"><div class="custom-event-body">${artworkHtml}${contentHtml}</div></div></td>`;
+                tr._feedDetails = detailsTr;
 
                 const btn = tr.querySelector(".custom-event-expander");
 
@@ -1921,22 +2036,24 @@ const eventsPageAssets = document.currentScript.dataset;
                     });
                 }
 
-                tr.addEventListener("click", (ev) => {
+                tr._feedToggle = (ev) => {
                     const target = ev.target;
                     if (target && target.closest && target.closest("a, button, input, select, textarea")) return;
                     toggleOpen();
-                });
+                };
+                tr.addEventListener('click', tr._feedToggle);
 
                 frag.appendChild(detailsTr);
             }
         });
 
-        if (chapters && !shouldAppend) {
+        if (chapters) {
             // Long timelines render a first chunk; the rest follows on scroll.
             const units = splitIntoUnits(frag);
             const requestedId = getRequestedEventId();
             const requestedIndex = requestedId ? units.findIndex(unit => unit[0].dataset?.eventId === requestedId) : -1;
-            const keep = Math.max(FEED_CHUNK, previousFeed ? previousFeed.rendered : 0, requestedIndex + 10);
+            const retainedEnd = units.findLastIndex(unit => previousFeed?.positions.has(unit[0].dataset.eventId));
+            const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10);
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
         } else {
@@ -1950,7 +2067,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const seenMode = options?.seenMode;
         if (previousFeed) {
             settleFeedRerender(table, previousFeed, nextIds);
-        } else if (seenMode && !shouldAppend) {
+        } else if (seenMode) {
             // Moments that happened since the last visit drop in at the top.
             const seenAt = readSeenAt(seenMode);
             const vh = window.innerHeight || document.documentElement.clientHeight;
@@ -1987,10 +2104,10 @@ const eventsPageAssets = document.currentScript.dataset;
                 ? (sameLink(controls[timelineFocus.index]) ? controls[timelineFocus.index]
                     : controls.find(sameLink) || controls.find(element => element.getAttribute('href') === timelineFocus.href))
                 : controls[timelineFocus.index];
-            control?.focus({ preventScroll: true });
+            (active?.isConnected ? active : control)?.focus({ preventScroll: true });
         }
 
-        const rowsNow = shouldAppend ? table.querySelectorAll(".row-appear:not(.is-visible)") : table.querySelectorAll(".row-appear");
+        const rowsNow = table.querySelectorAll(".row-appear:not(.is-visible)");
         if (!prefersReduced && rowsNow.length){
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
@@ -1998,6 +2115,7 @@ const eventsPageAssets = document.currentScript.dataset;
         } else {
             rowsNow.forEach(r => r.classList.add("is-visible"));
         }
+        tickRelativeLabels();
 
         const requestedEventId = getRequestedEventId();
         if (requestedEventId && window.CSS && typeof window.CSS.escape === "function") {
@@ -2291,18 +2409,23 @@ const eventsPageAssets = document.currentScript.dataset;
         const requestedPreserveExistingRows = !!(options && options.preserveExistingRows);
         const live = !!(options && options.live);
         const useSharedEvents = !!(options && options.useSharedEvents) && !live;
-        const loadKey = document.getElementById('events-root')?.parentElement?.id === 'events-root-index' ? 'events-root-index' : 'events-root';
-        if (!live) setEventsLoadingState(requestedPreserveExistingRows || !!document.querySelector('.event-board-page tr.main-row'));
+        const loadRoot = document.getElementById('events-root');
+        if (!loadRoot) return Promise.resolve();
+        const request = {};
+        feedRequests.set(loadRoot, request);
+        const current = () => loadRoot.isConnected && feedRequests.get(loadRoot) === request;
+        const scoped = callback => typeof window.callScoped === 'function' ? window.callScoped(loadRoot.parentElement, callback) : callback();
+        const loadKey = loadRoot.parentElement?.id === 'events-root-index' ? 'events-root-index' : 'events-root';
+        if (!live) setEventsLoadingState(requestedPreserveExistingRows || !!loadRoot.querySelector('tr.main-row'));
         setViewAllVisible(!!showViewAll);
 
         const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
 
-        const eventsReq=useSharedEvents
-            ? window.getSharedEvents()
-            : window.fetchPublicJson("/api/events");
-        const athletesReq=window.getSharedAthletes();
+        const eventsReq=window.getSharedEvents(!useSharedEvents);
+        const athletesReq=window.getSharedAthletes(live);
 
-        Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
+        return Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>scoped(()=>{
+            if (!current()) return;
             const athletesIndex=buildAthleteIndex(athletes);
             feedAthletesIndex=athletesIndex;
             eventBoardMarkupOptions = {
@@ -2453,20 +2576,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
-            const previousHomepageRowIds = Array.isArray(window.__homepageLastRenderIds) ? window.__homepageLastRenderIds : [];
-            const existingHomepageRowCount = mode === "highlights"
-                ? document.querySelectorAll("#eventsTable tbody tr.main-row").length
-                : 0;
-            const retainedHomepageRowCount = Math.min(previousHomepageRowIds.length, currentRowIds.length);
-            const canReuseHomepageRows = mode === "highlights"
-                && requestedPreserveExistingRows
-                && retainedHomepageRowCount > 0
-                && previousHomepageRowIds.length === existingHomepageRowCount
-                && previousHomepageRowIds.slice(0, retainedHomepageRowCount).every((id, idx) => currentRowIds[idx] === id);
-
             renderRows(rows,athletesIndex,!!linkNames,{
-                preserveExistingRows: canReuseHomepageRows,
-                appendFromIndex: canReuseHomepageRows ? retainedHomepageRowCount : 0,
                 seenMode: (!live && mode !== "athlete") ? mode : null
             });
             if (mode !== "athlete") {
@@ -2477,7 +2587,8 @@ const eventsPageAssets = document.currentScript.dataset;
                 window.__homepageLastRenderIds = currentRowIds;
             }
             clearEventsLoadingState(rows.length ? 'Events loaded.' : 'No events yet.');
-        }).catch(()=>{
+        })).catch(()=>scoped(()=>{
+            if (!current()) return;
             // A missed background refresh leaves the feed as it is.
             if (live) return;
             clearEventsLoadingState('Events could not load.');
@@ -2486,7 +2597,7 @@ const eventsPageAssets = document.currentScript.dataset;
             renderEventsLoadError(() => {
                 window.loadEventsTable(maxRows, showViewAll, athleteId, linkNames, options);
             });
-        });
+        }));
     };
 
 })();

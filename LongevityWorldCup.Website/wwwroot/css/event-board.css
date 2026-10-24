@@ -1149,7 +1149,7 @@
 }
 
 @keyframes lwc-feed-arrive {
-    0% { opacity: 0; transform: translateY(-22px) scale(.985); }
+    0% { opacity: 0; transform: translateY(-22px); }
     55% { opacity: 1; }
     100% { opacity: 1; transform: none; }
 }
@@ -1228,10 +1228,10 @@
     display: grid;
     justify-items: start;
     gap: 2px;
-    width: 264px;
+    width: min(264px, calc(100vw - 16px));
     box-sizing: border-box;
     padding: 0 16px 14px;
-    overflow: hidden;
+    overflow: auto;
     border: 1px solid var(--lwc-border, var(--events-border));
     border-radius: var(--lwc-radius-lg, 12px);
     background: var(--card-bg, var(--lwc-surface, #fff));
@@ -1318,6 +1318,10 @@
 }
 
 .event-athlete-preview-name {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-decoration: none;
     font-size: 1.0625rem;
     font-weight: 700;
     line-height: 1.25;
@@ -1339,6 +1343,8 @@
 }
 
 .event-athlete-preview-meta {
+    max-width: 100%;
+    overflow-wrap: anywhere;
     color: var(--events-muted);
     font-size: var(--lwc-type-sm, .875rem);
     line-height: 1.35;
@@ -1371,7 +1377,7 @@
 }
 
 /* The name being previewed stays marked while its card is open. */
-.events-board a[aria-describedby="eventAthletePreview"] {
+.events-board a[aria-controls="eventAthletePreview"] {
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 3px;

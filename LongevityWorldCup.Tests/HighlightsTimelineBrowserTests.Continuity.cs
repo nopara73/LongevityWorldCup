@@ -220,7 +220,7 @@ public sealed partial class HighlightsTimelineBrowserTests
         });
         try
         {
-            await page.EvaluateAsync("() => loadEventsTable(null, false)");
+            await page.EvaluateAsync("() => { loadEventsTable(null, false); }");
             await Assertions.Expect(page.Locator("#events-root")).ToHaveAttributeAsync("aria-busy", "true");
             await Assertions.Expect(expander).ToBeFocusedAsync();
             await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "true");
@@ -244,8 +244,8 @@ public sealed partial class HighlightsTimelineBrowserTests
 
     private static async Task ReloadTimelineAsync(IPage page)
     {
-        await page.EvaluateAsync("() => { window.__timelinePriorRow = document.querySelector('tr.main-row'); loadEventsTable(null, false); }");
-        await page.WaitForFunctionAsync("() => window.__timelinePriorRow !== document.querySelector('tr.main-row') && document.querySelector('#events-root').getAttribute('aria-busy') === 'false'");
+        await page.EvaluateAsync("async () => { window.__timelinePriorRow = document.querySelector('tr.main-row'); await loadEventsTable(null, false); }");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.__timelinePriorRow === document.querySelector('tr.main-row') && document.querySelector('#events-root').getAttribute('aria-busy') === 'false'"));
     }
 
     [Theory]
