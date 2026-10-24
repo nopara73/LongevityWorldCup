@@ -7,7 +7,8 @@
     <script>
         // A native handoff must capture the parsed board, not an empty body.
         // Ordinary loads keep their progressive server-rendered content.
-        if (document.activeViewTransition && window.navigation?.activation?.from?.url) {
+        if (document.activeViewTransition && window.navigation?.activation?.from?.url
+            && window.navigation.activation.navigationType !== 'traverse') {
             const source = new URL(window.navigation.activation.from.url);
             if (source.origin === location.origin && source.pathname === '/' && !source.search && !source.hash
                 && !location.search && !location.hash) {

@@ -971,7 +971,8 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
     window.addEventListener('pageswap', event => {
         finishAll();
         const url = event.activation && event.activation.entry && event.activation.entry.url;
-        if (!allowBoardTransition || reduce.matches || location.hash || !event.viewTransition || !url) return;
+        if (!allowBoardTransition || reduce.matches || location.hash || event.activation?.navigationType === 'traverse'
+            || !event.viewTransition || !url) return;
         const destination = new URL(url);
         if (destination.origin !== location.origin || destination.search || destination.hash || !/^\/leaderboard\/?$/i.test(destination.pathname)) return;
         const named = [];
