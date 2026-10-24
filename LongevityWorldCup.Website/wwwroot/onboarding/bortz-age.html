@@ -2038,13 +2038,14 @@
         }
 
         function calculateResultIfResultAlreadyCalculated() {
-            if (isResultCalculated) hideCalculatedResult();
+            // The live instrument recalculates (or dims) the result itself.
+            if (isResultCalculated && !bioageFlow.isLiveInstrumentBound()) hideCalculatedResult();
         }
 
         function correctCorrectableUnits() {
             const parse = (el) => (el ? parseFloat(el.value) : NaN);
             const setUnit = (unitEl, val) => {
-                if (!unitEl) return;
+                if (!unitEl || !bioageFlow.canAutoCorrectUnit(unitEl)) return;
 
                 unitEl.value = String(val);
                 bioageFlow.updateBiomarkerExamplePlaceholder(unitEl);
@@ -2191,6 +2192,9 @@
         }
 
         function calculateResult() {
+            bioageFlow.beginCalculation();
+            lastCalculatedBortzAge = NaN;
+            isResultCalculated = false;
             syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
 
             // Fill missing biomarker fields on update
@@ -2471,6 +2475,8 @@
 
             // Check if the result is not infinite
             if (!isFinite(bortzAge)) {
+                document.getElementById('continueButton').classList.remove('show');
+                updateCalculateButton();
                 resultElement.classList.add('show');
                 bioageFlow.syncBioageResultVisibility();
                 bioageFlow.animateBioageResult(resultElement, bortzAge, { instant: true });
@@ -2537,6 +2543,7 @@
             renderBortzRankPreview();
 
             document.getElementById('continueButton').classList.add('show');
+            document.getElementById('continueButton').disabled = false;
             updateCalculateButton();
             bioageFlow.animateBioageResult(resultElement, bortzAge);
 
@@ -2797,6 +2804,12 @@
                 isUpdate,
                 restoreDraft: !isFake && !hasExplicitBiomarkerPrefill
             });
+            bioageFlow.bindLiveInstrument({
+                clock: 'bortz',
+                calculate: calculateResult,
+                hide: hideCalculatedResult,
+                getStep: () => lwcCurrentStep
+            });
 
             if (isUpdate && hasSelectedAthlete) {
                 hideUpdateModeStepNavigation();
@@ -2933,6 +2946,7 @@
         }
 
         function proceedToNextPage() {
+            if (!bioageFlow.flushLiveInstrument()) return;
             syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
 
             if (isUpdate && touchedBiomarkers.size === 0) {
