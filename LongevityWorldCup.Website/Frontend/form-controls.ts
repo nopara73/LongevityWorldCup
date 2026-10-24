@@ -30,11 +30,24 @@ interface Window {
         return gate ? gate.enabled() : document.documentElement.dataset["lwcMotion"] === "on";
     }
 
+    const animations = new Map<Element, Animation>();
+
     function play(element: Element, frames: Keyframe[], options: KeyframeAnimationOptions): void {
+        animations.get(element)?.cancel();
         if (!motionOn() || typeof (element as HTMLElement).animate !== "function") return;
-        try { (element as HTMLElement).animate(frames, options); }
+        try {
+            const animation = (element as HTMLElement).animate(frames, options);
+            animations.set(element, animation);
+            const forget = () => { if (animations.get(element) === animation) animations.delete(element); };
+            animation.addEventListener("finish", forget, { once: true });
+            animation.addEventListener("cancel", forget, { once: true });
+        }
         catch { /* Decorative feedback never interrupts the interaction. */ }
     }
+
+    reduced.addEventListener("change", () => {
+        if (reduced.matches) for (const animation of animations.values()) animation.cancel();
+    });
 
     // ---------------------------------------------------------------- labels
     function labelsFor(field: Element): HTMLElement[] {
@@ -59,24 +72,30 @@ interface Window {
         return Array.from(found).filter(label => label.offsetParent !== null || label.getClientRects().length > 0);
     }
 
-    function setLabelToken(field: Element, token: string, on: boolean): void {
-        for (const label of labelsFor(field)) {
-            const tokens = new Set((label.dataset["lwcLabel"] || "").split(/\s+/).filter(Boolean));
-            if (on) tokens.add(token); else tokens.delete(token);
-            if (!label.contains(field)) tokens.add("block");
-            label.dataset["lwcLabel"] = Array.from(tokens).join(" ");
+    let labelled = new Set<HTMLElement>();
+
+    function refreshLabels(): void {
+        const next = new Map<HTMLElement, Set<string>>();
+        for (const field of document.querySelectorAll(`${textField}, [aria-invalid], [role="combobox"]`)) {
+            if (!field.getClientRects().length || field.closest('[hidden], [inert]')) continue;
+            for (const label of labelsFor(field)) {
+                const tokens = next.get(label) || new Set<string>();
+                if (field === document.activeElement || field.contains(document.activeElement)) tokens.add("focus");
+                if (field.getAttribute("aria-invalid") === "true") tokens.add("invalid");
+                if (!label.contains(field)) tokens.add("block");
+                next.set(label, tokens);
+            }
         }
+        for (const label of labelled) if (!next.has(label)) label.removeAttribute("data-lwc-label");
+        for (const [label, tokens] of next) {
+            const value = Array.from(tokens).join(" ");
+            if (label.dataset["lwcLabel"] !== value) label.dataset["lwcLabel"] = value;
+        }
+        labelled = new Set(next.keys());
     }
 
-    document.addEventListener("focusin", event => {
-        const field = event.target;
-        if (field instanceof Element && field.matches(textField)) setLabelToken(field, "focus", true);
-    });
-
-    document.addEventListener("focusout", event => {
-        const field = event.target;
-        if (field instanceof Element && field.matches(textField)) setLabelToken(field, "focus", false);
-    });
+    document.addEventListener("focusin", refreshLabels);
+    document.addEventListener("focusout", () => queueMicrotask(refreshLabels));
 
     // ------------------------------------------------------ segmented glide
     interface SegmentGroup {
@@ -95,7 +114,7 @@ interface Window {
         { group: "[data-lwc-segment-group]", item: ":scope > :not(.lwc-segment-glide)", active: '[aria-selected="true"], [aria-pressed="true"], [aria-current="true"], .active, :has(> input:checked)' },
     ];
 
-    const enhanced = new WeakMap<HTMLElement, { glide: HTMLElement; config: SegmentGroup; current: HTMLElement | null }>();
+    const enhanced = new Map<HTMLElement, { glide: HTMLElement; config: SegmentGroup; current: HTMLElement | null }>();
     const resize = typeof ResizeObserver === "function" ? new ResizeObserver(entries => {
         for (const entry of entries) placeGlide(entry.target as HTMLElement, false);
     }) : null;
@@ -146,9 +165,18 @@ interface Window {
     }
 
     function enhanceSegments(root: ParentNode): void {
+        for (const [group, state] of enhanced) {
+            if (group.isConnected) continue;
+            resize?.unobserve(group);
+            state.glide.remove();
+            if (state.current) delete state.current.dataset["lwcSegmentOn"];
+            delete group.dataset["lwcSegmented"];
+            enhanced.delete(group);
+        }
         for (const config of segmentGroups) {
             for (const group of Array.from(root.querySelectorAll<HTMLElement>(config.group))) {
-                if (enhanced.has(group) || (config.skip && group.closest(config.skip))) continue;
+                if (enhanced.has(group)) { placeGlide(group, false); continue; }
+                if (config.skip && group.closest(config.skip)) continue;
                 const glide = document.createElement("span");
                 glide.className = "lwc-segment-glide";
                 glide.setAttribute("aria-hidden", "true");
@@ -156,16 +184,14 @@ interface Window {
                 group.prepend(glide);
                 enhanced.set(group, { glide, config, current: null });
                 resize?.observe(group);
-                new MutationObserver(() => placeGlide(group, false)).observe(group, {
-                    subtree: true,
-                    attributes: true,
-                    attributeFilter: ["aria-selected", "aria-pressed", "aria-current", "class", "hidden", "checked"],
-                });
-                group.addEventListener("change", () => placeGlide(group, false));
                 placeGlide(group, true);
             }
         }
     }
+
+    document.addEventListener("change", () => {
+        for (const group of enhanced.keys()) placeGlide(group, false);
+    });
 
     // Theme changes alter the chosen surface; read it again.
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => {
@@ -181,7 +207,7 @@ interface Window {
     }
 
     function step(input: HTMLInputElement, direction: 1 | -1): void {
-        if (input.disabled || input.readOnly) return;
+        if (!input.isConnected || input.matches(":disabled") || input.readOnly) return;
         const before = input.value;
         try {
             if (direction > 0) input.stepUp(); else input.stepDown();
@@ -203,8 +229,11 @@ interface Window {
         const max = input.max === "" ? Infinity : Number(input.max);
         const down = wrapper.querySelector<HTMLButtonElement>('[data-step="down"]');
         const up = wrapper.querySelector<HTMLButtonElement>('[data-step="up"]');
-        if (down) down.disabled = input.disabled || (Number.isFinite(value) && value <= min);
-        if (up) up.disabled = input.disabled || (Number.isFinite(value) && value >= max);
+        const unavailable = input.matches(":disabled") || input.readOnly || input.step === "any";
+        const downDisabled = unavailable || (Number.isFinite(value) && value <= min);
+        const upDisabled = unavailable || (Number.isFinite(value) && value >= max);
+        if (down && down.disabled !== downDisabled) down.disabled = downDisabled;
+        if (up && up.disabled !== upDisabled) up.disabled = upDisabled;
     }
 
     function stepperButton(input: HTMLInputElement, direction: 1 | -1): HTMLButtonElement {
@@ -220,13 +249,34 @@ interface Window {
         const stop = () => {
             window.clearTimeout(delay);
             window.clearInterval(repeat);
+            delay = repeat = 0;
+            window.removeEventListener("pointerup", stop);
+            window.removeEventListener("pointercancel", stop);
+            window.removeEventListener("blur", stop);
+            document.removeEventListener("visibilitychange", stop);
+        };
+        const advance = () => {
+            if (!button.isConnected || button.disabled || !input.getClientRects().length
+                || input.closest('[hidden], [inert]') || input.matches(":disabled") || input.readOnly) {
+                stop();
+                return;
+            }
+            step(input, direction);
+            if (button.disabled) stop();
         };
         button.addEventListener("pointerdown", event => {
-            if (event.button !== 0) return;
+            if (event.button !== 0 || button.disabled) return;
             event.preventDefault();
-            step(input, direction);
+            stop();
+            input.focus({ preventScroll: true });
+            advance();
+            if (button.disabled || !button.isConnected) return;
+            window.addEventListener("pointerup", stop);
+            window.addEventListener("pointercancel", stop);
+            window.addEventListener("blur", stop);
+            document.addEventListener("visibilitychange", stop);
             delay = window.setTimeout(() => {
-                repeat = window.setInterval(() => step(input, direction), 70);
+                repeat = window.setInterval(advance, 70);
             }, 380);
         });
         for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, stop);
@@ -239,7 +289,7 @@ interface Window {
 
     function enhanceSteppers(root: ParentNode): void {
         for (const input of Array.from(root.querySelectorAll<HTMLInputElement>('input[type="number"][data-lwc-stepper]'))) {
-            if (input.closest(".lwc-stepper")) continue;
+            if (input.closest(".lwc-stepper")) { syncStepper(input); continue; }
             const wrapper = document.createElement("span");
             wrapper.className = "lwc-stepper";
             input.replaceWith(wrapper);
@@ -279,6 +329,7 @@ interface Window {
 
     function easeSlot(slot: HTMLElement): void {
         const before = slotHeights.get(slot) ?? 0;
+        animations.get(slot)?.cancel();
         const after = slot.offsetHeight;
         slotHeights.set(slot, after);
         if (before === after || !motionOn()) return;
@@ -306,7 +357,6 @@ interface Window {
                 if (record.type === "attributes") {
                     const field = record.target as Element;
                     const invalid = field.getAttribute("aria-invalid") === "true";
-                    setLabelToken(field, "invalid", invalid);
                     if (invalid && record.oldValue !== "true") shake(field);
                     continue;
                 }
@@ -354,6 +404,7 @@ interface Window {
     function refresh(root: ParentNode = document): void {
         enhanceSegments(root);
         enhanceSteppers(root);
+        refreshLabels();
         for (const range of Array.from(root.querySelectorAll<HTMLInputElement>('input[type="range"]'))) syncRange(range);
     }
 
@@ -370,8 +421,10 @@ interface Window {
                 pending = 0;
                 enhanceSegments(document);
                 enhanceSteppers(document);
+                refreshLabels();
             });
-        }).observe(document.body, { childList: true, subtree: true });
+        }).observe(document.body, { childList: true, characterData: true, subtree: true, attributes: true,
+            attributeFilter: ["aria-invalid", "aria-labelledby", "aria-selected", "aria-pressed", "aria-current", "checked", "for", "id", "hidden", "class", "disabled", "readonly", "min", "max", "step"] });
     }
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });

@@ -47,14 +47,14 @@
 /* The ring is always present at zero width, outside the edge, so focus can
    grow it rather than switching it on. Same specificity pattern as the
    shared field rules, one element deeper so it wins over their transition. */
-html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])),
 html select,
 html textarea {
     outline: 0 solid transparent;
     outline-offset: 6px;
 }
 
-html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])):focus,
 html select:focus,
 html textarea:focus {
     outline: var(--lwc-control-ring-width) solid var(--lwc-control-ring);
@@ -62,7 +62,7 @@ html textarea:focus {
 }
 
 @media (hover: hover) {
-    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):hover:not(:focus):not(:disabled):not(:read-only):not([aria-invalid="true"]),
+    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])):hover:not(:focus):not(:disabled):not(:read-only):not([aria-invalid="true"]),
     html select:hover:not(:focus):not(:disabled):not([aria-invalid="true"]),
     html textarea:hover:not(:focus):not(:disabled):not(:read-only):not([aria-invalid="true"]) {
         border-color: var(--lwc-control-hover);
@@ -70,7 +70,7 @@ html textarea:focus {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])),
     html select,
     html textarea {
         transition:
@@ -85,7 +85,7 @@ html textarea:focus {
     }
 
     /* Leaving a field lets the ring fade quickly instead of shrinking back. */
-    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not(:focus),
+    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])):not(:focus),
     html select:not(:focus),
     html textarea:not(:focus) {
         transition-duration:
@@ -98,12 +98,15 @@ html textarea:focus {
 /* Numbers: digits line up while typing, spinners give way to steppers. */
 :where(input[type="number"]) {
     font-variant-numeric: tabular-nums;
+}
+
+:where(input[type="number"][data-lwc-stepper]) {
     -moz-appearance: textfield;
     appearance: textfield;
 }
 
-:where(input[type="number"])::-webkit-inner-spin-button,
-:where(input[type="number"])::-webkit-outer-spin-button {
+:where(input[type="number"][data-lwc-stepper])::-webkit-inner-spin-button,
+:where(input[type="number"][data-lwc-stepper])::-webkit-outer-spin-button {
     margin: 0;
     -webkit-appearance: none;
     appearance: none;
@@ -162,7 +165,6 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
     }
 
     html select:not([multiple]):not([size]) {
-        display: inline-flex;
         align-items: center;
         gap: var(--lwc-space-2);
         background-image: none !important;
@@ -200,6 +202,7 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
         box-sizing: border-box;
         min-inline-size: anchor-size(self-inline);
         max-block-size: min(22rem, 55dvh);
+        max-inline-size: calc(100dvw - 16px);
         margin-block: 6px;
         padding: var(--lwc-space-1);
         border: 1px solid var(--lwc-border);
@@ -224,6 +227,7 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
         font-variant-numeric: tabular-nums;
         cursor: pointer;
         white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     html select:not([multiple]):not([size]) option:is(:hover, :focus-visible):not(:disabled) {
@@ -329,7 +333,7 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
     width: 1.1rem;
     height: 1.1rem;
     margin-inline-start: var(--lwc-space-2);
-    padding: 0.35rem;
+    padding: 0;
     border-radius: var(--lwc-radius-pill);
     background: var(--lwc-muted);
     -webkit-mask: var(--lwc-control-icon-calendar) center / 1.1rem no-repeat;
@@ -732,6 +736,10 @@ html .lwc-stepper input[type="number"] {
     box-shadow: 0 0 0 var(--lwc-control-ring-width) var(--lwc-control-ring);
 }
 
+:where(input[type="range"]:not(#gmaRange)):focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 var(--lwc-control-ring-width) var(--lwc-control-ring);
+}
+
 @media (prefers-reduced-motion: no-preference) {
     :where(input[type="range"]:not(#gmaRange))::-webkit-slider-thumb {
         transition: scale var(--lwc-motion-fast, 140ms) var(--lwc-control-ease-settle), box-shadow var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
@@ -852,5 +860,11 @@ html .lwc-stepper input[type="number"] {
     [data-lwc-segmented] > [data-lwc-segment-on] {
         background: Highlight !important;
         color: HighlightText !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-lwc-label], [data-lwc-dropzone], .lwc-segment-glide {
+        transition: none;
     }
 }
