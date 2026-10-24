@@ -71,7 +71,9 @@ interface Window {
     function animate(element: HTMLElement, frames: Keyframe[], options: KeyframeAnimationOptions): void {
         cancelOwned(element);
         if (!enabled() || typeof element.animate !== "function") return;
-        const animation = element.animate(frames, options);
+        let animation: Animation;
+        try { animation = element.animate(frames, options); }
+        catch { return; /* Decorative feedback must not interrupt the completed interaction. */ }
         ownedAnimations.set(element, animation);
         const release = () => {
             if (ownedAnimations.get(element) === animation) ownedAnimations.delete(element);
@@ -211,7 +213,8 @@ interface Window {
         if (!enabled() || !(input instanceof HTMLInputElement) || !input.checked
             || (input.type !== "checkbox" && input.type !== "radio")) return;
         const box = input.getBoundingClientRect();
-        const face = box.width > 4 && box.height > 4 ? input : input.nextElementSibling;
+        const visibleInput = box.width > 4 && box.height > 4 && getComputedStyle(input).opacity !== "0";
+        const face = visibleInput ? input : input.nextElementSibling;
         if (face) pop(face);
     });
 
