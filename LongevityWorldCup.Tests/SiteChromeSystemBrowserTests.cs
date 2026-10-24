@@ -12,7 +12,7 @@ namespace LongevityWorldCup.Tests;
 /// The header, its sticky bar, the footer and the outage cards form one chrome
 /// system: one dark band, one content column and one lockup on every page.
 /// </summary>
-[Collection(BrowserTestCollections.WorkloadB)]
+[Collection(BrowserTestCollections.WorkloadD)]
 public sealed class SiteChromeSystemBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
