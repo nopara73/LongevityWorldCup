@@ -526,7 +526,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             var rowsStart = start + LeaderboardRowsStartMarker.Length;
             var replacedRows = html
                 .Remove(rowsStart, end - rowsStart)
-                .Insert(rowsStart, $"{Environment.NewLine}{rowsHtml}                ");
+                .Insert(rowsStart, rowsHtml);
 
             return replacedRows.Replace(
                 LeaderboardSkeletonTbodyOpenTag,
