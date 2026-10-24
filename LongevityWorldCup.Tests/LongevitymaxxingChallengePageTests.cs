@@ -977,7 +977,7 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
         Assert.Contains("later days score higher", javascript);
         Assert.Contains("one slip can still score max, never twice in a row", javascript);
         Assert.Contains("function renderBoardSummary(state: PublicState): void", javascript);
-        Assert.Contains("function opsTile(label: string, value: string | number): string", javascript);
+        Assert.Contains("function opsTile(label: string, value: string | number, key: string, numeric: number): string", javascript);
         Assert.DoesNotContain("function challengeCallCount", javascript);
         Assert.DoesNotContain("opsTile(\"People\"", javascript);
         Assert.DoesNotContain("opsTile(\"Check-ins\"", javascript);

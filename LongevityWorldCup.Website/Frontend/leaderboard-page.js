@@ -4993,7 +4993,9 @@ function getModalDetailRankMarkup(rank) {
 function renderPortraitFlagMark(flag) {
     const mark = document.getElementById('modalFlagMark');
     if (!mark) return;
-    const canonicalFlag = getCanonicalFlagName(flag);
+    // Loading can open before the flag module arrives; clearing the old mark
+    // must not depend on the module that resolves the eventual athlete's flag.
+    const canonicalFlag = flag ? getCanonicalFlagName(flag) : '';
     const icon = canonicalFlag ? window.LwcFlags.renderFlagIcon(canonicalFlag, 'portrait-flag-icon') : '';
     mark.innerHTML = icon;
     mark.hidden = !icon;
