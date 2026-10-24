@@ -9,7 +9,7 @@ namespace LongevityWorldCup.Tests;
 // row's "+N" is a tile like its neighbours, an explanation opens as a popover
 // that is not clipped by the badge, and the profile shelf never reflows.
 [Collection(BrowserTestCollections.WorkloadB)]
-public sealed class BadgeFamilyBrowserTests(
+public sealed partial class BadgeFamilyBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -76,6 +76,7 @@ public sealed class BadgeFamilyBrowserTests(
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-title")).ToHaveTextAsync("Liver King");
         await Assertions.Expect(tip.Locator(".badge-tip-detail")).ToContainTextAsync("top liver profile");
+        await AssertExplanationFitsAsync(tip);
         Assert.Null(await hexagon.GetAttributeAsync("aria-describedby"));
         Assert.Equal("true", await tip.GetAttributeAsync("aria-hidden"));
         Assert.Equal(title, await hexagon.GetAttributeAsync("aria-label"));
@@ -128,6 +129,7 @@ public sealed class BadgeFamilyBrowserTests(
         var tip = page.Locator(".badge-tip");
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-row")).ToHaveCountAsync(4);
+        await AssertExplanationFitsAsync(tip);
         await page.Mouse.MoveAsync(5, 5);
         await Assertions.Expect(tip).ToBeHiddenAsync();
     }
@@ -167,6 +169,7 @@ public sealed class BadgeFamilyBrowserTests(
         await Assertions.Expect(panel).ToHaveCountAsync(1);
         await Assertions.Expect(panel.Locator(".modal-badge-explainer-title")).ToHaveTextAsync("Time Bender");
         await Assertions.Expect(panel.Locator(".modal-badge-explainer-detail")).ToHaveTextAsync("best pheno pace of aging");
+        Assert.True(await panel.EvaluateAsync<bool>("el => el.scrollHeight === el.clientHeight && el.scrollWidth === el.clientWidth"));
         Assert.Equal(before, await shelf.EvaluateAsync<int[][]>(positions));
 
         var layout = await shelf.EvaluateAsync<PanelLayout>("""
@@ -317,7 +320,7 @@ public sealed class BadgeFamilyBrowserTests(
         await chip.FocusAsync();
         var tip = page.Locator(".badge-tip");
         await Assertions.Expect(tip).ToBeVisibleAsync();
-        Assert.True(await tip.EvaluateAsync<bool>("el => el.scrollHeight > el.clientHeight"));
+        Assert.True(await tip.Locator(".badge-tip-content").EvaluateAsync<bool>("el => el.scrollHeight > el.clientHeight"));
         await tip.ClickAsync(new() { Position = new() { X = 20, Y = 20 } });
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await page.Mouse.WheelAsync(0, 1000);
@@ -438,9 +441,9 @@ public sealed class BadgeFamilyBrowserTests(
         await tip.TapAsync(new() { Position = new() { X = 20, Y = 20 } });
         await Assertions.Expect(tip).ToBeVisibleAsync();
         Assert.True(await tip.EvaluateAsync<bool>("""
-            el => {const r=el.getBoundingClientRect();return r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight && el.scrollHeight>el.clientHeight;}
+            el => {const r=el.getBoundingClientRect(),c=el.querySelector('.badge-tip-content');return r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight && c.scrollHeight>c.clientHeight;}
             """));
-        await tip.EvaluateAsync("el => el.scrollTop = el.scrollHeight");
+        await tip.Locator(".badge-tip-content").EvaluateAsync("el => el.scrollTop = el.scrollHeight");
         await Assertions.Expect(tip).ToBeVisibleAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-row").Last).ToBeInViewportAsync();
         await page.Keyboard.PressAsync("Escape");
