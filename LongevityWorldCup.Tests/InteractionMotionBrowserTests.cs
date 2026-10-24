@@ -338,13 +338,17 @@ public sealed class InteractionMotionBrowserTests(
         await Assertions.Expect(page.Locator("#copiedText")).ToHaveCSSAsync("display", "none");
     }
 
-    [Fact]
-    public async Task Buttons_GiveWayWhilePressed()
+    [Theory]
+    [InlineData("/leaderboard", "#leaderboardOrderToggle", "0.97")]
+    [InlineData("/play", "#continueGameBtn", "0.965")]
+    public async Task Buttons_GiveWayWhilePressed(string route, string selector, string expectedScale)
     {
         await using var context = await NewMotionContextAsync(1280, 800);
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/play");
-        var button = page.Locator("main button:visible").First;
+        await NavigateAndSettleAsync(page, route);
+        // Check both the shared press treatment and the play flow's deliberate
+        // override, rather than treating a component as the global default.
+        var button = page.Locator(selector);
         await button.HoverAsync();
         await page.Mouse.DownAsync();
         await page.WaitForTimeoutAsync(200);
@@ -352,7 +356,7 @@ public sealed class InteractionMotionBrowserTests(
         await page.Mouse.MoveAsync(1, 1);
         await page.Mouse.UpAsync();
 
-        Assert.Equal("0.97", pressed);
+        Assert.Equal(expectedScale, pressed);
     }
 
     [Fact]
