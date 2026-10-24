@@ -224,10 +224,12 @@ public sealed class AthleteBrowseMotionBrowserTests(
         }
     }
 
-    [Fact]
-    public async Task Swiping_TheProfileStepsToTheNeighbours()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Swiping_TheProfileStepsToTheNeighbours_AndNextTapCloses(bool reducedMotion)
     {
-        await using var context = await NewContextAsync(390, 844, dark: false, reducedMotion: false);
+        await using var context = await NewContextAsync(390, 844, dark: false, reducedMotion);
         var page = await context.NewPageAsync();
         await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
@@ -258,7 +260,8 @@ public sealed class AthleteBrowseMotionBrowserTests(
                 });
                 dragged = await page.EvaluateAsync<double>("() => parseFloat(document.getElementById('athlete-profile').style.translate) || 0");
             }
-            Assert.True(Math.Sign(dragged) == Math.Sign(to - from) && Math.Abs(dragged) > 40, $"The profile should follow the finger, not sit at {dragged}px.");
+            if (reducedMotion) Assert.Equal(0, dragged);
+            else Assert.True(Math.Sign(dragged) == Math.Sign(to - from) && Math.Abs(dragged) > 40, $"The profile should follow the finger, not sit at {dragged}px.");
             await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
             {
                 ["type"] = "touchEnd",
@@ -271,6 +274,13 @@ public sealed class AthleteBrowseMotionBrowserTests(
 
         // A vertical drag scrolls the profile and never steps.
         Assert.Equal("pan-y pinch-zoom", await page.EvaluateAsync<string>("() => getComputedStyle(document.getElementById('athlete-profile')).touchAction"));
+        await touch.DetachAsync();
+        // A handled horizontal swipe must not leave a native scroll sequence
+        // that consumes the next real tap before it can generate a click.
+        await page.Locator("#closeAthleteDetailsModal").TapAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Assertions.Expect(rows.Nth(1).Locator("a.athlete-name")).ToBeFocusedAsync();
+        Assert.NotEqual("hidden", await page.EvaluateAsync<string>("() => getComputedStyle(document.body).overflow"));
     }
 
     [Fact]

@@ -568,6 +568,13 @@
         swipe.profile.style.opacity = String(1 - Math.min(0.3, Math.abs(shift) / 600));
     }, { passive: true });
 
+    modal.addEventListener("touchmove", event => {
+        // Once a horizontal swipe owns the gesture, do not leave the browser
+        // panning underneath it and consuming the next tap to stop scrolling.
+        // Vertical intent and multiple fingers retain their native behavior.
+        if (swipe?.active && event.touches.length === 1 && event.cancelable) event.preventDefault();
+    }, { passive: false });
+
     modal.addEventListener("pointerup", event => {
         if (!swipe || event.pointerId !== swipe.id) return;
         const { dx, t, active, profile } = swipe;
