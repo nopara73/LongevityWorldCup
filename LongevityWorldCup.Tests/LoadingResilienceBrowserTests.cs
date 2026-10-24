@@ -113,6 +113,9 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
             await link.FocusAsync();
             await page.Keyboard.PressAsync("Enter");
             Assert.Equal(href, await page.EvaluateAsync<string>("location.hash"));
+            await page.WaitForFunctionAsync(
+                "href => document.activeElement === document.getElementById(decodeURIComponent(href.slice(1)))",
+                href, new() { Timeout = 2000 });
             Assert.True(await page.EvaluateAsync<bool>("document.activeElement.matches('.documentation-document h1, .documentation-document h2, .documentation-document h3')"));
         }
         finally

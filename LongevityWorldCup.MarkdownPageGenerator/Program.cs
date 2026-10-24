@@ -12,6 +12,7 @@ var websiteRoot = args.Length > 1
     : Path.Combine(repoRoot, "LongevityWorldCup.Website");
 
 ScopedStylesheetGenerator.Generate(websiteRoot);
+ReadingFeel.Generate(websiteRoot);
 
 var pages = new[]
 {
@@ -56,7 +57,8 @@ foreach (var page in pages)
         documentHtml = Regex.Replace(documentHtml, "<h1(?<attributes>[^>]*)>(?<title>.*?)</h1>", match =>
             $"<h1{match.Groups["attributes"].Value} aria-label=\"{WebUtility.HtmlEncode(title)}\">" +
             Regex.Replace(match.Groups["title"].Value, "[Ll]ongevity", word =>
-                $"<span class=\"page-title-word\">{word.Value[..3]}&shy;gev&shy;ity</span>") + "</h1>");
+                $"<span class=\"page-title-word\">{word.Value[..3]}&shy;gev&shy;ity</span>")
+                .Replace("History", "His&shy;tory", StringComparison.Ordinal) + "</h1>");
     }
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
     documentHtml = BuildTimeline(documentHtml);
@@ -1305,7 +1307,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav-links {
-                max-height: min(65svh, 30rem, var(--documentation-list-height, 65svh));
+                max-height: var(--documentation-list-height, 65svh);
                 overflow-y: auto;
                 overscroll-behavior: contain;
             }
@@ -1462,6 +1464,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
         }
     </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
+    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">
 </head>
 <body>
     <!--HEADER-->

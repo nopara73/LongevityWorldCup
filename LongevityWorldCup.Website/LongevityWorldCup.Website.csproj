@@ -54,6 +54,9 @@
     <Content Remove="wwwroot\assets\media-kit\MediaKit.zip" />
     <Content Include="wwwroot\assets\media-kit\MediaKit.zip"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Remove="wwwroot\css\documentation-reading.css" />
+    <Content Include="wwwroot\css\documentation-reading.css"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="StageMediaKit" BeforeTargets="BeforeBuild">

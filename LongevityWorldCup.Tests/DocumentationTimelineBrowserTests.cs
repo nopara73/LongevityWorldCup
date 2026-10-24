@@ -27,7 +27,9 @@ public sealed class DocumentationTimelineBrowserTests(
         {
             BaseURL = App.BaseAddress.ToString(),
             ViewportSize = new ViewportSize { Width = width, Height = 900 },
-            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+            // Geometry is checked in its final reading state; motion has separate coverage.
+            ReducedMotion = ReducedMotion.Reduce
         });
         // The page's screenshots are hosted on GitHub; keep the test hermetic.
         await context.RouteAsync(url => !url.StartsWith(App.BaseAddress.ToString(), StringComparison.Ordinal), route => route.AbortAsync());
