@@ -72,7 +72,7 @@ button,
 input,
 select,
 textarea {
-    font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 a {
@@ -99,7 +99,7 @@ button {
 h1,
 h2,
 h3 {
-    font-family: 'Roboto', system-ui, sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, sans-serif;
     font-weight: 700;
     line-height: 1.15;
     text-shadow: none;
@@ -162,7 +162,7 @@ video {
 
 [class^="lmx-"],
 [class*=" lmx-"] {
-    font-family: 'Roboto', system-ui, sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, sans-serif;
 }
 
 /* Challenge feature: keep its dense dashboard, but use the same hierarchy. */
@@ -259,7 +259,7 @@ video {
 
 .lmx-metric strong,
 .lmx-ops-tile strong {
-    font-family: 'Roboto', system-ui, sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
 }
 
@@ -1703,24 +1703,7 @@ html body .leaderboard .athlete-name {
     border-radius: 50%;
 }
 
-/* Set safe defaults while preserving each component's explicit transitions. */
-:where(button, a, input, select, textarea, .view-badge, .leaderboard table tbody tr) {
-    transition-property: background-color, border-color, color, box-shadow, opacity, transform;
-}
-
-/* Motion explains state without making the interface restless. */
-@media (prefers-reduced-motion: no-preference) {
-    button,
-    a,
-    input,
-    select,
-    textarea,
-    .view-badge,
-    .leaderboard table tbody tr {
-        transition-duration: var(--lwc-duration-fast);
-        transition-timing-function: var(--lwc-ease);
-    }
-}
+/* Control transitions, press feedback and open/close motion live in motion.css. */
 
 @media (max-width: 768px) {
     .section-container {
@@ -2238,5 +2221,89 @@ html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-
 
     html body .documentation-page-history .documentation-document {
         padding-inline: min(1.1rem, 5.5vw);
+    }
+}
+
+/* ===== Loading, scroll and page-to-page feel =====
+   One system for how pages arrive: the canvas is right from the first frame
+   (head bootstrap), busy regions hold the space their content will take,
+   placeholders hand over to content with a short fade, late media fades in
+   instead of popping, and same-site navigations cross-fade under a header
+   that stays put. Reduced motion keeps every state, only without movement. */
+
+/* Same-site page changes: the old page dissolves while the new one settles in.
+   Browsers without cross-document view transitions navigate as before. */
+@view-transition {
+    navigation: auto;
+}
+
+/* Named only during a transition, so the banner never forms a lasting
+   stacking context around the alert and loading dialogs it contains. */
+:root:active-view-transition header[role="banner"] {
+    view-transition-name: lwc-site-header;
+}
+
+::view-transition-group(lwc-site-header) {
+    animation-duration: var(--lwc-duration-normal);
+    animation-timing-function: var(--lwc-ease);
+}
+
+::view-transition-old(root) {
+    animation: lwc-page-leave var(--lwc-duration-fast) var(--lwc-ease) both;
+}
+
+::view-transition-new(root) {
+    animation: lwc-page-enter var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwc-page-leave {
+    to { opacity: 0; }
+}
+
+@keyframes lwc-page-enter {
+    from { opacity: 0; translate: 0 6px; }
+}
+
+/* Portraits and avatars that arrive after their box has painted fade in.
+   Their boxes are sized by CSS, so this never moves surrounding content. */
+html.lwc-media-fade img[data-lwc-media="pending"] {
+    opacity: 0;
+}
+
+html.lwc-media-fade img[data-lwc-media="ready"] {
+    animation: lwc-media-arrive var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwc-media-arrive {
+    from { opacity: 0; }
+}
+
+/* Highlights reserve a screen while loading, so the footer cannot ride up
+   under the placeholder and then jump away when the days arrive. */
+.event-board-page .events-board[aria-busy="true"] {
+    min-height: max(32rem, calc(100dvh - 10rem));
+}
+
+/* Content that replaces a placeholder fades up from it rather than popping. */
+.event-board-page .events-board[aria-busy="false"] #eventsTable tbody {
+    animation: lwc-content-arrive var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwc-content-arrive {
+    from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    @view-transition {
+        navigation: none;
+    }
+
+    html.lwc-media-fade img[data-lwc-media],
+    .event-board-page .events-board[aria-busy="false"] #eventsTable tbody {
+        animation: none;
+    }
+
+    html.lwc-media-fade img[data-lwc-media] {
+        opacity: 1;
     }
 }
