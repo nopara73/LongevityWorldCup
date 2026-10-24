@@ -59,9 +59,17 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var earlier = thread.Locator("[data-discussion-replies-page]");
         await earlier.ScrollIntoViewIfNeededAsync();
         var anchor = thread.Locator("[data-discussion-reply-id='r3']");
-        var anchorTop = (await anchor.BoundingBoxAsync())!.Y;
+        // The check-in tab's smooth scroll may finish during ClickAsync's actionability wait.
+        // Measure at activation so this assertion isolates the history update's scroll preservation.
+        await earlier.EvaluateAsync("""
+            button => button.addEventListener('click', () => {
+                window.flowHistoryAnchorTop = button.closest('article')
+                    .querySelector('[data-discussion-reply-id="r3"]').getBoundingClientRect().top;
+            }, { capture: true, once: true })
+            """);
         await earlier.ClickAsync();
         await Assertions.Expect(thread.Locator("[data-discussion-reply-id]:not([hidden])")).ToHaveCountAsync(5);
+        var anchorTop = await page.EvaluateAsync<double>("window.flowHistoryAnchorTop");
         Assert.InRange((await anchor.BoundingBoxAsync())!.Y, anchorTop - 3, anchorTop + 3);
         await thread.Locator("[data-discussion-quick-reply]").ClickAsync();
         var textarea = thread.Locator("textarea");
