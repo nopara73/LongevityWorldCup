@@ -200,6 +200,7 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
+                        bodyContent = InjectTouchLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                     }
 
@@ -601,6 +602,21 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/share-sheet.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
+        }
+
+        // The touch layer goes in ahead of motion and the aesthetic system, which keep the final say.
+        private string InjectTouchLayer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)

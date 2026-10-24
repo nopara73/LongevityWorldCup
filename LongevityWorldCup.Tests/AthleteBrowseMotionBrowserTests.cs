@@ -27,7 +27,6 @@ public sealed class AthleteBrowseMotionBrowserTests(
             const animate = Element.prototype.animate;
             Element.prototype.animate = function (keyframes, options) {
                 const animation = animate.call(this, keyframes, options);
-                if (window.__pauseMotionCopies && this.dataset?.athleteMotionCopy) animation.pause();
                 try {
                     const frames = Array.isArray(keyframes) ? keyframes : [];
                     window.__motion.animations.push({
@@ -38,9 +37,18 @@ public sealed class AthleteBrowseMotionBrowserTests(
                         first: JSON.stringify(frames[0] ?? {}),
                         last: JSON.stringify(frames[frames.length - 1] ?? {})
                     });
+                    if (this.dataset?.athleteMotionCopy && window.__motion.holdCopies) animation.pause();
                 } catch { }
                 return animation;
             };
+            // Playwright may scroll again while making the link actionable.
+            // Measure the row at the actual click, before the dialog locks it.
+            window.addEventListener('click', event => {
+                const row = event.target instanceof Element
+                    ? event.target.closest('tr[data-athlete-name], .podium-item[data-athlete-name]') : null;
+                if (row && !row.closest('#detailsModal'))
+                    window.__motion.source = { rect: row.getBoundingClientRect().toJSON(), scrollY };
+            }, true);
             new MutationObserver(records => records.forEach(record => {
                 const figure = record.target;
                 if (figure.dataset.lwcCount) {
@@ -63,8 +71,6 @@ public sealed class AthleteBrowseMotionBrowserTests(
 
         var source = path == "/" ? page.Locator(".podium-item[data-athlete-name]").First : page.Locator(Rows + ":visible").Nth(4);
         await source.ScrollIntoViewIfNeededAsync();
-        var rowBox = await source.BoundingBoxAsync();
-        Assert.NotNull(rowBox);
         await ClearLogAsync(page);
         await source.Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
@@ -76,9 +82,10 @@ public sealed class AthleteBrowseMotionBrowserTests(
         Assert.Contains(log, entry => entry.Copy == "rank");
 
         // The card's copy starts as the tapped row and grows to the card.
+        var rowBox = await page.EvaluateAsync<JsonElement>("() => window.__motion.source.rect");
         var surface = log.First(entry => entry.Copy == "surface");
-        Assert.InRange(Px(surface.First, "top"), rowBox!.Y - 2, rowBox.Y + 2);
-        Assert.InRange(Px(surface.First, "height"), rowBox.Height - 2, rowBox.Height + 2);
+        Assert.InRange(Px(surface.First, "top"), rowBox.GetProperty("y").GetDouble() - 2, rowBox.GetProperty("y").GetDouble() + 2);
+        Assert.InRange(Px(surface.First, "height"), rowBox.GetProperty("height").GetDouble() - 2, rowBox.GetProperty("height").GetDouble() + 2);
 
         // The portrait copy starts at the row's small portrait: scaled down, then released.
         var portrait = log.First(entry => entry.Copy == "portrait");
@@ -124,12 +131,12 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
-        await rows.Nth(4).ScrollIntoViewIfNeededAsync();
+        await rows.Nth(4).EvaluateAsync("row => row.scrollIntoView({ block: 'center', behavior: 'instant' })");
         var names = await rows.EvaluateAllAsync<string[]>("rows => rows.slice(0, 8).map(row => row.dataset.athleteName)");
-        var scrolled = await page.EvaluateAsync<double>("() => scrollY");
 
         await rows.Nth(3).Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
+        var scrolled = await page.EvaluateAsync<double>("() => window.__motion.source.scrollY");
         await page.Keyboard.PressAsync("ArrowRight");
         await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(names[4]);
         await WaitForProfileAsync(page);
@@ -225,10 +232,12 @@ public sealed class AthleteBrowseMotionBrowserTests(
         }
     }
 
-    [Fact]
-    public async Task Swiping_TheProfileStepsToTheNeighbours()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Swiping_TheProfileStepsToTheNeighbours_AndNextTapCloses(bool reducedMotion)
     {
-        await using var context = await NewContextAsync(390, 844, dark: false, reducedMotion: false);
+        await using var context = await NewContextAsync(390, 844, dark: false, reducedMotion);
         var page = await context.NewPageAsync();
         await NavigateToLeaderboardAsync(page, "/leaderboard");
         var rows = page.Locator(Rows + ":visible");
@@ -259,7 +268,8 @@ public sealed class AthleteBrowseMotionBrowserTests(
                 });
                 dragged = await page.EvaluateAsync<double>("() => parseFloat(document.getElementById('athlete-profile').style.translate) || 0");
             }
-            Assert.True(Math.Sign(dragged) == Math.Sign(to - from) && Math.Abs(dragged) > 40, $"The profile should follow the finger, not sit at {dragged}px.");
+            if (reducedMotion) Assert.Equal(0, dragged);
+            else Assert.True(Math.Sign(dragged) == Math.Sign(to - from) && Math.Abs(dragged) > 40, $"The profile should follow the finger, not sit at {dragged}px.");
             await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
             {
                 ["type"] = "touchEnd",
@@ -272,6 +282,13 @@ public sealed class AthleteBrowseMotionBrowserTests(
 
         // A vertical drag scrolls the profile and never steps.
         Assert.Equal("pan-y pinch-zoom", await page.EvaluateAsync<string>("() => getComputedStyle(document.getElementById('athlete-profile')).touchAction"));
+        await touch.DetachAsync();
+        // A handled horizontal swipe must not leave a native scroll sequence
+        // that consumes the next real tap before it can generate a click.
+        await page.Locator("#closeAthleteDetailsModal").TapAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Assertions.Expect(rows.Nth(1).Locator("a.athlete-name")).ToBeFocusedAsync();
+        Assert.NotEqual("hidden", await page.EvaluateAsync<string>("() => getComputedStyle(document.body).overflow"));
     }
 
     [Fact]
@@ -392,7 +409,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var next = await rows.Nth(2).Locator("a.athlete-name").GetAttributeAsync("href");
         // Hold copies when they are created: waiting until profile readiness can
         // miss the entire short animation on a loaded browser worker.
-        if (!reducedMotion) await page.EvaluateAsync("() => window.__pauseMotionCopies = true");
+        if (!reducedMotion) await page.EvaluateAsync("() => window.__motion.holdCopies = true");
         await rows.Nth(1).Locator("a.athlete-name").TapAsync();
         await WaitForProfileAsync(page);
         if (!reducedMotion)
@@ -402,7 +419,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var staleCopies = await page.EvaluateAsync<int>(
             """
             href => {
-                window.__pauseMotionCopies = false;
+                window.__motion.holdCopies = false;
                 window.closeModal({ fromHistory: true });
                 window.openAthleteModalBySlug(href.split('/').pop(), { suppressGuessMyAge: true });
                 return document.querySelector('.athlete-motion-layer')?.childElementCount || 0;
