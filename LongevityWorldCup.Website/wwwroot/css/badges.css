@@ -498,7 +498,7 @@ html .badge-class.badge-tip-medal[data-badge-rarity="rare"]:not(.badge-family-do
 @keyframes badge-card-out{to{opacity:0;transform:scale(.94) translateY(4px)}}
 
 /* --- Phone: the card is a bottom sheet ------------------------------------ */
-:is(.badge-tip,.badge-tip-exit)[role="dialog"][data-side="sheet"]{
+:is(.badge-tip,.badge-tip-exit)[data-side="sheet"]{
     top:auto!important;
     left:0!important;
     right:0;

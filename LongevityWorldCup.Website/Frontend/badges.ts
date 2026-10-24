@@ -1213,7 +1213,7 @@ function hideBadgeTip(restoreFocus = false): void {
     badgeTipObserver?.disconnect();
     badgeTipObserver = null;
     const owner = badgeTipOwner;
-    if (restoreFocus) badgeTipDismissedOwner = owner;
+    if (restoreFocus) badgeTipDismissedOwner = owner?.matches(':hover') ? owner : null;
     const active = document.activeElement;
     const wasCard = badgeTipMode === 'card';
     if (badgeTip) {
