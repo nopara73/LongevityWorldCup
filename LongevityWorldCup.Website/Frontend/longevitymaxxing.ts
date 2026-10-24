@@ -8,6 +8,7 @@
     type ButtonWork = () => Promise<void>;
     type Quote = readonly [text: string, author: string, athleteSlug: string, sourceUrl: string];
     type AnswerTone = "no" | "somewhat" | "yes";
+    type CheckInMoment = "complete" | "saved" | "rollback";
 
     interface AnswerOption {
         tone: AnswerTone;
@@ -837,6 +838,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const checkInErrors = new Map<string, string>();
     const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
     let checkInSaving: { key: string; day: number } | null = null;
+    // A submitted check-in shows on the dashboard and board before the server answers.
+    let optimisticCheckIn: { participantId: string; challengeDay: number; date: string; values: Record<HabitKey, number> } | null = null;
+    const checkInMoments = new Map<string, { kind: CheckInMoment; startedAt: number }>();
     let profilePictureDraft: ProfilePictureDraft | null = null;
     let profileTimeZoneDraft: ProfileTimeZoneDraft | null = null;
     const handledTimeZoneSuggestions = new Set<string>();
@@ -2093,8 +2097,222 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return result;
     }
 
-    function renderAll() {
+    /* --- Ritual motion --------------------------------------------------------
+     * The check-in answers every tap at once, saves optimistically, and lets the
+     * numbers and cells it changed move into place. Durations and curves match
+     * the shared motion tokens; prefers-reduced-motion skips every animation
+     * here, and none of it holds input.
+     */
+    const LMX_EASE_STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+    const LMX_EASE_ENTER = "cubic-bezier(0, 0, 0, 1)";
+    const CHECK_IN_MOMENT_MS: Record<CheckInMoment, number> = { complete: 760, saved: 900, rollback: 420 };
+    const reducedMotionQuery = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+
+    function lmxMotionAllowed(): boolean {
+        return !reducedMotionQuery?.matches && typeof Element.prototype.animate === "function";
+    }
+
+    function lmxAnimate(element: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions): boolean {
+        if (!lmxMotionAllowed()) return false;
+        try {
+            const styles = getComputedStyle(document.documentElement);
+            const easing = options.easing === LMX_EASE_STANDARD ? styles.getPropertyValue("--lwc-ease-standard").trim()
+                : options.easing === LMX_EASE_ENTER ? styles.getPropertyValue("--lwc-ease-enter").trim() : "";
+            const animation = element.animate(keyframes, { ...options, ...(easing ? { easing } : {}) });
+            const stop = () => { if (reducedMotionQuery?.matches) animation.cancel(); };
+            reducedMotionQuery?.addEventListener("change", stop);
+            void animation.finished.catch(() => {}).finally(() => reducedMotionQuery?.removeEventListener("change", stop));
+            return true;
+        } catch { return false; /* Motion is decoration; the state is already in place. */ }
+    }
+
+    /** Counts a number from its previous value to the new one while it slides into place. */
+    function rollNumber(element: HTMLElement, from: number, to: number, format: (value: number) => string): void {
+        if (from === to || !Number.isFinite(from) || !Number.isFinite(to) || !lmxMotionAllowed()) return;
+        const rising = to > from;
+        const start = performance.now();
+        const duration = 560;
+        element.dataset.lmxRolling = rising ? "up" : "down";
+        const animated = lmxAnimate(element, [
+            { transform: `translateY(${rising ? "0.4em" : "-0.4em"})`, opacity: 0.3 },
+            { transform: "none", opacity: 1 }
+        ], { duration: 280, easing: LMX_EASE_ENTER });
+        if (!animated) {
+            delete element.dataset.lmxRolling;
+            return;
+        }
+        // Assistive technology reads the confirmed value throughout the visual count-up.
+        const confirmed = document.createElement("span");
+        confirmed.className = "visually-hidden";
+        confirmed.textContent = format(to);
+        element.after(confirmed);
+        element.setAttribute("aria-hidden", "true");
+        element.textContent = format(from);
+        const finish = () => {
+            element.textContent = format(to);
+            delete element.dataset.lmxRolling;
+            element.removeAttribute("aria-hidden");
+            confirmed.remove();
+        };
+        const step = (now: number) => {
+            if (!element.isConnected || !lmxMotionAllowed()) { finish(); return; }
+            const progress = Math.min(1, Math.max(0, now - start) / duration);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            element.textContent = format(progress >= 1 ? to : Math.round(from + ((to - from) * eased)));
+            if (progress < 1) {
+                try { window.requestAnimationFrame(step); } catch { finish(); }
+            } else finish();
+        };
+        try { window.requestAnimationFrame(step); } catch { finish(); }
+    }
+
+    /** Remembers each keyed cell's state so the next render can animate only what changed. */
+    function cellStates(container: ParentNode, selector: string, keyOf: (cell: HTMLElement) => string): Map<string, string> {
+        const states = new Map<string, string>();
+        container.querySelectorAll<HTMLElement>(selector).forEach(cell => states.set(keyOf(cell), cellStateOf(cell)));
+        return states;
+    }
+
+    function cellStateOf(cell: HTMLElement): string {
+        return ["empty", "full", "partial", "missed", "score-high", "score-mid", "score-low"]
+            .filter(name => cell.classList.contains(name)).join(" ") + "|" + (cell.getAttribute("aria-label") || "");
+    }
+
+    function animateChangedCells(container: ParentNode, selector: string, keyOf: (cell: HTMLElement) => string, before: Map<string, string>): void {
+        if (!before.size || !lmxMotionAllowed()) return;
+        container.querySelectorAll<HTMLElement>(selector).forEach(cell => {
+            const previous = before.get(keyOf(cell));
+            if (previous === undefined || previous === cellStateOf(cell)) return;
+            const emptied = cell.classList.contains("empty");
+            cell.dataset.lmxChanged = emptied ? "emptied" : "filled";
+            lmxAnimate(cell, emptied
+                ? [{ transform: "scale(1.2)", opacity: 0.4 }, { transform: "none", opacity: 1 }]
+                : [{ transform: "scale(0.35)", opacity: 0.2 }, { transform: "scale(1.16)", opacity: 1, offset: 0.62 }, { transform: "none", opacity: 1 }],
+            { duration: emptied ? 240 : 360, easing: emptied ? LMX_EASE_STANDARD : LMX_EASE_ENTER });
+            window.setTimeout(() => { delete cell.dataset.lmxChanged; }, 400);
+        });
+    }
+
+    /** Stagger the habit history in from the latest day when the visitor opens it. */
+    function playHistoryEntrance(history: HTMLElement): void {
+        if (!lmxMotionAllowed()) return;
+        const grid = history.querySelector<HTMLElement>(".lmx-dashboard-grid");
+        if (!grid) return;
+        grid.dataset.lmxEntering = "true";
+        grid.querySelectorAll<HTMLElement>(".lmx-dashboard-row").forEach((row, rowIndex) => {
+            const cells = Array.from(row.querySelectorAll<HTMLElement>(".lmx-category-day, .lmx-dashboard-day"));
+            cells.forEach((cell, index) => {
+                const fromLatest = Math.min(14, cells.length - 1 - index);
+                lmxAnimate(cell, [
+                    { transform: "translateY(6px) scale(0.6)", opacity: 0 },
+                    { transform: "none", opacity: 1 }
+                ], { duration: 240, delay: (fromLatest * 16) + (rowIndex * 22), easing: LMX_EASE_ENTER, fill: "backwards" });
+            });
+        });
+        window.setTimeout(() => { delete grid.dataset.lmxEntering; }, 760);
+    }
+
+    function playCheckInMoment(form: HTMLFormElement, kind: CheckInMoment, elapsed = 0): void {
+        if (!lmxMotionAllowed()) return;
+        const key = checkInDayKey(form);
+        if (elapsed === 0) checkInMoments.set(key, { kind, startedAt: performance.now() });
+        form.dataset.lmxMoment = kind;
+        form.style.setProperty("--lmx-moment-offset", `${-Math.round(elapsed)}ms`);
+        const remaining = Math.max(0, CHECK_IN_MOMENT_MS[kind] - elapsed);
+        window.setTimeout(() => {
+            if (form.dataset.lmxMoment !== kind) return;
+            delete form.dataset.lmxMoment;
+            form.style.removeProperty("--lmx-moment-offset");
+        }, remaining);
+    }
+
+    /** A rebuilt card picks up a moment its predecessor was still playing. */
+    function resumeCheckInMoment(form: HTMLFormElement): void {
+        const key = checkInDayKey(form);
+        const moment = checkInMoments.get(key);
+        if (!moment) return;
+        const elapsed = performance.now() - moment.startedAt;
+        if (elapsed >= CHECK_IN_MOMENT_MS[moment.kind]) {
+            checkInMoments.delete(key);
+            return;
+        }
+        playCheckInMoment(form, moment.kind, elapsed);
+    }
+
+    function popHabitAnswer(question: HTMLElement, input: HTMLInputElement): void {
+        const face = input.nextElementSibling;
+        if (face) lmxAnimate(face, [
+            { transform: "scale(0.86)" },
+            { transform: "scale(1.08)", offset: 0.55 },
+            { transform: "none" }
+        ], { duration: 260, easing: LMX_EASE_STANDARD });
+        const icon = question.querySelector(".lmx-question-icon");
+        if (icon) lmxAnimate(icon, [
+            { transform: "scale(0.82)" },
+            { transform: "scale(1.14)", offset: 0.55 },
+            { transform: "none" }
+        ], { duration: 280, easing: LMX_EASE_STANDARD });
+    }
+
+    /** Undo walks each changed answer back with a short counter-turn of its habit icon. */
+    function rewindHabitAnswers(form: HTMLFormElement, changed: HabitKey[]): void {
+        const reset = form.querySelector("[data-checkin-reset]");
+        if (reset) lmxAnimate(reset, [{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }], { duration: 320, easing: LMX_EASE_STANDARD });
+        changed.forEach((key, index) => {
+            const question = form.querySelector<HTMLElement>(`.lmx-question[data-key='${key}']`);
+            if (!question) return;
+            question.dataset.lmxRewind = "true";
+            const icon = question.querySelector(".lmx-question-icon");
+            if (icon) lmxAnimate(icon, [
+                { transform: "rotate(-90deg) scale(0.8)", opacity: 0.5 },
+                { transform: "none", opacity: 1 }
+            ], { duration: 260, delay: index * 40, easing: LMX_EASE_ENTER, fill: "backwards" });
+            window.setTimeout(() => { delete question.dataset.lmxRewind; }, 420);
+        });
+    }
+
+    function withOptimisticCheckIn(state: PublicState): PublicState {
+        const pending = optimisticCheckIn;
+        if (!pending || participantState?.participant.id !== pending.participantId) return state;
+        const index = state.leaderboard.findIndex(row => row.participantId === pending.participantId);
+        if (index < 0 || !state.days.some(day => day.challengeDay === pending.challengeDay && day.date === pending.date)) return state;
+        const row = state.leaderboard[index];
+        if (!row) return state;
+        const previous = row.cells.find(cell => cell.challengeDay === pending.challengeDay);
+        const unchanged = !!previous?.checkedIn && QUESTIONS.every(question => previous[question.key] === pending.values[question.key]);
+        const cell: DayCell = {
+            challengeDay: pending.challengeDay,
+            countsForScore: previous ? previous.countsForScore : pending.challengeDay !== 1,
+            checkedIn: true,
+            // The server owns scoring; an optimistic day shows its habits until the score arrives.
+            score: unchanged && previous ? previous.score : null,
+            ...pending.values
+        };
+        const cells = previous
+            ? row.cells.map(item => item === previous ? cell : item)
+            : [...row.cells, cell].sort((a, b) => a.challengeDay - b.challengeDay);
+        const leaderboard = [...state.leaderboard];
+        leaderboard[index] = { ...row, cells, checkedInDays: row.checkedInDays + (previous?.checkedIn ? 0 : 1) };
+        return { ...state, leaderboard };
+    }
+
+    function displayedState(): PublicState | null {
         const state = participantState ? participantState.public : publicState;
+        return state ? withOptimisticCheckIn(state) : null;
+    }
+
+    /** Re-renders the surfaces a check-in changes, without touching the forms being edited. */
+    function renderCheckInEcho(): void {
+        const state = displayedState();
+        if (!state) return;
+        renderBoardSummary(state);
+        renderHeroContext(state);
+        renderChallengeVisuals(state);
+        renderBoard(state);
+    }
+
+    function renderAll() {
+        const state = displayedState();
         if (!state) return;
 
         renderBoardSummary(state);
@@ -2217,19 +2435,32 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         toggle("lmxHeroCopy", false);
         toggle("lmxHeroHighlights", true);
         toggle("lmxLifeStrip", false);
+        const previous = highlights.dataset.opsParticipant === participant.id
+            ? new Map(Array.from(highlights.querySelectorAll<HTMLElement>("strong[data-ops-value]")).map(value => [value.dataset.opsKey || "", Number(value.dataset.opsValue)]))
+            : new Map<string, number>();
+        const rank = row ? leaderboardRank(state, row) : NaN;
         highlights.className = "lmx-benefit-strip lmx-ops-strip";
         highlights.setAttribute("aria-label", "Participant status");
+        highlights.dataset.opsParticipant = participant.id;
         highlights.innerHTML = [
-            opsTile("Rank", row ? `#${leaderboardRank(state, row)}` : "-"),
-            opsTile("Score", row ? row.totalPoints : 0),
-            opsTile("Streak", row ? row.currentStreak : 0)
+            opsTile("Rank", row ? `#${rank}` : "-", "rank", rank),
+            opsTile("Score", row ? row.totalPoints : 0, "score", row ? row.totalPoints : 0),
+            opsTile("Streak", row ? row.currentStreak : 0, "streak", row ? row.currentStreak : 0)
         ].join("");
+        // Rank, score and streak count to their new values instead of jumping.
+        highlights.querySelectorAll<HTMLElement>("strong[data-ops-value]").forEach(value => {
+            const key = value.dataset.opsKey || "";
+            const from = previous.get(key);
+            if (from === undefined) return;
+            rollNumber(value, from, Number(value.dataset.opsValue), key === "rank" ? number => `#${number}` : String);
+        });
     }
 
-    function opsTile(label: string, value: string | number): string {
+    function opsTile(label: string, value: string | number, key: string, numeric: number): string {
+        const data = Number.isFinite(numeric) ? ` data-ops-key="${escAttr(key)}" data-ops-value="${escAttr(numeric)}"` : "";
         return `<div class="lmx-ops-tile">
             <span class="lmx-ops-label">${esc(label)}</span>
-            <strong>${esc(value)}</strong>
+            <strong${data}>${esc(value)}</strong>
         </div>`;
     }
 
@@ -2261,6 +2492,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return `<span class="${classes.join(" ")}" title="${escAttr(dayTitle(cell) + reportingDayTitle(cell.challengeDay, state))}">${cell.challengeDay}</span>`;
         }).join("");
         const rows = summaries.map(summary => categoryDashboardRow(summary, cells, today, state)).join("");
+        const sameParticipant = track.dataset.participant === participant.id;
+        const cellKey = (cell: HTMLElement) => `${cell.closest(".lmx-dashboard-row")?.querySelector(".lmx-dashboard-category")?.className || ""}:${cell.dataset.day || ""}`;
+        const previousCells = sameParticipant ? cellStates(track, ".lmx-category-day", cellKey) : new Map<string, string>();
+        const previousBars = new Map<string, string>();
+        if (sameParticipant) track.querySelectorAll<HTMLElement>(".lmx-habit-summary .lmx-dashboard-category").forEach(label => {
+            const bar = label.querySelector<HTMLElement>(".lmx-dashboard-bar > span");
+            if (bar) previousBars.set(label.className, bar.style.width);
+        });
+        track.dataset.participant = participant.id;
 
         track.innerHTML = `
             <details class="lmx-habit-history"${dashboardHistoryExpanded ? " open" : ""}>
@@ -2286,7 +2526,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const history = track.querySelector<HTMLDetailsElement>(".lmx-habit-history");
         history?.addEventListener("toggle", () => {
             dashboardHistoryExpanded = history.open;
-            if (history.open) scrollDashboardToLatestDay();
+            if (history.open) {
+                scrollDashboardToLatestDay();
+                playHistoryEntrance(history);
+            }
+        });
+        // A saved (or rolled back) day lands in the history and the habit bars ease to their new share.
+        animateChangedCells(track, ".lmx-category-day", cellKey, previousCells);
+        track.querySelectorAll<HTMLElement>(".lmx-habit-summary .lmx-dashboard-category").forEach(label => {
+            const bar = label.querySelector<HTMLElement>(".lmx-dashboard-bar > span");
+            const from = previousBars.get(label.className);
+            if (!bar || from === undefined || from === bar.style.width) return;
+            lmxAnimate(bar, [{ width: from }, { width: bar.style.width }], { duration: 420, easing: LMX_EASE_STANDARD });
         });
     }
 
@@ -2860,18 +3111,65 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const fullMarksClass = row.hasFullMarks ? " lmx-full-marks" : "";
             const groupEndClass = row.hasFullMarks && !leaderboardRows.visible[index + 1]?.hasFullMarks ? " lmx-full-marks-end" : "";
             const selfClass = row.participantId === participantState?.participant.id ? " lmx-board-row--self" : "";
-            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}${selfClass}${quietClass}" role="row">
+            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}${fullMarksClass}${groupEndClass}${selfClass}${quietClass}" role="row" data-participant-id="${escAttr(row.participantId)}" data-score="${escAttr(row.totalPoints)}">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score"><span class="lmx-score-value">${row.totalPoints}${fullMarks}</span></div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
             </div>`;
         }).join("");
 
+        const before = measureBoardRows(board);
         board.innerHTML = `<div class="lmx-board-row header" role="row">
             <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-number lmx-sticky-heading" role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
         </div>${rows || emptyBoardRow(visibleDays, leaderboardRows.inactive)}`;
+        animateBoardRows(board, before);
+    }
+
+    interface BoardRowSnapshot { top: number; score: string; cells: Map<string, string>; }
+
+    function measureBoardRows(board: HTMLElement): Map<string, BoardRowSnapshot> {
+        const rows = new Map<string, BoardRowSnapshot>();
+        if (!lmxMotionAllowed() || !board.getClientRects().length) return rows;
+        const origin = board.getBoundingClientRect().top;
+        board.querySelectorAll<HTMLElement>(".lmx-board-row[data-participant-id]").forEach(row => {
+            rows.set(row.dataset.participantId || "", {
+                top: row.getBoundingClientRect().top - origin,
+                score: row.dataset.score || "",
+                cells: cellStates(row, ".lmx-cell[data-day]", cell => cell.dataset.day || "")
+            });
+        });
+        return rows;
+    }
+
+    /** Standings glide to their new order; changed scores and days pop, and newcomers fade in. */
+    function animateBoardRows(board: HTMLElement, before: Map<string, BoardRowSnapshot>): void {
+        if (!before.size || !lmxMotionAllowed()) return;
+        const origin = board.getBoundingClientRect().top;
+        board.querySelectorAll<HTMLElement>(".lmx-board-row[data-participant-id]").forEach(row => {
+            const previous = before.get(row.dataset.participantId || "");
+            if (!previous) {
+                lmxAnimate(row, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }],
+                    { duration: 240, easing: LMX_EASE_ENTER });
+                return;
+            }
+            const shift = previous.top - (row.getBoundingClientRect().top - origin);
+            if (Math.abs(shift) > 1) {
+                row.dataset.lmxMoving = shift > 0 ? "up" : "down";
+                lmxAnimate(row, [{ transform: `translateY(${shift}px)` }, { transform: "none" }],
+                    { duration: 260, easing: LMX_EASE_STANDARD });
+                window.setTimeout(() => { delete row.dataset.lmxMoving; }, 300);
+            }
+            if (previous.score !== (row.dataset.score || "")) {
+                const score = row.querySelector(".lmx-score-value");
+                if (score) lmxAnimate(score, [
+                    { transform: `translateY(${Number(row.dataset.score) > Number(previous.score) ? "0.5em" : "-0.5em"})`, opacity: 0.2 },
+                    { transform: "none", opacity: 1 }
+                ], { duration: 280, easing: LMX_EASE_ENTER });
+            }
+            animateChangedCells(row, ".lmx-cell[data-day]", cell => cell.dataset.day || "", previous.cells);
+        });
     }
 
     function practiceDayCellHtml(cell: DayCell, state: PublicState): string {
@@ -2902,8 +3200,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const rawScore = breakdown.reduce((sum, item) => sum + item.value, 0);
         const scoreClass = rawScore >= 6 ? "score-high" : rawScore >= 3 ? "score-mid" : "score-low";
         const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" data-key="${item.key}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
-        return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}${reportingClasses}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
-            <span class="lmx-cell-score">${score}</span>
+        // An optimistic day has no server score yet; its habits show while the score is on its way.
+        const pending = typeof cell.score !== "number";
+        const cellTitle = pending ? `Day ${cell.challengeDay}: saving; ${breakdown.map(item => `${item.label} ${item.value}/2`).join(", ")}${reportingDayTitle(cell.challengeDay, state)}` : title;
+        return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}${reportingClasses}" data-day="${escAttr(cell.challengeDay)}"${pending ? ' data-score-pending="true"' : ""} title="${escAttr(cellTitle)}" aria-label="${escAttr(cellTitle)}">
+            <span class="lmx-cell-score">${pending ? "" : score}</span>
             <span class="lmx-habit-marks">${marks}</span>
         </div>`;
     }
@@ -3252,9 +3553,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             input.addEventListener("change", () => {
                 if (!input.checked) return;
                 const question = input.closest<HTMLElement>(".lmx-question");
-                if (question) syncGrowthControl(question, clampHabitValue(Number(input.value)));
+                if (question) {
+                    popHabitAnswer(question, input);
+                    syncGrowthControl(question, clampHabitValue(Number(input.value)));
+                }
                 const form = input.closest<HTMLFormElement>("form");
-                if (form) updateCheckInSaveState(form);
+                if (!form) return;
+                const wasComplete = form.dataset.lmxComplete === "true";
+                updateCheckInSaveState(form);
+                // The fourth answer gets one short moment: the rail glows and Save springs ready.
+                if (!wasComplete && form.dataset.lmxComplete === "true") playCheckInMoment(form, "complete");
             });
         });
         container.querySelectorAll<HTMLFormElement>("form").forEach(form => {
@@ -3280,6 +3588,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             }, () => checkInSaving?.key !== checkInDayKey(form));
             renderSelectedNotePhotoPreviews(form);
             updateCheckInSaveState(form);
+            resumeCheckInMoment(form);
             form.addEventListener("submit", event => {
                 event.preventDefault();
                 submitCheckIn(form);
@@ -5860,6 +6169,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
         const currentAccessToken = accessToken;
         const currentParticipantId = participantState.participant.id;
+        let responseGeneration = stateAcceptanceGeneration;
         if (!hasCheckInChanged(form) && !checkInErrors.has(key)) return;
         const draft = collectCheckInDraft(form);
         if (!isCompleteCheckInDraft(draft)) {
@@ -5872,13 +6182,23 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             form.querySelector<HTMLTextAreaElement>("textarea")?.focus();
             return;
         }
+        const values = JSON.stringify({ ...draft, note: draft.note.trim() });
         checkInSaving = { key, day: Number(form.dataset.day) };
         checkInErrors.delete(key);
+        // Optimistic: the day reads as saved and lands on the dashboard and board at once.
+        optimisticCheckIn = {
+            participantId: currentParticipantId,
+            challengeDay: Number(form.dataset.day),
+            date: submittedDay.date,
+            values: { sleep: draft.sleep, exercise: draft.exercise, nutrition: draft.nutrition, vices: draft.vices }
+        };
         updateCheckInSaveState(form);
+        playCheckInMoment(form, "saved");
+        renderCheckInEcho();
+        let rolledBack = false;
         try {
             const quoteBucket = selectQuoteBucket(draft);
             const notePhotos = getPendingNotePhotos(form);
-            const values = JSON.stringify({ ...draft, note: draft.note.trim() });
             let submission = checkInSubmissions.get(key);
             if (!submission || submission.values !== values || submission.photos.length !== notePhotos.length || submission.photos.some((photo, index) => photo !== notePhotos[index])) {
                 submission = { id: window.crypto.randomUUID(), values, photos: [...notePhotos] };
@@ -5894,9 +6214,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 note: draft.note.trim() || null,
                 submissionId: submission.id
             };
-            const result = notePhotos.length
+            let result = notePhotos.length
                 ? await postCheckInWithPhotos(payload, notePhotos)
                 : await postJson(`${API}/check-in`, payload);
+            // Whole snapshots can arrive after a newer timezone or discussion response.
+            // Keep the final generation check and state acceptance in the same turn.
+            while (accessToken === currentAccessToken && responseGeneration !== stateAcceptanceGeneration) {
+                responseGeneration = stateAcceptanceGeneration;
+                result = await postJson(`${API}/participant`, { token: currentAccessToken });
+            }
             if (accessToken !== currentAccessToken) return;
             const saved = result.eligibleDays.find(day => checkInDraftKey(day, result.participant.id) === key)?.existing;
             // A delayed reply or an idempotent retry can arrive after this day leaves the editable window.
@@ -5929,6 +6255,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 adviceCheckInEditing = null;
                 participantTabManual = false;
             }
+            optimisticCheckIn = null;
             acceptParticipantState(result);
             if (!confirmedNote.trim() && !confirmedImages.length &&
                 !result.notes.some(note => note.participantId === result.participant.id && note.challengeDay === payload.challengeDay && note.advice)) {
@@ -5945,10 +6272,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             renderAll();
             if (quoteBucket && stillViewingSubmittedDay && !result.pendingAdvicePrompt) void showRandomCheckInQuote(quoteBucket);
         } catch (err) {
-            if (accessToken === currentAccessToken) checkInErrors.set(key, messageOf(err));
+            if (accessToken === currentAccessToken) {
+                checkInErrors.set(key, messageOf(err));
+                rolledBack = true;
+            }
         } finally {
             checkInSaving = null;
+            const wasOptimistic = optimisticCheckIn !== null;
+            optimisticCheckIn = null;
             document.querySelectorAll<HTMLFormElement>(".lmx-checkin-card").forEach(updateCheckInSaveState);
+            if (wasOptimistic) {
+                // Rollback: the day leaves the dashboard and board, and Retry nudges once.
+                checkInMoments.delete(key);
+                const current = document.querySelector<HTMLFormElement>(`.lmx-checkin-card[data-draft-key="${CSS.escape(key)}"]`);
+                if (current && rolledBack) playCheckInMoment(current, "rollback");
+                renderCheckInEcho();
+            }
         }
     }
 
@@ -6022,6 +6361,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (feedback) feedback.textContent = "";
         const note = form.querySelector<HTMLTextAreaElement>("textarea");
         if (note) note.value = values.note;
+        const before = collectCheckInDraft(form);
+        rewindHabitAnswers(form, QUESTIONS.map(question => question.key).filter(habit => before[habit] !== values[habit]));
         for (const question of QUESTIONS) {
             const control = form.querySelector<HTMLElement>(`.lmx-question[data-key='${question.key}']`);
             control?.querySelectorAll<HTMLInputElement>(".lmx-answer-input").forEach(input => { input.checked = Number(input.value) === values[question.key]; });
@@ -6066,11 +6407,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             button.disabled = !!checkInSaving || !complete || (!changed && !checkInErrors.has(key)) || noteLength > characterLimit;
             button.toggleAttribute("aria-busy", savingThisDay);
             if (savingThisDay) button.setAttribute("aria-busy", "true");
-            button.innerHTML = savingThisDay
-                ? `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>Saving…`
+            // Optimistic: while the submitted answers are in flight the button already reads Saved;
+            // aria-busy stays on and the progress announcement waits for the server.
+            const label = savingThisDay
+                ? `<i class="fas fa-check" aria-hidden="true"></i>Saved`
                 : saved ? `<i class="fas fa-check" aria-hidden="true"></i>Saved`
                     : checkInErrors.has(key) ? "Retry" : "Save";
+            if (button.innerHTML !== label) button.innerHTML = label;
+            if (savingThisDay) button.setAttribute("aria-label", "Saving…");
+            else button.removeAttribute("aria-label");
         }
+        form.dataset.lmxComplete = String(complete);
+        form.toggleAttribute("data-lmx-optimistic", savingThisDay);
         const reset = form.querySelector<HTMLButtonElement>("[data-checkin-reset]");
         if (reset) {
             const canUndo = !changed && checkInResetUndo.has(key);
@@ -6187,13 +6535,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const draft = profileTimeZoneDraft;
         if (!accessToken || !participantState || !draft || draft.saving || !hasProfileTimeZoneChanges()) return;
         const currentAccessToken = accessToken;
+        let responseState = participantState;
         const submittedTimeZone = draft.timeZoneId;
         const pictureBeforeSave = participantState.participant.profileImageUrl;
         draft.saving = true;
         draft.error = "";
         renderProfileTimeZoneControls();
         try {
-            const result = await postJson(`${API}/edit`, { accessToken: currentAccessToken, timeZoneId: submittedTimeZone });
+            let result = await postJson(`${API}/edit`, { accessToken: currentAccessToken, timeZoneId: submittedTimeZone });
+            // A check-in may have completed while this older profile snapshot was in flight.
+            // Picture-only updates are merged below without replacing the whole state.
+            while (accessToken === currentAccessToken && responseState !== participantState) {
+                responseState = participantState;
+                result = await postJson(`${API}/participant`, { token: currentAccessToken });
+            }
             if (profileTimeZoneDraft !== draft || accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
             if (result.participant.id !== draft.participantId) throw invalidApiResponse(`${API}/edit`);
             if (participantState.participant.profileImageUrl !== pictureBeforeSave) {
