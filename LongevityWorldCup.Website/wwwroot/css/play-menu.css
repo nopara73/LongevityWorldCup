@@ -416,22 +416,6 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     display: none !important;
 }
 
-html.play-panel-transitioning .play-hub-panel--entering {
-    animation: play-panel-enter var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
-}
-
-@keyframes play-panel-enter {
-    from {
-        opacity: 0.86;
-        transform: translateY(4px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .play-athlete-panel,
 .play-dashboard-panel,
 .play-join-panel {
@@ -1788,10 +1772,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
     html[data-play-entry="selection"]:not(.play-route-ready) .play-hub-main::before,
     html[data-play-entry="dashboard"]:not(.play-route-ready) .play-hub-main::before,
     body.play-route-hydrating .play-hub-main::before {
-        animation: none;
-    }
-
-    html.play-panel-transitioning .play-hub-panel--entering {
         animation: none;
     }
 }

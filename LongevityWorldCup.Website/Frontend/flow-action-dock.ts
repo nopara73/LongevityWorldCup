@@ -464,6 +464,10 @@ interface FlowActionDockApi {
 
     function refresh(): void {
         refreshFrame = 0;
+        // A page animating a whole screen into place holds dock decisions, so
+        // transformed, mid-motion geometry never docks or releases its actions.
+        // It refreshes again when the motion settles.
+        if (document.documentElement.hasAttribute('data-flow-dock-hold')) return;
         // Step changes intentionally focus with preventScroll. Ordinary focus
         // only opts into clearance when the viewport or text size really changed.
         const viewport = getVisualViewportBounds();

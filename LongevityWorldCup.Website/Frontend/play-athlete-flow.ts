@@ -531,6 +531,18 @@ function appendHighlightedText(container: HTMLElement, text: string, terms: stri
     }
 }
 
+const SEARCH_ENTER_MS = 180;
+const SEARCH_EXIT_MS = 100;
+const SEARCH_MOVE_MS = 200;
+const SEARCH_EASE_ENTER = "cubic-bezier(0, 0, 0, 1)";
+const SEARCH_EASE_EXIT = "cubic-bezier(0.3, 0, 1, 1)";
+const SEARCH_EASE_STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+
+function searchMotionAllowed(): boolean {
+    return typeof Element.prototype.animate === "function"
+        && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
 function createAthleteSelectionController(
     options: AthleteSelectionControllerOptions
 ): AthleteSelectionController {
@@ -561,11 +573,37 @@ function createAthleteSelectionController(
 
     function closeAllLists(): void {
         geometryObserver.disconnect();
-        document.getElementById(autocompleteListId)?.remove();
+        const list = document.getElementById(autocompleteListId);
+        if (list) dismissAthleteMatches(list);
         input.closest(".play-athlete-panel")?.classList.remove("athlete-search-open");
         currentFocus = -1;
         input.setAttribute("aria-expanded", "false");
         input.removeAttribute("aria-activedescendant");
+    }
+
+    function dismissAthleteMatches(list: HTMLElement): void {
+        // The closed list leaves the accessibility tree and stops taking input
+        // at once; only its picture fades out.
+        list.removeAttribute("id");
+        list.removeAttribute("role");
+        list.setAttribute("aria-hidden", "true");
+        list.classList.add("autocomplete-items--leaving");
+        list.querySelectorAll("[role=option]").forEach(item => item.removeAttribute("role"));
+        const exit = searchMotionAllowed()
+            ? list.animate([
+                { opacity: 1, transform: "none" },
+                { opacity: 0, transform: "translateY(-4px)" }
+            ], { duration: SEARCH_EXIT_MS, easing: SEARCH_EASE_EXIT, fill: "forwards" })
+            : null;
+        if (!exit) {
+            list.remove();
+            return;
+        }
+        exit.finished.catch(() => {}).finally(() => list.remove());
+    }
+
+    function getMatchOptions(list: HTMLElement | null): HTMLDivElement[] {
+        return list ? Array.from(list.querySelectorAll<HTMLDivElement>(":scope > [role=option]")) : [];
     }
 
     function positionAthleteMatches(): void {
@@ -627,7 +665,7 @@ function createAthleteSelectionController(
         else if (itemBox.bottom > bottom) list.scrollTop += itemBox.bottom - bottom;
     }
 
-    function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
+    function addActive(items: ArrayLike<HTMLDivElement> | null): void {
         if (!items) return;
         removeActive(items);
         if (currentFocus >= items.length) currentFocus = 0;
@@ -640,7 +678,7 @@ function createAthleteSelectionController(
         if (activeItem.parentElement) keepActiveOptionVisible(activeItem.parentElement);
     }
 
-    function removeActive(items: HTMLCollectionOf<HTMLDivElement>): void {
+    function removeActive(items: ArrayLike<HTMLDivElement>): void {
         Array.from(items).forEach((item: HTMLDivElement) => {
             item.classList.remove("autocomplete-active");
             item.setAttribute("aria-selected", "false");
@@ -708,65 +746,138 @@ function createAthleteSelectionController(
         errorElement.classList.remove("athlete-search-empty");
     }
 
+    function createAthleteMatch(athlete: PlayAthlete): HTMLDivElement {
+        const item = document.createElement("div");
+        item.setAttribute("role", "option");
+        item.setAttribute("aria-selected", "false");
+        const name = document.createElement("span");
+        name.className = "athlete-option-name";
+        item.append(createAthleteOptionThumb(athlete), name);
+        item.dataset.value = athlete.Name;
+        if (typeof athlete.ProfilePic === "string") {
+            item.dataset.profilePic = athlete.ProfilePic;
+        }
+
+        item.addEventListener("mousedown", event => {
+            event.preventDefault();
+            if (!item.hasAttribute("role")) return;
+            selectAthlete(athlete);
+            closeAllLists();
+            if (options.focusConfirmAfterSelection !== false) {
+                focusWithoutScrolling(confirmButton);
+            }
+        });
+        return item;
+    }
+
     function renderAthleteMatches(): boolean {
         const query = normalizeAthleteSearch(input.value.trim());
         const terms = query.split(/\s+/).filter(term => term);
         clearCurrentAthleteSelectionIfInputChanged(input.value);
 
         clearSearchFeedback();
-        closeAllLists();
-        if (!athleteAutocompleteReady) return false;
-        if (currentAthlete && isAthleteInputValue(currentAthlete, input.value)) return false;
-        if (!terms.length) return false;
+        const existingList = document.getElementById(autocompleteListId);
+        const closeMatches = (): false => {
+            closeAllLists();
+            return false;
+        };
+        if (!athleteAutocompleteReady) return closeMatches();
+        if (currentAthlete && isAthleteInputValue(currentAthlete, input.value)) return closeMatches();
+        if (!terms.length) return closeMatches();
 
-        const list = document.createElement("div");
-        list.setAttribute("id", autocompleteListId);
-        list.setAttribute("class", "autocomplete-items");
-        list.setAttribute("role", "listbox");
-        list.setAttribute("aria-label", "Athlete suggestions");
-        input.parentNode?.appendChild(list);
+        const matches: PlayAthlete[] = [];
+        for (const athlete of athletes) {
+            if (matches.length >= maxItems) break;
+            if (!getAthleteCanonicalName(athlete)) continue;
+            if (terms.every(term => getAthleteSearchText(athlete).includes(term))) matches.push(athlete);
+        }
 
-        let count = 0;
-        athletes.forEach((athlete: PlayAthlete) => {
-            if (count >= maxItems) return;
-            if (!getAthleteCanonicalName(athlete)) return;
-            const searchText = getAthleteSearchText(athlete);
-            if (terms.every(term => searchText.includes(term))) {
-                const displayName = getAthleteDisplayName(athlete);
-                const item = document.createElement("div");
-                item.id = `${autocompleteListId}-option-${count}`;
-                item.setAttribute("role", "option");
-                item.setAttribute("aria-selected", "false");
-                const name = document.createElement("span");
-                name.className = "athlete-option-name";
-                appendHighlightedText(name, displayName, terms);
-                item.append(createAthleteOptionThumb(athlete), name);
-                item.dataset.value = athlete.Name;
-                if (typeof athlete.ProfilePic === "string") {
-                    item.dataset.profilePic = athlete.ProfilePic;
-                }
-
-                item.addEventListener("mousedown", event => {
-                    event.preventDefault();
-                    selectAthlete(athlete);
-                    closeAllLists();
-                    if (options.focusConfirmAfterSelection !== false) {
-                        focusWithoutScrolling(confirmButton);
-                    }
-                });
-
-                list.appendChild(item);
-                count++;
-            }
-        });
-
-        if (count === 0) {
-            list.remove();
-            input.setAttribute("aria-expanded", "false");
+        if (matches.length === 0) {
+            closeAllLists();
             errorElement.classList.add("athlete-search-empty");
             errorElement.setAttribute("role", "status");
             errorElement.textContent = "No matching athlete.";
             return false;
+        }
+
+        // Keep the open list and its rows across keystrokes: rows that still
+        // match slide to their new place, new rows fade in, and rows that no
+        // longer match fade out where they were instead of the list redrawing.
+        const animate = searchMotionAllowed();
+        currentFocus = -1;
+        input.removeAttribute("aria-activedescendant");
+        const list = existingList || document.createElement("div");
+        const isNewList = !existingList;
+        if (isNewList) {
+            list.setAttribute("id", autocompleteListId);
+            list.setAttribute("class", "autocomplete-items");
+            list.setAttribute("role", "listbox");
+            list.setAttribute("aria-label", "Athlete suggestions");
+            input.parentNode?.appendChild(list);
+        }
+
+        const previous = new Map<string, HTMLDivElement>();
+        const previousTops = new Map<HTMLDivElement, number>();
+        getMatchOptions(list).forEach(item => {
+            previous.set(item.dataset.value || "", item);
+            if (animate) previousTops.set(item, item.offsetTop);
+        });
+        list.querySelectorAll(".autocomplete-item--leaving").forEach(item => item.remove());
+
+        const ordered = matches.map((athlete, index) => {
+            const item = previous.get(athlete.Name) || createAthleteMatch(athlete);
+            previous.delete(athlete.Name);
+            item.id = `${autocompleteListId}-option-${index}`;
+            item.classList.remove("autocomplete-active");
+            item.setAttribute("aria-selected", "false");
+            const name = item.querySelector<HTMLElement>(".athlete-option-name");
+            if (name) {
+                name.replaceChildren();
+                appendHighlightedText(name, getAthleteDisplayName(athlete), terms);
+            }
+            return item;
+        });
+
+        const leaving = Array.from(previous.values());
+        const leavingTops = leaving.map(item => item.offsetTop);
+        ordered.forEach(item => list.appendChild(item));
+        leaving.forEach((item, index) => {
+            item.removeAttribute("role");
+            item.removeAttribute("id");
+            item.removeAttribute("aria-selected");
+            item.setAttribute("aria-hidden", "true");
+            if (!animate) {
+                item.remove();
+                return;
+            }
+            item.classList.add("autocomplete-item--leaving");
+            item.style.top = `${leavingTops[index] ?? 0}px`;
+            const exit = item.animate([
+                { opacity: 1, transform: "none" },
+                { opacity: 0, transform: "translateX(-10px) scale(0.98)" }
+            ], { duration: SEARCH_EXIT_MS, easing: SEARCH_EASE_EXIT, fill: "forwards" });
+            exit.finished.catch(() => {}).finally(() => item.remove());
+        });
+
+        if (animate) {
+            let entering = 0;
+            ordered.forEach(item => {
+                const before = previousTops.get(item);
+                if (before === undefined) {
+                    item.animate([
+                        { opacity: 0, transform: "translateY(-6px)" },
+                        { opacity: 1, transform: "none" }
+                    ], { duration: SEARCH_ENTER_MS, delay: (isNewList ? 0 : 60) + Math.min(entering, 4) * 28, easing: SEARCH_EASE_ENTER, fill: "backwards" });
+                    entering += 1;
+                    return;
+                }
+                const shift = before - item.offsetTop;
+                if (Math.abs(shift) < 1) return;
+                item.animate([
+                    { transform: `translateY(${shift}px)` },
+                    { transform: "none" }
+                ], { duration: SEARCH_MOVE_MS, easing: SEARCH_EASE_STANDARD });
+            });
         }
 
         input.setAttribute("aria-expanded", "true");
@@ -781,7 +892,14 @@ function createAthleteSelectionController(
             geometryObserver.observe(element);
         });
         positionAthleteMatches();
-        return count > 0;
+        if (isNewList && animate) {
+            const opensAbove = list.style.bottom !== "auto" && list.style.bottom !== "";
+            list.animate([
+                { opacity: 0, transform: `translateY(${opensAbove ? 6 : -6}px)` },
+                { opacity: 1, transform: "none" }
+            ], { duration: SEARCH_ENTER_MS, easing: SEARCH_EASE_ENTER, fill: "backwards" });
+        }
+        return true;
     }
 
     function parentForMatches(): Element {
@@ -879,7 +997,7 @@ function createAthleteSelectionController(
                 renderAthleteMatches();
             }
             const listElement = document.getElementById(autocompleteListId);
-            const list = listElement?.getElementsByTagName("div") ?? null;
+            const list = listElement ? getMatchOptions(listElement) : null;
             if (event.key === "ArrowDown") {
                 event.preventDefault();
                 currentFocus++;
