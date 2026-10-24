@@ -118,7 +118,7 @@ namespace LongevityWorldCup.Website.Middleware
                     var progressBar = await ReadPartialAsync("main-progress-bar.html", bodyContent.Contains("<!--MAIN-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var subProgressBar = await ReadPartialAsync("sub-progress-bar.html", bodyContent.Contains("<!--SUB-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var needsAthleteDialogRuntime = !containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path);
-                    var leaderboardContent = CompactProfileTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
+                    var leaderboardContent = CompactStaticTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
                     var guessMyAge = await ReadPartialAsync("guess-my-age.html",
                         bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
                     var eventBoardContent = await ReadPartialAsync("event-board-content.html", bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
@@ -308,11 +308,11 @@ namespace LongevityWorldCup.Website.Middleware
             };
         }
 
-        private static string CompactProfileTableMarkup(string html) => Regex.Replace(
+        private static string CompactStaticTableMarkup(string html) => Regex.Replace(
             html,
-            @"<table class=""athlete-info-table""[^>]*>.*?</table>",
-            // Compact only static tag indentation, before athlete content is
-            // injected. Keep readable source and all inter-element line breaks.
+            @"<table(?: class=""athlete-info-table""[^>]*)?>.*?</table>",
+            // Compact only static leaderboard/profile table tag indentation,
+            // before athlete content is injected. Keep all inter-element line breaks.
             table => Regex.Replace(table.Value, @"(?m)^[ \t]+(?=<)", string.Empty),
             RegexOptions.Singleline);
 
@@ -600,6 +600,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/form-controls.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/form-controls.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/charts.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
         }

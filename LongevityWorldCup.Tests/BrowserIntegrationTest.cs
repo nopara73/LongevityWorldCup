@@ -168,6 +168,24 @@ public abstract class BrowserIntegrationTest(
     protected IBrowser Browser => browserFixture.Browser;
     protected virtual bool UseIsolatedApplicationPerTest => false;
 
+    // Scroll/view timelines settle at a scroll position, not after elapsed time.
+    // Poll finite clock-driven effects with a deadline instead of awaiting every
+    // animation's finished promise, which can leave the test host stuck forever.
+    protected static async Task WaitForFiniteAnimationsAsync(IPage page)
+    {
+        await page.WaitForFunctionAsync("""
+            () => {
+                document.body.getBoundingClientRect();
+                return document.getAnimations()
+                    .filter(animation => animation.timeline === document.timeline
+                        && Number.isFinite(animation.effect?.getComputedTiming().endTime))
+                    .every(animation => !animation.pending
+                        && ['finished', 'idle'].includes(animation.playState));
+            }
+            """, null, new() { Timeout = 10_000 });
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+    }
+
     protected async Task RouteAthleteFixtureAsync(IBrowserContext context, Action<JsonArray> transform)
     {
         // Prepare transformed data before navigation instead of spending the

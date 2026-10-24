@@ -38,15 +38,7 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
         await page.EvaluateAsync("() => document.fonts.ready");
         await page.WaitForFunctionAsync("size => Math.abs(parseFloat(getComputedStyle(document.documentElement).fontSize) - size) < 0.1", fontSize);
-        await page.EvaluateAsync("""
-            async () => {
-                document.body.getBoundingClientRect();
-                await Promise.all(document.getAnimations()
-                    .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
-                    .map(animation => animation.finished.catch(() => {})));
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            }
-            """);
+        await WaitForFiniteAnimationsAsync(page);
         await input.FillAsync("a");
         await Assertions.Expect(page.Locator(".autocomplete-items [role=option]").First).ToBeVisibleAsync();
         await page.EvaluateAsync("async () => { window.LwcFlowActionDock?.refreshNow(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");

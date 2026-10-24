@@ -104,10 +104,7 @@
     });
 
     window.addEventListener('online', refresh);
-    if (typeof BroadcastChannel === 'function') {
-        const changes = new BroadcastChannel(push.syncTag);
-        changes.onmessage = refresh;
-    }
+    push.onChange(refresh);
     window.addEventListener('pageshow', refresh);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
     try {

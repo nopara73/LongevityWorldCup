@@ -45,7 +45,9 @@ public sealed class HomepageStickyActionBrowserTests(
                     HaloBottom: haloBottom,
                     CenterOffset: Math.abs(
                         (haloTop + haloBottom) / 2
-                        - (stickyRect.top + stickyRect.bottom) / 2)
+                        - (stickyHeader.classList.contains('is-stacked')
+                            ? stickyRect.bottom - 4 - parseFloat(getComputedStyle(stickyHeader).getPropertyValue('--site-sticky-action-height')) / 2
+                            : (stickyRect.top + stickyRect.bottom) / 2))
                 };
             }
             """);
