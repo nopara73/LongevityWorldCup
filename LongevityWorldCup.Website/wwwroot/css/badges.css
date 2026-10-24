@@ -106,8 +106,11 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 
 /* The badge explanation popover (badges.ts): one dark card for every surface,
    so an explanation reads the same in rows, boards and both themes. */
-.badge-tip{
+:is(.badge-tip,.badge-tip-exit){
     position:fixed;
+    margin:0;
+    padding:0;
+    overflow:visible;
     display:flex;
     flex-direction:column;
     z-index:10050;
@@ -128,7 +131,7 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     pointer-events:auto;
     animation:badge-tip-in var(--lwc-duration-fast,140ms) var(--lwc-ease,ease)
 }
-.badge-tip[hidden]{display:none}
+:is(.badge-tip,.badge-tip-exit)[hidden]{display:none}
 /* Only the text scrolls. Keeping the arrow outside that scrollport prevents
    its overhang from creating a scrollbar on an otherwise fitting card. */
 .badge-tip-content{
@@ -138,7 +141,7 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     padding:.55rem .75rem;
     border-radius:inherit;
 }
-.badge-tip::after{
+:is(.badge-tip,.badge-tip-exit)::after{
     content:"";
     position:absolute;
     left:var(--badge-tip-arrow,50%);
@@ -150,13 +153,13 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     background:#17212b;
     transform:translateX(-50%) rotate(45deg)
 }
-.badge-tip[data-side="below"]::after{bottom:auto;top:-6px;border-width:1px 0 0 1px}
+:is(.badge-tip,.badge-tip-exit)[data-side="below"]::after{bottom:auto;top:-6px;border-width:1px 0 0 1px}
 .badge-tip-row{display:block}
 .badge-tip-row+.badge-tip-row{margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.12)}
 .badge-tip-title{display:block;font-weight:700;color:#fff}
 .badge-tip-detail{display:block;color:rgba(255,255,255,.74)}
 @keyframes badge-tip-in{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion: reduce){.badge-tip{animation:none}}
+@media (prefers-reduced-motion: reduce){:is(.badge-tip,.badge-tip-exit){animation:none}}
 
 /* In the profile the badges are the shelf of the rank card: an even grid of
    equal cells that never reflows. A chosen badge opens one explanation panel
@@ -288,3 +291,340 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
 /* Name links borrow the badge box but are bare icons: no coin sheen or ring. */
 .athlete-name-links .badge-class::after{display:none}
 .athlete-name-links .badge-class{box-shadow:none}
+
+/* ==========================================================================
+   Collectible badges (badges.ts)
+   Every badge is a struck coin: light follows the pointer across its face,
+   the glyph sits a layer deeper, a press pushes it in, and podium places wear
+   the medal gold as a foil rim with an occasional glint. Choosing a badge mints
+   it again in a card (a bottom sheet on phones); a +N tile unrolls into the
+   badges it hides; unseen award events arrive in the feed with a pop.
+   ========================================================================== */
+:root{
+    --badge-foil:rgba(255,215,0,.7);
+    --badge-foil-glow:rgba(255,215,0,.34);
+    --badge-foil-rare:rgba(192,192,192,.85);
+    --badge-mint-ease:cubic-bezier(.2,0,0,1);
+    --badge-enter-ease:var(--lwc-ease-enter,cubic-bezier(0,0,0,1));
+}
+
+/* Face light and glint share one layer above the glyph, clipped by the badge
+   shape (discs, tiles and hexagons alike). */
+.badge-class i::after{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    pointer-events:none;
+    background:
+        radial-gradient(circle at var(--badge-mx,50%) var(--badge-my,28%),rgba(255,255,255,.46),rgba(255,255,255,0) 60%),
+        linear-gradient(105deg,rgba(255,255,255,0) 38%,rgba(255,255,255,.62) 48%,rgba(255,255,255,.12) 55%,rgba(255,255,255,0) 63%);
+    background-size:100% 100%,280% 100%;
+    background-position:0 0,150% 0;
+    background-repeat:no-repeat;
+    opacity:0;
+    transition:opacity 180ms var(--lwc-ease,ease)
+}
+.badge-class i::before{transition:scale 200ms var(--badge-mint-ease),translate 200ms var(--badge-mint-ease)}
+html .badge-class{transition:filter 160ms var(--lwc-ease,ease),box-shadow 200ms var(--lwc-ease,ease)}
+@media (hover:hover){
+    html .badge-class:not(.badge-overflow-count):hover{filter:brightness(1.07) saturate(1.08)}
+    html .badge-class:not(.badge-overflow-count):not(.badge-family-domain):hover{box-shadow:var(--badge-ring),0 4px 10px rgba(0,0,0,.26),0 1px 2px rgba(0,0,0,.18)}
+    html .badge-class.badge-family-domain:hover{filter:brightness(1.07) saturate(1.08) drop-shadow(0 3px 5px rgba(0,0,0,.3))}
+    .badge-class:hover i::after{
+        opacity:1;
+        background-position:0 0,-50% 0;
+        transition:opacity 180ms var(--lwc-ease,ease),background-position 620ms var(--badge-mint-ease)
+    }
+    .badge-class:hover i::before{scale:1.1;translate:var(--badge-px,0) var(--badge-py,0)}
+}
+/* Press: the glyph sinks, the face dims a touch. */
+html .badge-class:not(.badge-overflow-count):active{filter:brightness(.94)}
+.badge-class:active i::before{scale:.9;translate:0 0;transition-duration:90ms}
+
+/* Rarity. Podium places wear the medal colours as a foil rim. Other surfaces
+   that build their own markup are matched by their medal backgrounds. */
+html .badge-class:is([data-badge-rarity="legendary"]):not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 1.5px var(--badge-foil),0 0 10px 1px var(--badge-foil-glow),var(--badge-lift)
+}
+html .badge-class:is([data-badge-rarity="rare"]):not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 1.5px var(--badge-foil-rare),var(--badge-lift)
+}
+html .badge-class[data-badge-rarity="rare"][style*="#cd7f32"]:not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 1.5px rgba(205,127,50,.75),var(--badge-lift)
+}
+/* A legendary badge catches the light now and then, never in lockstep with its neighbours. */
+.badge-class:is([data-badge-rarity="legendary"]) i::after{animation:badge-glint 7s ease-in-out 1.2s infinite}
+.badge-section>:nth-child(2n) i::after{animation-delay:3.4s}
+.badge-section>:nth-child(3n) i::after{animation-delay:5.1s}
+tbody tr:nth-child(2n) .badge-class i::after{animation-delay:2.3s}
+@keyframes badge-glint{
+    0%,84%{opacity:0;background-position:0 0,150% 0}
+    87%{opacity:.9}
+    96%{opacity:.9;background-position:0 0,-50% 0}
+    100%{opacity:0;background-position:0 0,-50% 0}
+}
+@keyframes badge-glint-once{
+    0%{opacity:0;background-position:0 0,150% 0}
+    20%{opacity:1}
+    85%{opacity:1;background-position:0 0,-50% 0}
+    100%{opacity:0;background-position:0 0,-50% 0}
+}
+/* The badge whose card is open stays lit. */
+html .badge-class.is-badge-tip-owner:not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 2px var(--lwc-accent-bright,#19c3d1),0 4px 12px rgba(0,0,0,.24)
+}
+html .badge-class.badge-family-domain.is-badge-tip-owner{filter:drop-shadow(0 0 3px var(--lwc-accent-bright,#19c3d1)) drop-shadow(0 0 1px var(--lwc-accent-bright,#19c3d1))}
+.badge-class.is-badge-tip-owner i::after{opacity:.7}
+
+/* --- The peek (hover/focus) grows out of its badge ------------------------ */
+:is(.badge-tip,.badge-tip-exit){
+    transform-origin:var(--badge-tip-origin,50% 100%);
+    animation:badge-peek-in 170ms var(--badge-enter-ease)
+}
+@keyframes badge-peek-in{from{opacity:0;transform:translateY(4px) scale(.94)}to{opacity:1;transform:none}}
+:is(.badge-tip,.badge-tip-exit)[data-side="below"]{animation-name:badge-peek-in-below}
+@keyframes badge-peek-in-below{from{opacity:0;transform:translateY(-4px) scale(.94)}to{opacity:1;transform:none}}
+
+/* --- The card: a chosen badge is minted again ----------------------------- */
+:is(.badge-tip,.badge-tip-exit).is-card{
+    width:min(17.5rem,calc(100vw - 16px));
+    max-width:min(17.5rem,calc(100vw - 16px));
+    border-radius:var(--lwc-radius-md,12px);
+    background:radial-gradient(130% 60% at 50% 0%,rgba(255,255,255,.09),rgba(255,255,255,0) 62%),#17212b;
+    box-shadow:0 18px 44px rgba(0,0,0,.34),0 2px 6px rgba(0,0,0,.2);
+    text-align:center;
+    animation:badge-card-in 260ms var(--badge-enter-ease) both
+}
+:is(.badge-tip,.badge-tip-exit).is-card[data-side="below"]{animation-name:badge-card-in-below}
+@keyframes badge-card-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes badge-card-in-below{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+.badge-tip-stage{
+    position:relative;
+    display:grid;
+    place-items:center;
+    flex:0 0 auto;
+    height:66px;
+    margin-top:-30px;
+    pointer-events:none
+}
+.badge-tip-rays{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:168px;
+    height:168px;
+    margin:-84px 0 0 -84px;
+    border-radius:50%;
+    background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.2) 0 5deg,rgba(255,255,255,0) 5deg 15deg);
+    -webkit-mask:radial-gradient(circle,#000 20%,transparent 64%);
+    mask:radial-gradient(circle,#000 20%,transparent 64%);
+    opacity:0;
+    animation:badge-rays-in 560ms var(--badge-enter-ease) 140ms forwards,badge-rays-turn 18s linear infinite
+}
+:is(.badge-tip,.badge-tip-exit)[data-rarity="legendary"] .badge-tip-rays{background:repeating-conic-gradient(from 0deg,rgba(255,215,0,.42) 0 5deg,rgba(255,215,0,0) 5deg 15deg)}
+:is(.badge-tip,.badge-tip-exit)[data-rarity="rare"] .badge-tip-rays{background:repeating-conic-gradient(from 0deg,rgba(192,192,192,.34) 0 5deg,rgba(192,192,192,0) 5deg 15deg)}
+@keyframes badge-rays-in{from{opacity:0;scale:.4}to{opacity:1;scale:1}}
+@keyframes badge-rays-turn{to{rotate:360deg}}
+.badge-tip-stage::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:60px;
+    height:60px;
+    margin:-30px 0 0 -30px;
+    border:2px solid rgba(255,255,255,.75);
+    border-radius:50%;
+    box-sizing:border-box;
+    opacity:0;
+    animation:badge-ring-roll 640ms var(--badge-enter-ease) 220ms both
+}
+:is(.badge-tip,.badge-tip-exit)[data-rarity="legendary"] .badge-tip-stage::after{border-color:var(--badge-foil)}
+@keyframes badge-ring-roll{0%{opacity:0;transform:scale(.75)}1%{opacity:.85}100%{opacity:0;transform:scale(1.9)}}
+html .badge-class.badge-tip-medal{
+    --badge-rim:rgba(255,255,255,.55);
+    position:relative;
+    z-index:1;
+    width:60px!important;
+    height:60px!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    margin:0!important;
+    font-size:1.65rem!important;
+    vertical-align:top!important;
+    box-shadow:var(--badge-ring),0 10px 22px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.24);
+    animation:badge-medal-mint 520ms var(--badge-mint-ease) 60ms both
+}
+html .badge-class.badge-tip-medal.badge-family-domain{width:68px!important;box-shadow:none;filter:drop-shadow(0 8px 12px rgba(0,0,0,.4))}
+html .badge-class.badge-tip-medal.badge-family-pace{border-radius:18px}
+html .badge-class.badge-tip-medal.badge-family-utility{border-radius:15px}
+html .badge-class.badge-tip-medal[data-badge-rarity="legendary"]:not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 2px var(--badge-foil),0 0 22px 4px var(--badge-foil-glow),0 10px 22px rgba(0,0,0,.4)
+}
+html .badge-class.badge-tip-medal[data-badge-rarity="rare"]:not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 2px var(--badge-foil-rare),0 10px 22px rgba(0,0,0,.4)
+}
+.badge-class.badge-tip-medal i::after{animation:badge-glint-once 760ms ease-in-out 460ms both}
+@keyframes badge-medal-mint{
+    0%{opacity:0;transform:scale(.4) rotate(-16deg);filter:grayscale(1) brightness(.6)}
+    50%{opacity:1;transform:scale(1.14) rotate(5deg);filter:grayscale(0) brightness(1.25)}
+    74%{transform:scale(.97) rotate(-1.5deg);filter:brightness(1.06)}
+    100%{opacity:1;transform:none;filter:none}
+}
+:is(.badge-tip,.badge-tip-exit).is-card .badge-tip-content{padding:.85rem 1.05rem .95rem}
+.badge-tip-close{
+    position:absolute;top:2px;right:2px;display:grid;place-items:center;
+    width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;
+    border:0;border-radius:50%;background:transparent;color:#fff;font:1.5rem/1 sans-serif;cursor:pointer
+}
+.badge-tip-close::before,.badge-tip-close::after{display:none}
+.badge-tip-close:hover{background:rgba(255,255,255,.12)}
+.badge-tip-close:focus-visible,.badge-tip-content:focus-visible{outline:2px solid var(--lwc-accent-bright,#19c3d1);outline-offset:-3px}
+:is(.badge-tip,.badge-tip-exit)[role="dialog"].has-tray{padding-top:46px}
+:is(.badge-tip,.badge-tip-exit)::backdrop{background:rgba(4,10,16,.46);touch-action:none}
+:is(.badge-tip,.badge-tip-exit).is-card .badge-tip-title{font-size:1rem;font-weight:800;letter-spacing:.005em}
+:is(.badge-tip,.badge-tip-exit).is-card .badge-tip-detail{margin-top:.15rem;font-size:.85rem;color:rgba(255,255,255,.76)}
+:is(.badge-tip,.badge-tip-exit).is-card[data-rarity="legendary"] .badge-tip-title{color:#ffe680}
+:is(.badge-tip,.badge-tip-exit).is-card .badge-tip-row,
+:is(.badge-tip,.badge-tip-exit).has-tray .badge-tip-row{animation:badge-row-up 280ms var(--badge-enter-ease) calc(170ms + var(--row-i,0) * 55ms) both}
+@keyframes badge-row-up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* The card leaving: a detached copy shrinks back toward its badge. */
+:is(.badge-tip,.badge-tip-exit).is-leaving{pointer-events:none;animation:badge-card-out 170ms var(--lwc-ease,ease) forwards!important}
+:is(.badge-tip,.badge-tip-exit).is-leaving[data-side="sheet"]{animation:badge-sheet-out 220ms var(--lwc-ease,ease) forwards!important}
+:is(.badge-tip,.badge-tip-exit).is-leaving *{animation:none!important}
+@keyframes badge-card-out{to{opacity:0;transform:scale(.94) translateY(4px)}}
+
+/* --- Phone: the card is a bottom sheet ------------------------------------ */
+:is(.badge-tip,.badge-tip-exit)[data-side="sheet"]{
+    top:auto!important;
+    left:0!important;
+    right:0;
+    bottom:0;
+    width:auto;
+    max-width:none;
+    max-height:calc(100dvh - 48px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    border-width:1px 0 0;
+    border-radius:22px 22px 0 0;
+    background:radial-gradient(120% 70% at 50% 0%,rgba(255,255,255,.1),rgba(255,255,255,0) 60%),#17212b;
+    box-shadow:0 -14px 40px rgba(0,0,0,.36);
+    font-size:.95rem;
+    transform-origin:50% 100%;
+    animation:badge-sheet-in 320ms var(--badge-enter-ease) both
+}
+:is(.badge-tip,.badge-tip-exit)[data-side="sheet"]::after{display:none}
+:is(.badge-tip,.badge-tip-exit)[data-side="sheet"] .badge-tip-stage{height:80px;margin-top:-36px}
+html :is(.badge-tip,.badge-tip-exit)[data-side="sheet"] .badge-class.badge-tip-medal{width:74px!important;height:74px!important;font-size:2rem!important}
+html :is(.badge-tip,.badge-tip-exit)[data-side="sheet"] .badge-class.badge-tip-medal.badge-family-domain{width:84px!important}
+:is(.badge-tip,.badge-tip-exit)[data-side="sheet"] .badge-tip-stage::after{width:74px;height:74px;margin:-37px 0 0 -37px}
+:is(.badge-tip,.badge-tip-exit).is-card[data-side="sheet"] .badge-tip-content{padding:.5rem 1.5rem 1.6rem}
+:is(.badge-tip,.badge-tip-exit).is-card[data-side="sheet"] .badge-tip-title{font-size:1.2rem}
+:is(.badge-tip,.badge-tip-exit).is-card[data-side="sheet"] .badge-tip-detail{font-size:1rem;line-height:1.45}
+@keyframes badge-sheet-in{from{transform:translateY(105%)}to{transform:none}}
+@keyframes badge-sheet-out{to{transform:translateY(105%)}}
+/* --- +N unrolls into the badges it hides ---------------------------------- */
+:is(.badge-tip,.badge-tip-exit).has-tray{max-width:min(22rem,calc(100vw - 16px))}
+:is(.badge-tip,.badge-tip-exit).has-tray .badge-tip-content{
+    padding:.6rem .75rem;
+    scroll-snap-type:y proximity;
+    animation:badge-tray-unroll 260ms var(--badge-enter-ease) both
+}
+@keyframes badge-tray-unroll{from{clip-path:inset(0 0 100% 0 round 8px)}to{clip-path:inset(0 0 0 0 round 8px)}}
+.badge-tip-row.has-medal{
+    display:grid;
+    grid-template-columns:26px minmax(0,1fr);
+    column-gap:.65rem;
+    align-items:center;
+    scroll-snap-align:start
+}
+.badge-tip-row.has-medal>.badge-class{grid-row:1/span 2;align-self:center}
+.badge-tip-row.has-medal>.badge-tip-title,.badge-tip-row.has-medal>.badge-tip-detail{grid-column:2}
+:is(.badge-tip,.badge-tip-exit).has-tray .badge-tip-row{animation-name:badge-row-in}
+@keyframes badge-row-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+html .badge-class.badge-tip-mini{
+    width:26px!important;
+    height:26px!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    margin:0!important;
+    font-size:.78rem!important;
+    animation:badge-mini-pop 360ms var(--badge-mint-ease) calc(120ms + var(--row-i,0) * 55ms) both
+}
+html .badge-class.badge-tip-mini.badge-family-domain{width:29px!important}
+html .badge-class.badge-tip-mini.badge-family-pace{border-radius:8px}
+html .badge-class.badge-tip-mini.badge-family-utility{border-radius:7px}
+@keyframes badge-mini-pop{0%{opacity:0;transform:scale(.4) rotate(-12deg)}60%{opacity:1;transform:scale(1.12)}100%{opacity:1;transform:none}}
+
+/* --- Newly earned in the feed --------------------------------------------- */
+html .badge-class.badge-earned{
+    animation:badge-earned-pop 640ms var(--badge-mint-ease) calc(var(--badge-i,0) * 90ms) both
+}
+html .badge-class.badge-earned:not(.badge-family-domain){
+    animation:badge-earned-pop 640ms var(--badge-mint-ease) calc(var(--badge-i,0) * 90ms) both,
+              badge-earned-ring 820ms ease-out calc(var(--badge-i,0) * 90ms + 240ms) both
+}
+.badge-class.badge-earned i::after{animation:badge-glint-once 720ms ease-in-out calc(var(--badge-i,0) * 90ms + 420ms) both}
+@keyframes badge-earned-pop{
+    0%{opacity:0;transform:scale(.3) rotate(-22deg);filter:brightness(1.6)}
+    55%{opacity:1;transform:scale(1.24) rotate(6deg);filter:brightness(1.2)}
+    78%{transform:scale(.95) rotate(-2deg);filter:none}
+    100%{opacity:1;transform:none;filter:none}
+}
+@keyframes badge-earned-ring{
+    0%{box-shadow:var(--badge-ring),0 0 0 0 rgba(255,215,0,.85),var(--badge-lift)}
+    100%{box-shadow:var(--badge-ring),0 0 0 13px rgba(255,215,0,0),var(--badge-lift)}
+}
+
+/* --- Profile shelf: the chosen badge is minted again, its story unrolls ---- */
+#detailsModal .modal-badge-strip .modal-badge-item{transition:background-color 160ms var(--lwc-ease,ease),transform 200ms var(--badge-mint-ease)}
+@media (hover:hover){#detailsModal .modal-badge-strip .modal-badge-item:hover{transform:translateY(-2px)}}
+#detailsModal .modal-badge-strip .modal-badge-item:active{transform:scale(.97)}
+#detailsModal .modal-badge-strip .modal-badge-item.expanded .badge-class{animation:badge-medal-mint 520ms var(--badge-mint-ease) both}
+#detailsModal .modal-badge-strip .modal-badge-item.expanded .badge-class i::after{animation:badge-glint-once 760ms ease-in-out 380ms both}
+#detailsModal .modal-badge-strip .badge-class:is([data-badge-rarity="legendary"]):not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 2px var(--badge-foil),0 0 18px 2px var(--badge-foil-glow),0 8px 18px rgba(0,0,0,.28)
+}
+#detailsModal .modal-badge-strip .badge-class:is([data-badge-rarity="rare"]):not(.badge-family-domain){
+    box-shadow:var(--badge-ring),0 0 0 2px var(--badge-foil-rare),0 8px 18px rgba(0,0,0,.28)
+}
+#detailsModal .modal-badge-explainer{
+    transform-origin:var(--explainer-caret,50%) 0;
+    animation:badge-explainer-in 300ms var(--badge-enter-ease) both
+}
+#detailsModal .modal-badge-explainer>*{animation:badge-row-up 280ms var(--badge-enter-ease) 120ms both}
+#detailsModal .modal-badge-explainer>*+*{animation-delay:180ms}
+@keyframes badge-explainer-in{
+    from{opacity:0;clip-path:inset(-12px 0 100% 0 round 12px);transform:translateY(-6px)}
+    to{opacity:1;clip-path:inset(-12px 0 0 0 round 12px);transform:none}
+}
+
+/* Name-link icons are bare glyphs: no light, no glint. */
+.athlete-name-links .badge-class i::after{display:none}
+
+@media (prefers-color-scheme: dark){
+    :is(.badge-tip,.badge-tip-exit){border-color:rgba(255,255,255,.2)}
+    :root{--badge-foil-glow:rgba(255,215,0,.26)}
+}
+
+@media (prefers-reduced-motion: reduce){
+    html .badge-class,
+    .badge-class i::after,
+    .badge-class i::before,
+    :is(.badge-tip,.badge-tip-exit),
+    :is(.badge-tip,.badge-tip-exit) *,
+    :is(.badge-tip,.badge-tip-exit) *::after,
+    .badge-tip-stage::after,
+    .badge-class.badge-earned,
+    #detailsModal .modal-badge-explainer,
+    #detailsModal .modal-badge-explainer>*,
+    #detailsModal .modal-badge-strip .modal-badge-item,
+    #detailsModal .modal-badge-strip .modal-badge-item .badge-class{animation:none!important;transition:none!important}
+    .badge-class i::before{scale:none!important;translate:none!important}
+    .badge-tip-rays{opacity:1}
+    .badge-tip-stage::after{display:none}
+}
