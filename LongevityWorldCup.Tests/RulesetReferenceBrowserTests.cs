@@ -105,6 +105,7 @@ public sealed class RulesetReferenceBrowserTests(
         Assert.Equal("true", await toggle.GetAttributeAsync("aria-expanded"));
         Assert.Null(await page.Locator("#how-can-i-cheat-answer").GetAttributeAsync("hidden"));
         await toggle.ClickAsync();
+        await page.WaitForFunctionAsync("() => document.getElementById('how-can-i-cheat-answer').getAttribute('hidden') === 'until-found'");
         Assert.Equal("until-found", await page.Locator("#how-can-i-cheat-answer").GetAttributeAsync("hidden"));
 
         await page.EvaluateAsync("location.hash = 'what-will-sponsorships-include'");
