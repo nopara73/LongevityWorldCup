@@ -238,10 +238,15 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var touch = await context.NewCDPSessionAsync(page);
         foreach (var (from, to, name) in new[] { (320, 120, names[2]), (70, 290, names[1]) })
         {
+            // Start on noninteractive profile content, not a chart or button
+            // whose height can change as the athlete's data renders.
+            var titleBox = await page.Locator("#athleteName").BoundingBoxAsync();
+            Assert.NotNull(titleBox);
+            var gestureY = titleBox!.Y + titleBox.Height / 2;
             await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
             {
                 ["type"] = "touchStart",
-                ["touchPoints"] = new[] { new Dictionary<string, object> { ["x"] = from, ["y"] = 620, ["id"] = 1 } }
+                ["touchPoints"] = new[] { new Dictionary<string, object> { ["x"] = from, ["y"] = gestureY, ["id"] = 1 } }
             });
             var dragged = 0d;
             for (var step = 1; step <= 10; step++)
@@ -249,7 +254,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
                 await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
                 {
                     ["type"] = "touchMove",
-                    ["touchPoints"] = new[] { new Dictionary<string, object> { ["x"] = from + (to - from) * step / 10, ["y"] = 624, ["id"] = 1 } }
+                    ["touchPoints"] = new[] { new Dictionary<string, object> { ["x"] = from + (to - from) * step / 10, ["y"] = gestureY + 4, ["id"] = 1 } }
                 });
                 dragged = await page.EvaluateAsync<double>("() => parseFloat(document.getElementById('athlete-profile').style.translate) || 0");
             }

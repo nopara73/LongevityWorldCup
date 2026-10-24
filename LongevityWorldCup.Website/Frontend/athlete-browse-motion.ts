@@ -586,7 +586,11 @@
         cancelSwipe(false);
     });
     modal.addEventListener("pointercancel", () => cancelSwipe());
-    modal.addEventListener("lostpointercapture", () => cancelSwipe());
+    modal.addEventListener("lostpointercapture", event => {
+        // Touch starts with implicit capture on the hit child. Moving capture
+        // to the profile releases that child without ending this gesture.
+        if (swipe && event.pointerId === swipe.id && !swipe.profile.hasPointerCapture(event.pointerId)) cancelSwipe();
+    });
     window.addEventListener("blur", () => cancelSwipe(false));
     document.addEventListener("visibilitychange", () => { if (document.hidden) cancelSwipe(false); });
 
@@ -857,6 +861,7 @@
 
     reduced.addEventListener("change", () => {
         if (!reduced.matches) return;
+        gateOpen = false;
         clearMotion();
         resetCounts();
         rowAnimations.forEach(animation => animation.cancel());
