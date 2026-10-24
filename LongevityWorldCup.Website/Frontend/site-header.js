@@ -461,15 +461,33 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     }
 
     if (!document.querySelector('link[href*="entry-journey"]')) return;
-    const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review|leaderboard)?\/?$/i;
+    const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
     // Decide at capture time, using the final URL after redirects. A stylesheet
     // change during navigate can miss the browser's transition opt-in snapshot.
     window.addEventListener('pageswap', event => {
         const url = event.activation?.entry?.url;
         if (!event.viewTransition || !url) return;
         const destination = new URL(url);
-        if (destination.origin !== location.origin || !journeyPath.test(destination.pathname)) {
+        const homeBoard = location.pathname === '/' && !location.search && !location.hash
+            && !destination.search && !destination.hash && /^\/leaderboard\/?$/i.test(destination.pathname)
+            && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (destination.origin !== location.origin || (!journeyPath.test(destination.pathname) && !homeBoard)) {
             event.viewTransition.skipTransition();
         }
     });
 })();
+
+// Name only the receiving half of a home-to-board handoff. Other native
+// transitions on the full leaderboard must not capture its table.
+window.addEventListener('pagereveal', event => {
+    const from = window.navigation?.activation?.from?.url;
+    if (!event.viewTransition || !from || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const source = new URL(from);
+    if (source.origin !== location.origin || source.pathname !== '/' || source.search || source.hash
+        || location.search || location.hash || !/^\/leaderboard\/?$/i.test(location.pathname)) return;
+    const board = document.querySelector('main[data-leaderboard-page="full"] #athleteLeaderboard');
+    if (!board) return;
+    board.style.viewTransitionName = 'lwc-board';
+    const clear = () => { board.style.viewTransitionName = ''; };
+    event.viewTransition.finished.then(clear, clear);
+});

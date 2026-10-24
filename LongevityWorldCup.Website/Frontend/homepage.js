@@ -782,8 +782,8 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
 
 // ===== Living scoreboard =====
 // A fresh visit plays the standings like a scoreboard lighting up: podium
-// years count up to their totals, then the preview rows shuffle into rank
-// order as the board scrolls into view. A press or key finishes everything at
+// years count up to their totals, then the preview rows settle in canonical
+// rank order as the board scrolls into view. A press or key finishes everything at
 // once, so motion never stands between the visitor and a click. Restored,
 // linked, and reduced-motion visits stay still.
 (function () {
@@ -793,17 +793,21 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
     const navigation = performance.getEntriesByType('navigation')[0];
     const query = new URLSearchParams(location.search);
-    const still = reduce.matches
+    let cancelled = reduce.matches
         || !!location.hash
         || (navigation && navigation.type === 'back_forward')
         || ['athlete', 'filters', 'search', 'view'].some(key => query.has(key))
         || document.visibilityState === 'hidden'
         || !Element.prototype.animate;
+    const allowBoardTransition = !cancelled;
 
     const easeOut = t => 1 - Math.pow(1 - t, 3);
     const running = new Set();
     const counted = new WeakSet();
     const settleAnimations = [];
+    const cleanup = [];
+    const board = main.querySelector('#athleteLeaderboard');
+    const canRun = () => !cancelled && !reduce.matches && !document.hidden && !location.hash;
 
     function parseYears(text) {
         const match = /\d+(?:\.\d+)?/.exec(text);
@@ -823,113 +827,116 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
     // during hydration continues from the value its predecessor showed.
     const shown = new Map();
     function countUp(element, delay, duration, key) {
-        if (counted.has(element)) return;
+        if (!canRun() || counted.has(element) || !CSS.supports('content', 'attr(data-home-count) / ""')) return;
         counted.add(element);
         const finalText = element.textContent;
         const parsed = parseYears(finalText);
         if (!parsed) return;
         const from = key && shown.has(key) ? Math.min(shown.get(key), parsed.value) : 0;
         if (key && shown.has(key)) delay = 0;
-        let written = finalText;
         let start = null;
-        let last = null;
+        let frameId = 0;
+        let timer = 0;
+        let textObserver;
         const track = {};
         const write = value => {
             if (key) shown.set(key, value);
-            written = parsed.before + value.toFixed(parsed.decimals) + parsed.after;
-            element.textContent = written;
+            element.dataset.homeCount = parsed.before + value.toFixed(parsed.decimals) + parsed.after;
         };
         const stop = () => {
             running.delete(track);
+            cancelAnimationFrame(frameId);
+            clearTimeout(timer);
+            textObserver?.disconnect();
+            delete element.dataset.homeCount;
+            element.style.removeProperty('--home-count-color');
             element.classList.remove('is-counting');
         };
         track.finish = () => {
             stop();
-            if (element.isConnected && element.textContent === written) element.textContent = finalText;
             if (key) shown.set(key, parsed.value);
             const host = element.closest('.podium-item, tr');
-            if (host) host.classList.add('is-landed');
+            if (canRun() && host && element.isConnected && element.textContent === finalText) host.classList.add('is-landed');
         };
         running.add(track);
+        textObserver = new MutationObserver(() => {
+            if (element.textContent !== finalText) stop();
+        });
+        textObserver.observe(element, { childList: true, characterData: true, subtree: true });
+        element.style.setProperty('--home-count-color', element.style.getPropertyValue('--home-count-color') || getComputedStyle(element).color);
         element.classList.add('is-counting');
         const frame = now => {
             if (!running.has(track)) return;
             // Someone else (a ranking refresh) rewrote the figure: theirs wins.
-            if (!element.isConnected || element.textContent !== written) { stop(); return; }
+            if (!canRun() || !element.isConnected || element.textContent !== finalText) { stop(); return; }
             if (start === null) start = now;
-            // A long stall (hydration) pauses the count instead of skipping it.
-            if (last !== null && now - last > 80) start += now - last - 16;
-            last = now;
             const progress = Math.min(1, Math.max(0, (now - start - delay) / duration));
             write(from + (parsed.value - from) * easeOut(progress));
-            if (progress >= 1) track.finish(); else requestAnimationFrame(frame);
+            if (progress >= 1) track.finish(); else frameId = requestAnimationFrame(frame);
         };
         write(from);
-        requestAnimationFrame(frame);
+        frameId = requestAnimationFrame(frame);
         // Frames pause in background tabs; the figure must still end correct.
-        setTimeout(() => { if (running.has(track)) track.finish(); }, delay + duration + 2500);
+        timer = setTimeout(() => { if (running.has(track)) track.finish(); }, delay + duration + 2500);
     }
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') finishAll(); });
 
     function finishAll() {
+        cancelled = true;
+        main.classList.remove('home-scoreboard-live');
+        cleanup.splice(0).forEach(stop => stop());
         [...running].forEach(track => track.finish());
-        settleAnimations.splice(0).forEach(animation => animation.finish());
+        settleAnimations.splice(0).forEach(animation => animation.cancel());
+        board?.classList.remove('home-board-settling');
+        main.querySelectorAll('.is-landed').forEach(element => element.classList.remove('is-landed'));
     }
 
     const realRows = () => [...main.querySelectorAll('#athleteLeaderboard tbody tr')]
         .filter(row => !row.matches('.tier-separator, .no-results, .leaderboard-skeleton-row') && row.getClientRects().length);
 
-    // The preview rows begin a slot or two out of place and slide into rank
-    // order from the top down, each figure ticking up as its row lands.
+    // Keep visual and DOM rank order identical; every row arrives from the
+    // same small offset, leaving targets usable even while frames are paused.
     function settleBoard() {
+        if (!canRun()) return false;
         const rows = realRows().slice(0, 12);
         if (rows.length < 3) return false;
-        const tops = rows.map(row => row.getBoundingClientRect().top);
-        const order = rows.map((_, index) => index);
-        for (let index = 0; index + 1 < order.length; index += 3) {
-            [order[index], order[index + 1]] = [order[index + 1], order[index]];
-            if (index + 2 < order.length && index % 2 === 0) [order[index + 1], order[index + 2]] = [order[index + 2], order[index + 1]];
-        }
         const easing = getComputedStyle(root).getPropertyValue('--lwc-ease-standard').trim() || 'cubic-bezier(0.2, 0, 0, 1)';
         const board = main.querySelector('#athleteLeaderboard');
         board.classList.add('home-board-settling');
-        rows.forEach((row, index) => {
+        try { rows.forEach((row, index) => {
             const delay = index * 45;
             const animation = row.animate([
-                { transform: `translateY(${tops[order[index]] - tops[index]}px)`, opacity: 0.3 },
+                { transform: 'translateY(8px)', opacity: 0.65 },
                 { transform: 'none', opacity: 1 }
             ], { duration: 560, delay, easing, fill: 'backwards' });
             animation.id = 'home-board-settle';
             settleAnimations.push(animation);
             const figure = row.querySelector('.age-reduction-td .age-reduction');
             if (figure) countUp(figure, delay + 140, 640);
-        });
+        }); } catch (_) { finishAll(); return true; }
         Promise.all(settleAnimations.map(animation => animation.finished.catch(() => {})))
             .then(() => board.classList.remove('home-board-settling'));
         return true;
     }
 
-    if (!still) {
+    if (!cancelled) {
         main.classList.add('home-scoreboard-live');
         const podiumDelay = { first: 120, second: 240, third: 360 };
         const countPodium = () => main.querySelectorAll('.podium-item:not(.podium-skeleton-item)').forEach(item => {
             const figure = item.querySelector('.podium-score .age-reduction');
             const place = ['first', 'second', 'third'].find(name => item.classList.contains(name)) || 'third';
-            if (figure) countUp(figure, podiumDelay[place], 1100, place);
+            const identity = item.querySelector('a.athlete-name')?.getAttribute('href');
+            if (figure) countUp(figure, podiumDelay[place], 1100, identity ? `${identity}:${figure.textContent}` : null);
         });
         countPodium();
-        // The board waits for hydration (its podium being re-rendered) before
-        // settling, so it never plays on rows that are about to be replaced.
-        let hydrated = false;
+        // Wait for the actual leaderboard-ready signal, not a hydration timer.
         let boardCheck = () => {};
-        const markHydrated = () => { if (hydrated) return; hydrated = true; boardCheck(); };
-        setTimeout(markHydrated, 2500);
         const podium = main.querySelector('.podium');
         if (podium) {
-            const podiumObserver = new MutationObserver(() => { countPodium(); requestAnimationFrame(markHydrated); });
+            const podiumObserver = new MutationObserver(() => { if (canRun()) countPodium(); });
             podiumObserver.observe(podium, { childList: true });
-            setTimeout(() => podiumObserver.disconnect(), 3000);
+            cleanup.push(() => podiumObserver.disconnect());
         }
 
         const board = main.querySelector('#athleteLeaderboard');
@@ -937,19 +944,26 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
             let boardDone = false;
             const stopWatching = () => { boardDone = true; boardObserver.disconnect(); rowObserver.disconnect(); };
             const boardObserver = new IntersectionObserver(entries => {
-                if (boardDone || !hydrated || !entries.some(entry => entry.isIntersecting)) return;
+                if (!canRun() || boardDone || document.getElementById('leaderboardStatus')?.textContent !== 'Leaderboard loaded.'
+                    || !entries.some(entry => entry.isIntersecting)) return;
                 if (settleBoard()) stopWatching();
             }, { threshold: 0.2 });
-            boardCheck = () => { if (boardDone) return; boardObserver.unobserve(board); boardObserver.observe(board); };
+            boardCheck = () => { if (!canRun() || boardDone) return; boardObserver.unobserve(board); boardObserver.observe(board); };
             // Rows may arrive while the board is already on screen.
             const rowObserver = new MutationObserver(() => boardCheck());
             boardObserver.observe(board);
             rowObserver.observe(board, { childList: true, subtree: true });
-            setTimeout(stopWatching, 15000);
+            const status = document.getElementById('leaderboardStatus');
+            if (status) rowObserver.observe(status, { childList: true, subtree: true });
+            cleanup.push(stopWatching);
         }
 
-        ['pointerdown', 'keydown'].forEach(name => window.addEventListener(name, finishAll, { capture: true, passive: true }));
-        reduce.addEventListener('change', finishAll, { once: true });
+        ['pointerdown', 'keydown', 'focusin', 'hashchange', 'popstate', 'pagehide'].forEach(name => {
+            window.addEventListener(name, finishAll, { capture: true, passive: true });
+            cleanup.push(() => window.removeEventListener(name, finishAll, true));
+        });
+        reduce.addEventListener('change', finishAll);
+        cleanup.push(() => reduce.removeEventListener('change', finishAll));
     }
 
     // The board carries over to the full leaderboard: it stays on screen and
@@ -957,9 +971,9 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
     window.addEventListener('pageswap', event => {
         finishAll();
         const url = event.activation && event.activation.entry && event.activation.entry.url;
-        if (!event.viewTransition || !url) return;
+        if (!allowBoardTransition || reduce.matches || location.hash || !event.viewTransition || !url) return;
         const destination = new URL(url);
-        if (destination.origin !== location.origin || !/^\/leaderboard\/?$/i.test(destination.pathname)) return;
+        if (destination.origin !== location.origin || destination.search || destination.hash || !/^\/leaderboard\/?$/i.test(destination.pathname)) return;
         const named = [];
         [['#athleteLeaderboard', 'lwc-board']].forEach(([selector, name]) => {
             const element = main.querySelector(selector);
@@ -968,6 +982,7 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
             element.style.viewTransitionName = name;
             named.push(element);
         });
-        event.viewTransition.finished.finally(() => named.forEach(element => { element.style.viewTransitionName = ''; }));
+        const clearNames = () => named.forEach(element => { element.style.viewTransitionName = ''; });
+        event.viewTransition.finished.then(clearNames, clearNames);
     });
 })();

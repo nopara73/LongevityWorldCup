@@ -2458,12 +2458,20 @@ html body main.homepage-main .btc-status-value {
         animation: home-figure-land var(--lwc-motion-base) var(--lwc-ease-pop) both;
     }
 
-    html body main.homepage-main .age-reduction.is-counting {
-        color: var(--lwc-accent);
+    /* Preserve the actual score for reading, copying and assistive technology.
+       Only the decorative overlay counts; its width cannot move neighbours. */
+    html body main.homepage-main [data-home-count] {
+        position: relative;
+        color: transparent !important;
     }
 
-    /* While rows trade places, nothing under them can be hit by mistake. */
-    html body main.homepage-main #athleteLeaderboard.home-board-settling tbody {
+    html body main.homepage-main [data-home-count]::after {
+        content: attr(data-home-count) / "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        min-width: 100%;
+        color: var(--home-count-color);
+        white-space: nowrap;
         pointer-events: none;
     }
 
@@ -2605,7 +2613,7 @@ html body main.homepage-main .btc-status-value {
 @media (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: view()) {
         /* A thin rail under the header reports how far down the story you are. */
-        html body main.homepage-main::after {
+        html body main.homepage-main.home-scoreboard-live::after {
             content: "";
             position: fixed;
             inset: 0 0 auto;
@@ -2620,30 +2628,30 @@ html body main.homepage-main .btc-status-value {
 
         /* Depth: the champion stays a beat longer than the runners-up as the
            podium scrolls away. */
-        html body main.homepage-main .podium-item:not(.podium-skeleton-item) {
+        html body main.homepage-main.home-scoreboard-live .podium-item:not(.podium-skeleton-item) {
             animation: home-podium-depth linear both;
             animation-timeline: view();
             animation-range: exit 0% exit 100%;
         }
 
-        html body main.homepage-main .podium-item.first:not(.podium-skeleton-item) {
+        html body main.homepage-main.home-scoreboard-live .podium-item.first:not(.podium-skeleton-item) {
             --home-depth: -36px;
         }
 
         /* Each later act rises into place as it enters, its title band
            underline drawing across as it settles. */
-        html body main.homepage-main > :is(#hall-of-fame, #faq, .homepage-panel-pair),
-        html body main.homepage-main #lwc-countdown-box {
+        html body main.homepage-main.home-scoreboard-live > :is(#hall-of-fame, #faq, .homepage-panel-pair),
+        html body main.homepage-main.home-scoreboard-live #lwc-countdown-box {
             animation: home-act-rise linear both;
             animation-timeline: view();
             animation-range: entry 0% entry 55%;
         }
 
-        html body main.homepage-main .section-container > h2 {
+        html body main.homepage-main.home-scoreboard-live .section-container > h2 {
             position: relative;
         }
 
-        html body main.homepage-main .section-container > h2::after {
+        html body main.homepage-main.home-scoreboard-live .section-container > h2::after {
             content: "";
             position: absolute;
             inset: auto 0 -1px;
@@ -2656,36 +2664,36 @@ html body main.homepage-main .btc-status-value {
         }
 
         /* Hall of fame: medals arrive gold, silver, bronze. */
-        html body main.homepage-main .archive-table tbody td,
-        html body main.homepage-main .archive-mobile-card-winner {
+        html body main.homepage-main.home-scoreboard-live .archive-table tbody td,
+        html body main.homepage-main.home-scoreboard-live .archive-mobile-card-winner {
             animation: home-medal-in linear both;
             animation-timeline: view();
             animation-range: entry 10% entry 80%;
         }
 
-        html body main.homepage-main .archive-table tbody td:nth-child(4),
-        html body main.homepage-main .archive-mobile-card-winner:nth-child(2) {
+        html body main.homepage-main.home-scoreboard-live .archive-table tbody td:nth-child(4),
+        html body main.homepage-main.home-scoreboard-live .archive-mobile-card-winner:nth-child(2) {
             animation-range: entry 25% entry 95%;
         }
 
-        html body main.homepage-main .archive-table tbody td:nth-child(5),
-        html body main.homepage-main .archive-mobile-card-winner:nth-child(3) {
+        html body main.homepage-main.home-scoreboard-live .archive-table tbody td:nth-child(5),
+        html body main.homepage-main.home-scoreboard-live .archive-mobile-card-winner:nth-child(3) {
             animation-range: entry 40% cover 40%;
         }
 
         /* FAQ tiles fan in one after another. */
-        html body main.homepage-main .homepage-faq-item:nth-child(n) {
+        html body main.homepage-main.home-scoreboard-live .homepage-faq-item:nth-child(n) {
             animation: home-tile-in linear both;
             animation-timeline: view();
             animation-range: entry 5% entry 70%;
         }
 
-        html body main.homepage-main .homepage-faq-item:nth-child(even) {
+        html body main.homepage-main.home-scoreboard-live .homepage-faq-item:nth-child(even) {
             animation-range: entry 20% entry 85%;
         }
 
         /* The prize pool fills as it comes into view. */
-        html body main.homepage-main .btc-status-fill {
+        html body main.homepage-main.home-scoreboard-live .btc-status-fill {
             transform-origin: 0 50%;
             animation: home-pool-fill linear both;
             animation-timeline: view();
@@ -2703,8 +2711,8 @@ html body main.homepage-main .btc-status-value {
     }
 
     @keyframes home-act-rise {
-        from { opacity: 0.2; translate: 0 48px; scale: 0.975; }
-        to { opacity: 1; translate: 0 0; scale: 1; }
+        from { translate: 0 12px; }
+        to { translate: 0 0; }
     }
 
     @keyframes home-title-draw {
@@ -2713,12 +2721,12 @@ html body main.homepage-main .btc-status-value {
     }
 
     @keyframes home-medal-in {
-        from { opacity: 0; translate: 0 14px; }
+        from { translate: 0 8px; }
         to { opacity: 1; translate: 0 0; }
     }
 
     @keyframes home-tile-in {
-        from { opacity: 0; translate: 0 28px; }
+        from { translate: 0 8px; }
         to { opacity: 1; translate: 0 0; }
     }
 

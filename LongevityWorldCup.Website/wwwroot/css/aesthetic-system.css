@@ -2313,10 +2313,6 @@ html.lwc-media-fade img[data-lwc-media="ready"] {
    place on the full leaderboard while the rest of the page cross-fades.
    The home page names its copies only for this navigation (homepage.js). */
 @media (prefers-reduced-motion: no-preference) {
-    :root:active-view-transition main[data-leaderboard-page="full"] #athleteLeaderboard {
-        view-transition-name: lwc-board;
-    }
-
     ::view-transition-group(lwc-board) {
         animation-duration: var(--lwc-motion-move, 260ms);
         animation-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
