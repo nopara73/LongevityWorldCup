@@ -1745,7 +1745,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                         <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                             ${rankEmoji}
                         </div>
-                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy"></a>
+                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
                         <div class="name-row">
                             <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
                         </div>
@@ -2934,6 +2934,7 @@ function resetAthleteEventsFrame(athleteSlug) {
 }
 
 function resetModalForLoading(athleteSlug) {
+    modal.dispatchEvent(new CustomEvent('athlete-dialog-loading', { detail: { slug: athleteSlug } }));
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
     modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
@@ -3403,7 +3404,11 @@ function closeModal(options) {
     if (badgeShelf) setModalBadgeExplainer(badgeShelf, null);
 
     currentAthleteModalRequestId++;
-    const returnFocusElement = athleteDialogReturnFocusElement;
+    // Resolve the return synchronously, before measuring the closing transition.
+    // Motion can choose the visible athlete's row without racing scroll unlock.
+    const closeReturn = { scrollTop: savedBodyScroll, returnFocusTo: athleteDialogReturnFocusElement };
+    modal.dispatchEvent(new CustomEvent('athlete-dialog-closing', { detail: closeReturn }));
+    savedBodyScroll = closeReturn.scrollTop;
 
     // Keep the card and the page behind it still until their shared fade ends.
     modalContent.inert = true;
@@ -3436,9 +3441,11 @@ function closeModal(options) {
         modalContent.scrollTop = 0;
 
         resetPageTitle();
+        const returnFocusElement = closeReturn.returnFocusTo;
         const focusTarget = returnFocusElement?.isConnected && !returnFocusElement.closest('[inert], [hidden]')
             && returnFocusElement.getClientRects().length ? returnFocusElement : pageDocument.querySelector('a.header-link');
         focusTarget?.focus({ preventScroll: true });
+        modal.dispatchEvent(new Event('athlete-dialog-closed'));
     });
 }
 

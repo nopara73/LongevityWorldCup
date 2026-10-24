@@ -2,31 +2,45 @@ const documentationCanonicalPath = document.currentScript?.dataset.canonicalPath
 if (documentationCanonicalPath) {
     history.replaceState(history.state, "", documentationCanonicalPath + window.location.search + window.location.hash);
 }
-document.addEventListener("DOMContentLoaded", () => {
-    const documentationNav = document.querySelector(".documentation-nav");
+function setDocumentationNavOpen(documentationNav, open) {
     const documentationNavToggle = documentationNav?.querySelector(".documentation-nav-toggle");
-    const setDocumentationNavOpen = open => {
-        if (!documentationNav || !documentationNavToggle) {
-            return;
-        }
-
-        documentationNav.classList.toggle("is-open", open);
-        documentationNavToggle.setAttribute("aria-expanded", String(open));
-        const icon = documentationNavToggle.querySelector(".documentation-nav-toggle-icon");
-        if (icon) {
-            icon.textContent = open ? "−" : "+";
-        }
-    };
-
-    if (documentationNav && documentationNavToggle) {
-        documentationNav.classList.add("is-enhanced");
-        setDocumentationNavOpen(false);
+    if (!documentationNav || !documentationNavToggle) {
+        return;
     }
 
+    documentationNav.classList.toggle("is-open", open);
+    documentationNavToggle.setAttribute("aria-expanded", String(open));
+    const icon = documentationNavToggle.querySelector(".documentation-nav-toggle-icon");
+    if (icon) {
+        icon.textContent = open ? "−" : "+";
+    }
+}
+
+// This script follows the document, so the contents list is already parsed.
+// Compact it now: waiting for DOMContentLoaded (which also waits for page
+// modules) paints the full list first and then pulls the document up.
+{
+    const documentationNav = document.querySelector(".documentation-nav");
+    if (documentationNav?.querySelector(".documentation-nav-toggle")) {
+        documentationNav.classList.add("is-enhanced");
+        setDocumentationNavOpen(documentationNav, documentationNav.classList.contains("is-open"));
+    }
+}
+
+// The document has already been parsed. Bind the controls in the same turn
+// that collapses the list, including when a deferred script delays DCL.
+(function () {
+    const documentationNav = document.querySelector(".documentation-nav");
+    const documentationNavToggle = documentationNav?.querySelector(".documentation-nav-toggle");
+
+    // The generated button works before this download finishes or if it fails.
+    // Replace its small native-click fallback without toggling twice or closing
+    // a contents list the reader has already opened.
+    documentationNavToggle?.removeAttribute("onclick");
     documentationNavToggle?.addEventListener("click", () => {
         const open = documentationNavToggle.getAttribute("aria-expanded") !== "true";
         updateGeometry();
-        setDocumentationNavOpen(open);
+        setDocumentationNavOpen(documentationNav, open);
         // Open the list at the section being read.
         const list = documentationNav.querySelector(".documentation-nav-links");
         const current = documentationNav.querySelector("a.is-active");
@@ -38,13 +52,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // The open list overlays the document, so it closes like other menus.
     document.addEventListener("click", event => {
         if (documentationNav?.classList.contains("is-open") && !documentationNav.contains(event.target)) {
-            setDocumentationNavOpen(false);
+            setDocumentationNavOpen(documentationNav, false);
         }
     });
     document.addEventListener("keydown", event => {
         if (event.key === "Escape" && documentationNav?.classList.contains("is-open")) {
             const focusWasInside = documentationNav.contains(document.activeElement);
-            setDocumentationNavOpen(false);
+            setDocumentationNavOpen(documentationNav, false);
             if (focusWasInside) {
                 documentationNavToggle?.focus();
             }
@@ -52,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     documentationNav?.addEventListener("focusout", event => {
         if (event.relatedTarget && !documentationNav.contains(event.relatedTarget)) {
-            setDocumentationNavOpen(false);
+            setDocumentationNavOpen(documentationNav, false);
         }
     });
 
@@ -165,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             event.preventDefault();
             if (window.matchMedia("(max-width: 900px)").matches) {
-                setDocumentationNavOpen(false);
+                setDocumentationNavOpen(documentationNav, false);
             }
             const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
             window.scrollTo({ top, behavior: "instant" });
@@ -298,4 +312,4 @@ document.addEventListener("DOMContentLoaded", () => {
             synchronizeNavigationFromHash();
         }));
     }
-});
+})();
