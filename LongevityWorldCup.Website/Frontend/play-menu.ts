@@ -34,6 +34,7 @@
         playPanel: PlayPanelName;
         previousPlayPanel: PlayPanelName | null;
         playScrollY?: number;
+        playEntryId: number;
     }
 
     const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
@@ -46,11 +47,14 @@
     let activePanelTransitionTimer = 0;
     let activePanelMotion: Animation[] = [];
     let playPanelTransitionRunId = 0;
+    let playCardSelectionRunId = 0;
     let playPanelHoldTimer = 0;
     let lastPlayInteraction: 'keyboard' | 'pointer' | null = null;
     let lastPlayInteractionAt = -Infinity;
     let lastPressedPlayAction: HTMLElement | null = null;
     const playReturnFocus: Partial<Record<PlayPanelName, string>> = {};
+    const playScrollPositions = new Map<number, number>();
+    let nextPlayEntryId = 0;
     let playPanelPreparationRunId = 0;
     let playStartIntroTimer = 0;
     let playStartIntroRunId = 0;
@@ -109,18 +113,31 @@
     ): Animation | null {
         if (!element || typeof element.animate !== 'function') return null;
         try {
-            return element.animate(keyframes, { fill: 'backwards', ...options });
+            const animation = element.animate(keyframes, { fill: 'backwards', ...options });
+            // Older engines can silently ignore the pseudo-element option and
+            // animate the card itself (including its opacity) instead.
+            if (options.pseudoElement && (animation.effect as KeyframeEffect | null)?.pseudoElement !== options.pseudoElement) {
+                animation.cancel();
+                return null;
+            }
+            return animation;
         } catch (_) {
             return null;
         }
     }
 
     function cancelPlayPanelMotion(): void {
+        playPanelTransitionRunId += 1;
+        playCardSelectionRunId += 1;
+        window.clearTimeout(activePanelTransitionTimer);
+        activePanelTransitionTimer = 0;
         const motion = activePanelMotion;
         activePanelMotion = [];
         motion.forEach(animation => animation.cancel());
         document.querySelectorAll('.play-hub-panel--ghost').forEach(ghost => ghost.remove());
         document.documentElement.removeAttribute('data-flow-dock-hold');
+        document.documentElement.classList.remove('play-panel-transitioning');
+        delete document.documentElement.dataset.playMove;
     }
 
     function createPlayPanelGhost(panel: HTMLElement, main: HTMLElement): HTMLElement | null {
@@ -140,6 +157,9 @@
             element.removeAttribute('data-flow-dock');
             element.removeAttribute('aria-live');
             element.removeAttribute('role');
+            ['aria-controls', 'aria-labelledby', 'aria-describedby', 'aria-activedescendant', 'aria-owns'].forEach(attribute => element.removeAttribute(attribute));
+            Array.from(element.attributes).filter(attribute => attribute.name.startsWith('on'))
+                .forEach(attribute => element.removeAttribute(attribute.name));
         });
         ghost.classList.add('play-hub-panel--ghost');
         ghost.setAttribute('aria-hidden', 'true');
@@ -194,6 +214,16 @@
             target.setAttribute('tabindex', '-1');
         }
         target.focus({ preventScroll: true });
+        // Large text can keep a tall action group inline. The focused command
+        // still needs to be on screen; a dock already owns its own landing.
+        if (!target.closest('.flow-action-stack--docked')) {
+            const viewport = window.visualViewport;
+            const top = (viewport?.offsetTop || 0) + 8;
+            const bottom = (viewport?.offsetTop || 0) + (viewport?.height || window.innerHeight) - 8;
+            const box = target.getBoundingClientRect();
+            const offset = box.top < top ? box.top - top : box.bottom > bottom ? box.bottom - bottom : 0;
+            if (offset) window.scrollBy({ top: offset, behavior: 'instant' });
+        }
     }
 
     function rememberPlayReturnFocus(panelName: PlayPanelName): void {
@@ -207,6 +237,9 @@
 
     function getPlayRestoredScroll(): number {
         const state: unknown = window.history?.state;
+        const entryId = state && typeof state === 'object' ? Reflect.get(state, 'playEntryId') : null;
+        const position = typeof entryId === 'number' ? playScrollPositions.get(entryId) : undefined;
+        if (position !== undefined) return position;
         const saved = state && typeof state === 'object' ? Reflect.get(state, 'playScrollY') : null;
         return typeof saved === 'number' && Number.isFinite(saved) ? Math.max(0, saved) : 0;
     }
@@ -251,6 +284,10 @@
 
     function settlePlayPrices(panel: HTMLElement, delay: number): Animation[] {
         const animations: Animation[] = [];
+        // Keep the actual final price visible unless the decorative counter and
+        // its empty accessibility alternative are both supported.
+        if (typeof CSS === 'undefined' || typeof CSS.registerProperty !== 'function'
+            || !CSS.supports('content', '"$" counter(play-price) / ""')) return animations;
         panel.querySelectorAll<HTMLElement>('.pro-old-price + .pro-new-price').forEach(price => {
             const oldPrice = price.previousElementSibling;
             const from = Number.parseInt((oldPrice?.textContent || '').replace(/[^\d]/g, ''), 10);
@@ -259,6 +296,7 @@
             const to = match ? Number.parseInt(match[1] || '', 10) : NaN;
             if (!Number.isFinite(from) || !Number.isFinite(to) || to >= from) return;
             price.style.setProperty('--play-price-ink', getComputedStyle(price).color);
+            price.style.setProperty('--play-price', String(to));
             price.classList.add('play-price-settling');
             const count = playAnimate(price, [
                 { '--play-price': String(from) },
@@ -459,6 +497,7 @@
     ): PlayHistoryState {
         return {
             playPanel: panelName,
+            playEntryId: ++nextPlayEntryId,
             previousPlayPanel: previousPlayPanel && isPlayPanelName(previousPlayPanel) ? previousPlayPanel : null
         };
     }
@@ -571,7 +610,6 @@
         activePlayPanelName = panelName;
         hasRenderedPlayPanel = true;
         activePanelTransitionTimer = 0;
-        activePanelMotion = [];
         document.querySelectorAll('.play-hub-panel--ghost').forEach(ghost => ghost.remove());
         document.documentElement.classList.remove('play-panel-transitioning');
         delete document.documentElement.dataset.playMove;
@@ -596,13 +634,9 @@
             && isInFlowMove
             && !prefersReducedPlayMotion();
 
-        const transitionRunId = playPanelTransitionRunId + 1;
-        playPanelTransitionRunId = transitionRunId;
-        window.clearTimeout(activePanelTransitionTimer);
-        activePanelTransitionTimer = 0;
         clearPlayPanelHold();
         cancelPlayPanelMotion();
-        document.documentElement.classList.remove('play-panel-transitioning');
+        const transitionRunId = playPanelTransitionRunId;
 
         // The start screen sits on its own night stage, so it never leaves a ghost
         // and never receives one; its title intro is its arrival.
@@ -626,7 +660,11 @@
             });
             if (isInFlowMove) {
                 document.body.classList.remove('play-route-hydrating');
+                document.documentElement.classList.add('play-route-ready');
             }
+            // Preparation is done as soon as the arriving controls are usable;
+            // decorative motion must not keep the live screen busy.
+            document.body.removeAttribute('aria-busy');
             activePlayPanelName = panelName;
             window.scrollTo(0, options.restoreScroll ? getPlayRestoredScroll() : 0);
             window.LwcFlowActionDock?.refreshNow?.();
@@ -667,6 +705,9 @@
         Promise.race([settled, safety]).then(() => {
             if (transitionRunId !== playPanelTransitionRunId) return;
             window.clearTimeout(activePanelTransitionTimer);
+            // A throttled or interrupted animation can reach the safety deadline
+            // first. Restore resting geometry before releasing dock decisions.
+            motion.forEach(animation => animation.cancel());
             ghost?.remove();
             completePlayPanelTransition(panelName, transitionRunId);
         });
@@ -696,6 +737,8 @@
     function showPlayPanel(requestedPanelName: PlayPanelName, options: PlayPanelOptions = {}): void {
         const flow = requirePlayFlow();
         const athleteSelection = requireAthleteSelection();
+        clearPlayPanelHold();
+        cancelPlayPanelMotion();
         const preparationRunId = playPanelPreparationRunId + 1;
         playPanelPreparationRunId = preparationRunId;
         const requested = isPlayPanelName(requestedPanelName) ? requestedPanelName : 'start';
@@ -937,6 +980,15 @@
         document.addEventListener('keydown', event => {
             if (!['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) trackPlayInteraction('keyboard', event);
         }, true);
+        window.addEventListener('scroll', () => {
+            // Save the current entry as it moves, including entries left using
+            // browser Back/Forward (where popstate already exposes the target).
+            if (hasRenderedPlayPanel && activePlayPanelName === getPlayPanelNameForPath()
+                && window.history.state?.playPanel === activePlayPanelName) {
+                // Avoid rate-limited history writes during continuous scrolling.
+                playScrollPositions.set(window.history.state.playEntryId, window.scrollY);
+            }
+        }, { passive: true });
         getFlowReady().then(() => {
             const flow = requirePlayFlow();
             if (window.captureFreePassFromUrl) {
@@ -971,14 +1023,17 @@
                     if (!wasRecentPlayInteraction() || prefersReducedPlayMotion()) return;
                     const card = selectionTitle.closest('.play-athlete-card');
                     if (!card || card.closest('[hidden]') || !hasRenderedPlayPanel) return;
-                    card.getAnimations({ subtree: false }).forEach(animation => animation.cancel());
+                    const selectionRunId = ++playCardSelectionRunId;
+                    card.getAnimations?.({ subtree: false }).forEach(animation => animation.cancel());
                     const flip = dealPlayCard(card, 'forward', 0, 'flip');
+                    activePanelMotion = activePanelMotion.filter(animation => animation.playState === 'running' || animation.playState === 'paused');
+                    activePanelMotion.push(...flip);
                     // Measure the actions against the card at rest, not mid-turn.
                     const root = document.documentElement;
                     if (!root.classList.contains('play-panel-transitioning')) {
                         root.setAttribute('data-flow-dock-hold', '');
                         Promise.all(flip.slice(0, 1).map(animation => animation.finished.catch(() => {}))).then(() => {
-                            if (root.classList.contains('play-panel-transitioning')) return;
+                            if (selectionRunId !== playCardSelectionRunId || root.classList.contains('play-panel-transitioning')) return;
                             root.removeAttribute('data-flow-dock-hold');
                             window.LwcFlowActionDock?.refreshNow?.();
                         });

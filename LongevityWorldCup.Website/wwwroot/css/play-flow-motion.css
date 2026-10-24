@@ -27,6 +27,7 @@
    was, above the arriving screen, and never takes input. */
 html.play-panel-transitioning .play-hub-main {
     position: relative;
+    overflow-x: clip;
 }
 
 html.play-panel-transitioning body {
@@ -159,6 +160,9 @@ body.play-route-pending {
     body.play-flow-route:not(.play-start-active) .flow-action-stack.flow-action-stack--docked.flow-action-stack--dock-entering {
         opacity: 1;
         transform: translateY(calc(100% + 0.75rem)) !important;
+        /* Establish the first frame immediately; removing the entry class
+           then transitions toward the dock's resting position. */
+        transition: none;
     }
 }
 

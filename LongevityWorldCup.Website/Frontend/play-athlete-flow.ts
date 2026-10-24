@@ -543,6 +543,15 @@ function searchMotionAllowed(): boolean {
         && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
 
+function animateAthleteSearch(element: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions): Animation | null {
+    if (!searchMotionAllowed()) return null;
+    try {
+        return element.animate(keyframes, options);
+    } catch (_) {
+        return null;
+    }
+}
+
 function createAthleteSelectionController(
     options: AthleteSelectionControllerOptions
 ): AthleteSelectionController {
@@ -589,14 +598,16 @@ function createAthleteSelectionController(
         list.removeAttribute("id");
         list.removeAttribute("role");
         list.setAttribute("aria-hidden", "true");
+        list.inert = true;
         list.classList.add("autocomplete-items--leaving");
-        list.querySelectorAll("[role=option]").forEach(item => item.removeAttribute("role"));
-        const exit = searchMotionAllowed()
-            ? list.animate([
+        list.querySelectorAll("[id], [role]").forEach(item => {
+            item.removeAttribute("id");
+            item.removeAttribute("role");
+        });
+        const exit = animateAthleteSearch(list, [
                 { opacity: 1, transform: "none" },
                 { opacity: 0, transform: "translateY(-4px)" }
-            ], { duration: SEARCH_EXIT_MS, easing: SEARCH_EASE_EXIT, fill: "forwards" })
-            : null;
+            ], { duration: SEARCH_EXIT_MS, easing: SEARCH_EASE_EXIT, fill: "forwards" });
         if (!exit) {
             list.remove();
             return;
@@ -823,6 +834,7 @@ function createAthleteSelectionController(
         getMatchOptions(list).forEach(item => {
             previous.set(item.dataset.value || "", item);
             if (animate) previousTops.set(item, item.offsetTop);
+            item.getAnimations?.().forEach(animation => animation.cancel());
         });
         list.querySelectorAll(".autocomplete-item--leaving").forEach(item => item.remove());
 
@@ -848,17 +860,19 @@ function createAthleteSelectionController(
             item.removeAttribute("id");
             item.removeAttribute("aria-selected");
             item.setAttribute("aria-hidden", "true");
+            item.inert = true;
             if (!animate) {
                 item.remove();
                 return;
             }
             item.classList.add("autocomplete-item--leaving");
             item.style.top = `${leavingTops[index] ?? 0}px`;
-            const exit = item.animate([
+            const exit = animateAthleteSearch(item, [
                 { opacity: 1, transform: "none" },
                 { opacity: 0, transform: "translateX(-10px) scale(0.98)" }
             ], { duration: SEARCH_EXIT_MS, easing: SEARCH_EASE_EXIT, fill: "forwards" });
-            exit.finished.catch(() => {}).finally(() => item.remove());
+            if (exit) exit.finished.catch(() => {}).finally(() => item.remove());
+            else item.remove();
         });
 
         if (animate) {
@@ -866,7 +880,7 @@ function createAthleteSelectionController(
             ordered.forEach(item => {
                 const before = previousTops.get(item);
                 if (before === undefined) {
-                    item.animate([
+                    animateAthleteSearch(item, [
                         { opacity: 0, transform: "translateY(-6px)" },
                         { opacity: 1, transform: "none" }
                     ], { duration: SEARCH_ENTER_MS, delay: (isNewList ? 0 : 60) + Math.min(entering, 4) * 28, easing: SEARCH_EASE_ENTER, fill: "backwards" });
@@ -875,7 +889,7 @@ function createAthleteSelectionController(
                 }
                 const shift = before - item.offsetTop;
                 if (Math.abs(shift) < 1) return;
-                item.animate([
+                animateAthleteSearch(item, [
                     { transform: `translateY(${shift}px)` },
                     { transform: "none" }
                 ], { duration: SEARCH_MOVE_MS, easing: SEARCH_EASE_STANDARD });
@@ -896,7 +910,7 @@ function createAthleteSelectionController(
         positionAthleteMatches();
         if (isNewList && animate) {
             const opensAbove = list.style.bottom !== "auto" && list.style.bottom !== "";
-            list.animate([
+            animateAthleteSearch(list, [
                 { opacity: 0, transform: `translateY(${opensAbove ? 6 : -6}px)` },
                 { opacity: 1, transform: "none" }
             ], { duration: SEARCH_ENTER_MS, easing: SEARCH_EASE_ENTER, fill: "backwards" });

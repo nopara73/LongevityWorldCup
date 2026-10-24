@@ -217,10 +217,81 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForFunctionAsync("() => location.pathname === '/dashboard' && !document.getElementById('athleteDashboardPanel').hidden");
         Assert.True(await page.EvaluateAsync<double>("() => window.scrollY") < 1, "A new screen opens at its top.");
+        await page.EvaluateAsync("() => window.scrollTo(0, 150)");
+        await page.WaitForFunctionAsync("() => window.scrollY > 40");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        var dashboardScroll = await page.EvaluateAsync<double>("() => window.scrollY");
 
         await page.GoBackAsync();
         await page.WaitForFunctionAsync("() => location.pathname === '/select-athlete' && !document.getElementById('athleteSelectionPanel').hidden");
         await page.WaitForFunctionAsync("expected => Math.abs(window.scrollY - expected) <= 2", before);
+        await page.GoForwardAsync();
+        await page.WaitForFunctionAsync("() => location.pathname === '/dashboard' && !document.getElementById('athleteDashboardPanel').hidden");
+        await page.WaitForFunctionAsync("expected => Math.abs(window.scrollY - expected) <= 2", dashboardScroll);
+    }
+
+    [Fact]
+    public async Task EnlargedText_LandsFocusOnAVisibleInlineCommand()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await OpenAsync(context, "/select-athlete");
+        await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
+        await page.WaitForFunctionAsync("() => location.pathname === '/dashboard' && !document.getElementById('athleteDashboardPanel').hidden");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const active = document.activeElement;
+                const box = active.getBoundingClientRect();
+                return active.matches('#athleteDashboardActions .flow-action:not(.back-button)')
+                    && box.top >= 0 && box.bottom <= innerHeight + 1;
+            }
+            """), "Landing focus must reveal the command when enlarged text keeps the actions inline.");
+    }
+
+    [Fact]
+    public async Task PendingNavigation_CancelsOldMotionAndCannotReopenAfterBack()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
+        var page = await OpenAsync(context, "/play");
+        var name = await PickAmateurAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                const render = window.playAthleteFlow.renderAthleteDashboardHeader;
+                window.playAthleteFlow.renderAthleteDashboardHeader = (...args) => {
+                    const header = render(...args);
+                    return new Promise(resolve => window.__releaseHeader = () => resolve(header));
+                };
+                document.getElementById('continueGameBtn').click();
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-panel-transitioning')");
+        await page.EvaluateAsync("() => document.getElementById('athleteSelectionPanel').getAnimations().forEach(animation => animation.pause())");
+        await page.Locator("#playAthleteInput").FillAsync(name);
+        await page.Locator("#playAthleteInput").PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#playConfirmAthleteBtn")).ToBeEnabledAsync();
+        await page.Locator("#playConfirmAthleteBtn").EvaluateAsync("button => button.click()");
+        await page.WaitForFunctionAsync("() => window.__releaseHeader && location.pathname === '/dashboard'");
+        await Task.Delay(700);
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => document.body.classList.contains('play-route-hydrating')
+                && document.body.getAttribute('aria-busy') === 'true'
+                && !document.documentElement.hasAttribute('data-flow-dock-hold')
+                && !document.documentElement.classList.contains('play-panel-transitioning')
+                && !document.querySelector('.play-hub-panel--ghost')
+            """), "Finishing or cancelling the previous move must not complete a still-pending navigation.");
+        await page.GoBackAsync();
+        await page.WaitForFunctionAsync("() => location.pathname === '/select-athlete' && !document.body.classList.contains('play-route-hydrating')");
+        await page.EvaluateAsync("() => window.__releaseHeader()");
+        await page.EvaluateAsync(WaitForSettledMotion);
+        Assert.True(await page.Locator("#athleteDashboardPanel").IsHiddenAsync());
+        Assert.True(await page.Locator("#athleteSelectionPanel").IsVisibleAsync());
+        Assert.Null(await page.Locator("body").GetAttributeAsync("aria-busy"));
+        Assert.False(await page.EvaluateAsync<bool>("() => document.documentElement.hasAttribute('data-flow-dock-hold')"));
     }
 
     [Theory]
@@ -271,6 +342,31 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.WaitForFunctionAsync("() => !document.querySelector('.autocomplete-items')");
     }
 
+    [Fact]
+    public async Task SlowPreparation_RevealsAndFocusesTheArrivingPanelBeforeMotionFinishes()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1440, Height = 900 } });
+        var page = await OpenAsync(context, "/select-athlete");
+        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        await page.EvaluateAsync("""
+            () => {
+                const render = window.playAthleteFlow.renderAthleteDashboardHeader;
+                window.playAthleteFlow.renderAthleteDashboardHeader = (...args) => {
+                    const header = render(...args);
+                    return new Promise(resolve => window.__releaseHeader = () => resolve(header));
+                };
+            }
+            """);
+        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.body.classList.contains('play-route-hydrating')");
+        await page.EvaluateAsync("() => window.__releaseHeader()");
+        await page.WaitForFunctionAsync("() => document.documentElement.dataset.playMove === 'forward'");
+        Assert.Equal("visible", await page.Locator("#athleteDashboardPanel").EvaluateAsync<string>("panel => getComputedStyle(panel).visibility"));
+        Assert.Null(await page.Locator("body").GetAttributeAsync("aria-busy"));
+        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement?.matches('#athleteDashboardActions .flow-action:not(.back-button)')"));
+        await WaitForMoveToSettleAsync(page);
+    }
+
     [Theory]
     [InlineData(1280, 800, true)]
     [InlineData(1440, 900, false)]
@@ -304,11 +400,14 @@ public sealed class PlayFlowMotionBrowserTests(
         Assert.Equal("True", midMove[2], ignoreCase: true);
         Assert.Equal("True", midMove[3], ignoreCase: true);
         var finalText = midMove[0];
+        var priceButton = page.Locator("#athleteDashboardActions .flow-action").Filter(new() { Has = page.Locator(".pro-new-price") });
+        var accessiblePrice = await priceButton.AriaSnapshotAsync();
 
         await page.WaitForFunctionAsync("() => !document.querySelector('.play-price-settling')");
         Assert.Equal(finalText, (await page.Locator("#athleteDashboardActions .pro-new-price").TextContentAsync())?.Trim());
         await WaitForMoveToSettleAsync(page);
         await page.EvaluateAsync(WaitForSettledMotion);
+        Assert.Equal(accessiblePrice, await priceButton.AriaSnapshotAsync());
 
         if (width >= 1280)
         {
@@ -326,25 +425,108 @@ public sealed class PlayFlowMotionBrowserTests(
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = width, Height = height },
-            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
-            IsMobile = true,
-            HasTouch = true
+            ViewportSize = new() { Width = 1280, Height = 800 },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
         var page = await OpenAsync(context, "/select-athlete");
-        var slide = await page.EvaluateAsync<double[]>("""
+        await page.EvaluateAsync("""
             () => {
-                const stack = document.querySelector('.play-athlete-actions.flow-action-stack--docked');
-                stack.classList.add('flow-action-stack--dock-entering');
-                const shifted = new DOMMatrix(getComputedStyle(stack).transform).m42;
-                const height = stack.getBoundingClientRect().height;
-                const transition = getComputedStyle(stack).transitionDuration;
-                stack.classList.remove('flow-action-stack--dock-entering');
-                return [shifted, height, Math.max(...transition.split(',').map(value => parseFloat(value) * (value.includes('ms') ? 1 : 1000)))];
+                const stack = document.querySelector('.play-athlete-actions');
+                const observer = new MutationObserver(() => {
+                    if (!stack.classList.contains('flow-action-stack--dock-entering')) return;
+                    const box = stack.getBoundingClientRect();
+                    window.__dockEntry = [new DOMMatrix(getComputedStyle(stack).transform).m42, box.height, box.top, innerHeight];
+                    observer.disconnect();
+                });
+                observer.observe(stack, { attributes: true, attributeFilter: ['class'] });
             }
             """);
+        await page.SetViewportSizeAsync(width, height);
+        await page.WaitForFunctionAsync("() => window.__dockEntry");
+        var slide = await page.EvaluateAsync<double[]>("() => window.__dockEntry");
         Assert.True(slide[0] >= slide[1], $"An entering dock should start fully below the screen edge: {slide[0]}px for a {slide[1]}px bar.");
-        Assert.InRange(slide[2], 200, 300);
+        Assert.True(slide[2] >= slide[3], "The real docking move must begin below the viewport.");
+        await page.WaitForFunctionAsync("""
+            () => {
+                const stack = document.querySelector('.play-athlete-actions.flow-action-stack--docked');
+                return stack && !stack.classList.contains('flow-action-stack--dock-entering')
+                    && Math.abs(new DOMMatrix(getComputedStyle(stack).transform).m42) < 1;
+            }
+            """);
+        var duration = await page.Locator(".play-athlete-actions").EvaluateAsync<double>("""
+            stack => Math.max(...getComputedStyle(stack).transitionDuration.split(',').map(value => parseFloat(value) * (value.includes('ms') ? 1 : 1000)))
+            """);
+        Assert.InRange(duration, 200, 300);
+    }
+
+    [Fact]
+    public async Task Search_CloseAndReopenHasUniqueIdsAndOnlyLiveKeyboardOptions()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 390, Height = 844 } });
+        var page = await OpenAsync(context, "/select-athlete");
+        var input = page.Locator("#playAthleteInput");
+        await input.FillAsync("a");
+        await Assertions.Expect(page.Locator("[role=option]").First).ToBeVisibleAsync();
+        var clean = await page.EvaluateAsync<bool>("""
+            () => {
+                const input = document.getElementById('playAthleteInput');
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+                const ids = [...document.querySelectorAll('[id]')].map(element => element.id);
+                const leaving = document.querySelector('.autocomplete-items--leaving');
+                const active = document.getElementById(input.getAttribute('aria-activedescendant'));
+                return new Set(ids).size === ids.length && leaving?.inert
+                    && !leaving.querySelector('[id], [role]')
+                    && active?.parentElement?.id === 'playAthleteInput-autocomplete-list';
+            }
+            """);
+        Assert.True(clean, "A fading list must relinquish its ids and keyboard options before a new one opens.");
+        var expected = await page.Locator("#playAthleteInput-autocomplete-list [aria-selected=true]").GetAttributeAsync("data-value");
+        await input.PressAsync("Enter");
+        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
+        Assert.Equal(expected, await page.EvaluateAsync<string>("() => JSON.parse(sessionStorage.getItem('selectedAthlete')).Name"));
+        await page.WaitForFunctionAsync("() => !document.querySelector('.autocomplete-items')");
+    }
+
+    [Theory]
+    [InlineData("counter")]
+    [InlineData("property")]
+    [InlineData("waapi")]
+    [InlineData("pseudo")]
+    public async Task UnsupportedMotion_KeepsTheFinalPriceAndCardVisible(string unsupported)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1440, Height = 900 } });
+        var page = await OpenAsync(context, "/select-athlete");
+        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        await page.EvaluateAsync("""
+            unsupported => {
+                if (unsupported === 'property') CSS.registerProperty = undefined;
+                if (unsupported === 'counter') {
+                    const supports = CSS.supports.bind(CSS);
+                    CSS.supports = (...args) => args[0] === 'content' ? false : supports(...args);
+                }
+                if (unsupported === 'waapi') Element.prototype.animate = undefined;
+                if (unsupported === 'pseudo') {
+                    const animate = Element.prototype.animate;
+                    Element.prototype.animate = function(frames, options) {
+                        const { pseudoElement, ...rest } = options || {};
+                        return animate.call(this, frames, rest);
+                    };
+                }
+            }
+            """, unsupported);
+        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
+        await page.WaitForFunctionAsync("() => location.pathname === '/dashboard' && !document.getElementById('athleteDashboardPanel').hidden");
+        if (unsupported != "pseudo")
+        {
+            Assert.Equal(0, await page.Locator(".play-price-settling").CountAsync());
+            Assert.NotEqual("rgba(0, 0, 0, 0)", await page.Locator("#athleteDashboardActions .pro-new-price").EvaluateAsync<string>("price => getComputedStyle(price).color"));
+        }
+        await WaitForMoveToSettleAsync(page);
+        await page.EvaluateAsync(WaitForSettledMotion);
+        Assert.Equal("1", await page.Locator("#athleteDashboardPanel").EvaluateAsync<string>("card => getComputedStyle(card).opacity"));
+        Assert.Matches(@"^\$\d+$", (await page.Locator("#athleteDashboardActions .pro-new-price").TextContentAsync())!.Trim());
+        Assert.False(await page.EvaluateAsync<bool>("() => document.documentElement.hasAttribute('data-flow-dock-hold')"));
     }
 
     [Fact]
