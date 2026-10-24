@@ -1,3 +1,41 @@
+// Media that arrives after its box is painted fades in; anything already
+// decoded (cache, bfcache, hydration swaps) appears at once. Without
+// scripts nothing is hidden.
+(function () {
+    var root = document.documentElement;
+    if (!window.MutationObserver || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    root.classList.add('lwc-media-fade');
+    var selector = 'img.podium-portrait, img.portrait, .events-board img.avatar';
+    function settle(img, instant) { img.setAttribute('data-lwc-media', instant ? 'instant' : 'ready'); }
+    function track(img) {
+        if (img.hasAttribute('data-lwc-media') && img.getAttribute('data-lwc-media') !== 'pending') return;
+        if (img.complete) { settle(img, true); return; }
+        img.setAttribute('data-lwc-media', 'pending');
+    }
+    function scan(node) {
+        if (node.nodeType !== 1) return;
+        if (node.matches(selector)) track(node);
+        if (node.firstElementChild) node.querySelectorAll(selector).forEach(track);
+    }
+    function finish(event) {
+        var img = event.target;
+        if (img && img.tagName === 'IMG' && img.getAttribute('data-lwc-media') === 'pending') settle(img);
+    }
+    document.addEventListener('load', finish, true);
+    document.addEventListener('error', finish, true);
+    new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+            var record = records[i];
+            if (record.type === 'attributes') {
+                // A new source on a painted portrait keeps the old one until it decodes.
+                if (record.target.matches(selector)) track(record.target);
+                continue;
+            }
+            for (var j = 0; j < record.addedNodes.length; j++) scan(record.addedNodes[j]);
+        }
+    }).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcset'] });
+})();
+
 const scrolledJoinButton = document.querySelector('.scrolled-button');
 const joinGameBtn = document.querySelector('.join-game');
 let lastKnownScrollPosition = 0;
@@ -53,8 +91,16 @@ function handleScroll(scrollPos, remeasure = false) {
     // Cache this geometry between layout changes, keeping scrolling cheap.
     if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable
         || measuredRootFontSize !== rootFontSize) {
+        // Only a hidden bar is briefly shown to measure; a visible one keeps
+        // any entrance that a resize callback lands in the middle of.
+        const measuring = !stickyHeader.classList.contains('visible');
+        if (measuring) {
+            stickyHeader.classList.add('is-measuring');
+            scrolledJoinButton?.classList.add('is-measuring');
+        }
         const visibility = stickyHeader.style.visibility;
         const actionVisibility = scrolledJoinButton?.style.visibility;
+        const actionDisplay = scrolledJoinButton?.style.display;
         stickyHeader.style.visibility = 'hidden';
         stickyHeader.classList.add('visible');
         if (scrolledJoinButton) {
@@ -66,6 +112,15 @@ function handleScroll(scrollPos, remeasure = false) {
         lastStickyActionAvailable = actionAvailable;
         stickyHeader.style.visibility = visibility;
         if (scrolledJoinButton) scrolledJoinButton.style.visibility = actionVisibility;
+        if (measuring) {
+            // Restore the hidden state before starting a real entrance. A font
+            // or resize callback can invalidate geometry on that same scroll.
+            stickyHeader.classList.remove('visible');
+            if (scrolledJoinButton) scrolledJoinButton.style.display = actionDisplay;
+            stickyHeader.getBoundingClientRect();
+            stickyHeader.classList.remove('is-measuring');
+            scrolledJoinButton?.classList.remove('is-measuring');
+        }
     }
     // A bar taller than the original banner must wait until that banner leaves
     // the viewport; otherwise enlarged text can cover the primary links at 0.
@@ -85,7 +140,10 @@ function handleScroll(scrollPos, remeasure = false) {
     stickyHeader.inert = !willBeVisible;
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
     if (scrolledJoinButton) {
-        scrolledJoinButton.style.display = willBeVisible && actionAvailable ? 'inline-flex' : 'none';
+        const actionVisible = willBeVisible && actionAvailable;
+        scrolledJoinButton.inert = !actionVisible;
+        scrolledJoinButton.setAttribute('aria-hidden', String(!actionVisible));
+        scrolledJoinButton.style.display = actionVisible ? 'inline-flex' : 'none';
     }
 }
 
@@ -147,6 +205,9 @@ function closeCustomAlert() {
         previousFocus.focus({ preventScroll: true });
     }
 
+    // Body or a removed opener cannot receive focus. Do not leave the old
+    // control focused while a discrete display transition retains its paint.
+    if (customAlertDialog.contains(document.activeElement)) document.activeElement.blur();
     dismissed?.resolve();
     // Existing .then callbacks (including field focus/navigation) run before the next alert opens.
     queueMicrotask(showNextCustomAlert);
@@ -318,6 +379,7 @@ function hideLoading() {
         loadingDialogPreviousFocus.focus({ preventScroll: true });
     }
 
+    if (loadingDialog.contains(document.activeElement)) document.activeElement.blur();
     loadingDialogPreviousFocus = null;
 }
 
@@ -398,19 +460,16 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         window.addEventListener(name, event => observe(event.viewTransition));
     }
 
-    if (!document.querySelector('link[href*="entry-journey"]') || !window.navigation) return;
+    if (!document.querySelector('link[href*="entry-journey"]')) return;
     const journeyPath = /^\/(?:play|join|select-athlete|dashboard|pheno-age|bortz-age|apply|review)?\/?$/i;
-    const optOut = document.createElement('style');
-    optOut.media = 'not all';
-    optOut.textContent = '@view-transition { navigation: none; }';
-    document.head.append(optOut);
-    const restore = () => { optOut.media = 'not all'; };
-    window.navigation.addEventListener('navigate', event => {
-        if (event.destination.sameDocument) return;
-        const destination = new URL(event.destination.url);
-        optOut.media = destination.origin === location.origin && journeyPath.test(destination.pathname)
-            ? 'not all' : 'all';
-        event.signal.addEventListener('abort', restore, { once: true });
+    // Decide at capture time, using the final URL after redirects. A stylesheet
+    // change during navigate can miss the browser's transition opt-in snapshot.
+    window.addEventListener('pageswap', event => {
+        const url = event.activation?.entry?.url;
+        if (!event.viewTransition || !url) return;
+        const destination = new URL(url);
+        if (destination.origin !== location.origin || !journeyPath.test(destination.pathname)) {
+            event.viewTransition.skipTransition();
+        }
     });
-    window.addEventListener('pageshow', restore);
 })();

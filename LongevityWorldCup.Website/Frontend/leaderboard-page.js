@@ -1745,7 +1745,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                         <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                             ${rankEmoji}
                         </div>
-                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy"></a>
+                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
                         <div class="name-row">
                             <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
                         </div>
@@ -2934,6 +2934,7 @@ function resetAthleteEventsFrame(athleteSlug) {
 }
 
 function resetModalForLoading(athleteSlug) {
+    modal.dispatchEvent(new CustomEvent('athlete-dialog-loading', { detail: { slug: athleteSlug } }));
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
     modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
@@ -3403,7 +3404,11 @@ function closeModal(options) {
     if (badgeShelf) setModalBadgeExplainer(badgeShelf, null);
 
     currentAthleteModalRequestId++;
-    const returnFocusElement = athleteDialogReturnFocusElement;
+    // Resolve the return synchronously, before measuring the closing transition.
+    // Motion can choose the visible athlete's row without racing scroll unlock.
+    const closeReturn = { scrollTop: savedBodyScroll, returnFocusTo: athleteDialogReturnFocusElement };
+    modal.dispatchEvent(new CustomEvent('athlete-dialog-closing', { detail: closeReturn }));
+    savedBodyScroll = closeReturn.scrollTop;
 
     // Keep the card and the page behind it still until their shared fade ends.
     modalContent.inert = true;
@@ -3436,9 +3441,11 @@ function closeModal(options) {
         modalContent.scrollTop = 0;
 
         resetPageTitle();
+        const returnFocusElement = closeReturn.returnFocusTo;
         const focusTarget = returnFocusElement?.isConnected && !returnFocusElement.closest('[inert], [hidden]')
             && returnFocusElement.getClientRects().length ? returnFocusElement : pageDocument.querySelector('a.header-link');
         focusTarget?.focus({ preventScroll: true });
+        modal.dispatchEvent(new Event('athlete-dialog-closed'));
     });
 }
 
@@ -4248,27 +4255,31 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     // Reorder tbody so visible rows match the athletes actually shown in the table.
     const visibleOrdered = tableVisibleAthletes.map(a => rowsByName.get(a.name)).filter(Boolean);
     const visibleRows = new Set(visibleOrdered);
-    rowsByName.forEach(row => {
-        const display = visibleRows.has(row) ? '' : 'none';
-        if (row.style.display !== display) row.style.display = display;
+    // Rows keep their identity, so a reorder or filter glides instead of jumping.
+    const moveRows = window.LwcMotion?.flip || ((rows, mutate) => mutate());
+    moveRows(allRows, () => {
+        rowsByName.forEach(row => {
+            const display = visibleRows.has(row) ? '' : 'none';
+            if (row.style.display !== display) row.style.display = display;
+        });
+        const separator = allRows.find(r => r.classList.contains('tier-separator'));
+        const hiddenRows = allRows.filter(r => r !== separator && !visibleRows.has(r));
+        const orderedRows = [...visibleOrdered];
+        const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
+        const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
+        if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
+            orderedRows.splice(firstAmateurIndex, 0, separator);
+        } else {
+            if (separator) orderedRows.push(separator);
+        }
+        orderedRows.push(...hiddenRows);
+        let nextRow = tableBody.firstElementChild;
+        for (const row of orderedRows) {
+            if (row === nextRow) nextRow = nextRow.nextElementSibling;
+            else tableBody.insertBefore(row, nextRow);
+        }
     });
-    const separator = allRows.find(r => r.classList.contains('tier-separator'));
-    const hiddenRows = allRows.filter(r => r !== separator && !visibleRows.has(r));
-    const orderedRows = [...visibleOrdered];
-    const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-    const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
-    const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
-    if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
-        orderedRows.splice(firstAmateurIndex, 0, separator);
-    } else {
-        if (separator) orderedRows.push(separator);
-    }
-    orderedRows.push(...hiddenRows);
-    let nextRow = tableBody.firstElementChild;
-    for (const row of orderedRows) {
-        if (row === nextRow) nextRow = nextRow.nextElementSibling;
-        else tableBody.insertBefore(row, nextRow);
-    }
 
     // An ordering change cannot alter the search or sidebar membership. Keep
     // their DOM and computed counts intact instead of rebuilding them per click.

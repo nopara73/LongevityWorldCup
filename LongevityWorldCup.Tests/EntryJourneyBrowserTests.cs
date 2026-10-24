@@ -373,6 +373,7 @@ public sealed class EntryJourneyBrowserTests(
     [InlineData("/join", "/leaderboard")]
     [InlineData("/", "/leaderboard")]
     [InlineData("/apply", "/ruleset")]
+    [InlineData("/join", "/ruleset")]
     public async Task LeavingTheJourney_OptsOutOfTheTransitionWithoutAPageError(string from, string to)
     {
         await using var context = await NewJourneyContextAsync(1280, 720, dark: false, reducedMotion: false);
@@ -387,6 +388,26 @@ public sealed class EntryJourneyBrowserTests(
         await page.WaitForTimeoutAsync(300);
         Assert.False(await page.EvaluateAsync<bool>("() => window.__lwcReveal.transition"), $"{from} -> {to} started a journey transition");
         Assert.True(errors.Count == 0, $"{from} -> {to}: {string.Join("; ", errors)}");
+    }
+
+    [Fact]
+    public async Task RedirectLeavingTheJourney_UsesTheFinalDestinationToSkipTheTransition()
+    {
+        await using var context = await NewJourneyContextAsync(1280, 720, dark: false, reducedMotion: false);
+        await context.RouteAsync("**/review?journey-redirect-test", route => route.FulfillAsync(new()
+        {
+            Status = 302,
+            Headers = new Dictionary<string, string> { ["Location"] = "/ruleset" }
+        }));
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/join");
+        await page.EvaluateAsync("() => { location.href = '/review?journey-redirect-test'; }");
+        await page.WaitForURLAsync("**/ruleset");
+        await page.WaitForFunctionAsync("() => window.__lwcReveal !== null");
+        Assert.False(await page.EvaluateAsync<bool>("() => window.__lwcReveal.transition"));
+        Assert.Empty(errors);
     }
 
     [Theory]
