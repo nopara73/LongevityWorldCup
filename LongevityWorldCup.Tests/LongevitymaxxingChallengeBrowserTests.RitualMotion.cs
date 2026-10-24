@@ -143,8 +143,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(page.Locator("#lmxBoardMeta")).ToContainTextAsync("22 check-ins");
             Assert.Equal(initialStandings, await page.Locator("#lmxHeroHighlights").InnerTextAsync());
             await Assertions.Expect(boardDay.Locator(".lmx-cell-score")).ToBeEmptyAsync();
-            var scoreHeights = await page.Locator(".lmx-board-row--self .lmx-cell-score").EvaluateAllAsync<double[]>("cells => cells.map(e => e.getBoundingClientRect().height)");
-            Assert.True(scoreHeights.Max() - scoreHeights.Min() < 0.1, "Pending and scored cells must reserve the same score height.");
+            // Compare reserved layout height: the pending cell's entrance deliberately scales its painted bounds.
+            var scoreHeights = await page.Locator(".lmx-board-row--self .lmx-cell-score").EvaluateAllAsync<double[]>("cells => cells.map(e => parseFloat(getComputedStyle(e).height))");
+            Assert.True(scoreHeights.Max() - scoreHeights.Min() < 0.1, $"Pending and scored cells must reserve the same score height: {string.Join(", ", scoreHeights)}.");
             await page.WaitForFunctionAsync("() => window.__lmxMotion.includes('lmx-card-saved')");
         }
         finally { release.TrySetResult(); }
