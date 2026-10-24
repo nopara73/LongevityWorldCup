@@ -226,6 +226,21 @@ public sealed class EventLivingFeedBrowserTests(
     }
 
 
+    [Fact]
+    public async Task Preview_NamePreservesModifiedLinkActivation()
+    {
+        await using var context = await OpenAsync();
+        var page = context.Pages[0];
+        await page.Locator(".event-message a[data-athlete-slug='feed-a']").HoverAsync();
+        await Assertions.Expect(page.Locator("#eventAthletePreview")).ToBeVisibleAsync();
+        var popup = await context.RunAndWaitForPageAsync(
+            () => page.Locator(".event-athlete-preview-name").ClickAsync(new() { Modifiers = [KeyboardModifier.Control] }));
+        await popup.BringToFrontAsync();
+        await popup.WaitForURLAsync("**/athlete/feed-a", new() { WaitUntil = WaitUntilState.Commit });
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await popup.CloseAsync();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

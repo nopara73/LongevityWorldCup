@@ -1276,6 +1276,7 @@ const eventsPageAssets = document.currentScript.dataset;
             card.addEventListener('pointerenter', () => window.clearTimeout(hideTimer));
             card.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') scheduleHide(); });
             card.addEventListener('click', event => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 if (event.target.closest('.badge-class')) return;
                 event.preventDefault();
                 const link = anchor;
