@@ -2220,17 +2220,23 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         form.dataset.lmxMoment = kind;
         form.style.setProperty("--lmx-moment-offset", `${-Math.round(elapsed)}ms`);
         const remaining = Math.max(0, CHECK_IN_MOMENT_MS[kind] - elapsed);
-        // Rendering the optimistic board can occupy the rest of this task on a
-        // slow device. Give CSS a rendering frame before starting its cleanup
-        // clock, otherwise the entire moment can expire before it is painted.
+        // Board rendering and other frame callbacks can delay CSS animation
+        // creation. Resolve the actual animation before arranging cleanup;
+        // even a timer started in rAF can expire before the first style pass.
         requestAnimationFrame(() => {
             if (!form.isConnected || checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
             if (elapsed === 0 && moment) moment.startedAt = performance.now();
-            window.setTimeout(() => {
-                if (checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
+            const finish = (): void => {
+                if (!form.isConnected || checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
                 delete form.dataset.lmxMoment;
                 form.style.removeProperty("--lmx-moment-offset");
-            }, remaining);
+                checkInMoments.delete(key);
+            };
+            const name = kind === "complete" ? "lmx-rail-ready" : kind === "saved" ? "lmx-card-saved" : "lmx-retry-nudge";
+            const animation = form.getAnimations({ subtree: true }).find(candidate =>
+                typeof CSSAnimation !== "undefined" && candidate instanceof CSSAnimation && candidate.animationName === name);
+            if (animation) void animation.finished.then(finish, finish);
+            else window.setTimeout(finish, remaining);
         });
     }
 
