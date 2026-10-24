@@ -246,12 +246,20 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         Assert.Equal("", await sheet.EvaluateAsync<string>("e => e.style.getPropertyValue('--lwc-share-drag')"));
         await sheet.EvaluateAsync("e => e.scrollTop=0");
         var handle = (await page.Locator(".lwc-share__handle").BoundingBoxAsync())!;
-        await page.Mouse.MoveAsync(handle.X + handle.Width / 2, handle.Y + handle.Height / 2);
-        await page.Mouse.DownAsync();
-        await page.Mouse.MoveAsync(handle.X + handle.Width / 2, handle.Y + 250, new() { Steps = 6 });
-        await page.Mouse.UpAsync();
+        for (var step = 0; step <= 10; step++)
+        {
+            await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
+            {
+                ["type"] = step == 0 ? "touchStart" : "touchMove",
+                ["touchPoints"] = new[] { new { x = handle.X + handle.Width / 2, y = handle.Y + handle.Height / 2 + step * 24, id = 1 } }
+            });
+            await page.WaitForTimeoutAsync(20);
+        }
+        await touch.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
         await Assertions.Expect(sheet).ToBeHiddenAsync();
         Assert.False(await page.Locator("main").EvaluateAsync<bool>("e => e.inert"));
+        await page.Locator("#leaderboardTitle [data-lwc-share]").TapAsync();
+        await Assertions.Expect(sheet).ToBeVisibleAsync();
     }
 
     private async Task<IBrowserContext> ContextAsync(int width = 1440, int height = 900, bool reduced = true, IBrowser? browser = null)

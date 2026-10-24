@@ -553,6 +553,11 @@ interface Window {
             if (!dragging || current?.version !== dragVersion) return;
             root.style.setProperty("--lwc-share-drag", `${Math.max(0, event.clientY - startY)}px`);
         });
+        root.addEventListener("touchmove", event => {
+            // A handled drag must finish its native touch sequence too, or the
+            // browser can consume the next tap as a request to stop panning.
+            if (dragging && current?.version === dragVersion && event.touches.length === 1 && event.cancelable) event.preventDefault();
+        }, { passive: false });
         const release = (event: PointerEvent) => {
             if (!dragging) return;
             dragging = false;
