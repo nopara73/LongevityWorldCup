@@ -6256,6 +6256,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
         if (!badge.matches('a')) {
             badge.removeAttribute('tabindex');
             badge.removeAttribute('aria-label');
+            badge.removeAttribute('role');
+            badge.removeAttribute('aria-haspopup');
             badge.setAttribute('aria-hidden', 'true');
             toggle.appendChild(badge);
         } else wrapper.appendChild(badge);
@@ -6343,8 +6345,9 @@ function setModalBadgeExplainer(shelf, item) {
         // Measure natural rows without the old panel reserving a grid row.
         panel.remove();
         const items = Array.from(shelf.querySelectorAll('.modal-badge-item'));
-        const top = item.getBoundingClientRect().top;
-        const rowEnd = items.filter(other => Math.abs(other.getBoundingClientRect().top - top) < 1).pop() || item;
+        // Hover/mint transforms move painted bounds, not the shelf's grid row.
+        const top = item.offsetTop;
+        const rowEnd = items.filter(other => Math.abs(other.offsetTop - top) < 1).pop() || item;
         rowEnd.after(panel);
         const panelRect = panel.getBoundingClientRect();
         const badgeRect = (item.querySelector('.badge-class') || item).getBoundingClientRect();

@@ -58,8 +58,9 @@ public sealed partial class BadgeFamilyBrowserTests
                         el.parentElement.style.right = below ? '8px' : 'auto';
                     }
                     """, below);
-                if (width < 600) await badge.TapAsync();
-                else await badge.FocusAsync();
+                // Focus tests the anchored peek on every viewport. Tapping
+                // opens a dialog/sheet, covered separately below.
+                await badge.FocusAsync();
                 await Assertions.Expect(tip).ToBeVisibleAsync();
                 await Assertions.Expect(tip.Locator(".badge-tip-title")).ToHaveTextAsync("The Regular");
                 await Assertions.Expect(tip.Locator(".badge-tip-detail")).ToHaveTextAsync("two or more tests submitted");
@@ -79,8 +80,7 @@ public sealed partial class BadgeFamilyBrowserTests
                 }))}, document.querySelector('#fit-badges'))
                 """);
             var chip = page.Locator("#fit-badges .badge-overflow-count");
-            if (width < 600) await chip.TapAsync();
-            else await chip.FocusAsync();
+            await chip.FocusAsync();
             await Assertions.Expect(tip).ToBeVisibleAsync();
             await Assertions.Expect(tip.Locator(".badge-tip-row")).ToHaveCountAsync(32);
             var content = tip.Locator(".badge-tip-content");

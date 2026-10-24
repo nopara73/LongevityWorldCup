@@ -601,16 +601,18 @@ function createDiscountBadgeChipHtml(component: DiscountComponent | null | undef
     }
 
     const titleAttr = tooltip ? ` title="${escapeHtml(tooltip)}"` : "";
+    const rarity = component.kind === 'serverBadge' && component.badge ? window.getBadgeRarity?.(component.badge) : '';
+    const rarityAttr = rarity ? ` data-badge-rarity="${rarity}"` : '';
     const accessibleNameAttr = tooltip ? ` aria-label="${escapeHtml(tooltip)}"` : "";
     const chipInner = `<i class="fa ${escapeHtml(icon)}" aria-hidden="true"></i>`;
     if (clickUrl) {
         const personalLinkAttrs = component.kind === "personalLink"
             ? ` target="_blank" rel="noopener"`
             : "";
-        return `<a class="${escapeHtml(`${badgeClasses} badge-clickable`)}" href="${escapeHtml(clickUrl)}"${personalLinkAttrs}${accessibleNameAttr}${titleAttr} style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</a>`;
+        return `<a class="${escapeHtml(`${badgeClasses} badge-clickable`)}" href="${escapeHtml(clickUrl)}"${personalLinkAttrs}${accessibleNameAttr}${titleAttr}${rarityAttr} style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</a>`;
     }
     return tooltip
-        ? `<span class="${escapeHtml(`${badgeClasses} badge-explained`)}" tabindex="0"${accessibleNameAttr}${titleAttr} style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</span>`
+        ? `<span class="${escapeHtml(`${badgeClasses} badge-explained`)}" role="button" aria-haspopup="dialog" tabindex="0"${accessibleNameAttr}${titleAttr}${rarityAttr} style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</span>`
         : `<span class="${escapeHtml(badgeClasses)}" aria-hidden="true" style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</span>`;
 }
 

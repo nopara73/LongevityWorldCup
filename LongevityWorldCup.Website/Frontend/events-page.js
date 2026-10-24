@@ -512,13 +512,15 @@ const eventsPageAssets = document.currentScript.dataset;
                 : String(label);
             const url=(links && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
             const familyClass=typeof window.getBadgeFamilyClass==='function'?window.getBadgeFamilyClass(b):'badge-family-utility';
+            const rarity = window.getBadgeRarity?.(b) || '';
+            const rarityAttr = rarity ? ` data-badge-rarity="${rarity}"` : '';
             if(url){
                 const isPodcast=String(label||'').trim().toLowerCase()==='podcast';
                 const targetAttrs=isPodcast?' target="_blank" rel="noopener"':'';
                 const accessibleLabel=isPodcast?`${tip}. Open podcast`:`${tip}. Open league`;
-                return `<a class="badge-class ${familyClass} badge-clickable" href="${esc(url)}"${targetAttrs} aria-label="${esc(accessibleLabel)}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}" aria-hidden="true"></i></a>`;
+                return `<a class="badge-class ${familyClass} badge-clickable" href="${esc(url)}"${targetAttrs} aria-label="${esc(accessibleLabel)}" title="${esc(tip)}" style="${style}"${rarityAttr}><i class="fa ${icon}" aria-hidden="true"></i></a>`;
             }
-            return `<span class="badge-class ${familyClass} badge-explained" tabindex="0" aria-label="${esc(tip)}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}" aria-hidden="true"></i></span>`;
+            return `<span class="badge-class ${familyClass} badge-explained" role="button" aria-haspopup="dialog" tabindex="0" aria-label="${esc(tip)}" title="${esc(tip)}" style="${style}"${rarityAttr}><i class="fa ${icon}" aria-hidden="true"></i></span>`;
         }catch(e){
             return `<span class="badge-chip"><strong>${esc(String(label))}</strong></span>`;
         }
@@ -1017,6 +1019,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function markArrival(row, delayMs, reduced){
         row.classList.add('is-visible');
+        window.LwcBadges?.celebrate(row);
         if (reduced) return;
         row.style.setProperty('--arrival-delay', `${delayMs}ms`);
         row.classList.add('is-arriving');
@@ -1695,6 +1698,7 @@ const eventsPageAssets = document.currentScript.dataset;
             }
 
             let msgHtml = "";
+            let overflowBadgeHtml = '';
 
             if (r.type === EVENT_TYPE.BadgeAward && r.primarySlug) {
                 const nameWithRank = renderTextWithSlugLinks(
@@ -1745,6 +1749,8 @@ const eventsPageAssets = document.currentScript.dataset;
                     const visibleItems = pickRepresentativeBadgeItems(orderedItems, 4);
                     const icons = visibleItems.map(it => renderBadgeBubbleForLabel(String(it.label || "badge"), a, it.leagueCategory||null, it.leagueValue||null, it.place??null)).join(" ");
                     const moreCount = totalCount - visibleItems.length;
+                    overflowBadgeHtml = orderedItems.filter(item => !visibleItems.includes(item))
+                        .map(it => renderBadgeBubbleForLabel(String(it.label || 'badge'), a, it.leagueCategory || null, it.leagueValue || null, it.place ?? null, false)).join('');
 
                     const moreLink = (moreCount > 0 && url)
                         ? ` <a href="${url}" class="badge-class badge-family-utility badge-overflow-count badge-clickable"${openLinksInNewTab ? ` target="_blank" rel="noopener"` : ` target="_top"`} title="${esc(`${moreCount} more badges`)}" aria-label="${esc(`Open ${name} profile to view ${moreCount} more badges`)}">+${moreCount}</a>`
@@ -2025,6 +2031,7 @@ const eventsPageAssets = document.currentScript.dataset;
             tr.dataset.rowIndex = String(idx);
             tr.dataset.groupId = `g_${idx}`;
             tr.dataset.eventTypeName = eventTypeName(r.type);
+            tr.dataset.badgeEarned = String(r.type === EVENT_TYPE.BadgeAward && r.badgeDirection !== 'lost' && r.badgeDirection !== 'solo' && !r.isSolo);
             if (r.primarySlug) tr.dataset.primarySlug = String(r.primarySlug);
             if (r.homepageHighlightSelection) tr.dataset.highlightSelection = String(r.homepageHighlightSelection);
             if (r.id) tr.dataset.eventId = String(r.id);
@@ -2036,6 +2043,8 @@ const eventsPageAssets = document.currentScript.dataset;
                 `<td class="col-avatar"><div class="athlete-td">${avatarHtml}</div></td>
          <td class="event-message"><div class="event-message-cell">${msgHtml}</div></td>
          <td class="col-date">${dateLabel}</td>`;
+            const overflowBadge = tr.querySelector('.badge-overflow-count');
+            if (overflowBadge && overflowBadgeHtml) window.LwcBadges?.stashOverflow(overflowBadge, overflowBadgeHtml);
 
             const imgEl = tr.querySelector("img.avatar");
             if (imgEl) {
