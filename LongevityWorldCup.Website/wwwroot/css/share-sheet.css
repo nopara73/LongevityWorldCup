@@ -27,8 +27,8 @@
     display: inline-grid;
     place-items: center;
     flex: 0 0 auto;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: max(44px, 2.5rem);
+    height: max(44px, 2.5rem);
     margin: 0;
     padding: 0;
     border: 1px solid var(--lwc-border);
@@ -119,6 +119,9 @@
     flex-direction: column;
     gap: 0.65rem;
     width: min(23.5rem, calc(100vw - 1.5rem));
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 0.75rem;
     box-sizing: border-box;
     border: 1px solid var(--lwc-border);
@@ -138,6 +141,10 @@
 
 .lwc-share[hidden] {
     display: none;
+}
+
+.lwc-share > :is(figure, button, input, div, .lwc-share__handle) {
+    flex: 0 0 auto;
 }
 
 .lwc-share__handle {
@@ -249,7 +256,7 @@
     gap: 0.55rem;
     min-height: 48px;
     margin: 0;
-    padding: 0 1rem;
+    padding: 0.6rem 1rem;
     overflow: hidden;
     border: 1px solid var(--lwc-border-strong);
     border-radius: var(--lwc-radius-md);
@@ -398,7 +405,8 @@
 /* 5) Destinations: four equal tiles; the glyph lifts on hover and the tile gives under a press. */
 .lwc-share__destinations {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    font-size: 0.78rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(44px, 4.5em)), 1fr));
     gap: 0.45rem;
 }
 
@@ -409,12 +417,12 @@
     justify-content: center;
     gap: 0.35rem;
     min-height: 68px;
-    padding: 0.55rem 0.25rem;
+    padding: 0.55rem 0.2em;
     border: 1px solid var(--lwc-border);
     border-radius: var(--lwc-radius-md);
     background: var(--lwc-surface);
     color: var(--lwc-ink);
-    font-size: 0.78rem;
+    font-size: inherit;
     font-weight: 700;
     text-align: center;
     text-decoration: none;
@@ -468,24 +476,25 @@
     width: 100%;
     max-height: calc(100dvh - 2rem);
     overflow-y: auto;
-    padding: 0.5rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.5rem min(1rem, 16px) calc(1rem + env(safe-area-inset-bottom, 0px));
     border-width: 1px 0 0;
     border-radius: 18px 18px 0 0;
     transform: translateY(var(--lwc-share-drag));
     transform-origin: 50% 100%;
     overscroll-behavior: contain;
-    touch-action: pan-x;
+    touch-action: pan-y;
 }
 
 .lwc-share.is-sheet .lwc-share__handle {
     display: block;
     align-self: center;
     width: 2.5rem;
-    height: 4px;
-    margin: 0.15rem 0 0.25rem;
-    border-radius: 2px;
-    background: var(--lwc-border-strong);
+    height: 24px;
+    flex: 0 0 24px;
+    margin: -0.25rem 0;
+    background: linear-gradient(var(--lwc-border-strong), var(--lwc-border-strong)) center / 100% 4px no-repeat;
     opacity: 0.6;
+    touch-action: none;
 }
 
 .lwc-share.is-sheet.is-dragging {
@@ -497,6 +506,7 @@
     inset: 0;
     z-index: 2147482999;
     background: rgba(8, 12, 16, 0.48);
+    touch-action: none;
 }
 
 .lwc-share-scrim[hidden] {
@@ -675,27 +685,29 @@ body:not(.bioage-result-ready) .bioageform > .bioage-result-share {
     }
 }
 
-/* 9) The popover points back at the button that opened it. */
-.lwc-share:not(.is-sheet)::before {
-    content: "";
-    position: absolute;
-    top: -7px;
-    left: calc(var(--lwc-share-origin-x) - 7px);
-    width: 12px;
-    height: 12px;
-    border: 1px solid var(--lwc-border);
-    border-width: 1px 0 0 1px;
-    background: var(--lwc-surface);
-    transform: rotate(45deg);
+/* 9) The athlete dialog's destinations wear the same icon discs and give the same way. */
+:root #detailsModal .athlete-share-destinations {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(44px, 4.5em)), 1fr));
 }
 
-.lwc-share.is-above:not(.is-sheet)::before {
-    top: auto;
-    bottom: -7px;
-    border-width: 0 1px 1px 0;
+/* The intermediate breakpoint still anchors to the action row. An auto width
+   shrinks the sheet to one action there, including at 200% desktop zoom. */
+@media (min-width: 481px) and (max-width: 768px) {
+    :root #detailsModal .athlete-share-menu {
+        width: min(22.5rem, calc(100vw - 2rem));
+    }
 }
 
-/* 10) The athlete dialog's destinations wear the same icon discs and give the same way. */
+@media (max-width: 360px) {
+    :root #detailsModal .athlete-share-menu {
+        padding: 12px;
+    }
+
+    :root #detailsModal .athlete-share-destinations {
+        gap: 7px;
+    }
+}
+
 :root #detailsModal .athlete-share-menu .athlete-share-destinations a > i {
     display: grid;
     place-items: center;

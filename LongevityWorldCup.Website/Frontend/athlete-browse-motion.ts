@@ -370,7 +370,7 @@
         if (body.style.position !== "fixed") return null;
         const saved = -parseFloat(body.style.top || "0") || 0;
         const rect = row.getBoundingClientRect();
-        if (rect.top >= innerHeight * 0.18 && rect.bottom <= innerHeight * 0.88) return null;
+        if (rect.top >= innerHeight * 0.18 && rect.bottom <= innerHeight - 12) return null;
         const max = Math.max(0, body.scrollHeight - innerHeight);
         const target = Math.round(Math.min(max, Math.max(0, rect.top + saved - (innerHeight - rect.height) / 2)));
         if (Math.abs(target - saved) < 1) return null;

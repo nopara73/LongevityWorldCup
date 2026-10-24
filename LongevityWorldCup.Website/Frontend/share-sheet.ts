@@ -2,7 +2,7 @@
 //
 // Any element marked [data-lwc-share] opens it. The element may name what to share
 // with data-share-url, data-share-title, data-share-text and data-share-image; anything
-// left out comes from the page (canonical link, og:title, og:image). Phones with a
+// left out comes from the page (current leaderboard selection or canonical metadata). Phones with a
 // native share sheet use that instead. Everywhere else a popover opens from the
 // trigger (a bottom sheet on narrow screens) with the 1200x630 card developing in,
 // one copy action whose link glyph morphs into a check, and the usual destinations.
@@ -40,6 +40,12 @@ interface Window {
     let version = 0;
     let closeTimer = 0;
     let feedbackTimer = 0;
+    let pendingNative: { trigger: HTMLElement; version: number } | null = null;
+    let pendingCopy = false;
+    const inertSiblings = new Map<HTMLElement, boolean>();
+    const layoutObserver = new ResizeObserver(() => {
+        if (sheet && current) place(sheet, current.trigger);
+    });
 
     // ---- What is being shared -------------------------------------------------
 
@@ -64,6 +70,7 @@ interface Window {
         if (!raw) return null;
         try {
             const url = new URL(raw, window.location.href);
+            if (!/^https?:$/.test(url.protocol) || url.username || url.password) return null;
             if (!/^\/(og|assets|generated)\//.test(url.pathname)) return null;
             return url.pathname + url.search;
         } catch {
@@ -71,31 +78,51 @@ interface Window {
         }
     }
 
-    function imageForPath(path: string): string | null {
+    const rankingViews = new Set(["bortz", "pheno", "improvement", "bortz-improvement", "crowd"]);
+
+    function imageForUrl(url: URL): string | null {
+        const path = url.pathname;
         const athlete = path.match(/^\/athlete\/([^/]+)$/);
         if (athlete) return `/og/athlete/${athlete[1]}.png`;
         const league = path.match(/^\/league\/([^/]+)$/);
+        const view = url.searchParams.get("view") || league?.[1] || "";
+        if (rankingViews.has(view)) return `/og/page/view-${view}.png`;
         if (league) return `/og/league/${league[1]}.png`;
+        if (path === "/pheno-age" || path === "/bortz-age") return `/og/page${path}.png`;
+        if (path === "/leaderboard") return "/og/league/ultimate.png";
+        if (path.startsWith("/flag/")) return "/assets/og-image.png";
+        if (path === "/") return "/og/page/home.png";
         return null;
     }
 
     function readPayload(trigger: HTMLElement): LwcSharePayload {
         const data = trigger.dataset;
         const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href;
+        const leaderboard = !data["shareUrl"] && !!trigger.closest("#leaderboardTitle");
+        const fallback = leaderboard ? window.location.pathname + window.location.search : canonical || window.location.pathname;
         let url: URL;
         try {
-            url = new URL(data["shareUrl"] || canonical || window.location.pathname + window.location.search, canonicalOrigin());
+            url = new URL(data["shareUrl"] || fallback, canonicalOrigin());
+            if (!/^https?:$/.test(url.protocol) || url.username || url.password) throw new Error("Invalid share URL");
         } catch {
-            url = new URL(window.location.pathname, canonicalOrigin());
+            url = new URL(fallback, canonicalOrigin());
         }
         if (url.origin !== canonicalOrigin()) url = new URL(url.pathname + url.search + url.hash, canonicalOrigin());
+        if (leaderboard) {
+            const meaningful = new Set(["filters", "view", "search", "group", "sort", "dir", "then", "thenDir"]);
+            for (const key of [...url.searchParams.keys()]) if (!meaningful.has(key)) url.searchParams.delete(key);
+        }
 
-        const title = data["shareTitle"] || meta("og:title") || document.title;
+        const title = data["shareTitle"] || (leaderboard ? document.title : meta("og:title")) || document.title;
+        const routeImage = imageForUrl(url);
+        const metadataImage = localImage(meta("og:image"));
+        // Keep the server's signed card when it still represents this selection.
+        const image = metadataImage && (!routeImage || metadataImage.split("?")[0] === routeImage) ? metadataImage : routeImage;
         return {
             url: url.toString(),
             title,
             text: data["shareText"] || title,
-            image: localImage(data["shareImage"] || "") || imageForPath(url.pathname) || localImage(meta("og:image"))
+            image: localImage(data["shareImage"] || "") || image
         };
     }
 
@@ -144,7 +171,7 @@ interface Window {
         glyph.className = "lwc-share__destination-icon";
         glyph.appendChild(icon(iconClasses));
         link.append(glyph, document.createTextNode(label));
-        link.addEventListener("click", () => close(false));
+        link.addEventListener("click", () => close(true));
         return link;
     }
 
@@ -196,7 +223,7 @@ interface Window {
         recovery.type = "text";
         recovery.readOnly = true;
         recovery.spellcheck = false;
-        recovery.setAttribute("aria-label", "Profile link");
+        recovery.setAttribute("aria-label", "Share link");
         recovery.hidden = true;
 
         const status = document.createElement("span");
@@ -205,7 +232,6 @@ interface Window {
         status.setAttribute("aria-live", "polite");
 
         root.append(handle, figure, copy, recovery, destinations, status);
-        root.addEventListener("keydown", onKeydown);
         bindDrag(root, handle);
         document.body.appendChild(root);
 
@@ -240,7 +266,9 @@ interface Window {
         img.addEventListener("load", () => {
             if (current?.version !== openVersion) return;
             // A cached card still "develops", one frame after the sheet has painted.
-            requestAnimationFrame(() => figure.classList.add("is-loaded"));
+            requestAnimationFrame(() => {
+                if (current?.version === openVersion && img.isConnected) figure.classList.add("is-loaded");
+            });
         });
         img.addEventListener("error", () => {
             if (current?.version === openVersion) figure.hidden = true;
@@ -257,6 +285,9 @@ interface Window {
 
     function place(root: HTMLElement, trigger: HTMLElement): void {
         root.classList.toggle("is-sheet", isSheetMode());
+        root.setAttribute("aria-modal", String(isSheetMode()));
+        if (scrim) scrim.hidden = !isSheetMode();
+        syncInert(isSheetMode());
         root.style.removeProperty("left");
         root.style.removeProperty("top");
         if (isSheetMode()) return;
@@ -269,7 +300,7 @@ interface Window {
         const below = anchor.bottom + gap;
         const above = anchor.top - gap - height;
         const fitsBelow = below + height <= window.innerHeight - pad;
-        const top = fitsBelow || above < pad ? below : above;
+        const top = Math.min(Math.max(pad, fitsBelow || above < pad ? below : above), window.innerHeight - height - pad);
         const centre = anchor.left + (anchor.width / 2);
         const left = Math.min(Math.max(centre - (width / 2), pad), window.innerWidth - width - pad);
         root.classList.toggle("is-above", !(fitsBelow || above < pad));
@@ -277,6 +308,19 @@ interface Window {
         root.style.top = `${Math.round(Math.max(pad, top))}px`;
         // The sheet grows out of the trigger it came from.
         root.style.setProperty("--lwc-share-origin-x", `${Math.round(centre - left)}px`);
+    }
+
+    function syncInert(active: boolean): void {
+        if (!active) {
+            for (const [element, wasInert] of inertSiblings) element.inert = wasInert;
+            inertSiblings.clear();
+            return;
+        }
+        for (const element of document.body.children) {
+            if (!(element instanceof HTMLElement) || element === sheet || element === scrim || inertSiblings.has(element)) continue;
+            inertSiblings.set(element, element.inert);
+            element.inert = true;
+        }
     }
 
     // ---- Open / close ---------------------------------------------------------
@@ -301,17 +345,24 @@ interface Window {
         const touch = coarse.matches || (Number(nav.maxTouchPoints) > 0 && /Android|iPhone|iPad|iPod/i.test(nav.userAgent));
         if (!touch) return false;
         const data = { title: payload.title, text: payload.text, url: payload.url };
-        return typeof nav.canShare !== "function" || nav.canShare(data);
+        try { return typeof nav.canShare !== "function" || nav.canShare(data); }
+        catch { return false; }
     }
 
     async function openNative(trigger: HTMLElement, payload: LwcSharePayload): Promise<void> {
+        close(false);
+        const request = { trigger, version: ++version };
+        pendingNative = request;
         trigger.setAttribute("aria-busy", "true");
         try {
             await window.navigator.share({ title: payload.title, text: payload.text, url: payload.url });
         } catch (error: unknown) {
-            if (!(error instanceof DOMException && error.name === "AbortError")) openSheet(trigger, payload);
+            if (pendingNative === request && trigger.isConnected && !(error instanceof DOMException && error.name === "AbortError")) openSheet(trigger, payload);
         } finally {
-            trigger.removeAttribute("aria-busy");
+            if (pendingNative === request) {
+                pendingNative = null;
+                trigger.removeAttribute("aria-busy");
+            }
         }
     }
 
@@ -319,10 +370,18 @@ interface Window {
         const root = ensureSheet();
         window.clearTimeout(closeTimer);
         window.clearTimeout(feedbackTimer);
+        if (pendingNative) pendingNative.trigger.removeAttribute("aria-busy");
+        pendingNative = null;
         current?.trigger.setAttribute("aria-expanded", "false");
         current = { trigger, payload, version: ++version };
+        const openVersion = version;
+        pendingCopy = false;
+        root.querySelector(".lwc-share__copy")?.removeAttribute("aria-busy");
+        const status = root.querySelector<HTMLElement>('[role="status"]');
+        if (status) status.textContent = "";
 
-        root.classList.remove("is-copied", "is-closing", "is-recovering");
+        root.classList.remove("is-copied", "is-closing", "is-recovering", "is-dragging");
+        scrim?.classList.remove("is-closing");
         root.style.removeProperty("--lwc-share-drag");
         const manual = root.querySelector<HTMLInputElement>(".lwc-share__manual");
         if (manual) manual.hidden = true;
@@ -330,20 +389,26 @@ interface Window {
         loadPreview(root, payload.image, version);
 
         root.hidden = false;
+        root.scrollTop = 0;
         if (scrim) scrim.hidden = !isSheetMode();
         place(root, trigger);
+        layoutObserver.observe(root);
         trigger.setAttribute("aria-expanded", "true");
         root.querySelector<HTMLButtonElement>(".lwc-share__copy")?.focus({ preventScroll: true });
         requestAnimationFrame(() => {
-            if (current?.trigger === trigger) place(root, trigger);
+            if (current?.version === openVersion) place(root, trigger);
         });
     }
 
     function close(restoreFocus = false): void {
+        if (pendingNative) pendingNative.trigger.removeAttribute("aria-busy");
+        pendingNative = null;
         if (!sheet || sheet.hidden || !current) return;
         const { trigger } = current;
         const root = sheet;
         current = null;
+        layoutObserver.disconnect();
+        syncInert(false);
         window.clearTimeout(feedbackTimer);
         trigger.setAttribute("aria-expanded", "false");
         if (restoreFocus && trigger.isConnected) trigger.focus({ preventScroll: true });
@@ -351,6 +416,7 @@ interface Window {
         const finish = () => {
             root.hidden = true;
             root.classList.remove("is-closing");
+            scrim?.classList.remove("is-closing");
             root.style.removeProperty("--lwc-share-drag");
             root.querySelector(".lwc-share__preview img")?.remove();
             if (scrim) scrim.hidden = true;
@@ -374,6 +440,7 @@ interface Window {
             return navigator.clipboard.writeText(text);
         }
         return new Promise((resolve, reject) => {
+            const focused = document.activeElement;
             const area = document.createElement("textarea");
             area.value = text;
             area.setAttribute("readonly", "");
@@ -388,6 +455,7 @@ interface Window {
                 reject(error);
             } finally {
                 area.remove();
+                if (focused instanceof HTMLElement && focused.isConnected) focused.focus({ preventScroll: true });
             }
         });
     }
@@ -395,7 +463,11 @@ interface Window {
     async function copyLink(): Promise<void> {
         const root = sheet;
         const open = current;
-        if (!root || !open) return;
+        if (!root || !open || pendingCopy) return;
+        window.clearTimeout(feedbackTimer);
+        pendingCopy = true;
+        const copy = root.querySelector<HTMLButtonElement>(".lwc-share__copy");
+        copy?.setAttribute("aria-busy", "true");
         const status = root.querySelector<HTMLElement>('[role="status"]');
         try {
             await copyText(open.payload.url);
@@ -417,8 +489,14 @@ interface Window {
             manual.value = open.payload.url;
             manual.hidden = false;
             root.classList.add("is-recovering");
+            place(root, open.trigger);
             manual.focus({ preventScroll: true });
             manual.select();
+        } finally {
+            if (current?.version === open.version) {
+                pendingCopy = false;
+                copy?.removeAttribute("aria-busy");
+            }
         }
     }
 
@@ -433,7 +511,7 @@ interface Window {
     // ---- Keyboard and drag ----------------------------------------------------
 
     function onKeydown(event: KeyboardEvent): void {
-        if (!sheet) return;
+        if (!sheet || !current) return;
         if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
@@ -446,7 +524,10 @@ interface Window {
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
         if (!first || !last) return;
-        if (event.shiftKey && document.activeElement === first) {
+        if (!sheet.contains(document.activeElement)) {
+            event.preventDefault();
+            first.focus();
+        } else if (event.shiftKey && document.activeElement === first) {
             event.preventDefault();
             last.focus();
         } else if (!event.shiftKey && document.activeElement === last) {
@@ -459,16 +540,17 @@ interface Window {
     function bindDrag(root: HTMLElement, handle: HTMLElement): void {
         let startY = 0;
         let dragging = false;
-        const surface = [handle, root.querySelector(".lwc-share__preview")];
+        let dragVersion = 0;
         root.addEventListener("pointerdown", event => {
-            if (!root.classList.contains("is-sheet") || !surface.some(element => element?.contains(event.target as Node))) return;
+            if (!current || !event.isPrimary || event.button !== 0 || !root.classList.contains("is-sheet") || !handle.contains(event.target as Node)) return;
             dragging = true;
+            dragVersion = current.version;
             startY = event.clientY;
             root.classList.add("is-dragging");
             root.setPointerCapture(event.pointerId);
         });
         root.addEventListener("pointermove", event => {
-            if (!dragging) return;
+            if (!dragging || current?.version !== dragVersion) return;
             root.style.setProperty("--lwc-share-drag", `${Math.max(0, event.clientY - startY)}px`);
         });
         const release = (event: PointerEvent) => {
@@ -476,7 +558,8 @@ interface Window {
             dragging = false;
             root.classList.remove("is-dragging");
             const travelled = Math.max(0, event.clientY - startY);
-            if (travelled > root.offsetHeight / 3) close(true);
+            if (root.hasPointerCapture(event.pointerId)) root.releasePointerCapture(event.pointerId);
+            if (current?.version === dragVersion && event.type === "pointerup" && travelled > root.offsetHeight / 3) close(true);
             else root.style.removeProperty("--lwc-share-drag");
         };
         root.addEventListener("pointerup", release);
@@ -486,6 +569,7 @@ interface Window {
     // ---- Entry points ---------------------------------------------------------
 
     function open(trigger: HTMLElement): void {
+        if (pendingNative?.trigger === trigger) return;
         if (current?.trigger === trigger && sheet && !sheet.hidden) {
             close(true);
             return;
@@ -520,6 +604,16 @@ interface Window {
             return;
         }
         if (sheet && !sheet.hidden && target && !sheet.contains(target)) close(false);
+    });
+    document.addEventListener("keydown", onKeydown, true);
+    window.addEventListener("popstate", () => close(false));
+    reduced.addEventListener("change", () => {
+        if (reduced.matches && sheet?.classList.contains("is-closing")) {
+            window.clearTimeout(closeTimer);
+            sheet.hidden = true;
+            sheet.classList.remove("is-closing");
+            if (scrim) { scrim.hidden = true; scrim.classList.remove("is-closing"); }
+        }
     });
 
     window.addEventListener("resize", () => {

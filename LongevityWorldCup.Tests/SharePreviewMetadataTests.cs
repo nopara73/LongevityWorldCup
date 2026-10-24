@@ -27,6 +27,9 @@ public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFa
     [InlineData("athlete", "ron-lugbill")]
     [InlineData("league", "ultimate")]
     [InlineData("page", "home")]
+    [InlineData("page", "pheno-age")]
+    [InlineData("page", "bortz-age")]
+    [InlineData("page", "view-pheno")]
     public async Task Cards_OnlyCacheAnExactCurrentSignatureAsImmutable(string kind, string slug)
     {
         string signature;
@@ -51,6 +54,9 @@ public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFa
             using var response = await client.GetAsync($"/og/{kind}/{slug}.png{suffix}");
             response.EnsureSuccessStatusCode();
             Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+            using var image = SixLabors.ImageSharp.Image.Load(await response.Content.ReadAsByteArrayAsync());
+            Assert.Equal(1200, image.Width);
+            Assert.Equal(630, image.Height);
             if (suffix == "?v=" + signature)
             {
                 Assert.Equal(TimeSpan.FromDays(365), response.Headers.CacheControl?.MaxAge);
