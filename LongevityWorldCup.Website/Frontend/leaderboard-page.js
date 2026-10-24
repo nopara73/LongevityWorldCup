@@ -1176,7 +1176,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
         fullBoard.setAttribute('data-lwc-refresh-ready', '');
         fullBoard.addEventListener('lwc:pull-refresh', event => {
             // Resolve fresh public data before touching the visible selection.
-            event.detail.waitUntil(window.getSharedAthletes({ force: true }).then(() =>
+            event.detail.waitUntil(window.getSharedAthletes(true).then(() =>
                 LoadLeaderboard(includePodiumGlobal, maxAthletesGlobal, true)).catch(() => {
                     setLeaderboardStatus('Leaderboard could not load.', true);
                 }));

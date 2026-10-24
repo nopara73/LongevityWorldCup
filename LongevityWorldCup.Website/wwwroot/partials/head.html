@@ -116,9 +116,9 @@
                 }
             };
 
-            function getSharedJson(url, property, options = {}) {
-                if (!window[property] || options.force) {
-                    const request = window.fetchPublicJson(url, options);
+            function getSharedJson(url, property, refresh = false) {
+                if (refresh || !window[property]) {
+                    const request = window.fetchPublicJson(url, { force: refresh });
                     window[property] = request;
                     request.catch(() => {
                         // An older request must not invalidate a later refresh.
@@ -128,11 +128,11 @@
                 return window[property];
             }
 
-            window.getSharedAthletes = window.getSharedAthletes || function (options) {
-                return getSharedJson('/api/data/athletes', '__sharedAthletesRequest', options);
+            window.getSharedAthletes = window.getSharedAthletes || function (refresh = false) {
+                return getSharedJson('/api/data/athletes', '__sharedAthletesRequest', refresh);
             };
-            window.getSharedEvents = window.getSharedEvents || function (options) {
-                return getSharedJson('/api/events', '__sharedEventsRequest', options);
+            window.getSharedEvents = window.getSharedEvents || function (refresh = false) {
+                return getSharedJson('/api/events', '__sharedEventsRequest', refresh);
             };
             window.getSharedPrizeFund = function () {
                 return getSharedJson('/api/bitcoin/total-received', '__sharedPrizeFundRequest');

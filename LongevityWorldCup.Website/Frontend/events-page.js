@@ -34,6 +34,7 @@ const eventsPageAssets = document.currentScript.dataset;
         if (!tbody) return;
         if (preserveExistingRows && tbody.querySelector('tr.main-row')) return;
         rowObserver?.disconnect();
+        resetFeedMore(tbody.closest('table'));
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
@@ -52,6 +53,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const tbody = document.querySelector('#eventsTable tbody');
         if (!tbody) return;
         rowObserver?.disconnect();
+        resetFeedMore(tbody.closest('table'));
         [...tbody.closest('table').tBodies].slice(1).forEach(body=>body.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
@@ -496,7 +498,7 @@ const eventsPageAssets = document.currentScript.dataset;
     let openLinksInNewTab = false;
     let eventBoardMarkupOptions = {};
 
-    function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null){
+    function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null, links=allowBadgeClicks){
         try{
             const ownedBadge = findServerBadgeOnAthleteStrict(athlete,label,leagueCategory,leagueValue,place);
             const ownedNow = !!ownedBadge;
@@ -508,7 +510,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const tip=typeof window.makeTooltipFromServerBadge==='function'
                 ? window.makeTooltipFromServerBadge(b, athlete||null, { suppressValues: !ownedNow })
                 : String(label);
-            const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
+            const url=(links && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
             const familyClass=typeof window.getBadgeFamilyClass==='function'?window.getBadgeFamilyClass(b):'badge-family-utility';
             if(url){
                 const isPodcast=String(label||'').trim().toLowerCase()==='podcast';
@@ -838,8 +840,22 @@ const eventsPageAssets = document.currentScript.dataset;
     // day's date stays quiet under the first event of that day.
     // On the Highlights page every month opens with its own heading row.
     let monthHeadingObserver=null;
+    function appendMonthHeading(table, group, month){
+        const [y,m]=month.split('-').map(Number);
+        const date=new Date(0);
+        date.setFullYear(y,m-1,1);
+        const heading=document.createElement('tr');
+        heading.className='events-month-row';
+        heading.dataset.month=month;
+        heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span></th>`;
+        group.appendChild(heading);
+        monthHeadingObserver?.observe(heading);
+        observeMonthReveal(table, heading);
+    }
+
     function markFeedGroups(tbody){
         const chapters=!!tbody.closest('.event-board-page');
+        if (chapters) monthRevealObserver?.disconnect();
         if(chapters&&typeof ResizeObserver==='function'){
             monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>{
                 target.parentElement?.style.setProperty('--event-month-height',`${target.getBoundingClientRect().height}px`);
@@ -870,15 +886,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 else delete group.dataset.month;
             }
             if(chapters&&monthStarts&&month){
-                const [y,m]=month.split('-').map(Number);
-                const date=new Date(0);
-                date.setFullYear(y,m-1,1);
-                const heading=document.createElement('tr');
-                heading.className='events-month-row';
-                heading.dataset.month=month;
-                heading.innerHTML=`<th colspan="3" scope="rowgroup">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</th>`;
-                group.appendChild(heading);
-                monthHeadingObserver?.observe(heading);
+                appendMonthHeading(table, group, month);
             }
             if(chapters){
                 const details=r.nextElementSibling?.classList.contains('details-row')?r.nextElementSibling:null;
@@ -890,13 +898,681 @@ const eventsPageAssets = document.currentScript.dataset;
         });
     }
 
+    // ---- Living feed -------------------------------------------------------
+    // The feed behaves like a feed: re-renders keep surviving rows in place and
+    // glide them to their new positions, new moments drop in at the top, gone
+    // ones fade out, /events grows in chunks behind settling skeletons, months
+    // reveal as they arrive and hand the sticky band to the next month, names
+    // preview their athlete and the portrait carries over into the profile.
+    const FEED_CHUNK = 40;
+    const FEED_EASE = 'cubic-bezier(0.2, 0, 0, 1)';
+    const FEED_SEEN_KEY = 'lwcEventsSeenAt:v1:';
+    const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let feedAthletesIndex = new Map();
+    const feedLoads = new Map();
+    const feedRequests = new WeakMap();
+
+    function readSeenAt(mode){
+        try { return Number(window.localStorage.getItem(FEED_SEEN_KEY + mode)) || 0; } catch(_) { return 0; }
+    }
+    function writeSeenAt(mode, ms){
+        try { if (ms > readSeenAt(mode)) window.localStorage.setItem(FEED_SEEN_KEY + mode, String(ms)); } catch(_) {}
+    }
+
+    function captureFeedRows(table, nextIds){
+        const rows = [...table.querySelectorAll('tr.main-row[data-event-id]')];
+        if (!rows.length) return null;
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        const positions = new Map();
+        const ghosts = [];
+        let anchor = null;
+        rows.forEach(row => {
+            const rect = row.getBoundingClientRect();
+            const onscreen = rect.bottom > 0 && rect.top < vh && rect.height > 0;
+            positions.set(row.dataset.eventId, { top: rect.top, onscreen });
+            if (onscreen && !anchor && rect.top >= 0) anchor = { id: row.dataset.eventId, top: rect.top };
+            if (onscreen && nextIds && !nextIds.has(row.dataset.eventId)) ghosts.push(makeExitGhost(table, row, rect));
+        });
+        return { positions, ghosts, anchor, rendered: rows.length };
+    }
+
+    // A departing row leaves as a copy laid over its old place, so the rows
+    // that stay can already slide into the gap beneath it.
+    function makeExitGhost(table, row, rect){
+        const ghost = document.createElement('div');
+        ghost._feedHost = table.closest('#events-root-index') || document.body;
+        ghost.className = 'events-exit-ghost';
+        if (table.closest('.event-board-page')) ghost.classList.add('event-board-page');
+        ghost.setAttribute('aria-hidden', 'true');
+        ghost.inert = true;
+        const board = document.createElement('div');
+        board.className = 'events-board';
+        const ghostTable = document.createElement('table');
+        const colgroup = table.querySelector('colgroup');
+        if (colgroup) ghostTable.appendChild(colgroup.cloneNode(true));
+        const body = document.createElement('tbody');
+        const clone = row.cloneNode(true);
+        clone.removeAttribute('data-event-id');
+        clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+        body.appendChild(clone);
+        ghostTable.appendChild(body);
+        board.appendChild(ghostTable);
+        ghost.appendChild(board);
+        Object.assign(ghost.style, {
+            left: `${rect.left + window.scrollX}px`,
+            top: `${rect.top + window.scrollY}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`
+        });
+        return ghost;
+    }
+
+    function settleFeedRerender(table, previous, newIds){
+        const reduced = prefersReducedMotion() || document.hidden;
+        // Keep the reader's place: the row they were looking at stays put even
+        // when something new lands above it.
+        if (previous.anchor && window.scrollY > 120) {
+            const row = table.querySelector(`tr.main-row[data-event-id="${CSS.escape(previous.anchor.id)}"]`);
+            if (row) {
+                const delta = row.getBoundingClientRect().top - previous.anchor.top;
+                if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: 'instant' });
+            }
+        }
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        let arrivals = 0;
+        table.querySelectorAll('tr.main-row[data-event-id]').forEach(row => {
+            const before = previous.positions.get(row.dataset.eventId);
+            const rect = row.getBoundingClientRect();
+            const onscreen = rect.bottom > 0 && rect.top < vh;
+            if (before) {
+                // A row that stays is already in view: no reveal fade.
+                row.style.transition = 'none';
+                row.classList.add('is-visible');
+                void row.offsetWidth;
+                row.style.removeProperty('transition');
+                const dy = before.top - rect.top;
+                if (!reduced && onscreen && Math.abs(dy) > 1 && typeof row.animate === 'function') {
+                    row.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 300, easing: FEED_EASE });
+                }
+            } else if (newIds.has(row.dataset.eventId) && onscreen) {
+                markArrival(row, arrivals++ * 70, reduced);
+            }
+        });
+        previous.ghosts.forEach(ghost => {
+            if (reduced) return;
+            ghost._feedHost.appendChild(ghost);
+            const parent = ghost.offsetParent;
+            if (parent && parent !== document.body) {
+                const origin = parent.getBoundingClientRect();
+                ghost.style.left = `${parseFloat(ghost.style.left) - origin.left - window.scrollX - parent.clientLeft + parent.scrollLeft}px`;
+                ghost.style.top = `${parseFloat(ghost.style.top) - origin.top - window.scrollY - parent.clientTop + parent.scrollTop}px`;
+            }
+            const anim = ghost.animate([
+                { opacity: 1, transform: 'none' },
+                { opacity: 0, transform: 'translateY(6px) scale(.985)' }
+            ], { duration: 220, easing: 'cubic-bezier(0.3, 0, 1, 1)', fill: 'forwards' });
+            anim.finished.catch(() => {}).finally(() => ghost.remove());
+        });
+    }
+
+    function markArrival(row, delayMs, reduced){
+        row.classList.add('is-visible');
+        if (reduced) return;
+        row.style.setProperty('--arrival-delay', `${delayMs}ms`);
+        row.classList.add('is-arriving');
+        const done = () => {
+            row.classList.remove('is-arriving');
+            row.style.removeProperty('--arrival-delay');
+        };
+        window.setTimeout(done, 1900 + delayMs);
+    }
+
+    // Months arrive as the reader reaches them.
+    let monthRevealObserver = null;
+    function observeMonthReveal(table, heading){
+        const revealed = table._revealedMonths || (table._revealedMonths = new Set());
+        if (revealed.has(heading.dataset.month) || prefersReducedMotion() || typeof IntersectionObserver !== 'function') {
+            // A rebuilt band of a month already shown stays still.
+            heading.classList.add('is-revealed', 'is-settled');
+            return;
+        }
+        monthRevealObserver ??= new IntersectionObserver(entries => entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const row = entry.target;
+            row.classList.add('is-revealed');
+            row.closest('table')?._revealedMonths?.add(row.dataset.month);
+            monthRevealObserver.unobserve(row);
+        }), { rootMargin: '0px 0px -8% 0px' });
+        monthRevealObserver.observe(heading);
+        watchMonthHandoff();
+    }
+
+    // The pinned month band hands over to the next one: it is marked as pinned,
+    // and fades back as the next month pushes it out.
+    let monthHandoffWatching = false;
+    let queueMonthHandoff = () => {};
+    function watchMonthHandoff(){
+        if (monthHandoffWatching) return;
+        monthHandoffWatching = true;
+        let frame = 0;
+        const update = () => {
+            frame = 0;
+            const headings = document.querySelectorAll('.event-board-page tr.events-month-row');
+            if (!headings.length) return;
+            const stickyTop = parseFloat(getComputedStyle(headings[0]).top) || 0;
+            headings.forEach(row => {
+                const body = row.parentElement;
+                const bodyRect = body.getBoundingClientRect();
+                const rect = row.getBoundingClientRect();
+                const pinned = bodyRect.top < stickyTop - 1 && bodyRect.bottom > stickyTop;
+                const h = rect.height || 40;
+                const handoff = pinned ? Math.min(1, Math.max(0, 1 - (bodyRect.bottom - stickyTop - h) / (h * 1.5))) : 0;
+                if (row.classList.contains('is-pinned') !== pinned) row.classList.toggle('is-pinned', pinned);
+                const value = handoff.toFixed(2);
+                if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
+            });
+        };
+        const queue = () => { if (!frame) frame = requestAnimationFrame(update); };
+        queueMonthHandoff = queue;
+        window.addEventListener('scroll', queue, { passive: true });
+        window.addEventListener('resize', queue, { passive: true });
+        queue();
+    }
+
+    // /events grows in chunks: skeletons wait at the end and settle into rows.
+    function splitIntoUnits(frag){
+        const units = [];
+        [...frag.childNodes].forEach(node => {
+            if (node.classList?.contains('details-row') && units.length) units[units.length - 1].push(node);
+            else units.push([node]);
+        });
+        return units;
+    }
+
+    function resetFeedMore(table){
+        if (!table) return;
+        table._feedPending = [];
+        window.clearTimeout(table._feedMoreTimer);
+        window.clearTimeout(table._feedIdleTimer);
+        table._feedLoadingMore = false;
+        table._feedMoreObserver?.disconnect();
+        monthRevealObserver?.disconnect();
+        table.querySelector('tbody.events-more')?.remove();
+    }
+
+    function appendFeedUnits(table, units){
+        table.querySelector('tbody.events-more')?.remove();
+        let group = [...table.tBodies].at(-1);
+        let previous = [...table.querySelectorAll('tr.main-row')].at(-1);
+        // Extend the final month without detaching existing rows. Regrouping
+        // the whole table loses focus and moves the reader during idle batches.
+        units.forEach(unit => {
+            const row = unit[0], day = row.dataset.day || '';
+            const month = day.split('-').slice(0,2).join('-');
+            const previousDay = previous?.dataset.day || '';
+            const previousMonth = previousDay.split('-').slice(0,2).join('-');
+            const dayStarts = !day || day !== previousDay;
+            const monthStarts = !month || month !== previousMonth;
+            row.classList.toggle('day-start', dayStarts);
+            row.classList.toggle('day-repeat', !dayStarts);
+            row.classList.toggle('month-start', monthStarts);
+            row.classList.add('month-end');
+            if (previous) previous.classList.toggle('month-end', monthStarts);
+            if (monthStarts) {
+                group = document.createElement('tbody');
+                if (month) group.dataset.month = month;
+                table.appendChild(group);
+                if (month) appendMonthHeading(table, group, month);
+            }
+            group.append(...unit);
+            previous = row;
+        });
+        applyZebraStriping(group);
+    }
+
+    function mountFeedMore(table){
+        window.clearTimeout(table._feedIdleTimer);
+        table.querySelector('tbody.events-more')?.remove();
+        if (!table._feedPending?.length) return;
+        const more = document.createElement('tbody');
+        more.className = 'events-more';
+        more.setAttribute('aria-hidden', 'true');
+        more.innerHTML = buildEventSkeletonRows(3);
+        table.appendChild(more);
+        if (document.hidden) return;
+        if (typeof IntersectionObserver !== 'function') { loadFeedMore(table); return; }
+        table._feedMoreObserver ??= new IntersectionObserver(entries => {
+            if (entries.some(entry => entry.isIntersecting)) loadFeedMore(table);
+        }, { rootMargin: '0px 0px 320px 0px' });
+        table._feedMoreObserver.disconnect();
+        table._feedMoreObserver.observe(more);
+        // Finish mounting in quiet batches so browser Find and keyboard users
+        // can reach the complete timeline without having to scroll first.
+        if (!document.hidden) table._feedIdleTimer = window.setTimeout(() => loadFeedMore(table, true), 1000);
+    }
+
+    function loadFeedMore(table, immediate=false){
+        if (table._feedLoadingMore || !table._feedPending?.length) return;
+        table._feedLoadingMore = true;
+        table.querySelector('tbody.events-more')?.classList.add('is-loading');
+        const dwell = immediate || prefersReducedMotion() ? 0 : 260;
+        table._feedMoreTimer = window.setTimeout(() => {
+            table._feedLoadingMore = false;
+            const units = table._feedPending.splice(0, FEED_CHUNK);
+            if (!units.length) return;
+            appendFeedUnits(table, units);
+            mountFeedMore(table);
+            queueMonthHandoff();
+            const fresh = table.querySelectorAll('.row-appear:not(.is-visible)');
+            if (prefersReducedMotion()) {
+                fresh.forEach(row => row.classList.add('is-visible'));
+            } else {
+                const io = ensureRowObserver();
+                fresh.forEach((row, i) => { row.dataset.rowIndex = String(i); io.observe(row); });
+                requestAnimationFrame(() => revealVisibleRowsImmediately(table));
+            }
+        }, dwell);
+    }
+
+    document.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+            document.querySelectorAll('.event-board-page #eventsTable').forEach(table => {
+                if (!table._feedPending?.length) return;
+                window.clearTimeout(table._feedMoreTimer);
+                table._feedLoadingMore = false;
+                appendFeedUnits(table, table._feedPending.splice(0));
+                mountFeedMore(table);
+                table.querySelectorAll('.row-appear').forEach(row => row.classList.add('is-visible'));
+            });
+        }
+    });
+    document.addEventListener('focusin', event => {
+        const table = event.target.closest?.('.event-board-page #eventsTable');
+        if (!table?._feedPending?.length) return;
+        const rows = [...table.querySelectorAll('tr.main-row')];
+        if (rows.slice(-3).includes(event.target.closest('tr'))) loadFeedMore(table, true);
+    });
+
+    // Relative labels ("joined 3 days ago") follow the clock, rolling to the
+    // new value instead of waiting for a reload.
+    function tickRelativeLabels(){
+        const reduced = prefersReducedMotion();
+        document.querySelectorAll('.event-rel[data-rel-at]').forEach(el => {
+            const next = relativeDayLabel(el.dataset.relAt);
+            const current = el.dataset.relHtml ?? el.innerHTML;
+            el.dataset.relHtml = next;
+            if (reduced) { el.innerHTML = next; return; }
+            if (next === current) return;
+            el.innerHTML = `<span class="event-rel-out" aria-hidden="true">${current}</span><span class="event-rel-in">${next}</span>`;
+            window.setTimeout(() => { if (el.dataset.relHtml === next) el.innerHTML = next; }, 520);
+        });
+    }
+    let relativeTimer = 0, liveTimer = 0;
+    function stopFeedClocks(){
+        window.clearInterval(relativeTimer);
+        window.clearInterval(liveTimer);
+        relativeTimer = liveTimer = 0;
+        document.querySelectorAll('#eventsTable').forEach(table => {
+            window.clearTimeout(table._feedMoreTimer);
+            window.clearTimeout(table._feedIdleTimer);
+            table._feedLoadingMore = false;
+            table._feedMoreObserver?.disconnect();
+        });
+        document.querySelectorAll('.event-portrait-flight, .events-exit-ghost').forEach(el => {
+            el.getAnimations().forEach(animation => animation.cancel());
+            el.remove();
+        });
+        document.querySelectorAll('.is-lifted').forEach(el => el.classList.remove('is-lifted'));
+    }
+    function startFeedClocks(){
+        if (document.hidden || relativeTimer) return;
+        relativeTimer = window.setInterval(tickRelativeLabels, 60000);
+        liveTimer = window.setInterval(refreshLiveFeeds, 90000);
+        document.querySelectorAll('.event-board-page #eventsTable').forEach(mountFeedMore);
+        tickRelativeLabels();
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopFeedClocks();
+        else { startFeedClocks(); refreshLiveFeeds(); }
+    });
+    window.addEventListener('pagehide', stopFeedClocks);
+    window.addEventListener('pageshow', startFeedClocks);
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
+        if (!event.matches) return;
+        rowObserver?.disconnect();
+        monthRevealObserver?.disconnect();
+        document.querySelectorAll('.events-board .row-appear').forEach(row => row.classList.add('is-visible'));
+        document.querySelectorAll('.events-month-row').forEach(row => row.classList.add('is-revealed', 'is-settled'));
+        document.querySelectorAll('.events-board .main-row, .event-athlete-preview, .event-portrait-flight, .events-exit-ghost').forEach(el => {
+            el.getAnimations().forEach(animation => animation.cancel());
+            el.classList.remove('is-arriving', 'is-launching');
+            if (el.matches('.event-portrait-flight, .events-exit-ghost')) el.remove();
+        });
+        document.querySelectorAll('.is-lifted').forEach(el => el.classList.remove('is-lifted'));
+        tickRelativeLabels();
+    });
+
+    // New moments find their way in while the page is open.
+    let lastLiveRefresh = Date.now();
+    function refreshLiveFeeds(force=false){
+        if (document.hidden || (!force && Date.now() - lastLiveRefresh < 60000)) return;
+        if (athletePreview.isOpen() || athletePreview.isPressing()) return;
+        lastLiveRefresh = Date.now();
+        feedLoads.forEach((args, key) => {
+            const root = document.getElementById(key);
+            const board = key === 'events-root' ? root : root?.querySelector('.events-board');
+            if (!board || board.getAttribute('aria-busy') === 'true' || board.querySelector('.events-recovery')) return;
+            const run = () => window.loadEventsTable(args[0], args[1], args[2], args[3], { ...(args[4] || {}), live: true });
+            if (key !== 'events-root' && typeof window.callScoped === 'function') window.callScoped(key, run);
+            else run();
+        });
+    }
+    startFeedClocks();
+    window.refreshEventsFeed = () => refreshLiveFeeds(true);
+
+    function slugFromAthleteLink(link){
+        if (link.dataset.athleteSlug) return link.dataset.athleteSlug;
+        const match = /\/athlete\/([^/?#]+)/i.exec(link.getAttribute('href') || '');
+        if (!match) return '';
+        try { return slugifyLocal(normalizeLinkId(decodeURIComponent(match[1]))); } catch(_) { return ''; }
+    }
+
+    // Hovering (or pressing and holding) a name previews the athlete.
+    const athletePreview = (function(){
+        const SELECTOR = '.events-board a[href*="/athlete/"]:not(.badge-clickable):not(.placement-link)';
+        let card = null, anchor = null, showTimer = 0, hideTimer = 0, pressTimer = 0, leaveTimer = 0;
+        let pendingPreview = null;
+        let pressing = false, pressStart = null, suppressClickFor = null;
+        let scrollX = window.scrollX, scrollY = window.scrollY;
+
+        function rememberScroll(){
+            scrollX = window.scrollX;
+            scrollY = window.scrollY;
+        }
+
+        function build(){
+            if (card) return card;
+            card = document.createElement('div');
+            card.id = 'eventAthletePreview';
+            card.className = 'event-athlete-preview';
+            card.setAttribute('role', 'group');
+            card.hidden = true;
+            card.addEventListener('pointerenter', () => window.clearTimeout(hideTimer));
+            card.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') scheduleHide(); });
+            card.addEventListener('click', event => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                if (event.target.closest('.badge-class')) return;
+                event.preventDefault();
+                const link = anchor;
+                if (link?.isConnected) link.click();
+            });
+            document.body.appendChild(card);
+            return card;
+        }
+
+        function fill(athlete, slug, link){
+            const name = athleteName(athlete) || link.textContent.trim() || slug;
+            const map = lowerKeyMap(athlete || {});
+            const pic = athlete ? String(athlete[map['profilepicleaderboardthumb']] || athlete[map['profilepic']] || athletePic(athlete) || '') : '';
+            const placement = getCurrentPlacement(athlete);
+            const meta = [athlete?.[map['flag']], athlete?.[map['division']]].map(v => String(v || '').trim()).filter(Boolean);
+            const badgeList = Array.isArray(athlete?.[map['badges']]) ? athlete[map['badges']] : [];
+            const badges = badgeList.slice(0, 6).map(b => {
+                const bm = lowerKeyMap(b);
+                return renderBadgeBubbleForLabel(b[bm['badgelabel']] || b[bm['label']] || '', athlete, b[bm['leaguecategory']] ?? null, b[bm['leaguevalue']] ?? null, b[bm['place']] ?? null, false);
+            }).join('');
+            const portrait = pic
+                ? `<img src="${esc(pic)}" alt="" decoding="async" referrerpolicy="no-referrer">`
+                : `<span class="avatar-fallback">${esc(initialsFromName(name))}</span>`;
+            card.dataset.slug = slug;
+            card.setAttribute('aria-label', name);
+            card.innerHTML = `
+                <span class="event-athlete-preview-band" aria-hidden="true"></span>
+                <span class="event-athlete-preview-portrait">${portrait}</span>
+                <a class="event-athlete-preview-name" href="${esc(makeAthleteUrlFromSlug(slug))}">${esc(name)}${placement ? ` <span class="event-athlete-preview-rank">${podiumIcon(placement)}#${placement}</span>` : ''}</a>
+                ${meta.length ? `<span class="event-athlete-preview-meta">${meta.map(esc).join(' · ')}</span>` : ''}
+                ${badges ? `<span class="event-athlete-preview-badges">${badges}</span>` : ''}`;
+            card.querySelector('img')?.addEventListener('error', event => {
+                event.target.replaceWith(Object.assign(document.createElement('span'), { className: 'avatar-fallback', textContent: initialsFromName(name) }));
+            }, { once: true });
+        }
+
+        function place(link){
+            const r = link.getBoundingClientRect();
+            const vw = document.documentElement.clientWidth;
+            const vh = window.innerHeight;
+            card.style.maxHeight = '';
+            const belowRoom = vh - r.bottom - 18, aboveRoom = r.top - 18;
+            const below = card.offsetHeight <= belowRoom || belowRoom >= aboveRoom;
+            card.style.maxHeight = `${Math.max(48, Math.min(vh - 16, below ? belowRoom : aboveRoom))}px`;
+            const cw = card.offsetWidth, ch = card.offsetHeight;
+            const left = Math.min(Math.max(8, r.left + Math.min(r.width, 160) / 2 - cw / 2), vw - cw - 8);
+            const top = Math.max(8, Math.min(below ? r.bottom + 10 : r.top - 10 - ch, vh - ch - 8));
+            card.dataset.side = below ? 'below' : 'above';
+            card.style.left = `${Math.round(left)}px`;
+            card.style.top = `${Math.round(top)}px`;
+            card.style.setProperty('--preview-origin-x', `${Math.round(Math.min(Math.max(r.left + Math.min(r.width, 160) / 2 - left, 24), cw - 24))}px`);
+        }
+
+        function show(link){
+            window.clearTimeout(showTimer);
+            pendingPreview = null;
+            if (!link.isConnected || document.hidden) return;
+            rememberScroll();
+            const slug = slugFromAthleteLink(link);
+            const athlete = slug ? feedAthletesIndex.get(slug) : null;
+            if (!athlete) return;
+            build();
+            window.clearTimeout(hideTimer);
+            window.clearTimeout(leaveTimer);
+            if (anchor && anchor !== link) anchor.removeAttribute('aria-controls');
+            anchor = link;
+            if (card.dataset.slug !== slug || card.hidden) fill(athlete, slug, link);
+            const wasHidden = card.hidden;
+            card.hidden = false;
+            card.classList.remove('is-leaving');
+            place(link);
+            link.setAttribute('aria-controls', card.id);
+            if (wasHidden && !prefersReducedMotion()) {
+                card.classList.remove('is-entering');
+                void card.offsetWidth;
+                card.classList.add('is-entering');
+            }
+        }
+
+        function hide(immediate=false){
+            window.clearTimeout(showTimer);
+            pendingPreview = null;
+            window.clearTimeout(hideTimer);
+            window.clearTimeout(leaveTimer);
+            cancelPress();
+            if (!card || card.hidden) { anchor = null; return; }
+            if (card.contains(document.activeElement)) anchor?.focus({ preventScroll: true });
+            window.clearTimeout(showTimer);
+            pendingPreview = null;
+            anchor?.removeAttribute('aria-controls');
+            anchor = null;
+            if (immediate || prefersReducedMotion()) { card.hidden = true; card.classList.remove('is-entering', 'is-leaving'); return; }
+            card.classList.remove('is-entering');
+            card.classList.add('is-leaving');
+            leaveTimer = window.setTimeout(() => { if (card.classList.contains('is-leaving')) { card.hidden = true; card.classList.remove('is-leaving'); } }, 130);
+        }
+
+        function scheduleShow(link, delay, keyboard=false){
+            rememberScroll();
+            window.clearTimeout(showTimer);
+            window.clearTimeout(hideTimer);
+            pendingPreview = null;
+            if (anchor === link && card && !card.hidden) return;
+            pendingPreview = { link, keyboard };
+            showTimer = window.setTimeout(() => show(link), card && !card.hidden ? 60 : delay);
+        }
+        function scheduleHide(){
+            // Scrolling a newly focused link into view can also move the pointer
+            // away from it. Keyboard intent survives that incidental pointerout.
+            if (pendingPreview?.keyboard && pendingPreview.link === document.activeElement) return;
+            window.clearTimeout(showTimer);
+            pendingPreview = null;
+            window.clearTimeout(hideTimer);
+            hideTimer = window.setTimeout(() => {
+                if (!card?.contains(document.activeElement) && !card?.matches(':hover') && !document.querySelector('.badge-tip:not([hidden]):hover')) hide();
+            }, 160);
+        }
+
+        document.addEventListener('pointerover', event => {
+            if (event.pointerType !== 'mouse') return;
+            const link = event.target.closest?.(SELECTOR);
+            if (link) scheduleShow(link, 280);
+        });
+        document.addEventListener('pointerout', event => {
+            if (event.pointerType !== 'mouse') return;
+            const link = event.target.closest?.(SELECTOR);
+            if (link && !link.contains(event.relatedTarget) && !card?.contains(event.relatedTarget)) scheduleHide();
+        });
+        document.addEventListener('focusin', event => {
+            if (card?.contains(event.target)) { window.clearTimeout(hideTimer); return; }
+            const link = event.target.closest?.(SELECTOR);
+            if (link && link.matches(':focus-visible')) scheduleShow(link, 450, true);
+        });
+        document.addEventListener('focusout', event => {
+            if (event.target.closest?.(SELECTOR) || card?.contains(event.target)) scheduleHide();
+        });
+        document.addEventListener('pointerdown', event => {
+            if (card && !card.hidden && !card.contains(event.target) && !event.target.closest?.(SELECTOR)) hide();
+            if (event.pointerType === 'mouse') return;
+            suppressClickFor = null;
+            const link = event.target.closest?.(SELECTOR);
+            if (!link) return;
+            rememberScroll();
+            pressing = true;
+            pressStart = { x: event.clientX, y: event.clientY };
+            window.clearTimeout(pressTimer);
+            pressTimer = window.setTimeout(() => {
+                pressing = false;
+                show(link);
+                if (anchor === link) suppressClickFor = link;
+            }, 420);
+        }, { passive: true });
+        const cancelPress = () => { pressing = false; window.clearTimeout(pressTimer); };
+        document.addEventListener('pointerup', cancelPress, { passive: true });
+        document.addEventListener('pointercancel', () => { cancelPress(); suppressClickFor = null; }, { passive: true });
+        document.addEventListener('pointermove', event => {
+            if (pressing && pressStart && Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > 10) cancelPress();
+        }, { passive: true });
+        // A long press shows the preview instead of following the link; the
+        // card itself then opens the profile.
+        window.addEventListener('click', event => {
+            if (!suppressClickFor) return;
+            const link = event.target.closest?.(SELECTOR);
+            if (link === suppressClickFor) { event.preventDefault(); event.stopImmediatePropagation(); }
+            suppressClickFor = null;
+        }, true);
+        document.addEventListener('contextmenu', event => {
+            if (suppressClickFor && event.target.closest?.(SELECTOR) === suppressClickFor) event.preventDefault();
+        });
+        document.addEventListener('keydown', event => {
+            if (!card || card.hidden) return;
+            if (event.key === 'Escape' && !document.querySelector('.badge-tip:not([hidden])')) { event.preventDefault(); hide(true); }
+            if (event.key !== 'Tab') return;
+            const controls = [...card.querySelectorAll('a, [tabindex="0"]')];
+            if (!event.shiftKey && event.target === anchor) { event.preventDefault(); controls[0]?.focus(); }
+            else if (event.shiftKey && event.target === controls[0]) { event.preventDefault(); anchor?.focus(); }
+            else if (!event.shiftKey && event.target === controls.at(-1)) hide(true);
+        });
+        window.addEventListener('scroll', () => {
+            // Scroll notifications can arrive after the gesture that targeted
+            // the link. A notification without new movement must not cancel a
+            // press or dismiss the preview that was positioned after that scroll.
+            if (scrollX === window.scrollX && scrollY === window.scrollY) return;
+            rememberScroll();
+            const pending = pendingPreview;
+            hide(true);
+            // A link scrolled into view can receive focus/hover before the scroll
+            // event. Preserve that intent only while the link is still targeted;
+            // scrolling an already open preview still dismisses it.
+            const link = pending?.link;
+            const targeted = pending?.keyboard
+                ? link === document.activeElement && link.matches(':focus-visible')
+                : link?.matches(':hover');
+            if (link?.isConnected && targeted) {
+                const bounds = link.getBoundingClientRect();
+                if (bounds.bottom > 0 && bounds.top < window.innerHeight) scheduleShow(link, pending.keyboard ? 450 : 280, pending.keyboard);
+            }
+        }, { passive: true });
+        window.addEventListener('resize', () => hide(true), { passive: true });
+        document.addEventListener('visibilitychange', () => { if (document.hidden) { hide(true); suppressClickFor = null; } });
+        window.addEventListener('pagehide', () => { hide(true); suppressClickFor = null; });
+
+        return {
+            isOpen: () => !!(card && !card.hidden),
+            isPressing: () => pressing,
+            portraitFor: slug => (card && !card.hidden && card.dataset.slug === slug) ? card.querySelector('.event-athlete-preview-portrait img') : null,
+            hide
+        };
+    })();
+
+    // Opening a profile from the feed: the portrait lifts out of the row and
+    // carries over to where the profile's portrait appears.
+    document.addEventListener('lwc:athlete-dialog-before-open', event => {
+        const link = event.target;
+        if (!(link instanceof Element) || !link.closest('.events-board')) return;
+        const slug = slugifyLocal(normalizeLinkId(event.detail?.athleteSlug || slugFromAthleteLink(link)));
+        const row = link.closest('tr');
+        const source = athletePreview.portraitFor(slug)
+            || row?.querySelector(`.avatar-link[data-athlete-slug="${CSS.escape(slug)}"] img.avatar`)
+            || (row?.dataset.primarySlug === slug ? row.querySelector('img.avatar') : null);
+        const from = source?.getBoundingClientRect();
+        athletePreview.hide(true);
+        if (row && !prefersReducedMotion()) {
+            row.classList.remove('is-launching');
+            void row.offsetWidth;
+            row.classList.add('is-launching');
+            window.setTimeout(() => row.classList.remove('is-launching'), 700);
+        }
+        if (source && !prefersReducedMotion()) flyPortrait(source, from);
+    });
+
+    function flyPortrait(img, from=img.getBoundingClientRect()){
+        if (!from.width || !(img.currentSrc || img.src)) return;
+        const ghost = document.createElement('img');
+        ghost.src = img.currentSrc || img.src;
+        ghost.alt = '';
+        ghost.className = 'event-portrait-flight';
+        ghost.setAttribute('aria-hidden', 'true');
+        Object.assign(ghost.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+        document.body.appendChild(ghost);
+        img.classList.add('is-lifted');
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!ghost.isConnected || document.hidden || prefersReducedMotion()) { ghost.remove(); img.classList.remove('is-lifted'); return; }
+            const target = document.getElementById('modalProfilePic');
+            let to = target && target.getClientRects().length ? target.getBoundingClientRect() : null;
+            if (!to || to.width < 8 || to.bottom < 0 || to.top > window.innerHeight) {
+                const size = Math.min(window.innerWidth, window.innerHeight) * .26;
+                to = { left: window.innerWidth / 2 - size / 2, top: window.innerHeight * .2, width: size, height: size };
+            }
+            const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+            const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+            const scale = Math.max(1, to.width / from.width);
+            const end = `translate(${dx}px, ${dy}px) scale(${scale})`;
+            const anim = ghost.animate([
+                { transform: 'none', opacity: 1, offset: 0 },
+                { transform: `translate(${dx * .5}px, ${dy * .5 - 24}px) scale(${1 + (scale - 1) * .55})`, opacity: 1, offset: .5 },
+                { transform: end, opacity: 1, offset: .82 },
+                { transform: end, opacity: 0, offset: 1 }
+            ], { duration: 460, easing: FEED_EASE, fill: 'forwards' });
+            anim.finished.catch(() => {}).finally(() => { ghost.remove(); img.classList.remove('is-lifted'); });
+        }));
+    }
+
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
         const table=tbody.closest('table');
         // Reobserve only the surviving, unrevealed rows after reconciliation.
         rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
-        const timelineRows = chapters ? [...table.querySelectorAll('tr.main-row')] : [];
+        const timelineRows = [...table.querySelectorAll('tr.main-row')];
+        const existingRows = new Map(timelineRows.map(row => [row.dataset.eventId, row]));
+        for (const unit of table._feedPending || []) existingRows.set(unit[0].dataset.eventId, unit[0]);
         const expandedEvents = new Set(timelineRows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId));
         const active = document.activeElement;
         const focusedRow = active?.closest('tr');
@@ -908,27 +1584,18 @@ const eventsPageAssets = document.currentScript.dataset;
             label: active.getAttribute('aria-label') || active.textContent,
             index: [...focusedRow.querySelectorAll('a, button')].indexOf(active)
         } : null;
-        const appendFromIndex = options && Number.isFinite(options.appendFromIndex) ? Math.max(0, Math.floor(options.appendFromIndex)) : 0;
-        const shouldAppend = !!(options && options.preserveExistingRows && appendFromIndex > 0);
-        // Flatten the previous chapters before reconciling; retain the actual rows,
-        // their handlers and open details when reusing a shared prefix.
+        const nextIds = new Set((Array.isArray(rows) ? rows : []).map(r => r && r.id ? String(r.id) : '').filter(Boolean));
+        const previousFeed = captureFeedRows(table, nextIds);
+        resetFeedMore(table);
+        // Reconcile by event identity. Retained rows carry their controls and
+        // open details into the new order, including across month boundaries.
         [...table.tBodies].slice(1).forEach(body=>{
-            if(shouldAppend) tbody.append(...body.children);
             body.remove();
         });
         tbody.querySelectorAll('tr.events-month-row').forEach(row=>row.remove());
         delete tbody.dataset.month;
         tbody.style.removeProperty('--event-month-height');
-        if (!shouldAppend) {
-            tbody.innerHTML = "";
-        } else {
-            // Responsive fitting may reduce the row count. Keep the shared prefix,
-            // including its open details and focus, and remove only the trailing rows.
-            [...tbody.querySelectorAll('tr.main-row')].slice(appendFromIndex).forEach(row => {
-                if (row.nextElementSibling?.classList.contains('details-row')) row.nextElementSibling.remove();
-                row.remove();
-            });
-        }
+        tbody.replaceChildren();
 
         if (!Array.isArray(rows) || rows.length === 0){
             tbody.innerHTML = `<tr class="events-empty-row"><td colspan="3">No events yet</td></tr>`;
@@ -937,7 +1604,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
         const frag = document.createDocumentFragment();
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const rowsToRender = shouldAppend ? rows.slice(appendFromIndex) : rows;
+        const rowsToRender = rows;
 
         const afterNameWithCurrentRankFor = () => (slug, aObj) => {
             if (!aObj) return "";
@@ -957,14 +1624,23 @@ const eventsPageAssets = document.currentScript.dataset;
         };
 
         rowsToRender.forEach((r, localIdx) => {
-            const idx = shouldAppend ? appendFromIndex + localIdx : localIdx;
+            const idx = localIdx;
             const occurredAt = r.displayOccurredAt || r.occurredAt;
             const dateLabel = occurredAt ? (chapters?formatListDateHtml(occurredAt):esc(formatListDate(occurredAt))) : "";
             const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
-                ? relativeDayLabel(occurredAt)
+                ? `<span class="event-rel" data-rel-at="${esc(occurredAt)}">${relativeDayLabel(occurredAt)}</span>`
                 : "";
 
             const a = r.primarySlug ? athletesIndex.get(r.primarySlug) : null;
+            const signature = JSON.stringify([r, dateLabel, (r.slugs || []).map(slug => athletesIndex.get(slug)), linkNames, openLinksInNewTab, allowBadgeClicks]);
+            const retained = existingRows.get(String(r.id));
+            if (retained?._feedSignature === signature) {
+                retained.dataset.rowIndex = String(idx);
+                frag.appendChild(retained);
+                if (retained._feedDetails) frag.appendChild(retained._feedDetails);
+                return;
+            }
+            const detailsId = `custom-event-details-${encodeURIComponent(String(r.id || idx))}`;
 
             const isCustomEvent = r.type === EVENT_TYPE.CustomEvent;
             const isLongevitymaxxingResult = r.type === EVENT_TYPE.LongevitymaxxingChallengeResult;
@@ -1318,7 +1994,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 msgHtml = `<span class="custom-event-title">${renderCustomMarkup(titleSingle)}${
                     hasDetails
-                        ? `<button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="custom-event-details-${idx}" aria-label="Show details" title="Show details"></button>`
+                        ? `<button class="custom-event-expander" type="button" aria-expanded="false" aria-controls="${esc(detailsId)}" aria-label="Show details" title="Show details"></button>`
                         : ``
                 }</span>`;
             } else {
@@ -1331,7 +2007,15 @@ const eventsPageAssets = document.currentScript.dataset;
                 msgHtml = r.type === EVENT_TYPE.Joined ? `${tokenHtml} joined ${rel}` : `${tokenHtml}`;
             }
 
-            const tr = document.createElement("tr");
+            const tr = retained || document.createElement("tr");
+            if (tr._feedToggle) tr.removeEventListener('click', tr._feedToggle);
+            tr._feedToggle = null;
+            tr._setCustomEventExpanded = null;
+            tr._feedDetails = null;
+            tr._feedSignature = signature;
+            delete tr.dataset.primarySlug;
+            delete tr.dataset.highlightSelection;
+            delete tr.dataset.day;
             tr.className = "row-appear main-row";
             tr.dataset.rowIndex = String(idx);
             tr.dataset.groupId = `g_${idx}`;
@@ -1380,7 +2064,8 @@ const eventsPageAssets = document.currentScript.dataset;
                 detailsTr.className = "details-row custom-event-details";
                 if (r.id) detailsTr.dataset.eventId = String(r.id);
                 detailsTr.innerHTML =
-                    `<td colspan="3" class="details-cell"><div id="custom-event-details-${idx}" class="custom-event-content" inert aria-hidden="true"><div class="custom-event-body">${artworkHtml}${contentHtml}</div></div></td>`;
+                    `<td colspan="3" class="details-cell"><div id="${esc(detailsId)}" class="custom-event-content" inert aria-hidden="true"><div class="custom-event-body">${artworkHtml}${contentHtml}</div></div></td>`;
+                tr._feedDetails = detailsTr;
 
                 const btn = tr.querySelector(".custom-event-expander");
 
@@ -1408,20 +2093,59 @@ const eventsPageAssets = document.currentScript.dataset;
                     });
                 }
 
-                tr.addEventListener("click", (ev) => {
+                tr._feedToggle = (ev) => {
                     const target = ev.target;
                     if (target && target.closest && target.closest("a, button, input, select, textarea")) return;
                     toggleOpen();
-                });
+                };
+                tr.addEventListener('click', tr._feedToggle);
 
                 frag.appendChild(detailsTr);
             }
         });
 
-        tbody.appendChild(frag);
+        if (chapters) {
+            // Long timelines render a first chunk; the rest follows on scroll.
+            const units = splitIntoUnits(frag);
+            const requestedId = getRequestedEventId();
+            const requestedIndex = requestedId ? units.findIndex(unit => unit[0].dataset?.eventId === requestedId) : -1;
+            const retainedEnd = units.findLastIndex(unit => previousFeed?.positions.has(unit[0].dataset.eventId));
+            const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10);
+            units.slice(0, keep).forEach(unit => tbody.append(...unit));
+            table._feedPending = units.slice(keep);
+        } else {
+            tbody.appendChild(frag);
+        }
 
         applyZebraStriping(tbody);
         markFeedGroups(tbody);
+        if (chapters) mountFeedMore(table);
+
+        const seenMode = options?.seenMode;
+        if (previousFeed) {
+            settleFeedRerender(table, previousFeed, nextIds);
+        } else if (seenMode) {
+            // Moments that happened since the last visit drop in at the top.
+            const seenAt = readSeenAt(seenMode);
+            const vh = window.innerHeight || document.documentElement.clientHeight;
+            const reduced = prefersReducedMotion();
+            let newest = 0, arrivals = 0;
+            rows.forEach(r => {
+                const t = +new Date(r.occurredAt || 0);
+                if (Number.isFinite(t)) newest = Math.max(newest, t);
+            });
+            if (seenAt) {
+                table.querySelectorAll('tr.main-row[data-event-id]').forEach(row => {
+                    const r = rows.find(item => String(item.id) === row.dataset.eventId);
+                    const t = r ? +new Date(r.occurredAt || 0) : 0;
+                    if (arrivals >= 4 || !(t > seenAt)) return;
+                    const rect = row.getBoundingClientRect();
+                    if (rect.top > vh) return;
+                    markArrival(row, 380 + arrivals++ * 110, reduced);
+                });
+            }
+            if (newest) writeSeenAt(seenMode, newest);
+        }
 
         const renderedTimelineRows = new Map(timelineRows.length
             ? [...table.querySelectorAll('tr.main-row[data-event-id]')].map(row => [row.dataset.eventId, row])
@@ -1437,10 +2161,10 @@ const eventsPageAssets = document.currentScript.dataset;
                 ? (sameLink(controls[timelineFocus.index]) ? controls[timelineFocus.index]
                     : controls.find(sameLink) || controls.find(element => element.getAttribute('href') === timelineFocus.href))
                 : controls[timelineFocus.index];
-            control?.focus({ preventScroll: true });
+            (active?.isConnected ? active : control)?.focus({ preventScroll: true });
         }
 
-        const rowsNow = shouldAppend ? table.querySelectorAll(".row-appear:not(.is-visible)") : table.querySelectorAll(".row-appear");
+        const rowsNow = table.querySelectorAll(".row-appear:not(.is-visible)");
         if (!prefersReduced && rowsNow.length){
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
@@ -1448,6 +2172,7 @@ const eventsPageAssets = document.currentScript.dataset;
         } else {
             rowsNow.forEach(r => r.classList.add("is-visible"));
         }
+        tickRelativeLabels();
 
         const requestedEventId = getRequestedEventId();
         if (requestedEventId && window.CSS && typeof window.CSS.escape === "function") {
@@ -1743,24 +2468,32 @@ const eventsPageAssets = document.currentScript.dataset;
             feed.setAttribute('data-lwc-refresh-ready', '');
             feed.addEventListener('lwc:pull-refresh', event => {
                 event.detail.waitUntil(window.loadEventsTable(maxRows, showViewAll, athleteId, linkNames,
-                    { ...options, useSharedEvents: true, force: true, preserveExistingRows: true }));
+                    { ...options, live: true, preserveExistingRows: true }));
             });
             window.LwcTouch?.refresh();
         }
         const requestedPreserveExistingRows = !!(options && options.preserveExistingRows);
-        const useSharedEvents = !!(options && options.useSharedEvents);
-        setEventsLoadingState(requestedPreserveExistingRows || !!document.querySelector('.event-board-page tr.main-row'));
+        const live = !!(options && options.live);
+        const useSharedEvents = !!(options && options.useSharedEvents) && !live;
+        const loadRoot = document.getElementById('events-root');
+        if (!loadRoot) return Promise.resolve();
+        const request = {};
+        feedRequests.set(loadRoot, request);
+        const current = () => loadRoot.isConnected && feedRequests.get(loadRoot) === request;
+        const scoped = callback => typeof window.callScoped === 'function' ? window.callScoped(loadRoot.parentElement, callback) : callback();
+        const loadKey = loadRoot.parentElement?.id === 'events-root-index' ? 'events-root-index' : 'events-root';
+        if (!live) setEventsLoadingState(requestedPreserveExistingRows || !!loadRoot.querySelector('tr.main-row'));
         setViewAllVisible(!!showViewAll);
 
         const n=(function(val){ if(val===undefined||val===null||val==="")return null; const nn=typeof val==="string"?parseInt(val,10):Number(val); return Number.isFinite(nn)&&nn>0?Math.floor(nn):null; })(maxRows);
 
-        const eventsReq=useSharedEvents
-            ? window.getSharedEvents({ force: !!options?.force })
-            : window.fetchPublicJson("/api/events");
-        const athletesReq=window.getSharedAthletes({ force: !!options?.force });
+        const eventsReq=window.getSharedEvents(!useSharedEvents);
+        const athletesReq=window.getSharedAthletes(live);
 
-        return Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>{
+        return Promise.all([eventsReq,athletesReq]).then(([events,athletes])=>scoped(()=>{
+            if (!current()) return;
             const athletesIndex=buildAthleteIndex(athletes);
+            feedAthletesIndex=athletesIndex;
             eventBoardMarkupOptions = {
                 mentionResolver: slug => resolveMentionName(slug, athletesIndex),
                 mentionHrefResolver: slug => {
@@ -1909,33 +2642,28 @@ const eventsPageAssets = document.currentScript.dataset;
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
-            const previousHomepageRowIds = Array.isArray(window.__homepageLastRenderIds) ? window.__homepageLastRenderIds : [];
-            const existingHomepageRowCount = mode === "highlights"
-                ? document.querySelectorAll("#eventsTable tbody tr.main-row").length
-                : 0;
-            const retainedHomepageRowCount = Math.min(previousHomepageRowIds.length, currentRowIds.length);
-            const canReuseHomepageRows = mode === "highlights"
-                && requestedPreserveExistingRows
-                && retainedHomepageRowCount > 0
-                && previousHomepageRowIds.length === existingHomepageRowCount
-                && previousHomepageRowIds.slice(0, retainedHomepageRowCount).every((id, idx) => currentRowIds[idx] === id);
-
             renderRows(rows,athletesIndex,!!linkNames,{
-                preserveExistingRows: canReuseHomepageRows,
-                appendFromIndex: canReuseHomepageRows ? retainedHomepageRowCount : 0
+                seenMode: (!live && mode !== "athlete") ? mode : null
             });
+            if (mode !== "athlete") {
+                feedLoads.set(loadKey, [maxRows, showViewAll, athleteId, linkNames, options && { ...options, live: false }]);
+                if (live) writeSeenAt(mode, rows.reduce((max, r) => Math.max(max, +new Date(r.occurredAt || 0) || 0), 0));
+            }
             if(mode === "highlights"){
                 window.__homepageLastRenderIds = currentRowIds;
             }
             clearEventsLoadingState(rows.length ? 'Events loaded.' : 'No events yet.');
-        }).catch(()=>{
+        })).catch(()=>scoped(()=>{
+            if (!current()) return;
+            // A missed background refresh leaves the feed as it is.
+            if (live) return;
             clearEventsLoadingState('Events could not load.');
             const status = document.getElementById('eventsStatus');
             if (status) status.setAttribute('role', 'alert');
             renderEventsLoadError(() => {
                 window.loadEventsTable(maxRows, showViewAll, athleteId, linkNames, options);
             });
-        });
+        }));
     };
 
 })();

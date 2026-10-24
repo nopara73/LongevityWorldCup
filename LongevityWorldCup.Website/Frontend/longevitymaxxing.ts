@@ -6543,14 +6543,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderProfileTimeZoneControls();
         try {
             let result = await postJson(`${API}/edit`, { accessToken: currentAccessToken, timeZoneId: submittedTimeZone });
+            // Reject the response before a concurrent refresh can supersede it.
+            if (result.participant.id !== draft.participantId) throw invalidApiResponse(`${API}/edit`);
             // A check-in may have completed while this older profile snapshot was in flight.
             // Picture-only updates are merged below without replacing the whole state.
             while (accessToken === currentAccessToken && responseState !== participantState) {
                 responseState = participantState;
                 result = await postJson(`${API}/participant`, { token: currentAccessToken });
+                if (result.participant.id !== draft.participantId) throw invalidApiResponse(`${API}/participant`);
             }
             if (profileTimeZoneDraft !== draft || accessToken !== currentAccessToken || participantState?.participant.id !== draft.participantId) return;
-            if (result.participant.id !== draft.participantId) throw invalidApiResponse(`${API}/edit`);
             if (participantState.participant.profileImageUrl !== pictureBeforeSave) {
                 // A photo completed after this timezone request began.
                 setProfilePictureInState(result, participantState.participant.profileImageUrl);
