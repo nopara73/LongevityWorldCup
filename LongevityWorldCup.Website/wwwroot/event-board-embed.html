@@ -354,6 +354,15 @@
         :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class i{
             font-size:.67rem !important;
         }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class[data-badge-rarity="legendary"]:not(.badge-family-domain){
+            box-shadow:0 0 0 1.5px var(--badge-foil),0 0 10px 1px var(--badge-foil-glow),0 3px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class[data-badge-rarity="rare"]:not(.badge-family-domain){
+            box-shadow:0 0 0 1.5px var(--badge-foil-rare),0 3px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2) !important;
+        }
+        :root[data-embed-theme="dark"] #events-embed-root .events-board .badge-class[data-badge-rarity="rare"][style*="#cd7f32"]:not(.badge-family-domain){
+            --badge-foil-rare:rgba(205,127,50,.75);
+        }
         :root[data-embed-theme="dark"] #events-embed-root .skeleton-shimmer{
             background:linear-gradient(90deg, rgba(246,244,237,.08) 25%, rgba(246,244,237,.2) 50%, rgba(246,244,237,.08) 75%) !important;
             background-size:200% 100% !important;
