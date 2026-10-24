@@ -24,6 +24,15 @@ interface Window {
     const textField = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]), select, textarea';
     const errorSlot = ".error-message, .profile-field-error";
 
+    // A customizable select exposes option key events to the page. Let the
+    // browser own its open picker, as it does for native select popups, before
+    // a containing dialog's Escape handler, focus trap or shortcuts can act.
+    document.addEventListener("keydown", event => {
+        if (!CSS.supports("selector(select:open)")) return;
+        const target = event.target instanceof Element ? event.target.closest("select") : null;
+        if (target?.matches(":open")) event.stopPropagation();
+    }, true);
+
     function motionOn(): boolean {
         if (reduced.matches) return false;
         const gate = window.LwcMotion;

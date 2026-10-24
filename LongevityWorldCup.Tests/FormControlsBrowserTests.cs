@@ -7,6 +7,29 @@ namespace LongevityWorldCup.Tests;
 public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(1440, "Escape")]
+    [InlineData(390, "Escape")]
+    [InlineData(1440, "Tab")]
+    [InlineData(390, "Tab")]
+    public async Task PickerDismissal_StaysInsideThePicker(int width, string key)
+    {
+        await using var context = await ContextAsync();
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 900);
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/michael-lustgarten");
+        var picker = page.Locator("#ageResultSelect");
+        var profile = page.Locator("#detailsModal");
+        await picker.ClickAsync();
+        Assert.True(await picker.EvaluateAsync<bool>("el => el.matches(':open')"));
+        await page.Keyboard.PressAsync(key);
+        await Assertions.Expect(profile).ToBeVisibleAsync();
+        await Assertions.Expect(picker).ToBeFocusedAsync();
+        Assert.False(await picker.EvaluateAsync<bool>("el => el.matches(':open')"));
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(profile).ToBeHiddenAsync();
+    }
+
     private async Task<IBrowserContext> ContextAsync()
     {
         var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
