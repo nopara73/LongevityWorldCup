@@ -37,6 +37,7 @@ type BioageUnitDisplayValue = (
 
 interface BioageResultRevealOptions {
     instant?: boolean;
+    userInitiated?: boolean;
 }
 
 interface BioageResultAnimationOptions {
@@ -1909,9 +1910,21 @@ interface Window {
     ): void {
         if (!resultElement) return;
 
+        // An explicit reveal must measure the settled card. Sampling its arrival
+        // transform would leave the label behind the header once the card lands.
+        resultElement.getAnimations().forEach(animation => {
+            if (animation instanceof CSSAnimation && animation.animationName === 'bioage-card-settle') {
+                animation.finish();
+            }
+        });
+
         getFlowActionDock()?.refreshNow?.();
 
         const state = getBioageResultAnimationState(resultElement);
+        if (revealOptions.userInitiated) {
+            state.rankRevealCleanup?.();
+            state.revealScrollTop = null;
+        }
         if (state.revealScrollTop !== null && Math.abs(window.scrollY - state.revealScrollTop) > 2) return;
         const rankPending = resultElement.querySelector('[data-bioage-result-rank][aria-busy="true"]');
         if (!rankPending && isBioageResultComfortablyVisible(resultElement)) return;
@@ -2224,7 +2237,7 @@ interface Window {
         button.append(value, gap);
         button.addEventListener('click', () => {
             const resultElement = getShownBioageResultElement();
-            if (resultElement) revealBioageResult(resultElement);
+            if (resultElement) revealBioageResult(resultElement, { userInitiated: true });
         });
         document.body.appendChild(button);
         liveReadout = button;

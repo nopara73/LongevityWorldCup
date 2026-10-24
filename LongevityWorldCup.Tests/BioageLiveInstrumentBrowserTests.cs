@@ -265,4 +265,62 @@ public sealed class BioageLiveInstrumentBrowserTests(
             """);
         Assert.True(contrast >= 4.5, $"{clock} {theme}: waiting field names have only {contrast:F2}:1 contrast.");
     }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task ReadoutClick_ReturnsToTheResultAfterAnExplicitCalculationAndManualScroll(string clock)
+    {
+        await using var context = await NewContextAsync(true, 390, 844);
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await Assertions.Expect(page.Locator("#animatedAge")).ToBeInViewportAsync();
+        await page.Locator("#wbc").FocusAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout--shown")).ToBeVisibleAsync();
+        await page.Locator(".bioage-live-readout--shown").ClickAsync();
+        await Assertions.Expect(page.Locator("#animatedAge")).ToBeInViewportAsync();
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task ExplicitCalculationDuringArrival_AlignsTheSettledResultBelowTheHeader(string clock)
+    {
+        await using var context = await NewContextAsync(false, 390, 844);
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.EvaluateAsync(
+            """
+            () => {
+                document.documentElement.style.fontSize = '200%';
+                const result = document.querySelector('.bioageform.show');
+                // Hold the real CSS arrival at its initial offset to reproduce a
+                // Calculate click during the card's movement without a timer race.
+                result.style.animation = 'none';
+                void result.offsetWidth;
+                result.style.removeProperty('animation');
+                const arrival = result.getAnimations().find(animation => animation.animationName === 'bioage-card-settle');
+                if (!arrival) throw new Error('The result arrival animation was not created.');
+                arrival.pause();
+                arrival.currentTime = 0;
+                calculateResult();
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.querySelector('.bioageform.show')?.dataset.bioageResultStage === 'rank'");
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const result = document.querySelector('.bioageform.show');
+                result.getAnimations().forEach(animation => animation.finish());
+                return [document.querySelector('#validAgeInput > div:first-child').getBoundingClientRect().top,
+                    parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop),
+                    document.querySelector('#animatedAge').getBoundingClientRect().bottom,
+                    document.querySelector('.phenoage-result-actions, .bioage-result-actions').getBoundingClientRect().top];
+            }
+            """);
+        Assert.True(layout[0] >= layout[1] - 1, $"{clock}: the settled label is behind the header ({layout[0]} < {layout[1]}).");
+        Assert.True(layout[2] <= layout[3] - 8, $"{clock}: the settled score is behind the actions ({layout[2]} >= {layout[3]}).");
+    }
 }
