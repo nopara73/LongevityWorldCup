@@ -34,7 +34,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         """;
 
     private static async Task<string[]> TakeMotionLogAsync(IPage page) =>
-        await page.EvaluateAsync<string[]>("() => window.__lmxMotion.splice(0)");
+        await page.EvaluateAsync<string[]>("""
+            async () => {
+                // Web Animations are logged synchronously; CSS start events arrive
+                // with rendering. Collect both before asserting or clearing the log.
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                return window.__lmxMotion.splice(0);
+            }
+            """);
 
     [Theory]
     [InlineData(390, ColorScheme.Dark)]
