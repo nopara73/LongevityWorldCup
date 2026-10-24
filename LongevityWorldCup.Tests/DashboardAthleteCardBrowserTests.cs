@@ -247,7 +247,7 @@ public sealed class DashboardAthleteCardBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/dashboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelectorAll('#athleteDashboardActions .flow-action').length === 5");
-        var ratio = await page.EvaluateAsync<double>("""
+        var before = await page.EvaluateAsync<double>("""
             async () => {
                 await document.fonts.ready;
                 const label = document.querySelector('#athleteDashboardActions .flow-action__label');
@@ -255,12 +255,18 @@ public sealed class DashboardAthleteCardBrowserTests(
                 const elements = [document.body, ...document.body.querySelectorAll('*')].filter(e => e instanceof HTMLElement);
                 const sizes = elements.map(e => [e, parseFloat(getComputedStyle(e).fontSize)]);
                 for (const [e, size] of sizes) e.style.setProperty('font-size', `${size * 2}px`, 'important');
-                await Promise.allSettled(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished));
-                window.LwcFlowActionDock.refreshNow();
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                return parseFloat(getComputedStyle(label).fontSize) / before;
+                return before;
             }
             """);
+        await WaitForFiniteAnimationsAsync(page);
+        var ratio = await page.EvaluateAsync<double>("""
+            async before => {
+                window.LwcFlowActionDock.refreshNow();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                const label = document.querySelector('#athleteDashboardActions .flow-action__label');
+                return parseFloat(getComputedStyle(label).fontSize) / before;
+            }
+            """, before);
         Assert.InRange(ratio, 1.99, 2.01);
         if (width >= 761)
         {

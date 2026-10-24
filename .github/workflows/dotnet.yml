@@ -152,7 +152,7 @@ jobs:
         from pathlib import Path
         import xml.etree.ElementTree as ET
 
-        for path in Path('.').rglob('*Sequence.xml'):
+        for path in Path('.').rglob('Sequence*.xml'):
             print(f'Interrupted test sequence: {path}')
             tests = list(ET.parse(path).getroot().iter('Test'))
             unfinished = [test for test in tests if any(test.get(key, '').lower() == 'false'

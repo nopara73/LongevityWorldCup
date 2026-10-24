@@ -226,7 +226,7 @@ public sealed class FlowBackButtonBrowserTests(
 
     private static async Task DoubleTextAsync(IPage page)
     {
-        var ratios = await page.EvaluateAsync<double[]>(
+        var before = await page.EvaluateAsync<double[]>(
             """
             async () => {
                 const elements = [document.body, ...document.body.querySelectorAll('*')].filter(e => e instanceof HTMLElement);
@@ -235,14 +235,15 @@ public sealed class FlowBackButtonBrowserTests(
                 const before = labels.map(e => parseFloat(getComputedStyle(e).fontSize));
                 for (const [e, size] of sizes) e.style.setProperty('font-size', `${size * 2}px`, 'important');
                 await document.fonts.ready;
-                // Visible controls transition their font size. Measure the
-                // finished 200% text, rather than the first animation frame.
-                await Promise.allSettled(document.getAnimations()
-                    .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
-                    .map(animation => animation.finished));
-                return labels.map((e, i) => parseFloat(getComputedStyle(e).fontSize) / before[i]);
+                return before;
             }
             """);
+        // Visible controls transition their font size; measure the final text.
+        await WaitForFiniteAnimationsAsync(page);
+        var ratios = await page.EvaluateAsync<double[]>("""
+            before => [...document.querySelectorAll('.back-button .flow-action__label')]
+                .map((element, index) => parseFloat(getComputedStyle(element).fontSize) / before[index])
+            """, before);
         Assert.NotEmpty(ratios);
         Assert.All(ratios, ratio => Assert.InRange(ratio, 1.999, 2.001));
         await SettleAsync(page);

@@ -192,6 +192,29 @@ public sealed class SiteNavigationBrowserTests(
     }
 
     [Fact]
+    public async Task LayoutWait_SettlesClockDrivenMotionWhileScrollMotionRemainsActive()
+    {
+        await using var context = await ContextAsync(1440, 900);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.GotoAsync("/join");
+        await page.WaitForFunctionAsync("() => !document.getElementById('joinStartAmateurBtn')?.disabled");
+        await page.EvaluateAsync("""
+            () => {
+                window.testClockAnimation = document.querySelector('.play-join-card').animate(
+                    [{ opacity: 0.5 }, { opacity: 1 }], { duration: 200, fill: 'forwards' });
+            }
+            """);
+        await WaitForFiniteAnimationsAsync(page);
+        Assert.Equal("finished", await page.EvaluateAsync<string>("window.testClockAnimation.playState"));
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => document.getAnimations().some(animation =>
+                animation.effect?.target?.closest?.('header[role="banner"]')
+                && animation.timeline !== document.timeline && animation.playState === 'running')
+            """));
+    }
+
+    [Fact]
     public async Task Headroom_RevealsFocusedControlsAndRestoredScroll()
     {
         await using var context = await ContextAsync(390, 844);
