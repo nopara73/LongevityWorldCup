@@ -47,7 +47,27 @@
     --gma-gold-shine: #f8e473;
 }
 
-/* Roboto Font Faces */
+/* Local fallback faces can be cached with the shared stylesheet. Versioned
+   network font URLs remain inline alongside the document's preloads. */
+@font-face {
+    font-family: 'Roboto Fallback';
+    font-weight: 300 400;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('Arimo');
+    size-adjust: 99.66%;
+    ascent-override: 93.09%;
+    descent-override: 24.5%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'Roboto Fallback';
+    font-weight: 700;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('Arimo Bold');
+    /* Preserve bold line wrapping with Arial's Linux substitutes too. */
+    size-adjust: 98%;
+    ascent-override: 94.67%;
+    descent-override: 24.91%;
+    line-gap-override: 0%;
+}
 
 /* Orbitron Font Face */
 
@@ -61,7 +81,7 @@
 }
 
 body {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', sans-serif;
     margin: 0;
     padding: 0;
     background: var(--header-to-body-bg);
@@ -1788,18 +1808,55 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     display: none;
 }
 
-.site-sticky-header.visible {
-    animation: chrome-sticky-arrive var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+/* Reveal the bar without translating its measured frame or the separate
+   fixed PLAY action. Anchors and keyboard clearance use that stable edge.
+   Display flips at the end of the exit. */
+.site-sticky-header {
+    clip-path: inset(0 0 100%);
+    opacity: 0;
+    transition:
+        clip-path var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        display var(--lwc-duration-normal, 220ms) allow-discrete;
 }
 
-@keyframes chrome-sticky-arrive {
-    from {
+.site-sticky-header.visible {
+    clip-path: inset(0);
+    opacity: 1;
+}
+
+@starting-style {
+    .site-sticky-header.visible {
+        clip-path: inset(0 0 100%);
         opacity: 0;
     }
+}
 
-    to {
-        opacity: 1;
+.scrolled-button {
+    transition:
+        background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        display var(--lwc-duration-normal, 220ms) allow-discrete;
+}
+
+.scrolled-button[style*="display: none"] {
+    opacity: 0;
+}
+
+@starting-style {
+    .scrolled-button {
+        opacity: 0;
     }
+}
+
+/* Measuring the bar off-screen must not start its entrance or exit. */
+.site-sticky-header.is-measuring,
+.scrolled-button.is-measuring {
+    transition: none !important;
 }
 
 .site-sticky-header-link {
@@ -1835,8 +1892,12 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .site-sticky-header.visible {
-        animation: none;
+    .site-sticky-header,
+    .site-sticky-header.visible,
+    .scrolled-button {
+        transform: none;
+        translate: none;
+        transition: none;
     }
 
     header[role="banner"] .header-link > .main-logo-image {

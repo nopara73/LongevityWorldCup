@@ -18,6 +18,8 @@ body.play-flow-route #site-sticky-header {
     max-width: 760px;
     margin: 0 auto;
     padding: 0 1rem;
+    /* Panel margins stay inside, so hydrating and ready columns start alike. */
+    display: flow-root;
 }
 
 body.play-start-active {
@@ -208,6 +210,7 @@ body.play-route-hydrating .play-hub-panel {
 
 html[data-play-entry="selection"]:not(.play-route-ready) .play-hub-main::before,
 html[data-play-entry="dashboard"]:not(.play-route-ready) .play-hub-main::before,
+html[data-play-entry="join"][data-initial-view="pending"] .play-hub-main::before,
 body.play-route-hydrating .play-hub-main::before {
     content: "";
     display: block;
@@ -223,6 +226,15 @@ body.play-route-hydrating .play-hub-main::before {
         var(--lwc-surface, #ffffff);
     box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
     box-sizing: border-box;
+}
+
+/* While a hub entry resolves, its hidden panel keeps its layout; the card
+   floats over it instead of a lone spinner, centred on the column. */
+html[data-initial-view="pending"]:not([data-play-entry="start"]) .play-hub-main::before {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% 0;
 }
 
 body.play-start-active .flow-action-stack.flow-action-stack--docked {
@@ -436,7 +448,10 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     overflow-wrap: anywhere;
 }
 
-.play-hub-main--wide {
+/* The join track is wide; its route holds that column while it hydrates,
+   so the card does not slide sideways when the track arrives. */
+.play-hub-main--wide,
+html[data-play-entry="join"]:not(.play-route-ready) .play-hub-main {
     max-width: 1100px;
 }
 

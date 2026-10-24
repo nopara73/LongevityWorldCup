@@ -21,6 +21,14 @@
 <body class="play-flow-route play-hub-route play-start-active play-start-preintro"
       data-default-headshot-webp="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}"
       data-default-headshot-jpeg="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}">
+    <script>
+        // Only the title screen starts on the night stage. Other entries paint
+        // their own canvas, header and hydration card from the first frame.
+        if (document.documentElement.dataset.playEntry !== 'start') {
+            document.body.classList.remove('play-start-active', 'play-start-preintro');
+            document.body.classList.add('play-route-hydrating');
+        }
+    </script>
     <!--HEADER-->
     <main class="play-hub-main initial-view-main">
         <section id="playStartPanel" class="play-hub-panel play-start-panel">
