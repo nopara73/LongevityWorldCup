@@ -1106,10 +1106,9 @@
 }
 
 /* ---- Living feed -------------------------------------------------------
-   Rows settle in as they are reached, new moments drop in at the top, rows
-   that stay glide to their new places, names preview their athlete and the
-   portrait carries over into the profile. Timings follow the shared motion
-   vocabulary when it is present. */
+   Rows remain readable as soon as they mount. Existing rows keep their place
+   during refreshes, names preview their athlete and the portrait carries over
+   into the profile. */
 :root {
     --feed-ease: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
     --feed-ease-exit: var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1));
@@ -1118,49 +1117,11 @@
     --feed-move: var(--lwc-motion-move, 260ms);
 }
 
-.events-board .row-appear {
-    opacity: 0;
-    transform: translateY(8px);
-}
-
+.events-board .row-appear,
 .events-board .row-appear.is-visible {
     opacity: 1;
     transform: none;
-    transition:
-        opacity var(--feed-move) var(--feed-ease),
-        transform calc(var(--feed-move) + 60ms) var(--feed-ease);
-    transition-delay: calc(var(--row-delay, 0) * 1ms);
-}
-
-/* A new moment drops in from above and glows briefly, so it is found. */
-.events-board tr.main-row.is-arriving {
-    animation:
-        lwc-feed-arrive 560ms var(--feed-ease) var(--arrival-delay, 0ms) both,
-        lwc-feed-arrive-glow 1800ms ease-out var(--arrival-delay, 0ms) backwards;
-}
-
-.events-board tr.main-row.is-arriving .event-avatar-frame::after {
-    content: "";
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    pointer-events: none;
-    animation: lwc-feed-arrive-ring 1200ms var(--feed-ease) calc(var(--arrival-delay, 0ms) + 200ms) both;
-}
-
-@keyframes lwc-feed-arrive {
-    0% { opacity: 0; transform: translateY(-22px); }
-    55% { opacity: 1; }
-    100% { opacity: 1; transform: none; }
-}
-
-@keyframes lwc-feed-arrive-glow {
-    0%, 35% { background-color: var(--details-bg); box-shadow: inset 3px 0 0 var(--custom-event-accent); }
-}
-
-@keyframes lwc-feed-arrive-ring {
-    0% { box-shadow: 0 0 0 0 var(--custom-event-accent); opacity: 1; }
-    100% { box-shadow: 0 0 0 9px var(--custom-event-accent); opacity: 0; }
+    transition: none;
 }
 
 /* Rows that leave fade out over their old place while the rest close up. */
