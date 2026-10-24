@@ -22,7 +22,7 @@ public sealed partial class BadgeFamilyBrowserTests
             await profile.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
             var toggle = profile.Locator("#modalBadgeStrip .modal-badge-toggle").Filter(new() { HasText = "The Regular" });
             await toggle.ClickAsync();
-            var panel = profile.Locator(".modal-badge-panel:not([hidden])");
+            var panel = profile.Locator(".modal-badge-explainer");
             await Assertions.Expect(panel).ToBeVisibleAsync();
             Assert.True(await panel.EvaluateAsync<bool>("el => el.scrollHeight === el.clientHeight && el.scrollWidth === el.clientWidth"));
             await toggle.ClickAsync();
