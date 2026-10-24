@@ -70,7 +70,7 @@ const homepageHighlightsBeforePodiumVisit = 4;
 let homepageHighlightsRows = homepageHighlightsBaseRows;
 let homepageHighlightsMeasureTimer = null;
 let homepageHighlightsResizeTimer = null;
-let homepageHighlightsWaitAttempts = 0;
+let homepageHighlightsFitPromise = null;
 let homepageHighlightsRequested = false;
 
 function incrementHomepageVisitCount() {
@@ -197,80 +197,80 @@ function loadHomepageHighlights(rowCount) {
         && (board.getAttribute('aria-busy') === 'true' || board.querySelector('.events-recovery'))) return;
     homepageHighlightsRequested = true;
     homepageHighlightsRows = rowCount;
+    let pending;
     callScoped('events-root-index', function () {
-        loadEventsTable(rowCount, true, null, true, {
+        pending = loadEventsTable(rowCount, true, null, true, {
             preserveExistingRows: true,
-            useSharedEvents: true
+            useSharedEvents: true,
+            layoutOnly: true
         });
     });
+    return pending;
 }
 
-function maybeGrowHomepageHighlights() {
+function homepageHighlightsTargetHeight() {
+    // The paired card stretches to the taller column. Measure its content,
+    // so fitting never uses a height that Highlights itself has inflated.
+    const card = document.getElementById('lwc-countdown-box');
+    const body = card?.querySelector('.lwc-merch-body');
+    if (!card || !body) return 0;
+    const children = [...body.children].filter(child => child.getClientRects().length);
+    const bottom = Math.max(body.getBoundingClientRect().top, ...children.map(child => child.getBoundingClientRect().bottom));
+    return bottom - card.getBoundingClientRect().top
+        + (parseFloat(getComputedStyle(body).paddingBottom) || 0)
+        + (parseFloat(getComputedStyle(card).borderBottomWidth) || 0);
+}
+
+async function fitHomepageHighlightsNow() {
     const highlightsRoot = document.getElementById('events-root-index');
     const highlightsBoard = highlightsRoot ? highlightsRoot.querySelector('.events-board') : null;
     const highlightsTable = highlightsRoot ? highlightsRoot.querySelector('#eventsTable') : null;
     const highlightsBody = highlightsRoot ? highlightsRoot.querySelector('#eventsTable tbody') : null;
-    const swagCard = document.getElementById('lwc-countdown-box');
-    if (window.innerWidth <= 991) {
-        return;
-    }
-    if (!highlightsBoard || !highlightsTable || !highlightsBody || !swagCard) {
-        return;
-    }
-
-    if (highlightsRoot.querySelector('.events-recovery')) return;
-    if (highlightsBoard.getAttribute('aria-busy') === 'true') {
-        homepageHighlightsMeasureTimer = window.setTimeout(fitHomepageHighlights, 180);
-        return;
-    }
-
-    const renderedRows = highlightsBody.querySelectorAll('tr.main-row').length;
-    if (!renderedRows) {
-        homepageHighlightsWaitAttempts += 1;
-        homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 180);
-        return;
-    }
-
-    if (renderedRows < homepageHighlightsRows) {
-        if (homepageHighlightsWaitAttempts < 8) {
-            homepageHighlightsWaitAttempts += 1;
-            homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 180);
+    if (!highlightsBoard || !highlightsTable || !highlightsBody) return;
+    if (homepageHighlightsRequested) {
+        if (highlightsBoard.querySelector('.events-recovery')) return;
+        if (highlightsBoard.getAttribute('aria-busy') === 'true') {
+            homepageHighlightsMeasureTimer = window.setTimeout(fitHomepageHighlights, 180);
+            return;
         }
-        return;
     }
+    if (!homepageHighlightsRequested) await loadHomepageHighlights(homepageHighlightsBaseRows);
 
-    homepageHighlightsWaitAttempts = 0;
-
-    const highlightsContentHeight = Math.round(highlightsTable.getBoundingClientRect().height);
-    const highlightsBoardHeight = Math.round(highlightsBoard.getBoundingClientRect().height);
-    const swagHeight = Math.round(swagCard.getBoundingClientRect().height);
-    const heightGap = swagHeight - highlightsContentHeight;
-    const canRequestMoreRows = renderedRows >= homepageHighlightsRows && homepageHighlightsRows < homepageHighlightsMaxRows;
-    if (heightGap > 28 && canRequestMoreRows) {
-        loadHomepageHighlights(homepageHighlightsRows + 1);
-        homepageHighlightsWaitAttempts = 0;
-        homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
+    // Shared snapshots are already resolved after the first load. Finish the
+    // bounded fit in this microtask turn, before painting any intermediate list.
+    const visited = new Set();
+    for (let attempt = 0; attempt < homepageHighlightsMaxRows; attempt++) {
+        if (highlightsBoard.querySelector('.events-recovery')) return;
+        const rows = [...highlightsBody.querySelectorAll('tr.main-row')];
+        if (!rows.length) return;
+        const readingRows = rows.reduce((count, row, index) =>
+            row.matches('.is-open, :focus-within') || row.nextElementSibling?.matches('.details-row:focus-within')
+                ? index + 1 : count, 0);
+        let desired = Math.max(homepageHighlightsBaseRows, readingRows);
+        if (window.innerWidth > 991) {
+            desired = rows.length;
+            const target = homepageHighlightsTargetHeight();
+            const height = highlightsTable.getBoundingClientRect().height;
+            const last = rows.at(-1);
+            const details = last.nextElementSibling?.matches('.details-row') ? last.nextElementSibling : null;
+            const lastHeight = last.getBoundingClientRect().height + (details?.getBoundingClientRect().height || 0);
+            if (height < target - 28 && rows.length >= homepageHighlightsRows) desired++;
+            else if (height - lastHeight >= target - 28) desired--;
+            desired = Math.max(1, readingRows, Math.min(homepageHighlightsMaxRows, desired));
+        }
+        if (desired === rows.length || (desired === homepageHighlightsRows && rows.length < desired) || visited.has(desired)) return;
+        visited.add(rows.length);
+        await loadHomepageHighlights(desired);
     }
 }
 
 function fitHomepageHighlights() {
     window.clearTimeout(homepageHighlightsMeasureTimer);
-    homepageHighlightsWaitAttempts = 0;
-    const board = document.querySelector('#events-root-index .events-board');
-    if (homepageHighlightsRequested && board) {
-        if (board.querySelector('.events-recovery')) return;
-        if (board.getAttribute('aria-busy') === 'true') {
-            homepageHighlightsMeasureTimer = window.setTimeout(fitHomepageHighlights, 180);
-            return;
-        }
+    if (!homepageHighlightsFitPromise) {
+        homepageHighlightsFitPromise = fitHomepageHighlightsNow()
+            .finally(() => { homepageHighlightsFitPromise = null; });
     }
-    const initialRows = window.innerWidth > 991 ? 1 : homepageHighlightsBaseRows;
-    const rows = [...document.querySelectorAll('#events-root-index tr.main-row')];
-    const readingRows = rows.reduce((count, row, index) =>
-        row.matches('.is-open, :focus-within') || row.nextElementSibling?.matches('.details-row:focus-within')
-            ? index + 1 : count, 0);
-    loadHomepageHighlights(Math.max(initialRows, readingRows));
-    homepageHighlightsMeasureTimer = window.setTimeout(maybeGrowHomepageHighlights, 220);
+    return homepageHighlightsFitPromise;
 }
 
 function watchHomepageHighlightsLayout() {
