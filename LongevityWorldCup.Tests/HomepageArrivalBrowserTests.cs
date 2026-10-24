@@ -29,6 +29,7 @@ public sealed class HomepageArrivalBrowserTests(
                     const timing = animation.effect.getTiming();
                     window.arrivalStarts.push({
                         podium: this.classList.contains('podium-item'),
+                        highlights: this.id === 'events-root-index',
                         startTime: animation.startTime,
                         end: timing.duration + timing.delay,
                         opacity: Number(getComputedStyle(this).opacity)
@@ -61,7 +62,8 @@ public sealed class HomepageArrivalBrowserTests(
             await Assertions.Expect(page.Locator("header .join-game:not(.scrolled-button)")).ToBeVisibleAsync();
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
             Assert.Equal(3, await page.EvaluateAsync<int>("arrivalStarts.filter(a => a.podium).length"));
-            Assert.Equal(8, await page.EvaluateAsync<int>("arrivalStarts.length"));
+            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalStarts.length"));
+            Assert.False(await page.EvaluateAsync<bool>("arrivalStarts.some(a => a.highlights)"));
             Assert.True(await page.EvaluateAsync<bool>("arrivalStarts.every(a => a.opacity >= 0.2 && a.end <= 1000)"));
             var startTimes = await page.EvaluateAsync<double[]>("arrivalStarts.map(a => a.startTime)");
             // Browser timestamp conversion can round fractional milliseconds.
@@ -124,13 +126,14 @@ public sealed class HomepageArrivalBrowserTests(
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
             await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
             // The preload scanner can request a script before the parser gets
-            // there. Wait for the seventh target, immediately before that script.
+            // there. Wait for Highlights, immediately before that script.
             await Assertions.Expect(page.Locator("#events-root-index")).ToBeAttachedAsync();
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
             await page.EvaluateAsync("window.releaseOpeningFrame()");
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
-            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalTargets.length"));
+            Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+            Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
             Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
         }
         finally
@@ -141,7 +144,7 @@ public sealed class HomepageArrivalBrowserTests(
         await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
         Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
-        Assert.Equal(7, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
         Assert.Equal(0, await page.EvaluateAsync<int>("document.getAnimations().filter(a => a.id === 'homepage-arrival').length"));
         await CaptureAsync(page, $"{width}-late-parsed");
     }
