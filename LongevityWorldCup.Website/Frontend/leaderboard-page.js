@@ -696,14 +696,24 @@ function initializeAthletePortraitMotion() {
         if (profilePlayed !== profileMotion && profile.complete) play(profile);
     }
 
-    const updates = new MutationObserver(scan);
+    // Content hydration changes many observed nodes in one input. Coalesce
+    // portrait visibility reads with rendering instead of forcing layout in
+    // mutation delivery between those writes. The real portrait stays visible.
+    let scanFrame = 0;
+    function scheduleScan() {
+        if (!scanFrame) scanFrame = requestAnimationFrame(() => {
+            scanFrame = 0;
+            scan();
+        });
+    }
+    const updates = new MutationObserver(scheduleScan);
     if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (leaderboard) updates.observe(leaderboard, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (profile) {
         updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
         updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
         updates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
-        profile.addEventListener('load', scan);
+        profile.addEventListener('load', scheduleScan);
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();

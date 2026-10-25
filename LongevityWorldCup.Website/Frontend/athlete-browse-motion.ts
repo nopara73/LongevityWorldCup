@@ -305,11 +305,17 @@
     const counts = new WeakMap<Element, number>();
     let shownText = new WeakMap<Element, string>();
     const waiting = new Set<Element>();
+    const pendingCounts = new Map<HTMLElement, { text: string; previous: string | null }>();
+    const visibleCounts = new Set<HTMLElement>();
+    let countFrame = 0;
     const watcher = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
         for (const entry of entries) {
             if (!entry.isIntersecting) continue;
             watcher?.unobserve(entry.target);
-            if (waiting.delete(entry.target) && entry.target instanceof HTMLElement) countIn(entry.target, null);
+            if (waiting.delete(entry.target) && entry.target instanceof HTMLElement) {
+                visibleCounts.add(entry.target);
+                if (!countFrame) countFrame = requestAnimationFrame(flushCounts);
+            }
         }
     }) : null;
 
@@ -357,10 +363,9 @@
 
     // The figure keeps its real text throughout; only a drawn overlay counts,
     // so reading, copying and assistive technology always get the result.
-    function countIn(figure: HTMLElement, previous: string | null): void {
+    function countIn(figure: HTMLElement, previous: string | null, color: string): void {
         const text = figure.textContent || "";
         const target = parseFigure(text);
-        stopCount(figure);
         shownText.set(figure, text);
         if (!target || !enabled() || !isOpen() || isClosing()) return;
         const before = previous === null ? null : parseFigure(previous);
@@ -381,7 +386,7 @@
             figure.dataset["lwcCount"] = format(from + (target.value - from) * (1 - Math.pow(1 - progress, 3)));
             counts.set(figure, requestAnimationFrame(tick));
         };
-        figure.style.setProperty("--lwc-count-color", getComputedStyle(figure).color);
+        figure.style.setProperty("--lwc-count-color", color);
         figure.dataset["lwcCount"] = format(from);
         counts.set(figure, requestAnimationFrame(tick));
     }
@@ -396,18 +401,53 @@
             shownText.set(figure, text);
             return;
         }
-        if (shown(figure) && inViewport(figure.getBoundingClientRect())) {
-            waiting.delete(figure);
-            countIn(figure, previous);
-        } else if (watcher) {
-            shownText.set(figure, text);
-            stopCount(figure);
+        const queued = pendingCounts.get(figure);
+        pendingCounts.set(figure, { text, previous: fresh ? null : queued ? queued.previous : previous });
+        stopCount(figure);
+        if (watcher) {
             waiting.add(figure);
             watcher.observe(figure);
+        } else {
+            visibleCounts.add(figure);
+            if (!countFrame) countFrame = requestAnimationFrame(flushCounts);
+        }
+    }
+
+    function flushCounts(): void {
+        countFrame = 0;
+        const queued = [...visibleCounts].flatMap(figure => {
+            const state = pendingCounts.get(figure);
+            pendingCounts.delete(figure);
+            return state ? [{ figure, state }] : [];
+        });
+        visibleCounts.clear();
+        if (!enabled() || !isOpen() || isClosing() || content()?.classList.contains("is-loading")) return;
+        // The native visibility notification follows layout and the profile's
+        // first paint. It starts only the decorative overlays; real figures
+        // stay readable immediately. Read their colours before overlay writes.
+        const current = queued.filter(({ figure, state }) => figure.isConnected
+            && content()?.contains(figure) && figure.textContent === state.text);
+        const measured = current.map(({ figure, state }) => {
+            const style = getComputedStyle(figure);
+            return { figure, state, color: style.color,
+                visible: style.visibility !== "hidden" && (watcher !== null
+                    || figure.getClientRects().length > 0 && inViewport(figure.getBoundingClientRect())) };
+        });
+        for (const { figure, state, color, visible } of measured) {
+            if (visible) {
+                waiting.delete(figure);
+                countIn(figure, state.previous, color);
+            } else {
+                shownText.set(figure, state.text);
+            }
         }
     }
 
     function resetCounts(): void {
+        cancelAnimationFrame(countFrame);
+        countFrame = 0;
+        pendingCounts.clear();
+        visibleCounts.clear();
         waiting.forEach(figure => watcher?.unobserve(figure));
         waiting.clear();
         modal!.querySelectorAll<HTMLElement>("[data-lwc-count]").forEach(stopCount);
@@ -474,7 +514,6 @@
         wasOpen = open;
     }).observe(modal, { attributes: true, attributeFilter: ["style", "class"] });
     modal.addEventListener("athlete-dialog-loading", event => {
-        if (enabled()) readMotionValues();
         if (!isOpen() || isClosing()) openerSlug = (event as CustomEvent<{ slug: string }>).detail.slug;
         clearMotion();
         resetCounts();
