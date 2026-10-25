@@ -21,6 +21,7 @@ public sealed class FrontendTypeScriptBuildTests
         "form-controls",
         "initial-view",
         "leaderboard-feel",
+        "leaderboard-podium",
         "longevitymaxxing",
         "motion",
         "share-sheet",

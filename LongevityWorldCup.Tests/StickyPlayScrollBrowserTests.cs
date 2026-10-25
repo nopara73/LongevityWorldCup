@@ -62,6 +62,30 @@ public sealed class StickyPlayScrollBrowserTests(
             ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
+        // Native transition snapshots own hit testing until the incoming
+        // transition ends, even after the restored document has parsed.
+        await context.AddInitScriptAsync("""
+            (() => {
+                const supportsReveal = 'onpagereveal' in window;
+                let navigation = 0;
+                window.__stickyPageShown = false;
+                window.__stickyTransitionSettled = !supportsReveal;
+                window.addEventListener('pagehide', () => {
+                    navigation++;
+                    window.__stickyPageShown = false;
+                    window.__stickyTransitionSettled = !supportsReveal;
+                });
+                window.addEventListener('pageshow', () => window.__stickyPageShown = true);
+                window.addEventListener('pagereveal', event => {
+                    const current = ++navigation;
+                    window.__stickyTransitionSettled = !event.viewTransition;
+                    const settled = () => {
+                        if (current === navigation) window.__stickyTransitionSettled = true;
+                    };
+                    event.viewTransition?.finished.then(settled, settled);
+                });
+            })();
+            """);
         var page = await context.NewPageAsync();
         await page.GotoAsync(route, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => document.fonts.ready");
@@ -117,21 +141,27 @@ public sealed class StickyPlayScrollBrowserTests(
         await page.WaitForDomContentLoadedUrlAsync("**/play");
         await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         // History restoration can replace the document after GoBack returns.
-        // The menu mounts after the server-rendered header. Wait for it too.
-        var restoredSnapshot = await page.WaitForFunctionAsync($$"""
+        // Wait across that navigation before reading the returned controls.
+        await using var restored = await page.WaitForFunctionAsync($$"""
             route => {
+                // Playwright polls truthiness synchronously: an async predicate's
+                // Promise succeeds even when it will resolve to false.
                 if (location.pathname !== route || document.readyState === 'loading'
+                    || !window.__stickyPageShown || !window.__stickyTransitionSettled
                     || document.fonts.status !== 'loaded'
+                    || [...document.querySelectorAll('link[rel=stylesheet]')].some(link => !link.sheet)
+                    || !document.querySelector('.scrolled-button')
                     || !document.querySelector('#site-sticky-header .site-menu-toggle')
                     || document.documentElement.hasAttribute('data-initial-view')) return false;
-                // Keep polling synchronous: a Promise is truthy before it resolves.
-                // Read readiness and state together across any history reload.
-                return ({{Snapshot}})();
+                // Read in the same document/turn as readiness. A later protocol
+                // command can race the document replacement during restoration.
+                const read = {{Snapshot}};
+                return read();
             }
             """, route);
         // The leaderboard and play flow deliberately use manual restoration.
         // Both a restored scroll position and a return to the banner need PLAY.
-        var returned = await restoredSnapshot.JsonValueAsync<ScrollState>();
+        var returned = await restored.JsonValueAsync<ScrollState>();
         Assert.True(returned.AnyPlay, "Back navigation lost the Play action.");
         if (returned.PastBanner) AssertScrolledState(returned);
         await page.GoForwardAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
