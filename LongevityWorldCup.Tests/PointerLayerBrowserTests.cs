@@ -46,6 +46,38 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         return page;
     }
 
+    [Fact]
+    public async Task Tooltip_NativeTextSelectionSurvivesDraggingOutsideAndReleasesOnOutsideClick()
+    {
+        await using var context = await ContextAsync(390);
+        var page = await FixtureAsync(context);
+        const string explanation = "Rank by bortz age (biological age). Click again to show default ranking.";
+        await page.Locator("#two").EvaluateAsync("(e, text) => e.title = text", explanation);
+        await page.Locator("#two").HoverAsync();
+        var tip = page.Locator(".lwc-tip");
+        await Expect(tip).ToBeVisibleAsync();
+        await page.WaitForTimeoutAsync(200);
+        var text = await page.Locator(".lwc-tip-text").BoundingBoxAsync();
+        Assert.NotNull(text);
+        await page.Mouse.MoveAsync(text.X + 10, text.Y + 8);
+        await page.Mouse.DownAsync();
+        try
+        {
+            await page.Mouse.MoveAsync(388, 200, new() { Steps = 5 });
+            var selection = await page.EvaluateAsync<string>("window.getSelection().toString()");
+            Assert.NotEmpty(selection);
+            await page.WaitForTimeoutAsync(450);
+            await Expect(tip).ToBeVisibleAsync();
+            Assert.Equal(selection, await page.EvaluateAsync<string>("window.getSelection().toString()"));
+        }
+        finally { await page.Mouse.UpAsync(); }
+        await page.WaitForTimeoutAsync(250);
+        await Expect(tip).ToBeVisibleAsync();
+        await page.Locator("#plain").ClickAsync();
+        await Expect(tip).ToBeHiddenAsync();
+        Assert.Equal(explanation, await page.Locator("#two").GetAttributeAsync("title"));
+    }
+
     [Theory]
     [InlineData(390, false)]
     [InlineData(390, true)]

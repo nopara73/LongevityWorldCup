@@ -91,6 +91,7 @@ interface Window {
     let tipFrame = 0;
     let tipSource: "pointer" | "keyboard" = "pointer";
     let tipTouchReading = false;
+    let tipPointerHeld = false;
     const coldDelay = 520;
     const warmDelay = 60;
     const warmWindow = 700;
@@ -216,6 +217,7 @@ interface Window {
 
     function detachTipOwner(): void {
         tipTouchReading = false;
+        tipPointerHeld = false;
         if (!tipOwner) return;
         if (tipAddedDescribedBy) {
             const rest = (tipOwner.getAttribute("aria-describedby") || "").split(/\s+/).filter(id => id && id !== tip.id);
@@ -280,7 +282,9 @@ interface Window {
     }
 
     function leaveTip(): void {
-        if (tipTouchReading && modality === "touch") return;
+        if (tipPointerHeld || (tipTouchReading && modality === "touch")) return;
+        const selection = window.getSelection();
+        if (selection && !selection.isCollapsed && (tip.contains(selection.anchorNode) || tip.contains(selection.focusNode))) return;
         window.clearTimeout(tipShowTimer);
         if (tip.hidden) { hideTip(true); return; }
         window.clearTimeout(tipHideTimer);
@@ -320,13 +324,20 @@ interface Window {
 
     document.addEventListener("pointerdown", event => {
         if (event.target instanceof Node && tip.contains(event.target)) {
-            if (event.pointerType === "touch") tipTouchReading = true;
+            tipPointerHeld = true;
+            tipTouchReading = event.pointerType === "touch";
             window.clearTimeout(tipHideTimer);
         } else hideTip(true);
+    }, true);
+    document.addEventListener("pointerup", event => {
+        if (!tipPointerHeld) return;
+        tipPointerHeld = false;
+        if (!(event.target instanceof Node && tip.contains(event.target))) leaveTip();
     }, true);
     // Native scrolling captures, then cancels, the finger's pointer stream.
     // The explanation owns that gesture; outside interruptions still release it.
     for (const type of ["pointercancel", "gotpointercapture"]) document.addEventListener(type, event => {
+        if (type === "pointercancel") tipPointerHeld = false;
         if (!(event.target instanceof Node && tip.contains(event.target))) hideTip(true);
     }, true);
     window.addEventListener("scroll", event => {
