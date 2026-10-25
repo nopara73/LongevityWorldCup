@@ -6144,7 +6144,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const imageUrl = image || ATHLETE_PLACEHOLDER_IMAGE;
         const placeholderClass = hasProfileImage ? "" : " placeholder";
         const alt = hasProfileImage ? `${athleteName} profile picture` : "";
-        return `<div class="lmx-quote-portrait${placeholderClass}">
+        return `<div class="lmx-quote-portrait${placeholderClass}" data-athlete-name="${escAttr(athleteName)}">
             <img src="${escAttr(imageUrl)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
             <span class="lmx-quote-portrait-badge" aria-hidden="true">
                 <i class="fas ${getQuoteDialogIconClass(quote.bucket)}"></i>

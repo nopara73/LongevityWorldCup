@@ -166,6 +166,7 @@
         const img = make('img', className);
         img.src = row.thumb || defaultPortrait;
         img.alt = '';
+        img.dataset.athleteName = row.name;
         img.width = 96;
         img.height = 96;
         img.decoding = 'async';

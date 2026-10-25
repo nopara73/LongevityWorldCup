@@ -421,7 +421,7 @@ declare global {
         var name = row.displayName || row.name || '';
         var image = row.profilePicThumb || '';
         if (image) {
-            return '<span class="bioage-rank-row-avatar" aria-hidden="true">' +
+            return '<span class="bioage-rank-row-avatar" data-athlete-name="' + escapeHtml(name) + '" aria-hidden="true">' +
                 '<img src="' + escapeHtml(image) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">' +
                 '</span>';
         }
