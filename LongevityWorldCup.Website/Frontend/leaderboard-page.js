@@ -3458,6 +3458,7 @@ function requestCloseAthleteModal() {
     if (modal.classList.contains('fade-out')) return;
     if (modal.style.display !== 'block' || modal._historyClosePending) return;
     if (isGuessMyAgeDismissBlocked(modal.querySelector('.modal-content'))) return;
+    modal.dispatchEvent(new Event('athlete-dialog-close-requested'));
     const depth = history.state?.athleteDialogDepth;
     if (history.state?.modal === 'details' && Number.isInteger(depth) && depth > 0 && depth < history.length) {
         // Return past only the profile visits created above the calling page.
@@ -5965,7 +5966,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 
             updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, rankSummary.ultimateRank);
 
-            // The age visualization waits until its canvas is visible.
+            // Resolve the result with its profile; canvas work can follow the first paint.
             const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
                 ? athleteData.lowestBortzAge
                 : athleteData.lowestPhenoAge;
@@ -5977,17 +5978,10 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             const biomarkerHistory = buildBiomarkerHistory(fullAthleteData);
             renderBiomarkerHistory(biomarkerHistory, athletes);
 
-            requestAnimationFrame(function() {
-                // Paint the identity and usable profile before optional chart
-                // construction. A newer step/close invalidates both callbacks.
-                window.setTimeout(function() {
-                if (requestId !== currentAthleteModalRequestId) return;
-                window.ensureChartJs().then(function() {
-                    if (requestId !== currentAthleteModalRequestId) return;
-                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults, biomarkerHistory.clockResults);
-                });
-                }, 0);
-            });
+            // Commit result text and controls with this identity. Only the
+            // canvas dependency and construction wait until after its first paint.
+            generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults, biomarkerHistory.clockResults,
+                () => window.ensureChartJs());
             if (!modalContent) {
                 console.error('Modal content element not found');
                 return;
