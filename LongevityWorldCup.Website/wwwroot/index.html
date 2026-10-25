@@ -109,291 +109,291 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
 }
     </script>
     <main class="homepage-main">
-        <h1 class="visually-hidden">Longevity World Cup</h1>
-        <p class="game-description">
-            <a href="/about">longevity&nbsp;leaderboards</a>
+<h1 class="visually-hidden">Longevity World Cup</h1>
+<p class="game-description">
+    <a href="/about">longevity&nbsp;leaderboards</a>
+</p>
+
+<!--LEADERBOARD-CONTENT-->
+<div class="full-rankings-action">
+    <a id="viewAllAthletesBtn" href="/leaderboard" class="rankings-btn" aria-label="View all athletes on the leaderboard">
+        View all athletes
+    </a>
+</div>
+
+<div class="lwc-highlights-countdown-wrapper">
+    <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
+
+    <div id="lwc-countdown-box" class="events-board events-board--timer">
+        <div class="lwc-countdown-inner">
+            <div class="lwc-countdown-header-row">
+                <a class="lwc-countdown-title"
+                   href="https://merch.longevityworldcup.com/"
+                   target="_blank"
+                   rel="noopener">SWAG</a>
+                <a class="lwc-merch-header-link"
+                   href="https://merch.longevityworldcup.com/"
+                   target="_blank"
+                   rel="noopener">Store</a>
+            </div>
+
+            <div class="lwc-countdown-body lwc-merch-body">
+                <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
+                   href="https://merch.longevityworldcup.com/"
+                   target="_blank"
+                   rel="noopener">The Longevity World Cup store</a> contains high-end, <strong>longevitymaxxing</strong> organic cotton clothing, blood tests, and more.</p>
+                <div class="lwc-merch-grid">
+                    <a class="lwc-merch-item"
+                       href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
+                       target="_blank"
+                       rel="noopener"
+                       aria-label="Open White glossy mug in the Longevity World Cup merch store">
+                        <img class="lwc-merch-thumb"
+                             src="{{ASSET_MERCH_MUG}}"
+                             alt="White glossy mug in the Longevity World Cup merch store"
+                             width="428" height="487" loading="lazy" decoding="async">
+                        <span class="lwc-merch-item-copy">
+                            <span class="lwc-merch-item-title">White glossy mug</span>
+                            <span class="lwc-merch-item-price">$19.50 - $29.50</span>
+                        </span>
+                    </a>
+                    <a class="lwc-merch-item"
+                       href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
+                       target="_blank"
+                       rel="noopener"
+                       aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
+                        <img class="lwc-merch-thumb"
+                             src="{{ASSET_MERCH_HOODIE}}"
+                             alt="Organic cotton hoodie in the Longevity World Cup merch store"
+                             width="428" height="487" loading="lazy" decoding="async">
+                        <span class="lwc-merch-item-copy">
+                            <span class="lwc-merch-item-title">Organic cotton hoodie</span>
+                            <span class="lwc-merch-item-price">$94.00</span>
+                        </span>
+                    </a>
+                    <a class="lwc-merch-item"
+                       href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
+                       target="_blank"
+                       rel="noopener"
+                       aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
+                        <img class="lwc-merch-thumb"
+                             src="{{ASSET_MERCH_CAP}}"
+                             alt="Organic cotton cap in the Longevity World Cup merch store"
+                             width="428" height="487" loading="lazy" decoding="async">
+                        <span class="lwc-merch-item-copy">
+                            <span class="lwc-merch-item-title">Organic cotton cap</span>
+                            <span class="lwc-merch-item-price">$37.00</span>
+                        </span>
+                    </a>
+                </div>
+                <div class="lwc-merch-mobile-carousel" id="lwc-merch-mobile-carousel" hidden>
+                    <div class="lwc-merch-mobile-track">
+                        <a class="lwc-merch-mobile-slide is-active"
+                           href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="Open White glossy mug in the Longevity World Cup merch store">
+                            <img class="lwc-merch-thumb"
+                                 src="{{ASSET_MERCH_MUG}}"
+                                 alt="White glossy mug in the Longevity World Cup merch store"
+                                 width="428" height="487" loading="lazy" decoding="async">
+                            <span class="lwc-merch-item-copy">
+                                <span class="lwc-merch-item-title">White glossy mug</span>
+                                <span class="lwc-merch-item-price">$19.50 - $29.50</span>
+                            </span>
+                        </a>
+                        <a class="lwc-merch-mobile-slide"
+                           href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
+                            <img class="lwc-merch-thumb"
+                                 src="{{ASSET_MERCH_HOODIE}}"
+                                 alt="Organic cotton hoodie in the Longevity World Cup merch store"
+                                 width="428" height="487" loading="lazy" decoding="async">
+                            <span class="lwc-merch-item-copy">
+                                <span class="lwc-merch-item-title">Organic cotton hoodie</span>
+                                <span class="lwc-merch-item-price">$94.00</span>
+                            </span>
+                        </a>
+                        <a class="lwc-merch-mobile-slide"
+                           href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
+                            <img class="lwc-merch-thumb"
+                                 src="{{ASSET_MERCH_CAP}}"
+                                 alt="Organic cotton cap in the Longevity World Cup merch store"
+                                 width="428" height="487" loading="lazy" decoding="async">
+                            <span class="lwc-merch-item-copy">
+                                <span class="lwc-merch-item-title">Organic cotton cap</span>
+                                <span class="lwc-merch-item-price">$37.00</span>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="lwc-merch-mobile-dots">
+                        <button type="button" class="lwc-merch-mobile-dot is-active" aria-label="Show merch product 1"></button>
+                        <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 2"></button>
+                        <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 3"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<section id="hall-of-fame" class="section-container archive-section" aria-labelledby="hall-of-fame-title" data-aos="fade" data-aos-duration="700" data-aos-delay="325">
+    <h2 id="hall-of-fame-title"><i class="fas fa-trophy"></i> Hall of fame</h2>
+    <div class="archive-table-wrapper">
+        <table class="archive-table" aria-label="Historical archive of Longevity World Cup champions">
+            <thead>
+                <tr>
+                    <th scope="col">Year</th>
+                    <th scope="col">Aging clock</th>
+                    <th scope="col">1st</th>
+                    <th scope="col">2nd</th>
+                    <th scope="col">3rd</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2025</td>
+                    <td><a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></td>
+                    <td><a href="/athlete/michael-lustgarten">Michael Lustgarten, PhD</a> <span class="age-reduction">(-22.1 years)</span></td>
+                    <td><a href="/athlete/zdenek-sipek">Zdenek Sipek</a> <span class="age-reduction">(-20.6 years)</span></td>
+                    <td><a href="/athlete/wen-z">Wen Z</a> <span class="age-reduction">(-20.1 years)</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="archive-mobile-card">
+        <div class="archive-mobile-card-header">
+            <span class="archive-mobile-card-year">2025</span>
+            <div class="archive-mobile-card-clock">
+                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a>
+            </div>
+        </div>
+        <div class="archive-mobile-card-winners">
+            <div class="archive-mobile-card-winner">
+                <span class="archive-mobile-card-place">1st</span>
+                <div class="archive-mobile-card-winner-content">
+                    <span class="archive-mobile-card-winner-name">
+                        <a href="/athlete/michael-lustgarten">Michael Lustgarten, PhD</a>
+                    </span>
+                    <span class="archive-mobile-card-age-reduction">(-22.1 years)</span>
+                </div>
+            </div>
+            <div class="archive-mobile-card-winner">
+                <span class="archive-mobile-card-place">2nd</span>
+                <div class="archive-mobile-card-winner-content">
+                    <span class="archive-mobile-card-winner-name">
+                        <a href="/athlete/zdenek-sipek">Zdenek Sipek</a>
+                    </span>
+                    <span class="archive-mobile-card-age-reduction">(-20.6 years)</span>
+                </div>
+            </div>
+            <div class="archive-mobile-card-winner">
+                <span class="archive-mobile-card-place">3rd</span>
+                <div class="archive-mobile-card-winner-content">
+                    <span class="archive-mobile-card-winner-name">
+                        <a href="/athlete/wen-z">Wen Z</a>
+                    </span>
+                    <span class="archive-mobile-card-age-reduction">(-20.1 years)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="homepage-section-footer">
+        <a href="/history"><i class="fas fa-book-open" aria-hidden="true"></i> History of longevity as a sport</a>
+    </p>
+</section>
+
+<section id="faq" class="section-container homepage-faq-section" aria-labelledby="homepage-faq-title" data-aos="fade" data-aos-duration="700" data-aos-delay="340">
+    <h2 id="homepage-faq-title"><i class="fas fa-circle-question"></i> FAQ</h2>
+    <div class="homepage-faq-grid">
+        <div class="homepage-faq-item">
+            <h3>What is the Longevity World Cup?</h3>
+            <p>An open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by age reduction.</p>
+        </div>
+        <div class="homepage-faq-item">
+            <h3>How do rankings work?</h3>
+            <p>The Ultimate League ranks Pro athletes before Amateur athletes, then orders each track by effective age reduction and tie breakers.</p>
+        </div>
+        <div class="homepage-faq-item">
+            <h3>Which biological aging clocks are used?</h3>
+            <p>The current public competition uses pheno age for the Amateur path and bortz age for the Pro seasonal path.</p>
+        </div>
+        <div class="homepage-faq-item">
+            <h3>How do I join?</h3>
+            <p><a href="/play">Submit an application</a> with eligible biomarker results and proof. For full eligibility details, see the <a href="/ruleset">ruleset</a>.</p>
+        </div>
+    </div>
+    <p class="homepage-faq-more homepage-section-footer">
+        <a href="/ruleset#faq"><i class="fas fa-circle-question" aria-hidden="true"></i> Extended FAQ</a>
+        <a href="/rejuvenation-olympics">Coming from Rejuvenation Olympics? <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+    </p>
+</section>
+
+<div class="homepage-panel-pair">
+<section id="contribute" class="section-container contribute-section" aria-labelledby="contribute-title" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+    <div id="donation-section" class="contribute-content">
+        <h2 id="contribute-title"><i class="fa-brands fa-btc"></i> Contribute</h2>
+        <p>
+            <span class="smaller-text">
+                90% of Bitcoin&nbsp;donations fund the <strong>prize&nbsp;pool</strong> for Longevity&nbsp;World&nbsp;Cup champions:
+            </span>
+        </p>
+        <div class="contribute-panel">
+            <div class="btc-status">
+                <div class="btc-status-topline">
+                    <div class="btc-status-title">Prize pool</div>
+                    <div class="btc-status-goal"><span id="goal-btc">0.01</span> BTC goal</div>
+                </div>
+                <div class="btc-status-value"><span id="current-btc">0.0021</span> BTC</div>
+                <div class="btc-status-track" role="progressbar" aria-label="Bitcoin prize pool progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="21">
+                    <span class="btc-status-fill"></span>
+                </div>
+            </div>
+            <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                <img src="{{ASSET_DONATION_QR}}" alt="Donate with Bitcoin QR code" class="qr-code-img" width="165" height="165" loading="lazy" fetchpriority="low" decoding="async">
+            </div>
+            <div class="btc-address">
+                <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
+                </a>
+                <input id="bitcoinAddressFallback" type="text" readonly hidden aria-label="Bitcoin donation address" aria-describedby="bitcoinCopyHelp" spellcheck="false">
+                <span id="bitcoinCopyStatus" role="status" aria-live="polite" aria-atomic="true">
+                    <span id="copiedText" hidden></span>
+                    <span id="bitcoinCopyHelp" hidden>Copy the selected address.</span>
+                </span>
+                <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="newsletter" class="section-container newsletter-section" aria-labelledby="newsletter-title" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+    <h2 id="newsletter-title"><i class="fas fa-calendar-alt"></i> Yearly newsletter</h2>
+    <div class="newsletter-panel">
+        <p>
+            <span class="smaller-text">
+                Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
+            </span>
         </p>
 
-        <!--LEADERBOARD-CONTENT-->
-        <div class="full-rankings-action">
-            <a id="viewAllAthletesBtn" href="/leaderboard" class="rankings-btn" aria-label="View all athletes on the leaderboard">
-                View all athletes
-            </a>
-        </div>
-
-        <div class="lwc-highlights-countdown-wrapper">
-            <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
-
-            <div id="lwc-countdown-box" class="events-board events-board--timer">
-                <div class="lwc-countdown-inner">
-                    <div class="lwc-countdown-header-row">
-                        <a class="lwc-countdown-title"
-                           href="https://merch.longevityworldcup.com/"
-                           target="_blank"
-                           rel="noopener">SWAG</a>
-                        <a class="lwc-merch-header-link"
-                           href="https://merch.longevityworldcup.com/"
-                           target="_blank"
-                           rel="noopener">Store</a>
-                    </div>
-
-                    <div class="lwc-countdown-body lwc-merch-body">
-                        <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
-                           href="https://merch.longevityworldcup.com/"
-                           target="_blank"
-                           rel="noopener">The Longevity World Cup store</a> contains high-end, <strong>longevitymaxxing</strong> organic cotton clothing, blood tests, and more.</p>
-                        <div class="lwc-merch-grid">
-                            <a class="lwc-merch-item"
-                               href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
-                               target="_blank"
-                               rel="noopener"
-                               aria-label="Open White glossy mug in the Longevity World Cup merch store">
-                                <img class="lwc-merch-thumb"
-                                     src="{{ASSET_MERCH_MUG}}"
-                                     alt="White glossy mug in the Longevity World Cup merch store"
-                                     width="428" height="487" loading="lazy" decoding="async">
-                                <span class="lwc-merch-item-copy">
-                                    <span class="lwc-merch-item-title">White glossy mug</span>
-                                    <span class="lwc-merch-item-price">$19.50 - $29.50</span>
-                                </span>
-                            </a>
-                            <a class="lwc-merch-item"
-                               href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
-                               target="_blank"
-                               rel="noopener"
-                               aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
-                                <img class="lwc-merch-thumb"
-                                     src="{{ASSET_MERCH_HOODIE}}"
-                                     alt="Organic cotton hoodie in the Longevity World Cup merch store"
-                                     width="428" height="487" loading="lazy" decoding="async">
-                                <span class="lwc-merch-item-copy">
-                                    <span class="lwc-merch-item-title">Organic cotton hoodie</span>
-                                    <span class="lwc-merch-item-price">$94.00</span>
-                                </span>
-                            </a>
-                            <a class="lwc-merch-item"
-                               href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
-                               target="_blank"
-                               rel="noopener"
-                               aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
-                                <img class="lwc-merch-thumb"
-                                     src="{{ASSET_MERCH_CAP}}"
-                                     alt="Organic cotton cap in the Longevity World Cup merch store"
-                                     width="428" height="487" loading="lazy" decoding="async">
-                                <span class="lwc-merch-item-copy">
-                                    <span class="lwc-merch-item-title">Organic cotton cap</span>
-                                    <span class="lwc-merch-item-price">$37.00</span>
-                                </span>
-                            </a>
-                        </div>
-                        <div class="lwc-merch-mobile-carousel" id="lwc-merch-mobile-carousel" hidden>
-                            <div class="lwc-merch-mobile-track">
-                                <a class="lwc-merch-mobile-slide is-active"
-                                   href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
-                                   target="_blank"
-                                   rel="noopener"
-                                   aria-label="Open White glossy mug in the Longevity World Cup merch store">
-                                    <img class="lwc-merch-thumb"
-                                         src="{{ASSET_MERCH_MUG}}"
-                                         alt="White glossy mug in the Longevity World Cup merch store"
-                                         width="428" height="487" loading="lazy" decoding="async">
-                                    <span class="lwc-merch-item-copy">
-                                        <span class="lwc-merch-item-title">White glossy mug</span>
-                                        <span class="lwc-merch-item-price">$19.50 - $29.50</span>
-                                    </span>
-                                </a>
-                                <a class="lwc-merch-mobile-slide"
-                                   href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
-                                   target="_blank"
-                                   rel="noopener"
-                                   aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
-                                    <img class="lwc-merch-thumb"
-                                         src="{{ASSET_MERCH_HOODIE}}"
-                                         alt="Organic cotton hoodie in the Longevity World Cup merch store"
-                                         width="428" height="487" loading="lazy" decoding="async">
-                                    <span class="lwc-merch-item-copy">
-                                        <span class="lwc-merch-item-title">Organic cotton hoodie</span>
-                                        <span class="lwc-merch-item-price">$94.00</span>
-                                    </span>
-                                </a>
-                                <a class="lwc-merch-mobile-slide"
-                                   href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
-                                   target="_blank"
-                                   rel="noopener"
-                                   aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
-                                    <img class="lwc-merch-thumb"
-                                         src="{{ASSET_MERCH_CAP}}"
-                                         alt="Organic cotton cap in the Longevity World Cup merch store"
-                                         width="428" height="487" loading="lazy" decoding="async">
-                                    <span class="lwc-merch-item-copy">
-                                        <span class="lwc-merch-item-title">Organic cotton cap</span>
-                                        <span class="lwc-merch-item-price">$37.00</span>
-                                    </span>
-                                </a>
-                            </div>
-                            <div class="lwc-merch-mobile-dots">
-                                <button type="button" class="lwc-merch-mobile-dot is-active" aria-label="Show merch product 1"></button>
-                                <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 2"></button>
-                                <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 3"></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <section id="hall-of-fame" class="section-container archive-section" aria-labelledby="hall-of-fame-title" data-aos="fade" data-aos-duration="700" data-aos-delay="325">
-            <h2 id="hall-of-fame-title"><i class="fas fa-trophy"></i> Hall of fame</h2>
-            <div class="archive-table-wrapper">
-                <table class="archive-table" aria-label="Historical archive of Longevity World Cup champions">
-                    <thead>
-                        <tr>
-                            <th scope="col">Year</th>
-                            <th scope="col">Aging clock</th>
-                            <th scope="col">1st</th>
-                            <th scope="col">2nd</th>
-                            <th scope="col">3rd</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>2025</td>
-                            <td><a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a></td>
-                            <td><a href="/athlete/michael-lustgarten">Michael Lustgarten, PhD</a> <span class="age-reduction">(-22.1 years)</span></td>
-                            <td><a href="/athlete/zdenek-sipek">Zdenek Sipek</a> <span class="age-reduction">(-20.6 years)</span></td>
-                            <td><a href="/athlete/wen-z">Wen Z</a> <span class="age-reduction">(-20.1 years)</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="archive-mobile-card">
-                <div class="archive-mobile-card-header">
-                    <span class="archive-mobile-card-year">2025</span>
-                    <div class="archive-mobile-card-clock">
-                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener">Pheno Age</a>
-                    </div>
-                </div>
-                <div class="archive-mobile-card-winners">
-                    <div class="archive-mobile-card-winner">
-                        <span class="archive-mobile-card-place">1st</span>
-                        <div class="archive-mobile-card-winner-content">
-                            <span class="archive-mobile-card-winner-name">
-                                <a href="/athlete/michael-lustgarten">Michael Lustgarten, PhD</a>
-                            </span>
-                            <span class="archive-mobile-card-age-reduction">(-22.1 years)</span>
-                        </div>
-                    </div>
-                    <div class="archive-mobile-card-winner">
-                        <span class="archive-mobile-card-place">2nd</span>
-                        <div class="archive-mobile-card-winner-content">
-                            <span class="archive-mobile-card-winner-name">
-                                <a href="/athlete/zdenek-sipek">Zdenek Sipek</a>
-                            </span>
-                            <span class="archive-mobile-card-age-reduction">(-20.6 years)</span>
-                        </div>
-                    </div>
-                    <div class="archive-mobile-card-winner">
-                        <span class="archive-mobile-card-place">3rd</span>
-                        <div class="archive-mobile-card-winner-content">
-                            <span class="archive-mobile-card-winner-name">
-                                <a href="/athlete/wen-z">Wen Z</a>
-                            </span>
-                            <span class="archive-mobile-card-age-reduction">(-20.1 years)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <p class="homepage-section-footer">
-                <a href="/history"><i class="fas fa-book-open" aria-hidden="true"></i> History of longevity as a sport</a>
-            </p>
-        </section>
-
-        <section id="faq" class="section-container homepage-faq-section" aria-labelledby="homepage-faq-title" data-aos="fade" data-aos-duration="700" data-aos-delay="340">
-            <h2 id="homepage-faq-title"><i class="fas fa-circle-question"></i> FAQ</h2>
-            <div class="homepage-faq-grid">
-                <div class="homepage-faq-item">
-                    <h3>What is the Longevity World Cup?</h3>
-                    <p>An open longevity sport competition where longevity athletes submit biological age results and rank on public leaderboards by age reduction.</p>
-                </div>
-                <div class="homepage-faq-item">
-                    <h3>How do rankings work?</h3>
-                    <p>The Ultimate League ranks Pro athletes before Amateur athletes, then orders each track by effective age reduction and tie breakers.</p>
-                </div>
-                <div class="homepage-faq-item">
-                    <h3>Which biological aging clocks are used?</h3>
-                    <p>The current public competition uses pheno age for the Amateur path and bortz age for the Pro seasonal path.</p>
-                </div>
-                <div class="homepage-faq-item">
-                    <h3>How do I join?</h3>
-                    <p><a href="/play">Submit an application</a> with eligible biomarker results and proof. For full eligibility details, see the <a href="/ruleset">ruleset</a>.</p>
-                </div>
-            </div>
-            <p class="homepage-faq-more homepage-section-footer">
-                <a href="/ruleset#faq"><i class="fas fa-circle-question" aria-hidden="true"></i> Extended FAQ</a>
-                <a href="/rejuvenation-olympics">Coming from Rejuvenation Olympics? <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
-            </p>
-        </section>
-
-        <div class="homepage-panel-pair">
-        <section id="contribute" class="section-container contribute-section" aria-labelledby="contribute-title" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <div id="donation-section" class="contribute-content">
-                <h2 id="contribute-title"><i class="fa-brands fa-btc"></i> Contribute</h2>
-                <p>
-                    <span class="smaller-text">
-                        90% of Bitcoin&nbsp;donations fund the <strong>prize&nbsp;pool</strong> for Longevity&nbsp;World&nbsp;Cup champions:
-                    </span>
-                </p>
-                <div class="contribute-panel">
-                    <div class="btc-status">
-                        <div class="btc-status-topline">
-                            <div class="btc-status-title">Prize pool</div>
-                            <div class="btc-status-goal"><span id="goal-btc">0.01</span> BTC goal</div>
-                        </div>
-                        <div class="btc-status-value"><span id="current-btc">0.0021</span> BTC</div>
-                        <div class="btc-status-track" role="progressbar" aria-label="Bitcoin prize pool progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="21">
-                            <span class="btc-status-fill"></span>
-                        </div>
-                    </div>
-                    <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                        <img src="{{ASSET_DONATION_QR}}" alt="Donate with Bitcoin QR code" class="qr-code-img" width="165" height="165" loading="lazy" fetchpriority="low" decoding="async">
-                    </div>
-                    <div class="btc-address">
-                        <a id="btcAddressLink" href="#" target="_blank" rel="noopener" title="View Bitcoin donations" aria-label="View the Bitcoin donation address on mempool.space">
-                        </a>
-                        <input id="bitcoinAddressFallback" type="text" readonly hidden aria-label="Bitcoin donation address" aria-describedby="bitcoinCopyHelp" spellcheck="false">
-                        <span id="bitcoinCopyStatus" role="status" aria-live="polite" aria-atomic="true">
-                            <span id="copiedText" hidden></span>
-                            <span id="bitcoinCopyHelp" hidden>Copy the selected address.</span>
-                        </span>
-                        <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="newsletter" class="section-container newsletter-section" aria-labelledby="newsletter-title" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <h2 id="newsletter-title"><i class="fas fa-calendar-alt"></i> Yearly newsletter</h2>
-            <div class="newsletter-panel">
-                <p>
-                    <span class="smaller-text">
-                        Want to know who wins? Get last year’s winner and next year’s competition announcements — no spam, just the essentials.
-                    </span>
-                </p>
-
-                <form id="newsletter-form" novalidate>
-                    <label for="emailInput" class="shared-email-label">Email address</label>
-                    <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" autocapitalize="none" spellcheck="false" aria-describedby="newsletterStatus" required>
-                    <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-describedby="newsletterStatus">
-                        <i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe
-                    </button>
-                </form>
-                <p id="newsletterStatus" role="status" aria-live="polite" aria-atomic="true"></p>
-            </div>
-        </section>
-        </div>
+        <form id="newsletter-form" novalidate>
+            <label for="emailInput" class="shared-email-label">Email address</label>
+            <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" autocapitalize="none" spellcheck="false" aria-describedby="newsletterStatus" required>
+            <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-describedby="newsletterStatus">
+                <i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe
+            </button>
+        </form>
+        <p id="newsletterStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+    </div>
+</section>
+</div>
     </main>
     <!--FOOTER-->
 

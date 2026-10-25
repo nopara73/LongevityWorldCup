@@ -242,16 +242,24 @@ public sealed class SharedInteractionFeelBrowserTests(
         await cdp.DetachAsync();
     }
 
-    [Fact]
-    public async Task FirstMotionPress_DoesNotRestyleUnrelatedDocumentContent()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FirstMotionPress_DoesNotRestyleUnrelatedDocumentContent(bool emptyState)
     {
         await using var context = await ContextAsync();
         var page = await context.NewPageAsync();
         await page.GotoAsync("/health");
-        await page.SetContentAsync("<button id=press>Enable motion</button><details><summary>Archive</summary><p>Contents</p></details><main>"
+        await page.SetContentAsync("<button id=press>Enable motion</button><details><summary>Archive</summary><p>Contents</p></details><div class='error-message athlete-search-empty'>No matching athletes.</div><main>"
             + string.Concat(Enumerable.Range(0, 3000).Select(i => $"<div><span>Unrelated content {i}</span></div>")) + "</main>");
         await page.AddStyleTagAsync(new() { Url = new Uri(App.BaseAddress, "/css/motion.css").ToString() });
         await page.AddScriptTagAsync(new() { Url = new Uri(App.BaseAddress, "/js/motion.js").ToString() });
+        if (emptyState)
+        {
+            await page.AddStyleTagAsync(new() { Url = new Uri(App.BaseAddress, "/css/empty-state.css").ToString() });
+            await page.AddScriptTagAsync(new() { Url = new Uri(App.BaseAddress, "/js/empty-state.js").ToString() });
+            await Assertions.Expect(page.Locator(".athlete-search-empty > svg")).ToHaveCountAsync(1);
+        }
         await page.EvaluateAsync("() => document.body.getBoundingClientRect().height");
         var cdp = await context.NewCDPSessionAsync(page);
         var frameTree = await cdp.SendAsync("Page.getFrameTree");
