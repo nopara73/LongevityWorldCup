@@ -117,6 +117,45 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#glucose")).ToHaveValueAsync("90.08");
     }
 
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task CachedReturn_LateChangeCannotPromoteCarryoverIntoRawDraft(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        await page.Locator("#calculateBioageButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("45");
+        // A late native commit or restored form event must not turn a value
+        // filled by calculation into an explicit edit while the view is cached.
+        await RunCachedReturnAsync(page, () => page.EvaluateAsync("""
+            () => {
+                window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted:true}));
+                document.getElementById('albumin').dispatchEvent(new Event('change', {bubbles:true}));
+                window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));
+            }
+            """));
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
+        await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-09-01");
+        var key = $"bioageDraft:{clock}:update:Draft%20Test%20Athlete:v1";
+        Assert.Equal("", await page.EvaluateAsync<string>(
+            "key => JSON.parse(sessionStorage.getItem(key)).fields.albumin.value", key));
+        await FillMarkerAsync(page, "wbc", "6.1");
+        await page.ReloadAsync();
+        await WaitForEntryAsync(page);
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("6.1");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+    }
+
     [Fact]
     public async Task UpdateDrafts_StaySeparateByAthleteClockAndNewApplication()
     {

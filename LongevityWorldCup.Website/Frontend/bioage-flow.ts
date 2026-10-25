@@ -1251,7 +1251,12 @@ interface Window {
             syncBiomarkerHeaderSemantics(controller);
             getFlowActionDock()?.refresh?.();
         });
-        window.addEventListener('pagehide', () => saveBioageDraft(controller));
+        window.addEventListener('pagehide', () => {
+            saveBioageDraft(controller);
+            // Update views reload on cached return. Late commits from their
+            // calculated DOM must not replace the raw draft while inactive.
+            if (controller.isUpdate) controller.restoring = true;
+        });
     }
 
     function initializeBloodDrawDate(form: HTMLFormElement, defaultToToday: boolean): void {
