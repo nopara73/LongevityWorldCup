@@ -200,6 +200,7 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
+                        bodyContent = InjectPortraitSystem(bodyContent);
                         bodyContent = InjectTouchLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                         bodyContent = InjectDepthSystem(bodyContent);
@@ -639,6 +640,21 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Athlete portraits share one frame, loading, fallback and motion treatment on every page.
+        private string InjectPortraitSystem(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 
