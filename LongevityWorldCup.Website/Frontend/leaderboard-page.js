@@ -3967,7 +3967,10 @@ function renderFlagTeams(teams, view) {
             <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
     const nextChildren = [...template.content.children].map(incoming => {
-        if (incoming.classList.contains('flag-empty')) return container.querySelector('.flag-empty') || incoming;
+        if (incoming.classList.contains('flag-empty')) {
+            const existing = container.querySelector('.flag-empty:not([aria-busy="true"])');
+            return existing?.textContent.trim() === incoming.textContent.trim() ? existing : incoming;
+        }
         if (incoming.classList.contains('flag-section-heading')) {
             return existingHeadings.get(incoming.textContent) || incoming;
         }

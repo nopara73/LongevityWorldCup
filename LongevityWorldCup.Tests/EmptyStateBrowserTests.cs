@@ -67,6 +67,35 @@ public sealed class EmptyStateBrowserTests(PlaywrightBrowserFixture browserFixtu
     }
 
     [Fact]
+    public async Task FlagSearch_ReplacesTheLoadingPlaceholderWithTheReadyEmptyState()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route => {
+            requested.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/leaderboard?group=flags&search=zzzzemptyreview", new() { WaitUntil = WaitUntilState.Commit });
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await page.WaitForFunctionAsync("() => !!window.LwcEmptyState && document.readyState !== 'loading'");
+            var loading = page.Locator(".flag-empty[aria-busy=true]");
+            await Assertions.Expect(loading).ToHaveTextAsync("Loading flags...");
+            await Assertions.Expect(loading.Locator("svg")).ToHaveCountAsync(0);
+        }
+        finally { release.TrySetResult(); }
+        var empty = page.Locator(".flag-empty");
+        await Assertions.Expect(empty).ToHaveTextAsync("No flags match this leaderboard.");
+        await Assertions.Expect(empty).ToHaveAttributeAsync("data-lwc-empty", "flag");
+        await Assertions.Expect(empty.Locator("svg")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator(".flag-empty[aria-busy=true]")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task FilterAndFlagScenes_FollowTheActualBoardAndKeepTheirHosts()
     {
         await using var context = await NewContextAsync(Browser, App, new());

@@ -38,7 +38,7 @@ interface Window {
     // is the element that already owns the message and its spacing.
     const registry: readonly Entry[] = [
         { selector: ".no-results-empty-state", kind: leaderboardKind },
-        { selector: ".flag-empty", kind: "flag" },
+        { selector: ".flag-empty", kind: "flag", accepts: host => host.getAttribute("aria-busy") !== "true" },
         { selector: ".proofs-empty", kind: "proofs" },
         { selector: "tr.events-empty-row > td", kind: "calendar" },
         { selector: ".lmx-empty-row > .lmx-name", kind: "podium" },
