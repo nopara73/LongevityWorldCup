@@ -350,20 +350,28 @@ public sealed class InteractionMotionBrowserTests(
         await using var context = await NewMotionContextAsync(1280, 800);
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, route);
+        if (route == "/play")
+            await page.WaitForFunctionAsync("""
+                () => document.documentElement.classList.contains('play-route-ready')
+                    && !document.body.matches('.play-start-preintro, .play-start-intro')
+                """);
         // Check both the shared press treatment and the play flow's deliberate
         // override, rather than treating a component as the global default.
-        // Play mounts and orders its controls after the shared page shell loads.
-        if (route == "/play") await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-route-ready')");
         var button = page.Locator(selector);
         await Assertions.Expect(button).ToBeEnabledAsync();
         await button.HoverAsync();
         await page.Mouse.DownAsync();
-        await page.WaitForTimeoutAsync(200);
-        var pressed = await button.EvaluateAsync<string>("element => getComputedStyle(element).scale");
-        await page.Mouse.MoveAsync(1, 1);
-        await page.Mouse.UpAsync();
-
-        Assert.Equal(expectedScale, pressed);
+        try
+        {
+            // Observe the held state instead of assuming a busy CI renderer
+            // has presented the press transition after a fixed wall-clock delay.
+            await Assertions.Expect(button).ToHaveCSSAsync("scale", expectedScale);
+        }
+        finally
+        {
+            await page.Mouse.MoveAsync(1, 1);
+            await page.Mouse.UpAsync();
+        }
     }
 
     [Fact]

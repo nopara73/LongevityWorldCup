@@ -250,7 +250,7 @@ public sealed class SharedInteractionFeelBrowserTests(
         await using var context = await ContextAsync();
         var page = await context.NewPageAsync();
         await page.GotoAsync("/health");
-        await page.SetContentAsync("<button id=press>Enable motion</button><details><summary>Archive</summary><p>Contents</p></details><div class=athlete-search-empty>No matching athletes.</div><main>"
+        await page.SetContentAsync("<button id=press>Enable motion</button><details><summary>Archive</summary><p>Contents</p></details><div class='error-message athlete-search-empty'>No matching athletes.</div><main>"
             + string.Concat(Enumerable.Range(0, 3000).Select(i => $"<div><span>Unrelated content {i}</span></div>")) + "</main>");
         await page.AddStyleTagAsync(new() { Url = new Uri(App.BaseAddress, "/css/motion.css").ToString() });
         await page.AddScriptTagAsync(new() { Url = new Uri(App.BaseAddress, "/js/motion.js").ToString() });
