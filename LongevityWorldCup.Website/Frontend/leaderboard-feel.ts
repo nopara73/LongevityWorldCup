@@ -5,16 +5,14 @@
 // - The ordered column's underline glides from the previous column, and its
 //   arrow grows in or turns over instead of swapping.
 // - The ranking tabs share one ink bar that slides to the chosen tab.
-// - Rows a search or filter removes fade out where they stood while the rest
-//   close the gap; rows that arrive fade in one after another.
+// - Row changes retain readable names while the controller settles their new order.
 // - Resting the pointer on a row peeks at that athlete's key numbers.
 // - On phones a rank rail on the edge shows where you are in the long list and
 //   scrubs or jumps to rank anchors and the Pro/Amateur boundary.
-// - Switching to and from By Flag crossfades the two views.
+// - Switching By Flag updates immediately with a short settling cue.
 //
 // Classic script for the full /leaderboard page only. It never replaces the
-// page's own handlers: rows keep their identity, moving copies live in inert,
-// pointer-transparent layers, and nothing waits on an animation. Motion follows
+// page's own handlers: rows keep their identity and nothing waits on an animation. Motion follows
 // the shared gate (first trusted press) and prefers-reduced-motion keeps all of
 // it off; the peek and rail still work without motion.
 
@@ -195,104 +193,7 @@ function initializeLeaderboardFeel(): void {
         placeInk();
     }
 
-    // 4) Rows leaving and arriving. The shared motion controller already glides
-    //    rows that stay; leaving rows get a fading copy, arriving rows a stagger.
-    const ghosts = document.createElement("div");
-    ghosts.className = "lb-ghosts";
-    ghosts.setAttribute("aria-hidden", "true");
-    ghosts.inert = true;
-    board.append(ghosts);
-    const ghostAnimations = new Set<Animation>();
-
-    function clearGhosts(): void {
-        for (const animation of ghostAnimations) animation.cancel();
-        ghostAnimations.clear();
-        ghosts.replaceChildren();
-    }
-    reduced.addEventListener("change", clearGhosts);
-    window.addEventListener("pagehide", clearGhosts);
-    window.addEventListener("scroll", clearGhosts, { passive: true });
-
-    function ghostOf(row: HTMLTableRowElement, rowBox: DOMRect, cellWidths: readonly number[]): HTMLElement {
-        const copy = row.cloneNode(true) as HTMLTableRowElement;
-        for (const element of [copy, ...Array.from(copy.querySelectorAll<HTMLElement>("[id], [data-athlete-name]"))]) {
-            element.removeAttribute("id");
-            element.removeAttribute("data-athlete-name");
-        }
-        copy.querySelectorAll("a, button, [tabindex]").forEach(element => element.setAttribute("tabindex", "-1"));
-        Array.from(copy.cells).forEach((cell, index) => {
-            const width = cellWidths[index];
-            if (width !== undefined) cell.style.width = `${width}px`;
-        });
-        const frame = document.createElement("table");
-        frame.className = "lb-ghost";
-        const group = document.createElement("tbody");
-        group.append(copy);
-        frame.append(group);
-        frame.style.left = `${rowBox.left}px`;
-        frame.style.top = `${rowBox.top}px`;
-        frame.style.width = `${rowBox.width}px`;
-        frame.style.height = `${rowBox.height}px`;
-        return frame;
-    }
-
-    const shared = window.LwcMotion;
-    if (shared) {
-        const baseFlip = shared.flip;
-        const flip = (elements: readonly Element[], mutate: () => void): void => {
-            clearGhosts();
-            if (!moving() || typeof Element.prototype.animate !== "function"
-                || !elements.some(element => element.parentElement === body)) {
-                baseFlip(elements, mutate);
-                return;
-            }
-            const viewTop = -40;
-            const viewBottom = window.innerHeight + 40;
-            const before = new Map<HTMLTableRowElement, HTMLElement>();
-            for (const row of shownRows()) {
-                const box = row.getBoundingClientRect();
-                if (box.bottom < viewTop || box.top > viewBottom) continue;
-                // Capture before hiding or changing a row's contents.
-                before.set(row, ghostOf(row, box, Array.from(row.cells).map(cell => cell.getBoundingClientRect().width)));
-            }
-            baseFlip(elements, mutate);
-
-            const leaving: HTMLElement[] = [];
-            for (const [row, copy] of before) {
-                if (row.isConnected && row.style.display !== "none" && row.getClientRects().length) continue;
-                if (leaving.length >= 24) break;
-                leaving.push(copy);
-            }
-            if (leaving.length) {
-                ghosts.append(...leaving);
-                const duration = token("--lwc-motion-base", 200);
-                leaving.forEach((copy, index) => {
-                    try {
-                        const animation = copy.animate(
-                            [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateX(-14px) scale(0.98)" }],
-                            { duration, delay: Math.min(index * 12, 96), easing: ease("--lwc-ease-exit"), fill: "forwards" });
-                        ghostAnimations.add(animation);
-                        const drop = () => { ghostAnimations.delete(animation); copy.remove(); };
-                        void animation.finished.then(drop, drop);
-                    } catch { copy.remove(); }
-                });
-            }
-
-            // Arriving rows: delay the shared fade so they land top to bottom.
-            let order = 0;
-            for (const row of shownRows()) {
-                if (before.has(row)) continue;
-                const box = row.getBoundingClientRect();
-                if (box.bottom < 0 || box.top > window.innerHeight) continue;
-                for (const animation of row.getAnimations?.() ?? []) {
-                    if (typeof CSSTransition !== "undefined" && animation instanceof CSSTransition) continue;
-                    animation.effect?.updateTiming({ delay: Math.min(order * 22, 176), fill: "backwards" });
-                }
-                order++;
-            }
-        };
-        window.LwcMotion = Object.freeze({ ...shared, flip });
-    }
+    // Row motion is owned by the leaderboard controller on both board surfaces.
 
     // 5) Peek: rest the pointer on a row to see that athlete's key numbers.
     const peek = document.createElement("div");
@@ -630,43 +531,22 @@ function initializeLeaderboardFeel(): void {
     if (typeof ResizeObserver === "function") new ResizeObserver(invalidateRows).observe(table);
     queueRail();
 
-    // 7) By Flag: the two views crossfade instead of swapping.
-    let replaying = false;
-    let transitioning = false;
-    // Chips, Clear all and history restoration can set checked without a
-    // change event. Rail checks read the current form state directly.
-    byFlag?.addEventListener("change", invalidateRows);
-    invalidateRows();
-    byFlag?.addEventListener("click", event => {
-        const start = (document as Document & { startViewTransition?: (update: () => void) => { finished: Promise<void> } }).startViewTransition;
-        if (replaying || !moving()) return;
-        // Let rapid subsequent inputs take their normal path, without another
-        // deferred replay overturning the user's newest selection.
-        if (transitioning) return;
-        if (typeof start !== "function") {
-            requestAnimationFrame(() => window.LwcMotion?.settle(board!));
-            return;
+    // By Flag applies its native change immediately. Keep feedback on the
+    // resulting surface so a document snapshot cannot swallow the next click.
+    let flagAnimation: Animation | null = null;
+    const finishFlagMotion = () => { flagAnimation?.cancel(); flagAnimation = null; };
+    reduced.addEventListener("change", finishFlagMotion);
+    window.addEventListener("pagehide", finishFlagMotion);
+    byFlag?.addEventListener("change", () => {
+        invalidateRows();
+        finishFlagMotion();
+        if (moving() && typeof board.animate === "function") {
+            flagAnimation = board.animate(
+                [{ opacity: .85, translate: "0 4px" }, { opacity: 1, translate: "0 0" }],
+                { duration: token("--lwc-motion-base", 200), easing: ease("--lwc-ease-enter") });
         }
-        event.preventDefault();
-        transitioning = true;
-        board!.classList.add("lb-crossfade");
-        let applied = false;
-        const apply = () => {
-            if (applied) return;
-            applied = true;
-            replaying = true;
-            try { byFlag.click(); } finally { replaying = false; }
-        };
-        const done = () => { transitioning = false; board!.classList.remove("lb-crossfade"); };
-        // Checkbox cancellation restores its value after this event dispatch.
-        // Starting in a microtask also makes a synchronous fallback safe.
-        queueMicrotask(() => {
-            try {
-                const transition = start.call(document, apply);
-                void transition.finished.then(done, () => { apply(); done(); });
-            } catch { apply(); done(); }
-        });
     });
+    invalidateRows();
 }
 
 if (document.readyState === "loading") {

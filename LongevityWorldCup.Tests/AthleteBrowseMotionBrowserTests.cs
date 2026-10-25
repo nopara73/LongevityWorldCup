@@ -37,7 +37,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
                         first: JSON.stringify(frames[0] ?? {}),
                         last: JSON.stringify(frames[frames.length - 1] ?? {})
                     });
-                    if (this.dataset?.athleteMotionCopy && window.__motion.holdCopies) animation.pause();
+                    if (window.__motion.holdMotion && (this.dataset?.athleteMotionCopy || this.classList.contains('modal-content') || this.id === 'athlete-profile')) animation.pause();
                 } catch { }
                 return animation;
             };
@@ -63,69 +63,34 @@ public sealed class AthleteBrowseMotionBrowserTests(
     [InlineData("/leaderboard", 1440, 900, false)]
     [InlineData("/leaderboard", 390, 844, true)]
     [InlineData("/", 1440, 900, false)]
-    public async Task OpeningARow_GrowsItsPortraitNameAndRankIntoTheProfile(string path, int width, int height, bool dark)
+    public async Task OpeningARow_KeepsTheWholeProfileReadableDuringItsEntrance(string path, int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(width, height, dark, reducedMotion: false);
         var page = await context.NewPageAsync();
         await NavigateToLeaderboardAsync(page, path);
-
         var source = path == "/" ? page.Locator(".podium-item[data-athlete-name]").First : page.Locator(Rows + ":visible").Nth(4);
         await source.ScrollIntoViewIfNeededAsync();
-        await ClearLogAsync(page);
+        await page.EvaluateAsync("window.__motion.holdMotion = true");
         await source.Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
-        await page.WaitForFunctionAsync("() => window.__motion.animations.some(entry => entry.copy === 'portrait')");
-
-        var log = await ReadAnimationsAsync(page);
-        Assert.Contains(log, entry => entry.Copy == "surface");
-        Assert.Contains(log, entry => entry.Copy == "name");
-        Assert.Contains(log, entry => entry.Copy == "rank");
-
-        // The card's copy starts as the tapped row and grows to the card.
-        var rowBox = await page.EvaluateAsync<JsonElement>("() => window.__motion.source.rect");
-        var surface = log.First(entry => entry.Copy == "surface");
-        Assert.InRange(Px(surface.First, "top"), rowBox.GetProperty("y").GetDouble() - 2, rowBox.GetProperty("y").GetDouble() + 2);
-        Assert.InRange(Px(surface.First, "height"), rowBox.GetProperty("height").GetDouble() - 2, rowBox.GetProperty("height").GetDouble() + 2);
-
-        // The portrait copy starts at the row's small portrait: scaled down, then released.
-        var portrait = log.First(entry => entry.Copy == "portrait");
-        Assert.Contains("translate(", portrait.First, StringComparison.Ordinal);
-        Assert.InRange(Scale(portrait.First), 0.05, 0.9);
-        Assert.Contains("\"transform\":\"none\"", portrait.Last, StringComparison.Ordinal);
-
-        // The real header waits under its copy, and the row's own portrait lifts off.
-        Assert.Contains(log, entry => entry.Id == "modalProfilePic" && entry.First.Contains("\"opacity\":0", StringComparison.Ordinal));
-        Assert.Contains(log, entry => entry.Id == "athleteName" && entry.First.Contains("\"opacity\":0", StringComparison.Ordinal));
-
-        // Moving copies never take input, and the dialog is usable while they fly.
-        var layer = await page.EvaluateAsync<JsonElement>(
-            """
+        await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content').getAnimations().some(a => a.playState === 'paused')");
+        await ExpectReadableProfileAsync(page);
+        // Controls remain real hit targets in the intermediate frame.
+        Assert.True(await page.EvaluateAsync<bool>("""
             () => {
-                const layer = document.querySelector('.athlete-motion-layer');
-                const close = document.getElementById('closeAthleteDetailsModal').getBoundingClientRect();
-                const hit = document.elementFromPoint(close.left + close.width / 2, close.top + close.height / 2);
-                return { pointer: getComputedStyle(layer).pointerEvents, inert: layer.inert, hidden: layer.getAttribute('aria-hidden'), hit: !!hit?.closest('#detailsModal') };
+                const close = document.getElementById('closeAthleteDetailsModal');
+                const r = close.getBoundingClientRect();
+                return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('button') === close;
             }
-            """);
-        Assert.Equal("none", layer.GetProperty("pointer").GetString());
-        Assert.True(layer.GetProperty("inert").GetBoolean());
-        Assert.Equal("true", layer.GetProperty("hidden").GetString());
-        Assert.True(layer.GetProperty("hit").GetBoolean(), "The close button must take input during the morph.");
-
-        // Everything lands and clears up.
-        await page.WaitForFunctionAsync(
-            """
-            () => document.querySelector('.athlete-motion-layer').childElementCount === 0
-                && parseFloat(getComputedStyle(document.getElementById('modalProfilePic')).opacity) === 1
-                && parseFloat(getComputedStyle(document.querySelector('#detailsModal .modal-content')).opacity) === 1
-            """);
+            """));
+        await page.EvaluateAsync("() => { window.__motion.holdMotion = false; document.getAnimations().filter(a => a.playState === 'paused').forEach(a => a.finish()); }");
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
     [Theory]
     [InlineData(1280, 860, false)]
     [InlineData(390, 844, true)]
-    public async Task ClosingAfterAStep_ShrinksIntoTheRowOnScreenAndFocusesIt(int width, int height, bool dark)
+    public async Task ClosingAfterAStep_KeepsContentAttachedAndReturnsFocusToItsRow(int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(width, height, dark, reducedMotion: false);
         var page = await context.NewPageAsync();
@@ -140,7 +105,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
         await page.Keyboard.PressAsync("ArrowRight");
         await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(names[4]);
         await WaitForProfileAsync(page);
-        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-motion-layer')?.childElementCount === 0");
+        await page.WaitForFunctionAsync("() => document.getElementById('athlete-profile').getAnimations().every(a => a.playState !== 'running')");
 
         await ClearLogAsync(page);
         await page.Keyboard.PressAsync("Escape");
@@ -150,12 +115,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
         Assert.Equal(scrolled, await page.EvaluateAsync<double>("() => scrollY"), 1.0);
         var target = await page.Locator($"{Rows}[data-athlete-name=\"{names[4]}\"]").BoundingBoxAsync();
         Assert.NotNull(target);
-        var log = await ReadAnimationsAsync(page);
-        var surface = log.First(entry => entry.Copy == "surface");
-        Assert.InRange(Px(surface.Last, "top"), target!.Y - 2, target.Y + 2);
-        Assert.InRange(Px(surface.Last, "height"), target.Height - 2, target.Height + 2);
-        Assert.Contains(log, entry => entry.Copy == "portrait");
-        Assert.Contains(log, entry => entry.Copy == "name");
+        Assert.DoesNotContain(await ReadAnimationsAsync(page), entry => entry.Copy is not null);
 
         Assert.Equal(names[4], await page.EvaluateAsync<string?>("() => document.activeElement?.closest('tr')?.dataset.athleteName ?? null"));
         Assert.Equal("athlete-name", await page.EvaluateAsync<string?>("() => document.activeElement?.className ?? null"));
@@ -204,7 +164,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     }
 
     [Fact]
-    public async Task Stepping_SlidesTheOldAthleteOutTowardsWhereItCameFrom()
+    public async Task Stepping_MovesTheNewProfileWithoutHidingItOrLeavingAnOldIdentity()
     {
         await using var context = await NewContextAsync(1280, 860, dark: true, reducedMotion: false);
         var page = await context.NewPageAsync();
@@ -213,22 +173,17 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var names = await rows.EvaluateAllAsync<string[]>("rows => rows.slice(0, 4).map(row => row.dataset.athleteName)");
         await rows.Nth(1).Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
-
-        foreach (var (key, name, sign) in new[] { ("ArrowRight", names[2], -1), ("ArrowLeft", names[1], 1) })
+        foreach (var (key, name) in new[] { ("ArrowRight", names[2]), ("ArrowLeft", names[1]) })
         {
-            await page.WaitForFunctionAsync("() => document.querySelector('.athlete-motion-layer')?.childElementCount === 0");
             await ClearLogAsync(page);
+            await page.EvaluateAsync("window.__motion.holdMotion = true");
             await page.Keyboard.PressAsync(key);
             await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(name);
-            var leaving = (await ReadAnimationsAsync(page)).Where(entry => entry.Copy == "leaving").ToArray();
-            Assert.Equal(2, leaving.Length);
-            foreach (var entry in leaving)
-            {
-                using var last = JsonDocument.Parse(entry.Last);
-                var shift = double.Parse(last.RootElement.GetProperty("translate").GetString()!.Split("px")[0], CultureInfo.InvariantCulture);
-                Assert.True(Math.Sign(shift) == sign && Math.Abs(shift) >= 40, $"{key}: the old athlete should leave by {sign * 40}px or more, not {shift}px.");
-            }
-            await page.WaitForFunctionAsync("() => document.getElementById('athlete-profile').getAnimations().every(animation => animation.playState !== 'running')");
+            await ExpectReadableProfileAsync(page);
+            var entries = await ReadAnimationsAsync(page);
+            Assert.Contains(entries, entry => entry.Id == "athlete-profile" && entry.First.Contains("translateX", StringComparison.Ordinal));
+            Assert.DoesNotContain(entries, entry => entry.Copy is not null);
+            await page.EvaluateAsync("() => { window.__motion.holdMotion = false; document.getAnimations().filter(a => a.playState === 'paused').forEach(a => a.finish()); }");
         }
     }
 
@@ -409,17 +364,17 @@ public sealed class AthleteBrowseMotionBrowserTests(
         var next = await rows.Nth(2).Locator("a.athlete-name").GetAttributeAsync("href");
         // Hold copies when they are created: waiting until profile readiness can
         // miss the entire short animation on a loaded browser worker.
-        if (!reducedMotion) await page.EvaluateAsync("() => window.__motion.holdCopies = true");
+        if (!reducedMotion) await page.EvaluateAsync("() => window.__motion.holdMotion = true");
         await rows.Nth(1).Locator("a.athlete-name").TapAsync();
         await WaitForProfileAsync(page);
         if (!reducedMotion)
         {
-            await page.WaitForFunctionAsync("() => document.querySelector('.athlete-motion-layer')?.childElementCount > 0");
+            await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content').getAnimations().some(a => a.playState === 'paused')");
         }
         var staleCopies = await page.EvaluateAsync<int>(
             """
             href => {
-                window.__motion.holdCopies = false;
+                window.__motion.holdMotion = false;
                 window.closeModal({ fromHistory: true });
                 window.openAthleteModalBySlug(href.split('/').pop(), { suppressGuessMyAge: true });
                 return document.querySelector('.athlete-motion-layer')?.childElementCount || 0;
@@ -447,7 +402,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
             """
             const originalAnimate = Element.prototype.animate;
             Element.prototype.animate = function (...args) {
-                if (this.dataset.athleteMotionCopy === 'portrait') throw new Error('Animation unavailable');
+                if (this.classList.contains('modal-content')) throw new Error('Animation unavailable');
                 return originalAnimate.apply(this, args);
             };
             """);
@@ -535,18 +490,31 @@ public sealed class AthleteBrowseMotionBrowserTests(
             entry.GetProperty("last").GetString()!)).ToArray();
     }
 
-    private static double Px(string keyframe, string property)
+    private static async Task ExpectReadableProfileAsync(IPage page)
     {
-        using var document = JsonDocument.Parse(keyframe);
-        return double.Parse(document.RootElement.GetProperty(property).GetString()!.Replace("px", "", StringComparison.Ordinal), CultureInfo.InvariantCulture);
-    }
-
-    private static double Scale(string keyframe)
-    {
-        using var document = JsonDocument.Parse(keyframe);
-        var transform = document.RootElement.GetProperty("transform").GetString()!;
-        var start = transform.IndexOf("scale(", StringComparison.Ordinal) + "scale(".Length;
-        return double.Parse(transform[start..transform.IndexOf(')', start)], CultureInfo.InvariantCulture);
+        var failures = await page.EvaluateAsync<string[]>("""
+            () => {
+                const card = document.querySelector('#detailsModal .modal-content');
+                const bounds = card.getBoundingClientRect();
+                const errors = [];
+                for (const selector of ['#athlete-profile', '#athleteName', '#modalProfilePic', '.athlete-links']) {
+                    const element = card.querySelector(selector);
+                    const rect = element.getBoundingClientRect();
+                    let opacity = 1;
+                    for (let node = element; node && node !== card.parentElement; node = node.parentElement)
+                        opacity *= Number(getComputedStyle(node).opacity);
+                    if (opacity < .85) errors.push(selector + ' is hidden during motion: ' + opacity);
+                    if (rect.left < bounds.left - 1 || rect.right > bounds.right + 1) errors.push(selector + ' detached from card');
+                }
+                for (const copy of document.querySelectorAll('[data-athlete-motion-copy]')) {
+                    const rect = copy.getBoundingClientRect();
+                    if (rect.width * rect.height > bounds.width * bounds.height / 2 && Number(getComputedStyle(copy).opacity) > .5)
+                        errors.push('opaque empty surface covers profile');
+                }
+                return errors;
+            }
+            """);
+        Assert.Empty(failures);
     }
 
     private static async Task NavigateToLeaderboardAsync(IPage page, string path)
