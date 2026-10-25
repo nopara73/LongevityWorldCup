@@ -5129,10 +5129,11 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 #detailsModal .athlete-share-menu{
     width:min(22.5rem, calc(100vw - 2rem));
     min-width:0;
-    padding:.75rem;
+    /* Enlarged type needs its space; decorative gaps need not double too. */
+    padding:min(.75rem, 12px);
     display:flex;
     flex-direction:column;
-    gap:.6rem;
+    gap:min(.6rem, 10px);
     border-radius:var(--lwc-radius-lg);
     background:var(--athlete-modal-surface);
     box-sizing:border-box;

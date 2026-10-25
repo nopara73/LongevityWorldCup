@@ -2773,7 +2773,7 @@ let currentAthleteModalRequestId = 0;
 let athleteDialogSnapshotRequest = null;
 let athleteDialogSnapshot = null;
 let athleteShareState = null;
-let athleteShareLayoutObserver = null;
+let athleteShareLayoutCleanup = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
 const athleteModalIsolation = new Map();
 const athleteModalFrames = new WeakSet();
@@ -5607,8 +5607,8 @@ function setShareMenuCopyState(label, disabled) {
 }
 
 function closeAthleteShareMenu(options) {
-    athleteShareLayoutObserver?.disconnect();
-    athleteShareLayoutObserver = null;
+    athleteShareLayoutCleanup?.();
+    athleteShareLayoutCleanup = null;
     const menu = document.getElementById('athleteShareMenu');
     if (!menu) return false;
     const wasOpen = !menu.hidden;
@@ -5647,7 +5647,10 @@ function closeAthleteShareMenu(options) {
 
 function positionAthleteShareMenu(menu) {
     if (!menu || menu.hidden) return;
+    const parent = menu.offsetParent;
+    if (!parent) return;
 
+    const scrollTop = menu.scrollTop;
     menu.style.removeProperty('--athlete-share-available-height');
     menu.style.removeProperty('--athlete-share-offset');
     menu.classList.remove('is-above');
@@ -5659,10 +5662,20 @@ function positionAthleteShareMenu(menu) {
         .filter(rect => rect.width > 0 && rect.height > 0 && rect.top < viewportBottom && rect.bottom > 0);
     const viewportTop = Math.max(0, modalRect ? modalRect.top : 0, ...chrome.map(rect => rect.bottom));
     const padding = 12;
-    const belowRect = menu.getBoundingClientRect();
+    // Entry motion belongs to the menu's paint, not its placement. Measure its
+    // layout box through the parent so the scale/translation cannot leave a
+    // stale offset when the animation finishes.
+    const measure = () => {
+        const rect = parent.getBoundingClientRect();
+        const scale = parent.offsetWidth > 0 ? rect.width / parent.offsetWidth : 1;
+        const top = rect.top + (parent.clientTop + menu.offsetTop - parent.scrollTop) * scale;
+        const height = menu.offsetHeight * scale;
+        return { top, bottom: top + height, height, scale };
+    };
+    const belowRect = measure();
     const below = Math.max(0, viewportBottom - Math.max(viewportTop, belowRect.top) - padding);
     menu.classList.add('is-above');
-    const aboveRect = menu.getBoundingClientRect();
+    const aboveRect = measure();
     const above = Math.max(0, Math.min(viewportBottom, aboveRect.bottom) - viewportTop - padding);
     const useAbove = belowRect.height > below && above > below;
     menu.classList.toggle('is-above', useAbove);
@@ -5671,11 +5684,11 @@ function positionAthleteShareMenu(menu) {
     // a native scroller for genuinely taller content.
     const top = viewportTop + padding;
     const bottom = viewportBottom - padding;
-    menu.style.setProperty('--athlete-share-available-height', `${Math.max(0, Math.floor(bottom - top))}px`);
-    const placed = menu.getBoundingClientRect();
+    menu.style.setProperty('--athlete-share-available-height', `${Math.max(0, Math.floor((bottom - top) / belowRect.scale))}px`);
+    const placed = measure();
     const offset = placed.top < top ? top - placed.top : Math.min(0, bottom - placed.bottom);
-    const scale = menu.offsetHeight > 0 ? placed.height / menu.offsetHeight : 1;
-    menu.style.setProperty('--athlete-share-offset', `${offset / (scale || 1)}px`);
+    menu.style.setProperty('--athlete-share-offset', `${offset / placed.scale}px`);
+    menu.scrollTop = scrollTop;
 }
 
 function keepAthleteShareMenuInView(menu) {
@@ -5797,15 +5810,31 @@ function openAthleteShareMenu(button, sharePayload) {
         copyButton.focus({ preventScroll: true });
     }
     keepAthleteShareMenuInView(menu);
-    requestAnimationFrame(() => keepAthleteShareMenuInView(menu));
-    athleteShareLayoutObserver?.disconnect();
-    athleteShareLayoutObserver = new ResizeObserver(() => {
-        if (isCurrentAthleteShare(state) && !menu.hidden) keepAthleteShareMenuInView(menu);
-    });
+    athleteShareLayoutCleanup?.();
+    let layoutFrame = 0;
+    const scheduleLayout = () => {
+        if (layoutFrame) return;
+        layoutFrame = requestAnimationFrame(() => {
+            layoutFrame = 0;
+            if (isCurrentAthleteShare(state) && !menu.hidden) keepAthleteShareMenuInView(menu);
+        });
+    };
+    const observer = new ResizeObserver(scheduleLayout);
     // Observe the anchors, not the menu whose height the callback adjusts.
-    athleteShareLayoutObserver.observe(button.parentElement);
+    observer.observe(button.parentElement);
     const modalContent = menu.closest('.modal-content');
-    if (modalContent) athleteShareLayoutObserver.observe(modalContent);
+    if (modalContent) {
+        observer.observe(modalContent);
+        const header = modalContent.querySelector('.modal-sticky-header');
+        if (header) observer.observe(header);
+        modalContent.addEventListener('scroll', scheduleLayout, { passive: true });
+    }
+    scheduleLayout();
+    athleteShareLayoutCleanup = () => {
+        observer.disconnect();
+        cancelAnimationFrame(layoutFrame);
+        modalContent?.removeEventListener('scroll', scheduleLayout);
+    };
 }
 
 function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
