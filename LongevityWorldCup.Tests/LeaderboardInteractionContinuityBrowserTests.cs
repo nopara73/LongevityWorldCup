@@ -132,6 +132,38 @@ public sealed class LeaderboardInteractionContinuityBrowserTests(
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('.leaderboard tbody tr')].every(row => !row.getAnimations().length)");
     }
 
+    [Theory]
+    [InlineData("/", 390)]
+    [InlineData("/leaderboard", 1440)]
+    public async Task SearchWithTheSameResultCount_DoesNotRepeatTheLiveAnnouncement(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator("#athleteSearch").FillAsync("zzzz-no-athlete");
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
+        await page.EvaluateAsync("""
+            () => {
+                window.countAnnouncements = [];
+                const count = document.getElementById('leaderboardResultCount');
+                new MutationObserver(() => countAnnouncements.push(count.textContent))
+                    .observe(count, { childList: true, characterData: true, subtree: true });
+            }
+            """);
+        await page.Locator("#athleteSearch").FillAsync("zzzz-no-athlete-again");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.Empty(await page.EvaluateAsync<string[]>("countAnnouncements"));
+
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).Not.ToHaveTextAsync("0 athletes");
+        var announcements = await page.EvaluateAsync<string[]>("countAnnouncements");
+        Assert.Equal(await page.Locator("#leaderboardResultCount").TextContentAsync(), Assert.Single(announcements));
+    }
+
     [Fact]
     public async Task ByFlag_AppliesImmediately_AndTheNextRankingInputIsNotReplayed()
     {
