@@ -851,6 +851,26 @@ button.option-button:disabled {
 .site-sticky-header.visible {
     display: flex;
 }
+/* Paint the same binary handoff in the scroll compositor, before its scroll
+   event reaches script. No fade or intermediate half-visible navigation. */
+@supports (animation-timeline: scroll(root block)) {
+    .site-sticky-header[data-scroll-handoff] {
+        display: flex;
+        opacity: 0;
+        pointer-events: none;
+        will-change: opacity;
+        animation: site-sticky-presence steps(1, end) both;
+        /* A scroll range has no clock duration, including with reduced motion. */
+        animation-duration: auto !important;
+        animation-timeline: scroll(root block);
+        animation-range: 0px var(--site-sticky-threshold);
+    }
+    .site-sticky-header[data-scroll-handoff].visible { pointer-events: auto; }
+}
+@keyframes site-sticky-presence {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
 .site-sticky-header.visible::before {
     content: '';
     position: absolute;

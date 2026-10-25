@@ -38,23 +38,13 @@
 
 const scrolledJoinButton = document.querySelector('.scrolled-button');
 const joinGameBtn = document.querySelector('.join-game');
-let lastKnownScrollPosition = 0;
 let ticking = false;
 let measuredStickyHeight = 0;
 let measuredRootFontSize = '';
 
-window.addEventListener('scroll', function () {
-    lastKnownScrollPosition = window.scrollY;
-
-    if (!ticking) {
-        window.requestAnimationFrame(function () {
-            handleScroll(lastKnownScrollPosition);
-            ticking = false;
-        });
-
-        ticking = true;
-    }
-});
+// Scroll events already follow the rendering cadence. Update the semantic
+// handoff here, alongside the native scroll animation, without another frame.
+window.addEventListener('scroll', () => handleScroll(window.scrollY), { passive: true });
 handleScroll(window.scrollY);
 
 // Text and loaded fonts can change both headers without a scroll event.
@@ -112,6 +102,19 @@ function handleScroll(scrollPos, remeasure = false) {
     const originalTop = joinGameBtn?.getBoundingClientRect().top + scrollPos;
     const threshold = mainJoinButtonVisible
         ? Math.min(bannerThreshold, Math.max(0, originalTop - 4)) : bannerThreshold;
+    // Keep the compositor's presence animation active from scroll 0. Starting
+    // its range at the threshold attaches it too late for the first wheel paint.
+    // The class below remains the fallback and owns focus/assistive technology.
+    const nativeHandoff = threshold > 0 && CSS.supports('animation-timeline', 'scroll(root block)');
+    if (nativeHandoff) {
+        const end = `${threshold}px`;
+        if (stickyHeader.style.getPropertyValue('--site-sticky-threshold') !== end) {
+            stickyHeader.style.setProperty('--site-sticky-threshold', end);
+        }
+    }
+    if (stickyHeader.hasAttribute('data-scroll-handoff') !== nativeHandoff) {
+        stickyHeader.toggleAttribute('data-scroll-handoff', nativeHandoff);
+    }
     const willBeVisible = scrollPos >= threshold;
     // A focused sticky link must not disappear from the keyboard's location
     // when scrolling or resizing brings the original banner back into view.
@@ -122,9 +125,13 @@ function handleScroll(scrollPos, remeasure = false) {
         target?.focus({ preventScroll: true });
     }
     stickyHeader.classList.toggle('visible', willBeVisible);
-    stickyHeader.inert = !willBeVisible;
-    stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
-    document.documentElement.style.setProperty('--site-visible-sticky-height', `${willBeVisible ? measuredStickyHeight : 0}px`);
+    if (stickyHeader.inert === willBeVisible) stickyHeader.inert = !willBeVisible;
+    const hidden = String(!willBeVisible);
+    if (stickyHeader.getAttribute('aria-hidden') !== hidden) stickyHeader.setAttribute('aria-hidden', hidden);
+    const visibleHeight = `${willBeVisible ? measuredStickyHeight : 0}px`;
+    if (document.documentElement.style.getPropertyValue('--site-visible-sticky-height') !== visibleHeight) {
+        document.documentElement.style.setProperty('--site-visible-sticky-height', visibleHeight);
+    }
 }
 
 function fitStickyHeader(stickyHeader) {
