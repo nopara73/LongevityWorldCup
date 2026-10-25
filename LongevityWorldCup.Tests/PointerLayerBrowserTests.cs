@@ -89,6 +89,33 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
     }
 
     [Fact]
+    public async Task PointerDecorations_DoNotRemeasureUnrelatedFieldsAndLabelsKeepNativeFocus()
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
+        await page.Locator("#edit").EvaluateAsync("field => field.insertAdjacentHTML('beforebegin', '<label id=editLabel for=edit>Edit</label>')");
+        await page.AddScriptTagAsync(new() { Url = new Uri(App.BaseAddress, "/js/form-controls.js").ToString() });
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.EvaluateAsync("""
+            () => {
+                window.unrelatedFieldReads = 0;
+                const original = Element.prototype.getClientRects;
+                Element.prototype.getClientRects = function(...args) {
+                    if (this.id === 'edit') window.unrelatedFieldReads++;
+                    return original.apply(this, args);
+                };
+            }
+            """);
+        await page.Keyboard.PressAsync("Tab");
+        await Expect(page.Locator(".lwc-tip.is-open")).ToHaveTextAsync("First tip");
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.unrelatedFieldReads"));
+        await page.Locator("#edit").FocusAsync();
+        await Expect(page.Locator("#editLabel")).ToHaveAttributeAsync("data-lwc-label", "focus block");
+        await page.Locator("#plain").FocusAsync();
+        await Expect(page.Locator("#editLabel")).ToHaveAttributeAsync("data-lwc-label", "block");
+    }
+
+    [Fact]
     public async Task PointerSweep_DoesNotMeasureLayoutUntilHoverIntent()
     {
         await using var context = await ContextAsync();

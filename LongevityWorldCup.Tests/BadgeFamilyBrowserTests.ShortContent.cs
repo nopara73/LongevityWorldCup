@@ -6,6 +6,29 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class BadgeFamilyBrowserTests
 {
     [Theory]
+    [InlineData(720, 402, false)]
+    [InlineData(720, 402, true)]
+    [InlineData(844, 390, false)]
+    [InlineData(844, 390, true)]
+    public async Task BadgeShelf_UsesTheProfileScrollerOnShortScreens(int width, int height, bool dark)
+    {
+        await using var context = await NewBadgeContextAsync(width, height, dark);
+        var page = await context.NewPageAsync();
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, $"/athlete/{Slug}");
+        await page.Locator("#modalBadgeStrip .modal-badge-toggle").First.ClickAsync();
+        var shelf = page.Locator("#modalBadgeStrip");
+        Assert.True(await shelf.EvaluateAsync<bool>("el => el.scrollHeight === el.clientHeight && el.scrollWidth === el.clientWidth"),
+            "A short badge shelf must grow with its explanation instead of introducing a second scrollbar.");
+        var last = shelf.Locator(".modal-badge-toggle").Last;
+        await last.FocusAsync();
+        await last.ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(last).ToBeInViewportAsync();
+        await Assertions.Expect(page.Locator("#stickyCloseBtn")).ToBeInViewportAsync();
+        await page.Locator("#stickyCloseBtn").ClickAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+    }
+
+    [Theory]
     [InlineData(1440, 900, false, 100)]
     [InlineData(1440, 900, true, 200)]
     [InlineData(390, 844, false, 100)]

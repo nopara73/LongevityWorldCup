@@ -3499,8 +3499,6 @@
      }
 
      #detailsModal .modal-badge-strip{
-         max-height:40vh;
-         overflow:auto;
          padding:.6rem;
      }
  }
