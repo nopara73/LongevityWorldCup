@@ -42,7 +42,15 @@ public sealed class UiInteractionBrowserTests(
             Assert.True(await page.Locator("header").EvaluateAsync<bool>("e => e.inert"));
             await page.Keyboard.PressAsync("Tab");
             Assert.True(await page.EvaluateAsync<bool>("!!document.activeElement.closest('#detailsModal')"));
+            // Releasing the route only lets the request start. Keep network
+            // delivery separate from the post-data hydration assertion below.
+            var dataResponse = page.WaitForResponseAsync(response =>
+                response.Url.EndsWith("/api/data/athletes", StringComparison.Ordinal)
+                && response.Request.Frame == page.MainFrame);
             release.TrySetResult();
+            var delivered = await dataResponse;
+            Assert.True(delivered.Ok);
+            Assert.Null(await delivered.FinishedAsync());
             await Assertions.Expect(page.Locator("#detailsModal .modal-content")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-loading"));
             Assert.True(await page.EvaluateAsync<bool>("!!document.activeElement.closest('#detailsModal')"));
             await CaptureAsync(page, $"profile-{width}");

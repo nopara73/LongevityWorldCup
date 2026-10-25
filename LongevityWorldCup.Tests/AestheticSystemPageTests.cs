@@ -52,7 +52,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
     [InlineData("/pheno-age")]
     [InlineData("/ruleset")]
     [InlineData("/privacy")]
-    public async Task SharedPages_LoadVersionedAestheticSystemLastInHead(string path)
+    public async Task SharedPages_LoadVersionedSurfaceSystemsInOrder(string path)
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient();
@@ -76,7 +76,12 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
 
         Assert.True(stylesheetIndex >= 0);
         Assert.True(closingHeadIndex > stylesheetIndex);
-        var stylesheetTagEnd = html.IndexOf('>', stylesheetIndex);
+        var depthIndex = html.IndexOf("/css/depth-system.css?v=", StringComparison.Ordinal);
+        var depthScriptIndex = html.IndexOf("/js/depth-system.js?v=", StringComparison.Ordinal);
+        Assert.True(depthIndex > stylesheetIndex && depthScriptIndex > depthIndex && depthScriptIndex < closingHeadIndex);
+        Assert.Equal(1, html.Split("/css/depth-system.css?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/js/depth-system.js?v=", StringSplitOptions.None).Length - 1);
+        var stylesheetTagEnd = html.IndexOf('>', depthIndex);
         Assert.True(stylesheetTagEnd > stylesheetIndex);
         var trailingHead = html[(stylesheetTagEnd + 1)..closingHeadIndex];
         Assert.DoesNotContain("<style", trailingHead, StringComparison.OrdinalIgnoreCase);
