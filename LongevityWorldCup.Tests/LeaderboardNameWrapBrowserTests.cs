@@ -116,17 +116,14 @@ public sealed class LeaderboardNameWrapBrowserTests(
         });
         const string lastResort = "AbcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         var names = new[] { "HealthOptimisers", "EatBiohackLove", "Vishwamithra Shashishekara", "Élodie-Anne Đorđević", "山田太郎", lastResort };
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             // A compact real-data fixture covers each spelling without duplicating
             // the synthetic extreme hundreds of times during every resize.
-            athletes = new JsonArray(athletes.Take(18).Select(athlete => athlete!.DeepClone()).ToArray());
+            while (athletes.Count > 18) athletes.RemoveAt(athletes.Count - 1);
             var index = 0;
             foreach (var athlete in athletes.OfType<JsonObject>())
                 athlete["DisplayName"] = names[index++ % names.Length];
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
         var page = await context.NewPageAsync();
         foreach (var path in new[] { "/", "/leaderboard" })

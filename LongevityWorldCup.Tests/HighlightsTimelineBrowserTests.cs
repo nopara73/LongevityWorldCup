@@ -153,13 +153,17 @@ public sealed partial class HighlightsTimelineBrowserTests(
             """
             () => {
                 const cell = document.querySelector('.events-empty-row > td');
-                const icon = getComputedStyle(cell, '::before');
-                return [icon.content === 'none' ? 0 : parseFloat(icon.width), parseFloat(getComputedStyle(cell).paddingTop), getComputedStyle(cell).textAlign === 'center' ? 1 : 0];
+                const art = cell.querySelector('.lwc-empty__art').getBoundingClientRect();
+                const box = cell.getBoundingClientRect();
+                return [art.width, parseFloat(getComputedStyle(cell).paddingTop), getComputedStyle(cell).textAlign === 'center' ? 1 : 0,
+                    Math.abs((art.left + art.right) / 2 - (box.left + box.right) / 2), getComputedStyle(cell, '::before').content === 'none' ? 1 : 0];
             }
             """);
-        Assert.Equal(64, emptyState[0]);
+        Assert.InRange(emptyState[0], 100, 120);
         Assert.True(emptyState[1] >= 40, $"empty state padding {emptyState[1]}");
         Assert.Equal(1, emptyState[2]);
+        Assert.InRange(emptyState[3], 0, 1);
+        Assert.Equal(1, emptyState[4]);
 
         await using var failedContext = await OpenAsync(width, height, "light", "fail");
         var failed = failedContext.Pages[0];
