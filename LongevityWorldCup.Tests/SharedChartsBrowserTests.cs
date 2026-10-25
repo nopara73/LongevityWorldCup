@@ -34,8 +34,9 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
         await Expect(page.Locator(".lwc-chart-tip")).ToBeVisibleAsync();
         await Expect(page.Locator(".lwc-chart-tip")).ToContainTextAsync("2 sessions");
         var urls = await page.EvaluateAsync<string[]>("() => [...document.querySelectorAll('script[src],link[rel=stylesheet]')].map(e=>e.src||e.href).filter(u=>/\\/(charts|motion)\\.(js|css)/.test(u))");
-        Assert.Equal(2, urls.Length);
-        Assert.Equal(2, urls.Select(url => new Uri(url).Query).Distinct().Count());
+        Assert.Equal(new[] { "/css/charts.css", "/js/charts.js", "/js/motion.js" },
+            urls.Select(url => new Uri(url).AbsolutePath).OrderBy(path => path, StringComparer.Ordinal).ToArray());
+        Assert.Equal(3, urls.Select(url => new Uri(url).Query).Distinct().Count());
         Assert.All(urls, url => Assert.Matches(@"\?v=[a-f0-9]+$", url));
         await page.Locator("#trafficDailyChart").PressAsync("Enter");
         await Expect(page.Locator("#trafficDayDetail")).ToContainTextAsync("2 sessions · 3 page views");
@@ -187,14 +188,18 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
     [Fact]
     public async Task Counters_KeepExactText_AndCancelOnChangesHiddenHostsAndReducedMotion()
     {
-        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), ReducedMotion = ReducedMotion.NoPreference });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/internal/site-statistics.html");
-        await page.EvaluateAsync("() => {document.body.innerHTML='<div id=number>−1,234.50 years</div>';LwcCharts.count(document.querySelector('#number'),50)}");
+        await page.EvaluateAsync("() => {document.body.innerHTML='<button id=start>Start</button><div id=number>−1,234.50 years</div>';LwcCharts.count(document.querySelector('#number'),50)}");
         var number = page.Locator("#number");
         await Expect(number).ToHaveTextAsync("−1,234.50 years");
-        await Expect(number).ToHaveAttributeAsync("data-lwc-count", new System.Text.RegularExpressions.Regex("years"));
+        await Expect(number).Not.ToHaveAttributeAsync("data-lwc-count", new System.Text.RegularExpressions.Regex(".*"));
+        await page.Locator("#start").ClickAsync();
+        var animated = await number.EvaluateAsync<string?>("e=>{LwcCharts.count(e,50);return e.getAttribute('data-lwc-count')}");
+        Assert.Contains("years", animated ?? "");
+        await Expect(number).ToHaveTextAsync("−1,234.50 years");
         await number.EvaluateAsync("e=>{e.textContent='+2.00 years';LwcCharts.count(e,-1234.5);e.hidden=true}");
         await Expect(number).Not.ToHaveAttributeAsync("data-lwc-count", new System.Text.RegularExpressions.Regex(".*"));
         await number.EvaluateAsync("e=>{e.hidden=false;LwcCharts.count(e,-100)}");

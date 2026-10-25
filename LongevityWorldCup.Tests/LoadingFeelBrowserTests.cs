@@ -23,7 +23,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             return {
                 visible: bounds.bottom > 0 && bounds.top < innerHeight,
                 text: node.textContent,
-                rects: [...node.getClientRects()].map(rect => ({ y: rect.y, height: rect.height }))
+                rects: [...node.getClientRects()].map(rect => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height }))
             };
         })
         """;
@@ -87,7 +87,8 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             await NextPaintAsync(page);
             // Late fonts arrive well after the first paint, as on a slow connection.
             await page.WaitForTimeoutAsync(late.Contains("woff2") ? 1500 : 400);
-            if (late.Contains("woff2")) paintedCopy = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
+            if (late.Contains("woff2"))
+                paintedCopy = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
         }
         finally { release.TrySetResult(); }
 
@@ -99,7 +100,8 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-route-ready')", null, new() { Timeout = 20_000 });
         await page.WaitForTimeoutAsync(600);
 
-        if (paintedCopy is { } before) await AssertPaintedEmphasisDidNotReflowAsync(page, before, path);
+        if (paintedCopy is { } before)
+            await AssertPaintedEmphasisDidNotReflowAsync(page, before, path);
 
         var shifts = await page.EvaluateAsync<Shift[]>("window.__lwcShifts");
         var total = shifts.Sum(shift => shift.Value);
@@ -118,7 +120,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             var oldRects = before[index].GetProperty("rects");
             var newRects = after[index].GetProperty("rects");
             Assert.True(oldRects.GetArrayLength() == newRects.GetArrayLength(),
-                $"Late fonts changed painted emphasis from {oldRects.GetArrayLength()} to {newRects.GetArrayLength()} fragments on {path}: {before[index].GetProperty("text").GetString()}");
+                $"Late fonts changed painted emphasis from {oldRects.GetArrayLength()} to {newRects.GetArrayLength()} fragments on {path}: {before[index].GetProperty("text").GetString()}. Before: {oldRects}; after: {newRects}");
             for (var fragment = 0; fragment < oldRects.GetArrayLength(); fragment++)
                 foreach (var dimension in new[] { "y", "height" })
                     Assert.True(Math.Abs(oldRects[fragment].GetProperty(dimension).GetDouble()
