@@ -230,10 +230,7 @@ h2 {
 }
 
 .scrolled-button {
-    position: fixed;
-    top: auto;
-    bottom: max(20px, env(safe-area-inset-bottom, 0px));
-    right: max(20px, env(safe-area-inset-right, 0px));
+    position: relative;
     transform: none;
     z-index: 1000;
     margin-top: 0;
@@ -931,12 +928,6 @@ button.option-button:disabled {
     .site-sticky-header {
         justify-content: flex-start;
         padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-        padding-right: calc(max(0.5rem, env(safe-area-inset-right, 0px)) + 5.25rem);
-    }
-
-    header:not(:has(.join-game.scrolled-button)) + .site-sticky-header,
-    header:has(.join-game.scrolled-button[style*="display: none"]) + .site-sticky-header {
-        padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
     }
 
     .site-sticky-header-link {
@@ -962,14 +953,9 @@ button.option-button:disabled {
 
 @media (max-width: 300px) {
     .scrolled-button {
-        right: max(0.45rem, env(safe-area-inset-right, 0px));
         min-width: 3.55rem;
         padding: 0.5rem 0.65rem;
         font-size: 0.86rem;
-    }
-
-    .site-sticky-header {
-        padding-right: calc(max(0.45rem, env(safe-area-inset-right, 0px)) + 4.05rem);
     }
 
     .site-sticky-header-link {
@@ -1599,11 +1585,12 @@ html {
 
 .site-sticky-header {
     box-sizing: border-box;
-    min-height: calc(var(--site-sticky-action-height, 2.75rem) + 0.5rem + env(safe-area-inset-top, 0px));
-    padding-right: max(1rem, var(--site-sticky-action-space, 0px));
+    flex-wrap: wrap;
+    gap: var(--space-2);
 }
 
 .site-sticky-header-link {
+    flex: 1 1 min-content;
     min-width: min-content;
 }
 
@@ -1620,19 +1607,8 @@ html {
     min-width: min-content;
 }
 
-.site-sticky-header.is-stacked {
-    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
-    padding-bottom: calc(var(--site-sticky-action-height) + 0.75rem);
-}
-
 :root .documentation-nav {
     --documentation-nav-offset: max(4.25rem, calc(var(--site-sticky-height, 0px) + 1rem));
-}
-
-@media (min-width: 769px) {
-    .site-sticky-header {
-        padding-left: max(1rem, var(--site-sticky-action-space, 0px));
-    }
 }
 
 /* ==========================================================================
@@ -1791,6 +1767,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 /* Sticky bar: the same lockup, compacted and aligned to the same column. */
 .site-sticky-header {
     padding-left: max(var(--chrome-gutter), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
     justify-content: flex-start;
     background: rgba(16, 24, 32, 0.94) var(--chrome-surface-image);
     border-bottom: 1px solid var(--chrome-line);
@@ -1801,8 +1778,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     display: none;
 }
 
-/* The compact navigation has one stable state after the banner scrolls away.
-   PLAY stays independent at the viewport's bottom-right corner. */
+/* The compact navigation and PLAY share one stable bar after scrolling. */
 .scrolled-button {
     transition:
         background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
@@ -1815,6 +1791,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 .site-sticky-header-link {
     gap: var(--space-3);
     padding-left: 0;
+    justify-content: flex-start;
 }
 
 .site-sticky-header-logo {
@@ -1832,9 +1809,8 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 }
 
 .scrolled-button {
-    right: max(20px, env(safe-area-inset-right, 0px));
     min-width: 0;
-    max-width: calc(100vw - max(20px, env(safe-area-inset-right, 0px)) - max(20px, env(safe-area-inset-left, 0px)));
+    max-width: 100%;
     padding-inline: clamp(8px, 3vw, 16px);
     font-size: 0.9rem;
     letter-spacing: 0.04em;
@@ -2090,8 +2066,8 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
    Getting around
    One menu toggle in the band and its sticky bar opens the footer's pages
    and platforms: a sheet under the thumb on phones, a panel dropped from the
-   toggle elsewhere. The sticky bar tucks away while reading down, returns on
-   the first scroll up, and traces how far down the page the reader is.
+   toggle elsewhere. The sticky bar keeps PLAY and navigation available
+   while tracing how far down the page the reader is.
    ========================================================================== */
 :root {
     --site-nav-accent: var(--primary-color-bright, #19c3d1);
@@ -2108,7 +2084,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     margin: 0;
     padding: 0;
     border: 1px solid var(--chrome-line-strong);
-    border-radius: var(--lwc-radius-pill, 999px);
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.04);
     color: #ffffff;
     cursor: pointer;
@@ -2181,18 +2157,20 @@ header[role="banner"] > .site-menu-toggle {
     margin-left: calc(var(--space-2) - var(--space-5));
 }
 
-/* The navigation toggle stays in the compact bar. PLAY floats independently. */
-.site-sticky-menu-toggle {
-    position: absolute;
-    top: calc((100% + env(safe-area-inset-top, 0px)) / 2);
-    right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
-    translate: 0 -50%;
+/* PLAY and Menu share alignment and corners; only PLAY gets the green glow. */
+.site-sticky-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: stretch;
+    gap: var(--space-2);
+    margin-left: auto;
+    max-width: 100%;
 }
 
-.site-sticky-header.is-stacked .site-sticky-menu-toggle {
-    top: auto;
-    bottom: 4px;
-    translate: none;
+:is(.site-header-actions, .site-sticky-actions) > .site-menu-toggle {
+    height: auto;
+    min-height: var(--site-nav-toggle);
+    align-self: stretch;
 }
 
 .site-sticky-header-link,
@@ -2500,10 +2478,6 @@ body.site-menu-open {
         margin: 0;
     }
 
-    .site-sticky-menu-toggle {
-        right: max(var(--space-3), env(safe-area-inset-right, 0px));
-    }
-
 }
 
 @media (forced-colors: active) {
@@ -2578,7 +2552,6 @@ body.site-menu-open {
     padding-inline: max(var(--space-4), env(safe-area-inset-left, 0px)) max(var(--space-4), env(safe-area-inset-right, 0px));
 }
 .site-menu[data-layout="panel"] .site-menu-panel { max-height: calc(100dvh - var(--site-menu-top, 80px) - 12px); }
-.site-sticky-header.is-stacked .site-sticky-menu-toggle { bottom: calc(4px + (var(--site-sticky-action-height) - var(--site-nav-toggle)) / 2); }
 @media (max-width: 280px) {
     header[role="banner"] > .site-menu-toggle { align-self: center; }
     .site-menu[data-layout="sheet"] .site-menu-grip { left: calc((100% - 52px) / 2); }

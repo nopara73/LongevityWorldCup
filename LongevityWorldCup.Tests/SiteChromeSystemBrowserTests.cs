@@ -113,7 +113,7 @@ public sealed class SiteChromeSystemBrowserTests(
     [InlineData(1440, 900, false)]
     [InlineData(1024, 768, true)]
     [InlineData(390, 844, false)]
-    public async Task StickyBar_KeepsNavigationOnTheContentColumnAndPlayAtTheViewportCorner(int width, int height, bool dark)
+    public async Task StickyBar_KeepsNavigationAndPlayTogetherOnTheContentColumn(int width, int height, bool dark)
     {
         await using var context = await NewChromeContextAsync(width, height, dark);
         var page = await OpenAsync(context, "/about");
@@ -129,15 +129,16 @@ public sealed class SiteChromeSystemBrowserTests(
                 const play = document.querySelector('.scrolled-button').getBoundingClientRect();
                 const bar = document.getElementById('site-sticky-header').getBoundingClientRect();
                 return [logo.left, document.documentElement.clientWidth - document.querySelector('.site-sticky-menu-toggle').getBoundingClientRect().right, parseFloat(getComputedStyle(title).borderLeftWidth),
-                    innerWidth - play.right, innerHeight - play.bottom, parseFloat(getComputedStyle(document.getElementById('site-sticky-header')).borderBottomWidth)];
+                    play.top - bar.top, bar.bottom - play.bottom, parseFloat(getComputedStyle(document.getElementById('site-sticky-header')).borderBottomWidth)];
             }
             """);
         Assert.InRange(box[0], gutter - 2, gutter + 2);
         if (width > 640) Assert.InRange(box[1], gutter - 2, gutter + 2);
         Assert.Equal(1, box[2]);
-        Assert.InRange(box[3], 19, 21);
-        Assert.InRange(box[4], 19, 21);
+        Assert.InRange(box[3], 0, 100);
+        Assert.InRange(box[4], 0, 100);
         Assert.Equal(1, box[5]);
+        await StickyPlayScrollBrowserTests.AssertControlsAsync(page);
     }
 
     [Theory]
@@ -266,7 +267,7 @@ public sealed class SiteChromeSystemBrowserTests(
     [Theory]
     [InlineData(320)]
     [InlineData(1440)]
-    public async Task StickyArrival_KeepsNavigationAndFloatingPlayAtTheirViewportEdges(int width)
+    public async Task StickyArrival_KeepsPlayInsideTheStableNavigationBar(int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -285,7 +286,7 @@ public sealed class SiteChromeSystemBrowserTests(
                     if (bar.getAttribute('aria-hidden') !== 'false') continue;
                     const b = bar.getBoundingClientRect();
                     const a = document.querySelector('.scrolled-button').getBoundingClientRect();
-                    samples.push([b.top, innerHeight - a.bottom, innerWidth - a.right]);
+                    samples.push([b.top, a.top - b.top, b.bottom - a.bottom]);
                 }
                 return samples;
             }
@@ -294,8 +295,8 @@ public sealed class SiteChromeSystemBrowserTests(
         Assert.All(offsets, sample =>
         {
             Assert.InRange(Math.Abs(sample[0]), 0, 0.5);
-            Assert.InRange(sample[1], 19, 21);
-            Assert.InRange(sample[2], 19, 21);
+            Assert.InRange(sample[1], 0, 100);
+            Assert.InRange(sample[2], 0, 100);
         });
     }
 

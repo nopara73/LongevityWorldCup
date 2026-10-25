@@ -4,7 +4,7 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadD)]
-public sealed class FloatingPlayScrollBrowserTests(
+public sealed class StickyPlayScrollBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture) : BrowserIntegrationTest(browserFixture, appFixture)
 {
@@ -24,17 +24,18 @@ public sealed class FloatingPlayScrollBrowserTests(
             const bar = document.querySelector('#site-sticky-header'), b = bar.getBoundingClientRect(), s = getComputedStyle(bar);
             const painted = s.display !== 'none' && Number(s.opacity) >= .98 && b.height > 0
                 && bar.contains(document.elementFromPoint(b.left + b.width/2, b.top + b.height/2));
-            const floating = document.querySelector('.scrolled-button'), f = floating.getBoundingClientRect();
+            const play = document.querySelector('.scrolled-button'), f = play.getBoundingClientRect();
+            const menu = bar.querySelector('.site-menu-toggle'), m = menu.getBoundingClientRect();
             const progress = document.querySelector('.documentation-progress'), ps = progress && getComputedStyle(progress);
             const progressAligned = !progress || ps.display === 'none' || Number(ps.opacity) < .01
                 || Math.abs(progress.getBoundingClientRect().top - (painted ? b.bottom : 0)) <= 1;
             return {
                 Y: scrollY,
                 PastBanner: scrollY > document.querySelector('header[role=banner]').offsetHeight + 1,
-                AnyPlay: [...document.querySelectorAll('header .join-game')].some(usable),
-                Floating: usable(floating),
-                RightGap: innerWidth - f.right,
-                BottomGap: innerHeight - f.bottom,
+                AnyPlay: [...document.querySelectorAll('.join-game')].some(usable),
+                StickyPlay: usable(play),
+                InsideBar: bar.contains(play) && f.top >= b.top && f.bottom <= b.bottom
+                    && f.left >= b.left && f.right <= m.left - 4 && m.right <= b.right,
                 BarPainted: painted,
                 ProgressAligned: progressAligned
             };
@@ -106,7 +107,7 @@ public sealed class FloatingPlayScrollBrowserTests(
 
         await page.Locator(".site-sticky-menu-toggle").ClickAsync();
         await Assertions.Expect(page.Locator("#site-menu")).ToBeVisibleAsync();
-        Assert.False((await page.EvaluateAsync<ScrollState>(Snapshot)).Floating, "The modal must own hit testing while open.");
+        Assert.False((await page.EvaluateAsync<ScrollState>(Snapshot)).StickyPlay, "The modal must own hit testing while open.");
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(page.Locator(".site-sticky-menu-toggle")).ToBeFocusedAsync();
         await AssertControlsAsync(page);
@@ -114,7 +115,17 @@ public sealed class FloatingPlayScrollBrowserTests(
         await page.Keyboard.PressAsync("Enter");
         await page.WaitForDomContentLoadedUrlAsync("**/play");
         await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); }");
+        // History restoration can replace the document after GoBack returns.
+        // Wait across that navigation before reading the returned controls.
+        await page.WaitForFunctionAsync("""
+            async route => {
+                if (location.pathname !== route || document.readyState === 'loading') return false;
+                await document.fonts.ready;
+                await new Promise(requestAnimationFrame);
+                await new Promise(requestAnimationFrame);
+                return !!document.querySelector('.join-game');
+            }
+            """, route);
         // The leaderboard and play flow deliberately use manual restoration.
         // Both a restored scroll position and a return to the banner need PLAY.
         var returned = await page.EvaluateAsync<ScrollState>(Snapshot);
@@ -127,7 +138,7 @@ public sealed class FloatingPlayScrollBrowserTests(
     [Theory]
     [InlineData("/")]
     [InlineData("/ruleset")]
-    public async Task TouchScrolling_ResizeAndEnlargedText_PreserveTheFloatingAction(string route)
+    public async Task TouchScrolling_ResizeAndEnlargedText_PreserveTheHeaderAction(string route)
     {
         await using var context = await Browser.NewContextAsync(new()
         {
@@ -187,10 +198,10 @@ public sealed class FloatingPlayScrollBrowserTests(
         await page.WaitForFunctionAsync("() => scrollY > 400");
         await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); }");
         var state = await page.EvaluateAsync<ScrollState>(Snapshot);
-        Assert.True(state.Floating && state.BarPainted && state.ProgressAligned);
-        Assert.InRange(state.RightGap, 43, 45);
-        Assert.InRange(state.BottomGap, 33, 35);
-        var tops = await page.Locator(".site-sticky-header-link, .site-sticky-menu-toggle")
+        AssertScrolledState(state);
+        var rightGap = await page.Locator(".site-sticky-menu-toggle").EvaluateAsync<double>("e => innerWidth - e.getBoundingClientRect().right");
+        Assert.InRange(rightGap, 43, 45);
+        var tops = await page.Locator(".site-sticky-header-link, .scrolled-button, .site-sticky-menu-toggle")
             .EvaluateAllAsync<double[]>("elements => elements.map(e => e.getBoundingClientRect().top)");
         Assert.All(tops, top => Assert.True(top >= 44, $"Navigation overlaps the screen inset at {top}px."));
         await session.DetachAsync();
@@ -204,11 +215,10 @@ public sealed class FloatingPlayScrollBrowserTests(
 
     private static void AssertScrolledState(ScrollState state)
     {
-        Assert.True(state.Floating, $"Floating PLAY is not painted and hit-testable at y={state.Y}.");
+        Assert.True(state.StickyPlay, $"Header PLAY is not painted and hit-testable at y={state.Y}.");
         Assert.True(state.BarPainted, $"Navigation flashed away at y={state.Y}.");
         Assert.True(state.ProgressAligned, $"Reading progress is detached at y={state.Y}.");
-        Assert.InRange(state.RightGap, 19, 21);
-        Assert.InRange(state.BottomGap, 19, 21);
+        Assert.True(state.InsideBar, $"PLAY must stay inside the header, clear of Menu at y={state.Y}.");
     }
 
     private sealed class ScrollState
@@ -216,9 +226,8 @@ public sealed class FloatingPlayScrollBrowserTests(
         public double Y { get; set; }
         public bool PastBanner { get; set; }
         public bool AnyPlay { get; set; }
-        public bool Floating { get; set; }
-        public double RightGap { get; set; }
-        public double BottomGap { get; set; }
+        public bool StickyPlay { get; set; }
+        public bool InsideBar { get; set; }
         public bool BarPainted { get; set; }
         public bool ProgressAligned { get; set; }
     }

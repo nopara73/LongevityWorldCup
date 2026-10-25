@@ -502,7 +502,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
     internal static Task<VisibleActionDiagnostics[]> MeasurePlayActionsAsync(IPage page) =>
         page.EvaluateAsync<VisibleActionDiagnostics[]>(
             """
-            () => [...document.querySelectorAll('header[role="banner"] .join-game')]
+            () => [...document.querySelectorAll('.join-game')]
                 .map(action => {
                     const style = getComputedStyle(action);
                     const rect = action.getBoundingClientRect();

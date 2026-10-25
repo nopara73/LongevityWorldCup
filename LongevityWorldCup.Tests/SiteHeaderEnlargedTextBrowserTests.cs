@@ -142,7 +142,7 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
                 const elements = [document.body, ...document.body.querySelectorAll('*')]
                     .filter(element => element instanceof HTMLElement);
                 const sizes = elements.map(element => [element, parseFloat(getComputedStyle(element).fontSize)]);
-                const targets = [...document.querySelectorAll('header .bannertext, header .join-game strong, header .join-game-middle, .site-sticky-header-title')];
+                const targets = [...document.querySelectorAll('header .bannertext, .join-game strong, .join-game-middle, .site-sticky-header-title')];
                 const before = targets.map(element => parseFloat(getComputedStyle(element).fontSize));
                 for (const [element, size] of sizes) element.style.setProperty('font-size', `${size * 2}px`, 'important');
                 for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame);
@@ -212,13 +212,10 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
                             const rects = [...range.getClientRects()].filter(rect => rect.width > 0);
                             if (new Set(rects.map(rect => Math.round(rect.top))).size > 1) issues.push(`split word ${word[0]}`);
                             for (const rect of rects) {
-                                const outer = sticky && root === action
-                                    ? { top: 0, bottom: innerHeight } : container.getBoundingClientRect();
+                                const outer = container.getBoundingClientRect();
                                 if (rect.left < -1 || rect.right > innerWidth + 1 || rect.top < outer.top - 2 || rect.bottom > outer.bottom + 2)
                                     issues.push(`uncontained ${word[0]}`);
                                 for (let ancestor = node.parentElement; ancestor && ancestor !== container.parentElement; ancestor = ancestor.parentElement) {
-                                    // A fixed action escapes the main banner's overflow clip.
-                                    if (sticky && ancestor.matches('header[role=banner]')) break;
                                     const style = getComputedStyle(ancestor), bounds = ancestor.getBoundingClientRect();
                                     if (/hidden|clip|auto|scroll/.test(style.overflowX) && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1))
                                         issues.push(`clipped ${word[0]} by ${ancestor.className || ancestor.tagName}`);

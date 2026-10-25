@@ -134,7 +134,7 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
         await page.EvaluateAsync("() => scrollTo(0, 900)");
         var action = page.Locator(".scrolled-button");
         await Assertions.Expect(action).ToBeVisibleAsync();
-        await Assertions.Expect(action).ToHaveAttributeAsync("aria-hidden", "false");
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
         await action.FocusAsync();
         var result = await page.EvaluateAsync<bool[]>("""
             async () => {
@@ -143,17 +143,15 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
                 const action = document.querySelector('.scrolled-button');
                 const restored = document.activeElement === document.querySelector('.join-game:not(.scrolled-button)');
                 action.focus({ preventScroll: true });
-                return [restored, action.inert, document.activeElement !== action];
+                return [restored, !!action.closest('[inert]'), document.activeElement !== action];
             }
             """);
         Assert.All(result, Assert.True);
         await page.EvaluateAsync("() => scrollTo(0, 900)");
         await Assertions.Expect(action).ToBeVisibleAsync();
-        // During an interrupted exit, display can still be visible while the
-        // action is intentionally inert until the next scroll frame arrives.
-        await Assertions.Expect(action).ToHaveAttributeAsync("aria-hidden", "false");
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
         await action.FocusAsync();
-        Assert.True(await action.EvaluateAsync<bool>("element => !element.inert && document.activeElement === element"));
+        Assert.True(await action.EvaluateAsync<bool>("element => !element.closest('[inert]') && document.activeElement === element"));
     }
 
     [Fact]

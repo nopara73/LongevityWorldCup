@@ -227,16 +227,16 @@ public sealed class SiteNavigationBrowserTests(
         var position = await page.EvaluateAsync<double>("scrollY");
         await page.Mouse.WheelAsync(0, 100);
         await page.WaitForFunctionAsync("y => scrollY > y", position);
-        await FloatingPlayScrollBrowserTests.AssertControlsAsync(page);
+        await StickyPlayScrollBrowserTests.AssertControlsAsync(page);
         await page.Locator(".site-sticky-menu-toggle").FocusAsync();
         await page.Keyboard.PressAsync("ArrowDown");
-        await FloatingPlayScrollBrowserTests.AssertControlsAsync(page);
+        await StickyPlayScrollBrowserTests.AssertControlsAsync(page);
         await page.Locator(".site-sticky-menu-toggle").ClickAsync();
         await page.EvaluateAsync("dispatchEvent(new Event('pagehide'))");
         await Assertions.Expect(page.Locator("#site-menu")).ToBeHiddenAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.body.classList.contains('site-menu-open')"));
         await page.EvaluateAsync("dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))");
-        await FloatingPlayScrollBrowserTests.AssertControlsAsync(page);
+        await StickyPlayScrollBrowserTests.AssertControlsAsync(page);
     }
 
     [Theory]

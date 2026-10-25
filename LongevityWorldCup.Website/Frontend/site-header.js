@@ -83,6 +83,7 @@ function handleScroll(scrollPos, remeasure = false) {
     const stickyHeader = document.getElementById('site-sticky-header');
     if (!mainHeader || !stickyHeader) return;
     const actionAvailable = Boolean(mainJoinButtonVisible || compactLandscape);
+    if (scrolledJoinButton) scrolledJoinButton.style.display = actionAvailable ? 'inline-flex' : 'none';
     // Text enlargement can reach a scroll frame before resize callbacks run.
     const rootFontSize = getComputedStyle(document.documentElement).fontSize;
 
@@ -102,16 +103,21 @@ function handleScroll(scrollPos, remeasure = false) {
             stickyHeader.classList.remove('visible');
         }
     }
-    // A bar taller than the original banner must wait until that banner leaves
-    // the viewport; otherwise enlarged text can cover the primary links at 0.
-    const threshold = mainHeader.offsetHeight > measuredStickyHeight
+    // Enlarged text can make the compact bar taller than the banner; avoid
+    // a negative threshold that would cover the primary links at scroll 0.
+    const bannerThreshold = mainHeader.offsetHeight > measuredStickyHeight
         ? mainHeader.offsetHeight - measuredStickyHeight
         : mainHeader.offsetHeight;
+    // Hand over before the banner's PLAY is clipped, including enlarged text.
+    const originalTop = joinGameBtn?.getBoundingClientRect().top + scrollPos;
+    const threshold = mainJoinButtonVisible
+        ? Math.min(bannerThreshold, Math.max(0, originalTop - 4)) : bannerThreshold;
     const willBeVisible = scrollPos >= threshold;
     // A focused sticky link must not disappear from the keyboard's location
     // when scrolling or resizing brings the original banner back into view.
     if (!willBeVisible && stickyHeader.contains(document.activeElement)) {
-        const target = document.activeElement?.matches('.site-menu-toggle')
+        const target = document.activeElement === scrolledJoinButton ? joinGameBtn
+            : document.activeElement?.matches('.site-menu-toggle')
                 ? mainHeader.querySelector('.site-menu-toggle') : mainHeader.querySelector('.header-link');
         target?.focus({ preventScroll: true });
     }
@@ -119,34 +125,11 @@ function handleScroll(scrollPos, remeasure = false) {
     stickyHeader.inert = !willBeVisible;
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
     document.documentElement.style.setProperty('--site-visible-sticky-height', `${willBeVisible ? measuredStickyHeight : 0}px`);
-    if (scrolledJoinButton) {
-        // Restore the independent bottom-right action. Show it before the
-        // original invitation is clipped, including short or enlarged layouts.
-        const original = joinGameBtn?.getBoundingClientRect();
-        const originalFits = mainJoinButtonVisible && original && original.top >= 0
-            && original.bottom <= innerHeight && original.left >= 0 && original.right <= innerWidth;
-        const actionVisible = actionAvailable && (scrollPos > 100 || !originalFits);
-        if (!actionVisible && document.activeElement === scrolledJoinButton) joinGameBtn?.focus({ preventScroll: true });
-        scrolledJoinButton.inert = !actionVisible;
-        scrolledJoinButton.setAttribute('aria-hidden', String(!actionVisible));
-        scrolledJoinButton.style.display = actionVisible ? 'inline-flex' : 'none';
-    }
 }
 
 function fitStickyHeader(stickyHeader) {
-    const toggle = stickyHeader.querySelector('.site-menu-toggle')?.getBoundingClientRect();
-    const hasToggle = toggle && toggle.width > 0;
-    const controls = hasToggle ? [toggle] : [];
-    const actionHeight = Math.max(0, ...controls.map(rect => rect.height));
-    const reserved = controls.length ? document.documentElement.clientWidth - Math.min(...controls.map(rect => rect.left)) + 8 : 0;
-    stickyHeader.style.setProperty('--site-sticky-action-space', `${reserved}px`);
-    stickyHeader.style.setProperty('--site-sticky-action-height', `${actionHeight}px`);
-    stickyHeader.classList.remove('is-stacked');
-    const style = getComputedStyle(stickyHeader);
-    const link = stickyHeader.querySelector('.site-sticky-header-link');
-    const available = stickyHeader.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const stacked = controls.length && link && link.offsetWidth > available + 1;
-    stickyHeader.classList.toggle('is-stacked', Boolean(stacked));
+    // The brand and controls share normal flex layout, including wrapping.
+    // Measure that result for anchor clearance and the reading-progress line.
     const height = stickyHeader.getBoundingClientRect().height;
     document.documentElement.style.setProperty('--site-sticky-height', `${height}px`);
     return height;
@@ -486,7 +469,7 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     document.querySelector('.site-header-actions')?.append(primary);
     const stickyToggle = primary.cloneNode(true);
     stickyToggle.classList.add('site-sticky-menu-toggle');
-    document.getElementById('site-sticky-header')?.append(stickyToggle);
+    document.querySelector('.site-sticky-actions')?.append(stickyToggle);
     const dialog = document.createElement('dialog');
     dialog.id = 'site-menu';
     dialog.className = 'site-menu';
@@ -539,7 +522,7 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         toggles.forEach(toggle => { toggle.hidden = !available; });
         if (available) {
             document.querySelector('.site-header-actions')?.append(primary);
-            stickyHeader?.append(stickyToggle);
+            stickyHeader?.querySelector('.site-sticky-actions')?.append(stickyToggle);
             document.body.append(menu);
         } else {
             close(false, true);
