@@ -35,19 +35,33 @@
     }
 
     function openGate(event: Event): void {
-        if (event.isTrusted && !reduced.matches) gateOpen = true;
+        if (event.isTrusted && !reduced.matches && !gateOpen) {
+            readMotionValues();
+            gateOpen = true;
+        }
     }
     window.addEventListener("pointerdown", openGate, true);
     window.addEventListener("keydown", openGate, true);
 
-    // Durations and easings follow the shared motion tokens when present.
+    // Snapshot the shared values before hydration changes the card. Reading
+    // root computed styles from the ready event forced the newly rebuilt
+    // profile to resolve styles synchronously inside every pager click.
+    const motionValues = new Map<string, string>();
+    function readMotionValues(): void {
+        const style = getComputedStyle(root);
+        for (const name of ["--lwc-motion-fast", "--lwc-motion-base", "--lwc-motion-slow", "--lwc-ease-standard", "--lwc-ease-enter"]) {
+            motionValues.set(name, style.getPropertyValue(name));
+        }
+    }
+
+    // Durations and easings still follow the current shared motion tokens.
     function token(name: string, fallback: number): number {
-        const value = parseFloat(getComputedStyle(root).getPropertyValue(name));
+        const value = parseFloat(motionValues.get(name) || "");
         return Number.isFinite(value) && value > 0 ? value : fallback;
     }
 
     function ease(name: string, fallback: string): string {
-        return getComputedStyle(root).getPropertyValue(name).trim() || fallback;
+        return motionValues.get(name)?.trim() || fallback;
     }
 
     const standardEase = (): string => ease("--lwc-ease-standard", "cubic-bezier(0.2, 0, 0, 1)");
@@ -460,6 +474,7 @@
         wasOpen = open;
     }).observe(modal, { attributes: true, attributeFilter: ["style", "class"] });
     modal.addEventListener("athlete-dialog-loading", event => {
+        if (enabled()) readMotionValues();
         if (!isOpen() || isClosing()) openerSlug = (event as CustomEvent<{ slug: string }>).detail.slug;
         clearMotion();
         resetCounts();
