@@ -151,7 +151,8 @@ public sealed partial class StickyPlayScrollBrowserTests(
                     || document.fonts.status !== 'loaded'
                     || [...document.querySelectorAll('link[rel=stylesheet]')].some(link => !link.sheet)
                     || !document.querySelector('.scrolled-button')
-                    || !document.querySelector('#site-sticky-header .site-menu-toggle')) return false;
+                    || !document.querySelector('#site-sticky-header .site-menu-toggle')
+                    || document.documentElement.hasAttribute('data-initial-view')) return false;
                 // Read in the same document/turn as readiness. A later protocol
                 // command can race the document replacement during restoration.
                 const read = {{Snapshot}};

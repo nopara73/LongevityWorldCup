@@ -15,6 +15,13 @@ internal static class ReadingFeel
 
     private const string Css = """
 
+        /* Keep fallback and downloaded font advances comparable on Linux, where
+           hinted whole-pixel widths and font-specific kerning can move words. */
+        .documentation-page {
+            text-rendering: geometricPrecision;
+            font-kerning: none;
+        }
+
         @property --documentation-arrive-sweep {
             syntax: "<number>";
             inherits: false;

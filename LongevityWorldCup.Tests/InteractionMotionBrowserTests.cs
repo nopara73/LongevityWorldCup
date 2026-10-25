@@ -401,6 +401,7 @@ public sealed class InteractionMotionBrowserTests(
         // Check both the shared press treatment and the play flow's deliberate
         // override, rather than treating a component as the global default.
         var button = page.Locator(selector);
+        await Assertions.Expect(button).ToBeEnabledAsync();
         await button.HoverAsync();
         await page.Mouse.DownAsync();
         try

@@ -94,7 +94,7 @@ public sealed partial class AthleteDialogFrameBrowserTests
         var opener = page.Locator(".leaderboard tbody tr[data-athlete-name]:visible .athlete-name").Last;
         var openedPath = await opener.EvaluateAsync<string>("link => new URL(link.href).pathname");
         var next = fullPaths[Array.IndexOf(fullPaths, openedPath) + 1];
-        await opener.ScrollIntoViewIfNeededAsync();
+        await opener.EvaluateAsync("e => e.scrollIntoView({block:'center', behavior:'instant'})");
         var scroll = await page.EvaluateAsync<double>("scrollY");
         await opener.ClickAsync();
         await WaitForProfileAsync(page);
