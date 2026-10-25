@@ -261,11 +261,15 @@ public sealed class LeaderboardBoardBrowserTests(PlaywrightBrowserFixture browse
         await page.Locator("#athleteSearch").FillAsync("zzqx");
         var state = page.Locator(".no-results-empty-state");
         await Assertions.Expect(state).ToBeVisibleAsync();
+        var art = state.Locator(":scope > svg.lwc-empty__art");
+        await Assertions.Expect(art).ToHaveCountAsync(1);
+        await Assertions.Expect(art).ToHaveAttributeAsync("aria-hidden", "true");
+        await Assertions.Expect(art).ToHaveAttributeAsync("focusable", "false");
         var style = await state.EvaluateAsync<string[]>(
             "element => { const s = getComputedStyle(element); return [s.borderTopStyle, s.borderLeftWidth, s.borderRightWidth, getComputedStyle(element, '::before').content]; }");
         Assert.Equal("dashed", style[0]);
         Assert.Equal(style[2], style[1]);
-        Assert.NotEqual("none", style[3]);
+        Assert.Equal("none", style[3]);
         Assert.DoesNotContain("\uf002", await state.AriaSnapshotAsync());
         await page.Locator(".show-all-athletes-btn").ClickAsync();
         await Assertions.Expect(state).ToHaveCountAsync(0);

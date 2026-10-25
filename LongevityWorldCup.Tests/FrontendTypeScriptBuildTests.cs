@@ -15,6 +15,7 @@ public sealed class FrontendTypeScriptBuildTests
         "bioage-flow",
         "charts",
         "custom-event-markup",
+        "empty-state",
         "field-validation",
         "flow-action-dock",
         "form-controls",

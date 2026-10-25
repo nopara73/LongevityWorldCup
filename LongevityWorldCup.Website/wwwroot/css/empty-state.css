@@ -1,0 +1,408 @@
+/* ==========================================================================
+   Empty states: one illustration system
+   Every "nothing here" host gets a small scene from empty-state.js: a soft
+   halo, a friendly body drawn in the accent line, a breathing ground shadow
+   and a few twinkles. Words, buttons and spacing stay the page's own.
+   ========================================================================== */
+
+:root {
+    --lwc-empty-loop: 3600ms;
+    --lwc-empty-size: 7.5rem;
+    --lwc-empty-line: var(--lwc-accent, #087685);
+    --lwc-empty-fill: var(--lwc-surface, #ffffff);
+    --lwc-empty-halo: var(--lwc-accent-soft, #dff5f7);
+    --lwc-empty-ground: var(--lwc-border, #d7e0e6);
+    --lwc-empty-face: var(--lwc-ink, #17212b);
+    --lwc-empty-spark: var(--lwc-accent-bright, #19c3d1);
+}
+
+/* Dark pages: the halo sinks into the card instead of glowing. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --lwc-empty-halo: color-mix(in srgb, var(--lwc-accent, #5bd5dd) 14%, transparent);
+        --lwc-empty-ground: color-mix(in srgb, var(--lwc-border, #33424f) 80%, transparent);
+    }
+}
+
+/* ---- Scene layout ------------------------------------------------------ */
+
+.lwc-empty--scene {
+    --lwc-empty-phase: 0ms;
+}
+
+.lwc-empty__art {
+    display: block;
+    flex: none;
+    width: var(--lwc-empty-size);
+    height: auto;
+    aspect-ratio: 92 / 86;
+    margin-inline: auto;
+    overflow: visible;
+    pointer-events: none;
+}
+
+/* Hosts that stacked words in a column get the scene on top. */
+.lwc-empty--scene:is(.no-results-empty-state, .flag-empty, .proofs-empty, .empty-state, td) > .lwc-empty__art {
+    margin-bottom: var(--lwc-space-2, 0.5rem);
+}
+
+/* The scene replaces the old single-glyph circles. */
+main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty]::before,
+main[data-leaderboard-page="full"] .flag-empty[data-lwc-empty]::before,
+.event-board-page .events-board tbody tr.events-empty-row > td[data-lwc-empty]::before,
+.events-board tr.events-empty-row > td[data-lwc-empty]::before {
+    content: none;
+    display: none;
+}
+
+.no-results-empty-state[data-lwc-empty] {
+    gap: var(--lwc-space-3, 0.75rem);
+}
+
+main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
+    padding-top: var(--lwc-space-5, 1.5rem);
+}
+
+.flag-empty[data-lwc-empty] {
+    display: grid;
+    justify-items: center;
+    gap: var(--lwc-space-2, 0.5rem);
+}
+
+.proofs-empty[data-lwc-empty] {
+    display: grid;
+    justify-items: center;
+    gap: var(--lwc-space-1, 0.25rem);
+    padding: var(--lwc-space-4, 1rem) 0 var(--lwc-space-2, 0.5rem);
+    --lwc-empty-size: 6.25rem;
+}
+
+/* Statistics cells: compact, still centred in the dashed box. */
+.empty-state[data-lwc-empty] {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--lwc-space-2, 0.5rem);
+    --lwc-empty-size: 4rem;
+}
+
+/* Longevitymaxxing board: the empty row stacks scene over its line. */
+.lmx-empty-row > .lmx-name[data-lwc-empty] {
+    display: grid !important;
+    justify-items: center;
+    gap: var(--lwc-space-2, 0.5rem);
+    --lwc-empty-size: 6.5rem;
+}
+
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row:has(> .lmx-name[data-lwc-empty]) {
+    min-height: 0;
+    padding-block: var(--lwc-space-5, 1.5rem);
+}
+
+/* Check-in card: the scene takes the icon cell; the round tick retires. */
+.lmx-empty-state[data-lwc-empty] > i {
+    display: none;
+}
+
+.lmx-empty-state[data-lwc-empty] > .lwc-empty__art {
+    grid-area: icon;
+    grid-row: 1 / -1;
+    align-self: center;
+    margin: 0;
+    --lwc-empty-size: 4.5rem;
+    width: 4.5rem;
+}
+
+.lmx-empty-state.compact[data-lwc-empty] > .lwc-empty__art {
+    width: 3.25rem;
+}
+
+/* Discussion: the lone line sits under its quiet speech bubble. */
+#lmxNotes > .lmx-note[data-lwc-empty] {
+    display: grid;
+    justify-items: center;
+    gap: var(--lwc-space-2, 0.5rem);
+    padding-block: var(--lwc-space-5, 1.5rem);
+    text-align: center;
+    --lwc-empty-size: 6.25rem;
+}
+
+/* ---- Paint ------------------------------------------------------------- */
+
+.lwc-empty__halo { fill: var(--lwc-empty-halo); }
+.lwc-empty__shadow { fill: var(--lwc-empty-ground); }
+
+.lwc-empty__body,
+.lwc-empty__stroke,
+.lwc-empty__tick {
+    stroke: var(--lwc-empty-line);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lwc-empty__body { fill: var(--lwc-empty-fill); }
+.lwc-empty__stroke { fill: none; }
+.lwc-empty__handle { stroke-width: 6.5; }
+.lwc-empty__shine { fill: none; stroke: var(--lwc-empty-halo); stroke-width: 3; stroke-linecap: round; }
+.lwc-empty__eyes,
+.lwc-empty__pupil { fill: var(--lwc-empty-face); }
+.lwc-empty__mouth-o { fill: none; stroke: var(--lwc-empty-face); stroke-width: 1.6; }
+.lwc-empty__mouth { stroke: var(--lwc-empty-face); stroke-width: 2; }
+.lwc-empty__drop { fill: var(--lwc-empty-spark); }
+.lwc-empty__knob { fill: var(--lwc-empty-line); }
+.lwc-empty__pole { stroke: var(--lwc-subtle, #6b7a88); }
+.lwc-empty__sun { fill: var(--lwc-gold, #f5c542); }
+.lwc-empty__band { fill: var(--lwc-empty-line); }
+.lwc-empty__ring { stroke-width: 4; }
+.lwc-empty__ear { fill: var(--lwc-empty-halo); stroke: var(--lwc-empty-line); stroke-width: 2; stroke-linejoin: round; }
+.lwc-empty__top { fill: var(--lwc-surface-accent, var(--lwc-empty-fill)); }
+.lwc-empty__star { fill: color-mix(in srgb, var(--lwc-gold, #f5c542) 30%, transparent); stroke: var(--lwc-gold, #f5c542); stroke-width: 2.5; stroke-linejoin: round; }
+.lwc-empty__calm { fill: var(--lwc-success-soft, #e7f5eb); stroke: var(--lwc-success, #1f7a38); }
+.lwc-empty__tick { fill: none; stroke: var(--lwc-success, #1f7a38); stroke-width: 4; }
+.lwc-empty__typing { fill: var(--lwc-empty-line); }
+.lwc-empty__axis { stroke: var(--lwc-subtle, #6b7a88); stroke-width: 2.5; }
+.lwc-empty__bar { fill: var(--lwc-empty-halo); stroke: var(--lwc-empty-line); stroke-width: 2; }
+.lwc-empty__flat { stroke-dasharray: 3 5; stroke-width: 2.5; }
+.lwc-empty__spark { fill: var(--lwc-empty-spark); opacity: 0.7; }
+
+/* ---- Inline glyph (pickers, search hints) ------------------------------ */
+
+.lwc-empty--glyph {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.lwc-empty__glyph {
+    display: inline-block;
+    flex: none;
+    width: 1.25em;
+    height: 1.25em;
+    overflow: visible;
+    vertical-align: -0.2em;
+    margin-inline-end: 0.4em;
+}
+
+.lwc-empty__glyph .lwc-empty__body { stroke-width: 2; }
+.lwc-empty__glyph .lwc-empty__stroke { stroke-width: 2.6; }
+
+/* ---- Idle loop: bob, breathe, blink, twinkle --------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    .lwc-empty :is(.lwc-empty__float, .lwc-empty__shadow, .lwc-empty__halo, .lwc-empty__spark, .lwc-empty__eyes,
+        .lwc-empty__look, .lwc-empty__drop, .lwc-empty__wave, .lwc-empty__typing circle, .lwc-empty__bar,
+        .lwc-empty__star, .lwc-empty__tick, .lwc-empty__ear) {
+        transform-box: fill-box;
+        animation-duration: var(--lwc-empty-loop);
+        animation-delay: var(--lwc-empty-phase, 0ms);
+        animation-iteration-count: infinite;
+        animation-timing-function: ease-in-out;
+    }
+
+    .lwc-empty .lwc-empty__float { animation-name: lwc-empty-bob; }
+    .lwc-empty .lwc-empty__shadow { animation-name: lwc-empty-breathe; transform-origin: center; }
+    .lwc-empty .lwc-empty__halo { animation-name: lwc-empty-halo; transform-origin: center; }
+    .lwc-empty .lwc-empty__eyes { animation-name: lwc-empty-blink; transform-origin: center; animation-duration: calc(var(--lwc-empty-loop) * 1.5); animation-timing-function: linear; }
+    .lwc-empty .lwc-empty__spark {
+        animation-name: lwc-empty-twinkle;
+        transform-origin: center;
+        animation-delay: calc(var(--lwc-empty-phase, 0ms) + var(--d, 0ms));
+    }
+
+    /* Each body has one gesture of its own. */
+    .lwc-empty .lwc-empty__look { animation-name: lwc-empty-look; animation-duration: calc(var(--lwc-empty-loop) * 1.25); }
+    .lwc-empty .lwc-empty__drop { animation-name: lwc-empty-drip; animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+    .lwc-empty .lwc-empty__wave { animation-name: lwc-empty-wave; transform-origin: left center; }
+    .lwc-empty .lwc-empty__typing circle { animation-name: lwc-empty-type; transform-origin: center; animation-duration: 1400ms; }
+    .lwc-empty .lwc-empty__typing circle:nth-child(2) { animation-delay: calc(var(--lwc-empty-phase, 0ms) + 180ms); }
+    .lwc-empty .lwc-empty__typing circle:nth-child(3) { animation-delay: calc(var(--lwc-empty-phase, 0ms) + 360ms); }
+    .lwc-empty .lwc-empty__bar { animation-name: lwc-empty-bar; transform-origin: bottom; animation-delay: calc(var(--lwc-empty-phase, 0ms) + var(--d, 0ms)); }
+    /* The vacant top spot: its star hovers, waiting for someone. */
+    .lwc-empty .lwc-empty__star { animation-name: lwc-empty-hover; transform-origin: center; }
+    .lwc-empty .lwc-empty__ear { animation-name: lwc-empty-flutter; transform-origin: right bottom; }
+    .lwc-empty .lwc-empty__tick { stroke-dasharray: 30; animation-name: lwc-empty-redraw; animation-duration: calc(var(--lwc-empty-loop) * 2); }
+
+    .lwc-empty--glyph .lwc-empty__float { animation-duration: 2400ms; }
+}
+
+@keyframes lwc-empty-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+@keyframes lwc-empty-breathe {
+    0%, 100% { transform: scaleX(1); opacity: 1; }
+    50% { transform: scaleX(0.8); opacity: 0.65; }
+}
+
+@keyframes lwc-empty-halo {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.045); }
+}
+
+@keyframes lwc-empty-blink {
+    0%, 46%, 50%, 100% { transform: scaleY(1); }
+    48% { transform: scaleY(0.12); }
+}
+
+@keyframes lwc-empty-twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.6) rotate(0deg); }
+    40% { opacity: 0.85; transform: scale(1) rotate(20deg); }
+}
+
+@keyframes lwc-empty-look {
+    0%, 18%, 100% { transform: translateX(0); }
+    28%, 44% { transform: translateX(-3px); }
+    56%, 72% { transform: translateX(3px); }
+}
+
+@keyframes lwc-empty-drip {
+    0%, 30% { transform: translateY(-10px) scale(0.4); opacity: 0; }
+    45% { opacity: 1; transform: translateY(-4px) scale(1); }
+    85% { opacity: 0; transform: translateY(6px) scale(0.9); }
+    100% { opacity: 0; transform: translateY(6px) scale(0.9); }
+}
+
+@keyframes lwc-empty-wave {
+    0%, 100% { transform: skewY(0deg) scaleX(1); }
+    50% { transform: skewY(-4deg) scaleX(0.96); }
+}
+
+@keyframes lwc-empty-type {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+    30% { transform: translateY(-3px); opacity: 1; }
+}
+
+@keyframes lwc-empty-bar {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.55); }
+}
+
+@keyframes lwc-empty-hover {
+    0%, 100% { transform: translateY(0) rotate(-8deg); }
+    50% { transform: translateY(-5px) rotate(8deg); }
+}
+
+@keyframes lwc-empty-flutter {
+    0%, 70%, 100% { transform: rotate(0deg); }
+    80% { transform: rotate(-10deg); }
+    90% { transform: rotate(3deg); }
+}
+
+@keyframes lwc-empty-redraw {
+    0%, 8% { stroke-dashoffset: 30; }
+    22%, 100% { stroke-dashoffset: 0; }
+}
+
+/* ---- Entrance: the scene pops; content remains visible ----------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    .lwc-empty--enter > .lwc-empty__art,
+    .lwc-empty--enter > .lwc-empty__glyph {
+        animation: lwc-empty-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+}
+
+@keyframes lwc-empty-pop {
+    0% { opacity: 0; transform: translateY(10px) scale(0.72); }
+    60% { opacity: 1; }
+    100% { opacity: 1; transform: none; }
+}
+
+/* ---- Calls to action inside empty states ------------------------------- */
+
+.lwc-empty :is(button, a.button, .show-all-athletes-btn) {
+    transition:
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+@media (hover: hover) {
+    .lwc-empty .show-all-athletes-btn:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+        border-color: var(--lwc-accent, #087685);
+        background: var(--lwc-surface-accent, rgba(8, 118, 133, 0.08));
+    }
+
+    /* The scene leans in when the way back is offered. */
+    .lwc-empty:has(.show-all-athletes-btn:hover) .lwc-empty__art {
+        transform: translateY(-3px) rotate(-3deg);
+    }
+}
+
+.lwc-empty .show-all-athletes-btn:active {
+    transform: translateY(0) scale(0.97) !important;
+    box-shadow: none;
+    transition-duration: 60ms;
+}
+
+.lwc-empty .lwc-empty__art {
+    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lwc-empty:has(.show-all-athletes-btn:active) .lwc-empty__art {
+    transform: translateY(1px) scale(0.96);
+    transition-duration: 80ms;
+}
+
+/* ---- Phones ------------------------------------------------------------ */
+
+@media (max-width: 480px) {
+    :root {
+        --lwc-empty-size: 6.25rem;
+    }
+
+    .lmx-empty-state[data-lwc-empty] > .lwc-empty__art {
+        width: 3.75rem;
+    }
+}
+
+/* ---- Reduced motion: still scenes, instant swaps ----------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .lwc-empty *,
+    .lwc-empty {
+        animation: none !important;
+    }
+
+    .lwc-empty .lwc-empty__art,
+    .lwc-empty .show-all-athletes-btn {
+        transition: none;
+        transform: none !important;
+    }
+}
+
+/* All decorative motion shares the first-interaction/restore gate. Keep its
+   targets explicit: a descendant wildcard invalidates the entire document
+   when the root gate changes, even outside an empty state. */
+html:is(:not([data-lwc-motion="on"]), [data-lwc-empty-restoring])
+:is(.lwc-empty, .lwc-empty__art, .lwc-empty__glyph, .lwc-empty__float,
+    .lwc-empty__shadow, .lwc-empty__halo, .lwc-empty__spark, .lwc-empty__eyes,
+    .lwc-empty__look, .lwc-empty__drop, .lwc-empty__wave, .lwc-empty__typing > circle,
+    .lwc-empty__bar, .lwc-empty__star, .lwc-empty__tick, .lwc-empty__ear,
+    .lwc-empty .show-all-athletes-btn) {
+    animation: none !important;
+    transition: none !important;
+}
+html[data-embed-theme="dark"] {
+    --lwc-empty-line: #5bd5dd;
+    --lwc-empty-fill: #17212b;
+    --lwc-empty-halo: #20373e;
+    --lwc-empty-ground: #33424f;
+    --lwc-empty-face: #eaf0f5;
+}
+
+/* This internal dashboard owns a dark palette in either system theme. */
+.stats-page {
+    --lwc-empty-line: var(--cyan);
+    --lwc-empty-fill: var(--panel);
+    --lwc-empty-halo: var(--cyan-soft);
+    --lwc-empty-ground: var(--line-strong);
+    --lwc-empty-face: var(--text);
+    --lwc-empty-spark: var(--cyan);
+}
