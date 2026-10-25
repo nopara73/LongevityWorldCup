@@ -155,7 +155,7 @@ public sealed class InteractionMotionBrowserTests(
             () => { showLoading(); return ({{RunningMotionScript}})('#loading-dialog'); }
             """);
         Assert.Contains("opacity", opening);
-        await page.WaitForTimeoutAsync(300);
+        await WaitForFiniteAnimationsAsync(page);
         var exiting = await page.EvaluateAsync<string[]>($$"""
             () => { hideLoading(); return ({{RunningMotionScript}})('#loading-dialog, #loading-dialog *'); }
             """);
@@ -290,21 +290,55 @@ public sealed class InteractionMotionBrowserTests(
         Assert.NotEmpty(moving);
     }
 
-    // Heights of the visible accordion on every frame for 400ms after a click on its summary.
-    private const string SampleDetailsHeightsScript = """
-        () => new Promise(resolve => {
-            const details = [...document.querySelectorAll('.play-join-biomarkers details')].find(d => d.getClientRects().length);
-            const heights = [];
-            const start = performance.now();
-            details.querySelector('summary').click();
-            const frame = () => {
-                heights.push(Math.round(details.getBoundingClientRect().height));
-                if (performance.now() - start < 400) requestAnimationFrame(frame);
-                else resolve(heights);
+    // Chromium exposes the native details-content height transition through
+    // the inspector, but not getAnimations(). Seek that real effect so a busy
+    // renderer cannot skip every intermediate frame in a fixed-time sample.
+    private static async Task<int[]> SampleDetailsHeightsAsync(IPage page)
+    {
+        var cdp = await page.Context.NewCDPSessionAsync(page);
+        try
+        {
+            await cdp.SendAsync("Animation.enable");
+            await cdp.SendAsync("Animation.setPlaybackRate", new() { ["playbackRate"] = 0 });
+            var started = new TaskCompletionSource<(string Id, double Duration, double Delay)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            cdp.Event("Animation.animationStarted").OnEvent += (_, value) =>
+            {
+                var animation = value!.Value.GetProperty("animation");
+                if (animation.GetProperty("name").GetString() is not ("height" or "block-size")) return;
+                var source = animation.GetProperty("source");
+                started.TrySetResult((animation.GetProperty("id").GetString()!,
+                    source.GetProperty("duration").GetDouble(), source.GetProperty("delay").GetDouble()));
             };
-            requestAnimationFrame(frame);
-        })
-        """;
+            var initial = await page.EvaluateAsync<int>("""
+                async () => {
+                    const details = [...document.querySelectorAll('.play-join-biomarkers details')].find(d => d.getClientRects().length);
+                    window.__lwcAccordion = details;
+                    const height = Math.round(details.getBoundingClientRect().height);
+                    details.querySelector('summary').click();
+                    void details.getBoundingClientRect().height;
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    return height;
+                }
+                """);
+            var effect = await started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            var heights = new List<int> { initial };
+            foreach (var progress in new[] { 0, 0.25, 0.5, 0.75, 1 })
+            {
+                await cdp.SendAsync("Animation.seekAnimations", new()
+                {
+                    ["animations"] = new[] { effect.Id },
+                    ["currentTime"] = effect.Delay + effect.Duration * progress
+                });
+                heights.Add(await page.EvaluateAsync<int>("Math.round(window.__lwcAccordion.getBoundingClientRect().height)"));
+            }
+            return heights.ToArray();
+        }
+        finally
+        {
+            try { await cdp.SendAsync("Animation.setPlaybackRate", new() { ["playbackRate"] = 1 }); }
+            finally { await cdp.DetachAsync(); }
+        }
+    }
 
     [Fact]
     public async Task Accordion_GrowsOpenAndFoldsShut()
@@ -315,8 +349,8 @@ public sealed class InteractionMotionBrowserTests(
         await page.Locator("main button:visible").First.ClickAsync();
         await page.Locator(".play-join-biomarkers summary:visible").First.ScrollIntoViewIfNeededAsync();
 
-        var opening = await page.EvaluateAsync<int[]>(SampleDetailsHeightsScript);
-        var closing = await page.EvaluateAsync<int[]>(SampleDetailsHeightsScript);
+        var opening = await SampleDetailsHeightsAsync(page);
+        var closing = await SampleDetailsHeightsAsync(page);
 
         // Steps between the closed and open heights: the panel grows instead of jumping.
         AssertPassesThrough(opening);

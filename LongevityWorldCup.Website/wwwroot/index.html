@@ -5,6 +5,7 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="expect" href="#lwc-site-header" blocking="render">
     <script>
 // Let native Back/Forward restore the saved viewport without scroll
 // anchoring adding offsets while fonts and the board finish hydrating.
@@ -99,12 +100,12 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
 <body{{BODY_CLASS_ATTRIBUTE}}>
     <!--HEADER-->
     <script>
-        // Restore the visit's header before native Back scrolling.
-        if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
-            && ['default', 'repeat'].includes(history.state?.lwcHomepageVisitLayout)) {
-            document.body.classList.add('home-page');
-            document.querySelector('header[role="banner"] .tagline')?.remove();
-        }
+// Restore the visit's header before native Back scrolling.
+if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
+    && ['default', 'repeat'].includes(history.state?.lwcHomepageVisitLayout)) {
+    document.body.classList.add('home-page');
+    document.querySelector('header[role="banner"] .tagline')?.remove();
+}
     </script>
     <main class="homepage-main">
         <h1 class="visually-hidden">Longevity World Cup</h1>
