@@ -10,29 +10,44 @@ public sealed class LeaderboardInteractionContinuityBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/", 2)]
-    [InlineData("/", 3)]
-    [InlineData("/leaderboard", 0)]
-    public async Task BrowserBack_RestoresTheReadingPositionAndTheSameHomepageLayout(string path, int visits)
+    [InlineData("/", 2, false)]
+    [InlineData("/", 3, false)]
+    [InlineData("/", 3, true)]
+    [InlineData("/leaderboard", 0, false)]
+    public async Task BrowserBack_RestoresTheReadingPositionAndTheSameHomepageLayout(string path, int visits, bool search)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+            ViewportSize = new() { Width = 1440, Height = 900 },
+            ReducedMotion = search ? ReducedMotion.NoPreference : ReducedMotion.Reduce
         });
         await context.AddInitScriptAsync($"if (!localStorage.getItem('lwcHomepageVisitCount:v1')) localStorage.setItem('lwcHomepageVisitCount:v1', '{visits}');");
         var page = await context.NewPageAsync();
         await page.GotoAsync(path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        if (search)
+        {
+            await page.Locator("#athleteSearch").FillAsync("michael");
+            await page.WaitForFunctionAsync("() => new URL(location.href).searchParams.get('search') === 'michael'");
+        }
         var target = path == "/" ? page.Locator("#events-root-index") : page.Locator(".leaderboard tbody tr[data-athlete-name]:visible").Nth(20);
         if (path == "/") await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await target.ScrollIntoViewIfNeededAsync();
         var position = await page.EvaluateAsync<double>("scrollY");
         var layout = await page.Locator("main").GetAttributeAsync("data-homepage-visit-layout");
         await page.GotoAsync("/about");
         await page.GoBackAsync();
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
-        await page.WaitForFunctionAsync("y => Math.abs(scrollY - y) < 3", position);
         Assert.Equal(layout, await page.Locator("main").GetAttributeAsync("data-homepage-visit-layout"));
+        await page.WaitForFunctionAsync("y => Math.abs(scrollY - y) < 3", position);
+        if (search)
+        {
+            // Incoming shared links have a one-second auto-scroll; it must not
+            // replay after the browser has already restored a history entry.
+            await page.WaitForTimeoutAsync(1300);
+            Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("scrollY") - position), 0, 2);
+        }
     }
 
     [Theory]
