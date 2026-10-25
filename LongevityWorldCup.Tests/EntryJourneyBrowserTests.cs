@@ -20,7 +20,11 @@ public sealed class EntryJourneyBrowserTests(
         window.addEventListener('pagereveal', event => {
             window.__lwcReveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
             if (event.viewTransition) {
-                event.viewTransition.ready.then(() => {
+                // pagereveal can precede parsing the banner on a streamed document.
+                const parsed = document.readyState === 'loading'
+                    ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
+                    : Promise.resolve();
+                Promise.all([event.viewTransition.ready, parsed]).then(() => {
                     window.__lwcReveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
                     window.__lwcReveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
