@@ -60,9 +60,8 @@ img[data-lwc-portrait][data-lwc-portrait-tier="lg"] {
 
 /* Table rows: the portrait sits on the row instead of being punched into it. */
 .leaderboard img.portrait[data-lwc-portrait],
-.events-board img.avatar[data-lwc-portrait],
-img.lmx-participant-avatar[data-lwc-portrait],
-img.bioage-rank-row-avatar[data-lwc-portrait] {
+.lmx-participant-avatar img[data-lwc-portrait],
+.bioage-rank-row-avatar img[data-lwc-portrait] {
     box-shadow: var(--lwc-portrait-lift);
 }
 
@@ -83,15 +82,13 @@ img[data-lwc-portrait]:focus-visible {
     outline-offset: -3px;
 }
 
-/* Overlay marks sit on the ring, not on the face. */
-#athlete-profile .portrait-wrapper .pro-badge,
-#athlete-profile .portrait-wrapper .portrait-flag {
-    z-index: 3;
-}
-
 /* --- Loading: shimmer in the frame, then develop ---------------------------- */
 
 img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
+    /* Browsers can keep painting the previous bitmap even after currentSrc and
+       naturalWidth clear. Paint a transparent replacement inside the same frame
+       until the current request decodes; the DOM source and alt remain intact. */
+    content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/%3E");
     background-image: linear-gradient(100deg,
         transparent 30%,
         color-mix(in srgb, var(--lwc-portrait-shimmer-glint) 92%, transparent) 50%,
@@ -133,23 +130,10 @@ html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
 }
 
 @keyframes lwc-portrait-develop {
-    /* Like a print in the tray: pale and soft, then sharp. The ring never blinks. */
+    /* Keep the face and its ring readable during the page's whole-card motion. */
     from {
-        filter: blur(5px) saturate(0.2) brightness(1.18) contrast(0.82);
-        scale: 1.03;
+        filter: saturate(0.9) brightness(1.05);
     }
-}
-
-/* Crossfade copy of the outgoing photo (portrait-system.js). */
-img[data-lwc-portrait-ghost] {
-    position: absolute;
-    z-index: 2;
-    margin: 0;
-    box-sizing: border-box;
-    pointer-events: none;
-    background: none;
-    box-shadow: none;
-    outline: none;
 }
 
 /* --- Fallbacks: monograms instead of the logo stand-in ---------------------- */
@@ -172,10 +156,14 @@ img[data-lwc-portrait-fallback] {
         radial-gradient(circle at 30% 22%, rgb(255 255 255 / 0.32), transparent 55%),
         linear-gradient(135deg, #19c3d1, #087685);
     color: #ffffff;
-    border-color: transparent;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-shadow: 0 1px 1px rgb(6 93 104 / 0.45);
+}
+
+/* The highlights rail owns its surrounding knockout ring. */
+.bioage-rank-row-avatar-fallback,
+.lmx-mention-avatar.fallback {
     box-shadow: var(--lwc-portrait-lift), inset 0 0 0 1px rgb(255 255 255 / 0.22);
 }
 
