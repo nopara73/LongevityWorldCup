@@ -1019,10 +1019,26 @@ async function fetchWithApplicationTimeout(
     const timeoutController = typeof AbortController !== 'undefined' && !init.signal
         ? new AbortController()
         : null;
-    const timeoutId = window.setTimeout(() => timeoutController?.abort(), timeoutMs);
+    let timeoutId: number | undefined;
 
     try {
-        return await fetch(input, timeoutController ? { ...init, signal: timeoutController.signal } : init);
+        return await Promise.race([
+            (async () => {
+                const response = await fetch(input, timeoutController ? { ...init, signal: timeoutController.signal } : init);
+                // Application receipts are small. Keep the deadline through the
+                // body transfer, then leave it readable by the existing readers.
+                const body = await response.arrayBuffer();
+                return new Response(response.body === null ? null : body, {
+                    status: response.status, statusText: response.statusText, headers: response.headers
+                });
+            })(),
+            new Promise<Response>((_, reject) => {
+                timeoutId = window.setTimeout(() => {
+                    timeoutController?.abort();
+                    reject(new Error('Request timed out'));
+                }, timeoutMs);
+            })
+        ]);
     } catch (error) {
         if (timeoutController?.signal.aborted) {
             throw new Error('Request timed out');

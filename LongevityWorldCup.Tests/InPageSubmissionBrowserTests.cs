@@ -10,6 +10,61 @@ public sealed class InPageSubmissionBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("submit")]
+    [InlineData("recovery")]
+    [InlineData("error")]
+    public async Task SubmissionDeadline_CoversResponseBodiesAndPreservesRecovery(string stalled)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await context.RouteAsync("**/api/**", route => route.Request.Method == "GET" ? route.FallbackAsync()
+            : route.FulfillAsync(new() { Status = 200, ContentType = "application/json", Body = "{}" }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.submitApplicationWithRecovery==='function'");
+        await page.Clock.InstallAsync();
+        await page.EvaluateAsync("""
+            stalled => {
+                const originalFetch=window.fetch;
+                window.applicationRequests=[];
+                window.bodyAborts=0;
+                window.deadlineResult=null;
+                window.fetch=async (input,init) => {
+                    const path=new URL(String(input),location.href).pathname;
+                    if(!['/api/application/application','/api/application/submission-status'].includes(path))
+                        return originalFetch(input,init);
+                    const body=JSON.parse(init.body);
+                    applicationRequests.push({path,submissionId:body.submissionId});
+                    const first=applicationRequests.length===1;
+                    const shouldStall=stalled==='recovery' ? path.endsWith('submission-status') : first;
+                    if(shouldStall) {
+                        const stream=new ReadableStream({start(controller) {
+                            init.signal.addEventListener('abort',()=>{
+                                bodyAborts++;
+                                controller.error(new DOMException('Aborted','AbortError'));
+                            },{once:true});
+                        }});
+                        return new Response(stream,{status:stalled==='error'?422:200});
+                    }
+                    if(stalled==='recovery' && first) return new Response('Unavailable',{status:503});
+                    return new Response(JSON.stringify({success:true,paymentRequired:false}),{
+                        status:200,headers:{'content-type':'application/json'}
+                    });
+                };
+                void submitApplicationWithRecovery({submissionId:'mock-body-deadline'},1000)
+                    .then(attempt=>window.deadlineResult={ok:attempt.ok,recovered:attempt.recovered});
+            }
+            """, stalled);
+        await page.WaitForFunctionAsync("() => applicationRequests.length>0");
+        await page.Clock.RunForAsync(1001);
+        await page.WaitForFunctionAsync("() => window.deadlineResult!==null", options: new() { Timeout = 1500 });
+        Assert.True(await page.EvaluateAsync<bool>("() => deadlineResult.ok"));
+        Assert.Equal(stalled != "recovery", await page.EvaluateAsync<bool>("() => deadlineResult.recovered"));
+        Assert.Equal(1, await page.EvaluateAsync<int>("() => bodyAborts"));
+        Assert.Equal(stalled == "recovery" ? 3 : 2, await page.EvaluateAsync<int>("() => applicationRequests.length"));
+        Assert.True(await page.EvaluateAsync<bool>("() => applicationRequests.every(r=>r.submissionId==='mock-body-deadline')"));
+    }
+
+    [Theory]
     [InlineData("apply", "success", 1440)]
     [InlineData("apply", "error", 390)]
     [InlineData("apply", "abort", 390)]
