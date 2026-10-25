@@ -2168,9 +2168,7 @@ header[role="banner"] > .site-menu-toggle {
 }
 
 :is(.site-header-actions, .site-sticky-actions) > .site-menu-toggle {
-    height: auto;
-    min-height: var(--site-nav-toggle);
-    align-self: stretch;
+    align-self: center;
 }
 
 .site-sticky-header-link,
