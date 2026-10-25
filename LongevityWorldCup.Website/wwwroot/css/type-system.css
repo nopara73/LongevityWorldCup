@@ -69,13 +69,6 @@
 
 }
 
-/* Resolve the shared ratio once before descendants consume the type tokens. */
-@property --lwc-type-viewport {
-    syntax: "<number>";
-    inherits: true;
-    initial-value: 0;
-}
-
 /* Convert viewport width to a unitless scale, then multiply the whole size by
  * rem. Unlike rem + vw, every part now honors the user's text size. The ratio
  * tan(atan2(width, 1600px)) is width / 1600 without requiring newer CSS typed
@@ -110,36 +103,25 @@ html {
     text-size-adjust: 100%;
 }
 
-:where(h1, h2, h3, h4) {
+@scope (body) to (.modal, [role="dialog"], [role="alertdialog"], [role="tooltip"], .badge-tip, [popover]) {
+
+:where(main) :where(h1, h2, h3, h4) {
     font-weight: var(--lwc-weight-strong);
     text-wrap: balance;
 }
 
-h4 {
+:where(main) h4 {
     font-size: var(--lwc-type-h4);
     line-height: var(--lwc-leading-h3);
 }
 
 /* --- Roles -------------------------------------------------------------- */
 
-/* Roles are defaults. Component rules retain their fitting, wrapping and
+/* Page roles stop before overlays, which own their type and fitting rules.
+   Roles are defaults. Component rules retain their fitting, wrapping and
    compact-height behavior; headings never acquire a second motion owner. */
-/* Display: the title of a reading or showcase page. */
-html body :where(:is(
-    .documentation-document h1,
-    .lmx-page .lmx-hero h1,
-    .lmx-hero h1,
-    #lmx-title,
-    .media-kit-title,
-    .media-kit-header h1
-)) {
-    font-size: var(--lwc-type-display);
-    line-height: var(--lwc-leading-display);
-    letter-spacing: var(--lwc-tracking-display);
-}
-
 /* Title: the title of a tool or app page. */
-body :where(main h1:not(.visually-hidden):not(.not-found-title),
+main :where(main h1:not(.visually-hidden):not(.not-found-title),
 :is(
     .play-hub-main .play-join-head .play-join-title,
     .play-athlete-title,
@@ -155,12 +137,26 @@ body :where(main h1:not(.visually-hidden):not(.not-found-title),
 }
 
 /* The join title keeps its uppercase voice, so it opens up instead. */
-body :where(.play-hub-main .play-join-head .play-join-title) {
+main :where(.play-hub-main .play-join-head .play-join-title) {
     letter-spacing: 0.02em;
 }
 
+/* Display: the title of a reading or showcase page. */
+main :where(:is(
+    .documentation-document h1,
+    .lmx-page .lmx-hero h1,
+    .lmx-hero h1,
+    #lmx-title,
+    .media-kit-title,
+    .media-kit-header h1
+)) {
+    font-size: var(--lwc-type-display);
+    line-height: var(--lwc-leading-display);
+    letter-spacing: var(--lwc-tracking-display);
+}
+
 /* Section: a heading that opens a block of content. */
-body :where(:is(
+main :where(:is(
     .documentation-document h2,
     .media-kit-group-title,
     .play-join-card-head h2,
@@ -171,7 +167,7 @@ body :where(:is(
     letter-spacing: var(--lwc-tracking-h2);
 }
 
-body :where(:is(
+main :where(:is(
     .documentation-document h3,
     .documentation-timeline-heading
 )) {
@@ -181,27 +177,27 @@ body :where(:is(
 }
 
 /* The section rhythm: room above a heading, a closer step below it. */
-body :where(.documentation-document h2) {
+main :where(.documentation-document h2) {
     margin-top: var(--lwc-flow-2xl);
     margin-bottom: var(--lwc-flow-sm);
     padding-top: var(--lwc-flow-md);
 }
 
-body :where(.documentation-document h3) {
+main :where(.documentation-document h3) {
     margin-top: var(--lwc-flow-lg);
     margin-bottom: var(--lwc-flow-2xs);
 }
 
-body :where(.documentation-document h1) {
+main :where(.documentation-document h1) {
     margin-bottom: var(--lwc-flow-md);
 }
 
-body :where(.documentation-document :is(p, ul, ol, blockquote)) {
+main :where(.documentation-document :is(p, ul, ol, blockquote)) {
     margin-block: 0 var(--lwc-flow-sm);
 }
 
 /* Eyebrow: the uppercase strip title on cards, panels and sidebars. */
-body :where(:is(
+main :where(:is(
     main.homepage-main .section-container > h2,
     .homepage-main .section-container h2,
     .lmx-page .lmx-habit-heading,
@@ -223,7 +219,7 @@ body :where(:is(
 }
 
 /* Lead: the sentence under a title. */
-body :where(:is(
+main :where(:is(
     .documentation-cover p,
     .ruleset-lede,
     .lmx-page .lmx-hero-copy,
@@ -238,28 +234,28 @@ body :where(:is(
     text-wrap: pretty;
 }
 
-body :where(.play-join-tagline) {
+main :where(.play-join-tagline) {
     font-size: var(--lwc-type-body);
 }
 
 /* Reading: long-form prose keeps one size, one leading and one measure. */
-body :where(.documentation-document) {
+main :where(.documentation-document) {
     font-size: var(--lwc-type-reading);
     line-height: var(--lwc-leading-reading);
 }
 
-body :where(.documentation-document > p:not(:has(img)), .documentation-document > blockquote) {
+main :where(.documentation-document > p:not(:has(img)), .documentation-document > blockquote) {
     max-width: var(--lwc-measure);
     hanging-punctuation: first;
 }
 
 /* Years and figures inside prose sit in the text like lowercase letters. */
-body :where(:is(.documentation-document, .media-kit-intro, .lmx-hero-copy) :is(p, li, dd, blockquote)) {
+main :where(:is(.documentation-document, .media-kit-intro, .lmx-hero-copy) :is(p, li, dd, blockquote)) {
     font-variant-numeric: oldstyle-nums proportional-nums;
 }
 
 /* Caption: small supporting text. */
-body :where(:is(
+main :where(:is(
     figcaption,
     .smaller-text,
     .metadata,
@@ -273,13 +269,13 @@ body :where(:is(
 }
 
 /* Label: form labels and small bold controls. */
-body :where(:where(label, legend, .lwc-field-label)) {
+main :where(:is(label, legend, .lwc-field-label)) {
     letter-spacing: var(--lwc-tracking-label);
 }
 
 /* Figure: every number that is compared, ranked or animated keeps fixed-width
    lining digits, so columns align and count-ups never jitter. */
-body :where(:is(
+main :where(:is(
     time,
     output,
     data,
@@ -303,8 +299,10 @@ body :where(:is(
 }
 
 /* Big standalone figures tighten like headings. */
-body :where(:is(.podium-score .age-reduction, [data-bioage-result-visual])) {
+main :where(:is(.podium-score .age-reduction, [data-bioage-result-visual])) {
     letter-spacing: -0.015em;
+}
+
 }
 
 /* --- Phone ------------------------------------------------------------------ */

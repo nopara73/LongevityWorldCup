@@ -25,6 +25,34 @@ public sealed class TypeSystemBrowserTests(
         Assert.Equal(0, await page.Locator("script[src*='/js/type-system.js']").CountAsync());
     }
 
+    [Fact]
+    public async Task PageRoles_StopAtTheSharedDialogBoundary()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/media");
+        // The shared athlete runtime can live inside main. It still owns its
+        // component typography; a main ancestor alone cannot isolate page roles.
+        await page.EvaluateAsync("""
+            () => {
+                document.body.innerHTML = '<main><section class="media-kit-header"><h1>Media kit</h1></section>'
+                    + '<div class="modal" role="dialog"><h2>Benjamin Garden</h2><p class="smaller-text">Profile link</p></div></main>';
+                const probe = document.createElement('span');
+                probe.id = 'display-size-probe';
+                probe.style.fontSize = 'var(--lwc-type-display)';
+                document.querySelector('main').append(probe);
+            }
+            """);
+        var expectedSize = await page.Locator("#display-size-probe").EvaluateAsync<string>(
+            "e => getComputedStyle(e).fontSize");
+        Assert.Equal(expectedSize, await page.Locator("main h1").EvaluateAsync<string>(
+            "e => getComputedStyle(e).fontSize"));
+        Assert.Equal("normal", await page.Locator(".modal h2").EvaluateAsync<string>(
+            "e => getComputedStyle(e).letterSpacing"));
+        Assert.Equal("normal", await page.Locator(".modal .smaller-text").EvaluateAsync<string>(
+            "e => getComputedStyle(e).letterSpacing"));
+    }
+
     [Theory]
     [InlineData(320)]
     [InlineData(390)]

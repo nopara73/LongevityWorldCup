@@ -101,19 +101,19 @@ h3 {
     break-after: avoid;
 }
 
-:where(h1) {
+:where(main) :where(h1):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h1);
     line-height: var(--lwc-leading-h1);
     letter-spacing: var(--lwc-tracking-h1);
 }
 
-:where(h2) {
+:where(main) :where(h2):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h2);
     line-height: var(--lwc-leading-h2);
     letter-spacing: var(--lwc-tracking-h2);
 }
 
-:where(h3) {
+:where(main) :where(h3):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h3);
     line-height: var(--lwc-leading-h3);
     letter-spacing: var(--lwc-tracking-h3);
