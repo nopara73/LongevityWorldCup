@@ -545,6 +545,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             var proofs = new JsonArray();
             var proofFiles = Directory
                 .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
+                .Where(path => ProofPreviewService.IsProofFile(Path.GetFileName(path)))
                 .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
             foreach (var p in proofFiles)
                 proofs.Add(BuildVersionedAthleteAssetUrl(
