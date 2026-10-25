@@ -5971,19 +5971,11 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     transition:opacity 340ms var(--story-enter), transform 480ms var(--story-enter);
 }
 
-/* Badges unlock: dim and small, then a pop, a flash and a ring. */
+/* Badges arrive with a small pop and a ring. Their titles stay readable while
+   the stagger waits, including when another profile arrives before it ends. */
 #detailsModal .modal-badge-strip .modal-badge-item[data-unlock]{ position:relative; }
-#detailsModal .modal-badge-item[data-unlock="locked"] .badge-class{
-    opacity:.28;
-    filter:grayscale(1) brightness(.55);
-    transform:scale(.62) rotate(-12deg);
-}
-#detailsModal .modal-badge-item[data-unlock="locked"] .modal-badge-name{ opacity:0; transform:translateY(-4px); }
 #detailsModal .modal-badge-item[data-unlock="open"] .badge-class{
     animation:lwc-story-unlock 640ms var(--story-standard) backwards;
-}
-#detailsModal .modal-badge-item[data-unlock="open"] .modal-badge-name{
-    animation:lwc-story-fade-up 320ms var(--story-enter) 220ms backwards;
 }
 #detailsModal .modal-badge-item[data-unlock="open"]::after{
     content:"";
@@ -6000,17 +5992,14 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     animation:lwc-story-ring 620ms var(--story-enter) 180ms both;
 }
 @keyframes lwc-story-unlock{
-    0%{ opacity:.28; filter:grayscale(1) brightness(.55); transform:scale(.62) rotate(-12deg); }
-    45%{ opacity:1; filter:grayscale(0) brightness(1.45); transform:scale(1.14) rotate(4deg); }
-    70%{ filter:brightness(1.08); transform:scale(.97) rotate(-1deg); }
+    0%{ opacity:.94; transform:scale(.96) rotate(-2deg); }
+    45%{ opacity:1; filter:brightness(1.16); transform:scale(1.05) rotate(1deg); }
+    70%{ filter:brightness(1.04); transform:scale(.99); }
     100%{ opacity:1; filter:none; transform:none; }
 }
 @keyframes lwc-story-ring{
     0%{ opacity:.7; transform:scale(.7); }
     100%{ opacity:0; transform:scale(1.65); }
-}
-@keyframes lwc-story-fade-up{
-    from{ opacity:0; transform:translateY(-4px); }
 }
 
 /* The gap gauge: the calendar age is the middle tick; the biological age is
