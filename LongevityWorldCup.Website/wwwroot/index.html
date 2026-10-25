@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
     <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
     <script>
-        // One first-paint clock, including hydrated replacements.
+        if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !location.hash) {
+            document.documentElement.classList.add('homepage-restoring');
+        }
         (() => {
             if (location.pathname === '/contribute' && !location.hash) {
                 history.replaceState(history.state, '', location.pathname + location.search + '#contribute');
@@ -68,7 +70,6 @@
                     if (!element || element === previous?.element) return;
                     previous?.animation?.cancel();
                     tracks.set(selector, { element });
-                    // A slow response stays immediate; it cannot start a second entrance.
                     if (document.timeline.currentTime - startedAt >= delay + length) return;
                     const animation = element.animate([
                         { opacity, transform },
@@ -79,7 +80,6 @@
                     tracks.set(selector, { element, animation });
                 });
             };
-            // Observe parser and hydration insertions during the opening second.
             const observer = new MutationObserver(enter);
             root.classList.add('homepage-arriving');
             observer.observe(root, { childList: true, subtree: true });
@@ -91,7 +91,6 @@
 <body{{BODY_CLASS_ATTRIBUTE}}>
     <!--HEADER-->
     <script>
-        // Restore the visit's header before native Back scrolling.
         if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
             && ['default', 'repeat'].includes(history.state?.lwcHomepageVisitLayout)) {
             document.body.classList.add('home-page');
