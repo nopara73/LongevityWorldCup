@@ -28,6 +28,7 @@
     z-index: 2;
     /* Keep each journey word intact when zoom leaves narrow columns. */
     min-width: min-content;
+    padding-inline: 0.125rem;
     flex: 1 1 0;
     /* Completed checks still count toward the following numbered steps. */
     counter-increment: lwc-stage;
