@@ -1654,7 +1654,7 @@
      left:0;
      z-index:80;
      min-width:12.5rem;
-     max-height:calc(100dvh - 6rem);
+     max-height:min(calc(100dvh - 6rem), var(--athlete-share-available-height, 100dvh));
      overflow-y:auto;
      overscroll-behavior:contain;
      padding:.35rem;

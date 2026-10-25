@@ -2773,6 +2773,7 @@ let currentAthleteModalRequestId = 0;
 let athleteDialogSnapshotRequest = null;
 let athleteDialogSnapshot = null;
 let athleteShareState = null;
+let athleteShareLayoutObserver = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
 const athleteModalIsolation = new Map();
 const athleteModalFrames = new WeakSet();
@@ -5601,6 +5602,8 @@ function setShareMenuCopyState(label, disabled) {
 }
 
 function closeAthleteShareMenu(options) {
+    athleteShareLayoutObserver?.disconnect();
+    athleteShareLayoutObserver = null;
     const menu = document.getElementById('athleteShareMenu');
     if (!menu) return false;
     const wasOpen = !menu.hidden;
@@ -5620,6 +5623,7 @@ function closeAthleteShareMenu(options) {
 
     menu.hidden = true;
     menu.classList.remove('is-above');
+    menu.style.removeProperty('--athlete-share-available-height');
     setShareMenuCopyState('Copy link', false);
     const recovery = document.getElementById('athleteShareRecovery');
     if (recovery) recovery.hidden = true;
@@ -5638,21 +5642,25 @@ function closeAthleteShareMenu(options) {
 function positionAthleteShareMenu(menu) {
     if (!menu || menu.hidden) return;
 
+    menu.style.removeProperty('--athlete-share-available-height');
     menu.classList.remove('is-above');
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const modalRect = modalContent ? modalContent.getBoundingClientRect() : null;
+    const stickyHeader = modalContent?.querySelector('.modal-sticky-header.visible');
     const viewportBottom = Math.min(window.innerHeight, modalRect ? modalRect.bottom : window.innerHeight);
-    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0);
+    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0, stickyHeader?.getBoundingClientRect().bottom || 0);
     const padding = 12;
     const belowRect = menu.getBoundingClientRect();
-
-    if (belowRect.bottom <= viewportBottom - padding) return;
-
+    const below = Math.max(0, viewportBottom - Math.max(viewportTop, belowRect.top) - padding);
     menu.classList.add('is-above');
     const aboveRect = menu.getBoundingClientRect();
-    if (aboveRect.top < viewportTop + padding) {
-        menu.classList.remove('is-above');
-    }
+    const above = Math.max(0, Math.min(viewportBottom, aboveRect.bottom) - viewportTop - padding);
+    const useAbove = belowRect.height > below && above > below;
+    menu.classList.toggle('is-above', useAbove);
+    // A viewport-sized cap alone can leave the lower controls offscreen when
+    // the trigger is halfway down the profile. Keep the native scroller within
+    // the available side, including while fonts and the preview finish loading.
+    menu.style.setProperty('--athlete-share-available-height', `${Math.floor(useAbove ? above : below)}px`);
 }
 
 function keepAthleteShareMenuInView(menu) {
@@ -5766,6 +5774,7 @@ function openAthleteShareMenu(button, sharePayload) {
     state.menuVersion++;
     configureAthleteShareMenu(button, sharePayload);
     menu.hidden = false;
+    menu.scrollTop = 0;
     void loadAthleteSharePreview(state, sharePayload.url);
     button.setAttribute('aria-expanded', 'true');
 
@@ -5775,6 +5784,14 @@ function openAthleteShareMenu(button, sharePayload) {
     }
     keepAthleteShareMenuInView(menu);
     requestAnimationFrame(() => keepAthleteShareMenuInView(menu));
+    athleteShareLayoutObserver?.disconnect();
+    athleteShareLayoutObserver = new ResizeObserver(() => {
+        if (isCurrentAthleteShare(state) && !menu.hidden) keepAthleteShareMenuInView(menu);
+    });
+    // Observe the anchors, not the menu whose height the callback adjusts.
+    athleteShareLayoutObserver.observe(button.parentElement);
+    const modalContent = menu.closest('.modal-content');
+    if (modalContent) athleteShareLayoutObserver.observe(modalContent);
 }
 
 function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
