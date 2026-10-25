@@ -67,8 +67,8 @@
 
     /* Motion: the flow is a row of screens, start on the left and the dashboard
        on the right. Moving deeper slides in from the right, going back from the
-       left. The screen being left becomes an inert ghost that fades out above
-       the new one, so the new screen takes input from its first frame. Values
+       left. The complete arriving screen takes over at once; a duplicate of
+       the old card must never cover its identity or controls. Values
        match the shared motion tokens (motion.css / aesthetic-system.css). */
     const playPanelDepth: Readonly<Record<PlayPanelName, number>> = Object.freeze({
         start: 0,
@@ -77,7 +77,6 @@
         dashboard: 2
     });
     const PLAY_MOTION_ENTER_MS = 260;
-    const PLAY_MOTION_EXIT_MS = 160;
     const PLAY_MOTION_DEAL_MS = 440;
     const PLAY_MOTION_COUNT_MS = 640;
     const PLAY_MOTION_SHIFT_PX = 32;
@@ -86,9 +85,18 @@
        only a slow preparation falls back to the loading card. */
     const PLAY_PANEL_HOLD_MS = 450;
     const PLAY_EASE_ENTER = 'cubic-bezier(0, 0, 0, 1)';
-    const PLAY_EASE_EXIT = 'cubic-bezier(0.3, 0, 1, 1)';
     const PLAY_EASE_STANDARD = 'cubic-bezier(0.2, 0, 0, 1)';
     const PLAY_CARD_LAYOUT_QUERY = '(min-width: 761px) and (min-height: 600px)';
+    const reducedPlayMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    reducedPlayMotion.addEventListener('change', () => {
+        if (!reducedPlayMotion.matches || !document.querySelector('.play-hub-main')) return;
+        cancelPlayPanelMotion();
+        finishPlayStartIntro();
+        // Cancel only decoration. A pending identity, image or price must still
+        // pass its preparation gate before the requested panel is revealed.
+        window.LwcFlowActionDock?.refreshNow?.();
+    });
 
     function trackPlayInteraction(kind: 'keyboard' | 'pointer', event: Event): void {
         lastPlayInteraction = kind;
@@ -134,44 +142,9 @@
         const motion = activePanelMotion;
         activePanelMotion = [];
         motion.forEach(animation => animation.cancel());
-        document.querySelectorAll('.play-hub-panel--ghost').forEach(ghost => ghost.remove());
         document.documentElement.removeAttribute('data-flow-dock-hold');
         document.documentElement.classList.remove('play-panel-transitioning');
         delete document.documentElement.dataset.playMove;
-    }
-
-    function createPlayPanelGhost(panel: HTMLElement, main: HTMLElement): HTMLElement | null {
-        const box = panel.getBoundingClientRect();
-        if (box.width < 1 || box.height < 1) return null;
-        const mainBox = main.getBoundingClientRect();
-        const ghost = panel.cloneNode(true) as HTMLElement;
-        const sourceFields = panel.querySelectorAll<HTMLInputElement>('input');
-        ghost.querySelectorAll<HTMLInputElement>('input').forEach((field, index) => {
-            field.value = sourceFields[index]?.value ?? '';
-        });
-        ghost.querySelectorAll('.flow-action-stack--docked, .autocomplete-items, script').forEach(element => element.remove());
-        [ghost, ...Array.from(ghost.querySelectorAll('*'))].forEach(element => {
-            element.removeAttribute('id');
-            element.removeAttribute('name');
-            element.removeAttribute('for');
-            element.removeAttribute('data-flow-dock');
-            element.removeAttribute('aria-live');
-            element.removeAttribute('role');
-            ['aria-controls', 'aria-labelledby', 'aria-describedby', 'aria-activedescendant', 'aria-owns'].forEach(attribute => element.removeAttribute(attribute));
-            Array.from(element.attributes).filter(attribute => attribute.name.startsWith('on'))
-                .forEach(attribute => element.removeAttribute(attribute.name));
-        });
-        ghost.classList.add('play-hub-panel--ghost');
-        ghost.setAttribute('aria-hidden', 'true');
-        ghost.inert = true;
-        Object.assign(ghost.style, {
-            top: `${box.top - mainBox.top}px`,
-            left: `${box.left - mainBox.left}px`,
-            width: `${box.width}px`,
-            height: `${box.height}px`
-        });
-        main.appendChild(ghost);
-        return ghost;
     }
 
     function getPlayPanelLanding(panelName: PlayPanelName, direction: PlayMoveDirection): HTMLElement | null {
@@ -265,7 +238,7 @@
                 { opacity: 1, transform: 'none' }
             ]
             : [
-                { opacity: 0, transform: `perspective(1100px) translate(${side * 40}px, 26px) rotateX(9deg) rotateY(${side * -12}deg) rotateZ(${side * 2.5}deg) scale(0.92)` },
+                { opacity: 1, transform: `perspective(1100px) translate(${side * 40}px, 26px) rotateX(9deg) rotateY(${side * -12}deg) rotateZ(${side * 2.5}deg) scale(0.92)` },
                 { opacity: 1, offset: 0.62, transform: `perspective(1100px) translate(${side * -2}px, -4px) rotateX(-1.5deg) rotateY(${side * 1.5}deg) rotateZ(${side * -0.4}deg) scale(1.012)` },
                 { opacity: 1, transform: 'none' }
             ];
@@ -317,8 +290,8 @@
         let index = 0;
         for (const element of elements) {
             const animation = playAnimate(element, [
-                { opacity: 0, transform: `translateY(${distance}px)` },
-                { opacity: 1, transform: 'none' }
+                { transform: `translateY(${distance}px)` },
+                { transform: 'none' }
             ], { duration: 220, delay: delay + index * stagger, easing: PLAY_EASE_ENTER });
             if (animation) animations.push(animation);
             index += 1;
@@ -346,24 +319,20 @@
             push(layout, dealPlayCard(panel, direction));
         } else {
             push(layout, [playAnimate(panel, [
-                { opacity: 0, transform: `translateX(${side * PLAY_MOTION_SHIFT_PX}px)` },
-                { opacity: 1, transform: 'none' }
+                { transform: `translateX(${side * PLAY_MOTION_SHIFT_PX}px)` },
+                { transform: 'none' }
             ], { duration: PLAY_MOTION_ENTER_MS, easing: PLAY_EASE_ENTER })]);
         }
 
         if (panelName === 'dashboard') {
             if (!cardLayout) push(layout, dealPlayCard(panel.querySelector('.play-dashboard-card'), direction, 40));
             push(layout, rise(panel.querySelectorAll('.play-dashboard-discounts .pro-discount-box'), 140, 0));
-            const actions = panel.querySelector('.play-dashboard-actions');
-            if (actions && !actions.classList.contains('flow-action-stack--docked')) {
-                push(layout, rise(actions.querySelectorAll('.flow-action'), 170, 45));
-            }
+            // The arriving card already supplies the movement. Its commands
+            // stay readable and share that position from the first frame.
             push(extra, settlePlayPrices(document.getElementById('athleteDashboardActions') || panel, 300));
         } else if (panelName === 'selection') {
-            push(layout, rise([
-                panel.querySelector('.play-athlete-visual'),
-                panel.querySelector('.play-autocomplete-wrapper')
-            ].filter((element): element is Element => Boolean(element)), 40, 50, 8));
+            const visual = panel.querySelector('.play-athlete-visual');
+            if (visual) push(layout, rise([visual], 40, 0, 8));
         }
         return { layout, extra };
     }
@@ -541,8 +510,7 @@
     }
 
     function prefersReducedPlayMotion(): boolean {
-        return Boolean(window.matchMedia
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        return reducedPlayMotion.matches;
     }
 
     function finishPlayStartIntro(): void {
@@ -610,7 +578,6 @@
         activePlayPanelName = panelName;
         hasRenderedPlayPanel = true;
         activePanelTransitionTimer = 0;
-        document.querySelectorAll('.play-hub-panel--ghost').forEach(ghost => ghost.remove());
         document.documentElement.classList.remove('play-panel-transitioning');
         delete document.documentElement.dataset.playMove;
         document.documentElement.removeAttribute('data-flow-dock-hold');
@@ -638,24 +605,11 @@
         cancelPlayPanelMotion();
         const transitionRunId = playPanelTransitionRunId;
 
-        // The start screen sits on its own night stage, so it never leaves a ghost
-        // and never receives one; its title intro is its arrival.
-        const outgoing = previousPanelName ? document.getElementById(getPlayRouteState(previousPanelName).panelId) : null;
-        const ghost = shouldAnimate
-            && outgoing
-            && outgoing !== targetPanel
-            && !outgoing.hidden
-            && previousPanelName !== 'start'
-            && panelName !== 'start'
-            && !document.body.classList.contains('play-route-hydrating')
-            ? createPlayPanelGhost(outgoing, main)
-            : null;
-
         const commitPanel = (): void => {
             main.classList.toggle('play-hub-main--wide', state.isWide);
             document.body.classList.toggle('play-start-active', panelName === 'start');
             if (panelName !== 'start') finishPlayStartIntro();
-            document.querySelectorAll<HTMLElement>('.play-hub-panel:not(.play-hub-panel--ghost)').forEach(panel => {
+            document.querySelectorAll<HTMLElement>('.play-hub-panel').forEach(panel => {
                 panel.hidden = panel !== targetPanel;
             });
             if (isInFlowMove) {
@@ -684,18 +638,8 @@
         document.documentElement.setAttribute('data-flow-dock-hold', '');
         if (panelName === 'start') startPlayStartIntro({ restart: true });
 
-        const side = direction === 'back' ? -1 : 1;
-        const motion: Animation[] = [];
-        if (ghost) {
-            const exit = playAnimate(ghost, [
-                { opacity: 1, transform: 'none' },
-                { opacity: 0, transform: `translateX(${side * -PLAY_MOTION_SHIFT_PX * 0.75}px) scale(0.985)` }
-            ], { duration: PLAY_MOTION_EXIT_MS, easing: PLAY_EASE_EXIT, fill: 'forwards' });
-            if (exit) motion.push(exit);
-            else ghost.remove();
-        }
         const arrival = animatePlayPanelArrival(panelName, targetPanel, direction);
-        motion.push(...arrival.layout);
+        const motion = arrival.layout;
         activePanelMotion = [...motion, ...arrival.extra];
 
         const settled = Promise.all(motion.map(animation => animation.finished.catch(() => {})));
@@ -708,7 +652,6 @@
             // A throttled or interrupted animation can reach the safety deadline
             // first. Restore resting geometry before releasing dock decisions.
             motion.forEach(animation => animation.cancel());
-            ghost?.remove();
             completePlayPanelTransition(panelName, transitionRunId);
         });
     }

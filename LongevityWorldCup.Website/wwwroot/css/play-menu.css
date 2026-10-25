@@ -3090,9 +3090,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         animation-delay: 150ms;
     }
 
-    .play-join-panel:not([hidden]) .play-join-foot {
-        animation: play-join-fade 220ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 220ms backwards;
-    }
+    /* Keep the action band still and readable while its dock is measured. */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3126,7 +3124,6 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
 @keyframes play-join-tile-rise {
     from {
-        opacity: 0;
         transform: translate3d(0, 28px, 0);
     }
 

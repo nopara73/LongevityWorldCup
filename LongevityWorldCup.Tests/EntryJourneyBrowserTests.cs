@@ -204,7 +204,7 @@ public sealed class EntryJourneyBrowserTests(
     [Theory]
     [InlineData(1440, 900)]
     [InlineData(390, 844)]
-    public async Task JoinEntrance_RisesTitleThenTracksAndOnlyFadesTheFoot(int width, int height)
+    public async Task JoinEntrance_RisesTitleThenTracksAndKeepsTheFootStill(int width, int height)
     {
         await using var context = await NewJourneyContextAsync(width, height, dark: false, reducedMotion: false);
         // Keep every animation that starts, so finished ones can still be read.
@@ -231,7 +231,8 @@ public sealed class EntryJourneyBrowserTests(
                 if (!title.length) issues.push('title does not rise');
                 if (!rule.length) issues.push('accent rule does not draw');
                 if (cards.some(list => !list.length)) issues.push('a track does not rise');
-                if (!foot.length) issues.push('foot does not fade in');
+                const footStyle = getComputedStyle(panel.querySelector('.play-join-foot'));
+                if (footStyle.opacity !== '1') issues.push('foot actions are faded during arrival');
                 const all = [...title, ...rule, ...cards.flat(), ...foot];
                 for (const a of all) {
                     const t = timing(a);

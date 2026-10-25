@@ -352,7 +352,10 @@ public sealed class InteractionMotionBrowserTests(
         await NavigateAndSettleAsync(page, route);
         // Check both the shared press treatment and the play flow's deliberate
         // override, rather than treating a component as the global default.
+        // Play mounts and orders its controls after the shared page shell loads.
+        if (route == "/play") await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-route-ready')");
         var button = page.Locator(selector);
+        await Assertions.Expect(button).ToBeEnabledAsync();
         await button.HoverAsync();
         await page.Mouse.DownAsync();
         await page.WaitForTimeoutAsync(200);

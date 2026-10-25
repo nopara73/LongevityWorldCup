@@ -48,16 +48,7 @@ public sealed class AthleteTransitionBrowserTests(
     public async Task EnlargedBadgeNames_KeepTheirFullTitlesWithoutClipping()
     {
         await using var context = await NewContextAsync(1280, false);
-        await RouteAthleteFixtureAsync(context, athletes =>
-        {
-            var athlete = athletes.OfType<JsonObject>().Single(a => a["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
-            athlete["Badges"] = new JsonArray(
-                new JsonObject { ["BadgeLabel"] = "Age reduction", ["LeagueCategory"] = "Global", ["Place"] = 2 },
-                new JsonObject { ["BadgeLabel"] = "Best domain – metabolic", ["Place"] = 1 },
-                new JsonObject { ["BadgeLabel"] = "Best domain – immune", ["Place"] = 1 },
-                new JsonObject { ["BadgeLabel"] = "Best domain – vitamin D", ["Place"] = 1 },
-                new JsonObject { ["BadgeLabel"] = "Pheno pace of aging", ["Place"] = 1 });
-        });
+        await AddBadgeFixtureAsync(context);
         var page = await context.NewPageAsync();
         await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/michael-lustgarten");
         await Assertions.Expect(page.Locator("#modalBadgeStrip .modal-badge-name")).ToHaveCountAsync(5);
@@ -72,6 +63,36 @@ public sealed class AthleteTransitionBrowserTests(
             }
             """);
         Assert.Empty(clipped);
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task BadgeArrival_NeverHidesTitlesOrDimsEarnedBadgesAfterTheyRender(int width)
+    {
+        await using var context = await NewContextAsync(width, false);
+        await AddBadgeFixtureAsync(context);
+        var page = await context.NewPageAsync();
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/michael-lustgarten");
+        await Assertions.Expect(page.Locator("#modalBadgeStrip .modal-badge-name")).ToHaveCountAsync(5);
+        await page.Keyboard.PressAsync("Tab");
+        var minimum = await page.EvaluateAsync<double[]>("""
+            () => new Promise(resolve => {
+                const start = performance.now();
+                let title = 1, badge = 1;
+                const sample = () => {
+                    document.querySelectorAll('#modalBadgeStrip .modal-badge-name').forEach(el =>
+                        title = Math.min(title, Number(getComputedStyle(el).opacity)));
+                    document.querySelectorAll('#modalBadgeStrip .badge-class').forEach(el =>
+                        badge = Math.min(badge, Number(getComputedStyle(el).opacity)));
+                    if (performance.now() - start < 1600) requestAnimationFrame(sample);
+                    else resolve([title, badge]);
+                };
+                sample();
+            })
+            """);
+        Assert.True(minimum[0] >= .9 && minimum[1] >= .85,
+            $"Earned badge content disappeared during its delayed arrival: title opacity {minimum[0]}, badge opacity {minimum[1]}.");
     }
 
     [Fact]
@@ -145,6 +166,17 @@ public sealed class AthleteTransitionBrowserTests(
             window.getSharedAthletes = () => new Promise(resolve => window.pendingAthleteReads.push(resolve));
         }
         """);
+
+    private Task AddBadgeFixtureAsync(IBrowserContext context) => RouteAthleteFixtureAsync(context, athletes =>
+    {
+        var athlete = athletes.OfType<JsonObject>().Single(a => a["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
+        athlete["Badges"] = new JsonArray(
+            new JsonObject { ["BadgeLabel"] = "Age reduction", ["LeagueCategory"] = "Global", ["Place"] = 2 },
+            new JsonObject { ["BadgeLabel"] = "Best domain – metabolic", ["Place"] = 1 },
+            new JsonObject { ["BadgeLabel"] = "Best domain – immune", ["Place"] = 1 },
+            new JsonObject { ["BadgeLabel"] = "Best domain – vitamin D", ["Place"] = 1 },
+            new JsonObject { ["BadgeLabel"] = "Pheno pace of aging", ["Place"] = 1 });
+    });
 
     private static async Task ExpectCompactLoadingAsync(IPage page)
     {

@@ -377,11 +377,15 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
     }
 }
 
-/* All decorative motion shares the first-interaction/restore gate. */
-html:not([data-lwc-motion="on"]) .lwc-empty,
-html:not([data-lwc-motion="on"]) .lwc-empty *,
-html[data-lwc-empty-restoring] .lwc-empty,
-html[data-lwc-empty-restoring] .lwc-empty * {
+/* All decorative motion shares the first-interaction/restore gate. Keep its
+   targets explicit: a descendant wildcard invalidates the entire document
+   when the root gate changes, even outside an empty state. */
+html:is(:not([data-lwc-motion="on"]), [data-lwc-empty-restoring])
+:is(.lwc-empty, .lwc-empty__art, .lwc-empty__glyph, .lwc-empty__float,
+    .lwc-empty__shadow, .lwc-empty__halo, .lwc-empty__spark, .lwc-empty__eyes,
+    .lwc-empty__look, .lwc-empty__drop, .lwc-empty__wave, .lwc-empty__typing > circle,
+    .lwc-empty__bar, .lwc-empty__star, .lwc-empty__tick, .lwc-empty__ear,
+    .lwc-empty .show-all-athletes-btn) {
     animation: none !important;
     transition: none !important;
 }

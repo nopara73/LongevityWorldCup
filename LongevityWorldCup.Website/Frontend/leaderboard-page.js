@@ -1997,12 +1997,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 if (searchOrFilterApplied) {
                     toggleClearIcon();
 
-                    // Position an untouched incoming selection at its controls,
-                    // preserving scrolling or filter interaction during loading.
+                    // Position a new incoming selection at its controls without
+                    // overwriting the reader's native Back/Forward restoration.
                     const incomingScrollY = window.scrollY;
                     setTimeout(() => {
                         const filtersPanel = document.querySelector('.sidebar');
-                        if (canAutoScroll() && window.scrollY === incomingScrollY &&
+                        const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+                        if (!returning && canAutoScroll() && window.scrollY === incomingScrollY &&
                             !filtersPanel?.matches(':hover, .expanded') && document.activeElement !== searchInput) {
                             searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }

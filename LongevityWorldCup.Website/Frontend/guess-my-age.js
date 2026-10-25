@@ -182,6 +182,14 @@ resetObserver.observe(modalContent.closest('#detailsModal'), {
     attributes: true, attributeFilter: ['class', 'style']
 });
 
+// A cached profile can enter and leave loading within one task. Its final DOM
+// looks unchanged to the observer, so cancel the old handoff at the boundary.
+modalContent.closest('#detailsModal').addEventListener('athlete-dialog-loading', () => {
+    cancelGmaPresentation();
+    cancelGmaPortraitGlide();
+    cancelGmaProfileHandoff();
+});
+
 function gmaGeometryForAge(age) {
     const min = +gmaRange.min;
     const max = +gmaRange.max;
