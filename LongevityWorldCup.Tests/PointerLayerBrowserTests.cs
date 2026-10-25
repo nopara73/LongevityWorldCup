@@ -47,6 +47,32 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
     }
 
     [Theory]
+    [InlineData(390, false)]
+    [InlineData(390, true)]
+    [InlineData(320, false)]
+    [InlineData(1440, false)]
+    public async Task Tooltip_WiderContentAfterARightEdgeOwnerKeepsItsViewportGutter(int width, bool dark)
+    {
+        await using var context = await ContextAsync(width, dark);
+        var page = await FixtureAsync(context);
+        const string explanation = "Rank by bortz age (biological age). Click again to show default ranking.";
+        await page.Locator("#one").EvaluateAsync("e => e.style.cssText = 'position:fixed;right:12px;top:20px'");
+        await page.Locator("#two").EvaluateAsync("(e, text) => { e.title = text; e.style.cssText = 'position:fixed;left:20px;top:150px'; }", explanation);
+        await page.Locator("#one").HoverAsync();
+        await Expect(page.Locator(".lwc-tip")).ToHaveTextAsync("First tip");
+        await page.Locator("#two").HoverAsync();
+        await Expect(page.Locator(".lwc-tip")).ToHaveTextAsync(explanation);
+        await page.WaitForTimeoutAsync(200);
+        var geometry = await page.Locator(".lwc-tip").EvaluateAsync<double[]>("""
+            e => { const r = e.getBoundingClientRect(); return [r.left, r.right, document.documentElement.clientWidth, e.scrollWidth - e.clientWidth, e.scrollHeight - e.clientHeight]; }
+            """);
+        Assert.True(geometry[0] >= 7.5 && geometry[1] <= geometry[2] - 7.5,
+            $"The complete tooltip must retain its viewport gutter: {string.Join(", ", geometry)}");
+        Assert.Equal(0, geometry[3]);
+        Assert.Equal(0, geometry[4]);
+    }
+
+    [Theory]
     [InlineData("leave")]
     [InlineData("focus")]
     [InlineData("remove")]

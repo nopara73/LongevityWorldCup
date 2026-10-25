@@ -152,6 +152,8 @@
     font-weight: 600;
     line-height: 1.35;
     letter-spacing: 0.01em;
+    /* Keep measurement independent of the previous fixed left position. */
+    width: max-content;
     max-width: 320px;
     box-sizing: border-box;
     max-height: calc(100dvh - 16px);
