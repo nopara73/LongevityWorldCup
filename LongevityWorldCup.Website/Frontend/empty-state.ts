@@ -1,23 +1,5 @@
-// One illustration system for every empty, zero-result and "nothing yet" state.
-//
-// Pages keep rendering their own empty markup and wording. This classic script
-// watches for those hosts (the registry below), gives each one a small inline
-// SVG scene drawn in the site palette, and owns the motion around it:
-//
-// - idle: the scene bobs and its shadow breathes on one shared clock, so a
-//   host that is re-rendered keeps its phase instead of jumping;
-// - entrance: a host that appears after the visitor has interacted pops in,
-//   then its words and call to action rise after it;
-// - return: when results come back the scene floats away as a ghost while the
-//   returning content fades in, so empty and filled crossfade instead of cut.
-//
-// Re-rendering the same empty state in place (a search that still matches
-// nothing) is treated as staying, not leaving and arriving again.
-//
-// Decorations are aria-hidden and never replace text. Entrance and return
-// follow the shared motion gate (html[data-lwc-motion="on"]); reduced motion
-// keeps the scenes still. Pages may also call LwcEmptyState.decorate(host,
-// kind) for markup the registry does not know yet.
+// Decorative empty-state illustrations. Pages own content, focus and row motion.
+// Observe only changed subtrees; decoration never changes the meaning of a host.
 
 type LwcEmptyKind =
     | "search" | "filter" | "flag" | "proofs" | "calendar"
@@ -33,7 +15,7 @@ interface Window {
 }
 
 (() => {
-    // Pages that embed two boards load this twice; one observer is enough.
+    // Idempotent even if an embedding consumer evaluates the script twice.
     if (window.LwcEmptyState) return;
     const root = document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -61,15 +43,8 @@ interface Window {
         { selector: "tr.events-empty-row > td", kind: "calendar" },
         { selector: ".lmx-empty-row > .lmx-name", kind: "podium" },
         { selector: ".lmx-empty-state", kind: "check" },
-        {
-            selector: "#lmxNotes > .lmx-note",
-            kind: "discussion",
-            // The discussion's empty note is a lone strong line, unlike real notes.
-            accepts: host => host.parentElement?.childElementCount === 1
-                && host.childElementCount === 1
-                && host.firstElementChild?.tagName === "STRONG",
-        },
-        { selector: ".empty-state", kind: "chart", accepts: host => !!host.closest("main, body") && !host.closest(".lwc-empty") },
+        { selector: "#lmxNotes > .lmx-note-empty", kind: "discussion" },
+        { selector: ".stats-page .empty-state", kind: "chart" },
         { selector: ".lmx-mention-empty, .lmx-athlete-empty, .lmx-timezone-empty", kind: "glyph" },
         {
             selector: ".error-message.athlete-search-empty",
@@ -156,157 +131,111 @@ interface Window {
         host.style.setProperty("--lwc-empty-phase", `${-(performance.now() % loopMs)}ms`);
     }
 
+    const manualKinds = new WeakMap<Element, LwcEmptyKind>();
+    const entrances = new Map<HTMLElement, number>();
+    function finishEntrance(host: HTMLElement): void {
+        window.clearTimeout(entrances.get(host));
+        entrances.delete(host);
+        host.classList.remove("lwc-empty--enter");
+    }
+
     function decorate(host: Element, kind: LwcEmptyKind, enter = motionOn()): void {
-        if (!(host instanceof HTMLElement) || host.hasAttribute(marker)) return;
+        if (!(host instanceof HTMLElement)) return;
+        const art = host.querySelector(":scope > .lwc-empty__art, :scope > .lwc-empty__glyph");
+        const previous = host.getAttribute(marker);
+        if (previous === kind && art) return;
+        finishEntrance(host);
+        art?.remove();
         host.setAttribute(marker, kind);
-        host.classList.add("lwc-empty", kind === "glyph" ? "lwc-empty--glyph" : "lwc-empty--scene");
+        host.classList.add("lwc-empty");
+        host.classList.toggle("lwc-empty--glyph", kind === "glyph");
+        host.classList.toggle("lwc-empty--scene", kind !== "glyph");
         host.insertAdjacentHTML("afterbegin", kind === "glyph" ? glyphMarkup : sceneMarkup(kind));
         syncPhase(host);
-        if (!enter) return;
+        // Updating a hint or changing search/filter scenes keeps the existing host still.
+        if (previous || !enter || root.hasAttribute("data-lwc-empty-restoring")
+            || !host.getClientRects().length || host.closest('[aria-busy="true"]')) return;
         host.classList.add("lwc-empty--enter");
-        const clear = (event: AnimationEvent) => {
-            if (event.target !== host && !(event.target as Element).classList?.contains("lwc-empty__art")) return;
-            host.classList.remove("lwc-empty--enter");
-            host.removeEventListener("animationend", clear);
-        };
-        host.addEventListener("animationend", clear);
-        window.setTimeout(() => host.classList.remove("lwc-empty--enter"), 900);
+        entrances.set(host, window.setTimeout(() => finishEntrance(host), 450));
     }
 
-    function entryFor(host: Element): Entry | undefined {
-        return registry.find(entry => host.matches(entry.selector) && (!entry.accepts || entry.accepts(host)));
+    function reconcile(host: Element, enter: boolean): void {
+        if (!(host instanceof HTMLElement) || !host.isConnected) return;
+        const entry = registry.find(entry => host.matches(entry.selector) && (!entry.accepts || entry.accepts(host)));
+        if (entry) {
+            decorate(host, typeof entry.kind === "function" ? entry.kind(host) : entry.kind, enter);
+        } else if (manualKinds.has(host)) {
+            decorate(host, manualKinds.get(host)!, enter);
+        } else if (host.hasAttribute(marker)) {
+            finishEntrance(host);
+            host.removeAttribute(marker);
+            host.classList.remove("lwc-empty", "lwc-empty--glyph", "lwc-empty--scene");
+            host.querySelector(":scope > .lwc-empty__art, :scope > .lwc-empty__glyph")?.remove();
+            host.style.removeProperty("--lwc-empty-phase");
+        }
     }
 
-    function upgrade(host: Element, enter: boolean): void {
-        const entry = entryFor(host);
-        if (!entry) return;
-        decorate(host, typeof entry.kind === "function" ? entry.kind(host) : entry.kind, enter);
-    }
-
+    const candidates = `${selectorList}, [${marker}]`;
     function hostsIn(node: Node): Element[] {
-        if (!(node instanceof Element)) return [];
-        const found = node.matches(selectorList) ? [node] : [];
-        return found.concat(Array.from(node.querySelectorAll(selectorList)));
+        if (!(node instanceof Element) || node instanceof SVGElement) return [];
+        return [...(node.matches(candidates) ? [node] : []), ...node.querySelectorAll(candidates)];
     }
 
-    function decoratedIn(node: Node): HTMLElement[] {
-        if (!(node instanceof HTMLElement)) return [];
-        const found = node.hasAttribute(marker) ? [node] : [];
-        return found.concat(Array.from(node.querySelectorAll<HTMLElement>(`[${marker}]`)));
-    }
-
-    // The scene drifts up and away from where it stood.
-    function ghost(art: Element, rect: DOMRect): void {
-        if (!rect.width || !rect.height) return;
-        const copy = art.cloneNode(true) as SVGElement;
-        copy.classList.add("lwc-empty__ghost");
-        Object.assign(copy.style, {
-            left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px`,
-        });
-        document.body.appendChild(copy);
-        const done = () => copy.remove();
-        const motion = copy.animate([
-            { opacity: 1, transform: "translateY(0) scale(1)" },
-            { opacity: 0, transform: "translateY(-14px) scale(0.86)" },
-        ], { duration: 240, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" });
-        motion.onfinish = done;
-        motion.oncancel = done;
-    }
-
-    // Returning content rises in a short cascade, nearest first.
-    function welcomeBack(container: Element): void {
-        const items = Array.from(container.children)
-            .filter((child): child is HTMLElement => child instanceof HTMLElement
-                && !child.hasAttribute(marker) && child.getClientRects().length > 0)
-            .slice(0, 14);
-        items.forEach((item, index) => {
-            item.animate([
-                { opacity: 0, transform: "translateY(6px)" },
-                { opacity: 1, transform: "none" },
-            ], { duration: 240, delay: 60 + index * 18, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "backwards" });
-        });
-    }
-
-    // Leaving hosts are gone from the DOM when the observer runs, so remember
-    // where each scene sat while it was still on the page.
-    const lastRects = new WeakMap<Element, DOMRect>();
-    function remember(): void {
-        document.querySelectorAll(`[${marker}] > svg`).forEach(art => lastRects.set(art, art.getBoundingClientRect()));
-    }
-    ["pointerdown", "keydown", "input", "change", "click"].forEach(type =>
-        document.addEventListener(type, remember, { capture: true, passive: true }));
-
-    function handle(records: MutationRecord[]): void {
-        const leaving = new Map<Node, { kind: string; art: Element | null }[]>();
-        const arriving: Element[] = [];
+    // Mutations caused by our own synchronous decoration must not feed back into
+    // the observer. No global input-time layout reads or detached-host snapshots.
+    const observer = new MutationObserver(records => {
         const touched = new Set<Element>();
-
         for (const record of records) {
             const target = record.target instanceof Element ? record.target : record.target.parentElement;
-            // Class flips, text edits and textContent swaps on a hint slot.
-            const inPlace = record.type !== "childList" || record.target === target;
-            if (target && inPlace && (target.hasAttribute(marker) || target.matches(selectorList))) touched.add(target);
-            record.removedNodes.forEach(node => {
-                decoratedIn(node).forEach(host => {
-                    const list = leaving.get(record.target) || [];
-                    list.push({ kind: host.getAttribute(marker) || "", art: host.querySelector(":scope > svg") });
-                    leaving.set(record.target, list);
-                });
-            });
-            record.addedNodes.forEach(node => arriving.push(...hostsIn(node)));
+            const host = target?.closest(candidates);
+            if (host) touched.add(host);
+            record.addedNodes.forEach(node => hostsIn(node).forEach(item => touched.add(item)));
+            // A removed class can invalidate a previously decorated host.
+            if (target?.hasAttribute(marker)) touched.add(target);
         }
-
-        // Hint slots reuse one element: follow its words and class.
-        touched.forEach(host => {
-            if (!(host instanceof HTMLElement)) return;
-            const entry = entryFor(host);
-            const decorated = host.hasAttribute(marker);
-            if (!entry && decorated) {
-                host.removeAttribute(marker);
-                host.classList.remove("lwc-empty", "lwc-empty--glyph", "lwc-empty--scene", "lwc-empty--enter");
-                host.querySelector(":scope > svg")?.remove();
-            } else if (entry && !decorated) {
-                upgrade(host, motionOn());
-            } else if (entry && decorated && !host.querySelector(":scope > svg")) {
-                // New words replaced the scene: put it back in front of them.
-                host.removeAttribute(marker);
-                upgrade(host, false);
-            }
-        });
-
-        const stayed = new Set<Node>();
-        for (const host of arriving) {
-            if (!host.isConnected || host.hasAttribute(marker)) continue;
-            const entry = entryFor(host);
-            if (!entry) continue;
-            // Re-rendered in place: same parent lost a host this batch.
-            const sameParent = Array.from(leaving.keys()).find(parent => parent === host.parentNode
-                || (parent instanceof Element && parent.contains(host)));
-            if (sameParent) stayed.add(sameParent);
-            upgrade(host, sameParent ? false : motionOn());
-        }
-
-        if (!motionOn()) return;
-        leaving.forEach((hosts, parent) => {
-            if (stayed.has(parent)) return;
-            hosts.forEach(({ art }) => {
-                const rect = art && lastRects.get(art);
-                if (art && rect) ghost(art, rect);
-            });
-            if (parent instanceof Element && parent.isConnected) welcomeBack(parent);
+        observer.disconnect();
+        for (const host of entrances.keys()) if (!host.isConnected) finishEntrance(host);
+        touched.forEach(host => reconcile(host, motionOn()));
+        observe();
+    });
+    function observe(): void {
+        observer.observe(document.body, {
+            childList: true, subtree: true, characterData: true,
+            attributes: true, attributeFilter: ["class"],
         });
     }
+
+    function stopEntrances(): void {
+        for (const host of entrances.keys()) finishEntrance(host);
+    }
+    const preferenceChanged = () => { if (reduced.matches) stopEntrances(); };
+    if (typeof reduced.addEventListener === "function") reduced.addEventListener("change", preferenceChanged);
+    else reduced.addListener?.(preferenceChanged);
+    window.addEventListener("pagehide", () => {
+        root.setAttribute("data-lwc-empty-restoring", "");
+        stopEntrances();
+    });
+    window.addEventListener("pageshow", event => {
+        if (event.persisted) root.setAttribute("data-lwc-empty-restoring", "");
+        stopEntrances();
+    });
+    const resume = (event: Event) => {
+        if (event.isTrusted) root.removeAttribute("data-lwc-empty-restoring");
+    };
+    window.addEventListener("pointerdown", resume, true);
+    window.addEventListener("keydown", resume, true);
 
     function start(): void {
-        hostsIn(document.body).forEach(host => upgrade(host, false));
-        new MutationObserver(handle).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class"] });
+        hostsIn(document.body).forEach(host => reconcile(host, false));
+        observe();
     }
-
     window.LwcEmptyState = {
-        decorate: (host, kind) => decorate(host, kind),
+        decorate: (host, kind) => {
+            if (!registry.some(entry => host.matches(entry.selector))) manualKinds.set(host, kind);
+            decorate(host, kind);
+        },
         kinds: ["search", "filter", "flag", "proofs", "calendar", "podium", "check", "discussion", "chart", "glyph"],
     };
-
-    if (document.body) start();
-    else document.addEventListener("DOMContentLoaded", start, { once: true });
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+    else start();
 })();

@@ -83,7 +83,7 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
     justify-items: center;
     align-content: center;
     gap: var(--lwc-space-2, 0.5rem);
-    --lwc-empty-size: 5.5rem;
+    --lwc-empty-size: 4rem;
 }
 
 /* Longevitymaxxing board: the empty row stacks scene over its line. */
@@ -169,9 +169,11 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
 /* ---- Inline glyph (pickers, search hints) ------------------------------ */
 
 .lwc-empty--glyph {
-    display: flex;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
     align-items: center;
     gap: var(--lwc-space-2, 0.5rem);
+    overflow-wrap: anywhere;
 }
 
 .lwc-empty__glyph {
@@ -183,6 +185,12 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
 
 .lwc-empty__glyph .lwc-empty__body { stroke-width: 2; }
 .lwc-empty__glyph .lwc-empty__stroke { stroke-width: 2.6; }
+
+/* The play flow toggles this hint with an inline block display. */
+.athlete-search-empty > .lwc-empty__glyph {
+    vertical-align: -0.2em;
+    margin-inline-end: 0.4em;
+}
 
 /* ---- Idle loop: bob, breathe, blink, twinkle --------------------------- */
 
@@ -292,7 +300,7 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
     22%, 100% { stroke-dashoffset: 0; }
 }
 
-/* ---- Entrance: the scene pops, the words follow ------------------------ */
+/* ---- Entrance: the scene pops; content remains visible ----------------- */
 
 @media (prefers-reduced-motion: no-preference) {
     .lwc-empty--enter > .lwc-empty__art,
@@ -300,43 +308,12 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
         animation: lwc-empty-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
 
-    .lwc-empty--enter > :not(svg) {
-        animation: lwc-empty-rise 260ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
-        animation-delay: 110ms;
-    }
-
-    .lwc-empty--enter > :not(svg) + :not(svg) {
-        animation-delay: 170ms;
-    }
-
-    /* Words written straight into the host rise with it. */
-    .lwc-empty--enter:is(td, .flag-empty, .proofs-empty, .empty-state) {
-        animation: lwc-empty-fade 260ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
-    }
 }
 
 @keyframes lwc-empty-pop {
     0% { opacity: 0; transform: translateY(10px) scale(0.72); }
     60% { opacity: 1; }
     100% { opacity: 1; transform: none; }
-}
-
-@keyframes lwc-empty-rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: none; }
-}
-
-@keyframes lwc-empty-fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* The departing scene, floated above the page while results return. */
-.lwc-empty__ghost {
-    position: fixed;
-    z-index: 2;
-    margin: 0;
-    pointer-events: none;
 }
 
 /* ---- Calls to action inside empty states ------------------------------- */
@@ -404,4 +381,30 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
         transition: none;
         transform: none !important;
     }
+}
+
+/* All decorative motion shares the first-interaction/restore gate. */
+html:not([data-lwc-motion="on"]) .lwc-empty,
+html:not([data-lwc-motion="on"]) .lwc-empty *,
+html[data-lwc-empty-restoring] .lwc-empty,
+html[data-lwc-empty-restoring] .lwc-empty * {
+    animation: none !important;
+    transition: none !important;
+}
+html[data-embed-theme="dark"] {
+    --lwc-empty-line: #5bd5dd;
+    --lwc-empty-fill: #17212b;
+    --lwc-empty-halo: #20373e;
+    --lwc-empty-ground: #33424f;
+    --lwc-empty-face: #eaf0f5;
+}
+
+/* This internal dashboard owns a dark palette in either system theme. */
+.stats-page {
+    --lwc-empty-line: var(--cyan);
+    --lwc-empty-fill: var(--panel);
+    --lwc-empty-halo: var(--cyan-soft);
+    --lwc-empty-ground: var(--line-strong);
+    --lwc-empty-face: var(--text);
+    --lwc-empty-spark: var(--cyan);
 }

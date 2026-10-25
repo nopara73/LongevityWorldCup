@@ -598,6 +598,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             // Shared interaction styles come first so the aesthetic system stays the last stylesheet in the head.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/empty-state.js")}\" defer></script>{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/form-controls.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/form-controls.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/share-sheet.js")}\" defer></script>{Environment.NewLine}"

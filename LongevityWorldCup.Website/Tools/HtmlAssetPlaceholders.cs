@@ -11,6 +11,9 @@ public static partial class HtmlAssetPlaceholders
 {
     private static readonly FrozenDictionary<string, string> Paths = new Dictionary<string, string>(StringComparer.Ordinal)
     {
+        ["{{ASSET_EMPTY_STATE_CSS}}"] = "/css/empty-state.css",
+        ["{{ASSET_EMPTY_STATE_JS}}"] = "/js/empty-state.js",
+        ["{{ASSET_MOTION_JS}}"] = "/js/motion.js",
         ["{{ASSET_AGE_VISUALIZATION_JS}}"] = "/js/age-visualization.js",
         ["{{ASSET_APPLE_TOUCH_ICON_DARK}}"] = "/assets/apple-touch-icon-dark.png",
         ["{{ASSET_APPLE_TOUCH_ICON}}"] = "/assets/apple-touch-icon.png",
