@@ -1,0 +1,341 @@
+/*
+ * Longevity World Cup type system
+ *
+ * One fluid scale, one set of line-heights and one vertical rhythm for every
+ * page. Sizes grow smoothly from phone to desktop with clamp(); each step
+ * carries its own leading and tracking so big type tightens and small caps
+ * open up. Pages pick a role (display, title, section, eyebrow, lead,
+ * reading, caption, figure) instead of inventing sizes.
+ *
+ * Loaded by HtmlInjectionMiddleware right before aesthetic-system.css, which
+ * reads these tokens and stays the last stylesheet in the head.
+ */
+
+:root {
+    /* Scale: about 1.2 on phones opening to 1.25 on desktop. */
+    --lwc-type-2xs: 0.6875rem;
+    --lwc-type-xs: 0.75rem;
+    --lwc-type-sm: 0.875rem;
+    --lwc-type-body: 1rem;
+    --lwc-type-reading: clamp(1rem, 0.95rem + 0.22vw, 1.0625rem);
+    --lwc-type-lead: clamp(1.0625rem, 0.97rem + 0.42vw, 1.25rem);
+    --lwc-type-h4: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
+    --lwc-type-h3: clamp(1.125rem, 1.03rem + 0.42vw, 1.3125rem);
+    --lwc-type-h2: clamp(1.375rem, 1.13rem + 1.05vw, 1.875rem);
+    --lwc-type-h1: clamp(1.75rem, 1.3rem + 1.9vw, 2.625rem);
+    --lwc-type-display: clamp(2.25rem, 1.55rem + 3vw, 3.5rem);
+    --lwc-type-figure: clamp(1.5rem, 1.2rem + 1.3vw, 2.25rem);
+    --lwc-type-eyebrow: 0.8125rem;
+
+    /* Leading: tight for display, open for reading. */
+    --lwc-leading-display: 1.04;
+    --lwc-leading-h1: 1.1;
+    --lwc-leading-h2: 1.18;
+    --lwc-leading-h3: 1.26;
+    --lwc-leading-eyebrow: 1.2;
+    --lwc-leading-caption: 1.42;
+    --lwc-leading-body: 1.5;
+    --lwc-leading-lead: 1.55;
+    --lwc-leading-reading: 1.7;
+
+    /* Tracking: large type pulls in, small caps breathe. */
+    --lwc-tracking-display: -0.028em;
+    --lwc-tracking-h1: -0.021em;
+    --lwc-tracking-h2: -0.013em;
+    --lwc-tracking-h3: -0.006em;
+    --lwc-tracking-body: 0;
+    --lwc-tracking-caption: 0.006em;
+    --lwc-tracking-label: 0.02em;
+    --lwc-tracking-eyebrow: 0.09em;
+
+    --lwc-weight-regular: 400;
+    --lwc-weight-strong: 700;
+
+    /* Measure: comfortable line lengths for reading and leads. */
+    --lwc-measure: 68ch;
+    --lwc-measure-lead: 36em;
+    --lwc-measure-narrow: 46ch;
+
+    /* Rhythm: fluid vertical steps shared by headings, blocks and sections. */
+    --lwc-flow-3xs: 0.25rem;
+    --lwc-flow-2xs: clamp(0.375rem, 0.33rem + 0.2vw, 0.5rem);
+    --lwc-flow-xs: clamp(0.5rem, 0.43rem + 0.3vw, 0.75rem);
+    --lwc-flow-sm: clamp(0.75rem, 0.64rem + 0.45vw, 1rem);
+    --lwc-flow-md: clamp(1rem, 0.85rem + 0.65vw, 1.5rem);
+    --lwc-flow-lg: clamp(1.5rem, 1.2rem + 1.3vw, 2.25rem);
+    --lwc-flow-xl: clamp(2rem, 1.45rem + 2.4vw, 3.5rem);
+    --lwc-flow-2xl: clamp(2.75rem, 1.9rem + 3.6vw, 5rem);
+    --lwc-section-gap: var(--lwc-flow-lg);
+
+    /* Settle-in motion for headings on first view. */
+    --lwc-settle-duration: 420ms;
+    --lwc-settle-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --lwc-settle-rise: 0.32em;
+}
+
+/* --- Base --------------------------------------------------------------- */
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    font-kerning: normal;
+    font-variant-numeric: lining-nums proportional-nums;
+    text-rendering: optimizeLegibility;
+}
+
+:where(p, li, dd, blockquote, figcaption) {
+    text-wrap: pretty;
+}
+
+:where(h1, h2, h3, h4) {
+    font-weight: var(--lwc-weight-strong);
+    font-variant-numeric: lining-nums tabular-nums;
+    text-wrap: balance;
+}
+
+h4 {
+    font-size: var(--lwc-type-h4);
+    line-height: var(--lwc-leading-h3);
+}
+
+/* --- Roles -------------------------------------------------------------- */
+
+/* Display: the title of a reading or showcase page. The doubled :root lets it
+   outrank the generic title rule below. */
+:root:root body :is(
+    .documentation-document h1,
+    .lmx-page .lmx-hero h1,
+    .lmx-hero h1,
+    #lmx-title,
+    .media-kit-title,
+    .media-kit-header h1
+) {
+    font-size: var(--lwc-type-display);
+    line-height: var(--lwc-leading-display);
+    letter-spacing: var(--lwc-tracking-display);
+}
+
+/* Title: the title of a tool or app page. */
+:root body main h1:not(.visually-hidden):not(.not-found-title),
+:root body :is(
+    .play-hub-main .play-join-head .play-join-title,
+    .play-athlete-title,
+    main #mainPageTitleH2,
+    .lwc-share-host,
+    .bioage-form-container h1,
+    .events-page h1,
+    .apply-page h1
+) {
+    font-size: var(--lwc-type-h1);
+    line-height: var(--lwc-leading-h1);
+    letter-spacing: var(--lwc-tracking-h1);
+}
+
+/* The join title keeps its uppercase voice, so it opens up instead. */
+:root body .play-hub-main .play-join-head .play-join-title {
+    letter-spacing: 0.02em;
+}
+
+/* Section: a heading that opens a block of content. */
+:root body :is(
+    .documentation-document h2,
+    .media-kit-group-title,
+    .play-join-card-head h2,
+    .play-track-card h2
+) {
+    font-size: var(--lwc-type-h2);
+    line-height: var(--lwc-leading-h2);
+    letter-spacing: var(--lwc-tracking-h2);
+}
+
+:root body :is(
+    .documentation-document h3,
+    .documentation-timeline-heading
+) {
+    font-size: var(--lwc-type-h3);
+    line-height: var(--lwc-leading-h3);
+    letter-spacing: var(--lwc-tracking-h3);
+}
+
+/* The section rhythm: room above a heading, a closer step below it. */
+:root body .documentation-document h2 {
+    margin-top: var(--lwc-flow-2xl);
+    margin-bottom: var(--lwc-flow-sm);
+    padding-top: var(--lwc-flow-md);
+}
+
+:root body .documentation-document h3 {
+    margin-top: var(--lwc-flow-lg);
+    margin-bottom: var(--lwc-flow-2xs);
+}
+
+:root body .documentation-document h1 {
+    margin-bottom: var(--lwc-flow-md);
+}
+
+:root body .documentation-document :is(p, ul, ol, blockquote) {
+    margin-block: 0 var(--lwc-flow-sm);
+}
+
+/* Eyebrow: the uppercase strip title on cards, panels and sidebars. */
+:root body :is(
+    main.homepage-main .section-container > h2,
+    .homepage-main .section-container h2,
+    .lmx-page .lmx-habit-heading,
+    .lmx-habit-heading,
+    .lmx-page .lmx-board-header h2,
+    .lmx-page .lmx-notes-header h2,
+    .proof-review-heading,
+    .documentation-nav-title,
+    .documentation-toc-title,
+    .filter-section h3,
+    .sidebar .filter-group h3
+) {
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: var(--lwc-weight-strong);
+    line-height: var(--lwc-leading-eyebrow);
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    text-transform: uppercase;
+    font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* Lead: the sentence under a title. */
+:root body :is(
+    .documentation-cover p,
+    .ruleset-lede,
+    .lmx-page .lmx-hero-copy,
+    .lmx-hero-copy,
+    .media-kit-intro,
+    .play-join-tagline
+) {
+    max-width: var(--lwc-measure-lead);
+    font-size: var(--lwc-type-lead);
+    line-height: var(--lwc-leading-lead);
+    letter-spacing: var(--lwc-tracking-body);
+    text-wrap: pretty;
+}
+
+:root body .play-join-tagline {
+    font-size: var(--lwc-type-body);
+}
+
+/* Reading: long-form prose keeps one size, one leading and one measure. */
+:root body .documentation-document {
+    font-size: var(--lwc-type-reading);
+    line-height: var(--lwc-leading-reading);
+}
+
+:root body .documentation-document :is(p, li, blockquote) {
+    max-width: var(--lwc-measure);
+    hanging-punctuation: first;
+}
+
+/* Years and figures inside prose sit in the text like lowercase letters. */
+:root body :is(.documentation-document, .media-kit-intro, .lmx-hero-copy) :is(p, li, dd, blockquote) {
+    font-variant-numeric: oldstyle-nums proportional-nums;
+}
+
+/* Caption: small supporting text. */
+:root body :is(
+    figcaption,
+    .smaller-text,
+    .metadata,
+    .privacy-note,
+    .proof-page-source,
+    .ranking-explanation,
+    .homepage-section-footer
+) {
+    line-height: var(--lwc-leading-caption);
+    letter-spacing: var(--lwc-tracking-caption);
+}
+
+/* Label: form labels and small bold controls. */
+:root body :where(label, legend, .lwc-field-label) {
+    letter-spacing: var(--lwc-tracking-label);
+}
+
+/* Figure: every number that is compared, ranked or animated keeps fixed-width
+   lining digits, so columns align and count-ups never jitter. */
+:root body :is(
+    td,
+    th,
+    time,
+    output,
+    data,
+    .rank,
+    .age-reduction,
+    .podium-score,
+    .is-counting,
+    [data-lwc-number],
+    [data-bioage-result-visual],
+    .traffic-metric strong,
+    .traffic-outcome strong,
+    .lwc-merch-item-price,
+    .event-date,
+    .badge-count,
+    .lmx-score,
+    .lmx-streak,
+    .countdown,
+    .stat-value
+) {
+    font-variant-numeric: lining-nums tabular-nums slashed-zero;
+    font-feature-settings: "lnum" 1, "tnum" 1;
+}
+
+/* Big standalone figures tighten like headings. */
+:root body :is(.podium-score .age-reduction, [data-bioage-result-visual]) {
+    letter-spacing: -0.015em;
+}
+
+/* --- Settle-in ------------------------------------------------------------ */
+
+/* Page titles settle in as the page paints. Tracking eases from slightly open
+   to its resting value while the line rises into place. */
+@keyframes lwc-type-settle {
+    from {
+        opacity: 0;
+        translate: 0 var(--lwc-settle-rise);
+        letter-spacing: calc(var(--lwc-settle-tracking, 0em) + 0.04em);
+    }
+}
+
+@keyframes lwc-type-settle-plain {
+    from {
+        opacity: 0;
+        translate: 0 var(--lwc-settle-rise);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :root body main h1:not(.visually-hidden):not(.not-found-title),
+    :root body :is(.media-kit-title, .play-athlete-title) {
+        animation: lwc-type-settle-plain var(--lwc-settle-duration) var(--lwc-settle-ease) backwards;
+    }
+
+    /* Headings below the fold wait offscreen and settle when they arrive. */
+    [data-lwc-settle="pending"] {
+        opacity: 0;
+        translate: 0 var(--lwc-settle-rise);
+    }
+
+    [data-lwc-settle="in"] {
+        animation: lwc-type-settle-plain var(--lwc-settle-duration) var(--lwc-settle-ease) backwards;
+    }
+
+    [data-lwc-settle="in"]:is(.lwc-eyebrow-settle) {
+        animation-name: lwc-type-settle;
+        --lwc-settle-tracking: var(--lwc-tracking-eyebrow);
+    }
+}
+
+/* --- Phone ------------------------------------------------------------------ */
+
+@media (max-width: 600px) {
+    :root {
+        --lwc-tracking-display: -0.022em;
+        --lwc-tracking-h1: -0.016em;
+    }
+}
