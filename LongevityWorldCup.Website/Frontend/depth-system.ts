@@ -3,14 +3,14 @@
 // sticky bars are currently pinned, as data-lwc-stuck, so the bar can ease
 // from flat to raised. A bar resting in its normal place stays flat.
 //
-// Known sticky bars are adopted by selector; any page can opt in another one
+// Known sticky bars are adopted by selector (the full leaderboard condenses its
+// own head in leaderboard-feel.css, so it is left to that); any page can opt in another one
 // with a data-lwc-sticky attribute. Work happens once per animation frame on
 // scroll and resize, and only reads the bars' own boxes.
 
 (() => {
     const STICKY_SELECTORS = [
         '[data-lwc-sticky]',
-        'main[data-leaderboard-page="full"] .leaderboard table thead',
         '.event-board-page .events-board tbody tr.events-month-row',
         '.lmx-board-row.header',
         '.lmx-dashboard-category',
