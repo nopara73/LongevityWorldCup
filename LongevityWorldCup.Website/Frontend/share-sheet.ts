@@ -502,9 +502,9 @@ interface Window {
 
     // The trigger that opened the sheet answers too: its icon turns into a check.
     function pulseTrigger(trigger: HTMLElement): void {
-        trigger.classList.remove("is-copied");
-        void trigger.offsetWidth;
         trigger.classList.add("is-copied");
+        const done = trigger.querySelector<HTMLElement>(".lwc-share-trigger__done");
+        if (done) window.LwcIcons?.replay(done);
         window.setTimeout(() => trigger.classList.remove("is-copied"), feedbackMs + 900);
     }
 

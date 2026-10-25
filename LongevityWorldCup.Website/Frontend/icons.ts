@@ -14,6 +14,8 @@ interface LwcIconsApi {
     readonly svg: (name: string, className?: string) => string;
     /** Upgrades Font Awesome glyphs below root (the observer already does this for the document). */
     readonly upgrade: (root: ParentNode) => void;
+    /** Replays feedback on an existing icon host without measuring layout. */
+    readonly replay: (host: HTMLElement) => void;
     readonly names: () => readonly string[];
 }
 
@@ -154,12 +156,13 @@ interface Window {
     const SYMBOL_CONTEXT = "a, button, summary, label, [role='button'], [role='tab'], nav, footer, .footer, header, .custom-alert-mark";
 
     function build(name: string, className?: string): SVGSVGElement | null {
-        const parts = glyphs[name];
+        const parts = Object.hasOwn(glyphs, name) ? glyphs[name] : undefined;
         if (!parts) return null;
         const svg = document.createElementNS(NS, "svg");
         svg.setAttribute("viewBox", "0 0 24 24");
         svg.setAttribute("aria-hidden", "true");
         svg.setAttribute("focusable", "false");
+        svg.dataset["lwcGlyph"] = name;
         svg.setAttribute("class", className ? `lwc-icon ${className}` : "lwc-icon");
         for (const [tag, attrs] of parts) {
             const el = document.createElementNS(NS, tag);
@@ -174,7 +177,8 @@ interface Window {
         if (!cls.includes("fa-") || BRAND.test(cls)) return null;
         for (const token of cls.split(/\s+/)) {
             if (!token.startsWith("fa-")) continue;
-            const name = aliases[token.slice(3)];
+            const key = token.slice(3);
+            const name = Object.hasOwn(aliases, key) ? aliases[key] : undefined;
             if (name) return name;
         }
         return null;
@@ -184,6 +188,9 @@ interface Window {
     // the same visual weight next to its text.
     const pendingTier = new Set<HTMLElement>();
     let tierFrame = 0;
+    const tierObserver = new ResizeObserver(entries => {
+        for (const entry of entries) if (entry.target instanceof HTMLElement) queueTier(entry.target);
+    });
     function queueTier(host: HTMLElement): void {
         pendingTier.add(host);
         if (!tierFrame) tierFrame = requestAnimationFrame(flushTiers);
@@ -196,7 +203,8 @@ interface Window {
         hosts.forEach((host, i) => {
             const size = sizes[i] ?? 0;
             if (!size) return;
-            host.dataset.lwcIconTier = size < 12.5 ? "xs" : size < 15 ? "s" : size < 24 ? "m" : "l";
+            const tier = size < 12.5 ? "xs" : size < 15 ? "s" : size < 24 ? "m" : "l";
+            if (host.dataset.lwcIconTier !== tier) host.dataset.lwcIconTier = tier;
         });
     }
 
@@ -204,51 +212,110 @@ interface Window {
     // innerHTML (spinner → "Saved" check) still morphs instead of snapping.
     const lastInControl = new WeakMap<Element, string>();
     let settled = false;
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+    const entering = new Set<SVGSVGElement>();
 
     function controlOf(host: Element): Element | null {
         return host.closest("button, a, [role='button'], summary, label, .custom-alert-mark");
     }
 
-    function replay(svg: Element, state: string): void {
+    function clearEntry(svg: SVGSVGElement): void {
+        entering.delete(svg);
         svg.removeAttribute("data-lwc-icon-enter");
-        // Restart the entry animation even when the same state repeats.
-        void svg.getBoundingClientRect();
+    }
+
+    function enter(svg: SVGSVGElement, state: string): void {
+        if (!settled || reducedMotion.matches) return;
+        // Each entry belongs to a new SVG. Inserting it starts the animation;
+        // no synchronous layout read or restart delay is needed.
         svg.setAttribute("data-lwc-icon-enter", state);
+        entering.add(svg);
+    }
+
+    document.addEventListener("animationend", event => {
+        const target = event.target;
+        if (!(target instanceof SVGElement)) return;
+        const svg = target.closest<SVGSVGElement>("svg[data-lwc-icon-enter]");
+        if (!svg) return;
+        if (svg.dataset["lwcIconEnter"] === "draw" && event.animationName !== "lwc-icon-draw") return;
+        if (event.animationName.startsWith("lwc-icon-")) clearEntry(svg);
+    });
+    document.addEventListener("animationcancel", event => {
+        if (!(event.target instanceof SVGElement)) return;
+        const svg = event.target.closest<SVGSVGElement>("svg[data-lwc-icon-enter]");
+        if (svg && event.animationName.startsWith("lwc-icon-")) clearEntry(svg);
+    });
+    reducedMotion.addEventListener("change", () => {
+        if (reducedMotion.matches) for (const svg of entering) clearEntry(svg);
+    });
+
+    function removeDrawing(host: HTMLElement): void {
+        const svg = host.querySelector<SVGSVGElement>(":scope > svg.lwc-icon");
+        if (svg) { clearEntry(svg); svg.remove(); }
+        tierObserver.unobserve(host);
+        pendingTier.delete(host);
+        delete host.dataset.lwcIcon;
+        delete host.dataset.lwcIconTier;
+        host.removeAttribute("data-lwc-icon-filled");
+    }
+
+    function replay(host: HTMLElement): void {
+        const name = host.dataset.lwcIcon;
+        if (!name) return;
+        const svg = build(name);
+        if (!svg) return;
+        const old = host.querySelector<SVGSVGElement>(":scope > svg.lwc-icon");
+        if (old) { clearEntry(old); old.replaceWith(svg); }
+        else host.append(svg);
+        enter(svg, name === "check" || name === "circle-check" ? "draw" : name === "spinner" ? "spin" : "swap");
     }
 
     function apply(host: HTMLElement): void {
-        if (host.hasAttribute("data-lwc-icon-typed")) return;
-        if (host.closest(KEEP_OWN_ART) && !host.closest(CONTROLS_IN_ART)) return;
+        if (host.hasAttribute("data-lwc-icon-typed")) {
+            const control = host.parentElement;
+            if (control && (!control.matches(TYPED_CONTROLS) || control.closest(KEEP_OWN_ART))) {
+                const text = typedText.get(host);
+                removeDrawing(host);
+                if (text) host.replaceWith(document.createTextNode(text));
+            } else if (!host.querySelector(":scope > svg.lwc-icon")) replay(host);
+            return;
+        }
         let name = resolve(host);
+        if (host.closest("[data-lwc-icon-keep]") || (host.closest(KEEP_OWN_ART) && !host.closest(CONTROLS_IN_ART))) name = null;
         if (name && SYMBOLS.has(name) && !host.closest(SYMBOL_CONTEXT)) name = null;
         const current = host.dataset.lwcIcon;
         if (!name) {
             if (current) {
                 // The page switched to a glyph this system does not draw: hand back to Font Awesome.
-                host.querySelector(":scope > svg.lwc-icon")?.remove();
-                delete host.dataset.lwcIcon;
+                removeDrawing(host);
             }
             return;
         }
         const filled = !REGULAR.test(host.className);
+        const fillChanged = host.hasAttribute("data-lwc-icon-filled") !== filled;
         host.toggleAttribute("data-lwc-icon-filled", filled);
-        if (current === name && host.querySelector(":scope > svg.lwc-icon")) return;
+        if (current === name && host.querySelector(":scope > svg.lwc-icon")) {
+            if (fillChanged && (name === "star" || name === "heart")) replay(host);
+            return;
+        }
 
         const svg = build(name);
         if (!svg) return;
         const control = controlOf(host);
         const previous = current ?? (control ? lastInControl.get(control) : undefined);
-        host.querySelector(":scope > svg.lwc-icon")?.remove();
+        const old = host.querySelector<SVGSVGElement>(":scope > svg.lwc-icon");
+        if (old) { clearEntry(old); old.remove(); }
         host.dataset.lwcIcon = name;
         host.append(svg);
         if (control) lastInControl.set(control, name);
         queueTier(host);
+        tierObserver.observe(host);
 
         // Only morph after the visitor has done something: loads never animate.
         if (settled && previous && previous !== name) {
-            replay(svg, name === "check" || name === "circle-check" ? "draw" : name === "spinner" ? "spin" : "swap");
+            enter(svg, name === "check" || name === "circle-check" ? "draw" : name === "spinner" ? "spin" : "swap");
         } else if (settled && !previous && name === "check" && host.closest(".custom-alert-mark")) {
-            replay(svg, "draw");
+            enter(svg, "draw");
         }
     }
 
@@ -260,6 +327,7 @@ interface Window {
         "←": "arrow-left", "→": "arrow-right", "−": "minus", "+": "plus",
     };
     const TYPED_CONTROLS = "button[aria-label], a[aria-label], [role='button'][aria-label]";
+    const typedText = new WeakMap<HTMLElement, string>();
 
     function applyTyped(control: HTMLElement): void {
         if (control.children.length || control.closest(KEEP_OWN_ART)) return;
@@ -270,32 +338,69 @@ interface Window {
         const host = document.createElement("i");
         host.dataset.lwcIcon = name;
         host.dataset.lwcIconTyped = "";
+        typedText.set(host, control.textContent ?? "");
         host.append(svg);
         control.replaceChildren(host);
+        queueTier(host);
+        tierObserver.observe(host);
         lastInControl.set(control, name);
     }
 
     function upgrade(root: ParentNode): void {
         if (root instanceof HTMLElement && root.tagName === "I") apply(root);
-        root.querySelectorAll<HTMLElement>("i[class*='fa-']").forEach(apply);
+        root.querySelectorAll<HTMLElement>("i[class*='fa-'], i[data-lwc-icon]").forEach(apply);
         if (root instanceof HTMLElement && root.matches(TYPED_CONTROLS)) applyTyped(root);
         root.querySelectorAll<HTMLElement>(TYPED_CONTROLS).forEach(applyTyped);
     }
 
     const observer = new MutationObserver(records => {
+        const roots = new Set<HTMLElement>();
+        const hosts = new Set<HTMLElement>();
         for (const record of records) {
             if (record.type === "attributes") {
                 const target = record.target;
-                if (target instanceof HTMLElement && target.tagName === "I") apply(target);
+                if (!(target instanceof HTMLElement)) continue;
+                if (target.tagName === "I") hosts.add(target);
+                else if (record.attributeName !== "class" || scopeClasses(target.className) !== scopeClasses(record.oldValue ?? "")) roots.add(target);
                 continue;
             }
+            const target = record.target instanceof HTMLElement ? record.target : record.target.parentElement;
+            if (target?.tagName === "I" && target.hasAttribute("data-lwc-icon")) hosts.add(target);
+            else if (target?.matches(TYPED_CONTROLS)) hosts.add(target);
             record.addedNodes.forEach(node => {
-                if (node instanceof HTMLElement) upgrade(node);
-                else if (node instanceof Text && node.parentElement?.matches(TYPED_CONTROLS)) applyTyped(node.parentElement);
+                if (node instanceof HTMLElement) roots.add(node);
+            });
+            record.removedNodes.forEach(node => {
+                if (node instanceof SVGSVGElement && !node.isConnected) clearEntry(node);
+                if (!(node instanceof HTMLElement) || node.isConnected) return;
+                for (const icon of [node, ...node.querySelectorAll<HTMLElement>("i[data-lwc-icon]")]) {
+                    tierObserver.unobserve(icon);
+                    pendingTier.delete(icon);
+                    const svg = icon.querySelector<SVGSVGElement>(":scope > svg.lwc-icon");
+                    if (svg) clearEntry(svg);
+                }
             });
         }
+        // Parser and renderer batches often include both an ancestor and its
+        // children. Visit each subtree once, and ignore ordinary row classes.
+        for (const root of roots) {
+            if (!root.isConnected) continue;
+            let parent = root.parentElement;
+            while (parent && !roots.has(parent)) parent = parent.parentElement;
+            if (!parent) upgrade(root);
+        }
+        for (const host of hosts) {
+            if (!host.isConnected) continue;
+            if (host.tagName === "I") apply(host);
+            else applyTyped(host);
+        }
     });
-    observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    const scopeClasses = (value: string): string => value.split(/\s+/).filter(token =>
+        ["badge-class", "badge", "league-icon", "athlete-name-links", "footer", "custom-alert-mark"].includes(token)).sort().join(" ");
+    observer.observe(document.documentElement, {
+        childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true,
+        attributeFilter: ["class", "role", "aria-label", "data-lwc-icon-keep"],
+    });
     if (document.body) upgrade(document.body);
 
     // Glyph morphs wait for the first real gesture, like the shared motion gate.
@@ -309,8 +414,9 @@ interface Window {
     addEventListener("keydown", settle, true);
 
     window.LwcIcons = {
-        svg: (name, className) => build(aliases[name] ?? name, className)?.outerHTML ?? "",
+        svg: (name, className) => build(Object.hasOwn(aliases, name) ? aliases[name]! : name, className)?.outerHTML ?? "",
         upgrade,
+        replay,
         names: () => Object.keys(glyphs),
     };
 })();

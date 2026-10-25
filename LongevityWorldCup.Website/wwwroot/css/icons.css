@@ -35,6 +35,11 @@ i[data-lwc-icon]::after {
 i[data-lwc-icon].fa-fw {
     width: 1.25em;
 }
+/* The compact phone Back control used an inline font box. Keep its optical
+   SVG centred when that page supplies a fixed host width. */
+.play-join-actions.play-join-actions #joinTrackBackBtn > i[data-lwc-icon] {
+    display: inline-flex;
+}
 
 /* Font Awesome's rotation would spin the whole box; the spinner animates its own arc. */
 i[data-lwc-icon].fa-spin,
@@ -89,6 +94,7 @@ i[data-lwc-icon] > svg.lwc-icon {
 [data-lwc-icon="spinner"] > .lwc-icon {
     animation: lwc-icon-turn 0.8s linear infinite;
 }
+.lwc-icon[data-lwc-glyph="spinner"] { animation: lwc-icon-turn 0.8s linear infinite; }
 @keyframes lwc-icon-turn { to { rotate: 1turn; } }
 
 /* ---- Expand / collapse: chevrons turn with their control ---------------- */
@@ -99,6 +105,10 @@ i[data-lwc-icon] > svg.lwc-icon {
 :is([aria-expanded="true"], details[open] > summary) > i[data-lwc-icon="chevron-right"] > .lwc-icon {
     rotate: 90deg;
 }
+/* The icon system owns the turn, including controls that used to turn the font host. */
+.lmx-habit-history.lmx-habit-history > summary > i[data-lwc-icon] { transform: none; }
+:is([aria-expanded="true"], details[open] > summary) > .lwc-icon[data-lwc-glyph="chevron-down"] { rotate: 180deg; }
+:is([aria-expanded="true"], details[open] > summary) > .lwc-icon[data-lwc-glyph="chevron-right"] { rotate: 90deg; }
 
 /* ---- Glyph changes (copy → done, spinner → done, share → done) --------- */
 .lwc-icon[data-lwc-icon-enter="swap"] {
@@ -118,13 +128,13 @@ i[data-lwc-icon] > svg.lwc-icon {
 }
 
 @keyframes lwc-icon-swap {
-    from { opacity: 0; scale: 0.55; rotate: -35deg; }
+    from { opacity: 0.5; scale: 0.88; }
 }
 @keyframes lwc-icon-fade {
-    from { opacity: 0; scale: 0.7; }
+    from { opacity: 0.5; }
 }
 @keyframes lwc-icon-settle {
-    from { scale: 0.7; }
+    from { scale: 0.9; }
 }
 @keyframes lwc-icon-draw {
     from { stroke-dashoffset: 1; }
@@ -136,8 +146,8 @@ i[data-lwc-icon] > svg.lwc-icon {
     animation: lwc-icon-fill-pop var(--lwc-motion-slow, 280ms) var(--lwc-icon-pop) backwards;
 }
 @keyframes lwc-icon-fill-pop {
-    0% { scale: 0.6; }
-    60% { scale: 1.18; }
+    0% { scale: 0.9; }
+    60% { scale: 1.08; }
 }
 
 /* ---- Hover and press: each glyph moves the way it points --------------- */
@@ -269,8 +279,9 @@ i[data-lwc-icon] > svg.lwc-icon {
         animation: none !important;
     }
     /* A slow turn still says "working" without sweeping motion. */
-    [data-lwc-icon="spinner"] > .lwc-icon {
-        animation: lwc-icon-turn 2.4s linear infinite;
+    [data-lwc-icon="spinner"] > .lwc-icon,
+    .lwc-icon[data-lwc-glyph="spinner"] {
+        animation: lwc-icon-turn 2.4s linear infinite !important;
     }
     :is(a, button, summary, [role="button"], label) > i[data-lwc-icon] > .lwc-icon {
         translate: none !important;

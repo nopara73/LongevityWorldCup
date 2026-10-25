@@ -63,19 +63,21 @@ public sealed class FooterCompositionBrowserTests(
         Assert.Equal(Labels, await links.EvaluateAllAsync<string[]>("links => links.map(l => l.textContent.trim() || l.title)"));
         Assert.Equal(Destinations, await links.EvaluateAllAsync<string[]>("links => links.map(l => l.getAttribute('href'))"));
         var problems = await page.EvaluateAsync<string[]>(
-            """
+            $$"""
             () => {
                 const problems = [];
+                const ink = {{BrowserIconAssertions.Ink}};
                 const links = [...document.querySelectorAll('.footer .footer-link')];
                 const contains = (outer, inner) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1 && inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
                 const boxes = links.map(link => link.getBoundingClientRect());
                 links.forEach((link, i) => {
-                    const box = boxes[i], name = link.textContent.trim();
+                    const box = boxes[i], name = link.getAttribute('aria-label') || link.textContent.trim();
                     if (!link.getAttribute('aria-label')) problems.push(name + ': missing accessible name');
                     if (box.width < 44 || box.height < 44) problems.push(name + ': small target');
                     if (box.left < 0 || box.right > innerWidth + 1) problems.push(name + ': clipped target');
                     const icon = link.querySelector('i, svg');
-                    if (!icon || !contains(box, icon.getBoundingClientRect())) problems.push(name + ': clipped icon');
+                    const painted = ink(icon);
+                    if (!painted || !contains(box, painted)) problems.push(name + ': missing or clipped icon');
                     const label = link.querySelector('.footer-link-label');
                     if (label && label.getBoundingClientRect().width > 1) {
                         const range = document.createRange(); range.selectNodeContents(label);
@@ -96,7 +98,7 @@ public sealed class FooterCompositionBrowserTests(
                 if (featured.some(b => Math.abs(b.top - featured[0].top) > 1)) problems.push('featured platforms split across rows');
                 if (Math.min(...remaining.map(b => b.top)) < Math.max(...featured.map(b => b.bottom))) problems.push('other icons share the featured row');
                 if (Math.min(...featured.map(b => b.width)) <= Math.max(...remaining.map(b => b.width))) problems.push('featured platforms are not larger');
-                if (!document.fonts.check('400 16px Roboto') || !document.fonts.check('900 16px "Font Awesome 6 Free"')) problems.push('fonts missing');
+                if (!document.fonts.check('400 16px Roboto') || !document.fonts.check('400 16px "Font Awesome 6 Brands"')) problems.push('fonts missing');
                 return problems;
             }
             """);
@@ -209,7 +211,9 @@ public sealed class FooterCompositionBrowserTests(
         response.EnsureSuccessStatusCode();
         Assert.Equal("application/rss+xml", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("rss", System.Xml.Linq.XDocument.Parse(await response.Content.ReadAsStringAsync()).Root?.Name.LocalName);
-        Assert.Contains("Follow Longevity World Cup on Nostr", await page.Locator(".footer svg").Locator("..").GetAttributeAsync("aria-label"));
+        var nostr = page.GetByRole(AriaRole.Link, new() { Name = "Follow Longevity World Cup on Nostr", Exact = true });
+        await Assertions.Expect(nostr.Locator("svg")).ToBeVisibleAsync();
+        Assert.Contains("primal.net", await nostr.GetAttributeAsync("href"));
     }
 
     [Fact]

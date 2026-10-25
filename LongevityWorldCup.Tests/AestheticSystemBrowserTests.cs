@@ -239,7 +239,7 @@ public sealed class AestheticSystemBrowserTests(
                         && rect.height > 0;
                 };
                 const icons = [...document.querySelectorAll(selector)]
-                    .filter(isVisible)
+                    .filter(element => isVisible(element) && !element.querySelector('svg.lwc-icon'))
                     .map(element => {
                         const pseudo = getComputedStyle(element, '::before');
                         return {
@@ -252,12 +252,13 @@ public sealed class AestheticSystemBrowserTests(
                             IsFooterIcon: Boolean(element.closest('.footer'))
                         };
                     });
-                const vectorIcons = [...document.querySelectorAll('.footer .footer-link svg')]
+                const vectorIcons = [...document.querySelectorAll('.footer .footer-link svg, .lmx-page svg.lwc-icon')]
                     .filter(isVisible)
                     .map(element => ({
                         Label: element.closest('a')?.textContent?.trim(),
                         Width: element.getBoundingClientRect().width,
                         Height: element.getBoundingClientRect().height,
+                        IsFooterIcon: Boolean(element.closest('.footer')),
                         HasPaintedShape: [...element.querySelectorAll('path, circle, ellipse, rect, line, polyline, polygon, use')]
                             .some(shape => {
                                 const style = getComputedStyle(shape);
@@ -278,7 +279,7 @@ public sealed class AestheticSystemBrowserTests(
                     BrandFaceLoaded: document.fonts.check('400 16px "Font Awesome 6 Brands"'),
                     Icons: icons,
                     VectorIcons: vectorIcons,
-                    FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.length,
+                    FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.filter(icon => icon.IsFooterIcon).length,
                     FooterPlatforms: [...document.querySelectorAll('.footer-follow-links .footer-link')]
                         .map(link => link.textContent.trim()),
                     LocalResources: resources.filter(name => new URL(name).origin === location.origin),
@@ -3032,6 +3033,7 @@ public sealed class AestheticSystemBrowserTests(
         public double Width { get; set; }
         public double Height { get; set; }
         public bool HasPaintedShape { get; set; }
+        public bool IsFooterIcon { get; set; }
     }
 
     internal sealed class MotionDiagnostics
