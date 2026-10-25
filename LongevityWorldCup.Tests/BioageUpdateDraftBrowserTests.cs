@@ -117,6 +117,45 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#glucose")).ToHaveValueAsync("90.08");
     }
 
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task ProofReturn_ReadyModulesCannotRestoreCalculatedCarryoverOverTheRawDraft(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        await page.Locator("#calculateBioageButton").ClickAsync();
+        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
+        await page.Locator("#continueButton").ClickAsync();
+        await page.WaitForURLAsync("**/proofs");
+        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        var readyGates = 0;
+
+        // Resolve the form modules before DOM-ready initialization on the return.
+        // This exposes native history restoration that follows a fast draft restore.
+        await context.RouteAsync("**/js/site-statistics-tracking.js*", async route =>
+        {
+            Interlocked.Increment(ref readyGates);
+            await page.WaitForFunctionAsync("() => !!window.LwcBioageFlow", options: new() { Timeout = 10000 });
+            await page.EvaluateAsync("() => window.modulesReady");
+            await route.ContinueAsync();
+        });
+        await page.GoBackAsync();
+        await WaitForEntryAsync(page);
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        Assert.True(readyGates > 0, "The return must exercise the controlled module-loading order.");
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+        Assert.Equal(45, await page.EvaluateAsync<double>("() => JSON.parse(sessionStorage.getItem('biomarkerData')).Biomarkers[0].AlbGL"));
+    }
+
     [Fact]
     public async Task UpdateDrafts_StaySeparateByAthleteClockAndNewApplication()
     {
