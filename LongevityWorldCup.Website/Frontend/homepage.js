@@ -576,9 +576,9 @@ function renderNewsletterAction() {
     newsletterSubmitButton.setAttribute('aria-disabled', String(newsletterSubmitting));
     newsletterSubmitButton.setAttribute('aria-busy', String(newsletterSubmitting));
     newsletterForm.setAttribute('aria-busy', String(newsletterSubmitting));
-    newsletterSubmitButton.innerHTML = newsletterSubmitting
-        ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Subscribing…'
-        : retry
+    // While subscribing the button keeps its label; the shared wait fill shows progress.
+    if (newsletterSubmitting) return;
+    newsletterSubmitButton.innerHTML = retry
             ? '<i class="fas fa-redo" aria-hidden="true"></i> Retry'
             : '<i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe';
 }
@@ -586,6 +586,32 @@ function renderNewsletterAction() {
 function showNewsletterFailure(email, message) {
     newsletterRetryEmail = email;
     setNewsletterStatus(newsletterEmailInput.value.trim() === email ? message : `${email}: ${message}`, true);
+}
+
+async function readNewsletterSubscription(email) {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    let deadline;
+    try {
+        return await Promise.race([
+            (async () => {
+                const response = await fetchWithTimeout('/api/home/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                    signal: controller?.signal
+                }, 10000);
+                return { response, message: (await response.text()).trim() };
+            })(),
+            new Promise((_, reject) => {
+                deadline = setTimeout(() => {
+                    controller?.abort();
+                    reject(new Error('Request timed out'));
+                }, 10000);
+            })
+        ]);
+    } finally {
+        clearTimeout(deadline);
+    }
 }
 
 newsletterEmailInput.addEventListener('input', () => {
@@ -612,14 +638,11 @@ newsletterForm.addEventListener('submit', async function (e) {
     newsletterRetryEmail = '';
     setNewsletterStatus('');
     newsletterSubmitting = true;
+    const finishWait = window.LwcWait?.start(newsletterSubmitButton, { message: 'Subscribing…' });
+    let waitOutcome = 'error';
     renderNewsletterAction();
     try {
-        const response = await fetchWithTimeout('/api/home/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        }, 10000);
-        const message = (await response.text()).trim();
+        const { response, message } = await readNewsletterSubscription(email);
         const alreadySubscribed = response.status === 400 && message === 'This email is already subscribed.';
         if (!response.ok && !alreadySubscribed) {
             const explanation = response.status === 400 && response.headers.get('content-type')?.includes('text/plain') && message
@@ -629,12 +652,15 @@ newsletterForm.addEventListener('submit', async function (e) {
             return;
         }
 
+        waitOutcome = 'success';
+
         // A response confirms its submitted address, not a later edit in the field.
         if (newsletterEmailInput.value.trim() === email) newsletterEmailInput.value = '';
         setNewsletterStatus(alreadySubscribed ? `${email} is already subscribed.` : `Subscribed with ${email}.`);
     } catch {
         showNewsletterFailure(email, 'Couldn’t confirm the subscription. Try again.');
     } finally {
+        if (finishWait) void finishWait(waitOutcome);
         newsletterSubmitting = false;
         renderNewsletterAction();
     }

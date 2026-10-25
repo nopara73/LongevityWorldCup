@@ -2381,19 +2381,18 @@
                 // remember this athlete for next time
                 setLocalItem('selectedAthleteName', applicantData.name);
 
-                // Disable the Apply button and change its text
                 const applyButton = nextButton;
+                const submissionWait = window.LwcWait?.start(applyButton, { message: 'Submitting...' });
                 isApplicationSubmitting = true;
                 applyButton.disabled = true;
-                accountEmailInput.setAttribute("disabled", "true");
-                applyButton.textContent = 'Submitting...';
-                showLoading();
+                if (!submissionWait) { applyButton.textContent = 'Submitting...'; showLoading(); }
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(attempt => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
+                        else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishFullApplicationSubmission(attempt.submitResult, {
                                 submissionId: submissionId,
@@ -2432,7 +2431,8 @@
                         }
                     })
                     .catch(error => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait('error');
+                        else hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
                         const alertMessage = `Your connection was interrupted. Your application may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;
                         void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
