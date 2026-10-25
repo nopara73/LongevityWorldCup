@@ -62,6 +62,30 @@ public sealed class StickyPlayScrollBrowserTests(
             ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
+        // Native transition snapshots own hit testing until the incoming
+        // transition ends, even after the restored document has parsed.
+        await context.AddInitScriptAsync("""
+            (() => {
+                const supportsReveal = 'onpagereveal' in window;
+                let navigation = 0;
+                window.__stickyPageShown = false;
+                window.__stickyTransitionSettled = !supportsReveal;
+                window.addEventListener('pagehide', () => {
+                    navigation++;
+                    window.__stickyPageShown = false;
+                    window.__stickyTransitionSettled = !supportsReveal;
+                });
+                window.addEventListener('pageshow', () => window.__stickyPageShown = true);
+                window.addEventListener('pagereveal', event => {
+                    const current = ++navigation;
+                    window.__stickyTransitionSettled = !event.viewTransition;
+                    const settled = () => {
+                        if (current === navigation) window.__stickyTransitionSettled = true;
+                    };
+                    event.viewTransition?.finished.then(settled, settled);
+                });
+            })();
+            """);
         var page = await context.NewPageAsync();
         await page.GotoAsync(route, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => document.fonts.ready");
@@ -123,6 +147,7 @@ public sealed class StickyPlayScrollBrowserTests(
                 // Playwright polls truthiness synchronously: an async predicate's
                 // Promise succeeds even when it will resolve to false.
                 if (location.pathname !== route || document.readyState === 'loading'
+                    || !window.__stickyPageShown || !window.__stickyTransitionSettled
                     || document.fonts.status !== 'loaded'
                     || [...document.querySelectorAll('link[rel=stylesheet]')].some(link => !link.sheet)
                     || !document.querySelector('.scrolled-button')
