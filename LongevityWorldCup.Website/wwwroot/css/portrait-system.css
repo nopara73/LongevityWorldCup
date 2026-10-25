@@ -132,7 +132,12 @@ html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
 @keyframes lwc-portrait-develop {
     /* Keep the face and its ring readable during the page's whole-card motion. */
     from {
+        animation-composition: add;
         filter: saturate(0.9) brightness(1.05);
+    }
+    to {
+        animation-composition: add;
+        filter: none;
     }
 }
 
