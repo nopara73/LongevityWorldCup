@@ -66,9 +66,9 @@
     src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('Arimo Bold');
     /* Match Roboto's bold widths so staggered regular/bold downloads do not
        rewrap mixed-weight paragraphs twice. Keep the vertical metrics aligned. */
-    size-adjust: 94.7%;
-    ascent-override: 97.97%;
-    descent-override: 25.78%;
+    size-adjust: 96%;
+    ascent-override: 96.64%;
+    descent-override: 25.43%;
     line-gap-override: 0%;
 }
 
@@ -1035,7 +1035,9 @@ body {
     background: var(--header-to-body-bg);
     color: var(--dark-text-color);
     line-height: 1.5;
-    text-rendering: optimizeLegibility;
+    /* Preserve fractional glyph widths: Linux hinting otherwise rounds away
+       the fallback's size adjustment and rewraps text as each weight arrives. */
+    text-rendering: geometricPrecision;
     font-synthesis: none;
 }
 
