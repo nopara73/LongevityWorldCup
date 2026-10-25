@@ -980,10 +980,9 @@ function makeBadgeMedal(source: Element, extraClass: string): HTMLElement {
     return medal;
 }
 
-function makeBadgeTipRow(line: string, index: number): HTMLElement {
+function makeBadgeTipRow(line: string): HTMLElement {
     const row = document.createElement('span');
     row.className = 'badge-tip-row';
-    row.style.setProperty('--row-i', String(index));
     const colon = line.indexOf(':');
     const title = document.createElement('strong');
     title.className = 'badge-tip-title';
@@ -1022,17 +1021,17 @@ function fillBadgeTip(tip: HTMLElement, text: string, owner: HTMLElement, mode: 
     content.className = 'badge-tip-content';
     if (stash) {
         // An overflow tile expands into the badges it stands for.
-        stash.forEach((entry, index) => {
+        stash.forEach(entry => {
             const template = document.createElement('template');
             template.innerHTML = entry.html.trim();
             const source = template.content.firstElementChild;
-            const row = makeBadgeTipRow(entry.text, index);
+            const row = makeBadgeTipRow(entry.text);
             row.classList.add('has-medal');
             if (source) row.prepend(makeBadgeMedal(source, 'badge-tip-mini'));
             content.appendChild(row);
         });
     } else {
-        text.split('\n').filter(Boolean).forEach((line, index) => content.appendChild(makeBadgeTipRow(line, index)));
+        text.split('\n').filter(Boolean).forEach(line => content.appendChild(makeBadgeTipRow(line)));
     }
     parts.push(content);
     if (mode === 'card') {
@@ -1077,6 +1076,11 @@ function placeBadgeTip(tip: HTMLElement, badge: HTMLElement): void {
     const overhang = tip.classList.contains('is-card') ? BADGE_CARD_OVERHANG : 0;
     const gap = 10;
     const edge = 8;
+    // Page explanations share the viewport with its persistent navigation.
+    // A child of the athlete dialog belongs to that modal's own portal instead.
+    const header = badge.closest('#detailsModal, dialog[open], [aria-modal="true"]') ? null
+        : document.querySelector<HTMLElement>('#site-sticky-header.visible');
+    const topEdge = Math.max(edge, (header?.getBoundingClientRect().bottom || 0) + edge);
     const viewportWidth = document.documentElement.clientWidth;
     const preferredWidth = tip.classList.contains('has-tray') ? '22rem' : tip.classList.contains('is-card') ? '17.5rem' : '20rem';
     tip.style.maxWidth = `min(${preferredWidth}, ${Math.max(0, viewportWidth - edge * 2)}px)`;
@@ -1084,8 +1088,9 @@ function placeBadgeTip(tip: HTMLElement, badge: HTMLElement): void {
     tip.style.maxHeight = '';
     // Entrance transforms change painted bounds, never the layout box we fit.
     let tipRect = { width: tip.offsetWidth, height: tip.offsetHeight };
-    const aboveRoom = rect.top - gap - edge - overhang;
-    const belowRoom = window.innerHeight - rect.bottom - gap - edge - overhang;
+    const belowTop = Math.max(topEdge + overhang, rect.bottom + gap + overhang);
+    const aboveRoom = rect.top - gap - topEdge - overhang;
+    const belowRoom = window.innerHeight - belowTop - edge;
     const below = tipRect.height > aboveRoom && belowRoom > aboveRoom;
     // A long overflow list scrolls beside its owner instead of covering the
     // badge during touch activation or growing the document under the pointer.
@@ -1093,7 +1098,7 @@ function placeBadgeTip(tip: HTMLElement, badge: HTMLElement): void {
     tipRect = { width: tip.offsetWidth, height: tip.offsetHeight };
     const center = rect.left + rect.width / 2;
     const left = Math.min(Math.max(center - tipRect.width / 2, edge), viewportWidth - tipRect.width - edge);
-    const top = Math.max(edge + overhang, Math.min(below ? rect.bottom + gap + overhang : rect.top - tipRect.height - gap,
+    const top = Math.max(topEdge + overhang, Math.min(below ? belowTop : rect.top - tipRect.height - gap,
         window.innerHeight - tipRect.height - edge));
     tip.dataset['side'] = below ? 'below' : 'above';
     tip.style.left = `${Math.round(left)}px`;

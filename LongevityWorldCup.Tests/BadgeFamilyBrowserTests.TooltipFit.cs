@@ -6,6 +6,140 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class BadgeFamilyBrowserTests
 {
+    [Theory]
+    [InlineData(1440, false, false)]
+    [InlineData(1440, true, false)]
+    [InlineData(390, false, false)]
+    [InlineData(390, true, false)]
+    [InlineData(1440, false, true)]
+    [InlineData(1440, true, true)]
+    [InlineData(390, false, true)]
+    [InlineData(390, true, true)]
+    public async Task BadgeExplanation_TextArrivesTogetherWithItsCard(int width, bool tray, bool openCard)
+    {
+        await using var context = await NewBadgeContextAsync(width, 844, dark: false);
+        var page = await OpenCollectibleFixtureAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        if (tray)
+            await page.EvaluateAsync("""
+                () => window.setBadges({Badges:Array.from({length:12}, (_, i) => ({
+                    BadgeLabel: i ? 'Best domain – inflammation' : '≥2 submissions', Place:1
+                }))}, document.querySelector('#collectible-fixture'))
+                """);
+        var badge = page.Locator(tray ? "#collectible-fixture .badge-overflow-count" : "#collectible-fixture .badge-class");
+        if (openCard) await badge.FocusAsync();
+        // Capture the first frame of either the focus peek or full card.
+        // An opaque row is still unreadable when its parent fades over the page.
+        await page.EvaluateAsync("""
+            eventName => {
+                window.badgeReadability = new Promise(resolve => {
+                    document.addEventListener(eventName, () => {
+                        const failures = [], start = performance.now();
+                        const frame = () => {
+                            const tip = document.querySelector('.badge-tip');
+                            const content = tip.querySelector('.badge-tip-content');
+                            const contentRect = content.getBoundingClientRect();
+                            if (getComputedStyle(content).clipPath !== 'none') failures.push('Text is clipped while its card is arriving');
+                            for (let node = content; node; node = node.parentElement) {
+                                if (Number(getComputedStyle(node).opacity) < .99)
+                                    failures.push('The page shows through the arriving explanation');
+                            }
+                            for (const row of content.children) {
+                                const r = row.getBoundingClientRect();
+                                if (r.bottom > contentRect.top && r.top < contentRect.bottom && Number(getComputedStyle(row).opacity) < .99)
+                                    failures.push('A visible text row is still transparent inside the card');
+                            }
+                            if (performance.now()-start < 350) requestAnimationFrame(frame);
+                            else resolve(failures);
+                        };
+                        requestAnimationFrame(frame);
+                    }, {once:true, capture:true});
+                });
+            }
+            """, openCard ? "keydown" : "focusin");
+        if (openCard) await page.Keyboard.PressAsync("Enter");
+        else await badge.FocusAsync();
+        Assert.Empty(await page.EvaluateAsync<string[]>("() => window.badgeReadability"));
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".badge-tip")).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task TallBadgeTray_PreservesHeaderActionsDuringHoverAndKeyboardUse(bool dark, bool reduce)
+    {
+        await using var context = await NewBadgeContextAsync(1440, 900, dark);
+        var page = await OpenLeaderboardAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = reduce ? ReducedMotion.Reduce : ReducedMotion.NoPreference });
+        await page.EvaluateAsync("""
+            () => {
+                document.documentElement.style.fontSize = '32px';
+                const host = document.createElement('div');
+                host.id = 'scroll-badges'; host.className = 'badge-section';
+                host.style.cssText = 'position:absolute;top:2000px;left:65%';
+                // This runtime also contains ordinary board rows; only an
+                // actual modal ancestor may ignore page navigation bounds.
+                document.querySelector('#athleteDialogRuntime').appendChild(host);
+                window.setBadges({Badges:Array.from({length:12}, (_, i) => ({
+                    BadgeLabel: i ? 'Best domain – inflammation' : '≥2 submissions', Place:1
+                }))}, host);
+                const chip = host.querySelector('.badge-overflow-count');
+                scrollTo(0, chip.getBoundingClientRect().top + scrollY - 615);
+            }
+            """);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var chip = page.Locator("#scroll-badges .badge-overflow-count");
+        var tip = page.Locator(".badge-tip");
+        await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("visible"));
+        await chip.HoverAsync();
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        var obstruction = await page.EvaluateAsync<string[]>("""
+            async () => {
+                const failures = [];
+                const start = performance.now();
+                do {
+                    await new Promise(requestAnimationFrame);
+                    const header = document.querySelector('#site-sticky-header');
+                    const tip = document.querySelector('.badge-tip');
+                    const play = header.querySelector('.scrolled-button');
+                    const r = play.getBoundingClientRect();
+                    if (!play.contains(document.elementFromPoint(r.x+r.width/2, r.y+r.height/2)))
+                        failures.push('Play is covered by the badge explanation');
+                    if (tip.getBoundingClientRect().top < header.getBoundingClientRect().bottom)
+                        failures.push('Badge explanation overlaps the visible header');
+                } while(performance.now()-start < 300);
+                return failures;
+            }
+            """);
+        Assert.Empty(obstruction);
+
+        // Long trays still permit pointer travel and scrolling to the final
+        // explanation. Dismissing on page scroll must not consume inner scroll.
+        var content = tip.Locator(".badge-tip-content");
+        await content.HoverAsync();
+        await page.Mouse.WheelAsync(0, 1800);
+        await Assertions.Expect(tip).ToBeVisibleAsync();
+        await page.WaitForFunctionAsync("""
+            () => {
+                const content = document.querySelector('.badge-tip-content');
+                const last = content.lastElementChild.getBoundingClientRect();
+                return content.scrollTop > 0 && last.bottom <= content.getBoundingClientRect().bottom + 1;
+            }
+            """);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        await chip.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(tip).ToHaveAttributeAsync("role", "dialog");
+        Assert.True(await tip.EvaluateAsync<bool>("el => el.getBoundingClientRect().top >= document.querySelector('#site-sticky-header').getBoundingClientRect().bottom"));
+        await page.EvaluateAsync("window.scrollBy(0, 100)");
+        await Assertions.Expect(tip).ToBeHiddenAsync();
+        await Assertions.Expect(chip).ToBeFocusedAsync();
+    }
+
     [Fact]
     public async Task Tooltip_ContentFitsWithoutPhantomScrolling_AndLongContentRemainsReachable()
     {

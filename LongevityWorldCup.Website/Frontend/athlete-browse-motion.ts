@@ -1,19 +1,16 @@
 // Browsing the competition as one continuous motion.
 //
-// - Opening a profile from a board row or podium card grows that row into the
-//   dialog: its portrait, name and rank travel into the profile header.
-//   Closing shrinks the profile back into the row of the athlete on screen.
+// - Opening and closing move the whole readable card, keeping identity attached.
 // - Stepping between athletes (buttons, arrow keys or a horizontal swipe)
-//   slides the old athlete out one way while the next arrives from the other.
+//   gives the new profile a small directional arrival without hiding its content.
 // - The profile's ages count in once they are on screen.
 // - The shared motion controller owns board movement when rankings change.
 // - Closing returns scroll and focus to the row of the athlete you ended on.
 //
 // This classic script observes content and receives explicit dialog lifecycle
 // events for deterministic scroll and focus return. It never delays
-// or replaces their own behaviour and never blocks input: every moving copy
-// lives in an inert, pointer-transparent layer and the real elements stay
-// interactive throughout. Motion waits for the visitor's first press, matching
+// or replaces their own behaviour and never blocks input. The real elements
+// stay visible and interactive throughout. Motion waits for the visitor's first press, matching
 // the shared motion gate, and prefers-reduced-motion keeps all of it off apart
 // from the scroll and focus return.
 
@@ -21,11 +18,9 @@
     const modal = document.getElementById("detailsModal");
     if (!modal) return;
 
-    type Hold = { readonly element: HTMLElement; readonly animation: Animation };
     type Source = { readonly row: HTMLElement; readonly slug: string; readonly at: number };
     type CloseReturn = { scrollTop: number; returnFocusTo: HTMLElement | null };
     type Figure = { readonly prefix: string; readonly sign: string; readonly value: number; readonly decimals: number; readonly suffix: string };
-    type Leaving = { readonly at: number; readonly copies: ReadonlyArray<readonly [HTMLElement, DOMRect, Element]> };
     type Swipe = { readonly id: number; readonly x: number; readonly y: number; readonly t: number; dx: number; active: boolean; readonly profile: HTMLElement };
 
     const root = document.documentElement;
@@ -40,23 +35,36 @@
     }
 
     function openGate(event: Event): void {
-        if (event.isTrusted && !reduced.matches) gateOpen = true;
+        if (event.isTrusted && !reduced.matches && !gateOpen) {
+            readMotionValues();
+            gateOpen = true;
+        }
     }
     window.addEventListener("pointerdown", openGate, true);
     window.addEventListener("keydown", openGate, true);
 
-    // Durations and easings follow the shared motion tokens when present.
+    // Snapshot the shared values before hydration changes the card. Reading
+    // root computed styles from the ready event forced the newly rebuilt
+    // profile to resolve styles synchronously inside every pager click.
+    const motionValues = new Map<string, string>();
+    function readMotionValues(): void {
+        const style = getComputedStyle(root);
+        for (const name of ["--lwc-motion-fast", "--lwc-motion-base", "--lwc-motion-slow", "--lwc-ease-standard", "--lwc-ease-enter"]) {
+            motionValues.set(name, style.getPropertyValue(name));
+        }
+    }
+
+    // Durations and easings still follow the current shared motion tokens.
     function token(name: string, fallback: number): number {
-        const value = parseFloat(getComputedStyle(root).getPropertyValue(name));
+        const value = parseFloat(motionValues.get(name) || "");
         return Number.isFinite(value) && value > 0 ? value : fallback;
     }
 
     function ease(name: string, fallback: string): string {
-        return getComputedStyle(root).getPropertyValue(name).trim() || fallback;
+        return motionValues.get(name)?.trim() || fallback;
     }
 
     const standardEase = (): string => ease("--lwc-ease-standard", "cubic-bezier(0.2, 0, 0, 1)");
-    const exitEase = (): string => ease("--lwc-ease-exit", "cubic-bezier(0.3, 0, 1, 1)");
     const enterEase = (): string => ease("--lwc-ease-enter", "cubic-bezier(0, 0, 0, 1)");
 
     const content = (): HTMLElement | null => modal.querySelector<HTMLElement>(".modal-content");
@@ -88,199 +96,27 @@
     function findRow(slug: string): HTMLElement | null {
         if (!slug) return null;
         for (const row of document.querySelectorAll<HTMLElement>(rowSelector)) {
-            if (!modal!.contains(row) && shown(row) && slugOf(row) === slug) return row;
+            if (!modal!.contains(row) && slugOf(row) === slug && shown(row)) return row;
         }
         return null;
     }
 
-    function portraitOf(row: Element): HTMLImageElement | null {
-        const image = row.querySelector<HTMLImageElement>("img.portrait, img.podium-portrait");
-        return shown(image) ? image as HTMLImageElement : null;
-    }
-
-    function nameOf(row: Element): HTMLElement | null {
-        const name = row.querySelector<HTMLElement>("a.athlete-name");
-        return shown(name) ? name : null;
-    }
-
-    function rankOf(row: Element): HTMLElement | null {
-        const rank = row.querySelector<HTMLElement>(".rank, .podium-rank");
-        return shown(rank) ? rank : null;
-    }
-
-    const dialogPortrait = (): HTMLImageElement | null => modal.querySelector<HTMLImageElement>("#modalProfilePic");
-    const dialogTitle = (): HTMLElement | null => modal.querySelector<HTMLElement>("#athleteName");
-
-    function dialogRank(): HTMLElement | null {
-        for (const selector of ["#athleteName .modal-rank-text", "#athleteName .modal-rank-icon", "#athleteRankings .league-link[data-competition='ultimate'] strong"]) {
-            const element = modal!.querySelector<HTMLElement>(selector);
-            if (shown(element)) return element;
-        }
-        return null;
-    }
-
-    function firstTextRun(element: Element): Text | null {
-        for (const node of element.childNodes) {
-            if (node instanceof Text && node.data.trim()) return node;
-        }
-        return null;
-    }
-
-    // The visible extent of an element's text, or of its first text run.
-    function textRect(element: Element, firstRunOnly = false): DOMRect | null {
-        const range = document.createRange();
-        const run = firstRunOnly ? firstTextRun(element) : element;
-        if (!run) return null;
-        range.selectNodeContents(run);
-        const rect = range.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0 ? rect : null;
-    }
-
-    // --- Moving copies -----------------------------------------------------------
-
-    // One fixed layer above the dialog holds every copy. It is inert, hidden
-    // from assistive technology and never takes pointer input.
-    let layerElement: HTMLDivElement | null = null;
-    function layer(): HTMLDivElement {
-        if (layerElement?.isConnected) return layerElement;
-        layerElement = document.createElement("div");
-        layerElement.className = "athlete-motion-layer";
-        layerElement.setAttribute("aria-hidden", "true");
-        layerElement.inert = true;
-        Object.assign(layerElement.style, { position: "fixed", inset: "0", zIndex: "2147483000", pointerEvents: "none", overflow: "hidden" });
-        document.body.append(layerElement);
-        return layerElement;
-    }
-
-    function place<T extends HTMLElement>(element: T, rect: DOMRect): T {
-        Object.assign(element.style, {
-            position: "absolute",
-            left: `${rect.left}px`,
-            top: `${rect.top}px`,
-            width: `${rect.width}px`,
-            height: `${rect.height}px`,
-            margin: "0",
-            boxSizing: "border-box",
-            transformOrigin: "0 0",
-            pointerEvents: "none"
-        });
-        element.dataset["athleteMotionCopy"] = "";
-        layer().append(element);
-        return element;
-    }
-
-    // A copy leaves once its own animations end (or are cancelled); the
-    // timer only guards against a copy whose animations never resolve.
-    function retire(element: HTMLElement): void {
-        const remove = (): void => element.remove();
-        Promise.allSettled(element.getAnimations().map(animation => animation.finished)).then(remove);
-        window.setTimeout(remove, 4000);
-    }
-
-    // The transform that puts a copy placed at `to` over `from`, scaled
-    // uniformly by height so text and round portraits keep their shape.
-    function travel(from: DOMRect, to: DOMRect, center = false): string {
-        const scale = from.height / to.height;
-        const x = center ? from.left + from.width / 2 - to.width * scale / 2 : from.left;
-        const y = center ? from.top + from.height / 2 - to.height * scale / 2 : from.top;
-        return `translate(${x - to.left}px, ${y - to.top}px) scale(${scale})`;
-    }
-
-    function copyText(text: string, styleSource: Element, rect: DOMRect): HTMLElement {
-        const style = getComputedStyle(styleSource);
-        const copy = document.createElement("span");
-        copy.textContent = text;
-        Object.assign(copy.style, {
-            fontFamily: style.fontFamily,
-            fontSize: style.fontSize,
-            fontWeight: style.fontWeight,
-            fontStyle: style.fontStyle,
-            letterSpacing: style.letterSpacing,
-            lineHeight: `${rect.height}px`,
-            color: style.color,
-            textShadow: style.textShadow,
-            whiteSpace: "nowrap"
-        });
-        return place(copy, new DOMRect(rect.left, rect.top, rect.width + 2, rect.height));
-    }
-
-    function copyElement(source: HTMLElement, rect: DOMRect): HTMLElement {
-        const style = getComputedStyle(source);
-        const copy = source.cloneNode(true) as HTMLElement;
-        copy.removeAttribute("id");
-        copy.querySelectorAll("[id]").forEach(child => child.removeAttribute("id"));
-        Object.assign(copy.style, { font: style.font, color: style.color, whiteSpace: "nowrap", display: "inline-block", textAlign: "center" });
-        return place(copy, rect);
-    }
-
-    function copyPortrait(image: HTMLImageElement, styleSource: HTMLImageElement, rect: DOMRect): HTMLImageElement {
-        const style = getComputedStyle(styleSource);
-        const copy = document.createElement("img");
-        copy.alt = "";
-        copy.decoding = "sync";
-        copy.src = image.currentSrc || image.src;
-        Object.assign(copy.style, {
-            objectFit: "cover",
-            borderRadius: style.borderRadius || "50%",
-            border: style.border,
-            boxShadow: style.boxShadow,
-            backgroundColor: style.backgroundColor
-        });
-        return place(copy, rect);
-    }
-
-    function copySurface(styleSource: HTMLElement, rect: DOMRect): HTMLElement {
-        const style = getComputedStyle(styleSource);
-        const copy = document.createElement("div");
-        Object.assign(copy.style, {
-            backgroundColor: style.backgroundColor,
-            backgroundImage: style.backgroundImage,
-            borderRadius: style.borderTopLeftRadius,
-            boxShadow: style.boxShadow
-        });
-        return place(copy, rect);
-    }
-
-    function box(rect: DOMRect): Keyframe {
-        return { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` };
-    }
-
-    // Keep a real element transparent while its copy travels. Holds end by
-    // themselves, so nothing can stay hidden if a later step fails.
-    const holds = new Set<Hold>();
-    function hold(element: Element | null, duration: number): void {
-        if (!(element instanceof HTMLElement)) return;
-        const animation = element.animate([{ opacity: 0 }, { opacity: 0 }], { duration });
-        const entry = { element, animation };
-        holds.add(entry);
-        animation.finished.catch(() => undefined).finally(() => holds.delete(entry));
-    }
-
-    // Dialog elements return at once when it closes; board rows keep their
-    // hold until the returning copies have landed on them.
-    function releaseHolds(all: boolean): void {
-        holds.forEach(entry => {
-            if (!all && !modal!.contains(entry.element)) return;
-            entry.animation.cancel();
-            holds.delete(entry);
-        });
-    }
-
-    // --- Opening: the row grows into the profile -----------------------------------
-
+    // Move the actual card as one unit. A blank surface above it, with separate
+    // portrait/name copies, hid useful content and detached the identity during
+    // interrupted layout and paint. The card stays readable and interactive.
     let pendingSource: Source | null = null;
     let openerSlug = "";
     let generation = 0;
     let cardEntrance: Animation | null = null;
+    let stepEntrance: Animation | null = null;
 
     function clearMotion(): void {
         generation++;
         cancelSwipe(false);
         cardEntrance?.cancel();
         cardEntrance = null;
-        releaseHolds(true);
-        layerElement?.getAnimations({ subtree: true }).forEach(animation => animation.cancel());
-        layerElement?.replaceChildren();
+        stepEntrance?.cancel();
+        stepEntrance = null;
     }
 
     function playSafely(action: () => void): void {
@@ -296,72 +132,37 @@
         if (slug) pendingSource = { row, slug, at: performance.now() };
     }, true);
 
-    function morphOpen(source: Source): void {
+    function enterFromRow(source: Source): void {
         const card = content();
         if (!card || !isOpen() || isClosing() || !source.row.isConnected) return;
-        // A loading profile or a guessing round keeps the ordinary entrance.
         if (card.matches(".guess-mode, .is-loading, .has-load-error") || currentSlug() !== source.slug) return;
         const rowRect = source.row.getBoundingClientRect();
         if (!inViewport(rowRect)) return;
-
-        // The morph is the entrance: retire the card's own settle-in.
-        card.getAnimations().forEach(animation => {
-            if (animation instanceof CSSAnimation && animation.animationName === "athlete-frame-in") animation.finish();
-        });
-
-        const duration = token("--lwc-motion-slow", 280);
-        const easing = standardEase();
         const cardRect = card.getBoundingClientRect();
-        const surface = copySurface(card, cardRect);
-        const total = duration + 80;
-        const landed = duration / total;
-        const radius = surface.style.borderRadius;
-        surface.dataset["athleteMotionCopy"] = "surface";
-        surface.animate([
-            { ...box(rowRect), borderRadius: getComputedStyle(source.row).borderTopLeftRadius || "8px", opacity: 0.55, easing },
-            { opacity: 1, offset: landed * 0.35 },
-            { ...box(cardRect), borderRadius: radius, opacity: 1, offset: landed },
-            { ...box(cardRect), borderRadius: radius, opacity: 0 }
-        ], { duration: total });
-        retire(surface);
-        // The real card fades in over the growing surface; it takes input throughout.
-        cardEntrance = card.animate([{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }], { duration });
-
-        const title = dialogTitle();
-        const pairs: Array<[HTMLElement | null, HTMLElement | null, string]> = [
-            [portraitOf(source.row), dialogPortrait(), "portrait"],
-            [nameOf(source.row), title, "name"],
-            [rankOf(source.row), dialogRank(), "rank"]
-        ];
-        for (const [from, to, part] of pairs) {
-            if (!from || !to || !shown(to)) continue;
-            const fromRect = part === "name" ? textRect(from) : from.getBoundingClientRect();
-            const toRect = part === "name" ? textRect(to, true) : to.getBoundingClientRect();
-            if (!fromRect || !toRect || !inViewport(fromRect) || !toRect.width) continue;
-            const run = firstTextRun(to);
-            const copy = part === "portrait" ? copyPortrait(from as HTMLImageElement, to as HTMLImageElement, toRect)
-                : part === "name" ? (run ? copyText(run.data.trim(), to, toRect) : null)
-                : copyElement(to, toRect);
-            if (!copy) continue;
-            copy.dataset["athleteMotionCopy"] = part;
-            const placed = copy.getBoundingClientRect();
-            const color = part === "portrait" ? {} : { color: getComputedStyle(from).color };
-            copy.animate([
-                { transform: travel(fromRect, placed, part === "rank"), ...color },
-                { transform: "none", ...(part === "portrait" ? {} : { color: copy.style.color }) }
-            ], { duration, easing });
-            // The rank crosses the name on its way, so it only firms up as it lands.
-            copy.animate(part === "rank"
-                ? [{ opacity: 0 }, { opacity: 0, offset: 0.35 }, { opacity: 1, offset: 0.75 }, { opacity: 1, offset: 0.82 }, { opacity: 0 }]
-                : [{ opacity: 1 }, { opacity: 1, offset: 0.82 }, { opacity: 0 }], { duration: duration + 90 });
-            retire(copy);
-            hold(to, duration);
-            hold(from, duration + 60);
-        }
+        const dy = Math.max(-18, Math.min(18, rowRect.top - cardRect.top));
+        cardEntrance?.cancel();
+        cardEntrance = card.animate([
+            { transform: `translateY(${dy}px) scale(.985)`, opacity: .94 },
+            { transform: "none", opacity: 1 }
+        ], { duration: token("--lwc-motion-slow", 280), easing: standardEase() });
     }
 
-    // --- Closing: the profile shrinks back into its row --------------------------
+    function enterStep(): void {
+        const card = content();
+        const direction = card?.dataset["athleteStep"];
+        const profile = card?.querySelector<HTMLElement>("#athlete-profile");
+        stepEntrance?.cancel();
+        stepEntrance = null;
+        if (!profile || !direction || !enabled() || !isOpen() || isClosing()
+            || card?.matches(".guess-mode, .is-loading, .has-load-error")) return;
+        stepEntrance = profile.animate([
+            { transform: `translateX(${direction === "previous" ? -12 : 12}px)`, opacity: .94 },
+            { transform: "none", opacity: 1 }
+        ], { duration: token("--lwc-motion-base", 200), easing: enterEase() });
+    }
 
+    // Closing retains the complete card throughout the existing shared fade.
+    // Only the return scroll/focus target changes when paging reached a new row.
     // While the dialog is open the page is held by a fixed body offset. When
     // the athlete on screen is not where the visitor left the board, move that
     // offset so their row is in view for the return.
@@ -385,54 +186,6 @@
         return target;
     }
 
-    function morphClose(row: HTMLElement): void {
-        const card = content();
-        if (!card) return;
-        const rowRect = row.getBoundingClientRect();
-        if (!inViewport(rowRect)) return;
-        const duration = token("--lwc-motion-move", 260);
-        const easing = standardEase();
-        const cardRect = card.getBoundingClientRect();
-
-        const surface = copySurface(card, cardRect);
-        surface.dataset["athleteMotionCopy"] = "surface";
-        surface.animate([
-            { ...box(cardRect), opacity: 1, easing },
-            { opacity: 0.9, offset: 0.6 },
-            { ...box(rowRect), borderRadius: getComputedStyle(row).borderTopLeftRadius || "8px", opacity: 0 }
-        ], { duration, fill: "forwards" });
-        retire(surface);
-
-        const pairs: Array<[HTMLElement | null, HTMLElement | null, string]> = [
-            [dialogPortrait(), portraitOf(row), "portrait"],
-            [dialogTitle(), nameOf(row), "name"],
-            [dialogRank(), rankOf(row), "rank"]
-        ];
-        for (const [from, to, part] of pairs) {
-            if (!shown(from) || !to) continue;
-            const fromRect = part === "name" ? textRect(from, true) : from.getBoundingClientRect();
-            const toRect = part === "name" ? textRect(to) : to.getBoundingClientRect();
-            if (!fromRect || !toRect || !inViewport(fromRect) || !inViewport(toRect) || !fromRect.width) continue;
-            const run = firstTextRun(from);
-            const copy = part === "portrait" ? copyPortrait(to as HTMLImageElement, from as HTMLImageElement, fromRect)
-                : part === "name" ? (run ? copyText(run.data.trim(), from, fromRect) : null)
-                : copyElement(from, fromRect);
-            if (!copy) continue;
-            copy.dataset["athleteMotionCopy"] = part;
-            copy.animate([
-                { transform: "none", ...(part === "portrait" ? {} : { color: copy.style.color }), easing },
-                { transform: travel(toRect, fromRect, part === "rank"), ...(part === "portrait" ? {} : { color: getComputedStyle(to).color }) }
-            ], { duration, fill: "forwards" });
-            copy.animate(part === "rank"
-                ? [{ opacity: 1 }, { opacity: 0, offset: 0.5 }, { opacity: 0 }]
-                : [{ opacity: 1 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }], { duration, fill: "forwards" });
-            retire(copy);
-            hold(to, duration);
-        }
-        // The card's copy carries the motion; the real card steps aside at once.
-        hold(card, duration + 240);
-    }
-
     function onClosing(state: CloseReturn): void {
         clearMotion();
         resetCounts();
@@ -444,66 +197,7 @@
             const link = row.querySelector<HTMLElement>("a.athlete-name") || row.querySelector<HTMLElement>("a.athlete-profile-link");
             if (shown(link)) state.returnFocusTo = link;
         }
-        if (row && enabled() && !content()?.matches(".guess-mode, .is-loading, .has-load-error")) playSafely(() => morphClose(row));
     }
-
-    // --- Stepping: the old athlete leaves one way, the next arrives ----------------
-
-    let leaving: Leaving | null = null;
-
-    function snapshotLeaving(): void {
-        const card = content();
-        leaving = null;
-        if (!card || !isOpen() || isClosing() || !enabled() || card.matches(".is-loading, .guess-mode")) return;
-        const copies: Array<readonly [HTMLElement, DOMRect, Element]> = [];
-        for (const source of [dialogPortrait(), dialogTitle()]) {
-            if (!shown(source)) continue;
-            const rect = source.getBoundingClientRect();
-            if (!inViewport(rect)) continue;
-            const copy = source.cloneNode(source.tagName !== "IMG") as HTMLElement;
-            copy.removeAttribute("id");
-            copy.querySelectorAll("[id]").forEach(child => child.removeAttribute("id"));
-            if (copy instanceof HTMLImageElement) copy.loading = "eager";
-            copies.push([copy, rect, source]);
-        }
-        leaving = { at: performance.now(), copies };
-    }
-
-    function playLeaving(direction: string): void {
-        const snapshot = leaving;
-        leaving = null;
-        if (!snapshot || performance.now() - snapshot.at > 250 || !enabled()) return;
-        const sign = direction === "previous" ? 1 : -1;
-        const duration = token("--lwc-motion-base", 200);
-        const distance = Math.min(96, innerWidth * 0.18);
-        for (const [copy, rect, source] of snapshot.copies) {
-            const style = getComputedStyle(source);
-            Object.assign(copy.style, {
-                font: style.font,
-                color: style.color,
-                textAlign: style.textAlign,
-                borderRadius: style.borderRadius,
-                border: style.border,
-                boxShadow: style.boxShadow,
-                objectFit: "cover",
-                padding: style.padding
-            });
-            place(copy, rect).dataset["athleteMotionCopy"] = "leaving";
-            copy.animate([
-                { opacity: 1, translate: "0 0" },
-                { opacity: 0, translate: `${sign * distance}px 0` }
-            ], { duration, easing: exitEase(), fill: "forwards" });
-            retire(copy);
-        }
-    }
-
-    modal.addEventListener("click", event => {
-        if (event.target instanceof Element && event.target.closest(".athlete-step:not(:disabled)")) snapshotLeaving();
-    }, true);
-    document.addEventListener("keydown", event => {
-        if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && isOpen()
-            && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) snapshotLeaving();
-    }, true);
 
     // A horizontal swipe drags the profile and steps on release.
     let swipe: Swipe | null = null;
@@ -730,8 +424,6 @@
         const card = content();
         if (!card) return;
         const own = (name: string) => records.some(record => record.type === "attributes" && record.target === card && record.attributeName === name);
-        const direction = card.dataset["athleteStep"];
-        if (own("data-athlete-step") && direction) playSafely(() => playLeaving(direction));
         if (own("class")) {
             if (card.classList.contains("is-loading")) {
                 resetCounts();
@@ -770,26 +462,27 @@
             const source = pendingSource && performance.now() - pendingSource.at < 1500 ? pendingSource : null;
             pendingSource = null;
             openerSlug = source?.slug || currentSlug();
-            releaseHolds(true);
             const currentGeneration = generation;
             if (source && enabled()) requestAnimationFrame(() => {
-                if (currentGeneration === generation && enabled()) playSafely(() => morphOpen(source));
+                if (currentGeneration === generation && enabled()) playSafely(() => enterFromRow(source));
             });
         } else if (!open && wasOpen) {
-            releaseHolds(false);
+            clearMotion();
             resetCounts();
             figuresFor = "";
         }
         wasOpen = open;
     }).observe(modal, { attributes: true, attributeFilter: ["style", "class"] });
     modal.addEventListener("athlete-dialog-loading", event => {
+        if (enabled()) readMotionValues();
         if (!isOpen() || isClosing()) openerSlug = (event as CustomEvent<{ slug: string }>).detail.slug;
         clearMotion();
         resetCounts();
         figuresFor = "";
     });
     modal.addEventListener("athlete-dialog-closing", event => onClosing((event as CustomEvent<CloseReturn>).detail));
-    modal.addEventListener("athlete-dialog-closed", () => releaseHolds(false));
+    modal.addEventListener("athlete-dialog-closed", clearMotion);
+    modal.addEventListener("athlete-dialog-ready", () => playSafely(enterStep));
     observeContent();
 
     reduced.addEventListener("change", () => {

@@ -1,47 +1,34 @@
-using System.Runtime.CompilerServices;
+using Microsoft.Playwright;
 using Xunit;
+using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class HomepageVisitLayoutTests
+[Collection(BrowserTestCollections.WorkloadC)]
+public sealed class HomepageVisitLayoutTests(
+    PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    [Fact]
-    public void HomepageVisitCounter_IsGuardedToHomepageRoutes()
+    [Theory]
+    [InlineData("/", 4)]
+    [InlineData("/index.html", 4)]
+    [InlineData("/?search=michael", 3)]
+    [InlineData("/?view=pheno", 3)]
+    [InlineData("/?athlete=michael-lustgarten", 3)]
+    public async Task HomepageVisitCounter_IsGuardedToHomepageRoutes(string path, int expectedVisits)
     {
-        var indexHtml = File.ReadAllText(Path.Combine(
-            FindRepoRoot(),
-            "LongevityWorldCup.Website",
-            "Frontend",
-            "homepage.js"));
-
-        Assert.Contains("function isHomepageVisitCounterRoute()", indexHtml);
-        Assert.Contains("path === '/' || path === '/index.html'", indexHtml);
-        Assert.Contains("['athlete', 'filters', 'search', 'view'].some(param => params.has(param))", indexHtml);
-
-        var layoutStart = indexHtml.IndexOf("function placeHomepageHighlightsForVisit()", StringComparison.Ordinal);
-        Assert.True(layoutStart >= 0, "Could not find placeHomepageHighlightsForVisit.");
-
-        var incrementStart = indexHtml.IndexOf("const visitCount = incrementHomepageVisitCount();", layoutStart, StringComparison.Ordinal);
-        Assert.True(incrementStart >= 0, "Could not find homepage visit counter increment.");
-
-        var guardedPrefix = indexHtml[layoutStart..incrementStart];
-        Assert.Contains("if (!isHomepageVisitCounterRoute())", guardedPrefix);
-    }
-
-    private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
-    {
-        var startDirectory = Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory;
-        var current = new DirectoryInfo(startDirectory);
-        while (current is not null)
+        await using var context = await NewContextAsync(Browser, App, new()
         {
-            if (File.Exists(Path.Combine(current.FullName, "LongevityWorldCup.sln")))
-            {
-                return current.FullName;
-            }
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('lwcHomepageVisitCount:v1', '3');");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
 
-            current = current.Parent;
-        }
-
-        throw new DirectoryNotFoundException($"Could not find repository root from {startDirectory}.");
+        Assert.Equal(expectedVisits, await page.EvaluateAsync<int>(
+            "Number(localStorage.getItem('lwcHomepageVisitCount:v1'))"));
+        await Assertions.Expect(page.Locator("main")).ToHaveAttributeAsync(
+            "data-homepage-visit-layout", expectedVisits == 4 ? "repeat" : "default");
     }
 }

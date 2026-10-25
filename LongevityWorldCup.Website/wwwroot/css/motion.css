@@ -38,7 +38,7 @@
  * for imperative focus/scroll callers in the same task. */
 @supports (interactivity: inert) {
     :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
-    :root[data-lwc-motion="on"] details:not([open])::details-content {
+    details:not([open])::details-content {
         interactivity: inert;
         pointer-events: none;
     }
@@ -208,22 +208,25 @@
     }
 }
 
-/* 5) Accordions grow open and fold shut instead of jumping. */
+/* 5) Accordions grow open and fold shut instead of jumping. Gate the duration
+ * on details itself: an ancestor-state selector on ::details-content causes
+ * document-wide pseudo-element style invalidation on the first press. */
 @media (prefers-reduced-motion: no-preference) {
     :root[data-lwc-motion="on"] details {
         interpolate-size: allow-keywords;
+        --lwc-details-duration: var(--lwc-motion-base);
     }
 
-    :root[data-lwc-motion="on"] details::details-content {
+    details::details-content {
         block-size: 0;
         overflow: clip;
         overflow-clip-margin: 8px;
         transition:
-            block-size var(--lwc-motion-base) var(--lwc-ease-standard),
-            content-visibility var(--lwc-motion-base) allow-discrete;
+            block-size var(--lwc-details-duration, 0ms) var(--lwc-ease-standard),
+            content-visibility var(--lwc-details-duration, 0ms) allow-discrete;
     }
 
-    :root[data-lwc-motion="on"] details[open]::details-content {
+    details[open]::details-content {
         block-size: auto;
         /* Reveal descendants immediately so focus, scrolling and measurements
            work in the same task that opens an archive. Only closing needs to
@@ -247,7 +250,7 @@
 
 @supports not (interactivity: inert) {
     :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
-    :root[data-lwc-motion="on"] details:not([open])::details-content {
+    details:not([open])::details-content {
         transition: none;
     }
 }
