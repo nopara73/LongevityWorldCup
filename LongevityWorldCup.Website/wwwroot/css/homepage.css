@@ -2665,3 +2665,6 @@ html body main.homepage-main .btc-status-value {
         to { transform: scaleX(1); }
     }
 }
+html.homepage-restoring {
+    overflow-anchor: none;
+}

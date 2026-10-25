@@ -10,21 +10,36 @@ public sealed class LeaderboardInteractionContinuityBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/", 2, false)]
-    [InlineData("/", 3, false)]
-    [InlineData("/", 3, true)]
-    [InlineData("/leaderboard", 0, false)]
-    public async Task BrowserBack_RestoresTheReadingPositionAndTheSameHomepageLayout(string path, int visits, bool search)
+    [InlineData("/", 2, false, 16)]
+    [InlineData("/", 3, false, 16)]
+    [InlineData("/", 3, true, 16)]
+    [InlineData("/leaderboard", 0, false, 16)]
+    [InlineData("/", 2, false, 32)]
+    public async Task BrowserBack_RestoresTheReadingPositionAndTheSameHomepageLayout(string path, int visits, bool search, int fontSize)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = 1440, Height = 900 },
-            ReducedMotion = search ? ReducedMotion.NoPreference : ReducedMotion.Reduce
+            ReducedMotion = search || fontSize == 32 ? ReducedMotion.NoPreference : ReducedMotion.Reduce
         });
         await context.AddInitScriptAsync($"if (!localStorage.getItem('lwcHomepageVisitCount:v1')) localStorage.setItem('lwcHomepageVisitCount:v1', '{visits}');");
+        await context.AddInitScriptAsync($$"""
+            (() => {
+                const apply = () => {
+                    if (!document.documentElement) return false;
+                    document.documentElement.style.fontSize = '{{fontSize}}px';
+                    return true;
+                };
+                if (!apply()) {
+                    const observer = new MutationObserver(() => { if (apply()) observer.disconnect(); });
+                    observer.observe(document, { childList: true, subtree: true });
+                }
+            })();
+            """);
         var page = await context.NewPageAsync();
         await page.GotoAsync(path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("() => document.fonts.ready");
         if (search)
         {
             await page.Locator("#athleteSearch").FillAsync("michael");
@@ -34,10 +49,31 @@ public sealed class LeaderboardInteractionContinuityBrowserTests(
         if (path == "/") await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await target.ScrollIntoViewIfNeededAsync();
+        if (fontSize == 32) await page.WaitForTimeoutAsync(350);
         var position = await page.EvaluateAsync<double>("scrollY");
         var layout = await page.Locator("main").GetAttributeAsync("data-homepage-visit-layout");
-        await page.GotoAsync("/about");
-        await page.GoBackAsync();
+        await page.GotoAsync("/about", new() { WaitUntil = fontSize == 32 ? WaitUntilState.DOMContentLoaded : WaitUntilState.Load });
+        if (fontSize == 32)
+        {
+            // A cold return can restore against fallback text before the final
+            // font and hydrated board have established the reading position.
+            var releaseFonts = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await context.RouteAsync("**/*.woff2*", async route =>
+            {
+                await releaseFonts.Task;
+                await route.ContinueAsync();
+            });
+            try
+            {
+                await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+                await page.WaitForTimeoutAsync(700);
+            }
+            finally { releaseFonts.TrySetResult(); }
+            await page.WaitForLoadStateAsync(LoadState.Load);
+            await page.EvaluateAsync("() => document.fonts.ready");
+            await page.WaitForTimeoutAsync(800);
+        }
+        else await page.GoBackAsync();
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         Assert.Equal(layout, await page.Locator("main").GetAttributeAsync("data-homepage-visit-layout"));
         await page.WaitForFunctionAsync("y => Math.abs(scrollY - y) < 3", position);

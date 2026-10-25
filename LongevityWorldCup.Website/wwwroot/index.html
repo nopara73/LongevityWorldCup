@@ -6,6 +6,11 @@
     <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
     <script>
+        // Let native Back/Forward restore the saved viewport without scroll
+        // anchoring adding offsets while fonts and the board finish hydrating.
+        if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !location.hash) {
+            document.documentElement.classList.add('homepage-restoring');
+        }
         // One clock from first paint, including cards replaced during hydration.
         // No hidden base styles, extra requests, or waits for content readiness.
         (() => {
