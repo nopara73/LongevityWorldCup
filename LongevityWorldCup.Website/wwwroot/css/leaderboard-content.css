@@ -3906,6 +3906,9 @@
      /* Wide enough for the fullest badge row (badges are sized in pixels), so
         the badge edge holds even when a narrow table shortens the name column. */
      .leaderboard table tbody .athlete-td .badge-section { min-width: 144px; }
+     /* Before badge hydration, the auto table needs each name's whole-word
+        intrinsic width; anywhere can shrink that column to a single letter. */
+     .leaderboard table tbody tr.server-rendered-leaderboard-row .athlete-name { overflow-wrap: break-word; }
  }
 
  /* Let enlarged headings wrap before they collide with Clear and Close. */
