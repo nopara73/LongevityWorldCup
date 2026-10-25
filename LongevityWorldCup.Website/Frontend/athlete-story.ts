@@ -76,7 +76,9 @@
         window.addEventListener(type, openGate, { capture: true, passive: true }));
 
     function isOpen(): boolean {
-        return getComputedStyle(dialog).display !== "none" && !dialog.hidden;
+        // The controller owns display explicitly. Observing a content mutation
+        // must not flush style/layout just to check whether the dialog is open.
+        return dialog.style.display === "block" && !dialog.hidden && !dialog.classList.contains("fade-out");
     }
 
     function shown(element: Element): element is HTMLElement {

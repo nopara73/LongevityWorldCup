@@ -22,11 +22,11 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             for (const entry of list.getEntries()) {
                 if (entry.hadRecentInput) continue;
                 const sources = (entry.sources || []).map(source => {
-                    const node = source.node;
+                    const node = source.node?.nodeType === 3 ? source.node.parentElement : source.node;
                     const name = !node || node.nodeType !== 1 ? '#text'
                         : node.id ? '#' + node.id : node.tagName.toLowerCase() + (typeof node.className === 'string' && node.className ? '.' + node.className.trim().split(/\s+/)[0] : '');
                     const box = rect => [rect.x, rect.y, rect.width, rect.height].map(Math.round).join(',');
-                    return `${name} [${box(source.previousRect)}]->[${box(source.currentRect)}]@${Math.round(entry.startTime)}`;
+                    return `${name} (${node?.textContent?.slice(0, 80)}) [${box(source.previousRect)}]->[${box(source.currentRect)}]@${Math.round(entry.startTime)}`;
                 });
                 window.__lwcShifts.push({ value: entry.value, sources: sources.join(' ') });
             }
@@ -89,6 +89,39 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         var total = shifts.Sum(shift => shift.Value);
         Assert.True(total < ShiftBudget,
             $"{path} at {width}px shifted {total:0.000} (budget {ShiftBudget}): " + string.Join("; ", shifts.Select(s => $"{s.Value:0.000} {s.Sources}")));
+    }
+
+    [Theory]
+    [InlineData("Regular", "700")]
+    [InlineData("Bold", "400")]
+    public async Task StaggeredFontWeights_KeepTheDocumentStable(string lastFace, string firstWeight)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+        await context.AddInitScriptAsync(RecordShifts);
+        var release = await HoldAsync(context, "**/*.woff2*");
+        var releaseLast = await HoldAsync(context, $"**/Roboto-{lastFace}.woff2*");
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.WaitForTimeoutAsync(1500);
+            release.TrySetResult();
+            await page.EvaluateAsync("weight => document.fonts.load(`${weight} 17px Roboto`)", firstWeight);
+            await NextPaintAsync(page);
+            // Give the mixed network/fallback state a real painted frame.
+            await page.WaitForTimeoutAsync(150);
+        }
+        finally
+        {
+            release.TrySetResult();
+            releaseLast.TrySetResult();
+        }
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await NextPaintAsync(page);
+        var shifts = await page.EvaluateAsync<Shift[]>("window.__lwcShifts");
+        Assert.True(shifts.Sum(shift => shift.Value) < ShiftBudget,
+            $"Roboto {lastFace} arriving last shifted {shifts.Sum(shift => shift.Value):0.000}: " +
+            string.Join("; ", shifts.Select(shift => $"{shift.Value:0.000} {shift.Sources}")));
     }
 
     [Theory]

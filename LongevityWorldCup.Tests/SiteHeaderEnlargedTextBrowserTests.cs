@@ -180,6 +180,9 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
         // scrollY may already be zero before Chromium delivers the wheel event.
         // Observe that input before measuring, so the opening timer is cancelled.
         await page.WheelAndWaitForInputAsync(0, -10000);
+        // Establish the layout test's starting position explicitly after input
+        // cancellation; delivery of one wheel event does not guarantee its distance.
+        await page.EvaluateAsync("window.scrollTo({ top: 0, behavior: 'instant' })");
         await page.WaitForFunctionAsync("() => window.scrollY === 0");
     }
 

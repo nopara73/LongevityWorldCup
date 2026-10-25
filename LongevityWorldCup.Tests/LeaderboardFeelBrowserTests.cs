@@ -90,27 +90,17 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
     }
 
     [Fact]
-    public async Task DeferredMotion_FilterGhostsKeepVisibleContentAndAlwaysCleanUp()
+    public async Task FilteringToEmpty_DoesNotPaintDepartedAthletesOverRecovery()
     {
         var (context, page) = await OpenAsync();
         await using var _ = context;
         await page.Locator("#athleteSearch").ClickAsync();
-        await page.EvaluateAsync("""
-            () => {
-                const row = document.querySelector('#athleteLeaderboard > table > tbody > tr[data-athlete-name]');
-                scrollTo(0, row.getBoundingClientRect().top + scrollY - 240);
-                window.ghostReceipt = [];
-                new MutationObserver(() => {
-                    for (const ghost of document.querySelectorAll('.lb-ghost')) {
-                        window.ghostReceipt.push({ visible: ghost.querySelector('tr').getBoundingClientRect().height > 0,
-                            ids: ghost.querySelectorAll('[id], [data-athlete-name]').length });
-                    }
-                }).observe(document.querySelector('.lb-ghosts'), { childList: true });
-            }
-            """);
         await page.Locator("#athleteSearch").EvaluateAsync("input => { input.value = 'zz-no-athlete'; input.dispatchEvent(new Event('input', { bubbles: true })); }");
-        await page.WaitForFunctionAsync("() => window.ghostReceipt.length > 0");
-        Assert.True(await page.EvaluateAsync<bool>("() => window.ghostReceipt.every(g => g.visible && g.ids === 0)"));
+        await Assertions.Expect(page.Locator(".no-results")).ToBeVisibleAsync();
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => [...document.querySelectorAll('#athleteLeaderboard .athlete-name')]
+                .every(name => !name.getClientRects().length)
+            """), "Departing athlete copies obscure the empty result while recovery is already available.");
         await Assertions.Expect(page.Locator(".lb-ghost")).ToHaveCountAsync(0);
         await page.Locator("#athleteSearch").FillAsync("");
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
@@ -243,6 +233,6 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
             Assert.Equal(i % 2 == 1, page.Url.Contains("group=flags", StringComparison.Ordinal));
             Assert.Equal(i % 2 == 1, await page.Locator("#athleteLeaderboard").EvaluateAsync<bool>("board => board.classList.contains('leaderboard--flags')"));
         }
-        Assert.Equal(reduce || mode == "missing" ? 0 : 4, await page.EvaluateAsync<int>("() => window.flagTransitions"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => window.flagTransitions"));
     }
 }

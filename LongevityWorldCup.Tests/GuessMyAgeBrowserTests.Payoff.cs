@@ -270,14 +270,25 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
         }
 
         // The escalation phase lands its own beat with its own copy.
+        await page.EvaluateAsync("""
+            () => {
+                const copy = document.querySelector('.gma-exact-jackpot-copy');
+                const openingBeat = copy.getAnimations().find(animation => animation.animationName === 'gma-exact-copy-beat');
+                window.__gmaEscalationBeat = null;
+                const capture = event => {
+                    if (event.detail.phase !== 'escalation') return;
+                    const beat = copy.getAnimations().find(animation => animation.animationName === 'gma-exact-copy-beat');
+                    window.__gmaEscalationBeat = copy.classList.contains('is-beat') && Boolean(beat)
+                        && beat !== openingBeat && (beat.currentTime === null || beat.currentTime < 1500);
+                    window.removeEventListener('gma:exact-phase', capture);
+                };
+                window.addEventListener('gma:exact-phase', capture);
+            }
+            """);
         await page.Clock.RunForAsync(4800);
         Assert.Equal("escalation", await page.Locator(".gma-exact-jackpot").GetAttributeAsync("data-phase"));
-        Assert.True(await page.Locator(".gma-exact-jackpot-copy").EvaluateAsync<bool>(
-            """
-            copy => copy.classList.contains('is-beat')
-                && copy.getAnimations().some(animation => animation.animationName === 'gma-exact-copy-beat'
-                    && animation.currentTime < 1500)
-            """));
+        Assert.True(await page.EvaluateAsync<bool>("() => window.__gmaEscalationBeat === true"),
+            "The escalation phase must start a new copy beat before the driver observes it.");
 
         // The finale holds, and the takeover dissolves before it is removed.
         await page.Clock.RunForAsync(9100);
