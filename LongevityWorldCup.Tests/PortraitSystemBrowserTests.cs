@@ -61,6 +61,25 @@ public sealed class PortraitSystemBrowserTests(
     }
 
     [Fact]
+    public async Task ChampionHalo_RemainsPresentDuringPortraitDevelop()
+    {
+        await using var context = await ContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        var image = page.Locator(".podium-item.first .podium-portrait");
+        await Assertions.Expect(image).ToHaveAttributeAsync("data-lwc-portrait-state", "ready");
+        var halo = await image.EvaluateAsync<string>("image => getComputedStyle(image).filter");
+        Assert.Contains("drop-shadow(", halo);
+        var developing = await image.EvaluateAsync<string>("""
+            image => {
+                image.dataset.lwcPortraitState = 'developing';
+                return getComputedStyle(image).filter;
+            }
+            """);
+        Assert.StartsWith(halo, developing);
+    }
+
+    [Fact]
     public async Task ImageThatFailedBeforeEnhancement_RecoversInsteadOfShimmeringForever()
     {
         await using var context = await ContextAsync();
