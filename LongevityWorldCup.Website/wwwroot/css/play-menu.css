@@ -3091,7 +3091,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 
     .play-join-panel:not([hidden]) .play-join-foot {
-        animation: play-join-fade 220ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 220ms backwards;
+        animation: play-join-tile-rise 220ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) backwards;
     }
 }
 
@@ -3126,7 +3126,6 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
 @keyframes play-join-tile-rise {
     from {
-        opacity: 0;
         transform: translate3d(0, 28px, 0);
     }
 

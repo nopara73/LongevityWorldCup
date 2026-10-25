@@ -6,7 +6,7 @@ namespace LongevityWorldCup.Tests;
 
 /// <summary>
 /// The /play flow moves like one game: screens slide in the direction of travel,
-/// the screen being left fades out as an inert ghost, the player card is dealt
+/// one complete live screen is painted at a time, the player card is dealt
 /// in, search rows enter and leave, prices settle, the dock slides up, and focus
 /// and scroll land where the visitor expects. Reduced motion keeps the landing
 /// without any of the movement.
@@ -73,7 +73,7 @@ public sealed class PlayFlowMotionBrowserTests(
     [InlineData(820, 1180, true)]
     [InlineData(390, 844, false)]
     [InlineData(390, 844, true)]
-    public async Task Moves_SlideInTheirDirectionAndTheLeftScreenIsAnInertGhost(int width, int height, bool dark)
+    public async Task Moves_SlideInTheirDirectionWithOneCompleteLiveScreen(int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -82,9 +82,8 @@ public sealed class PlayFlowMotionBrowserTests(
         });
         var page = await OpenAsync(context, "/select-athlete");
         await SelectAthleteAsync(page, await PickAmateurAsync(page));
-        // Exercise the prepared transition deterministically. Slow preparation
-        // intentionally replaces the outgoing screen with a loading card, so it
-        // cannot supply a ghost; that path has separate coverage below.
+        // Exercise a prepared transition; the slow loading path has separate
+        // coverage below. The departing identity must not cover the new screen.
         await page.EvaluateAsync("""
             async () => {
                 const flow = window.playAthleteFlow;
@@ -112,16 +111,15 @@ public sealed class PlayFlowMotionBrowserTests(
                 const direction = document.documentElement.dataset.playMove;
                 if (!direction || window.__moveFrames[direction]) return;
                 const panel = document.getElementById('athleteDashboardPanel');
-                const ghost = document.querySelector('.play-hub-panel--ghost');
                 const starts = document.getAnimations()
                     .filter(animation => animation.effect?.target === panel || animation.effect?.target === panel.querySelector('.play-dashboard-card'))
                     .map(animation => animation.effect.getKeyframes()[0].transform || '');
                 const shift = starts.map(value => /translate(?:X)?\((-?[\d.]+)px/.exec(value)).filter(Boolean).map(match => Number(match[1]));
                 if (direction === 'forward') window.__moveFrames.forward = [
-                    ghost ? 1 : 0,
-                    ghost && ghost.inert && ghost.getAttribute('aria-hidden') === 'true' ? 1 : 0,
-                    ghost ? ghost.querySelectorAll('[id], [role], [name]').length : -1,
-                    ghost ? (getComputedStyle(ghost).pointerEvents === 'none' ? 1 : 0) : 0,
+                    [...document.querySelectorAll('.play-hub-main h1')].filter(title => title.getClientRects().length).length,
+                    document.getElementById('athleteSelectionPanel').hidden ? 1 : 0,
+                    document.querySelectorAll('.play-hub-panel:not([hidden])').length,
+                    panel.inert ? 1 : 0,
                     shift.length ? Math.max(...shift) : 0,
                     panel.hidden ? 0 : 1,
                     Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth
@@ -138,9 +136,9 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForFunctionAsync("() => window.__moveFrames.forward");
         var forward = await page.EvaluateAsync<double[]>("() => window.__moveFrames.forward");
-        Assert.True(forward[0] == 1, "Leaving athlete selection should leave a ghost of it fading out.");
-        Assert.True(forward[1] == 1 && forward[3] == 1, "The ghost must be inert, hidden from assistive technology, and never take pointer input.");
-        Assert.Equal(0, forward[2]);
+        Assert.Equal(1, forward[0]);
+        Assert.True(forward[1] == 1 && forward[3] == 0, "The departing screen must be hidden while the arriving screen takes input.");
+        Assert.Equal(1, forward[2]);
         Assert.True(forward[4] > 10, $"Going deeper should arrive from the right, got a {forward[4]}px start.");
         Assert.True(forward[5] == 1, "The dashboard must be live from the move's first frame.");
         Assert.True(forward[6] <= 1, $"The first motion frame has {forward[6]}px horizontal overflow.");
@@ -163,18 +161,21 @@ public sealed class PlayFlowMotionBrowserTests(
         });
         var page = await OpenAsync(context, "/select-athlete");
         await SelectAthleteAsync(page, await PickAmateurAsync(page));
-        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.querySelector('.play-hub-panel--ghost')");
-
-        var hit = await page.EvaluateAsync<bool>("""
+        await page.EvaluateAsync("""
             () => {
-                const back = document.getElementById('playDashboardBackBtn');
-                const box = back.getBoundingClientRect();
-                const target = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
-                return Boolean(target && back.contains(target));
+                new MutationObserver(() => {
+                    if (document.documentElement.dataset.playMove !== 'forward') return;
+                    const back = document.getElementById('playDashboardBackBtn');
+                    const box = back.getBoundingClientRect();
+                    const target = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+                    window.__incomingCommandHit = Boolean(target && back.contains(target));
+                }).observe(document.documentElement, {attributes:true, attributeFilter:['data-play-move']});
             }
             """);
-        Assert.True(hit, "Mid-move, a press on the arriving screen's control must reach that control, not the ghost.");
+        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.__incomingCommandHit !== undefined");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.__incomingCommandHit"),
+            "From the arriving frame, a press on the new screen's control must reach that control.");
         await page.Locator("#playDashboardBackBtn").ClickAsync();
         await Assertions.Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/select-athlete$"));
         await WaitForMoveToSettleAsync(page);
@@ -519,7 +520,7 @@ public sealed class PlayFlowMotionBrowserTests(
     [Theory]
     [InlineData(390, 844, false)]
     [InlineData(390, 844, true)]
-    public async Task Dock_SlidesUpFromTheScreenEdge(int width, int height, bool dark)
+    public async Task Dock_SettlesWithoutHidingItsCommandsBelowTheScreen(int width, int height, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -532,8 +533,12 @@ public sealed class PlayFlowMotionBrowserTests(
                 const stack = document.querySelector('.play-athlete-actions');
                 const observer = new MutationObserver(() => {
                     if (!stack.classList.contains('flow-action-stack--dock-entering')) return;
-                    const box = stack.getBoundingClientRect();
-                    window.__dockEntry = [new DOMMatrix(getComputedStyle(stack).transform).m42, box.height, box.top, innerHeight];
+                    window.__dockEntry = [...stack.querySelectorAll('.flow-action')].filter(action => action.getClientRects().length).map(action => {
+                        const box = action.getBoundingClientRect();
+                        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+                        return [box.top, box.bottom, innerHeight, hit && (hit === action || action.contains(hit)) ? 1 : 0,
+                            action.matches(':disabled, [aria-disabled="true"]') ? 1 : 0];
+                    });
                     observer.disconnect();
                 });
                 observer.observe(stack, { attributes: true, attributeFilter: ['class'] });
@@ -541,9 +546,15 @@ public sealed class PlayFlowMotionBrowserTests(
             """);
         await page.SetViewportSizeAsync(width, height);
         await page.WaitForFunctionAsync("() => window.__dockEntry");
-        var slide = await page.EvaluateAsync<double[]>("() => window.__dockEntry");
-        Assert.True(slide[0] >= slide[1], $"An entering dock should start fully below the screen edge: {slide[0]}px for a {slide[1]}px bar.");
-        Assert.True(slide[2] >= slide[3], "The real docking move must begin below the viewport.");
+        var commands = await page.EvaluateAsync<double[][]>("() => window.__dockEntry");
+        Assert.NotEmpty(commands);
+        Assert.All(commands, command =>
+        {
+            Assert.True(command[0] >= 0 && command[1] <= command[2] + 1,
+                $"A newly docked command is outside the viewport: {command[0]}–{command[1]} in {command[2]}px.");
+            // Invalid actions keep their existing disabled hit-testing policy.
+            if (command[4] == 0) Assert.Equal(1, command[3]);
+        });
         await page.WaitForFunctionAsync("""
             () => {
                 const stack = document.querySelector('.play-athlete-actions.flow-action-stack--docked');
