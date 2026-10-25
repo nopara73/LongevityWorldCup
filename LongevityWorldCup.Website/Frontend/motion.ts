@@ -108,6 +108,8 @@ interface Window {
 
         const duration = readToken("--lwc-motion-move", 260);
         const easing = readEase("--lwc-ease-standard");
+        const arrivals = { duration: readToken("--lwc-motion-base", 200), easing: readEase("--lwc-ease-enter") };
+        const pending: { element: HTMLElement; frames: Keyframe[]; options: KeyframeAnimationOptions }[] = [];
         let animated = 0;
         for (const element of elements) {
             if (animated >= flipLimit || !(element instanceof HTMLElement) || !element.isConnected) continue;
@@ -116,7 +118,7 @@ interface Window {
             const first = before.get(element);
             if (!first) {
                 animated++;
-                settle(element);
+                pending.push({ element, frames: settleFrames(element), options: arrivals });
                 continue;
             }
             // A row arriving from far away slides in from just past the edge, not across the page.
@@ -124,10 +126,13 @@ interface Window {
             const dy = Math.max(-travel, Math.min(travel, first.top - after.top));
             if (Math.abs(dy) < 1) continue;
             animated++;
-            animate(element,
-                [{ translate: `0 ${dy}px` }, { translate: "0 0" }],
-                { duration, easing, composite: "add" });
+            pending.push({ element,
+                frames: [{ translate: `0 ${dy}px` }, { translate: "0 0" }],
+                options: { duration, easing, composite: "add" } });
         }
+        // Finish every geometry/style read before starting animation writes.
+        // Interleaving them forces another layout for each subsequent row.
+        for (const { element, frames, options } of pending) animate(element, frames, options);
     }
 
     // Run once the element's own exit transition or animation ends, or at once
@@ -160,15 +165,19 @@ interface Window {
         return cancel;
     }
 
+    function settleFrames(element: HTMLElement): Keyframe[] {
+        const style = getComputedStyle(element);
+        const [x = "0px", y = "0px", z = "0px"] = style.translate === "none" ? [] : style.translate.split(/\s+/);
+        const opacity = Number(style.opacity);
+        return [{ opacity: opacity * 0.35, translate: `${x} calc(${y} + 4px) ${z}` }, { opacity, translate: `${x} ${y} ${z}` }];
+    }
+
     // A panel whose content was redrawn in place settles in instead of flashing.
     function settle(element: Element): void {
         if (!enabled() || !(element instanceof HTMLElement)) return;
         cancelOwned(element);
-        const style = getComputedStyle(element);
-        const [x = "0px", y = "0px", z = "0px"] = style.translate === "none" ? [] : style.translate.split(/\s+/);
-        const opacity = Number(style.opacity);
         animate(element,
-            [{ opacity: opacity * 0.35, translate: `${x} calc(${y} + 4px) ${z}` }, { opacity, translate: `${x} ${y} ${z}` }],
+            settleFrames(element),
             { duration: readToken("--lwc-motion-base", 200), easing: readEase("--lwc-ease-enter") });
     }
 
