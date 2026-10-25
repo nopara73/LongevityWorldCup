@@ -182,6 +182,17 @@ resetObserver.observe(modalContent.closest('#detailsModal'), {
     attributes: true, attributeFilter: ['class', 'style']
 });
 
+// Cached hydration can enter and leave loading in one task, including when the
+// same athlete reopens. The observer only sees the final identity/classes, so
+// retire the previous game before any new profile content is installed.
+modalContent.closest('#detailsModal').addEventListener('athlete-dialog-loading', () => {
+    cancelGmaPresentation();
+    cancelGmaPortraitGlide();
+    cancelGmaProfileHandoff();
+    clearGmaEphemera();
+    gmaWasAvailable = false;
+});
+
 function gmaGeometryForAge(age) {
     const min = +gmaRange.min;
     const max = +gmaRange.max;
