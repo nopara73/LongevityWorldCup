@@ -203,6 +203,7 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent = InjectPortraitSystem(bodyContent);
                         bodyContent = InjectTouchLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
+                        bodyContent = InjectDepthSystem(bodyContent);
                     }
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -596,7 +597,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            // Shared interaction styles come first so the aesthetic system stays the last stylesheet in the head.
+            // Shared interaction styles precede the palette and the depth scale.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
@@ -624,6 +625,22 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Surface and depth tokens follow the palette; components retain their
+        // semantic colours, focus indicators and transition ownership.
+        private string InjectDepthSystem(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 
