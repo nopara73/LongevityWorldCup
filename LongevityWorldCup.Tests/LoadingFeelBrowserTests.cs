@@ -130,11 +130,13 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     [Theory]
-    [InlineData("Regular", "700")]
-    [InlineData("Bold", "400")]
-    public async Task StaggeredFontWeights_KeepTheDocumentStable(string lastFace, string firstWeight)
+    [InlineData("Regular", "700", 1280)]
+    [InlineData("Bold", "400", 1280)]
+    [InlineData("Regular", "700", 390)]
+    [InlineData("Bold", "400", 390)]
+    public async Task StaggeredFontWeights_KeepTheDocumentStable(string lastFace, string firstWeight, int width)
     {
-        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 800 } });
         await context.AddInitScriptAsync(RecordShifts);
         var release = await HoldAsync(context, "**/*.woff2*");
         var releaseLast = await HoldAsync(context, $"**/Roboto-{lastFace}.woff2*");
