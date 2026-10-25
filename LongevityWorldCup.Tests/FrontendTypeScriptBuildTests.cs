@@ -24,6 +24,7 @@ public sealed class FrontendTypeScriptBuildTests
         "motion",
         "share-sheet",
         "touch",
+        "depth-system",
         "site-statistics",
         "site-statistics-tracking"
     ];

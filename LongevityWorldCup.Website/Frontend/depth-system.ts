@@ -1,102 +1,96 @@
-// Surface and depth: sticky bars rise once content slides under them.
-// depth-system.css owns every level; this classic script only reports which
-// sticky bars are currently pinned, as data-lwc-stuck, so the bar can ease
-// from flat to raised. A bar resting in its normal place stays flat.
-//
-// Known sticky bars are adopted by selector (the full leaderboard condenses its
-// own head in leaderboard-feel.css, so it is left to that); any page can opt in another one
-// with a data-lwc-sticky attribute. Work happens once per animation frame on
-// scroll and resize, and only reads the bars' own boxes.
-
+// Sticky depth is presentation only: batch geometry reads before attribute writes.
 (() => {
-    const STICKY_SELECTORS = [
-        '[data-lwc-sticky]',
-        '.event-board-page .events-board tbody tr.events-month-row',
-        '.lmx-board-row.header',
-        '.lmx-dashboard-category',
-        '.lmx-feed-updates',
-        '.sidebar-heading',
+    const selectors = [
+        '[data-lwc-sticky]', '.event-board-page .events-month-row',
+        '.lmx-board-row.header', '.lmx-dashboard-category', '.lmx-feed-updates', '.sidebar-heading',
         ':is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset > legend'
-    ].join(', ');
-
-    const tracked = new Set<HTMLElement>();
+    ].join(',');
+    type Bar = { element: HTMLElement; top: number | null; scroller: HTMLElement | null };
+    const bars = new Map<HTMLElement, Bar>();
     let queued = false;
+    let refresh = true;
 
-    function adopt(root: ParentNode): void {
-        root.querySelectorAll<HTMLElement>(STICKY_SELECTORS).forEach((element) => {
-            if (tracked.has(element)) return;
-            tracked.add(element);
-            if (!element.hasAttribute('data-lwc-sticky')) element.setAttribute('data-lwc-sticky', '');
-        });
+    function adopt(root: Element | Document): void {
+        const add = (element: Element): void => {
+            if (!(element instanceof HTMLElement) || bars.has(element)) return;
+            bars.set(element, { element, top: null, scroller: null });
+            element.setAttribute('data-lwc-sticky', '');
+            refresh = true;
+        };
+        if (root instanceof Element && root.matches(selectors)) add(root);
+        root.querySelectorAll(selectors).forEach(add);
     }
-
-    function pinnedTop(element: HTMLElement): number | null {
-        const style = getComputedStyle(element);
-        if (style.position !== 'sticky') return null;
+    function measure(bar: Bar): void {
+        const style = getComputedStyle(bar.element);
         const top = parseFloat(style.top);
-        return Number.isFinite(top) ? top : null;
-    }
-
-    function scrollParentTop(element: HTMLElement): { top: number; scrolled: boolean } {
-        let parent = element.parentElement;
-        while (parent && parent !== document.body) {
-            const overflow = getComputedStyle(parent).overflowY;
-            if (overflow === 'auto' || overflow === 'scroll') {
-                return { top: parent.getBoundingClientRect().top, scrolled: parent.scrollTop > 0 };
+        bar.top = style.position === 'sticky' && Number.isFinite(top) ? top : null;
+        bar.scroller = null;
+        if (bar.top === null) return;
+        for (let parent = bar.element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+            // hidden establishes a sticky scroll container; clip does not.
+            if (/^(auto|scroll|hidden|overlay)$/.test(getComputedStyle(parent).overflowY)) {
+                bar.scroller = parent;
+                break;
             }
-            parent = parent.parentElement;
         }
-        return { top: 0, scrolled: window.scrollY > 0 };
     }
-
     function update(): void {
         queued = false;
-        tracked.forEach((element) => {
-            if (!element.isConnected) {
-                tracked.delete(element);
-                return;
-            }
-            const top = pinnedTop(element);
+        const changes: [HTMLElement, boolean][] = [];
+        const containers = new Map<HTMLElement, { top: number; scrolled: boolean }>();
+        for (const [element, bar] of bars) {
+            if (!element.isConnected) { bars.delete(element); continue; }
+            if (refresh) measure(bar);
             let stuck = false;
-            if (top !== null && element.getClientRects().length > 0) {
-                const container = scrollParentTop(element);
-                const offset = element.getBoundingClientRect().top - container.top;
-                stuck = container.scrolled && Math.abs(offset - top) < 1.5;
+            if (bar.top !== null && element.getClientRects().length) {
+                let container = { top: 0, scrolled: window.scrollY > 0 };
+                if (bar.scroller) {
+                    const scroller = bar.scroller;
+                    let cached = containers.get(scroller);
+                    if (!cached) {
+                        cached = { top: scroller.getBoundingClientRect().top + scroller.clientTop, scrolled: scroller.scrollTop > 0 };
+                        containers.set(scroller, cached);
+                    }
+                    container = cached;
+                }
+                stuck = container.scrolled && Math.abs(element.getBoundingClientRect().top - container.top - bar.top) < 1.5;
             }
-            if (stuck !== element.hasAttribute('data-lwc-stuck')) {
-                element.toggleAttribute('data-lwc-stuck', stuck);
-            }
-        });
+            if (stuck !== element.hasAttribute('data-lwc-stuck')) changes.push([element, stuck]);
+        }
+        refresh = false;
+        for (const [element, stuck] of changes) element.toggleAttribute('data-lwc-stuck', stuck);
     }
-
     function queue(): void {
-        if (queued) return;
-        queued = true;
-        requestAnimationFrame(update);
+        if (!queued) { queued = true; requestAnimationFrame(update); }
     }
-
+    function invalidate(): void { refresh = true; queue(); }
     function start(): void {
         adopt(document);
         queue();
-        // Capture catches inner scrollers such as the profile dialog.
         document.addEventListener('scroll', queue, { capture: true, passive: true });
-        window.addEventListener('resize', queue, { passive: true });
-        // Boards and feeds render their rows after load.
-        let adoptQueued = false;
-        new MutationObserver(() => {
-            if (adoptQueued) return;
-            adoptQueued = true;
-            requestAnimationFrame(() => {
-                adoptQueued = false;
-                adopt(document);
-                queue();
-            });
+        window.addEventListener('resize', invalidate, { passive: true });
+        window.addEventListener('pageshow', invalidate);
+        document.fonts?.ready.then(invalidate);
+        // Inspect inserted subtrees, not the entire populated page after every
+        // search, timer, tooltip or profile mutation.
+        new MutationObserver(records => {
+            for (const record of records) {
+                for (const node of record.addedNodes) if (node instanceof Element) adopt(node);
+            }
+            queue();
         }).observe(document.body, { childList: true, subtree: true });
+        new ResizeObserver(invalidate).observe(document.documentElement);
+        // Header measurements and enlarged text can change inherited sticky
+        // insets without changing the dimensions of a bar itself.
+        const root = document.documentElement;
+        const rootMetrics = (): string => [root.style.getPropertyValue('--site-sticky-height'),
+            root.style.getPropertyValue('--site-visible-sticky-height'), root.style.fontSize, root.className].join('|');
+        let previousMetrics = rootMetrics();
+        new MutationObserver(() => {
+            const current = rootMetrics();
+            if (current !== previousMetrics) { previousMetrics = current; invalidate(); }
+        }).observe(root, { attributes: true, attributeFilter: ['style', 'class'] });
     }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start, { once: true });
-    } else {
-        start();
-    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+    else start();
 })();

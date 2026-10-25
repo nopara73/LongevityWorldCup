@@ -2,7 +2,7 @@
  * Longevity World Cup surface and depth
  *
  * One elevation scale for the whole site. Every surface sits on one of five
- * levels, and its shadow, border and (in dark mode) surface tint come from the
+ * levels, and its shadow and neutral border come from the
  * same row of tokens, so a card, a sticky bar and a dialog read as one family.
  *
  *   0  flat      the canvas and sections that only need a hairline
@@ -16,7 +16,7 @@
  * --lwc-accent, and the scrim is the dark canvas. No new hues.
  *
  * Motion: a card lifts 2px on hover and settles under a press; a sticky bar
- * eases its shadow in once content runs under it (depth-system.ts sets
+ * gains depth once content runs under it (depth-system.ts sets
  * data-lwc-stuck). Reduced motion keeps the depth and drops the travel.
  * Backdrop blur is desktop-only; phones get a deeper scrim instead.
  */
@@ -83,7 +83,7 @@
 @media (prefers-color-scheme: dark) {
     :root {
         /* Shadows barely read on a dark canvas, so depth comes from light:
-           raised surfaces get a lighter tint, a brighter edge, a top
+           raised surfaces keep their approved colours, with a brighter edge, a top
            highlight and, at the overlay level, a faint accent glow. */
         --lwc-depth-shade: 0, 0, 0;
         --lwc-depth-light: 230, 237, 243;
@@ -115,9 +115,9 @@
         --lwc-elevation-border-4: color-mix(in srgb, var(--lwc-border) 70%, var(--lwc-accent));
         --lwc-elevation-border-hover: color-mix(in srgb, var(--lwc-border) 55%, var(--lwc-accent));
 
-        --lwc-elevation-surface-2: color-mix(in srgb, var(--lwc-surface) 96%, var(--lwc-ink));
-        --lwc-elevation-surface-3: color-mix(in srgb, var(--lwc-surface) 94%, var(--lwc-ink));
-        --lwc-elevation-surface-4: color-mix(in srgb, var(--lwc-surface) 93%, var(--lwc-ink));
+        --lwc-elevation-surface-2: var(--lwc-surface);
+        --lwc-elevation-surface-3: var(--lwc-surface);
+        --lwc-elevation-surface-4: var(--lwc-surface);
 
         --lwc-elevation-scrim: rgba(4, 8, 12, 0.6);
         --lwc-elevation-scrim-solid: rgba(4, 8, 12, 0.76);
@@ -129,305 +129,133 @@
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* Level 1: resting cards and panels                                    */
-/* ------------------------------------------------------------------ */
-
+/* Resting surfaces. Component-specific state borders, backgrounds and focus
+   indicators keep ownership; neutral surfaces share the same shadow scale. */
 :root body :is(
     .lmx-panel, .lmx-card, .lmx-board-wrap, .lmx-habit-card, .lmx-action-card, .lmx-access-panel,
-    main.homepage-main .section-container,
     .track-card, .play-track-card, .play-join-card, .play-dashboard-card, .play-athlete-card,
     .biomarker-card, .proof-page-card, .application-review-panel, .unsubscribe-panel,
     .not-found-card, .error-card, .media-kit-panel, .lab-access-panel, .stats-panel,
     .archive-mobile-card, .lwc-merch-item, .form-container, .bioage-form-container, .convergence-form,
-    .events-board, .leaderboard-order-panel
+    .events-board
 ) {
-    border-color: var(--lwc-elevation-border-1);
     box-shadow: var(--lwc-elevation-1);
 }
 
-/* Interactive cards: the whole card is the target, so the whole card lifts. */
-:root body :is(
-    a.track-card, a.play-track-card, label.play-track-card, .play-track-card:has(input),
-    .play-join-card, .play-dashboard-card, .play-athlete-card,
-    .lwc-merch-item, .archive-mobile-card, .proof-page-card, .lmx-habit-card,
-    a.not-found-card, a.biomarker-card
-) {
-    position: relative;
-    transition:
-        box-shadow var(--lwc-elevation-duration) var(--lwc-elevation-ease),
+:root body main.homepage-main .section-container { box-shadow: var(--lwc-elevation-1); }
+:root body #detailsModal .modal-content { box-shadow: var(--lwc-elevation-4); }
+
+/* Only whole-card links lift. A panel containing buttons, an editable field,
+   a cropper or several links must not move under that interaction or become
+   a new containing block for fixed descendants. Existing transitions remain
+   owned by the component. */
+:root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card) {
+    transition: box-shadow var(--lwc-elevation-duration) var(--lwc-elevation-ease),
         border-color var(--lwc-elevation-duration) var(--lwc-elevation-ease),
-        background-color var(--lwc-elevation-duration) var(--lwc-elevation-ease),
         translate var(--lwc-elevation-duration) var(--lwc-elevation-ease);
 }
 
 @media (hover: hover) and (pointer: fine) {
-    :root body :is(
-        a.track-card, a.play-track-card, label.play-track-card, .play-track-card:has(input),
-        .play-join-card, .play-dashboard-card, .play-athlete-card,
-        .lwc-merch-item, .archive-mobile-card, .proof-page-card, .lmx-habit-card,
-        a.not-found-card, a.biomarker-card
-    ):hover {
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):hover {
         border-color: var(--lwc-elevation-border-hover);
-        background-color: var(--lwc-elevation-surface-2);
         box-shadow: var(--lwc-elevation-2);
     }
 }
 
-/* Keyboard focus raises the card the same way a pointer does. */
-:root body :is(
-    a.track-card, a.play-track-card, label.play-track-card, .play-track-card:has(input),
-    .play-join-card, .play-dashboard-card, .play-athlete-card,
-    .lwc-merch-item, .archive-mobile-card, .proof-page-card, .lmx-habit-card,
-    a.not-found-card, a.biomarker-card
-):focus-within:has(:focus-visible),
-:root body :is(a.track-card, a.play-track-card, a.not-found-card, a.biomarker-card):focus-visible {
+:root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):focus-visible {
+    outline: 2px solid var(--lwc-accent);
+    outline-offset: 3px;
     box-shadow: var(--lwc-elevation-2);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    @media (hover: hover) and (pointer: fine) {
-        :root body :is(
-            a.track-card, a.play-track-card, label.play-track-card, .play-track-card:has(input),
-            .play-join-card, .play-dashboard-card, .play-athlete-card,
-            .lwc-merch-item, .archive-mobile-card, .proof-page-card, .lmx-habit-card,
-            a.not-found-card, a.biomarker-card
-        ):hover {
-            translate: 0 var(--lwc-elevation-lift);
-        }
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):hover {
+        translate: 0 var(--lwc-elevation-lift);
     }
-
-    /* Press: the card settles back onto the page before the action fires. */
-    :root body :is(
-        a.track-card, a.play-track-card, label.play-track-card, .play-track-card:has(input),
-        .play-join-card, .play-dashboard-card, .play-athlete-card,
-        .lwc-merch-item, .archive-mobile-card, .proof-page-card, .lmx-habit-card,
-        a.not-found-card, a.biomarker-card
-    ):active:not(:has(button:active, a:active, input:active, select:active)) {
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):active {
         translate: 0 0;
         box-shadow: var(--lwc-elevation-1);
         transition-duration: var(--lwc-motion-press, 90ms);
     }
 }
 
-/* A selected choice card stays raised so the pick is legible at rest. */
-:root body :is(.play-track-card, .play-join-card):has(input:checked) {
+:root body :where(.play-track-card):has(input:checked) {
     box-shadow: var(--lwc-elevation-2);
 }
 
-/* Recessed wells: muted regions nested inside a card sit slightly below it. */
-:root body :is(.lmx-card, .lmx-panel, .play-dashboard-card, .application-review-panel, .stats-panel)
-    :is(pre, .lmx-quote, .lmx-empty, .play-dashboard-empty) {
+:root body :where(.lmx-card, .lmx-panel, .play-dashboard-card, .application-review-panel, .stats-panel)
+    :where(pre, .lmx-quote, .lmx-empty, .play-dashboard-empty) {
     box-shadow: var(--lwc-elevation-well);
 }
 
-/* ------------------------------------------------------------------ */
-/* Level 2: the header band and bars that content scrolls under         */
-/* ------------------------------------------------------------------ */
-
-/* The compact bar is only shown once the page has scrolled, so it always has
-   content under it: its shadow deepens over the first screen of scrolling. */
-
-@supports (animation-timeline: scroll()) {
-    @media (prefers-reduced-motion: no-preference) {
-        :root body .site-sticky-header.visible {
-            animation: lwc-depth-bar-deepen linear both;
-            animation-timeline: scroll(root block);
-            animation-range: 0 60vh;
-        }
-    }
-}
-
-@keyframes lwc-depth-bar-deepen {
-    from { box-shadow: 0 4px 10px -10px rgba(var(--lwc-depth-ink), 0.5); }
-    to { box-shadow: 0 10px 24px -14px rgba(var(--lwc-depth-ink), 0.75), 0 22px 44px -26px rgba(var(--lwc-depth-ink), 0.45); }
-}
-
-/* In-page sticky bars: flat while they sit in place, raised once content
-   slides beneath them. depth-system.ts toggles data-lwc-stuck. */
-:root body [data-lwc-sticky] {
-    transition: box-shadow var(--lwc-elevation-duration) var(--lwc-elevation-ease),
-        background-color var(--lwc-elevation-duration) var(--lwc-elevation-ease);
-}
-
+/* Sticky depth must not replace the header's reveal animation, add a filter
+   containing block, or animate a shadow on every scroll frame. */
 :root body [data-lwc-sticky][data-lwc-stuck] {
     box-shadow: var(--lwc-elevation-bar);
 }
-
-/* Table header groups take one drop shadow for the whole row, so the cells
-   do not each cast their own and leave seams at the column edges. */
-:root body :is(thead, tr)[data-lwc-sticky] {
-    transition: filter var(--lwc-elevation-duration) var(--lwc-elevation-ease);
-}
-
-:root body :is(thead, tr)[data-lwc-sticky][data-lwc-stuck] {
-    box-shadow: none;
-    filter: drop-shadow(0 1px 0 rgba(var(--lwc-depth-ink), 0.08)) drop-shadow(0 6px 6px rgba(var(--lwc-depth-ink), 0.12));
-}
-
-/* The profile's own compact header rises over the scrolling profile. */
 :root body #detailsModal .modal-sticky-header.visible {
     box-shadow: var(--lwc-elevation-bar);
 }
 
-/* The docs side navigation already reports when it is stuck. */
-:root body .is-stuck {
-    box-shadow: var(--lwc-elevation-bar);
-}
-
-@media (prefers-color-scheme: dark) {
-    @keyframes lwc-depth-bar-deepen {
-        from { box-shadow: 0 4px 10px -10px rgba(0, 0, 0, 0.7); }
-        to { box-shadow: 0 1px 0 rgba(var(--lwc-depth-light), 0.04), 0 12px 28px -14px rgba(0, 0, 0, 0.95); }
-    }
-
-    :root body :is(thead, tr)[data-lwc-sticky][data-lwc-stuck] {
-        filter: drop-shadow(0 1px 0 rgba(var(--lwc-depth-light), 0.06)) drop-shadow(0 6px 8px rgba(0, 0, 0, 0.55));
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/* Level 3: menus, popovers and floating sheets                         */
-/* ------------------------------------------------------------------ */
-
-:root body :is(
-    .lwc-share, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover,
-    .site-menu-panel, .leaderboard-order-panel:not([hidden])
-) {
-    border-color: var(--lwc-elevation-border-3);
-    background-color: var(--lwc-elevation-surface-3);
+/* Floating surfaces. Order is an in-flow strip, not a floating menu. */
+:root body :is(.lwc-share, .athlete-share-menu, .lmx-mention-options,
+    .lmx-timezone-list, .lmx-timezone-popover, .site-menu-panel) {
     box-shadow: var(--lwc-elevation-3);
 }
 
-/* ------------------------------------------------------------------ */
-/* Level 4: dialogs, sheets and the alert                               */
-/* ------------------------------------------------------------------ */
-
-:root body :is(
-    .modal-content, .dialog-content, .custom-alert-panel, .loading-dialog-panel,
-    .proof-review-dialog, .lmx-quote-dialog > *, .lmx-checkin-dialog, #changeProfileCropperModal > *
-) {
-    border-color: var(--lwc-elevation-border-4);
+/* The border of an alert or selected track carries meaning. Do not replace
+   it via an ID-bearing :is() list, which raises every selector's specificity. */
+:root body :is(.modal-content, .dialog-content, .custom-alert-panel,
+    .loading-dialog-panel, .proof-review-dialog, .lmx-checkin-dialog) {
     box-shadow: var(--lwc-elevation-4);
 }
 
-/* Dark: the overlay surface is a step lighter than the cards behind it. */
-@media (prefers-color-scheme: dark) {
-    :root body :is(.custom-alert-panel, .loading-dialog-panel, .proof-review-dialog, .dialog-content, .lmx-checkin-dialog) {
-        background-color: var(--lwc-elevation-surface-4);
-    }
-}
-
-/* The alert keeps its tone stripe; only the depth changes. */
-:root body .custom-alert-panel {
-    border-top-color: var(--alert-tone);
-}
-
-/* Scrims: the dark canvas, never pure black. */
-:root body :is(.modal, .dialog, #custom-alert, #loading-dialog, #modalOverlay, #lmxCheckinDialogBackdrop, .badge-tip-scrim) {
+/* Only backdrop owners receive a scrim. Native dialog panels (including
+   badges) keep their own background; their ::backdrop is a separate surface.
+   The profile's moving card keeps its existing motion and containing blocks. */
+:root body :is(#detailsModal, #custom-alert, #loading-dialog, #modalOverlay, #lmxCheckinDialogBackdrop, .badge-tip-scrim) {
     background-color: var(--lwc-elevation-scrim-solid);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }
-
-:root body :is(dialog.proof-review-dialog, dialog)::backdrop {
+:root body :is(dialog.proof-review-dialog, dialog.lmx-checkin-dialog)::backdrop {
     background-color: var(--lwc-elevation-scrim-solid);
 }
 
-/* Desktop with a fine pointer: a lighter scrim plus a soft blur pushes the
-   page back instead of dimming it. Phones skip the blur entirely. */
-@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
-    :root body :is(.modal, .dialog, #custom-alert, #loading-dialog, #modalOverlay, #lmxCheckinDialogBackdrop) {
-        background-color: var(--lwc-elevation-scrim);
-        -webkit-backdrop-filter: var(--lwc-elevation-blur);
-        backdrop-filter: var(--lwc-elevation-blur);
-    }
-
-    :root body :is(dialog.proof-review-dialog, dialog)::backdrop {
+/* Blur belongs on stationary alert backdrops only, never on a moving card or
+   a table header containing interactive descendants. Phones use the scrim. */
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    :root body :is(#custom-alert, #loading-dialog) {
         background-color: var(--lwc-elevation-scrim);
         -webkit-backdrop-filter: var(--lwc-elevation-blur);
         backdrop-filter: var(--lwc-elevation-blur);
     }
 }
-
 @media (prefers-reduced-transparency: reduce) {
-    :root body :is(.modal, .dialog, #custom-alert, #loading-dialog, #modalOverlay, #lmxCheckinDialogBackdrop) {
+    :root body :is(#custom-alert, #loading-dialog) {
         background-color: var(--lwc-elevation-scrim-solid);
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
     }
 }
 
-/* Overlay entry: the panel rises from level 3 to level 4 as it arrives, so
-   its shadow grows with it instead of popping in at full depth. */
-@media (prefers-reduced-motion: no-preference) {
-    :root[data-lwc-motion="on"] body :is(#detailsModal .modal-content, .custom-alert-panel, .loading-dialog-panel) {
-        transition:
-            box-shadow var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out),
-            scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in),
-            translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in);
-    }
-
-    @starting-style {
-        :root[data-lwc-motion="on"] body :is(#detailsModal .modal-content, #custom-alert:not([hidden]) .custom-alert-panel) {
-            box-shadow: var(--lwc-elevation-2);
-        }
-    }
-
-    :root[data-lwc-motion="on"] body :is(#custom-alert[hidden] .custom-alert-panel, #loading-dialog[hidden] .loading-dialog-panel) {
-        box-shadow: var(--lwc-elevation-2);
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/* Level 0: layered sections on the canvas                              */
-/* ------------------------------------------------------------------ */
-
-/* Section rules fade out at the ends, so stacked sections read as layers on
-   one canvas rather than boxes ruled across the page. */
-:root body main :is(.section-container):not(main.homepage-main .section-container) {
-    border-top-color: transparent;
-    background-image: linear-gradient(90deg,
-        transparent,
-        var(--lwc-elevation-border-2) 14%,
-        var(--lwc-elevation-border-2) 86%,
-        transparent);
-    background-size: 100% 1px;
-    background-repeat: no-repeat;
-    background-position: top;
-}
-
-/* The page body sits one shade under the chrome: the footer casts a faint
-   shadow upward so the last section ends on a fold, not a cut. */
 :root body .footer {
     box-shadow: 0 -1px 0 rgba(var(--lwc-depth-ink), 0.04), 0 -10px 24px -18px rgba(var(--lwc-depth-ink), 0.35);
 }
-
 @media (prefers-color-scheme: dark) {
     :root body .footer {
         box-shadow: 0 -1px 0 rgba(var(--lwc-depth-light), 0.05), 0 -12px 28px -18px rgba(0, 0, 0, 0.8);
     }
 }
-
-/* Reduced motion keeps every level, only the travel and timing go. */
 @media (prefers-reduced-motion: reduce) {
-    :root body :is(
-        a.track-card, a.play-track-card, label.play-track-card, .play-track-card,
-        .play-join-card, .play-dashboard-card, .play-athlete-card,
-        .lwc-merch-item, .archive-mobile-card, .proof-page-card, .lmx-habit-card,
-        a.not-found-card, a.biomarker-card, [data-lwc-sticky]
-    ) {
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card) {
         translate: none;
         transition-duration: 0s;
     }
 }
-
-/* Forced colours drop every shadow, so floating surfaces keep a real edge. */
 @media (forced-colors: active) {
-    :root body :is(
-        .modal-content, .dialog-content, .custom-alert-panel, .loading-dialog-panel, .proof-review-dialog,
-        .lwc-share, .athlete-share-menu, .site-menu-panel
-    ) {
+    :root body :is(.modal-content, .dialog-content, .custom-alert-panel, .loading-dialog-panel,
+        .proof-review-dialog, .lwc-share, .athlete-share-menu, .site-menu-panel) {
         border: 1px solid CanvasText;
     }
 }

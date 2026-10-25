@@ -596,7 +596,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            // Shared interaction styles come first so the aesthetic system stays the last stylesheet in the head.
+            // Shared interaction styles precede the palette and the depth scale.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/form-controls.js")}\" defer></script>{Environment.NewLine}"
@@ -624,8 +624,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             return html.Insert(closingHeadIndex, assets);
         }
 
-        // Surface and depth tokens come last, so every card, bar and dialog
-        // reads its shadow and border from the one elevation scale.
+        // Surface and depth tokens follow the palette; components retain their
+        // semantic colours, focus indicators and transition ownership.
         private string InjectDepthSystem(string html)
         {
             const string closingHeadTag = "</head>";
