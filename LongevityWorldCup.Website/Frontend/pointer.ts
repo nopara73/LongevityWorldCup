@@ -49,7 +49,7 @@ interface Window {
 
     const navigationKeys = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "Escape", "Enter", " "]);
     document.addEventListener("keydown", event => {
-        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        if (event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
         if (navigationKeys.has(event.key)) setModality("keyboard");
     }, true);
     document.addEventListener("pointerdown", event => {
@@ -248,7 +248,9 @@ interface Window {
         // cancel it and restore the title, including before the first paint.
         tipOwner = owner;
         tipSource = source;
-        adoptTitle(owner);
+        // Keyboard focus does not arm the browser's mouse tooltip. Preserve
+        // its native name until a pointer actually takes ownership.
+        if (source === "pointer") adoptTitle(owner);
         if (owner.closest(tipSilenced)) {
             // Keep the native box away without drawing a second card.
             tip.classList.remove("is-open", "is-gliding");
@@ -266,7 +268,7 @@ interface Window {
             if (target !== owner) {
                 detachTipOwner();
                 tipOwner = target;
-                adoptTitle(target);
+                if (source === "pointer") adoptTitle(target);
             }
             showTip(target);
         }, wait);
@@ -296,7 +298,7 @@ interface Window {
             if (tipOwner && !(event.target instanceof Node && tipOwner.contains(event.target))) hideTip();
             return;
         }
-        if (target === tipOwner) return;
+        if (target === tipOwner) { tipSource = "pointer"; adoptTitle(target); return; }
         scheduleTip(target, coldDelay);
     }, { passive: true });
 
@@ -605,7 +607,7 @@ interface Window {
 
     // Escape that a page handler already consumed still deserves the return pulse.
     document.addEventListener("keydown", event => {
-        if (event.key !== "Escape") return;
+        if (event.key !== "Escape" || event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
         const owner = tipOwner;
         const tipFocused = tip.contains(document.activeElement);
         hideTip(true);
@@ -619,7 +621,8 @@ interface Window {
     // Only an overflowing tip adds a keyboard stop. Return to the owner's
     // normal tab sequence when leaving it; ordinary short tips never steal Tab.
     document.addEventListener("keydown", event => {
-        if (event.key !== "Tab" || event.defaultPrevented || !tipOwner || tip.hidden || !tip.hasAttribute("data-scrollable")) return;
+        if (event.key !== "Tab" || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.isComposing
+            || !tipOwner || tip.hidden || !tip.hasAttribute("data-scrollable")) return;
         if (document.activeElement === tipOwner && !event.shiftKey) {
             event.preventDefault(); tip.focus({ preventScroll: true });
         } else if (document.activeElement === tip) {

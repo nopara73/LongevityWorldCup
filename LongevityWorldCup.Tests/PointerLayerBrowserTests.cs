@@ -216,6 +216,14 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         await page.Locator("#two").HoverAsync();
         await Expect(tip).ToContainTextAsync("Long content");
         Assert.True(await tip.EvaluateAsync<bool>("e => { const r=e.getBoundingClientRect(); return r.top>=0 && r.bottom<=innerHeight && r.left>=0 && r.right<=innerWidth; }"));
+        await page.Locator("#two").FocusAsync();
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => ['ctrlKey', 'metaKey', 'altKey', 'isComposing'].every(modifier => {
+                const event = new KeyboardEvent('keydown', {key:'Tab', bubbles:true, cancelable:true, [modifier]:true});
+                document.activeElement.dispatchEvent(event);
+                return !event.defaultPrevented;
+            })
+            """));
         await tip.HoverAsync();
         await tip.FocusAsync();
         await page.Keyboard.PressAsync("Control+End");
