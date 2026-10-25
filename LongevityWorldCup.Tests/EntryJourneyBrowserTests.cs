@@ -18,18 +18,19 @@ public sealed class EntryJourneyBrowserTests(
     private const string RecordPageReveal = """
         window.__lwcReveal = null;
         window.addEventListener('pagereveal', event => {
-            window.__lwcReveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
+            const reveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
+            window.__lwcReveal = reveal;
             if (event.viewTransition) {
                 event.viewTransition.ready.then(() => {
-                    window.__lwcReveal.recorded = true;
-                    window.__lwcReveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
-                    window.__lwcReveal.animations = document.getAnimations()
+                    reveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
+                    reveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
+                    reveal.recorded = true;
                 }, error => {
-                    window.__lwcReveal.recorded = true;
-                    window.__lwcReveal.skipped = String(error);
-                    window.__lwcReveal.animations = [];
+                    reveal.skipped = String(error);
+                    reveal.animations = [];
+                    reveal.recorded = true;
                 });
             }
         });
