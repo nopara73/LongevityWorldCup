@@ -5646,9 +5646,11 @@ function positionAthleteShareMenu(menu) {
     menu.classList.remove('is-above');
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const modalRect = modalContent ? modalContent.getBoundingClientRect() : null;
-    const stickyHeader = modalContent?.querySelector('.modal-sticky-header.visible');
     const viewportBottom = Math.min(window.innerHeight, modalRect ? modalRect.bottom : window.innerHeight);
-    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0, stickyHeader?.getBoundingClientRect().bottom || 0);
+    const chrome = [...(modalContent?.querySelectorAll('#closeAthleteDetailsModal, :scope > .athlete-steps button, .modal-sticky-header.visible') || [])]
+        .map(element => element.getBoundingClientRect())
+        .filter(rect => rect.width > 0 && rect.height > 0 && rect.top < viewportBottom && rect.bottom > 0);
+    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0, ...chrome.map(rect => rect.bottom));
     const padding = 12;
     const belowRect = menu.getBoundingClientRect();
     const below = Math.max(0, viewportBottom - Math.max(viewportTop, belowRect.top) - padding);
@@ -5661,12 +5663,17 @@ function positionAthleteShareMenu(menu) {
     // the trigger is halfway down the profile. Keep the native scroller within
     // the available side, including while fonts and the preview finish loading.
     menu.style.setProperty('--athlete-share-available-height', `${Math.floor(useAbove ? above : below)}px`);
+    return { top: viewportTop + padding, bottom: viewportBottom - padding };
 }
 
 function keepAthleteShareMenuInView(menu) {
     if (!menu || menu.hidden) return;
-    positionAthleteShareMenu(menu);
-    menu.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const bounds = positionAthleteShareMenu(menu);
+    const rect = menu.getBoundingClientRect();
+    if (rect.top < bounds.top - .5 || rect.bottom > bounds.bottom + .5) {
+        menu.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        positionAthleteShareMenu(menu);
+    }
 }
 
 function getAthleteSharePayload(button) {

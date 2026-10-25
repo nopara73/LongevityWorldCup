@@ -127,7 +127,20 @@ public sealed class AthleteShareSheetBrowserTests(
         await page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
         await page.Mouse.WheelAsync(0, 180);
         await page.WaitForFunctionAsync("() => document.getElementById('athleteShareMenu').scrollTop > 0");
-        for (var n = 0; n < 4; n++) await page.Keyboard.PressAsync("Tab");
+        for (var n = 0; n < 4; n++)
+        {
+            await page.Keyboard.PressAsync("Tab");
+            Assert.True(await page.EvaluateAsync<bool>(
+                """
+                () => {
+                    const e = document.activeElement, r = e.getBoundingClientRect();
+                    return [0.15, 0.5, 0.85].every(x => [0.15, 0.5, 0.85].every(y => {
+                        const hit = document.elementFromPoint(r.x + r.width * x, r.y + r.height * y);
+                        return !!hit && e.contains(hit);
+                    }));
+                }
+                """), "Every part of each focused control must remain clear of the profile controls.");
+        }
         var last = page.Locator("#shareAthleteProfileEmail");
         await Assertions.Expect(last).ToBeFocusedAsync();
         Assert.True(await last.EvaluateAsync<bool>(
