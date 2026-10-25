@@ -163,6 +163,37 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
     }
 
     [Fact]
+    public async Task SegmentedControls_FollowProgrammaticSelectionAndClassChanges()
+    {
+        await using var context = await ContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/health");
+        await page.SetContentAsync("""
+            <div data-lwc-segment-group style="position:relative;display:flex;width:240px">
+                <button id="first" aria-selected="true" style="width:120px;height:44px">First</button>
+                <button id="second" aria-selected="false" style="width:120px;height:44px">Second</button>
+            </div>
+            """);
+        await page.AddScriptTagAsync(new() { Url = new Uri(App.BaseAddress, "/js/form-controls.js").ToString() });
+        await Assertions.Expect(page.Locator("#first")).ToHaveAttributeAsync("data-lwc-segment-on", "");
+        await page.EvaluateAsync("""
+            () => {
+                document.getElementById('first').setAttribute('aria-selected', 'false');
+                document.getElementById('second').setAttribute('aria-selected', 'true');
+            }
+            """);
+        await Assertions.Expect(page.Locator("#second")).ToHaveAttributeAsync("data-lwc-segment-on", "");
+        await page.EvaluateAsync("""
+            () => {
+                document.getElementById('second').setAttribute('aria-selected', 'false');
+                document.getElementById('first').classList.add('active');
+            }
+            """);
+        await Assertions.Expect(page.Locator("#first")).ToHaveAttributeAsync("data-lwc-segment-on", "");
+        await Assertions.Expect(page.Locator("#second")).Not.ToHaveAttributeAsync("data-lwc-segment-on", "");
+    }
+
+    [Fact]
     public async Task ReducedMotion_CancelsActiveFeedbackAndPreventsNewAnimations()
     {
         await using var context = await ContextAsync();

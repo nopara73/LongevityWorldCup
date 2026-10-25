@@ -303,20 +303,21 @@
     // --- Ages count in --------------------------------------------------------------
 
     const counts = new WeakMap<Element, number>();
-    const countPaintSupported = CSS.supports("-webkit-text-fill-color", "transparent");
     let shownText = new WeakMap<Element, string>();
-    const waiting = new Set<Element>();
-    const pendingCounts = new Map<HTMLElement, { text: string; previous: string | null }>();
-    const visibleCounts = new Set<HTMLElement>();
-    let countFrame = 0;
+    const waiting = new Map<HTMLElement, string | null>();
+    const pendingCounts = new Map<HTMLElement, boolean>();
+    let countBatchQueued = false;
     const watcher = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
+        const ready: { figure: HTMLElement; previous: string | null; color: string }[] = [];
         for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            watcher?.unobserve(entry.target);
-            if (waiting.delete(entry.target) && entry.target instanceof HTMLElement) {
-                visibleCounts.add(entry.target);
-                if (!countFrame) countFrame = requestAnimationFrame(flushCounts);
-            }
+            const figure = entry.target;
+            if (!entry.isIntersecting || !(figure instanceof HTMLElement) || !waiting.has(figure)) continue;
+            ready.push({ figure, previous: waiting.get(figure) ?? null, color: getComputedStyle(figure).color });
+        }
+        for (const { figure, previous, color } of ready) {
+            watcher?.unobserve(figure);
+            waiting.delete(figure);
+            countIn(figure, previous, color);
         }
     }) : null;
 
@@ -356,16 +357,19 @@
 
     function stopCount(figure: HTMLElement): void {
         const frame = counts.get(figure);
+        if (frame === undefined && !figure.hasAttribute("data-lwc-count") && !figure.style.getPropertyValue("--lwc-count-color")) return;
         if (frame !== undefined) cancelAnimationFrame(frame);
         counts.delete(figure);
         delete figure.dataset["lwcCount"];
+        figure.style.removeProperty("--lwc-count-color");
     }
 
     // The figure keeps its real text throughout; only a drawn overlay counts,
     // so reading, copying and assistive technology always get the result.
-    function countIn(figure: HTMLElement, previous: string | null): void {
+    function countIn(figure: HTMLElement, previous: string | null, color: string): void {
         const text = figure.textContent || "";
         const target = parseFigure(text);
+        stopCount(figure);
         shownText.set(figure, text);
         if (!target || !enabled() || !isOpen() || isClosing()) return;
         const before = previous === null ? null : parseFigure(previous);
@@ -386,6 +390,7 @@
             figure.dataset["lwcCount"] = format(from + (target.value - from) * (1 - Math.pow(1 - progress, 3)));
             counts.set(figure, requestAnimationFrame(tick));
         };
+        figure.style.setProperty("--lwc-count-color", color);
         figure.dataset["lwcCount"] = format(from);
         counts.set(figure, requestAnimationFrame(tick));
     }
@@ -393,55 +398,55 @@
     // `fresh` counts from the figure's starting rule; otherwise a changed
     // figure counts on from the value it showed before.
     function scheduleCount(figure: HTMLElement, fresh: boolean): void {
-        const text = figure.textContent || "";
-        const previous = fresh ? null : shownText.get(figure) ?? null;
-        if (!fresh && text === previous) return;
-        if (!countPaintSupported || !enabled() || !isOpen() || isClosing() || content()?.classList.contains("is-loading")) {
-            shownText.set(figure, text);
-            return;
-        }
-        const queued = pendingCounts.get(figure);
-        pendingCounts.set(figure, { text, previous: fresh ? null : queued ? queued.previous : previous });
-        stopCount(figure);
-        if (watcher) {
-            waiting.add(figure);
-            watcher.observe(figure);
-        } else {
-            visibleCounts.add(figure);
-            if (!countFrame) countFrame = requestAnimationFrame(flushCounts);
-        }
+        pendingCounts.set(figure, fresh || pendingCounts.get(figure) === true);
+        if (countBatchQueued) return;
+        countBatchQueued = true;
+        queueMicrotask(flushCounts);
     }
 
     function flushCounts(): void {
-        countFrame = 0;
-        const queued = [...visibleCounts].flatMap(figure => {
-            const state = pendingCounts.get(figure);
-            pendingCounts.delete(figure);
-            return state ? [{ figure, state }] : [];
-        });
-        visibleCounts.clear();
-        if (!enabled() || !isOpen() || isClosing() || content()?.classList.contains("is-loading")) return;
-        // Use native visibility for decorative overlays; real figures remain
-        // readable immediately. Their paint inherits the current semantic
-        // colour in CSS, so counting never needs computed-style measurements.
-        const current = queued.filter(({ figure, state }) => figure.isConnected
-            && content()?.contains(figure) && figure.textContent === state.text);
-        for (const { figure, state } of current) {
-            if (watcher || shown(figure) && inViewport(figure.getBoundingClientRect())) {
-                waiting.delete(figure);
-                countIn(figure, state.previous);
+        countBatchQueued = false;
+        const batch = [...pendingCounts];
+        pendingCounts.clear();
+        // Let the browser report visibility after layout. Reading every figure's
+        // geometry here forced the rebuilt profile to lay out inside a pager
+        // click, even when all the age figures were below the fold.
+        // The fallback also separates its reads from counter style changes.
+        const ready: { figure: HTMLElement; text: string; previous: string | null; visible: boolean; color: string }[] = [];
+        for (const [figure, fresh] of batch) {
+            if (!figure.isConnected) continue;
+            const text = figure.textContent || "";
+            const previous = fresh ? null : shownText.get(figure) ?? null;
+            if (!fresh && text === previous) continue;
+            if (!enabled() || !isOpen() || isClosing() || content()?.classList.contains("is-loading")) {
+                shownText.set(figure, text);
+                continue;
+            }
+            if (watcher) {
+                shownText.set(figure, text);
+                stopCount(figure);
+                waiting.set(figure, previous);
+                watcher.unobserve(figure);
+                watcher.observe(figure);
+                continue;
+            }
+            const visible = shown(figure) && inViewport(figure.getBoundingClientRect());
+            const color = visible ? figure.style.getPropertyValue("--lwc-count-color") || getComputedStyle(figure).color : "";
+            ready.push({ figure, text, previous, visible, color });
+        }
+        for (const { figure, text, previous, visible, color } of ready) {
+            if (visible) {
+                countIn(figure, previous, color);
             } else {
-                shownText.set(figure, state.text);
+                shownText.set(figure, text);
+                stopCount(figure);
             }
         }
     }
 
     function resetCounts(): void {
-        cancelAnimationFrame(countFrame);
-        countFrame = 0;
         pendingCounts.clear();
-        visibleCounts.clear();
-        waiting.forEach(figure => watcher?.unobserve(figure));
+        waiting.forEach((_, figure) => watcher?.unobserve(figure));
         waiting.clear();
         modal!.querySelectorAll<HTMLElement>("[data-lwc-count]").forEach(stopCount);
         shownText = new WeakMap();
@@ -507,6 +512,7 @@
         wasOpen = open;
     }).observe(modal, { attributes: true, attributeFilter: ["style", "class"] });
     modal.addEventListener("athlete-dialog-loading", event => {
+        if (enabled()) readMotionValues();
         if (!isOpen() || isClosing()) openerSlug = (event as CustomEvent<{ slug: string }>).detail.slug;
         clearMotion();
         resetCounts();

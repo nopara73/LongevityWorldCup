@@ -568,11 +568,11 @@ function initializeAthletePortraitMotion() {
         }
     }
 
-    function play(img, knownVisible = false) {
+    function play(img) {
         const motion = motionFor(img);
         if (active.has(img) || reducedMotion.matches || !img.isConnected || !motion) return false;
         const wrapper = img.parentElement;
-        if (!wrapper || !img.naturalWidth || (!knownVisible && !img.checkVisibility())) return false;
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
 
         if (podium?.contains(img)) {
             podiumPlayed.add(motion);
@@ -656,13 +656,24 @@ function initializeAthletePortraitMotion() {
             visiblePortraits.unobserve(entry.target);
             const img = entry.target;
             const start = () => {
-                if (podiumPlayed.has(motionFor(img))) return;
+                const motion = motionFor(img);
+                if (img === profile) {
+                    if (!profileReady(motion) || profilePlayed === motion) return;
+                } else if (podiumPlayed.has(motion)) return;
                 play(img);
             };
             if (img.complete) start();
             else img.addEventListener('load', start, { once: true });
         }
     }, { threshold: .5 });
+
+    function profileReady(motion) {
+        return profileModal.style.display === 'block'
+            && !profileModal.classList.contains('fade-out')
+            && !profileContent.inert
+            && !profileContent.classList.contains('is-loading')
+            && motion;
+    }
 
     function scan() {
         for (const [img, playback] of active) {
@@ -682,24 +693,19 @@ function initializeAthletePortraitMotion() {
 
         if (!profile) return;
         const profileMotion = motionFor(profile);
-        const profileOpen = profileModal.style.display === 'block'
-            && !profileModal.classList.contains('fade-out')
-            && !profileContent.inert
-            && !profileContent.classList.contains('is-loading')
-            && !profileContent.matches('.guess-mode, .has-load-error')
-            && !profile.closest('[hidden], [inert]') && profile.style.display !== 'none'
-            && profileMotion;
-        if (!profileOpen) {
+        if (!profileReady(profileMotion)) {
+            visiblePortraits?.unobserve(profile);
             profilePlayed = null;
             active.get(profile)?.stop();
             return;
         }
         wire(profile);
-        if (profilePlayed !== profileMotion && profile.complete) play(profile, true);
+        // The portrait is already visible. Start its decorative clip from the
+        // browser's visibility report instead of forcing the rebuilt card to
+        // resolve layout synchronously inside every pager click.
+        if (profilePlayed !== profileMotion) visiblePortraits?.observe(profile);
     }
 
-    // Profile state and native intersection notifications already establish
-    // visibility. Keep identity cleanup immediate without another layout read.
     const updates = new MutationObserver(scan);
     if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (leaderboard) updates.observe(leaderboard, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
@@ -2767,6 +2773,7 @@ let currentAthleteModalRequestId = 0;
 let athleteDialogSnapshotRequest = null;
 let athleteDialogSnapshot = null;
 let athleteShareState = null;
+let athleteShareLayoutCleanup = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
 const athleteModalIsolation = new Map();
 const athleteModalFrames = new WeakSet();
@@ -3439,8 +3446,7 @@ function stepAthleteDialog(direction) {
         || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
     const target = getAthleteDialogNeighbours()[direction];
     if (!target) return false;
-    // Move boundary focus while the current card is still laid out. Doing it
-    // from the loading state forced layout in the middle of hydration.
+    // Transfer boundary focus before hydration invalidates the card's layout.
     focusAvailableAthleteStep(getAthleteDialogNeighbours(normalizeAthleteSlugForLookup(target.athleteSlug || target.name)));
     modalContent.dataset.athleteStep = direction;
     fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
@@ -3462,6 +3468,7 @@ function requestCloseAthleteModal() {
     if (modal.classList.contains('fade-out')) return;
     if (modal.style.display !== 'block' || modal._historyClosePending) return;
     if (isGuessMyAgeDismissBlocked(modal.querySelector('.modal-content'))) return;
+    modal.dispatchEvent(new Event('athlete-dialog-close-requested'));
     const depth = history.state?.athleteDialogDepth;
     if (history.state?.modal === 'details' && Number.isInteger(depth) && depth > 0 && depth < history.length) {
         // Return past only the profile visits created above the calling page.
@@ -5511,8 +5518,13 @@ async function loadAthleteSharePreview(state, shareUrl) {
     image.onload = () => {
         if (!current() || (recovery && !recovery.hidden)) return;
         figure.classList.add('is-loaded');
+        keepAthleteShareMenuInView(menu);
     };
-    image.onerror = () => { if (current()) figure.hidden = true; };
+    image.onerror = () => {
+        if (!current()) return;
+        figure.hidden = true;
+        keepAthleteShareMenuInView(menu);
+    };
 
     const abort = new AbortController();
     state.previewAbort = abort;
@@ -5603,6 +5615,8 @@ function setShareMenuCopyState(label, disabled) {
 }
 
 function closeAthleteShareMenu(options) {
+    athleteShareLayoutCleanup?.();
+    athleteShareLayoutCleanup = null;
     const menu = document.getElementById('athleteShareMenu');
     if (!menu) return false;
     const wasOpen = !menu.hidden;
@@ -5622,6 +5636,8 @@ function closeAthleteShareMenu(options) {
 
     menu.hidden = true;
     menu.classList.remove('is-above');
+    menu.style.removeProperty('--athlete-share-available-height');
+    menu.style.removeProperty('--athlete-share-offset');
     setShareMenuCopyState('Copy link', false);
     const recovery = document.getElementById('athleteShareRecovery');
     if (recovery) recovery.hidden = true;
@@ -5639,28 +5655,53 @@ function closeAthleteShareMenu(options) {
 
 function positionAthleteShareMenu(menu) {
     if (!menu || menu.hidden) return;
+    const parent = menu.offsetParent;
+    if (!parent) return;
 
+    const scrollTop = menu.scrollTop;
+    menu.style.removeProperty('--athlete-share-available-height');
+    menu.style.removeProperty('--athlete-share-offset');
     menu.classList.remove('is-above');
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const modalRect = modalContent ? modalContent.getBoundingClientRect() : null;
     const viewportBottom = Math.min(window.innerHeight, modalRect ? modalRect.bottom : window.innerHeight);
-    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0);
+    const chrome = [...(modalContent?.querySelectorAll('#closeAthleteDetailsModal, :scope > .athlete-steps button, .modal-sticky-header.visible') || [])]
+        .map(element => element.getBoundingClientRect())
+        .filter(rect => rect.width > 0 && rect.height > 0 && rect.top < viewportBottom && rect.bottom > 0);
+    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0, ...chrome.map(rect => rect.bottom));
     const padding = 12;
-    const belowRect = menu.getBoundingClientRect();
-
-    if (belowRect.bottom <= viewportBottom - padding) return;
-
+    // Entry motion belongs to the menu's paint, not its placement. Measure its
+    // layout box through the parent so the scale/translation cannot leave a
+    // stale offset when the animation finishes.
+    const measure = () => {
+        const rect = parent.getBoundingClientRect();
+        const scale = parent.offsetWidth > 0 ? rect.width / parent.offsetWidth : 1;
+        const top = rect.top + (parent.clientTop + menu.offsetTop - parent.scrollTop) * scale;
+        const height = menu.offsetHeight * scale;
+        return { top, bottom: top + height, height, scale };
+    };
+    const belowRect = measure();
+    const below = Math.max(0, viewportBottom - Math.max(viewportTop, belowRect.top) - padding);
     menu.classList.add('is-above');
-    const aboveRect = menu.getBoundingClientRect();
-    if (aboveRect.top < viewportTop + padding) {
-        menu.classList.remove('is-above');
-    }
+    const aboveRect = measure();
+    const above = Math.max(0, Math.min(viewportBottom, aboveRect.bottom) - viewportTop - padding);
+    const useAbove = belowRect.height > below && above > below;
+    menu.classList.toggle('is-above', useAbove);
+    // A short menu can fit the viewport even when neither side of its trigger
+    // has enough room. Shift it within the usable viewport before introducing
+    // a native scroller for genuinely taller content.
+    const top = viewportTop + padding;
+    const bottom = viewportBottom - padding;
+    menu.style.setProperty('--athlete-share-available-height', `${Math.max(0, Math.floor((bottom - top) / belowRect.scale))}px`);
+    const placed = measure();
+    const offset = placed.top < top ? top - placed.top : Math.min(0, bottom - placed.bottom);
+    menu.style.setProperty('--athlete-share-offset', `${offset / placed.scale}px`);
+    menu.scrollTop = scrollTop;
 }
 
 function keepAthleteShareMenuInView(menu) {
     if (!menu || menu.hidden) return;
     positionAthleteShareMenu(menu);
-    menu.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 function getAthleteSharePayload(button) {
@@ -5768,6 +5809,7 @@ function openAthleteShareMenu(button, sharePayload) {
     state.menuVersion++;
     configureAthleteShareMenu(button, sharePayload);
     menu.hidden = false;
+    menu.scrollTop = 0;
     void loadAthleteSharePreview(state, sharePayload.url);
     button.setAttribute('aria-expanded', 'true');
 
@@ -5776,7 +5818,31 @@ function openAthleteShareMenu(button, sharePayload) {
         copyButton.focus({ preventScroll: true });
     }
     keepAthleteShareMenuInView(menu);
-    requestAnimationFrame(() => keepAthleteShareMenuInView(menu));
+    athleteShareLayoutCleanup?.();
+    let layoutFrame = 0;
+    const scheduleLayout = () => {
+        if (layoutFrame) return;
+        layoutFrame = requestAnimationFrame(() => {
+            layoutFrame = 0;
+            if (isCurrentAthleteShare(state) && !menu.hidden) keepAthleteShareMenuInView(menu);
+        });
+    };
+    const observer = new ResizeObserver(scheduleLayout);
+    // Observe the anchors, not the menu whose height the callback adjusts.
+    observer.observe(button.parentElement);
+    const modalContent = menu.closest('.modal-content');
+    if (modalContent) {
+        observer.observe(modalContent);
+        const header = modalContent.querySelector('.modal-sticky-header');
+        if (header) observer.observe(header);
+        modalContent.addEventListener('scroll', scheduleLayout, { passive: true });
+    }
+    scheduleLayout();
+    athleteShareLayoutCleanup = () => {
+        observer.disconnect();
+        cancelAnimationFrame(layoutFrame);
+        modalContent?.removeEventListener('scroll', scheduleLayout);
+    };
 }
 
 function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
@@ -5978,7 +6044,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 
             updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, rankSummary.ultimateRank);
 
-            // The age visualization waits until its canvas is visible.
+            // Resolve the result with its profile; canvas work can follow the first paint.
             const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
                 ? athleteData.lowestBortzAge
                 : athleteData.lowestPhenoAge;
@@ -5990,17 +6056,10 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             const biomarkerHistory = buildBiomarkerHistory(fullAthleteData);
             renderBiomarkerHistory(biomarkerHistory, athletes);
 
-            requestAnimationFrame(function() {
-                // Paint the identity and usable profile before optional chart
-                // construction. A newer step/close invalidates both callbacks.
-                window.setTimeout(function() {
-                if (requestId !== currentAthleteModalRequestId) return;
-                window.ensureChartJs().then(function() {
-                    if (requestId !== currentAthleteModalRequestId) return;
-                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults, biomarkerHistory.clockResults);
-                });
-                }, 0);
-            });
+            // Commit result text and controls with this identity. Only the
+            // canvas dependency and construction wait until after its first paint.
+            generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults, biomarkerHistory.clockResults,
+                () => window.ensureChartJs());
             if (!modalContent) {
                 console.error('Modal content element not found');
                 return;

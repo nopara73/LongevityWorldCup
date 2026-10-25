@@ -38,12 +38,6 @@ public sealed class PagerPaintBrowserTests(
                         return Reflect.apply(original, this, args);
                     };
                 }
-                const computedStyle = window.getComputedStyle;
-                window.getComputedStyle = function (element, ...args) {
-                    if (window.insidePagerTask && element === document.documentElement)
-                        window.pagerLayoutReads.push({ method: 'getComputedStyle', id: 'root' });
-                    return computedStyle.call(this, element, ...args);
-                };
                 const focus = HTMLElement.prototype.focus;
                 HTMLElement.prototype.focus = function (...args) {
                     if (window.insidePagerTask && this.matches('.athlete-step')
@@ -72,40 +66,4 @@ public sealed class PagerPaintBrowserTests(
         await Assertions.Expect(page.Locator("#athleteName")).ToBeVisibleAsync();
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Counting_KeepsSemanticColourAndReadableForcedColourText(bool forcedColors)
-    {
-        await using var context = await NewContextAsync(Browser, App, new()
-        {
-            ViewportSize = new() { Width = 1440, Height = 900 }, ColorScheme = ColorScheme.Dark,
-            ForcedColors = forcedColors ? ForcedColors.Active : ForcedColors.None
-        });
-        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
-        var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/leaderboard");
-        await page.Locator(".leaderboard tbody .athlete-name").First.ClickAsync();
-        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
-        await page.EvaluateAsync("""
-            () => {
-                const host = document.createElement('div');
-                host.innerHTML = '<span id="countColourReference" style="color:var(--lwc-success)">42</span><span id="countPaintProbe" style="color:var(--lwc-success)" data-lwc-count="40">42</span>';
-                document.querySelector('#detailsModal .modal-content').prepend(host);
-            }
-            """);
-        var probe = page.Locator("#countPaintProbe");
-        await Assertions.Expect(probe).ToHaveTextAsync("42");
-        Assert.True(await probe.EvaluateAsync<bool>("e => getComputedStyle(e).color === getComputedStyle(document.getElementById('countColourReference')).color"));
-        if (forcedColors)
-        {
-            Assert.True(await probe.EvaluateAsync<bool>("e => getComputedStyle(e).webkitTextFillColor === getComputedStyle(e).color"));
-            Assert.Equal("none", await probe.EvaluateAsync<string>("e => getComputedStyle(e, '::after').content"));
-        }
-        else
-        {
-            Assert.Equal("rgba(0, 0, 0, 0)", await probe.EvaluateAsync<string>("e => getComputedStyle(e).webkitTextFillColor"));
-            Assert.True(await probe.EvaluateAsync<bool>("e => getComputedStyle(e, '::after').webkitTextFillColor === getComputedStyle(e).color"));
-        }
-    }
 }

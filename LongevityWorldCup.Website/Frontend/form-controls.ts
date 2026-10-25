@@ -82,11 +82,10 @@ interface Window {
     }
 
     let labelled = new Set<HTMLElement>();
-    const labelField = `${textField}, [aria-invalid], [role="combobox"]`;
 
     function refreshLabels(): void {
         const next = new Map<HTMLElement, Set<string>>();
-        for (const field of document.querySelectorAll(labelField)) {
+        for (const field of document.querySelectorAll(`${textField}, [aria-invalid], [role="combobox"]`)) {
             if (!field.getClientRects().length || field.closest('[hidden], [inert]')) continue;
             for (const label of labelsFor(field)) {
                 const tokens = next.get(label) || new Set<string>();
@@ -104,10 +103,23 @@ interface Window {
         labelled = new Set(next.keys());
     }
 
-    const isLabelFocus = (event: FocusEvent): boolean => event.target instanceof Element
-        && event.target.closest(labelField) !== null;
-    document.addEventListener("focusin", event => { if (isLabelFocus(event)) refreshLabels(); });
-    document.addEventListener("focusout", event => { if (isLabelFocus(event)) queueMicrotask(refreshLabels); });
+    function refreshFocusLabels(): void {
+        const active = document.activeElement;
+        if (active instanceof Element && active.closest(`${textField}, [aria-invalid], [role="combobox"]`)) {
+            refreshLabels();
+            return;
+        }
+        // Moving to a link or button only clears the old field's focus state.
+        // Measuring every field here made unrelated pager/focus-ring input
+        // synchronously lay out the entire page.
+        for (const label of labelled) {
+            const value = (label.dataset["lwcLabel"] || "").split(" ").filter(token => token && token !== "focus").join(" ");
+            if (label.dataset["lwcLabel"] !== value) label.dataset["lwcLabel"] = value;
+        }
+    }
+
+    document.addEventListener("focusin", refreshFocusLabels);
+    document.addEventListener("focusout", () => queueMicrotask(refreshFocusLabels));
 
     // ------------------------------------------------------ segmented glide
     interface SegmentGroup {
@@ -422,13 +434,28 @@ interface Window {
 
     window.LwcFormControls = { refresh };
 
+    const controlSelector = `${textField}, [aria-invalid], [aria-labelledby], label[for], ${segmentGroups.map(config => config.group).join(", ")}`;
+    const groupSelector = `label, ${segmentGroups.map(config => config.group).join(", ")}`;
+    function containsControls(node: Node): boolean {
+        return node instanceof Element && (node.matches(controlSelector) || !!node.querySelector(controlSelector));
+    }
+
+    function affectsControls(record: MutationRecord): boolean {
+        const element = record.target instanceof Element ? record.target : record.target.parentElement;
+        if (record.type === "attributes") return containsControls(record.target) || !!element?.closest(groupSelector);
+        if (element?.closest(groupSelector)) return true;
+        // Decorative tips, rings, portrait clips and changing numeric text do
+        // not change the form's labels, steppers or segmented controls.
+        return [...record.addedNodes, ...record.removedNodes].some(containsControls);
+    }
+
     function start(): void {
         refresh();
         watchFeedback();
         // Pages render some groups later (tabs after sign-in, dialogs on open).
         let pending = 0;
-        new MutationObserver(() => {
-            if (pending) return;
+        new MutationObserver(records => {
+            if (pending || !records.some(affectsControls)) return;
             pending = requestAnimationFrame(() => {
                 pending = 0;
                 enhanceSegments(document);

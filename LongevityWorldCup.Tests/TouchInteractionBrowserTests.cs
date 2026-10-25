@@ -72,6 +72,42 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
     }
 
     [Fact]
+    public async Task Pull_RejectsControlsAndDialogContentBeforeMeasuringScrollContainers()
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
+        var reads = await page.EvaluateAsync<int[]>("""
+            () => {
+                const modal = document.createElement('div');
+                modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
+                modal.innerHTML = '<span id="dialogText">Dialog content</span>';
+                document.getElementById('main').append(modal);
+                let reads = 0;
+                const originals = new Map();
+                for (const name of ['scrollHeight', 'clientHeight', 'scrollWidth', 'clientWidth']) {
+                    const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, name);
+                    originals.set(name, descriptor);
+                    Object.defineProperty(Element.prototype, name, {configurable:true, get() { reads++; return descriptor.get.call(this); }});
+                }
+                try {
+                    return ['hover', 'dialogText'].map(id => {
+                        reads = 0;
+                        const target = document.getElementById(id);
+                        target.dispatchEvent(new TouchEvent('touchstart', {
+                            bubbles: true, touches: [new Touch({identifier:1, target, clientX:20, clientY:20})]
+                        }));
+                        return reads;
+                    });
+                } finally {
+                    for (const [name, descriptor] of originals) Object.defineProperty(Element.prototype, name, descriptor);
+                }
+            }
+            """);
+        Assert.Equal(new[] { 0, 0 }, reads);
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.refreshes"));
+    }
+
+    [Fact]
     public async Task Desktop_DefersAutomaticTouchWorkUntilTouchBecomesAvailable()
     {
         await using var context = await Browser.NewContextAsync(new() { ViewportSize = new() { Width = 1440, Height = 900 }, HasTouch = false });
