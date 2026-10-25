@@ -509,7 +509,9 @@ interface FlowActionDockApi {
                 return;
             }
             state.oversizedInlineSignature = '';
-            setPlaceholderHeight(state, state.inlineHeight || measuredHeight);
+            // Wrapped dock actions can be taller than their original inline
+            // layout. Reserve that footprint so the final message stays reachable.
+            setPlaceholderHeight(state, Math.max(state.inlineHeight, measuredHeight));
             dockedHeight = Math.max(dockedHeight, measuredHeight);
             hasDockedElement = true;
         });

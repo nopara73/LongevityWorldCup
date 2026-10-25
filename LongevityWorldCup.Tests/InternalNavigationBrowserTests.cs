@@ -141,6 +141,8 @@ public sealed class InternalNavigationBrowserTests(
             })
             """));
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        // Leave the fixed header clear while exercising a real modified click.
+        await link.EvaluateAsync("e => e.scrollIntoView({block:'center', behavior:'instant'})");
         var newPage = await context.RunAndWaitForPageAsync(() => link.ClickAsync(new() { Modifiers = [KeyboardModifier.ControlOrMeta] }));
         await newPage.BringToFrontAsync();
         await newPage.WaitForURLAsync(url => new Uri(url).AbsolutePath == href,
