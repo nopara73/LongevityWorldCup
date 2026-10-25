@@ -62,6 +62,30 @@ public sealed class StickyPlayScrollBrowserTests(
             ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
+        // Native transition snapshots own hit testing until the incoming
+        // transition ends, even after the restored document has parsed.
+        await context.AddInitScriptAsync("""
+            (() => {
+                const supportsReveal = 'onpagereveal' in window;
+                let navigation = 0;
+                window.__stickyPageShown = false;
+                window.__stickyTransitionSettled = !supportsReveal;
+                window.addEventListener('pagehide', () => {
+                    navigation++;
+                    window.__stickyPageShown = false;
+                    window.__stickyTransitionSettled = !supportsReveal;
+                });
+                window.addEventListener('pageshow', () => window.__stickyPageShown = true);
+                window.addEventListener('pagereveal', event => {
+                    const current = ++navigation;
+                    window.__stickyTransitionSettled = !event.viewTransition;
+                    const settled = () => {
+                        if (current === navigation) window.__stickyTransitionSettled = true;
+                    };
+                    event.viewTransition?.finished.then(settled, settled);
+                });
+            })();
+            """);
         var page = await context.NewPageAsync();
         await page.GotoAsync(route, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => document.fonts.ready");
@@ -118,23 +142,25 @@ public sealed class StickyPlayScrollBrowserTests(
         await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         // History restoration can replace the document after GoBack returns.
         // Wait across that navigation before reading the returned controls.
-        await page.WaitForFunctionAsync("""
-            async route => {
-                if (location.pathname !== route || document.readyState === 'loading') return false;
-                await document.fonts.ready;
-                await new Promise(requestAnimationFrame);
-                await new Promise(requestAnimationFrame);
-                return !!document.querySelector('.scrolled-button')
-                    && !!document.querySelector('#site-sticky-header .site-menu-toggle');
+        await using var restored = await page.WaitForFunctionAsync($$"""
+            route => {
+                // Playwright polls truthiness synchronously: an async predicate's
+                // Promise succeeds even when it will resolve to false.
+                if (location.pathname !== route || document.readyState === 'loading'
+                    || !window.__stickyPageShown || !window.__stickyTransitionSettled
+                    || document.fonts.status !== 'loaded'
+                    || [...document.querySelectorAll('link[rel=stylesheet]')].some(link => !link.sheet)
+                    || !document.querySelector('.scrolled-button')
+                    || !document.querySelector('#site-sticky-header .site-menu-toggle')) return false;
+                // Read in the same document/turn as readiness. A later protocol
+                // command can race the document replacement during restoration.
+                const read = {{Snapshot}};
+                return read();
             }
             """, route);
         // The leaderboard and play flow deliberately use manual restoration.
         // Both a restored scroll position and a return to the banner need PLAY.
-        // History can replace the document between the readiness check and this
-        // round trip. Resolve a complete header and read it in the same browser
-        // evaluation, so the snapshot cannot observe a half-parsed replacement.
-        var returned = await page.Locator("#site-sticky-header:has(.scrolled-button):has(.site-menu-toggle)")
-            .EvaluateAsync<ScrollState>($"element => ({Snapshot})()");
+        var returned = await restored.JsonValueAsync<ScrollState>();
         Assert.True(returned.AnyPlay, "Back navigation lost the Play action.");
         if (returned.PastBanner) AssertScrolledState(returned);
         await page.GoForwardAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
