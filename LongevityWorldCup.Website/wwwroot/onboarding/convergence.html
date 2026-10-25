@@ -2380,21 +2380,17 @@
                 // remember this athlete for next time
                 setLocalItem('selectedAthleteName', applicantData.name);
 
-                // Disable the Apply button and change its text
                 const applyButton = nextButton;
+                const submissionWait = window.LwcWait?.start(applyButton, { message: 'Submitting...' });
                 isApplicationSubmitting = true;
                 applyButton.disabled = true;
-                accountEmailInput.setAttribute("disabled", "true");
-                // The button itself carries the wait; the form holds still underneath it.
-                const submissionWait = window.LwcWait;
-                if (submissionWait) submissionWait.start(applyButton, { region: applyButton.closest('.initial-view-main') || document.querySelector('.initial-view-main'), expect: 24000 });
-                else { applyButton.textContent = 'Submitting...'; showLoading(); }
+                if (!submissionWait) { applyButton.textContent = 'Submitting...'; showLoading(); }
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(attempt => {
-                        if (submissionWait) void submissionWait.finish(applyButton, attempt.ok && attempt.submitResult ? 'success' : 'error');
+                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
                         else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishFullApplicationSubmission(attempt.submitResult, {
@@ -2434,7 +2430,7 @@
                         }
                     })
                     .catch(error => {
-                        if (submissionWait) void submissionWait.finish(applyButton, 'error');
+                        if (submissionWait) void submissionWait('error');
                         else hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
                         const alertMessage = `Your connection was interrupted. Your application may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;

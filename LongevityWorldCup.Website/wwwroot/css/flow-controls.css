@@ -282,7 +282,7 @@ body.flow-input-keyboard-open::after {
     user-select: none;
 }
 
-.flow-action-stack.flow-action-stack--hide-disabled-primary > .flow-action:disabled {
+.flow-action-stack.flow-action-stack--hide-disabled-primary > .flow-action:disabled:not([data-lwc-wait]):not([data-lwc-wait-end]) {
     display: none;
 }
 

@@ -612,6 +612,8 @@ newsletterForm.addEventListener('submit', async function (e) {
     newsletterRetryEmail = '';
     setNewsletterStatus('');
     newsletterSubmitting = true;
+    const finishWait = window.LwcWait?.start(newsletterSubmitButton, { message: 'Subscribing…' });
+    let waitOutcome = 'error';
     renderNewsletterAction();
     try {
         const response = await fetchWithTimeout('/api/home/subscribe', {
@@ -629,12 +631,15 @@ newsletterForm.addEventListener('submit', async function (e) {
             return;
         }
 
+        waitOutcome = 'success';
+
         // A response confirms its submitted address, not a later edit in the field.
         if (newsletterEmailInput.value.trim() === email) newsletterEmailInput.value = '';
         setNewsletterStatus(alreadySubscribed ? `${email} is already subscribed.` : `Subscribed with ${email}.`);
     } catch {
         showNewsletterFailure(email, 'Couldn’t confirm the subscription. Try again.');
     } finally {
+        if (finishWait) void finishWait(waitOutcome);
         newsletterSubmitting = false;
         renderNewsletterAction();
     }

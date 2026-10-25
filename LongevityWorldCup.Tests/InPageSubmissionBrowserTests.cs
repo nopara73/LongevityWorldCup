@@ -1,0 +1,108 @@
+using Microsoft.Playwright;
+using Xunit;
+using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
+
+namespace LongevityWorldCup.Tests;
+
+[Collection(BrowserTestCollections.WorkloadC)]
+public sealed class InPageSubmissionBrowserTests(
+    PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
+{
+    [Theory]
+    [InlineData("apply", "success", 1440)]
+    [InlineData("apply", "error", 390)]
+    [InlineData("apply", "abort", 390)]
+    [InlineData("edit", "success", 390)]
+    [InlineData("edit", "error", 1440)]
+    [InlineData("edit", "abort", 390)]
+    [InlineData("proof", "success", 1440)]
+    [InlineData("proof", "error", 390)]
+    [InlineData("proof", "abort", 390)]
+    public async Task Submission_TerminalPathsKeepTheActionAndReleaseBusyState(string flow, string outcome, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ColorScheme = width == 390 ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        await context.RouteAsync("**/api/**", route => route.Request.Method == "GET" ? route.FallbackAsync()
+            : route.FulfillAsync(new() { Status = 200, ContentType = "application/json", Body = "{}" }));
+        await context.AddInitScriptAsync("""
+            sessionStorage.setItem('selectedAthlete', JSON.stringify({Name:'Wait Test Athlete',DisplayName:'Wait Test Athlete',
+                ProfilePic:'/assets/content-images/play-athlete-placeholder.jpg',Division:"Men's",Flag:'United Kingdom',
+                MediaContact:'press@example.test',Why:'More healthy years with my family.',Biomarkers:[]}));
+            sessionStorage.setItem('biomarkerData',JSON.stringify({DateOfBirth:{Year:1980,Month:5,Day:20},Biomarkers:[{Date:'2026-09-01',AlbGL:45,GluMmolL:5.1}]}));
+            """);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync(flow == "apply" ? "/apply?fake=1" : flow == "edit" ? "/edit-profile" : "/proofs",
+            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => window.LwcWait && !document.documentElement.hasAttribute('data-initial-view')");
+        if (flow == "apply")
+        {
+            await page.WaitForFunctionAsync("() => !document.getElementById('nextButton').disabled");
+            await page.EvaluateAsync("() => { currentStage=7; goToStage(7); }");
+            await page.Locator("#accountEmail").FillAsync("wait@example.test");
+        }
+        else if (flow == "edit")
+        {
+            await page.WaitForFunctionAsync("() => document.querySelector('#mediaContactInput')?.value==='press@example.test'");
+            await page.Locator("#whyDisplayInput").FillAsync("More healthy years exploring the world with my family.");
+        }
+        else
+        {
+            await page.WaitForFunctionAsync("() => document.querySelector('#proofPicInput')?.hasAttribute('data-listener')");
+            var image = await page.EvaluateAsync<string>("() => {const c=document.createElement('canvas');c.width=300;c.height=400;return c.toDataURL('image/png').split(',')[1]}");
+            await page.Locator("#proofPicInput").SetInputFilesAsync(new FilePayload
+            {
+                Name = "Synthetic regression proof.png", MimeType = "image/png", Buffer = Convert.FromBase64String(image)
+            });
+            await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled");
+            await page.EvaluateAsync("() => document.querySelectorAll('.biomarker-checkbox').forEach(box=>{box.checked=true;box.dispatchEvent(new Event('change',{bubbles:true}));})");
+        }
+        await page.EvaluateAsync("""
+            () => {
+                window.trySendApplicationSubmissionReport=async()=>{};
+                window.submissionCount=0;
+                window.submitApplicationWithRecovery=()=>{submissionCount++;return new Promise((resolve,reject)=>{
+                    window.finishSubmission=outcome=>outcome==='abort' ? reject(new DOMException('Connection interrupted','AbortError'))
+                        : resolve(outcome==='success' ? {ok:true,submitResult:{success:true,paymentRequired:false}}
+                            : {ok:false,response:new Response('Unavailable.',{status:503,headers:{'content-type':'text/plain'}})});
+                });};
+            }
+            """);
+        var action = page.Locator(flow == "apply" ? "#nextButton" : "#submitButton");
+        var label = await action.InnerTextAsync();
+        var initialWidth = await action.EvaluateAsync<double>("el=>el.getBoundingClientRect().width");
+        await action.ClickAsync();
+        await page.WaitForFunctionAsync("() => window.submissionCount===1");
+        await Assertions.Expect(action).ToBeVisibleAsync();
+        await Assertions.Expect(action).ToBeDisabledAsync();
+        await Assertions.Expect(action).ToHaveTextAsync(label);
+        Assert.InRange(await action.EvaluateAsync<double>("el=>el.getBoundingClientRect().width") - initialWidth, -1, 1);
+        Assert.False(await page.EvaluateAsync<bool>("() => document.querySelector('main').inert"));
+        Assert.Equal("Submitting...", await page.Locator(".lwc-wait-status").InnerTextAsync());
+        if (flow != "proof")
+        {
+            var input = page.Locator(flow == "apply" ? "#accountEmail" : "#whyDisplayInput");
+            await input.FillAsync(flow == "apply" ? "later@example.test" : "A later unsent edit remains usable.");
+            await Assertions.Expect(input).ToBeFocusedAsync();
+        }
+        Assert.True(await page.EvaluateAsync<bool>("""
+            flow => {
+                const back=flow==='apply' ? document.getElementById('backButton') : document.querySelector('.back-button');
+                back.focus();return document.activeElement===back;
+            }
+            """, flow));
+        await page.EvaluateAsync("flow=>document.querySelector(flow==='apply'?'#nextButton':'#submitButton').click()", flow);
+        Assert.Equal(1, await page.EvaluateAsync<int>("() => submissionCount"));
+        await page.EvaluateAsync("outcome=>finishSubmission(outcome)", outcome);
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeVisibleAsync();
+        await page.WaitForFunctionAsync("() => !document.querySelector('[data-lwc-wait], .lwc-wait-fill, .lwc-wait-status')");
+        Assert.False(await page.EvaluateAsync<bool>("() => document.querySelector('main').inert"));
+        Assert.Empty(errors);
+    }
+}
