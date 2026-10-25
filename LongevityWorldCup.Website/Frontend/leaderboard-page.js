@@ -7715,6 +7715,17 @@ window.getLeaderboardPeek = name => {
         placements: athlete.placements
     });
 };
+// The podium stage and rank-change cues read the same standing the row shows.
+window.getLeaderboardStanding = name => {
+    const athlete = athleteResults.find(item => item.name === name);
+    if (!athlete) return null;
+    return Object.freeze({
+        rank: athlete.rank,
+        lastMonthRank: Number.isFinite(athlete.lastMonthRank) ? athlete.lastMonthRank : null,
+        isNew: Boolean(athlete.isNew),
+        flag: athlete.canonicalFlag || ''
+    });
+};
 window.openEnlargedView = openEnlargedView;
 window.closeEnlargedView = closeEnlargedView;
 window.populateProofsGallery = populateProofsGallery;
