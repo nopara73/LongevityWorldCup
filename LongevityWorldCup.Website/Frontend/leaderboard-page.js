@@ -568,11 +568,11 @@ function initializeAthletePortraitMotion() {
         }
     }
 
-    function play(img) {
+    function play(img, knownVisible = false) {
         const motion = motionFor(img);
         if (active.has(img) || reducedMotion.matches || !img.isConnected || !motion) return false;
         const wrapper = img.parentElement;
-        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
+        if (!wrapper || !img.naturalWidth || (!knownVisible && !img.checkVisibility())) return false;
 
         if (podium?.contains(img)) {
             podiumPlayed.add(motion);
@@ -686,6 +686,8 @@ function initializeAthletePortraitMotion() {
             && !profileModal.classList.contains('fade-out')
             && !profileContent.inert
             && !profileContent.classList.contains('is-loading')
+            && !profileContent.matches('.guess-mode, .has-load-error')
+            && !profile.closest('[hidden], [inert]') && profile.style.display !== 'none'
             && profileMotion;
         if (!profileOpen) {
             profilePlayed = null;
@@ -693,27 +695,19 @@ function initializeAthletePortraitMotion() {
             return;
         }
         wire(profile);
-        if (profilePlayed !== profileMotion && profile.complete) play(profile);
+        if (profilePlayed !== profileMotion && profile.complete) play(profile, true);
     }
 
-    // Content hydration changes many observed nodes in one input. Coalesce
-    // portrait visibility reads with rendering instead of forcing layout in
-    // mutation delivery between those writes. The real portrait stays visible.
-    let scanFrame = 0;
-    function scheduleScan() {
-        if (!scanFrame) scanFrame = requestAnimationFrame(() => {
-            scanFrame = 0;
-            scan();
-        });
-    }
-    const updates = new MutationObserver(scheduleScan);
+    // Profile state and native intersection notifications already establish
+    // visibility. Keep identity cleanup immediate without another layout read.
+    const updates = new MutationObserver(scan);
     if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (leaderboard) updates.observe(leaderboard, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (profile) {
         updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
         updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
         updates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
-        profile.addEventListener('load', scheduleScan);
+        profile.addEventListener('load', scan);
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
@@ -3389,8 +3383,7 @@ function getAthleteDialogBoardSequence() {
     return athleteDialogBoardSequence;
 }
 
-function getAthleteDialogNeighbours() {
-    const slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '';
+function getAthleteDialogNeighbours(slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '') {
     if (!slug) return { previous: null, next: null };
     const matches = athlete => normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug;
     for (const sequence of [getAthleteDialogBoardSequence(), athleteResults]) {
@@ -3400,15 +3393,22 @@ function getAthleteDialogNeighbours() {
     return { previous: null, next: null };
 }
 
+function focusAvailableAthleteStep(neighbours) {
+    const focused = pageDocument.activeElement;
+    if (!focused?.matches('.athlete-step') || !modal.contains(focused) || neighbours[focused.dataset.step]) return;
+    const replacement = focused.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${focused.dataset.step}"])`);
+    if (!replacement || !neighbours[replacement.dataset.step]) return;
+    if (replacement.disabled) replacement.disabled = false;
+    replacement.focus({ preventScroll: true });
+}
+
 function updateAthleteDialogSteps() {
     const neighbours = getAthleteDialogNeighbours();
+    focusAvailableAthleteStep(neighbours);
     const available = !!(neighbours.previous || neighbours.next);
     modal.querySelectorAll('.athlete-steps').forEach(group => { group.hidden = !available; });
     modal.querySelectorAll('.athlete-step').forEach(button => {
         const blocked = !neighbours[button.dataset.step];
-        if (blocked && pageDocument.activeElement === button) {
-            button.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${button.dataset.step}"])`)?.focus({ preventScroll: true });
-        }
         button.disabled = blocked;
     });
 }
@@ -3439,6 +3439,9 @@ function stepAthleteDialog(direction) {
         || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
     const target = getAthleteDialogNeighbours()[direction];
     if (!target) return false;
+    // Move boundary focus while the current card is still laid out. Doing it
+    // from the loading state forced layout in the middle of hydration.
+    focusAvailableAthleteStep(getAthleteDialogNeighbours(normalizeAthleteSlugForLookup(target.athleteSlug || target.name)));
     modalContent.dataset.athleteStep = direction;
     fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
     return true;

@@ -5983,7 +5983,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 #detailsModal .modal-content:not(.guess-mode) #athlete-profile{ touch-action:pan-y pinch-zoom; }
 #detailsModal [data-lwc-count]{
     position:relative;
-    color:transparent !important;
+    -webkit-text-fill-color:transparent;
 }
 #detailsModal [data-lwc-count]::after{
     content:attr(data-lwc-count);
@@ -5991,11 +5991,15 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     position:absolute;
     inset:0 auto auto 0;
     min-width:100%;
-    color:var(--lwc-count-color, currentColor);
+    -webkit-text-fill-color:currentColor;
     text-align:inherit;
     white-space:nowrap;
     font-variant-numeric:tabular-nums;
     pointer-events:none;
+}
+@media (forced-colors:active){
+    #detailsModal [data-lwc-count]{ -webkit-text-fill-color:currentColor; }
+    #detailsModal [data-lwc-count]::after{ content:none; }
 }
 
 /* 20) Athlete story (athlete-story.js): the profile unfolds as it is read.

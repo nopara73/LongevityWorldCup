@@ -82,10 +82,11 @@ interface Window {
     }
 
     let labelled = new Set<HTMLElement>();
+    const labelField = `${textField}, [aria-invalid], [role="combobox"]`;
 
     function refreshLabels(): void {
         const next = new Map<HTMLElement, Set<string>>();
-        for (const field of document.querySelectorAll(`${textField}, [aria-invalid], [role="combobox"]`)) {
+        for (const field of document.querySelectorAll(labelField)) {
             if (!field.getClientRects().length || field.closest('[hidden], [inert]')) continue;
             for (const label of labelsFor(field)) {
                 const tokens = next.get(label) || new Set<string>();
@@ -103,8 +104,10 @@ interface Window {
         labelled = new Set(next.keys());
     }
 
-    document.addEventListener("focusin", refreshLabels);
-    document.addEventListener("focusout", () => queueMicrotask(refreshLabels));
+    const isLabelFocus = (event: FocusEvent): boolean => event.target instanceof Element
+        && event.target.closest(labelField) !== null;
+    document.addEventListener("focusin", event => { if (isLabelFocus(event)) refreshLabels(); });
+    document.addEventListener("focusout", event => { if (isLabelFocus(event)) queueMicrotask(refreshLabels); });
 
     // ------------------------------------------------------ segmented glide
     interface SegmentGroup {
