@@ -83,7 +83,7 @@
 
             // Public GETs share one request per page. The deadline includes reading
             // the body: receiving response headers does not mean the JSON is ready.
-            window.fetchPublicJson = async function (url) {
+            window.fetchPublicJson = async function (url, options = {}) {
                 for (let attempt = 0; attempt < 2; attempt++) {
                     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
                     let timer;
@@ -91,6 +91,7 @@
                     try {
                         return await Promise.race([
                             fetch(url, {
+                                ...(options.force ? { cache: 'no-store' } : {}),
                                 headers: { accept: 'application/json' },
                                 ...(controller ? { signal: controller.signal } : {})
                             }).then(response => {
@@ -117,7 +118,7 @@
 
             function getSharedJson(url, property, refresh = false) {
                 if (refresh || !window[property]) {
-                    const request = window.fetchPublicJson(url);
+                    const request = window.fetchPublicJson(url, { force: refresh });
                     window[property] = request;
                     request.catch(() => {
                         // An older request must not invalidate a later refresh.

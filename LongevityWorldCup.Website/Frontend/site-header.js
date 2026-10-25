@@ -42,7 +42,6 @@ let lastKnownScrollPosition = 0;
 let ticking = false;
 let measuredStickyHeight = 0;
 let measuredRootFontSize = '';
-let lastStickyActionAvailable = null;
 
 window.addEventListener('scroll', function () {
     lastKnownScrollPosition = window.scrollY;
@@ -75,6 +74,7 @@ for (const element of [document.querySelector('header[role="banner"]'),
     if (element) headerResizeObserver.observe(element);
 }
 window.addEventListener('resize', () => handleScroll(window.scrollY, true));
+window.addEventListener('pageshow', () => handleScroll(window.scrollY, true));
 
 function handleScroll(scrollPos, remeasure = false) {
     const compactLandscape = window.matchMedia('(max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
@@ -83,86 +83,54 @@ function handleScroll(scrollPos, remeasure = false) {
     const stickyHeader = document.getElementById('site-sticky-header');
     if (!mainHeader || !stickyHeader) return;
     const actionAvailable = Boolean(mainJoinButtonVisible || compactLandscape);
+    if (scrolledJoinButton) scrolledJoinButton.style.display = actionAvailable ? 'inline-flex' : 'none';
     // Text enlargement can reach a scroll frame before resize callbacks run.
     const rootFontSize = getComputedStyle(document.documentElement).fontSize;
 
     // Measure the complete bar before it appears, so the first anchor jump
     // and keyboard scroll reserve the same space as subsequent ones.
     // Cache this geometry between layout changes, keeping scrolling cheap.
-    if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable
-        || measuredRootFontSize !== rootFontSize) {
-        // Only a hidden bar is briefly shown to measure; a visible one keeps
-        // any entrance that a resize callback lands in the middle of.
+    if (remeasure || !measuredStickyHeight || measuredRootFontSize !== rootFontSize) {
+        // Measure synchronously without painting the hidden bar.
         const measuring = !stickyHeader.classList.contains('visible');
-        if (measuring) {
-            stickyHeader.classList.add('is-measuring');
-            scrolledJoinButton?.classList.add('is-measuring');
-        }
         const visibility = stickyHeader.style.visibility;
-        const actionVisibility = scrolledJoinButton?.style.visibility;
-        const actionDisplay = scrolledJoinButton?.style.display;
         stickyHeader.style.visibility = 'hidden';
         stickyHeader.classList.add('visible');
-        if (scrolledJoinButton) {
-            scrolledJoinButton.style.visibility = 'hidden';
-            scrolledJoinButton.style.display = actionAvailable ? 'inline-flex' : 'none';
-        }
         measuredStickyHeight = fitStickyHeader(stickyHeader);
         measuredRootFontSize = rootFontSize;
-        lastStickyActionAvailable = actionAvailable;
         stickyHeader.style.visibility = visibility;
-        if (scrolledJoinButton) scrolledJoinButton.style.visibility = actionVisibility;
         if (measuring) {
-            // Restore the hidden state before starting a real entrance. A font
-            // or resize callback can invalidate geometry on that same scroll.
             stickyHeader.classList.remove('visible');
-            if (scrolledJoinButton) scrolledJoinButton.style.display = actionDisplay;
-            stickyHeader.getBoundingClientRect();
-            stickyHeader.classList.remove('is-measuring');
-            scrolledJoinButton?.classList.remove('is-measuring');
         }
     }
-    // A bar taller than the original banner must wait until that banner leaves
-    // the viewport; otherwise enlarged text can cover the primary links at 0.
-    const threshold = mainHeader.offsetHeight > measuredStickyHeight
+    // Enlarged text can make the compact bar taller than the banner; avoid
+    // a negative threshold that would cover the primary links at scroll 0.
+    const bannerThreshold = mainHeader.offsetHeight > measuredStickyHeight
         ? mainHeader.offsetHeight - measuredStickyHeight
         : mainHeader.offsetHeight;
+    // Hand over before the banner's PLAY is clipped, including enlarged text.
+    const originalTop = joinGameBtn?.getBoundingClientRect().top + scrollPos;
+    const threshold = mainJoinButtonVisible
+        ? Math.min(bannerThreshold, Math.max(0, originalTop - 4)) : bannerThreshold;
     const willBeVisible = scrollPos >= threshold;
     // A focused sticky link must not disappear from the keyboard's location
     // when scrolling or resizing brings the original banner back into view.
-    if (!willBeVisible && (stickyHeader.contains(document.activeElement) || document.activeElement === scrolledJoinButton)) {
-        const target = document.activeElement === scrolledJoinButton && mainJoinButtonVisible
-            ? joinGameBtn
-            : mainHeader.querySelector('.header-link');
+    if (!willBeVisible && stickyHeader.contains(document.activeElement)) {
+        const target = document.activeElement === scrolledJoinButton ? joinGameBtn
+            : document.activeElement?.matches('.site-menu-toggle')
+                ? mainHeader.querySelector('.site-menu-toggle') : mainHeader.querySelector('.header-link');
         target?.focus({ preventScroll: true });
     }
     stickyHeader.classList.toggle('visible', willBeVisible);
     stickyHeader.inert = !willBeVisible;
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
-    if (scrolledJoinButton) {
-        const actionVisible = willBeVisible && actionAvailable;
-        scrolledJoinButton.inert = !actionVisible;
-        scrolledJoinButton.setAttribute('aria-hidden', String(!actionVisible));
-        scrolledJoinButton.style.display = actionVisible ? 'inline-flex' : 'none';
-    }
+    document.documentElement.style.setProperty('--site-visible-sticky-height', `${willBeVisible ? measuredStickyHeight : 0}px`);
 }
 
 function fitStickyHeader(stickyHeader) {
-    const action = scrolledJoinButton?.getBoundingClientRect();
-    const hasAction = action && action.width > 0;
-    const right = hasAction ? innerWidth - action.right : 0;
-    stickyHeader.style.setProperty('--site-sticky-action-space', hasAction ? `${action.width + right + 8}px` : '0px');
-    stickyHeader.style.setProperty('--site-sticky-action-height', hasAction ? `${action.height}px` : '0px');
-    stickyHeader.classList.remove('is-stacked');
-    const style = getComputedStyle(stickyHeader);
-    const link = stickyHeader.querySelector('.site-sticky-header-link');
-    const available = stickyHeader.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const stacked = hasAction && link && link.getBoundingClientRect().width > available + 1;
-    stickyHeader.classList.toggle('is-stacked', Boolean(stacked));
+    // The brand and controls share normal flex layout, including wrapping.
+    // Measure that result for anchor clearance and the reading-progress line.
     const height = stickyHeader.getBoundingClientRect().height;
-    if (hasAction) {
-        scrolledJoinButton.style.top = `${stacked ? height - action.height - 4 : (height - action.height) / 2}px`;
-    }
     document.documentElement.style.setProperty('--site-sticky-height', `${height}px`);
     return height;
 }
@@ -468,8 +436,267 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         const url = event.activation?.entry?.url;
         if (!event.viewTransition || !url) return;
         const destination = new URL(url);
-        if (destination.origin !== location.origin || !journeyPath.test(destination.pathname)) {
+        const homeBoard = location.pathname === '/' && !location.search && !location.hash
+            && !destination.search && !destination.hash && /^\/leaderboard\/?$/i.test(destination.pathname)
+            && event.activation?.navigationType !== 'traverse'
+            && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (destination.origin !== location.origin || (!journeyPath.test(destination.pathname) && !homeBoard)) {
             event.viewTransition.skipTransition();
         }
     });
 })();
+
+// The navigation dialog mirrors the footer. Native modality keeps background
+// links out of keyboard and assistive-technology navigation, including late content.
+(function initializeSiteNavigation() {
+    // Parsing an HTML fragment during the main parse can release Chromium's
+    // pending rel=expect links. Build only once the receiving page is complete,
+    // so native transitions still capture the server-rendered board.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeSiteNavigation, { once: true });
+        return;
+    }
+    // Script-only controls stay in the shared asset, keeping page HTML small.
+    const primary = document.createElement('button');
+    primary.type = 'button';
+    primary.className = 'site-menu-toggle';
+    primary.hidden = true;
+    primary.setAttribute('aria-label', 'Menu');
+    primary.setAttribute('aria-expanded', 'false');
+    primary.setAttribute('aria-controls', 'site-menu');
+    primary.setAttribute('aria-haspopup', 'dialog');
+    primary.innerHTML = '<span class="site-menu-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>';
+    document.querySelector('.site-header-actions')?.append(primary);
+    const stickyToggle = primary.cloneNode(true);
+    stickyToggle.classList.add('site-sticky-menu-toggle');
+    document.querySelector('.site-sticky-actions')?.append(stickyToggle);
+    const dialog = document.createElement('dialog');
+    dialog.id = 'site-menu';
+    dialog.className = 'site-menu';
+    dialog.hidden = true;
+    dialog.setAttribute('aria-label', 'Site menu');
+    dialog.innerHTML = `<div class="site-menu-backdrop" data-site-menu-close></div>
+        <nav class="site-menu-panel" aria-label="Site" tabindex="-1">
+        <div class="site-menu-toolbar"><span class="site-menu-grip" aria-hidden="true"></span><button type="button" class="site-menu-close" aria-label="Close menu" data-site-menu-close><span aria-hidden="true"></span></button></div>
+        <div class="site-menu-body"></div></nav>`;
+    document.body.append(dialog);
+    const stickyHeader = document.getElementById('site-sticky-header');
+    const menu = document.getElementById('site-menu');
+    const panel = menu?.querySelector('.site-menu-panel');
+    const body = menu?.querySelector('.site-menu-body');
+    const toggles = Array.from(document.querySelectorAll('.site-menu-toggle'));
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const sheetQuery = matchMedia('(max-width: 640px)');
+
+    if (!menu || !panel || !body || !toggles.length) return;
+    let builtFrom = null;
+    function build() {
+        const footer = document.querySelector('.footer');
+        if (!footer || builtFrom === footer) return Boolean(footer);
+        builtFrom = footer;
+        const nodes = [];
+        for (const [selector, className] of [['.footer-column--explore', 'site-menu-pages'], ['.footer-column--follow', 'site-menu-follow']]) {
+            const source = footer.querySelector(selector);
+            if (!source) continue;
+            const copy = source.cloneNode(true);
+            copy.className = source.className + ' ' + className;
+            copy.querySelectorAll('[id], [data-label-dismissed]').forEach(element => {
+                element.removeAttribute('id');
+                element.removeAttribute('data-label-dismissed');
+            });
+            copy.querySelectorAll('.nav-glide').forEach(element => element.remove());
+            nodes.push(copy);
+        }
+        body.replaceChildren(...nodes);
+        body.querySelectorAll('.footer-link').forEach((link, index) => link.style.setProperty('--site-menu-i', String(index)));
+        window.LwcNavGlide?.(body.querySelector('.site-menu-pages'));
+        return true;
+    }
+    let navigationAvailable = null;
+    const initialize = () => {
+        const footer = document.querySelector('.footer');
+        const available = Boolean(footer && getComputedStyle(footer).display !== 'none');
+        if (available === navigationAvailable) return;
+        navigationAvailable = available;
+        document.body.classList.toggle('has-site-menu', available);
+        toggles.forEach(toggle => { toggle.hidden = !available; });
+        if (available) {
+            document.querySelector('.site-header-actions')?.append(primary);
+            stickyHeader?.querySelector('.site-sticky-actions')?.append(stickyToggle);
+            document.body.append(menu);
+        } else {
+            close(false, true);
+            toggles.forEach(toggle => toggle.remove());
+            menu.remove();
+        }
+        handleScroll(window.scrollY, true);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
+    else initialize();
+    new MutationObserver(initialize).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    let opener = null;
+    let closeTimer = 0;
+    let drag = null;
+    const isOpen = () => menu.open && !menu.classList.contains('is-closing');
+    function resetDrag() {
+        if (drag && panel.hasPointerCapture(drag.id)) panel.releasePointerCapture(drag.id);
+        drag = null;
+        panel.classList.remove('is-dragging');
+        panel.style.removeProperty('translate');
+        menu.style.removeProperty('--site-menu-drag');
+    }
+    function open(fromToggle) {
+        if (isOpen() || !customAlertDialog.hidden || !loadingDialog.hidden || !build()) return;
+        clearTimeout(closeTimer);
+        opener = fromToggle || document.activeElement;
+        resetDrag();
+        menu.classList.remove('is-closing');
+        menu.dataset.layout = sheetQuery.matches ? 'sheet' : 'panel';
+        positionPanel(opener);
+        menu.hidden = false;
+        menu.toggleAttribute('data-page-scrollbar', innerWidth > document.documentElement.clientWidth);
+        document.body.classList.add('site-menu-open');
+        menu.showModal();
+        toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
+        panel.getBoundingClientRect();
+        menu.classList.add('is-open');
+        const current = body.querySelector('.site-menu-pages [aria-current="page"]') || body.querySelector('.footer-link');
+        (current || panel).focus({ preventScroll: true });
+        if (current) {
+            const link = current.getBoundingClientRect(), viewport = body.getBoundingClientRect();
+            body.scrollTop += Math.max(0, link.bottom - viewport.bottom) + Math.min(0, link.top - viewport.top);
+        }
+    }
+    function finishClose(restoreFocus) {
+        clearTimeout(closeTimer);
+        const previous = opener;
+        opener = null;
+        menu.close();
+        menu.hidden = true;
+        menu.classList.remove('is-open', 'is-closing');
+        document.body.classList.remove('site-menu-open');
+        resetDrag();
+        const usable = element => {
+            if (!element?.isConnected || element.closest('[hidden], [inert]')) return false;
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+        };
+        if (restoreFocus) {
+            const target = usable(previous) ? previous : toggles.find(usable);
+            target?.focus({ preventScroll: true });
+        }
+        if (menu.contains(document.activeElement)) document.activeElement.blur();
+    }
+    function close(restoreFocus = true, immediately = false) {
+        if (!menu.open) return;
+        resetDrag();
+        menu.classList.remove('is-open');
+        menu.classList.add('is-closing');
+        toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
+        clearTimeout(closeTimer);
+        if (immediately || reduceMotion.matches) finishClose(restoreFocus);
+        else closeTimer = setTimeout(() => finishClose(restoreFocus), 240);
+    }
+    function positionPanel(toggle) {
+        const rect = (toggle || toggles[0]).getBoundingClientRect();
+        // A short landscape or enlarged banner can leave no room beneath its
+        // toggle. Keep a usable viewport-contained panel in that case.
+        const top = Math.max(12, Math.min(rect.bottom + 10, innerHeight - 240));
+        menu.style.setProperty('--site-menu-top', Math.round(top) + 'px');
+        menu.style.setProperty('--site-menu-right', Math.max(12, Math.round(innerWidth - rect.right)) + 'px');
+        menu.style.setProperty('--site-menu-origin', Math.round(rect.width / 2) + 'px');
+    }
+    function fitLabels() {
+        if (!isOpen()) return;
+        const viewport = body.getBoundingClientRect();
+        for (const label of body.querySelectorAll('.site-menu-follow .footer-link-label')) {
+            label.style.removeProperty('--footer-label-shift');
+            label.classList.remove('is-below');
+            if (getComputedStyle(label).clipPath !== 'none') continue;
+            let rect = label.getBoundingClientRect();
+            if (rect.top < viewport.top + 3) {
+                label.classList.add('is-below');
+                rect = label.getBoundingClientRect();
+            }
+            const shift = Math.max(viewport.left + 3 - rect.left, Math.min(0, viewport.right - 3 - rect.right));
+            label.style.setProperty('--footer-label-shift', `${shift}px`);
+        }
+    }
+    for (const eventName of ['focusin', 'pointerover', 'scroll']) {
+        body.addEventListener(eventName, () => requestAnimationFrame(fitLabels), { passive: true });
+    }
+    window.addEventListener('resize', () => requestAnimationFrame(fitLabels));
+    toggles.forEach(toggle => toggle.addEventListener('click', () => isOpen() ? close() : open(toggle)));
+    menu.addEventListener('click', event => {
+        if (!(event.target instanceof Element)) return;
+        if (event.target.closest('[data-site-menu-close]')) close();
+        else if (event.target.closest('a[href]')) close(true, true);
+    });
+    menu.addEventListener('cancel', event => { event.preventDefault(); close(); });
+    menu.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+        else trapFocusWithin(panel, event);
+    });
+    sheetQuery.addEventListener('change', () => close(true, true));
+    window.addEventListener('pagehide', () => close(false, true));
+    window.addEventListener('resize', () => { if (isOpen()) { resetDrag(); positionPanel(opener); } });
+    reduceMotion.addEventListener('change', () => {
+        resetDrag();
+        if (menu.classList.contains('is-closing')) finishClose(true);
+    });
+    // Alert/loading panels can arrive asynchronously while navigation is open.
+    const overlayObserver = new MutationObserver(() => {
+        if (menu.open && (!customAlertDialog.hidden || !loadingDialog.hidden)) {
+            const returnFocus = opener;
+            close(false, true);
+            if (menu.contains(customAlertPreviousFocus)) customAlertPreviousFocus = returnFocus;
+            if (menu.contains(loadingDialogPreviousFocus)) loadingDialogPreviousFocus = returnFocus;
+            if (!customAlertDialog.hidden) customAlertCloseButton.focus({ preventScroll: true });
+            else loadingDialog.querySelector('.loading-dialog-panel')?.focus({ preventScroll: true });
+        }
+    });
+    for (const overlay of [customAlertDialog, loadingDialog]) overlayObserver.observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
+
+    // Only the grip owns a drag. The link area always keeps native vertical
+    // scrolling; touch-action on an ancestor must not suppress that scrolling.
+    panel.addEventListener('pointerdown', event => {
+        if (menu.dataset.layout !== 'sheet' || event.pointerType === 'mouse' || !isOpen()
+            || !event.target.closest('.site-menu-grip') || !event.isPrimary) return;
+        drag = { id: event.pointerId, y: event.clientY, t: event.timeStamp, dy: 0 };
+        panel.setPointerCapture(event.pointerId);
+        panel.classList.add('is-dragging');
+    });
+    panel.addEventListener('pointermove', event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        drag.dy = Math.max(0, event.clientY - drag.y);
+        event.preventDefault();
+        panel.style.translate = '0 ' + drag.dy + 'px';
+        menu.style.setProperty('--site-menu-drag', String(Math.min(1, drag.dy / panel.offsetHeight)));
+    });
+    panel.addEventListener('pointerup', event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const { dy, t } = drag;
+        const dismiss = dy > panel.offsetHeight * 0.3 || dy > 24 && dy / Math.max(1, event.timeStamp - t) > 0.6;
+        resetDrag();
+        if (dismiss) close();
+    });
+    panel.addEventListener('pointercancel', resetDrag);
+    panel.addEventListener('lostpointercapture', resetDrag);
+})();
+
+// Name only the receiving half of a home-to-board handoff. Other native
+// transitions on the full leaderboard must not capture its table.
+window.addEventListener('pagereveal', event => {
+    const from = window.navigation?.activation?.from?.url;
+    if (!event.viewTransition || !from || window.navigation.activation.navigationType === 'traverse'
+        || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const source = new URL(from);
+    if (source.origin !== location.origin || source.pathname !== '/' || source.search || source.hash
+        || location.search || location.hash || !/^\/leaderboard\/?$/i.test(location.pathname)) return;
+    const board = document.querySelector('main[data-leaderboard-page="full"] #athleteLeaderboard');
+    if (!board) return;
+    board.style.viewTransitionName = 'lwc-board';
+    const clear = () => { board.style.viewTransitionName = ''; };
+    event.viewTransition.finished.then(clear, clear);
+});

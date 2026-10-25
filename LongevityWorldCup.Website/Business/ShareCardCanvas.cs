@@ -95,7 +95,11 @@ internal static class ShareCardCanvas
         }
     }
 
-    /// <summary>Paints the dark field with a soft glow of the card's accent in the upper right.</summary>
+    /// <summary>
+    /// Paints the dark field: the card's accent rises as a glow in the upper right, a soft
+    /// shaft of the same light falls across it, and a perspective track floor runs toward
+    /// that glow, so every card reads as a stadium at night rather than a flat panel.
+    /// </summary>
     internal static void DrawBackground(Image<Rgba32> image, Color accentColor)
     {
         var top = BackgroundTop.ToPixel<Rgba32>();
@@ -112,14 +116,23 @@ internal static class ShareCardCanvas
                 {
                     var horizontal = x / (float)(row.Length - 1);
                     var glow = MathF.Max(0f, 1f - MathF.Sqrt(
-                        MathF.Pow((horizontal - 0.86f) / 0.62f, 2f) +
-                        MathF.Pow((vertical - 0.30f) / 0.85f, 2f)));
-                    var light = MathF.Min(0.17f, glow * glow * 0.24f);
+                        MathF.Pow((horizontal - 0.84f) / 0.66f, 2f) +
+                        MathF.Pow((vertical - 0.28f) / 0.88f, 2f)));
+                    var light = MathF.Min(0.26f, glow * glow * 0.34f);
+
+                    // A diagonal shaft of the accent light, brightest near the glow.
+                    var shaft = horizontal + (vertical * 0.42f) - 1.02f;
+                    var beam = MathF.Exp(-(shaft * shaft) / 0.0065f) * 0.1f * (1f - (vertical * 0.55f));
+
+                    // The edges fall away so the middle of the card holds the eye.
+                    var dx = horizontal - 0.5f;
+                    var dy = vertical - 0.5f;
+                    var vignette = Math.Clamp(1f - (((dx * dx * 1.25f) + (dy * dy * 1.1f)) * 0.62f), 0.72f, 1f);
 
                     row[x] = new Rgba32(
-                        (byte)Math.Clamp(Lerp(top.R, bottom.R, vertical) + (accent.R * light), 0, 255),
-                        (byte)Math.Clamp(Lerp(top.G, bottom.G, vertical) + (accent.G * light), 0, 255),
-                        (byte)Math.Clamp(Lerp(top.B, bottom.B, vertical) + (accent.B * light), 0, 255),
+                        Channel(Lerp(top.R, bottom.R, vertical), accent.R, light, beam, vignette),
+                        Channel(Lerp(top.G, bottom.G, vertical), accent.G, light, beam, vignette),
+                        Channel(Lerp(top.B, bottom.B, vertical), accent.B, light, beam, vignette),
                         255);
                 }
             }
@@ -127,9 +140,49 @@ internal static class ShareCardCanvas
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(0, 0, 0, 84), new RectangularPolygon(0, 0, Width, MastheadHeight));
+            DrawTrackFloor(ctx, accentColor);
+            ctx.Fill(new Rgba32(0, 0, 0, 92), new RectangularPolygon(0, 0, Width, MastheadHeight));
             ctx.Fill(Hairline, new RectangularPolygon(0, MastheadHeight - 1f, Width, 1f));
+            // The accent runs out from under the logo along the masthead's lower edge.
+            ctx.Fill(new LinearGradientBrush(
+                    new PointF(0f, 0f),
+                    new PointF(Width * 0.62f, 0f),
+                    GradientRepetitionMode.None,
+                    new ColorStop(0f, WithAlpha(accentColor, 0)),
+                    new ColorStop(0.08f, WithAlpha(accentColor, 210)),
+                    new ColorStop(1f, WithAlpha(accentColor, 0))),
+                new RectangularPolygon(0, MastheadHeight - 2f, Width, 2f));
         });
+    }
+
+    private static byte Channel(float baseValue, byte accent, float light, float beam, float vignette) =>
+        (byte)Math.Clamp(((baseValue + (accent * light) + (accent * beam) + (255f * beam * 0.18f)) * vignette), 0, 255);
+
+    /// <summary>
+    /// Lanes of a running track in perspective, converging on the accent glow and fading out
+    /// at the horizon. They stay faint enough to sit behind portraits, panels and headlines.
+    /// </summary>
+    private static void DrawTrackFloor(IImageProcessingContext ctx, Color accent)
+    {
+        const float horizon = Height * 0.6f;
+        var vanishing = new PointF(Width * 0.8f, horizon);
+        var floor = new LinearGradientBrush(
+            new PointF(0f, horizon),
+            new PointF(0f, Height),
+            GradientRepetitionMode.None,
+            new ColorStop(0f, WithAlpha(accent, 0)),
+            new ColorStop(1f, WithAlpha(accent, 54)));
+
+        for (var i = -9; i <= 13; i++)
+            ctx.DrawLine(floor, 1.4f, vanishing, new PointF((Width * 0.5f) + (i * 132f), Height));
+
+        // Cross lines bunch toward the horizon, as painted lines on a track do.
+        for (var k = 1; k <= 7; k++)
+        {
+            var t = k / 7f;
+            var y = horizon + ((Height - horizon) * t * t);
+            ctx.Fill(WithAlpha(accent, (byte)(10 + (40 * t))), new RectangularPolygon(0, y, Width, 1f + t));
+        }
     }
 
     /// <summary>
@@ -201,17 +254,32 @@ internal static class ShareCardCanvas
         });
     }
 
-    /// <summary>The closing bar: one accent, or several equal segments for multi-metric cards.</summary>
+    /// <summary>
+    /// The closing bar: one accent, or several equal segments for multi-metric cards. Each
+    /// segment glows up into the card and carries a bright leading edge.
+    /// </summary>
     internal static void DrawAccentBar(Image<Rgba32> image, params Color[] accents)
     {
         if (accents.Length == 0)
             return;
 
         var segment = Width / (float)accents.Length;
+        const float glowHeight = 70f;
         image.Mutate(ctx =>
         {
             for (var i = 0; i < accents.Length; i++)
-                ctx.Fill(accents[i], new RectangularPolygon(i * segment, Height - AccentBarHeight, segment + 1f, AccentBarHeight));
+            {
+                var x = i * segment;
+                ctx.Fill(new LinearGradientBrush(
+                        new PointF(0f, Height - AccentBarHeight - glowHeight),
+                        new PointF(0f, Height - AccentBarHeight),
+                        GradientRepetitionMode.None,
+                        new ColorStop(0f, WithAlpha(accents[i], 0)),
+                        new ColorStop(1f, WithAlpha(accents[i], 64))),
+                    new RectangularPolygon(x, Height - AccentBarHeight - glowHeight, segment + 1f, glowHeight));
+                ctx.Fill(accents[i], new RectangularPolygon(x, Height - AccentBarHeight, segment + 1f, AccentBarHeight));
+                ctx.Fill(new Rgba32(255, 255, 255, 96), new RectangularPolygon(x, Height - AccentBarHeight, segment + 1f, 2f));
+            }
         });
     }
 
@@ -238,9 +306,18 @@ internal static class ShareCardCanvas
 
     internal static void DrawPanel(IImageProcessingContext ctx, float x, float y, float width, float height)
     {
-        ctx.Fill(new Rgba32(0, 0, 0, 70), RoundedRect(x + 4f, y + 8f, width, height, CornerRadius));
+        ctx.Fill(new Rgba32(0, 0, 0, 96), RoundedRect(x + 4f, y + 12f, width, height, CornerRadius));
         ctx.Fill(PanelFill, RoundedRect(x, y, width, height, CornerRadius));
+        // Light from above: the upper half of the glass catches a little of it.
+        ctx.Fill(new LinearGradientBrush(
+                new PointF(0f, y),
+                new PointF(0f, y + height),
+                GradientRepetitionMode.None,
+                new ColorStop(0f, new Rgba32(255, 255, 255, 20)),
+                new ColorStop(0.55f, new Rgba32(255, 255, 255, 0))),
+            RoundedRect(x, y, width, height, CornerRadius));
         ctx.Draw(PanelStroke, 1.2f, RoundedRect(x, y, width, height, CornerRadius));
+        ctx.Fill(new Rgba32(255, 255, 255, 46), new RectangularPolygon(x + CornerRadius, y + 0.6f, width - (CornerRadius * 2f), 1f));
     }
 
     /// <summary>Initials for a portrait slot that has no photo, so the card never shows a hole.</summary>
@@ -275,9 +352,12 @@ internal static class ShareCardCanvas
     internal static void DrawPortraitRing(IImageProcessingContext ctx, float centerX, float centerY, float radius, Color accent, float ringWidth)
     {
         var pixel = accent.ToPixel<Rgba32>();
-        ctx.Fill(new Rgba32(0, 0, 0, 140), new EllipsePolygon(centerX + 6f, centerY + 10f, radius + ringWidth + 4f));
-        ctx.Fill(new Rgba32(pixel.R, pixel.G, pixel.B, 40), new EllipsePolygon(centerX, centerY, radius + ringWidth + 10f));
-        ctx.Fill(new Rgba32(pixel.R, pixel.G, pixel.B, 240), new EllipsePolygon(centerX, centerY, radius + ringWidth));
+        ctx.Fill(new Rgba32(0, 0, 0, 150), new EllipsePolygon(centerX + 6f, centerY + 12f, radius + ringWidth + 4f));
+        // A halo in falling steps, so the portrait reads as lit by its own league colour.
+        for (var step = 4; step >= 1; step--)
+            ctx.Fill(new Rgba32(pixel.R, pixel.G, pixel.B, (byte)(14 + ((4 - step) * 9))), new EllipsePolygon(centerX, centerY, radius + ringWidth + (step * 9f)));
+        ctx.Fill(new Rgba32(pixel.R, pixel.G, pixel.B, 245), new EllipsePolygon(centerX, centerY, radius + ringWidth));
+        ctx.Draw(new Rgba32(255, 255, 255, 70), 1.5f, new EllipsePolygon(centerX, centerY, radius + ringWidth - 0.75f));
     }
 
     internal static void DrawTrackedText(IImageProcessingContext ctx, Fonts fonts, string text, Font font, Color color, PointF origin, float tracking)

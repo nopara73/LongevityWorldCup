@@ -1,0 +1,308 @@
+/*
+ * Longevity World Cup touch layer
+ *
+ * How the site answers a finger. touch.ts marks the states; this sheet draws
+ * them with the existing palette and the motion tokens from motion.css.
+ *
+ * - data-lwc-touch="touch" on the root: a touch-only screen (no hover).
+ *   "hybrid" is a coarse pointer that can also hover. Absent on desktop, so
+ *   nothing here changes mouse and keyboard use.
+ * - data-lwc-pressed="row|card|control": the element under a resting finger.
+ * - data-lwc-hit="after|before": a small control's invisible 44px target.
+ * - data-lwc-scroller / data-lwc-fade: a horizontal strip and its hidden edges.
+ * - data-lwc-sheet, data-lwc-swipe-views, data-lwc-pull: gesture surfaces.
+ */
+
+/* 1) Taps answer at once: no 300ms wait, no grey system flash. */
+:root[data-lwc-touch] :is(a, button, label, summary, input, select, textarea, [role="button"], [role="tab"], [data-lwc-tap], .leaderboard table tbody tr) {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* motion.css presses on :active, which Android also applies while a finger
+ * scrolls past. Touch screens press through data-lwc-pressed instead. */
+:root[data-lwc-touch] :is(button, [role="button"], [role="tab"], summary, a, .view-badge, .podium-item, input[type="submit"], input[type="button"]):active:not([data-lwc-pressed]) {
+    scale: none;
+}
+
+/* 2) Press feedback, one family for the whole site. */
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-touch] [data-lwc-pressed] {
+        transition-duration: var(--lwc-motion-press, 90ms);
+        transition-timing-function: var(--lwc-ease-standard, ease);
+    }
+
+    :root[data-lwc-touch] [data-lwc-pressed="control"] {
+        scale: 0.95;
+    }
+
+    :root[data-lwc-touch] [data-lwc-pressed="card"] {
+        scale: 0.985;
+    }
+}
+
+/* Cards and rows also tint, so the press reads with reduced motion too. */
+:root[data-lwc-touch] [data-lwc-pressed="card"] {
+    box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--lwc-accent) 7%, transparent);
+}
+
+/* Rows tint as one piece (phone rows are grids, so cell tints would patch)
+ * and show the accent edge the board already uses for a highlighted row. */
+:root[data-lwc-touch] tr[data-lwc-pressed] {
+    box-shadow:
+        inset 3px 0 0 var(--lwc-accent),
+        inset 0 0 0 999px color-mix(in srgb, var(--lwc-accent) 9%, transparent);
+    transition: box-shadow var(--lwc-motion-press, 90ms) var(--lwc-ease-standard, ease);
+}
+
+:root[data-lwc-touch] [data-lwc-pressed="control"]:is(.view-badge, .modal-link, .athlete-step, .close, .sticky-close-btn, .clear-icon) {
+    background-color: color-mix(in srgb, var(--lwc-accent) 12%, var(--lwc-surface, transparent));
+}
+
+/* 3) Generous targets: small controls catch taps up to 44px around them
+ * without moving a pixel of layout. Neighbours keep at least 10px each. */
+:root[data-lwc-touch] [data-lwc-hit-anchor] {
+    position: relative;
+}
+
+:root[data-lwc-touch] [data-lwc-hit="after"]::after,
+:root[data-lwc-touch] [data-lwc-hit="before"]::before {
+    content: "";
+    position: absolute;
+    inset-block: max(-10px, min(0px, calc((100% - 44px) / 2)));
+    inset-inline: max(-10px, min(0px, calc((100% - 44px) / 2)));
+    border-radius: inherit;
+    background: transparent;
+    pointer-events: auto;
+}
+
+/* 4) Horizontal strips: momentum, snap to whole items, and soft edges that
+ * show where more is hiding. The fade only covers an edge with content past it. */
+:root[data-lwc-touch] [data-lwc-scroller] {
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+:root[data-lwc-touch] :is(.proof-review-filmstrip, .modal-badge-strip, .view-switcher-chips, .leaderboard-selection-chips, [data-lwc-scroller="snap"]) {
+    scroll-snap-type: x proximity;
+}
+
+:root[data-lwc-touch] :is(.proof-review-filmstrip, .modal-badge-strip, .view-switcher-chips, .leaderboard-selection-chips, [data-lwc-scroller="snap"]) > * {
+    scroll-snap-align: start;
+}
+
+:root[data-lwc-touch] [data-lwc-scroller][data-lwc-fade] {
+    --lwc-fade-size: 28px;
+    --lwc-fade-start: 0px;
+    --lwc-fade-end: 0px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--lwc-fade-start), #000 calc(100% - var(--lwc-fade-end)), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--lwc-fade-start), #000 calc(100% - var(--lwc-fade-end)), transparent 100%);
+}
+
+[data-lwc-scroller]:is([data-lwc-fade="start"], [data-lwc-fade="both"]) { --lwc-fade-start: var(--lwc-fade-size); }
+[data-lwc-scroller]:is([data-lwc-fade="end"], [data-lwc-fade="both"]) { --lwc-fade-end: var(--lwc-fade-size); }
+
+@property --lwc-fade-start { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --lwc-fade-end { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-touch] [data-lwc-scroller][data-lwc-fade] {
+        transition: --lwc-fade-start var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), --lwc-fade-end var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+    }
+}
+
+/* 5) Sibling views: the surface lets the browser keep vertical scrolling and
+ * hands horizontal drags to the swipe. */
+:root[data-lwc-touch] [data-lwc-swipe-views][data-lwc-swiping] {
+    will-change: translate, opacity;
+    user-select: none;
+}
+
+/* 6) Swipe back: a round chevron peeks from the left edge, follows the finger
+ * and fills with the accent once letting go would go back. */
+.lwc-swipe-back-peek {
+    --lwc-peek: 0;
+    position: fixed;
+    left: 0;
+    z-index: 2147483000;
+    width: 44px;
+    height: 44px;
+    margin-top: -22px;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface, #fff);
+    border: 1px solid var(--lwc-border-strong, var(--lwc-border));
+    box-shadow: var(--lwc-shadow-md, 0 6px 18px rgba(0, 0, 0, 0.16));
+    color: var(--lwc-accent);
+    pointer-events: none;
+    translate: calc(-48px + var(--lwc-peek) * 64px) 0;
+    scale: calc(0.7 + var(--lwc-peek) * 0.3);
+    opacity: min(1, calc(var(--lwc-peek) * 2.4));
+}
+
+.lwc-swipe-back-peek::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    border-left: 2.5px solid currentColor;
+    border-bottom: 2.5px solid currentColor;
+    translate: -30% -50%;
+    rotate: 45deg;
+}
+
+.lwc-swipe-back-peek[data-state="armed"],
+.lwc-swipe-back-peek[data-state="go"] {
+    background: var(--lwc-accent);
+    border-color: var(--lwc-accent);
+    color: var(--lwc-on-accent, #fff);
+}
+
+.lwc-swipe-back-peek[data-state="rest"],
+.lwc-swipe-back-peek[data-state="go"] {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .lwc-swipe-back-peek[data-state="armed"] {
+        scale: 1.08;
+        transition: scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+    }
+
+    .lwc-swipe-back-peek:is([data-state="rest"], [data-state="go"]) {
+        transition: translate var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease), opacity var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease), scale var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease);
+    }
+
+    .lwc-swipe-back-peek[data-state="go"] {
+        translate: 24px 0;
+    }
+}
+
+/* 7) Bottom sheets: a grabber says the sheet moves; dragging fades the backdrop. */
+@media (max-width: 600px) {
+    :root[data-lwc-touch] #custom-alert[data-lwc-sheet] .custom-alert-panel,
+    :root[data-lwc-touch] #detailsModal[data-lwc-sheet] .modal-content {
+        touch-action: pan-y pinch-zoom;
+    }
+
+    :root[data-lwc-touch] #custom-alert[data-lwc-sheet] .custom-alert-panel {
+        background-image: linear-gradient(var(--lwc-border-strong, var(--lwc-border)), var(--lwc-border-strong, var(--lwc-border)));
+        background-size: 36px 4px;
+        background-position: 50% 8px;
+        background-repeat: no-repeat;
+    }
+
+    :root[data-lwc-touch] [data-lwc-sheet][data-lwc-sheet-dragging] {
+        transition: none;
+    }
+
+    :root[data-lwc-touch] [data-lwc-sheet][data-lwc-sheet-dragging] :is(.custom-alert-panel, .modal-content) {
+        transition: none;
+        will-change: translate;
+    }
+}
+
+/* 8) Pull to refresh: the page gives under the finger and a ring fills with
+ * the pull. Only pages with a pull surface opt out of the browser's own. */
+:root[data-lwc-touch]:has(main[data-lwc-pull]) {
+    overscroll-behavior-y: contain;
+}
+
+main[data-lwc-pull] {
+    --lwc-pull: 0px;
+    --lwc-pull-progress: 0;
+    position: relative;
+}
+
+/* Only while pulling: a resting translate would trap fixed dialogs in main. */
+main[data-lwc-pull][data-lwc-pulling] > :not(.lwc-pull-ring) {
+    translate: 0 var(--lwc-pull);
+}
+
+.lwc-pull-ring {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 5;
+    width: 40px;
+    height: 40px;
+    margin-left: -20px;
+    padding: 6px;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface, #fff);
+    border: 1px solid var(--lwc-border);
+    box-shadow: var(--lwc-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.12));
+    pointer-events: none;
+    opacity: 0;
+    translate: 0 calc(var(--lwc-pull) - 46px);
+    scale: calc(0.6 + var(--lwc-pull-progress) * 0.4);
+}
+
+main[data-lwc-pull][data-lwc-pulling] > .lwc-pull-ring {
+    opacity: min(1, calc(var(--lwc-pull-progress) * 2));
+}
+
+.lwc-pull-ring svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    rotate: calc(var(--lwc-pull-progress) * 200deg - 90deg);
+}
+
+.lwc-pull-ring circle {
+    fill: none;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+}
+
+.lwc-pull-ring__track {
+    stroke: var(--lwc-surface-muted, var(--lwc-border));
+}
+
+.lwc-pull-ring__arc {
+    stroke: var(--lwc-accent);
+    stroke-dasharray: calc(var(--lwc-pull-progress) * 78) 100;
+}
+
+main[data-lwc-pull][data-lwc-pulling="armed"] > .lwc-pull-ring,
+main[data-lwc-pull][data-lwc-pulling="refreshing"] > .lwc-pull-ring {
+    opacity: 1;
+    scale: 1;
+}
+
+main[data-lwc-pull][data-lwc-pulling="refreshing"] .lwc-pull-ring__arc {
+    stroke-dasharray: 62 100;
+}
+
+main[data-lwc-pull][data-lwc-pulling="refreshing"] .lwc-pull-ring svg {
+    animation: lwc-pull-spin 760ms linear infinite;
+}
+
+@keyframes lwc-pull-spin {
+    from { rotate: 0deg; }
+    to { rotate: 360deg; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    main[data-lwc-pull]:is([data-lwc-pulling="refreshing"], [data-lwc-pulling="done"]) > * {
+        transition: translate var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease), opacity var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease), scale var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease);
+    }
+
+    main[data-lwc-pull][data-lwc-pulling="armed"] > .lwc-pull-ring {
+        transition: scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lwc-swipe-back-peek { translate: 8px 0; scale: 1; }
+    .lwc-pull-ring { translate: none; scale: 1; }
+
+    main[data-lwc-pull][data-lwc-pulling] > :not(.lwc-pull-ring) {
+        translate: none;
+    }
+
+    main[data-lwc-pull][data-lwc-pulling="refreshing"] .lwc-pull-ring svg {
+        animation-duration: 1600ms;
+    }
+}

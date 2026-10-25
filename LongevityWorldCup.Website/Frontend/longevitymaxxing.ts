@@ -816,6 +816,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     let publicState: PublicState | null = null;
     let participantState: ParticipantState | null = null;
+    let pointerGesture = false;
+    const pendingPointerBlurClosers = new Set<() => void>();
     let stateAcceptanceGeneration = 0;
     let discussionReadOwner: string | null = null;
     let discussionReadRevision = -1;
@@ -1035,6 +1037,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function wireForms() {
+        document.addEventListener("pointerdown", () => { pointerGesture = true; }, true);
+        // A touch compatibility click can arrive after pointerup. Its target is fixed at click dispatch.
+        document.addEventListener("click", finishPointerGesture, true);
+        document.addEventListener("pointercancel", finishPointerGesture, true);
+        document.addEventListener("keydown", finishPointerGesture, true);
+        window.addEventListener("blur", finishPointerGesture);
         const signupForm = requiredForm("lmxSignupForm");
         const editForm = requiredForm("lmxEditForm");
         const signupAgain = requiredButton("lmxSignupAgain");
@@ -2216,14 +2224,28 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!lmxMotionAllowed()) return;
         const key = checkInDayKey(form);
         if (elapsed === 0) checkInMoments.set(key, { kind, startedAt: performance.now() });
+        const moment = checkInMoments.get(key);
         form.dataset.lmxMoment = kind;
         form.style.setProperty("--lmx-moment-offset", `${-Math.round(elapsed)}ms`);
         const remaining = Math.max(0, CHECK_IN_MOMENT_MS[kind] - elapsed);
-        window.setTimeout(() => {
-            if (form.dataset.lmxMoment !== kind) return;
-            delete form.dataset.lmxMoment;
-            form.style.removeProperty("--lmx-moment-offset");
-        }, remaining);
+        // Board rendering and other frame callbacks can delay CSS animation
+        // creation. Resolve the actual animation before arranging cleanup;
+        // even a timer started in rAF can expire before the first style pass.
+        requestAnimationFrame(() => {
+            if (!form.isConnected || checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
+            if (elapsed === 0 && moment) moment.startedAt = performance.now();
+            const finish = (): void => {
+                if (!form.isConnected || checkInMoments.get(key) !== moment || form.dataset.lmxMoment !== kind) return;
+                delete form.dataset.lmxMoment;
+                form.style.removeProperty("--lmx-moment-offset");
+                checkInMoments.delete(key);
+            };
+            const name = kind === "complete" ? "lmx-rail-ready" : kind === "saved" ? "lmx-card-saved" : "lmx-retry-nudge";
+            const animation = form.getAnimations({ subtree: true }).find(candidate =>
+                typeof CSSAnimation !== "undefined" && candidate instanceof CSSAnimation && candidate.animationName === name);
+            if (animation) void animation.finished.then(finish, finish);
+            else window.setTimeout(finish, remaining);
+        });
     }
 
     /** A rebuilt card picks up a moment its predecessor was still playing. */
@@ -3793,9 +3815,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 closeList();
             }
         });
-        textarea.addEventListener("blur", () => {
-            window.setTimeout(closeList, 100);
-        });
+        textarea.addEventListener("blur", () => closeAfterPointerGesture(() => {
+            if (document.activeElement !== textarea) closeList();
+        }));
 
         function renderSuggestions(): void {
             if (composing || textarea.readOnly || textarea.disabled) { closeList(); return; }
@@ -9060,12 +9082,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         input.setAttribute("aria-haspopup", "listbox");
         input.setAttribute("aria-controls", listId);
         let currentFocus = -1;
-        let pointerGesture = false;
-        const finishPointerGesture = () => { pointerGesture = false; };
-        document.addEventListener("pointerdown", () => { pointerGesture = true; }, true);
-        document.addEventListener("pointercancel", finishPointerGesture, true);
-        document.addEventListener("keydown", finishPointerGesture, true);
-        window.addEventListener("blur", finishPointerGesture);
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
         const selector: AthleteSelectorController = {
@@ -9153,7 +9169,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         container?.addEventListener("focusout", event => {
             // Closing this in-flow list on pointer blur moves the next control before its click lands.
-            if (!pointerGesture && event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) closeList();
+            if (event.relatedTarget instanceof Node && !container.contains(event.relatedTarget)) {
+                closeAfterPointerGesture(() => {
+                    if (!container.contains(document.activeElement)) closeList();
+                });
+            }
         });
 
         container?.addEventListener("keydown", event => {
@@ -9189,8 +9209,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
 
         document.addEventListener("click", event => {
-            // Touch compatibility clicks can follow pointerup in a later frame; their target is fixed here.
-            finishPointerGesture();
             if (!container || !event.composedPath().includes(container)) closeList();
         }, true);
 
@@ -9830,6 +9848,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         setDefaultTimezone(select);
     }
 
+    function finishPointerGesture(): void {
+        pointerGesture = false;
+        const closers = Array.from(pendingPointerBlurClosers);
+        pendingPointerBlurClosers.clear();
+        closers.forEach(close => close());
+    }
+
+    function closeAfterPointerGesture(close: () => void): void {
+        // Preserve the pressed control's position until click dispatch, with no timer race.
+        if (pointerGesture) pendingPointerBlurClosers.add(close);
+        else close();
+    }
+
     function initTimeZonePickers(): void {
         document.querySelectorAll<HTMLElement>("[data-timezone-picker]").forEach(picker => {
             if (picker.dataset.wired === "true") return;
@@ -9844,7 +9875,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             picker.addEventListener("focusout", event => {
                 // A pointer can blur the search without moving focus; let its click finish first.
                 if (event.relatedTarget instanceof Node && !picker.contains(event.relatedTarget)) {
-                    closeTimeZonePicker(picker);
+                    closeAfterPointerGesture(() => {
+                        if (!picker.contains(document.activeElement)) closeTimeZonePicker(picker);
+                    });
                 }
             });
             select?.addEventListener("change", () => syncTimeZonePicker(picker));

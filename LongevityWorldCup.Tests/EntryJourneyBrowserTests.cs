@@ -21,6 +21,7 @@ public sealed class EntryJourneyBrowserTests(
             window.__lwcReveal = { transition: Boolean(event.viewTransition) };
             if (event.viewTransition) {
                 event.viewTransition.ready.then(() => {
+                    window.__lwcReveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
                     window.__lwcReveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
@@ -56,7 +57,7 @@ public sealed class EntryJourneyBrowserTests(
     }
 
     private static Task SettleAnimationsAsync(IPage page)
-        => page.EvaluateAsync("() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})))");
+        => WaitForFiniteAnimationsAsync(page);
 
     [Fact]
     public async Task CanceledTrackNavigation_RestoresChoicesAndKeepsTheSavedOffer()
@@ -301,8 +302,8 @@ public sealed class EntryJourneyBrowserTests(
             () => {
                 const issues = [];
                 document.getElementById('{{(pro ? "joinGoProButton" : "joinStartAmateurBtn")}}').click();
-                document.getAnimations().forEach(a => a.finish());
                 const panel = document.getElementById('joinTrackPanel');
+                panel.getAnimations({ subtree: true }).forEach(a => a.finish());
                 if (panel.dataset.joinChoice !== '{{(pro ? "pro" : "amateur")}}') issues.push(`choice is ${panel.dataset.joinChoice}`);
                 const chosen = document.querySelector('{{chosen}}'), other = document.querySelector('{{other}}');
                 if (!/0px 0px 0px [23]px/.test(getComputedStyle(chosen).boxShadow)) issues.push(`chosen ring: ${getComputedStyle(chosen).boxShadow}`);
@@ -324,13 +325,16 @@ public sealed class EntryJourneyBrowserTests(
         var page = await OpenJoinAsync(context);
         await SettleAnimationsAsync(page);
 
-        Assert.Equal("lwc-site-header", await page.EvaluateAsync<string>(
+        // The resting banner must not trap floating PLAY in a stacking context.
+        Assert.Equal("none", await page.EvaluateAsync<string>(
             "() => getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName"));
         await page.Locator(pro
             ? (width < 600 ? "#joinMobileGoProButton" : "#joinGoProButton")
             : (width < 600 ? "#joinMobileStartAmateurBtn" : "#joinStartAmateurBtn")).ClickAsync();
         await page.WaitForURLAsync(pro ? "**/bortz-age**" : "**/pheno-age**");
         await page.WaitForFunctionAsync("() => window.__lwcReveal?.animations");
+
+        Assert.Equal("lwc-site-header", await page.EvaluateAsync<string>("window.__lwcReveal.headerName"));
 
         var animations = await page.EvaluateAsync<string[]>(
             "() => window.__lwcReveal.animations.map(a => `${a.name}|${a.pseudo}|${a.duration}|${a.delay}`)");
@@ -371,7 +375,9 @@ public sealed class EntryJourneyBrowserTests(
 
     [Theory]
     [InlineData("/join", "/leaderboard")]
-    [InlineData("/", "/leaderboard")]
+    [InlineData("/?search=one", "/leaderboard")]
+    [InlineData("/#faq", "/leaderboard")]
+    [InlineData("/", "/leaderboard?view=pheno")]
     [InlineData("/apply", "/ruleset")]
     [InlineData("/join", "/ruleset")]
     public async Task LeavingTheJourney_OptsOutOfTheTransitionWithoutAPageError(string from, string to)

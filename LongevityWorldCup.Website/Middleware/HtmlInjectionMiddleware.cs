@@ -118,7 +118,7 @@ namespace LongevityWorldCup.Website.Middleware
                     var progressBar = await ReadPartialAsync("main-progress-bar.html", bodyContent.Contains("<!--MAIN-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var subProgressBar = await ReadPartialAsync("sub-progress-bar.html", bodyContent.Contains("<!--SUB-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var needsAthleteDialogRuntime = !containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path);
-                    var leaderboardContent = CompactProfileTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
+                    var leaderboardContent = CompactStaticTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
                     var guessMyAge = await ReadPartialAsync("guess-my-age.html",
                         bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
                     var eventBoardContent = await ReadPartialAsync("event-board-content.html", bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
@@ -200,6 +200,7 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
+                        bodyContent = InjectTouchLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                     }
 
@@ -307,11 +308,11 @@ namespace LongevityWorldCup.Website.Middleware
             };
         }
 
-        private static string CompactProfileTableMarkup(string html) => Regex.Replace(
+        private static string CompactStaticTableMarkup(string html) => Regex.Replace(
             html,
-            @"<table class=""athlete-info-table""[^>]*>.*?</table>",
-            // Compact only static tag indentation, before athlete content is
-            // injected. Keep readable source and all inter-element line breaks.
+            @"<table(?: class=""athlete-info-table""[^>]*)?>.*?</table>",
+            // Compact only static leaderboard/profile table tag indentation,
+            // before athlete content is injected. Keep all inter-element line breaks.
             table => Regex.Replace(table.Value, @"(?m)^[ \t]+(?=<)", string.Empty),
             RegexOptions.Singleline);
 
@@ -525,7 +526,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             var rowsStart = start + LeaderboardRowsStartMarker.Length;
             var replacedRows = html
                 .Remove(rowsStart, end - rowsStart)
-                .Insert(rowsStart, $"{Environment.NewLine}{rowsHtml}                ");
+                .Insert(rowsStart, rowsHtml);
 
             return replacedRows.Replace(
                 LeaderboardSkeletonTbodyOpenTag,
@@ -594,11 +595,32 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            // Motion comes first so the aesthetic system stays the last stylesheet in the head.
+            // Shared interaction styles come first so the aesthetic system stays the last stylesheet in the head.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/form-controls.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/form-controls.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/share-sheet.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/share-sheet.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/charts.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
+        }
+
+        // The touch layer goes in ahead of motion and the aesthetic system, which keep the final say.
+        private string InjectTouchLayer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)
@@ -849,7 +871,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             {
                 var title = $"{calculator.Name} | Longevity World Cup";
                 return new SeoMeta(canonicalPath, calculator.Description, "index, follow",
-                    canonicalUrl, title, title, noCardDescription, defaultOgImage);
+                    canonicalUrl, title, title, noCardDescription,
+                    BuildPageOgImageUrl(canonicalPath.TrimStart('/'), defaultOgImage));
             }
 
             return canonicalPath switch

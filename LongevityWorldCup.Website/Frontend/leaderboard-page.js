@@ -1165,15 +1165,34 @@ function processRowRevealQueue() {
     }, rowRevealStaggerMs);
 }
 
-function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh = false) {
     window.initializeSharedPageData();
     includePodiumGlobal = includePodium;
     maxAthletesGlobal = maxAthletes;
     athleteResultsReady = false;
-    setLeaderboardLoadingState(includePodium, maxAthletes);
+    if (!refresh) setLeaderboardLoadingState(includePodium, maxAthletes);
+    const fullBoard = pageDocument.querySelector('main[data-leaderboard-page="full"]');
+    if (fullBoard && !fullBoard.hasAttribute('data-lwc-refresh-ready')) {
+        fullBoard.setAttribute('data-lwc-refresh-ready', '');
+        fullBoard.addEventListener('lwc:pull-refresh', event => {
+            // Resolve fresh public data before touching the visible selection.
+            event.detail.waitUntil(window.getSharedAthletes(true).then(() =>
+                LoadLeaderboard(includePodiumGlobal, maxAthletesGlobal, true)).catch(() => {
+                    setLeaderboardStatus('Leaderboard could not load.', true);
+                }));
+        });
+        window.LwcTouch?.refresh();
+    }
 
     const currentLoadPromise = window.getSharedAthletes()
         .then(athletes => {
+            // A pull refresh can finish before the initial request. Only the
+            // latest load owns the visible board, including failure handling.
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
+            const selectedFilters = refresh ? new Set(Array.from(document.querySelectorAll('.sidebar input:checked'))
+                .map(input => `${input.name}\n${input.value}`)) : null;
+            const refreshFocus = refresh ? document.activeElement : null;
+            const refreshScroll = refresh ? window.scrollY : null;
             // Array to store athletes with their lowest PhenoAge and age reduction
             updateViewAllAthletesButton(athletes.length);
             const nowForCrowdAgeUtc = new Date();
@@ -1576,6 +1595,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                         : bortzAgeDifference,
                     podcastLink: athlete.PodcastLink,
                     lastMonthRank: lastMonthRank,
+                    placements: athlete.Placements || [],
                     rankImproved: rankImproved,
                     isNew: !!athlete.IsNew,
                     Badges: athlete.Badges || [],
@@ -1612,6 +1632,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
                 generateLeagueTrackFilters(athleteResults);
+                if (selectedFilters) {
+                    document.querySelectorAll('.sidebar input').forEach(input => {
+                        input.checked = selectedFilters.has(`${input.name}\n${input.value}`);
+                    });
+                }
             }
 
             // Sort the athletes by age reduction in ascending order
@@ -1891,14 +1916,20 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             const leagueRouteState = getLeagueRouteState(window.location.pathname);
             const flagRouteState = getFlagRouteState(window.location.pathname);
             const athleteParam = getInitialAthleteSlug();
-            if (athleteParam) {
-                const normalizedAthlete = window.slugifyName(athleteParam, false);
-                const athleteData = getAthleteData(normalizedAthlete);
-                if (athleteData) {
-                    fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
-                } else {
-                    // Redirect to the .NET 404 endpoint
-                    window.location.href = '/error/404';
+            if (refresh) {
+                // Current inputs remain authoritative during a refresh.
+            } else if (athleteParam) {
+                // A profile selected while the index was loading takes priority
+                // over the containing page's initial URL (including close/back).
+                if (currentAthleteModalRequestId === 0) {
+                    const normalizedAthlete = window.slugifyName(athleteParam, false);
+                    const athleteData = getAthleteData(normalizedAthlete);
+                    if (athleteData) {
+                        fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
+                    } else {
+                        // Redirect to the .NET 404 endpoint
+                        window.location.href = '/error/404';
+                    }
                 }
             } else {
                 let searchOrFilterApplied = false; // Flag to check if filter was applied
@@ -1997,6 +2028,14 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 }
             }
             setLeaderboardStatus('Leaderboard loaded.');
+            if (refreshFocus && !refreshFocus.isConnected) {
+                const replacement = Array.from(document.querySelectorAll('.sidebar input, .leaderboard a')).find(element =>
+                    refreshFocus instanceof HTMLInputElement
+                        ? element.name === refreshFocus.name && element.value === refreshFocus.value
+                        : refreshFocus instanceof HTMLAnchorElement && element.getAttribute('href') === refreshFocus.getAttribute('href'));
+                replacement?.focus({ preventScroll: true });
+            }
+            if (refreshScroll !== null) window.scrollTo({ top: refreshScroll, behavior: 'instant' });
 
             // Pick up dynamically inserted [data-aos] nodes
             if (window.AOS && typeof AOS.refreshHard === 'function') {
@@ -2006,6 +2045,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             }
         })
         .catch(error => {
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
             athleteResultsReady = false;
             athleteResultsLoadPromise = null;
             const tableBody = document.querySelector('.leaderboard table tbody');
@@ -2860,9 +2900,19 @@ if (initialServerDialog) {
     history.replaceState({ ...history.state, modal: 'details', athlete: initialServerDialog.dataset.athleteSlug }, '', window.location.href);
 }
 
+function adoptSharedCharts(loaded) {
+    const ready = !window.LwcCharts && document.readyState === 'loading'
+        ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
+        : Promise.resolve();
+    return ready.then(() => {
+        if (loaded) window.LwcCharts?.install(window.Chart);
+        return loaded;
+    });
+}
+
 window.ensureChartJs = window.ensureChartJs || function () {
     if (typeof window.Chart === 'function') {
-        return Promise.resolve(true);
+        return adoptSharedCharts(true);
     }
 
     if (window.__chartJsPromise) {
@@ -2884,7 +2934,7 @@ window.ensureChartJs = window.ensureChartJs || function () {
         if (!loaded) {
             window.__chartJsPromise = null;
         }
-        return loaded;
+        return adoptSharedCharts(loaded);
     });
 
     return window.__chartJsPromise;
@@ -6216,6 +6266,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
         if (!badge.matches('a')) {
             badge.removeAttribute('tabindex');
             badge.removeAttribute('aria-label');
+            badge.removeAttribute('role');
+            badge.removeAttribute('aria-haspopup');
             badge.setAttribute('aria-hidden', 'true');
             toggle.appendChild(badge);
         } else wrapper.appendChild(badge);
@@ -6303,8 +6355,9 @@ function setModalBadgeExplainer(shelf, item) {
         // Measure natural rows without the old panel reserving a grid row.
         panel.remove();
         const items = Array.from(shelf.querySelectorAll('.modal-badge-item'));
-        const top = item.getBoundingClientRect().top;
-        const rowEnd = items.filter(other => Math.abs(other.getBoundingClientRect().top - top) < 1).pop() || item;
+        // Hover/mint transforms move painted bounds, not the shelf's grid row.
+        const top = item.offsetTop;
+        const rowEnd = items.filter(other => Math.abs(other.offsetTop - top) < 1).pop() || item;
         rowEnd.after(panel);
         const panelRect = panel.getBoundingClientRect();
         const badgeRect = (item.querySelector('.badge-class') || item).getBoundingClientRect();
@@ -6885,10 +6938,33 @@ function drawResultPlot(state) {
             grid: { color: color('--athlete-modal-chart-grid'), drawTicks: false },
             ticks: { color: muted, padding: 8, font: { family: 'Roboto', size: 11 }, maxRotation: 0 },
             title: { display: true, color: muted, font: { family: 'Roboto', size: 11 } } };
-        const titleLines = text => {
-            const limit = compact() ? 24 : 38;
-            return String(text).match(new RegExp(`.{1,${limit}}(?:\\s|$)|.{1,${limit}}`, 'g'))?.map(line => line.trim()) || [];
+        const wrapPlotText = (text, available, font = '600 12px Roboto') => {
+            // Browser zoom can leave less room than the usual phone layout.
+            // Measure the bold title font (also safely bounds body text) rather
+            // than guessing a character count or reducing readable type.
+            const context = canvas.getContext('2d');
+            context.save();
+            context.font = font;
+            const lines = [];
+            let line = '';
+            for (const word of String(text).split(/\s+/)) {
+                if (line && context.measureText(line + ' ' + word).width > available) {
+                    lines.push(line);
+                    line = '';
+                }
+                for (const character of (line ? ' ' : '') + word) {
+                    if (line && context.measureText(line + character).width > available) {
+                        lines.push(line.trimEnd());
+                        line = '';
+                    }
+                    line += character;
+                }
+            }
+            if (line) lines.push(line);
+            context.restore();
+            return lines;
         };
+        const titleLines = text => wrapPlotText(text, Math.max(1, plot.clientWidth - 32));
         state.chart = new window.Chart(canvas, {
             type: 'scatter', data: { datasets },
             options: {
@@ -6915,7 +6991,8 @@ function drawResultPlot(state) {
                 scales: {
                     x: { ...axis, grid: { display: false },
                         min: low, max: high,
-                        title: { ...axis.title, text: 'Chronological age (years)' },
+                        title: { ...axis.title, text: context => context.chart.width < 180
+                            ? ['Chronological', 'age (years)'] : 'Chronological age (years)' },
                         ticks: { ...axis.ticks, maxTicksLimit: compact() ? 3 : 5 } },
                     y: { ...axis, ...(measure.clock ? clockBounds : { grace: '8%' }), ticks: { ...axis.ticks, maxTicksLimit: 6 },
                         title: { ...axis.title, text: `${measure.name} (${measure.unit})` } }
@@ -7624,6 +7701,20 @@ function updateYourGuess() {
 // Keep the small public surface used by page bootstraps, Guess My Age, and
 // existing browser tests while the controller itself remains isolated.
 window.LoadLeaderboard = LoadLeaderboard;
+window.getLeaderboardPeek = name => {
+    const athlete = athleteResults.find(item => item.name === name);
+    if (!athlete) return null;
+    return Object.freeze({
+        chronologicalAge: athlete.chronologicalAge,
+        lowestBortzAge: athlete.lowestBortzAge,
+        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
+        lowestPhenoAge: athlete.lowestPhenoAge,
+        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        crowdAge: athlete.crowdAge,
+        crowdCount: athlete.crowdCount,
+        placements: athlete.placements
+    });
+};
 window.openEnlargedView = openEnlargedView;
 window.closeEnlargedView = closeEnlargedView;
 window.populateProofsGallery = populateProofsGallery;

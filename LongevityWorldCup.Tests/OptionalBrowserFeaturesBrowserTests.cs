@@ -4,7 +4,7 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.WorkloadB)]
+[Collection(BrowserTestCollections.WorkloadD)]
 public sealed class OptionalBrowserFeaturesBrowserTests(
     PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)

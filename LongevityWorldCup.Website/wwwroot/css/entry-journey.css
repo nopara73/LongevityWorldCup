@@ -9,7 +9,8 @@
         navigation: auto;
     }
 
-    header[role="banner"] {
+    /* A persistent transition name would trap floating PLAY below content. */
+    :root:active-view-transition header[role="banner"] {
         view-transition-name: lwc-site-header;
     }
 

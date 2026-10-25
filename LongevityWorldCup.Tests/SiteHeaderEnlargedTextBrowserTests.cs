@@ -4,7 +4,7 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.WorkloadB)]
+[Collection(BrowserTestCollections.WorkloadD)]
 public sealed class SiteHeaderEnlargedTextBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
@@ -142,7 +142,7 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
                 const elements = [document.body, ...document.body.querySelectorAll('*')]
                     .filter(element => element instanceof HTMLElement);
                 const sizes = elements.map(element => [element, parseFloat(getComputedStyle(element).fontSize)]);
-                const targets = [...document.querySelectorAll('header .bannertext, header .join-game strong, header .join-game-middle, .site-sticky-header-title')];
+                const targets = [...document.querySelectorAll('header .bannertext, .join-game strong, .join-game-middle, .site-sticky-header-title')];
                 const before = targets.map(element => parseFloat(getComputedStyle(element).fontSize));
                 for (const [element, size] of sizes) element.style.setProperty('font-size', `${size * 2}px`, 'important');
                 for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame);
@@ -165,33 +165,21 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
 
     private static async Task NavigateHeaderAsync(IPage page, string path)
     {
-        // Highlights aligns its heading after a delay. Observe that real call:
-        // scrollIntoView can legitimately settle at zero because of scroll padding.
-        if (path == "/events")
-            await page.AddInitScriptAsync(
-                """
-                (() => {
-                    const scrollIntoView = Element.prototype.scrollIntoView;
-                    Element.prototype.scrollIntoView = function (...args) {
-                        const result = scrollIntoView.apply(this, args);
-                        if (this.matches('.event-board-heading')) window.__headerEventBoardScrollObserved = true;
-                        return result;
-                    };
-                })();
-                """);
         await NavigateAndSettleAsync(page, path);
         await page.EvaluateAsync("async () => { await window.modulesReady; await Promise.allSettled([window.getSharedAthletes?.(), window.getSharedEvents?.()]); }");
         if (path == "/events")
-            await page.WaitForFunctionAsync("() => document.getElementById('events-root')?.getAttribute('aria-busy') === 'false' && window.__headerEventBoardScrollObserved === true");
+            await page.WaitForFunctionAsync("() => document.getElementById('events-root')?.getAttribute('aria-busy') === 'false'");
         await WaitForLayoutAsync(page);
         await ScrollToTopAsync(page);
     }
 
     private static async Task ScrollToTopAsync(IPage page)
     {
-        // Highlights deliberately opens below its banner. Inspect the banner
-        // after a real wheel input, and avoid the homepage's programmatic guard.
-        await page.Mouse.WheelAsync(0, -10000);
+        // Real wheel input cancels Highlights' optional opening scroll even when
+        // it has not started, and avoids the homepage's programmatic guard.
+        // scrollY may already be zero before Chromium delivers the wheel event.
+        // Observe that input before measuring, so the opening timer is cancelled.
+        await page.WheelAndWaitForInputAsync(0, -10000);
         await page.WaitForFunctionAsync("() => window.scrollY === 0");
     }
 
@@ -228,8 +216,6 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
                                 if (rect.left < -1 || rect.right > innerWidth + 1 || rect.top < outer.top - 2 || rect.bottom > outer.bottom + 2)
                                     issues.push(`uncontained ${word[0]}`);
                                 for (let ancestor = node.parentElement; ancestor && ancestor !== container.parentElement; ancestor = ancestor.parentElement) {
-                                    // A fixed action escapes the main banner's overflow clip.
-                                    if (sticky && ancestor.matches('header[role=banner]')) break;
                                     const style = getComputedStyle(ancestor), bounds = ancestor.getBoundingClientRect();
                                     if (/hidden|clip|auto|scroll/.test(style.overflowX) && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1))
                                         issues.push(`clipped ${word[0]} by ${ancestor.className || ancestor.tagName}`);
@@ -257,7 +243,7 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
                 for (const target of [link, action].filter(visible)) {
                     const rect = target.getBoundingClientRect();
                     const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
-                    if (!hit || !target.contains(hit)) issues.push('header target obscured');
+                    if (!hit || !target.contains(hit)) issues.push(`header target obscured: ${target.className}, scrollY=${scrollY}, center=${(rect.left + rect.right) / 2},${(rect.top + rect.bottom) / 2}, hit=${hit?.tagName}.${hit?.className}`);
                 }
                 return [...new Set(issues)];
             }

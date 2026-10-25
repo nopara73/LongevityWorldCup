@@ -23,7 +23,7 @@ public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFact
     }
 
     [Fact]
-    public async Task SharedHeaderModals_AvoidNativeDialogTopLayer()
+    public async Task SharedAlertAndLoadingModals_AvoidNativeDialogTopLayer()
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient();
@@ -40,8 +40,11 @@ public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFact
         Assert.Contains("function trapFocusWithin(container, event)", script);
         Assert.Contains("loadingDialog.addEventListener('keydown'", script);
         Assert.DoesNotContain("<dialog", html);
-        Assert.DoesNotContain("showModal", script);
-        Assert.DoesNotContain("::backdrop", await client.GetStringAsync("/css/site-header.css"));
+        Assert.DoesNotContain("customAlertDialog.showModal", script);
+        Assert.DoesNotContain("loadingDialog.showModal", script);
+        var styles = await client.GetStringAsync("/css/site-header.css");
+        Assert.DoesNotContain("#custom-alert::backdrop", styles);
+        Assert.DoesNotContain("#loading-dialog::backdrop", styles);
     }
 
     private static async Task<string> ReadHeaderScriptAsync(HttpClient client)

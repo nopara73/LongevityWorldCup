@@ -10,7 +10,7 @@ namespace LongevityWorldCup.Tests;
 /// bar; the Order composer opens as a strip inside the card; phones lose the
 /// title row; and tablet rows keep the rank column narrow.
 /// </summary>
-[Collection(BrowserTestCollections.WorkloadB)]
+[Collection(BrowserTestCollections.WorkloadD)]
 public sealed class LeaderboardControlBarBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {

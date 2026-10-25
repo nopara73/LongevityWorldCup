@@ -142,6 +142,14 @@
     :root[data-lwc-motion="on"] :is(.leaderboard-order-panel, #detailsModal .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover) {
         transition:
             opacity var(--lwc-motion-base) var(--lwc-ease-enter),
+            scale var(--lwc-motion-base) var(--lwc-ease-enter);
+    }
+
+    /* Only overlays can retain display during exit. In-flow suggestions must
+     * release their space before the next action receives a pointer press. */
+    :root[data-lwc-motion="on"] :is(.leaderboard-order-panel, #detailsModal .athlete-share-menu) {
+        transition:
+            opacity var(--lwc-motion-base) var(--lwc-ease-enter),
             scale var(--lwc-motion-base) var(--lwc-ease-enter),
             display var(--lwc-motion-base) allow-discrete;
     }

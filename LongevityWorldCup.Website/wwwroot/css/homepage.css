@@ -2426,3 +2426,242 @@ html body:has(> main.homepage-main > .homepage-panel-pair:last-child) > .footer 
         border-top: 1px solid var(--lwc-border);
     }
 }
+
+/* ===== Living scoreboard =====
+   The home page behaves like a scoreboard from its first second. Figures
+   count up and land, the preview rows fade in rank order (homepage.js),
+   the page keeps a thin progress rail while the story below the board
+   reveals itself on scroll, and calls to action answer the pointer. Motion
+   uses the shared tokens; reduced motion keeps every state, only still. */
+
+/* Figures never shift their neighbours while they tick. */
+html body main.homepage-main .podium-score .age-reduction,
+html body main.homepage-main #athleteLeaderboard .age-reduction-td .age-reduction,
+html body main.homepage-main .archive-table .age-reduction,
+html body main.homepage-main .btc-status-value {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Pop the existing score box without changing its display or line breaks. */
+    html body main.homepage-main .podium-item.is-landed .podium-score .age-reduction {
+        animation: home-figure-land var(--lwc-motion-slow) var(--lwc-ease-pop) both;
+    }
+
+    html body main.homepage-main .podium-item.first.is-landed .podium-portrait {
+        animation: home-champion-ring 900ms var(--lwc-ease-enter) both;
+    }
+
+    html body main.homepage-main #athleteLeaderboard tr.is-landed .age-reduction-td .age-reduction {
+        animation: home-figure-land var(--lwc-motion-base) var(--lwc-ease-pop) both;
+    }
+
+    /* Preserve the actual score for reading, copying and assistive technology.
+       Only the decorative overlay counts; its width cannot move neighbours. */
+    html body main.homepage-main [data-home-count] {
+        position: relative;
+        color: transparent !important;
+    }
+
+    html body main.homepage-main [data-home-count]::after {
+        content: attr(data-home-count) / "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        min-width: 100%;
+        color: var(--home-count-color);
+        white-space: nowrap;
+        pointer-events: none;
+    }
+
+    @keyframes home-figure-land {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes home-champion-ring {
+        0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-gold, #f3c623) 70%, transparent); }
+        100% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--lwc-gold, #f3c623) 0%, transparent); }
+    }
+
+    /* ---- Calls to action answer hover and press ---- */
+    html body main.homepage-main .rankings-btn {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        transition:
+            background-color var(--lwc-motion-fast) var(--lwc-ease-standard),
+            box-shadow var(--lwc-motion-base) var(--lwc-ease-standard),
+            translate var(--lwc-motion-base) var(--lwc-ease-standard),
+            scale var(--lwc-motion-press) var(--lwc-ease-standard);
+    }
+
+    /* A light sweep crosses the button once per hover. */
+    html body main.homepage-main .rankings-btn::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.26) 50%, transparent 70%);
+        translate: -110% 0;
+        pointer-events: none;
+    }
+
+    html body main.homepage-main .full-rankings-action {
+        transition: background-color var(--lwc-motion-base) var(--lwc-ease-standard);
+    }
+
+    @media (hover: hover) {
+        html body main.homepage-main .rankings-btn:hover {
+            translate: 0 -2px;
+            box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--lwc-accent) 80%, transparent);
+        }
+
+        html body main.homepage-main .rankings-btn:hover::after {
+            translate: 110% 0;
+            transition: translate 700ms var(--lwc-ease-standard);
+        }
+
+        /* Hovering the way out lifts the board's foot with it. */
+        html body main.homepage-main .full-rankings-action:has(.rankings-btn:hover) {
+            background: color-mix(in srgb, var(--lwc-accent) 7%, var(--lwc-surface-muted));
+        }
+
+        html body main.homepage-main .podium-item:not(.podium-skeleton-item) .podium-portrait {
+            transition: translate var(--lwc-motion-base) var(--lwc-ease-standard), box-shadow var(--lwc-motion-base) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .podium-item:not(.podium-skeleton-item):hover .podium-portrait {
+            translate: 0 -4px;
+            box-shadow: 0 14px 24px -14px rgb(0 0 0 / 0.45);
+        }
+
+        html body main.homepage-main .homepage-faq-item:nth-child(n) {
+            transition: translate var(--lwc-motion-base) var(--lwc-ease-standard), box-shadow var(--lwc-motion-base) var(--lwc-ease-standard), border-color var(--lwc-motion-fast) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .homepage-faq-item:nth-child(n):hover {
+            translate: 0 -2px;
+            border-color: color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border));
+            box-shadow: inset 4px 0 0 var(--lwc-accent), var(--lwc-shadow-sm);
+        }
+
+        html body main.homepage-main .homepage-section-footer a .fa-arrow-right {
+            transition: translate var(--lwc-motion-base) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .homepage-section-footer a:hover .fa-arrow-right {
+            translate: 4px 0;
+        }
+
+        html body main.homepage-main .lwc-merch-item .lwc-merch-thumb {
+            transition: scale var(--lwc-motion-move) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .lwc-merch-item:hover .lwc-merch-thumb {
+            scale: 1.04;
+        }
+
+        html body main.homepage-main .archive-table tbody td {
+            transition: background-color var(--lwc-motion-fast) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .archive-table tbody td:hover {
+            background-color: color-mix(in srgb, var(--lwc-accent) 8%, transparent);
+        }
+
+        html body main.homepage-main .enhanced-subscribe-btn:not(:disabled):hover {
+            translate: 0 -2px;
+            box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--lwc-accent) 80%, transparent);
+        }
+
+        html body main.homepage-main .enhanced-subscribe-btn:not(:disabled):hover .fa-paper-plane {
+            translate: 3px -2px;
+            rotate: -10deg;
+        }
+    }
+
+    html body main.homepage-main .enhanced-subscribe-btn {
+        transition:
+            background-color var(--lwc-motion-fast) var(--lwc-ease-standard),
+            box-shadow var(--lwc-motion-base) var(--lwc-ease-standard),
+            translate var(--lwc-motion-base) var(--lwc-ease-standard),
+            scale var(--lwc-motion-press) var(--lwc-ease-standard);
+    }
+
+    html body main.homepage-main .enhanced-subscribe-btn .fa-paper-plane {
+        transition: translate var(--lwc-motion-base) var(--lwc-ease-pop), rotate var(--lwc-motion-base) var(--lwc-ease-pop);
+    }
+
+    /* Press: the button gives way and its shadow collapses under the finger. */
+    html body main.homepage-main :is(.rankings-btn, .enhanced-subscribe-btn):not(:disabled):active {
+        translate: 0 0;
+        scale: var(--lwc-motion-press-scale);
+        box-shadow: none;
+        transition-duration: var(--lwc-motion-press);
+    }
+
+    html body main.homepage-main .enhanced-subscribe-btn:not(:disabled):active .fa-paper-plane {
+        translate: 2px -5px;
+        rotate: -16deg;
+    }
+}
+
+/* ---- Scroll-driven storytelling ---- */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+        /* A thin rail under the header reports how far down the story you are. */
+        html body main.homepage-main.home-scoreboard-live::after {
+            content: "";
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 1001;
+            height: 3px;
+            background: linear-gradient(90deg, var(--lwc-accent), var(--lwc-accent-hover));
+            transform-origin: 0 50%;
+            pointer-events: none;
+            animation: home-story-progress linear both;
+            animation-timeline: scroll(root block);
+        }
+
+        /* Draw accents without moving the sections and their click targets. */
+        html body main.homepage-main.home-scoreboard-live .section-container > h2 {
+            position: relative;
+        }
+
+        html body main.homepage-main.home-scoreboard-live .section-container > h2::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 -1px;
+            height: 2px;
+            background: var(--lwc-accent);
+            transform-origin: 0 50%;
+            animation: home-title-draw linear both;
+            animation-timeline: view();
+            animation-range: entry 20% cover 35%;
+        }
+
+        /* The prize pool fills as it comes into view. */
+        html body main.homepage-main.home-scoreboard-live .btc-status-fill {
+            transform-origin: 0 50%;
+            animation: home-pool-fill linear both;
+            animation-timeline: view();
+            animation-range: entry 30% cover 45%;
+        }
+    }
+
+    @keyframes home-story-progress {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+    }
+
+    @keyframes home-title-draw {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+    }
+
+    @keyframes home-pool-fill {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+    }
+}

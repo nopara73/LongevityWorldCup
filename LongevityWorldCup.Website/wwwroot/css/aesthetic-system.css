@@ -2401,3 +2401,34 @@ html.lwc-media-fade img[data-lwc-media="ready"] {
         opacity: 1;
     }
 }
+
+/* ===== Home board → full leaderboard =====
+   Arriving from the home page, the board stays on screen and grows into its
+   place on the full leaderboard while the rest of the page cross-fades.
+   The home page names its copies only for this navigation (homepage.js). */
+@media (prefers-reduced-motion: no-preference) {
+    ::view-transition-group(lwc-board) {
+        animation-duration: var(--lwc-motion-move, 260ms);
+        animation-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    }
+
+    /* The board unfolds downward from its top edge instead of stretching. */
+    ::view-transition-group(lwc-board) {
+        overflow: clip;
+    }
+
+    ::view-transition-old(lwc-board),
+    ::view-transition-new(lwc-board) {
+        height: auto;
+        object-fit: none;
+        object-position: 50% 0;
+    }
+
+    ::view-transition-old(lwc-board) {
+        animation: lwc-page-leave var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in) both;
+    }
+
+    ::view-transition-new(lwc-board) {
+        animation: lwc-content-arrive var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out) both;
+    }
+}

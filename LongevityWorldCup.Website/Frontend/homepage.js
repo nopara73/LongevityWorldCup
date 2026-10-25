@@ -779,3 +779,211 @@ window.getSharedPrizeFund()
 
 window.addEventListener('DOMContentLoaded', adjustBitcoinAddressDisplay);
 window.addEventListener('resize', adjustBitcoinAddressDisplay);
+
+// ===== Living scoreboard =====
+// A fresh visit plays the standings like a scoreboard lighting up: podium
+// years count up to their totals, then the preview rows settle in canonical
+// rank order as the board scrolls into view. A press or key finishes everything at
+// once, so motion never stands between the visitor and a click. Restored,
+// linked, and reduced-motion visits stay still.
+(function () {
+    const main = document.querySelector('main.homepage-main');
+    if (!main) return;
+    const root = document.documentElement;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const navigation = performance.getEntriesByType('navigation')[0];
+    const query = new URLSearchParams(location.search);
+    let cancelled = reduce.matches
+        || !!location.hash
+        || (navigation && navigation.type === 'back_forward')
+        || ['athlete', 'filters', 'search', 'view'].some(key => query.has(key))
+        || document.visibilityState === 'hidden'
+        || !Element.prototype.animate;
+    const allowBoardTransition = !cancelled;
+
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+    const running = new Set();
+    const counted = new WeakSet();
+    const settleAnimations = [];
+    const cleanup = [];
+    const board = main.querySelector('#athleteLeaderboard');
+    const canRun = () => !cancelled && !reduce.matches && !document.hidden && !location.hash;
+
+    function parseYears(text) {
+        const match = /\d+(?:\.\d+)?/.exec(text);
+        if (!match) return null;
+        const value = parseFloat(match[0]);
+        if (!(value > 0)) return null;
+        return {
+            value,
+            decimals: (match[0].split('.')[1] || '').length,
+            before: text.slice(0, match.index),
+            after: text.slice(match.index + match[0].length)
+        };
+    }
+
+    // Counts one figure up. The clock starts on the first frame that actually
+    // paints, so a busy main thread cannot swallow the count; a card replaced
+    // during hydration continues from the value its predecessor showed.
+    const shown = new Map();
+    function countUp(element, delay, duration, key) {
+        if (!canRun() || counted.has(element) || !CSS.supports('content', 'attr(data-home-count) / ""')) return;
+        counted.add(element);
+        const finalText = element.textContent;
+        const parsed = parseYears(finalText);
+        if (!parsed) return;
+        const from = key && shown.has(key) ? Math.min(shown.get(key), parsed.value) : 0;
+        if (key && shown.has(key)) delay = 0;
+        let start = null;
+        let frameId = 0;
+        let timer = 0;
+        let textObserver;
+        const track = {};
+        const write = value => {
+            if (key) shown.set(key, value);
+            element.dataset.homeCount = parsed.before + value.toFixed(parsed.decimals) + parsed.after;
+        };
+        const stop = () => {
+            running.delete(track);
+            cancelAnimationFrame(frameId);
+            clearTimeout(timer);
+            textObserver?.disconnect();
+            delete element.dataset.homeCount;
+            element.style.removeProperty('--home-count-color');
+            element.classList.remove('is-counting');
+        };
+        track.finish = () => {
+            stop();
+            if (key) shown.set(key, parsed.value);
+            const host = element.closest('.podium-item, tr');
+            if (canRun() && host && element.isConnected && element.textContent === finalText) host.classList.add('is-landed');
+        };
+        running.add(track);
+        textObserver = new MutationObserver(() => {
+            if (element.textContent !== finalText) stop();
+        });
+        textObserver.observe(element, { childList: true, characterData: true, subtree: true });
+        element.style.setProperty('--home-count-color', element.style.getPropertyValue('--home-count-color') || getComputedStyle(element).color);
+        element.classList.add('is-counting');
+        const frame = now => {
+            if (!running.has(track)) return;
+            // Someone else (a ranking refresh) rewrote the figure: theirs wins.
+            if (!canRun() || !element.isConnected || element.textContent !== finalText) { stop(); return; }
+            if (start === null) start = now;
+            const progress = Math.min(1, Math.max(0, (now - start - delay) / duration));
+            write(from + (parsed.value - from) * easeOut(progress));
+            if (progress >= 1) track.finish(); else frameId = requestAnimationFrame(frame);
+        };
+        write(from);
+        frameId = requestAnimationFrame(frame);
+        // Frames pause in background tabs; the figure must still end correct.
+        timer = setTimeout(() => { if (running.has(track)) track.finish(); }, delay + duration + 2500);
+    }
+
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') finishAll(); });
+
+    function finishAll() {
+        cancelled = true;
+        main.classList.remove('home-scoreboard-live');
+        cleanup.splice(0).forEach(stop => stop());
+        [...running].forEach(track => track.finish());
+        settleAnimations.splice(0).forEach(animation => animation.cancel());
+        board?.classList.remove('home-board-settling');
+        main.querySelectorAll('.is-landed').forEach(element => element.classList.remove('is-landed'));
+    }
+
+    const realRows = () => [...main.querySelectorAll('#athleteLeaderboard tbody tr')]
+        .filter(row => !row.matches('.tier-separator, .no-results, .leaderboard-skeleton-row') && row.getClientRects().length);
+
+    // Fade rows in canonical order without moving their hitboxes. Cancelling
+    // on pointer-down must not move a link away before pointer-up can click it.
+    function settleBoard() {
+        if (!canRun()) return false;
+        const rows = realRows().slice(0, 12);
+        if (rows.length < 3) return false;
+        const easing = getComputedStyle(root).getPropertyValue('--lwc-ease-standard').trim() || 'cubic-bezier(0.2, 0, 0, 1)';
+        const board = main.querySelector('#athleteLeaderboard');
+        board.classList.add('home-board-settling');
+        try { rows.forEach((row, index) => {
+            const delay = index * 45;
+            const animation = row.animate([
+                { opacity: 0.65 },
+                { opacity: 1 }
+            ], { duration: 560, delay, easing, fill: 'backwards' });
+            animation.id = 'home-board-settle';
+            settleAnimations.push(animation);
+            const figure = row.querySelector('.age-reduction-td .age-reduction');
+            if (figure) countUp(figure, delay + 140, 640);
+        }); } catch (_) { finishAll(); return true; }
+        Promise.all(settleAnimations.map(animation => animation.finished.catch(() => {})))
+            .then(() => board.classList.remove('home-board-settling'));
+        return true;
+    }
+
+    if (!cancelled) {
+        main.classList.add('home-scoreboard-live');
+        const podiumDelay = { first: 120, second: 240, third: 360 };
+        const countPodium = () => main.querySelectorAll('.podium-item:not(.podium-skeleton-item)').forEach(item => {
+            const figure = item.querySelector('.podium-score .age-reduction');
+            const place = ['first', 'second', 'third'].find(name => item.classList.contains(name)) || 'third';
+            const identity = item.querySelector('a.athlete-name')?.getAttribute('href');
+            if (figure) countUp(figure, podiumDelay[place], 1100, identity ? `${identity}:${figure.textContent}` : null);
+        });
+        countPodium();
+        // Wait for the actual leaderboard-ready signal, not a hydration timer.
+        let boardCheck = () => {};
+        const podium = main.querySelector('.podium');
+        if (podium) {
+            const podiumObserver = new MutationObserver(() => { if (canRun()) countPodium(); });
+            podiumObserver.observe(podium, { childList: true });
+            cleanup.push(() => podiumObserver.disconnect());
+        }
+
+        const board = main.querySelector('#athleteLeaderboard');
+        if (board && 'IntersectionObserver' in window) {
+            let boardDone = false;
+            const stopWatching = () => { boardDone = true; boardObserver.disconnect(); rowObserver.disconnect(); };
+            const boardObserver = new IntersectionObserver(entries => {
+                if (!canRun() || boardDone || document.getElementById('leaderboardStatus')?.textContent !== 'Leaderboard loaded.'
+                    || !entries.some(entry => entry.isIntersecting)) return;
+                if (settleBoard()) stopWatching();
+            }, { threshold: 0.2 });
+            boardCheck = () => { if (!canRun() || boardDone) return; boardObserver.unobserve(board); boardObserver.observe(board); };
+            // Rows may arrive while the board is already on screen.
+            const rowObserver = new MutationObserver(() => boardCheck());
+            boardObserver.observe(board);
+            rowObserver.observe(board, { childList: true, subtree: true });
+            const status = document.getElementById('leaderboardStatus');
+            if (status) rowObserver.observe(status, { childList: true, subtree: true });
+            cleanup.push(stopWatching);
+        }
+
+        ['pointerdown', 'keydown', 'focusin', 'hashchange', 'popstate', 'pagehide'].forEach(name => {
+            window.addEventListener(name, finishAll, { capture: true, passive: true });
+            cleanup.push(() => window.removeEventListener(name, finishAll, true));
+        });
+        reduce.addEventListener('change', finishAll);
+        cleanup.push(() => reduce.removeEventListener('change', finishAll));
+    }
+
+    // The board carries over to the full leaderboard: it stays on screen and
+    // grows into its place on the next page instead of cutting away.
+    window.addEventListener('pageswap', event => {
+        finishAll();
+        const url = event.activation && event.activation.entry && event.activation.entry.url;
+        if (!allowBoardTransition || reduce.matches || location.hash || event.activation?.navigationType === 'traverse'
+            || !event.viewTransition || !url) return;
+        const destination = new URL(url);
+        if (destination.origin !== location.origin || destination.search || destination.hash || !/^\/leaderboard\/?$/i.test(destination.pathname)) return;
+        const named = [];
+        [['#athleteLeaderboard', 'lwc-board']].forEach(([selector, name]) => {
+            const element = main.querySelector(selector);
+            const box = element && element.getBoundingClientRect();
+            if (!box || box.bottom < 0 || box.top > innerHeight) return;
+            element.style.viewTransitionName = name;
+            named.push(element);
+        });
+        const clearNames = () => named.forEach(element => { element.style.viewTransitionName = ''; });
+        event.viewTransition.finished.then(clearNames, clearNames);
+    });
+})();

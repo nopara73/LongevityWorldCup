@@ -1,0 +1,205 @@
+/*
+ * The full leaderboard, worked by hand (leaderboard-feel.js).
+ *
+ * Every rule is scoped to main[data-leaderboard-page="full"] or to the layers
+ * the script appends, so the homepage embed and the athlete dialog are
+ * untouched. Colours come only from --lwc-* tokens. Movement stays between
+ * 140ms and 280ms on the shared motion curves and is switched off entirely by
+ * prefers-reduced-motion; the static states (condensed head, ink bar, peek,
+ * rail) still apply without it.
+ */
+
+main[data-leaderboard-page="full"] #athleteLeaderboard{ position:relative; }
+
+/* 1) Column heads condense once they stick under the site header. */
+main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th{
+    transition-property:height, padding, font-size, letter-spacing, background-color, box-shadow;
+}
+@media (min-width:769px){
+    main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"]{ --board-head-height:48px; }
+}
+@media (min-width:481px){
+    html body main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > table > thead th{
+        vertical-align:middle;
+        box-shadow:inset 0 -1px 0 var(--lwc-border), 0 10px 18px -16px color-mix(in srgb, var(--lwc-ink) 60%, transparent);
+    }
+}
+@media (max-width:480px){
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead{ transition:box-shadow var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease); }
+    main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > table > thead{
+        box-shadow:inset 0 -1px 0 var(--lwc-border), 0 10px 18px -16px color-mix(in srgb, var(--lwc-ink) 60%, transparent);
+    }
+}
+/* The sponsor note folds away while condensed; the column keeps its name. */
+main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead .sponsor-coming-soon{
+    display:block; overflow:hidden; max-height:2.5em; opacity:1;
+    transition:max-height var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease), opacity var(--lwc-motion-fast, 140ms) linear;
+}
+main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > table > thead .sponsor-coming-soon{ min-height:0; max-height:0; opacity:0; visibility:hidden; }
+main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > table > thead br{ display:none; }
+
+/* Progress hairline under the stuck heads: how far through the board you are. */
+.lb-head-progress{
+    position:fixed; z-index:3; height:2px; pointer-events:none;
+    background:var(--lwc-accent); transform-origin:left center;
+    transform:scaleX(var(--lb-progress, 0)); opacity:0;
+    transition:opacity var(--lwc-motion-fast, 140ms) linear;
+}
+main[data-leaderboard-page="full"] #athleteLeaderboard[data-head-stuck="true"] > .lb-head-progress{ opacity:.85; }
+main[data-leaderboard-page="full"] #athleteLeaderboard.leaderboard--flags > .lb-head-progress{ display:none; }
+
+/* 2) The ordered column: an underline that glides between columns and an
+      arrow that turns over on a spring instead of snapping. */
+main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-key]::after{
+    content:""; position:absolute; left:var(--lwc-space-2); right:var(--lwc-space-2); bottom:0; height:3px;
+    border-radius:3px 3px 0 0; background:var(--lwc-accent);
+    transform:scaleX(0); transform-origin:center; pointer-events:none;
+}
+main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-level="1"]::after{ transform:none; }
+main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-level="2"]::after{ transform:none; opacity:.35; }
+main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-level]:not([data-order-level=""]) .order-heading-label{ color:var(--lwc-accent); }
+@media (max-width:480px){
+    /* The phone sticks the head group; keep its table cells static. */
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-key]::after{ display:none; }
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-level="1"] > button{ box-shadow:inset 0 -3px var(--lwc-accent); }
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-level="2"] > button{ box-shadow:inset 0 -3px color-mix(in srgb, var(--lwc-accent) 35%, transparent); }
+}
+
+/* 3) Ranking tabs: one ink bar replaces the per-tab underline. */
+main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-switcher-chips.has-ink{ position:relative; }
+html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-switcher-chips.has-ink input[name="leaderboardView"]:checked + .view-badge{
+    box-shadow:inset 0 -3px 0 transparent;
+}
+.lb-tab-ink{
+    position:absolute; left:0; top:0; height:3px; border-radius:3px 3px 0 0;
+    background:var(--lwc-accent); pointer-events:none; opacity:0;
+}
+
+/* 5) Peek: the athlete's key numbers beside a resting pointer. */
+.lb-peek{
+    position:fixed; z-index:40; width:min(16.5rem, calc(100vw - 24px)); box-sizing:border-box;
+    display:grid; gap:var(--lwc-space-2); padding:var(--lwc-space-3) var(--lwc-space-4);
+    background:var(--lwc-surface); color:var(--lwc-ink);
+    border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-md, 10px);
+    box-shadow:var(--lwc-shadow-md);
+    max-height:calc(100dvh - 16px); overflow:auto; overscroll-behavior:contain;
+    font-variant-numeric:tabular-nums;
+}
+.lb-peek[hidden]{ display:none; }
+.lb-peek-top{ display:flex; align-items:center; gap:var(--lwc-space-3); min-width:0; }
+.lb-peek-top > img{ width:44px; height:44px; border-radius:50%; object-fit:cover; flex:none; box-shadow:0 0 0 2px var(--lwc-surface), 0 0 0 3px var(--lwc-border); }
+.lb-peek-id{ display:grid; min-width:0; line-height:1.2; }
+.lb-peek-rank{ color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; }
+.lb-peek-rank::before{ content:"#"; }
+.lb-peek-name{ font-weight:700; overflow-wrap:anywhere; }
+.lb-peek-metric{
+    font-size:1.5rem; font-weight:800; line-height:1.25; letter-spacing:-.01em; color:var(--lwc-accent); overflow-wrap:anywhere;
+    padding-bottom:var(--lwc-space-2); border-bottom:1px solid var(--lwc-border);
+}
+.lb-peek-facts{ display:flex; flex-wrap:wrap; gap:var(--lwc-space-2) var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
+.lb-peek-facts > span{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:.4em; }
+.lb-peek-facts i{ font-size:.8em; opacity:.8; }
+.lb-peek-age{ color:var(--lwc-ink); font-weight:700; }
+.lb-peek-age.is-bio{ color:var(--lwc-accent); }
+.lb-peek-spark{ width:100%; height:32px; overflow:visible; }
+.lb-peek-spark polyline{ fill:none; stroke:var(--lwc-accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; opacity:.75; }
+.lb-peek-spark circle{ fill:var(--lwc-accent); stroke:var(--lwc-surface); stroke-width:1.5; }
+
+/* Rows: a pointer brings an accent edge forward; a press gives way. */
+@media (hover:hover) and (pointer:fine){
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name] > td:first-child{
+        box-shadow:inset 0 0 0 transparent;
+        transition-property:background-color, box-shadow;
+    }
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]:hover > td:first-child{
+        box-shadow:inset 3px 0 0 var(--lwc-accent);
+    }
+}
+main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name] :is(.portrait, .rank){
+    transition:scale var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease), translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+}
+
+/* 4) Leaving rows: inert copies that fade where the row stood. */
+.lb-ghosts{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:1; }
+.lb-ghosts > .lb-ghost{ position:absolute; margin:0; border-collapse:collapse; table-layout:fixed; }
+
+/* 6) Phone rank rail: rank anchors along the edge, with a thumb that shows
+      the rank under the column heads. Only numbers, no new words. */
+.lb-rail{
+    position:fixed; z-index:3; right:4px; top:calc(var(--site-sticky-height, 52px) + 88px); bottom:48px; width:44px;
+    opacity:0; visibility:hidden; touch-action:none; user-select:none; -webkit-user-select:none;
+    transition:opacity var(--lwc-motion-base, 200ms) linear, visibility 0s linear var(--lwc-motion-base, 200ms);
+}
+.lb-rail.is-visible{ opacity:1; visibility:visible; transition-delay:0s; }
+.lb-rail-track{ position:absolute; inset:12px 0; }
+.lb-rail-track::before{ content:""; position:absolute; top:0; bottom:0; right:8px; width:3px; border-radius:3px; background:var(--lwc-border); }
+.lb-rail-tick{
+    position:absolute; right:0; translate:0 -50%; min-width:44px; min-height:44px; margin:0; padding:0 2px;
+    border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-pill, 999px); background:var(--lwc-surface); color:var(--lwc-ink);
+    font-family:inherit; font-size:.75rem; font-weight:700; line-height:1.2; font-variant-numeric:tabular-nums; white-space:nowrap; cursor:pointer;
+    opacity:1;
+}
+.lb-rail.is-scrubbing .lb-rail-tick, .lb-rail-tick.is-section{ opacity:1; }
+.lb-rail.is-scrubbing .lb-rail-tick:not(.is-section){
+    padding:3px 6px; border-radius:var(--lwc-radius-pill, 999px);
+    background:var(--lwc-surface); box-shadow:var(--lwc-shadow-sm); color:var(--lwc-ink);
+}
+.lb-rail-tick::after{ content:""; position:absolute; right:-7px; top:50%; width:5px; height:1px; background:var(--lwc-border-strong, var(--lwc-border)); }
+.lb-rail-tick.is-section{ background:transparent; border:0; }
+.lb-rail-tick.is-section::before{ content:""; display:block; width:9px; height:9px; margin:auto; border-radius:50%; background:var(--lwc-surface); box-shadow:inset 0 0 0 2px var(--lwc-accent); }
+.lb-rail-tick.is-section::after{ content:none; }
+.lb-rail-thumb{
+    position:absolute; pointer-events:none; right:2px; translate:0 -50%;
+    min-width:28px; padding:4px 7px; box-sizing:border-box; border-radius:var(--lwc-radius-pill, 999px);
+    background:var(--lwc-accent); color:var(--lwc-on-accent); text-align:center;
+    font-size:.75rem; font-weight:800; line-height:1.2; font-variant-numeric:tabular-nums;
+    box-shadow:var(--lwc-shadow-sm);
+}
+.lb-rail.is-scrubbing .lb-rail-thumb{ scale:1.08; }
+@media (min-width:769px){ .lb-rail{ display:none; } }
+
+/* Phones: rank anchors land under the column heads, not behind them. */
+@media (max-width:768px){
+    main[data-leaderboard-page="full"] #athleteLeaderboard.has-rank-rail > table{ flex:0 1 calc(100% - 48px); width:calc(100% - 48px); max-width:calc(100% - 48px); }
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]{
+        scroll-margin-top:calc(var(--board-sticky-top, 52px) + var(--board-head-height, 52px) + 8px);
+    }
+    .lb-peek{ display:none; }
+}
+
+/* 7) By Flag crossfade (view transitions). */
+main[data-leaderboard-page="full"] #athleteLeaderboard.lb-crossfade{ view-transition-name:lb-board; }
+::view-transition-group(lb-board){ animation-duration:var(--lwc-motion-move, 260ms); animation-timing-function:var(--lwc-ease-standard, ease); }
+::view-transition-old(lb-board){ animation:lb-board-out var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in) both; }
+::view-transition-new(lb-board){ animation:lb-board-in var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out) both; }
+@keyframes lb-board-out{ to{ opacity:0; scale:.99; } }
+@keyframes lb-board-in{ from{ opacity:0; translate:0 8px; } }
+
+@media (prefers-reduced-motion:no-preference){
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th{
+        transition-duration:var(--lwc-motion-base, 200ms);
+        transition-timing-function:var(--lwc-ease-standard, ease);
+    }
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th[data-order-key]::after{
+        transition:transform var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease), opacity var(--lwc-motion-fast, 140ms) linear;
+    }
+    /* The arrow turns over on the pop curve when the direction flips. */
+    main[data-leaderboard-page="full"] #athleteLeaderboard .order-indicator svg{
+        transition:transform var(--lwc-motion-slow, 280ms) var(--lwc-ease-pop, ease);
+    }
+    .lb-tab-ink.is-gliding{
+        transition:transform var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease), width var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease), opacity var(--lwc-motion-fast, 140ms) linear;
+    }
+    .lb-rail-thumb{ transition:scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease); }
+    main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]:active{ scale:.992; }
+}
+@media (prefers-reduced-motion:reduce){
+    ::view-transition-group(lb-board), ::view-transition-old(lb-board), ::view-transition-new(lb-board){ animation:none !important; }
+}
+html:not([data-lwc-motion="on"]) :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg),
+html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard th::after{ transition:none !important; }
+@media (prefers-reduced-motion:reduce){
+    :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+    main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg){ transition:none !important; }
+}

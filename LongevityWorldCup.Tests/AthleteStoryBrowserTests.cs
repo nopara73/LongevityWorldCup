@@ -122,7 +122,7 @@ public sealed class AthleteStoryBrowserTests(
                         selected: [...document.querySelectorAll('.age-story-timeline-dot')].findIndex(dot => dot.classList.contains('is-selected'))
                     })
                     """);
-                var diff = double.Parse(reading.GetProperty("text").GetString()!.Split(' ')[0], System.Globalization.CultureInfo.InvariantCulture);
+                var diff = double.Parse(reading.GetProperty("text").GetString()!.Split(' ')[0].Replace('−', '-'), System.Globalization.CultureInfo.InvariantCulture);
                 Assert.Equal(Math.Clamp(diff / 20, -1, 1), reading.GetProperty("ratio").GetDouble(), 5);
                 Assert.Equal(clock.ToLowerInvariant(), reading.GetProperty("clock").GetString());
                 Assert.Equal(index, reading.GetProperty("selected").GetInt32());

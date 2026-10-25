@@ -31,7 +31,7 @@ internal static class ReadingFeel
            accent as the document is read. Phones show it on the contents bar. */
         .documentation-progress {
             position: fixed;
-            top: var(--site-sticky-height, 0px);
+            top: var(--site-visible-sticky-height, 0px);
             right: 0;
             left: 0;
             z-index: 40;
@@ -39,7 +39,7 @@ internal static class ReadingFeel
             background: color-mix(in srgb, var(--lwc-border) 55%, transparent);
             opacity: 0;
             pointer-events: none;
-            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), top var(--lwc-motion-move, 260ms) var(--lwc-ease, ease);
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
         }
 
         .documentation-progress::before {
