@@ -770,10 +770,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var state = AdviceBrowserState(1);
         var refreshed = AdviceBrowserState(2);
         JsonNode? edited = null;
+        var saveStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSave = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/longevitymaxxing/discussion/replies", route => FulfillJsonAsync(route, refreshed.ToJsonString()));
         await context.RouteAsync("**/api/longevitymaxxing/advice/edit", async route =>
         {
             edited = JsonNode.Parse(route.Request.PostData!);
+            saveStarted.TrySetResult();
+            await releaseSave.Task;
             foreach (var collection in new[] { refreshed["notes"]!, refreshed["public"]!["notes"]! })
                 collection[0]!["advice"]!["story"] = edited!["story"]!.GetValue<string>();
             await FulfillJsonAsync(route, refreshed.ToJsonString());
@@ -787,7 +791,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxNotes [data-reply-submit]").ClickAsync();
         await Assertions.Expect(storyEditor.Locator("textarea")).ToHaveValueAsync("An unfinished clarification that must survive the handoff.");
         await storyEditor.Locator("[type=submit]").ClickAsync();
+        await saveStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        try
+        {
+            var save = storyEditor.Locator("[type=submit]");
+            await Assertions.Expect(save).ToHaveAttributeAsync("aria-busy", "true");
+            await Assertions.Expect(save).ToHaveAttributeAsync("data-lwc-wait", new System.Text.RegularExpressions.Regex("^(pending|shown)$"));
+            await Assertions.Expect(save).ToBeDisabledAsync();
+            await Assertions.Expect(save).ToHaveTextAsync("Save story");
+            await Assertions.Expect(storyEditor.Locator("textarea")).ToBeEditableAsync();
+            await Assertions.Expect(storyEditor.Locator("button[type=button]")).ToBeEnabledAsync();
+        }
+        finally { releaseSave.TrySetResult(); }
         await Assertions.Expect(storyEditor).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator(".lwc-wait-status")).ToHaveCountAsync(0);
         Assert.Equal(4, edited!["version"]!.GetValue<int>());
         await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync("An unfinished clarification that must survive the handoff.");
     }
