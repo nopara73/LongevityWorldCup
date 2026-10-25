@@ -18,23 +18,24 @@ public sealed class EntryJourneyBrowserTests(
     private const string RecordPageReveal = """
         window.__lwcReveal = null;
         window.addEventListener('pagereveal', event => {
-            window.__lwcReveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
+            const reveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
+            window.__lwcReveal = reveal;
             if (event.viewTransition) {
                 // pagereveal can precede parsing the banner on a streamed document.
                 const parsed = document.readyState === 'loading'
                     ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
                     : Promise.resolve();
                 Promise.all([event.viewTransition.ready, parsed]).then(() => {
-                    window.__lwcReveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
-                    window.__lwcReveal.animations = document.getAnimations()
+                    reveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
+                    reveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
                     // Publish readiness only after the complete snapshot is available.
-                    window.__lwcReveal.recorded = true;
+                    reveal.recorded = true;
                 }).catch(error => {
-                    window.__lwcReveal.skipped = String(error);
-                    window.__lwcReveal.animations = [];
-                    window.__lwcReveal.recorded = true;
+                    reveal.skipped = String(error);
+                    reveal.animations = [];
+                    reveal.recorded = true;
                 });
             }
         });
