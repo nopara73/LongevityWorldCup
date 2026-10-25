@@ -70,13 +70,50 @@ public sealed class PortraitSystemBrowserTests(
         await Assertions.Expect(image).ToHaveAttributeAsync("data-lwc-portrait-state", "ready");
         var halo = await image.EvaluateAsync<string>("image => getComputedStyle(image).filter");
         Assert.Contains("drop-shadow(", halo);
-        var developing = await image.EvaluateAsync<string>("""
-            image => {
+        var developing = await image.EvaluateAsync<string[]>("""
+            async image => {
+                // Interpolation can serialize an unchanged sRGB shadow as oklab.
+                // Compare its rendered sRGB color and complete shadow geometry.
+                const canvas = document.createElement('canvas');
+                canvas.width = canvas.height = 1;
+                const context = canvas.getContext('2d');
+                const normalize = filter => filter.replace(/(?:color|oklab|oklch|rgba?|lab|lch)\([^)]*\)/g, color => {
+                    context.clearRect(0, 0, 1, 1);
+                    context.fillStyle = color;
+                    context.fillRect(0, 0, 1, 1);
+                    return `rgba(${[...context.getImageData(0, 0, 1, 1).data].join(',')})`;
+                });
+                const baseline = normalize(getComputedStyle(image).filter);
+                // Decoding can precede landing. The later homepage ring pulse
+                // must not mask the portrait's own develop frame in this check.
+                image.closest('.podium-item').classList.remove('is-landed');
+                image.style.animationPlayState = 'paused';
                 image.dataset.lwcPortraitState = 'developing';
-                return getComputedStyle(image).filter;
+                await new Promise(requestAnimationFrame);
+                const animation = image.getAnimations().find(a => a.animationName === 'lwc-portrait-develop');
+                if (!animation) throw new Error(`Portrait develop animation did not start: ${getComputedStyle(image).animationName}`);
+                animation.pause();
+                const duration = Number(animation.effect.getTiming().duration);
+                return [baseline, ...[0, .25, .5, .75].map(progress => {
+                    animation.currentTime = duration * progress;
+                    return normalize(getComputedStyle(image).filter);
+                })];
             }
             """);
-        Assert.StartsWith(halo, developing);
+        Assert.Equal(5, developing.Length);
+        foreach (var filter in developing.Skip(1))
+        {
+            Assert.StartsWith(developing[0], filter);
+            Assert.Equal(halo.Split("drop-shadow(").Length, filter.Split("drop-shadow(").Length);
+        }
+        Assert.Equal(halo, await image.EvaluateAsync<string>("""
+            image => {
+                image.closest('.podium-item').classList.add('is-landed');
+                return getComputedStyle(image).filter;
+            }
+            """));
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        Assert.Equal(halo, await image.EvaluateAsync<string>("image => getComputedStyle(image).filter"));
     }
 
     [Fact]

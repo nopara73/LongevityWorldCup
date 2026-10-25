@@ -1251,7 +1251,12 @@ interface Window {
             syncBiomarkerHeaderSemantics(controller);
             getFlowActionDock()?.refresh?.();
         });
-        window.addEventListener('pagehide', () => saveBioageDraft(controller));
+        window.addEventListener('pagehide', () => {
+            saveBioageDraft(controller);
+            // Update views reload on cached return. Late commits from their
+            // calculated DOM must not replace the raw draft while inactive.
+            if (controller.isUpdate) controller.restoring = true;
+        });
     }
 
     function initializeBloodDrawDate(form: HTMLFormElement, defaultToToday: boolean): void {
@@ -1337,6 +1342,9 @@ interface Window {
             step: 1
         };
 
+        // Update drafts own raw values and units. Native history restoration
+        // must not reapply calculation-filled controls after that draft loads.
+        if (controller.isUpdate) options.form.autocomplete = 'off';
         options.form.classList.add('bioage-biomarker-entry-ready');
         biomarkerEntryControllers.set(options.clock, controller);
         bindBiomarkerEntry(controller);
