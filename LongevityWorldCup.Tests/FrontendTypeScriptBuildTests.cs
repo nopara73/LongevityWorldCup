@@ -25,6 +25,7 @@ public sealed class FrontendTypeScriptBuildTests
         "longevitymaxxing",
         "pointer",
         "motion",
+        "portrait-system",
         "share-sheet",
         "touch",
         "site-statistics",

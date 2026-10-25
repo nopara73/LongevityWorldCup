@@ -130,13 +130,26 @@
         const button = header.querySelector('button');
         if (button.getAttribute('aria-label') !== description) button.setAttribute('aria-label', description);
     }
+    function clearExitFrame() {
+        if (!panel) return;
+        delete panel.dataset.orderExit;
+        for (const part of ['left', 'top', 'width', 'height']) panel.style.removeProperty(`--order-exit-${part}`);
+    }
     function close(restoreFocus = false) {
         if (!panel || panel.hidden) return;
+        const inFlow = getComputedStyle(panel).position === 'static';
+        if (inFlow) {
+            // Keep the exit in its existing frame, but release the strip's flow
+            // space in this input task instead of at a delayed display transition.
+            for (const [part, value] of Object.entries({ left: panel.offsetLeft, top: panel.offsetTop,
+                width: panel.offsetWidth, height: panel.offsetHeight })) panel.style.setProperty(`--order-exit-${part}`, `${value}px`);
+            panel.dataset.orderExit = '';
+        }
         panel.hidden = true;
         toggle.setAttribute('aria-expanded', 'false');
         if (restoreFocus || panel.contains(document.activeElement)) {
             toggle.focus({ preventScroll: true });
-            if (getComputedStyle(panel).position === 'static') {
+            if (inFlow) {
                 // Opening a tall strip can scroll its trigger out of view.
                 // Escape must return visible focus, not only DOM focus.
                 const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 0) + 12;
@@ -288,6 +301,7 @@
         toggle.addEventListener('click', () => {
             if (!panel.hidden) close();
             else {
+                clearExitFrame();
                 panel.hidden = false;
                 toggle.setAttribute('aria-expanded', 'true');
                 revealStrip();

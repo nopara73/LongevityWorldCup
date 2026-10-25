@@ -4360,6 +4360,7 @@ html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-v
    inside the card, under the bar that opened it, not as a floating card. */
 main:is([data-leaderboard-page="full"], .homepage-main){ --bar-height:max(44px, 2.75rem); --bar-pad:var(--lwc-space-4); }
 main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
+    position:relative;
     display:grid; grid-template-columns:auto minmax(var(--lwc-space-4), 1fr) minmax(12rem, 22rem) repeat(4, auto);
     align-items:center; gap:0; padding:0 var(--bar-pad);
 }
@@ -4436,6 +4437,12 @@ main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .l
     margin:0 calc(-1 * var(--bar-pad)); padding:var(--lwc-space-3) var(--bar-pad) var(--lwc-space-4);
     border:0; border-top:1px solid var(--lwc-border); border-radius:0; background:var(--lwc-surface-muted); box-shadow:none;
     overflow:visible; transform:none;
+}
+/* Preserve the closing paint while returning the board's space immediately. */
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel[data-order-exit][hidden]{
+    position:absolute; z-index:105; inset:auto; margin:0; grid-area:auto;
+    left:var(--order-exit-left); top:var(--order-exit-top);
+    width:var(--order-exit-width); height:var(--order-exit-height);
 }
 main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-rows{ display:contents; }
 main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:1; gap:var(--lwc-space-1); }

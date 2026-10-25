@@ -2389,6 +2389,7 @@ function loadEnlargedImage(enlargedElem, sourceImage) {
     // while its full-size version downloads, including if that upgrade fails.
     // Proofs still require the selected page to load before it can be read.
     const preview = !enlargedElem.isProofGallery && !sourceImage.classList.contains('portrait-fallback')
+        && !sourceImage.hasAttribute('data-lwc-portrait-fallback')
         && sourceImage.complete && sourceImage.naturalWidth > 0
         ? document.createElement('img')
         : null;

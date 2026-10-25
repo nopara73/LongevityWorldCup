@@ -77,7 +77,8 @@ public sealed class BioageRankPreviewBrowserTests(
         Assert.Equal(0, await error.CountAsync());
         var placeholder = await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content");
         Assert.StartsWith("/assets/content-images/play-athlete-placeholder.webp?v=", placeholder);
-        await Assertions.Expect(preview.Locator(".bioage-rank-row.current img")).ToHaveAttributeAsync("src", placeholder!);
+        await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(preview.Locator(".bioage-rank-row.current img"));
+        await Assertions.Expect(preview.Locator(".bioage-rank-row.current img")).ToHaveAttributeAsync("alt", "");
 
         await page.EvaluateAsync("target => window.LwcBioAgeRankPreview.clear(target)", target);
         Assert.True(await preview.IsHiddenAsync());
