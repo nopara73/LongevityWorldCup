@@ -2446,17 +2446,10 @@ body.site-menu-open {
     gap: var(--space-4);
 }
 
-/* Items arrive one after another, top to bottom. */
+/* The panel carries its links together, so its first visible frame already
+   contains readable actions rather than empty tiles awaiting a stagger. */
 .site-menu.is-open .site-menu-body .footer-link {
-    animation: site-menu-item-in var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out) backwards;
-    animation-delay: calc(70ms + var(--site-menu-i, 0) * 26ms);
-}
-
-@keyframes site-menu-item-in {
-    from {
-        opacity: 0;
-        translate: 0 10px;
-    }
+    animation: none;
 }
 
 /* --------------------------------------------------------------------------

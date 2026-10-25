@@ -3499,6 +3499,8 @@
      }
 
      #detailsModal .modal-badge-strip{
+         /* The profile is already scrollable. Keep a short explanation with
+            its shelf instead of creating a second, constrained scroll area. */
          padding:.6rem;
      }
  }

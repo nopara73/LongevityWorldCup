@@ -253,9 +253,10 @@ public sealed class FlowBackButtonBrowserTests(
     {
         await SettleAsync(page);
         var problems = await page.Locator(selector).EvaluateAsync<string[]>(
-            """
+            $$"""
             back => {
                 const problems = [];
+                const ink = {{BrowserIconAssertions.Ink}};
                 const box = back.getBoundingClientRect();
                 const stack = back.closest('.flow-action-stack');
                 const container = stack.getBoundingClientRect();
@@ -263,14 +264,15 @@ public sealed class FlowBackButtonBrowserTests(
                 const iconElement = back.querySelector(':scope > i, :scope > .flow-action__icon');
                 const labelElement = back.querySelector('.flow-action__label');
                 if (back.querySelectorAll(':scope > i, :scope > .flow-action__icon').length !== 1 || back.querySelectorAll('.flow-action__label').length !== 1) problems.push('duplicate or missing arrow/label');
-                const icon = iconElement.getBoundingClientRect();
+                const painted = ink(iconElement);
+                const icon = painted || iconElement.getBoundingClientRect();
                 const label = labelElement.getBoundingClientRect();
                 const range = document.createRange();
                 range.selectNodeContents(labelElement);
                 const glyphs = [...range.getClientRects()].filter(r => r.width > 0 && r.height > 0);
                 if (box.width < 44 || box.height < 44) problems.push('target smaller than 44px');
                 if (box.left < container.left - 1 || box.right > container.right + 1 || box.width > innerWidth + 1) problems.push('button exceeds its action group');
-                if (icon.width < 1 || !glyphs.length || getComputedStyle(iconElement, '::before').content === 'none') problems.push('arrow or text has no rendered content');
+                if (!painted || !glyphs.length) problems.push('arrow or text has no rendered content');
                 for (const r of [icon, ...glyphs]) {
                     if (r.left < box.left + 1 || r.right > box.right - 1 || r.top < box.top + 1 || r.bottom > box.bottom - 1) problems.push('arrow or text escapes the button');
                     for (let ancestor = back.parentElement; ancestor; ancestor = ancestor.parentElement) {

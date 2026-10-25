@@ -58,19 +58,18 @@ public sealed class DashboardPhoneDockBrowserTests(
         await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock?.refreshNow?.(); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
 
         var problems = await page.EvaluateAsync<string[]>(
-            """
+            $$"""
             percent => {
                 const problems = [];
+                const ink = {{BrowserIconAssertions.Ink}};
                 let visibleIcons = 0;
                 for (const action of document.querySelectorAll('#athleteDashboardActions .flow-action')) {
                     const box = action.getBoundingClientRect();
                     if (!box.width || !box.height) { problems.push('hidden dashboard command'); continue; }
                     const icon = action.querySelector(':scope > i');
-                    const glyph = icon?.getBoundingClientRect();
+                    const glyph = ink(icon);
                     const style = icon && getComputedStyle(icon);
-                    const content = icon && getComputedStyle(icon, '::before').content;
-                    if (!glyph?.width || !glyph.height || style.visibility === 'hidden' || Number(style.opacity) === 0
-                        || !content || content === 'none' || content === 'normal')
+                    if (!glyph?.width || !glyph.height || style.visibility === 'hidden' || Number(style.opacity) === 0)
                         problems.push(`${action.textContent.trim()}: missing visible command icon`);
                     else {
                         visibleIcons++;
