@@ -576,9 +576,9 @@ function renderNewsletterAction() {
     newsletterSubmitButton.setAttribute('aria-disabled', String(newsletterSubmitting));
     newsletterSubmitButton.setAttribute('aria-busy', String(newsletterSubmitting));
     newsletterForm.setAttribute('aria-busy', String(newsletterSubmitting));
-    newsletterSubmitButton.innerHTML = newsletterSubmitting
-        ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Subscribing…'
-        : retry
+    // While subscribing the button keeps its label; the shared wait fill shows progress.
+    if (newsletterSubmitting) return;
+    newsletterSubmitButton.innerHTML = retry
             ? '<i class="fas fa-redo" aria-hidden="true"></i> Retry'
             : '<i class="fas fa-paper-plane" aria-hidden="true"></i> Subscribe';
 }

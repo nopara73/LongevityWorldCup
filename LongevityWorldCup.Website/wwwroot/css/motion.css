@@ -254,3 +254,261 @@
         transition: none;
     }
 }
+
+/* 7) Waits inside a page.
+ *
+ * One choreography for every in-page wait (motion.ts, LwcWait):
+ * - A pressed control keeps its label, colours and width. A tint creeps across
+ *   it from the leading edge with a fine bar along its foot and a passing sheen,
+ *   paced by --lwc-wait-expect, so a long save still visibly moves.
+ * - A list or board refreshing in place keeps its rows, dims them after a beat
+ *   and draws one travelling line along its top edge.
+ * - A save with nothing on screen to show it draws that line along the top of
+ *   the viewport.
+ * - Endings: the fill completes and a ring in the success tone confirms, or it
+ *   drains, the ring turns to the danger tone and the control shakes once.
+ * - Nothing shows for --lwc-wait-delay, and once shown a wait stays for at
+ *   least --lwc-wait-min, so fast answers never flicker.
+ * Colours come from the control itself (currentColor) and the feedback tones.
+ */
+:root {
+    --lwc-wait-delay: 140ms;
+    --lwc-wait-min: 420ms;
+    --lwc-wait-settle: 520ms;
+    --lwc-wait-expect: 7s;
+    --lwc-wait-stagger: 32ms;
+    --lwc-wait-sync-delay: 360ms;
+    --lwc-wait-travel: 1150ms;
+    --lwc-wait-dim: 0.52;
+    --lwc-wait-line: var(--lwc-accent-bright, #19c3d1);
+    --lwc-wait-success: var(--lwc-success, #1f7a38);
+    --lwc-wait-danger: var(--lwc-danger, #b4233b);
+}
+
+/* A waiting control looks exactly as it did when pressed, never greyed out. */
+:root [data-lwc-wait] {
+    cursor: progress !important;
+}
+
+:root [data-lwc-wait]:is(:disabled, [aria-disabled="true"]),
+:root [data-lwc-wait-end]:is(:disabled, [aria-disabled="true"]) {
+    background-color: var(--lwc-wait-bg) !important;
+    background-image: var(--lwc-wait-image) !important;
+    color: var(--lwc-wait-fg) !important;
+    border-color: var(--lwc-wait-border) !important;
+    box-shadow: var(--lwc-wait-shadow) !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+:root :is([data-lwc-wait="shown"], [data-lwc-wait-end]) {
+    isolation: isolate;
+    overflow: clip;
+}
+
+/* The fill: a soft tint, a fine progress bar along the foot, a passing sheen. */
+.lwc-wait-fill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+        linear-gradient(currentColor, currentColor) left bottom / 100% 2px no-repeat,
+        linear-gradient(100deg, transparent 35%, color-mix(in srgb, currentColor 16%, transparent) 50%, transparent 65%) 0 0 / 250% 100% no-repeat,
+        color-mix(in srgb, currentColor 13%, transparent);
+    clip-path: inset(0 96% 0 0);
+    opacity: 0.9;
+    animation:
+        lwc-wait-creep var(--lwc-wait-expect) cubic-bezier(0.15, 0.6, 0.3, 1) forwards,
+        lwc-wait-sheen var(--lwc-wait-travel) linear infinite,
+        lwc-wait-appear var(--lwc-motion-base) var(--lwc-ease-enter) backwards;
+}
+
+[data-lwc-wait-end="success"] > .lwc-wait-fill {
+    color: var(--lwc-wait-success);
+}
+
+[data-lwc-wait-end="error"] > .lwc-wait-fill {
+    color: var(--lwc-wait-danger);
+}
+
+/* An icon at the end of the label stays alive: the rocket idles on the pad. */
+:root [data-lwc-wait="shown"] > :is(i, svg, .fa):last-of-type {
+    animation: lwc-wait-idle 760ms var(--lwc-ease-standard) infinite alternate;
+}
+
+@keyframes lwc-wait-creep {
+    0% { clip-path: inset(0 96% 0 0); }
+    8% { clip-path: inset(0 64% 0 0); }
+    35% { clip-path: inset(0 34% 0 0); }
+    100% { clip-path: inset(0 7% 0 0); }
+}
+
+@keyframes lwc-wait-sheen {
+    from { background-position: 0 0, 130% 0, 0 0; }
+    to { background-position: 0 0, -30% 0, 0 0; }
+}
+
+@keyframes lwc-wait-appear {
+    from { opacity: 0; }
+}
+
+@keyframes lwc-wait-idle {
+    from { translate: 0 0; opacity: 1; }
+    to { translate: 0 -2px; opacity: 0.72; }
+}
+
+/* Endings: one ring in the outcome's tone, drawn outside the control. */
+:root [data-lwc-wait-ring="success"] { --lwc-wait-ring: var(--lwc-wait-success); }
+:root [data-lwc-wait-ring="error"] { --lwc-wait-ring: var(--lwc-wait-danger); }
+
+:root [data-lwc-wait-ring] {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    animation: lwc-wait-ring var(--lwc-wait-settle) var(--lwc-ease-enter) 1 both;
+}
+
+@keyframes lwc-wait-ring {
+    0% { outline-color: color-mix(in srgb, var(--lwc-wait-ring) 0%, transparent); outline-offset: 0; }
+    30% { outline-color: color-mix(in srgb, var(--lwc-wait-ring) 85%, transparent); outline-offset: 3px; }
+    100% { outline-color: color-mix(in srgb, var(--lwc-wait-ring) 0%, transparent); outline-offset: 9px; }
+}
+
+/* Regions refreshing in place: rows stay, dim after a beat, return together. */
+:root [data-lwc-wait-region="refresh"] > :not(.lwc-wait-line) {
+    opacity: var(--lwc-wait-dim);
+    filter: saturate(0.6);
+    transition:
+        opacity var(--lwc-motion-base) var(--lwc-ease-standard) var(--lwc-wait-delay),
+        filter var(--lwc-motion-base) var(--lwc-ease-standard) var(--lwc-wait-delay);
+}
+
+:root [data-lwc-wait-region="settle"] > :not(.lwc-wait-line) {
+    transition:
+        opacity var(--lwc-motion-move) var(--lwc-ease-enter),
+        filter var(--lwc-motion-move) var(--lwc-ease-enter);
+}
+
+/* The travelling line, shared by refreshing regions and background saves. */
+.lwc-wait-line,
+#lwc-sync {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    z-index: 4;
+    block-size: 2px;
+    overflow: hidden;
+    border-radius: 2px;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--lwc-wait-line) 16%, transparent);
+    animation: lwc-wait-appear var(--lwc-motion-base) var(--lwc-ease-enter) var(--lwc-wait-delay) backwards;
+}
+
+.lwc-wait-line::before,
+#lwc-sync::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 38%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, var(--lwc-wait-line) 45%, var(--lwc-wait-line) 55%, transparent);
+    animation: lwc-wait-travel var(--lwc-wait-travel) var(--lwc-ease-standard) infinite;
+}
+
+/* At the end the line fills once and fades, in the outcome's tone. */
+.lwc-wait-line::after,
+#lwc-sync::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--lwc-wait-line);
+    transform: scaleX(0);
+    transform-origin: left center;
+}
+
+.lwc-wait-line[data-lwc-wait-end],
+:root[data-lwc-sync="done"] #lwc-sync,
+:root[data-lwc-sync="error"] #lwc-sync {
+    animation: lwc-wait-line-out var(--lwc-wait-settle) var(--lwc-ease-exit) forwards;
+}
+
+.lwc-wait-line[data-lwc-wait-end]::before,
+:root:is([data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync::before {
+    animation: none;
+    opacity: 0;
+}
+
+.lwc-wait-line[data-lwc-wait-end]::after,
+:root:is([data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync::after {
+    animation: lwc-wait-complete var(--lwc-wait-settle) var(--lwc-ease-standard) forwards;
+}
+
+:root[data-lwc-sync="error"] #lwc-sync {
+    --lwc-wait-line: var(--lwc-wait-danger);
+}
+
+#lwc-sync {
+    position: fixed;
+    z-index: 10001;
+    block-size: 3px;
+    border-radius: 0;
+    display: none;
+}
+
+:root:is([data-lwc-sync="on"], [data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync {
+    display: block;
+}
+
+@keyframes lwc-wait-travel {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(265%); }
+}
+
+@keyframes lwc-wait-complete {
+    from { transform: scaleX(0.3); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes lwc-wait-line-out {
+    0%, 55% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Reduced motion: every state still shows, nothing travels or shakes. */
+@media (prefers-reduced-motion: reduce) {
+    .lwc-wait-fill {
+        animation: none;
+        clip-path: none;
+        background:
+            linear-gradient(currentColor, currentColor) left bottom / 100% 2px no-repeat,
+            color-mix(in srgb, currentColor 13%, transparent);
+    }
+
+    :root [data-lwc-wait="shown"] > :is(i, svg, .fa):last-of-type,
+    .lwc-wait-line,
+    .lwc-wait-line::before,
+    #lwc-sync,
+    #lwc-sync::before,
+    .lwc-wait-line[data-lwc-wait-end],
+    .lwc-wait-line[data-lwc-wait-end]::after {
+        animation: none;
+    }
+
+    .lwc-wait-line::before,
+    #lwc-sync::before {
+        inline-size: 100%;
+        opacity: 0.55;
+    }
+
+    :root [data-lwc-wait-ring] {
+        animation: none;
+        outline-color: var(--lwc-wait-ring);
+    }
+
+    :root :is([data-lwc-wait-region="refresh"], [data-lwc-wait-region="settle"]) > :not(.lwc-wait-line) {
+        transition: none;
+    }
+}
