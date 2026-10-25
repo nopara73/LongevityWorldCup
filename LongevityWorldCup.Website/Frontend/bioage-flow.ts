@@ -1342,6 +1342,9 @@ interface Window {
             step: 1
         };
 
+        // Update drafts own raw values and units. Native history restoration
+        // must not reapply calculation-filled controls after that draft loads.
+        if (controller.isUpdate) options.form.autocomplete = 'off';
         options.form.classList.add('bioage-biomarker-entry-ready');
         biomarkerEntryControllers.set(options.clock, controller);
         bindBiomarkerEntry(controller);
