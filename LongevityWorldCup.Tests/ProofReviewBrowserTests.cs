@@ -578,6 +578,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         {
             foreach (var heading in new[] { "Finding your why", "The price of glory", "Almost there", "Don't trust, verify" })
             {
+                await WaitForFiniteAnimationsAsync(page);
                 await page.Locator("#nextButton").ClickAsync();
                 await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
             }
