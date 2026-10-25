@@ -285,8 +285,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Null(await form.GetAttributeAsync("data-lmx-moment"));
     }
 
-    [Fact]
-    public async Task RitualMotion_UndoRewindsTheAnswersItChanges()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(8)]
+    public async Task RitualMotion_UndoRewindsTheAnswersItChanges(int cpuSlowdown)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 900 } });
         var state = CheckInWorkspaceState();
@@ -298,11 +300,30 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await AnswerHabitAsync(form, "sleep", "yes");
         await page.WaitForTimeoutAsync(400);
         await TakeMotionLogAsync(page);
+        var session = await context.NewCDPSessionAsync(page);
+        await session.SendAsync("Emulation.setCPUThrottlingRate", new Dictionary<string, object> { ["rate"] = cpuSlowdown });
+        // The marker lasts 420ms, so inspect the frame it controls rather than
+        // racing a later protocol read against its cleanup on a busy runner.
+        await form.EvaluateAsync("""
+            form => {
+                window.__lmxUndoFirstFrame = null;
+                form.addEventListener('click', event => {
+                    if (!event.target.closest('[data-checkin-reset]')) return;
+                    requestAnimationFrame(() => {
+                        window.__lmxUndoFirstFrame = {
+                            sleep: form.querySelector('.lmx-question[data-key="sleep"]').getAttribute('data-lmx-rewind'),
+                            exercise: form.querySelector('.lmx-question[data-key="exercise"]').getAttribute('data-lmx-rewind')
+                        };
+                    });
+                }, { capture: true, once: true });
+            }
+            """);
         await form.Locator("[data-checkin-reset]").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.__lmxUndoFirstFrame !== null");
 
         // Reset walks the changed answer back: its question rewinds and its old face washes in again.
-        Assert.Equal("true", await form.Locator(".lmx-question[data-key='sleep']").GetAttributeAsync("data-lmx-rewind"));
-        Assert.Null(await form.Locator(".lmx-question[data-key='exercise']").GetAttributeAsync("data-lmx-rewind"));
+        Assert.Equal("true", await page.EvaluateAsync<string>("window.__lmxUndoFirstFrame.sleep"));
+        Assert.Null(await page.EvaluateAsync<string?>("window.__lmxUndoFirstFrame.exercise"));
         var motion = await TakeMotionLogAsync(page);
         Assert.Contains(motion, name => name.StartsWith("web-animation:lmx-button secondary lmx-checkin-reset"));
         Assert.Contains(motion, name => name.StartsWith("web-animation:lmx-question-icon"));
@@ -311,5 +332,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Contains("transform", motion);
         Assert.True(await form.Locator(".lmx-question[data-key='sleep'] input[value='1']").IsCheckedAsync());
         await Assertions.Expect(form.Locator("[data-checkin-reset]")).ToHaveTextAsync("Undo");
+        await Assertions.Expect(form.Locator(".lmx-question[data-key='sleep']")).Not.ToHaveAttributeAsync("data-lmx-rewind", "true", new() { Timeout = 1000 });
     }
 }
