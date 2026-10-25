@@ -1,0 +1,235 @@
+/* ===== Athlete portraits =====
+   One treatment for every athlete photo: a face-first crop, a glass rim just
+   inside each surface's own ring, a shimmer while the photo is on its way, a
+   short "develop" as it arrives, teal monograms instead of the logo stand-in,
+   and a little depth on the larger portraits. Ring colours stay with each
+   surface (podium metals, rank-up green, new-athlete blue, the dialog cream);
+   portrait-system.js sets data-lwc-portrait-tier and -state. */
+
+:root {
+    --lwc-portrait-focus: 50% 30%;
+    --lwc-portrait-rim: rgb(255 255 255 / 0.55);
+    --lwc-portrait-hairline: rgb(15 23 42 / 0.12);
+    --lwc-portrait-shimmer-base: color-mix(in srgb, var(--lwc-accent, #087685) 22%, var(--lwc-surface-muted, #eef2f5));
+    --lwc-portrait-shimmer-glint: var(--lwc-surface, #ffffff);
+    --lwc-portrait-lift: 0 1px 2px rgb(15 23 42 / 0.10), 0 6px 14px -6px rgb(15 23 42 / 0.28);
+    --lwc-portrait-develop: 380ms;
+    --lwc-portrait-drift: 360ms;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --lwc-portrait-rim: rgb(255 255 255 / 0.22);
+        --lwc-portrait-hairline: rgb(255 255 255 / 0.10);
+        --lwc-portrait-lift: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 18px -8px rgb(0 0 0 / 0.6);
+    }
+}
+
+:root[data-theme="dark"] {
+    --lwc-portrait-rim: rgb(255 255 255 / 0.22);
+    --lwc-portrait-hairline: rgb(255 255 255 / 0.10);
+    --lwc-portrait-lift: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 18px -8px rgb(0 0 0 / 0.6);
+}
+
+/* --- Frame: crop, rim and lift per size tier ------------------------------ */
+
+img[data-lwc-portrait] {
+    object-fit: cover;
+    object-position: var(--lwc-portrait-focus);
+    background-color: var(--lwc-portrait-shimmer-base);
+    /* A glass rim drawn on top of the photo, just inside the surface's ring. */
+    outline: 1px solid var(--lwc-portrait-rim);
+    outline-offset: calc(-1px - var(--lwc-portrait-ring, 0px));
+    image-rendering: auto;
+}
+
+img[data-lwc-portrait][data-lwc-portrait-tier="xs"] {
+    --lwc-portrait-ring: 2px;
+    outline-color: var(--lwc-portrait-hairline);
+}
+
+img[data-lwc-portrait][data-lwc-portrait-tier="sm"] {
+    --lwc-portrait-ring: 3px;
+}
+
+img[data-lwc-portrait][data-lwc-portrait-tier="md"],
+img[data-lwc-portrait][data-lwc-portrait-tier="lg"] {
+    --lwc-portrait-ring: 3px;
+    outline-width: 1.5px;
+}
+
+/* Table rows: the portrait sits on the row instead of being punched into it. */
+.leaderboard img.portrait[data-lwc-portrait],
+.events-board img.avatar[data-lwc-portrait],
+img.lmx-participant-avatar[data-lwc-portrait],
+img.bioage-rank-row-avatar[data-lwc-portrait] {
+    box-shadow: var(--lwc-portrait-lift);
+}
+
+/* The dialog portrait keeps its cream ring; the rim catches the light. */
+#detailsModal img#modalProfilePic[data-lwc-portrait] {
+    --lwc-portrait-ring: 3px;
+    outline: 1.5px solid rgb(255 255 255 / 0.28);
+}
+
+/* Keyboard focus still wins over the rim. */
+img[data-lwc-portrait]:focus-visible {
+    outline: 3px solid var(--lwc-accent, #087685);
+    outline-offset: 2px;
+}
+
+#detailsModal img#modalProfilePic[data-lwc-portrait]:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.58);
+    outline-offset: -3px;
+}
+
+/* Overlay marks sit on the ring, not on the face. */
+#athlete-profile .portrait-wrapper .pro-badge,
+#athlete-profile .portrait-wrapper .portrait-flag {
+    z-index: 3;
+}
+
+/* --- Loading: shimmer in the frame, then develop ---------------------------- */
+
+img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
+    background-image: linear-gradient(100deg,
+        transparent 30%,
+        color-mix(in srgb, var(--lwc-portrait-shimmer-glint) 92%, transparent) 50%,
+        transparent 70%);
+    background-size: 240% 100%;
+    background-color: var(--lwc-portrait-shimmer-base);
+    background-repeat: no-repeat;
+    animation: lwc-portrait-shimmer 1.4s linear infinite;
+}
+
+/* An empty src would otherwise draw the browser's broken-image glyph and
+   alt text over the shimmer. */
+img[data-lwc-portrait][data-lwc-portrait-state="loading"]:not([src]),
+img[data-lwc-portrait][data-lwc-portrait-state="loading"][src=""] {
+    color: transparent;
+    font-size: 0;
+}
+
+:root img[data-lwc-portrait][data-lwc-portrait-state="developing"] {
+    animation: lwc-portrait-develop var(--lwc-portrait-develop) cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+/* The older page-wide media fade hands portraits over to this one. */
+html.lwc-media-fade img[data-lwc-portrait][data-lwc-media] {
+    opacity: 1;
+}
+
+html.lwc-media-fade img[data-lwc-portrait][data-lwc-media="ready"]:not([data-lwc-portrait-state="developing"]) {
+    animation: none;
+}
+
+html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
+    animation: lwc-portrait-shimmer 1.4s linear infinite;
+}
+
+@keyframes lwc-portrait-shimmer {
+    from { background-position: 130% 0; }
+    to { background-position: -130% 0; }
+}
+
+@keyframes lwc-portrait-develop {
+    /* Like a print in the tray: pale and soft, then sharp. The ring never blinks. */
+    from {
+        filter: blur(5px) saturate(0.2) brightness(1.18) contrast(0.82);
+        scale: 1.03;
+    }
+}
+
+/* Crossfade copy of the outgoing photo (portrait-system.js). */
+img[data-lwc-portrait-ghost] {
+    position: absolute;
+    z-index: 2;
+    margin: 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    background: none;
+    box-shadow: none;
+    outline: none;
+}
+
+/* --- Fallbacks: monograms instead of the logo stand-in ---------------------- */
+
+/* The old logo stand-in was padded inside a white disc; the monogram fills. */
+.portrait.portrait-fallback[data-lwc-portrait-fallback],
+#modalProfilePic.portrait-fallback[data-lwc-portrait-fallback],
+.podium-item .podium-portrait.portrait-fallback[data-lwc-portrait-fallback],
+img[data-lwc-portrait-fallback] {
+    object-fit: cover;
+    padding: 0;
+    background: #087685;
+}
+
+/* Initials the pages render as text share the monogram look. */
+.events-board .avatar-fallback:not(.donation-gift-avatar):not(.milestone-people-avatar),
+.bioage-rank-row-avatar-fallback,
+.lmx-mention-avatar.fallback {
+    background:
+        radial-gradient(circle at 30% 22%, rgb(255 255 255 / 0.32), transparent 55%),
+        linear-gradient(135deg, #19c3d1, #087685);
+    color: #ffffff;
+    border-color: transparent;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 1px rgb(6 93 104 / 0.45);
+    box-shadow: var(--lwc-portrait-lift), inset 0 0 0 1px rgb(255 255 255 / 0.22);
+}
+
+/* --- Depth: hover drift and press zoom on the larger portraits ---------------- */
+
+@supports (object-view-box: inset(0)) {
+    @media (prefers-reduced-motion: no-preference) {
+        img[data-lwc-portrait][data-lwc-portrait-tier="md"],
+        img[data-lwc-portrait][data-lwc-portrait-tier="lg"] {
+            --lwc-portrait-dx: 0;
+            --lwc-portrait-dy: 0;
+            object-view-box: inset(0%);
+            transition:
+                transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+                border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+                object-view-box var(--lwc-portrait-drift) cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            /* The photo zooms a touch inside its frame and leans towards the pointer. */
+            img[data-lwc-portrait][data-lwc-portrait-tier="md"]:hover,
+            img[data-lwc-portrait][data-lwc-portrait-tier="lg"]:hover {
+                object-view-box: inset(
+                    calc(7% + var(--lwc-portrait-dy) * 4%)
+                    calc(7% - var(--lwc-portrait-dx) * 4%)
+                    calc(7% - var(--lwc-portrait-dy) * 4%)
+                    calc(7% + var(--lwc-portrait-dx) * 4%)
+                );
+            }
+        }
+
+        /* Touch: the photo leans in while pressed. */
+        @media (hover: none) {
+            img[data-lwc-portrait][data-lwc-portrait-tier="md"]:active,
+            img[data-lwc-portrait][data-lwc-portrait-tier="lg"]:active {
+                object-view-box: inset(6%);
+            }
+        }
+
+        img[data-lwc-portrait-fallback]:hover,
+        img[data-lwc-portrait-fallback]:active {
+            object-view-box: inset(0%) !important;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    img[data-lwc-portrait][data-lwc-portrait-state="loading"],
+    html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"],
+    :root img[data-lwc-portrait][data-lwc-portrait-state="developing"] {
+        animation: none;
+    }
+
+    img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
+        background-image: none;
+    }
+}
