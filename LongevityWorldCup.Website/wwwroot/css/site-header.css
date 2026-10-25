@@ -53,9 +53,11 @@
     font-family: 'Roboto Fallback';
     font-weight: 300 400;
     src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('Arimo');
-    size-adjust: 99.66%;
-    ascent-override: 93.09%;
-    descent-override: 24.5%;
+    /* Preserve mixed-weight line breaks when either Roboto face arrives first,
+       while keeping the fallback's vertical metrics aligned. */
+    size-adjust: 100.5%;
+    ascent-override: 92.31%;
+    descent-override: 24.3%;
     line-gap-override: 0%;
 }
 @font-face {
