@@ -209,19 +209,18 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         await NavigateAndSettleAsync(page, "/history");
         var sticky = page.Locator("#site-sticky-header");
 
-        var entering = await CaptureStickyTransitionAsync(page, 900);
-        Assert.Contains("clip-path", entering, StringComparison.Ordinal);
+        var entering = await CaptureStickyFrameAsync(page, 900);
+        Assert.All(entering, Assert.True);
         await Assertions.Expect(sticky).ToBeVisibleAsync();
-        await page.WaitForFunctionAsync("() => !document.getElementById('site-sticky-header').getAnimations().length");
 
-        var leaving = await CaptureStickyTransitionAsync(page, 0);
-        Assert.True(leaving.StartsWith("flex") && leaving.Contains("clip-path"), $"The bar must fold away before it hides ({leaving}).");
+        var leaving = await CaptureStickyFrameAsync(page, 0);
+        Assert.All(leaving, Assert.True);
         Assert.True(await sticky.EvaluateAsync<bool>("element => element.inert"), "A leaving bar must not take focus or clicks.");
         await Assertions.Expect(sticky).ToBeHiddenAsync();
     }
 
-    private static Task<string> CaptureStickyTransitionAsync(IPage page, int scrollY)
-        => page.EvaluateAsync<string>("""
+    private static Task<bool[]> CaptureStickyFrameAsync(IPage page, int scrollY)
+        => page.EvaluateAsync<bool[]>("""
             async y => {
                 scrollTo(0, y);
                 const element = document.getElementById('site-sticky-header');
@@ -230,9 +229,16 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
                     if (performance.now() > deadline) throw new Error('The sticky state did not change.');
                     await new Promise(requestAnimationFrame);
                 }
-                // Inspect in the reveal frame: a remote round trip can outlast
-                // this intentionally short transition on a busy runner.
-                return getComputedStyle(element).display + ' ' + element.getAnimations().map(a => a.transitionProperty).join(',');
+                // The approved header keeps PLAY fully available at the
+                // handover; clipping it during an entrance is a regression.
+                const style = getComputedStyle(element);
+                const frame = element.getBoundingClientRect();
+                const play = y > 0 ? element.querySelector('.scrolled-button') : document.querySelector('header[role=banner] .join-game');
+                const action = play.getBoundingClientRect();
+                return [style.clipPath === 'none',
+                    y === 0 || (frame.top === 0 && frame.height > 0 && Number(style.opacity) === 1),
+                    action.width >= 44 && action.height >= 44,
+                    play.contains(document.elementFromPoint(action.x + action.width / 2, action.y + action.height / 2))];
             }
             """, scrollY);
 

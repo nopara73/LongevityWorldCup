@@ -1158,6 +1158,8 @@
      --athlete-modal-section-width: 640px;
  }
  #detailsModal.modal{
+     /* The homepage dialog shares the injected dialog's layer above site chrome. */
+     z-index: var(--athlete-dialog-layer, 10020);
      background-color: rgba(0,0,0,.72);
      backdrop-filter: blur(10px) saturate(.8);
      -webkit-backdrop-filter: blur(10px) saturate(.8);

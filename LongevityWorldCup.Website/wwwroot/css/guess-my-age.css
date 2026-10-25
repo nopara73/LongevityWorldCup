@@ -1112,11 +1112,6 @@
     z-index: 40 !important;
 }
 
-/* The homepage modal otherwise uses its legacy fallback layer (3), below sticky chrome. */
-#detailsModal.gma-exact-takeover-active {
-    z-index: var(--athlete-dialog-layer, 10020);
-}
-
 .gma-exact-jackpot::before {
     content: '';
     position: absolute;

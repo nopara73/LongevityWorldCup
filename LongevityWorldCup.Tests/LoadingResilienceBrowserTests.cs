@@ -9,7 +9,7 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
-    public async Task StickyRemeasurement_PreservesTheEntranceAndItsFrame()
+    public async Task StickyRemeasurement_KeepsPlayImmediatelyUsableAndItsFrame()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
         var page = await context.NewPageAsync();
@@ -23,8 +23,11 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
                 // that first reveals the bar.
                 handleScroll(900, true);
                 const frame = bar.getBoundingClientRect();
+                const play = bar.querySelector('.scrolled-button');
+                const playFrame = play.getBoundingClientRect();
                 return [bar.classList.contains('visible'), !bar.inert,
-                    bar.getAnimations().some(a => a.transitionProperty === 'clip-path'),
+                    getComputedStyle(bar).clipPath === 'none' && Number(getComputedStyle(bar).opacity) === 1,
+                    play.contains(document.elementFromPoint(playFrame.x + playFrame.width / 2, playFrame.y + playFrame.height / 2)),
                     frame.top === 0 && frame.height > 0,
                     !bar.classList.contains('is-measuring')];
             }
