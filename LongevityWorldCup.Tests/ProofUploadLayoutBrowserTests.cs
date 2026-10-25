@@ -304,6 +304,7 @@ public sealed class ProofUploadLayoutBrowserTests(
             await page.Locator("#proofPicInput").SetInputFilesAsync(files[uploaded..count]);
             await page.WaitForFunctionAsync("count => !document.getElementById('proofPicInput').disabled && document.querySelectorAll('.proof-page-card').length === count", count);
             await page.EvaluateAsync("async () => { await document.fonts.ready; await Promise.all([...document.querySelectorAll('#proofImageContainer img')].map(image => image.decode())); }");
+            await WaitForFiniteAnimationsAsync(page);
             var currentWidth = (await page.Locator(".proof-page-card").First.BoundingBoxAsync())!.Width;
             if (tileWidth is not null)
                 Assert.InRange(Math.Abs(currentWidth - tileWidth.Value), 0, 1);

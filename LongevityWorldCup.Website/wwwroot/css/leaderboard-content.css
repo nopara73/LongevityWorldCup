@@ -1076,7 +1076,7 @@
     10) Modal
     ========================= */
  .modal{
-     display:none; position:fixed; z-index:var(--athlete-dialog-layer, 3); left:0; top:0; width:100%; height:100%;
+     display:none; position:fixed; z-index:var(--athlete-dialog-layer, 1000); left:0; top:0; width:100%; height:100%;
      overflow:hidden; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
  }
  .modal-content.is-loading:not([data-server-rendered-profile]) #athleteBio,

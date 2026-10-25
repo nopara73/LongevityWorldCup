@@ -1,0 +1,51 @@
+name: Image delivery
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'LongevityWorldCup.Website/**'
+      - 'LongevityWorldCup.Tests/**'
+      - '.github/workflows/image-delivery.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'LongevityWorldCup.Website/**'
+      - 'LongevityWorldCup.Tests/**'
+      - '.github/workflows/image-delivery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-delivery-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview-budgets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: LongevityWorldCup.Website/package-lock.json
+      - name: Prepare frontend
+        working-directory: LongevityWorldCup.Website
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+      - name: Build tests
+        run: dotnet build LongevityWorldCup.Tests -p:BuildFrontend=false --verbosity quiet
+      - name: Install browser
+        run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
+      - name: Check preview sizes and image requests
+        run: >
+          dotnet test LongevityWorldCup.Tests --no-build --verbosity normal
+          --filter "FullyQualifiedName~ProofPreviewTests|FullyQualifiedName~ProofPreviewBrowserTests|FullyQualifiedName~LeaderboardHtmlRendererTests.RenderRows_OnlyRendersGeneratedThumbnails"

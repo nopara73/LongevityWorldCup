@@ -7080,7 +7080,18 @@ function populateProofsGallery(fullAthleteData) {
         const proofItem = document.createElement('div');
         proofItem.classList.add('proof-item');
         const img = document.createElement('img');
-        img.src = proofUrl;
+        // Keep other image sources working for older data and embedded callers.
+        const previewUrl = /^\/athletes\/[\w-]+\/proof_[\w.-]+\.(?:webp|png|jpe?g|bmp|gif)(?:\?|$)/i.test(proofUrl)
+            ? proofUrl.replace('/athletes/', '/api/proof-previews/')
+            : proofUrl;
+        if (previewUrl !== proofUrl) {
+            img.dataset.fullSrc = proofUrl;
+            img.onerror = () => {
+                img.onerror = null;
+                img.src = proofUrl;
+            };
+        }
+        img.src = previewUrl;
         img.alt = `Proof image ${index + 1}`;
         img.setAttribute('role', 'button');
         img.setAttribute('tabindex', '0');

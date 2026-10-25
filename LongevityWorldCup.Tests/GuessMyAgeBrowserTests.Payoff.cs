@@ -92,8 +92,15 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
         await SubmitAndSettleAsync(page);
         await page.Clock.RunForAsync(100);
         // Playwright's clock controls rAF but CSS animations still use compositor
-        // time. Freeze that pose, then let the protection mask sample the same pose.
-        await page.EvaluateAsync("() => document.getAnimations().forEach(animation => animation.pause())");
+        // time. pause() schedules a compositor task; ready must resolve before
+        // the mocked rAF samples the pose or it can retain a mask for the old pose.
+        await page.EvaluateAsync("""
+            async () => {
+                const animations = document.getAnimations();
+                animations.forEach(animation => animation.pause());
+                await Promise.all(animations.map(animation => animation.ready));
+            }
+            """);
         await page.Clock.RunForAsync(32);
 
         var payoff = await page.EvaluateAsync<JsonElement>(
@@ -130,6 +137,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
                     quadrant: spark.dataset.quadrant
                 }));
                 return {
+                    poseFrozen: document.getAnimations().every(animation => !animation.pending && animation.playState !== 'running'),
                     hasGap: Boolean(gap),
                     tone: gap?.dataset.tone ?? '',
                     gapLeftError: gap ? Math.abs(gapRect.left - center(41)) : -1,
@@ -146,6 +154,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
                 };
             }
             """);
+        Assert.True(payoff.GetProperty("poseFrozen").GetBoolean(), "The mask and protected geometry must be sampled after the compositor pause completes.");
         Assert.True(payoff.GetProperty("hasGap").GetBoolean(), "The miss is not drawn on the ruler.");
         Assert.Equal("crowd", payoff.GetProperty("tone").GetString());
         Assert.InRange(payoff.GetProperty("gapLeftError").GetDouble(), 0, 2);

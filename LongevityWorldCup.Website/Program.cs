@@ -221,6 +221,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<CrowdAgeGuessRateLimiter>();
             builder.Services.AddSingleton<AthleteDataCorrections>();
             builder.Services.AddSingleton<AthleteDataService>();
+            builder.Services.AddSingleton<ProofPreviewService>();
             builder.Services.AddSingleton<IAthleteSnapshotProvider>(sp => sp.GetRequiredService<AthleteDataService>());
             builder.Services.AddSingleton<EventDataService>();
             builder.Services.AddSingleton<SeasonFinalizerService>();
