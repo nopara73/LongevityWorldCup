@@ -5510,8 +5510,13 @@ async function loadAthleteSharePreview(state, shareUrl) {
     image.onload = () => {
         if (!current() || (recovery && !recovery.hidden)) return;
         figure.classList.add('is-loaded');
+        keepAthleteShareMenuInView(menu);
     };
-    image.onerror = () => { if (current()) figure.hidden = true; };
+    image.onerror = () => {
+        if (!current()) return;
+        figure.hidden = true;
+        keepAthleteShareMenuInView(menu);
+    };
 
     const abort = new AbortController();
     state.previewAbort = abort;
@@ -5624,6 +5629,7 @@ function closeAthleteShareMenu(options) {
     menu.hidden = true;
     menu.classList.remove('is-above');
     menu.style.removeProperty('--athlete-share-available-height');
+    menu.style.removeProperty('--athlete-share-offset');
     setShareMenuCopyState('Copy link', false);
     const recovery = document.getElementById('athleteShareRecovery');
     if (recovery) recovery.hidden = true;
@@ -5643,6 +5649,7 @@ function positionAthleteShareMenu(menu) {
     if (!menu || menu.hidden) return;
 
     menu.style.removeProperty('--athlete-share-available-height');
+    menu.style.removeProperty('--athlete-share-offset');
     menu.classList.remove('is-above');
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const modalRect = modalContent ? modalContent.getBoundingClientRect() : null;
@@ -5659,21 +5666,21 @@ function positionAthleteShareMenu(menu) {
     const above = Math.max(0, Math.min(viewportBottom, aboveRect.bottom) - viewportTop - padding);
     const useAbove = belowRect.height > below && above > below;
     menu.classList.toggle('is-above', useAbove);
-    // A viewport-sized cap alone can leave the lower controls offscreen when
-    // the trigger is halfway down the profile. Keep the native scroller within
-    // the available side, including while fonts and the preview finish loading.
-    menu.style.setProperty('--athlete-share-available-height', `${Math.floor(useAbove ? above : below)}px`);
-    return { top: viewportTop + padding, bottom: viewportBottom - padding };
+    // A short menu can fit the viewport even when neither side of its trigger
+    // has enough room. Shift it within the usable viewport before introducing
+    // a native scroller for genuinely taller content.
+    const top = viewportTop + padding;
+    const bottom = viewportBottom - padding;
+    menu.style.setProperty('--athlete-share-available-height', `${Math.max(0, Math.floor(bottom - top))}px`);
+    const placed = menu.getBoundingClientRect();
+    const offset = placed.top < top ? top - placed.top : Math.min(0, bottom - placed.bottom);
+    const scale = menu.offsetHeight > 0 ? placed.height / menu.offsetHeight : 1;
+    menu.style.setProperty('--athlete-share-offset', `${offset / (scale || 1)}px`);
 }
 
 function keepAthleteShareMenuInView(menu) {
     if (!menu || menu.hidden) return;
-    const bounds = positionAthleteShareMenu(menu);
-    const rect = menu.getBoundingClientRect();
-    if (rect.top < bounds.top - .5 || rect.bottom > bounds.bottom + .5) {
-        menu.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        positionAthleteShareMenu(menu);
-    }
+    positionAthleteShareMenu(menu);
 }
 
 function getAthleteSharePayload(button) {
