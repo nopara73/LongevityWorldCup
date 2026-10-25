@@ -168,14 +168,16 @@ function stabilizeHomepageFragmentTarget() {
 
 function placeHomepageHighlightsForVisit() {
     const main = document.querySelector('main');
-    if (!isHomepageVisitCounterRoute()) {
+    const historyLayout = history.state?.lwcHomepageVisitLayout;
+    const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
+        && (historyLayout === 'default' || historyLayout === 'repeat');
+    // Filtering can add query parameters after this visit's layout was chosen.
+    // Back keeps that layout without counting another homepage visit.
+    if (!returning && !isHomepageVisitCounterRoute()) {
         if (main) main.dataset.homepageVisitLayout = 'default';
         return;
     }
 
-    const historyLayout = history.state?.lwcHomepageVisitLayout;
-    const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
-        && (historyLayout === 'default' || historyLayout === 'repeat');
     const layout = returning ? historyLayout
         : incrementHomepageVisitCount() < homepageHighlightsBeforePodiumVisit ? 'default' : 'repeat';
     if (!returning) history.replaceState({ ...history.state, lwcHomepageVisitLayout: layout }, '');
