@@ -39,6 +39,9 @@ interface Window {
     type Modality = "pointer" | "keyboard" | "touch";
     // Phones start as touch, so nothing hover-only is ever armed before the first tap.
     let modality: Modality = window.matchMedia("(hover: none)").matches ? "touch" : "pointer";
+    let hoverNeedsMovement = false;
+    let mouseX = 0;
+    let mouseY = 0;
     function setModality(next: Modality): void {
         if (modality === next) return;
         modality = next;
@@ -50,7 +53,10 @@ interface Window {
     const navigationKeys = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "Escape", "Enter", " "]);
     document.addEventListener("keydown", event => {
         if (event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
-        if (navigationKeys.has(event.key)) setModality("keyboard");
+        if (navigationKeys.has(event.key)) {
+            setModality("keyboard");
+            hoverNeedsMovement = true;
+        }
     }, true);
     document.addEventListener("pointerdown", event => {
         setModality(event.pointerType === "touch" ? "touch" : "pointer");
@@ -58,8 +64,15 @@ interface Window {
     // A mouse that moves after keyboard use takes hover back, but keeps the ring
     // until the next click so a nudge of the mouse does not lose the visitor's place.
     document.addEventListener("pointermove", event => {
-        if (event.pointerType === "mouse" && modality === "touch") {
-            setModality("pointer");
+        if (event.pointerType !== "mouse") return;
+        const moved = event.clientX !== mouseX || event.clientY !== mouseY || event.movementX !== 0 || event.movementY !== 0;
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+        const fromTouch = modality === "touch";
+        if (!moved && !fromTouch) return;
+        if (fromTouch) setModality("pointer");
+        if (hoverNeedsMovement || fromTouch) {
+            hoverNeedsMovement = false;
             pointerOver(event);
         }
     }, { passive: true, capture: true });
@@ -230,6 +243,9 @@ interface Window {
     }
 
     function hideTip(immediate = false): void {
+        // Removing a top-layer tip can expose its stationary pointer owner.
+        // That boundary event must not undo a dismissal or keyboard ownership.
+        hoverNeedsMovement = true;
         window.clearTimeout(tipShowTimer);
         window.clearTimeout(tipHideTimer);
         cancelAnimationFrame(tipFrame);
@@ -281,10 +297,16 @@ interface Window {
         }, wait);
     }
 
+    function tipHasSelection(): boolean {
+        if (!tip.classList.contains("is-open")) return false;
+        const selection = window.getSelection();
+        return Boolean(selection && !selection.isCollapsed
+            && (tip.contains(selection.anchorNode) || tip.contains(selection.focusNode)));
+    }
+
     function leaveTip(): void {
         if (tipPointerHeld || (tipTouchReading && modality === "touch")) return;
-        const selection = window.getSelection();
-        if (selection && !selection.isCollapsed && (tip.contains(selection.anchorNode) || tip.contains(selection.focusNode))) return;
+        if (tipHasSelection()) return;
         window.clearTimeout(tipShowTimer);
         if (tip.hidden) { hideTip(true); return; }
         window.clearTimeout(tipHideTimer);
@@ -297,6 +319,7 @@ interface Window {
         // Hiding a touch-owned tip can expose the stationary mouse's old target.
         // That boundary event is not new mouse intent; actual movement re-arms it.
         if (event.pointerType === "touch" || event.buttons || (event.pointerType === "mouse" && modality === "touch")) return;
+        if (hoverNeedsMovement || tipHasSelection()) return;
         if (event.target instanceof Node && tip.contains(event.target)) {
             window.clearTimeout(tipHideTimer);
             return;

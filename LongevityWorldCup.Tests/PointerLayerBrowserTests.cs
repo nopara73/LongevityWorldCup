@@ -23,9 +23,12 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
 
     private async Task<IPage> FixtureAsync(IBrowserContext context)
     {
-        var page = await context.NewPageAsync();
-        await page.GotoAsync(new Uri(App.BaseAddress, "/health").ToString());
-        await page.SetContentAsync("""
+        var fixtureUrl = new Uri(App.BaseAddress, "/pointer-layer-fixture").ToString();
+        await context.RouteAsync(fixtureUrl, route => route.FulfillAsync(new()
+        {
+            ContentType = "text/html",
+            Body = """
+            <!doctype html>
             <style>body{margin:20px;font:16px Arial}button,a,input{margin:8px;padding:12px}
             #space{height:1400px}td{padding:12px}#clip{width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
             </style>
@@ -40,9 +43,14 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
             <tr><td><a href="#" id="row2">Second athlete</a></td></tr></tbody></table>
             <details open><summary>More</summary><button id="detail">Inside</button></details>
             <dialog><button id="modal" title="Dialog action">Modal</button></dialog><div id="space"></div>
-            """);
+            """
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(fixtureUrl);
         await page.AddStyleTagAsync(new() { Url = new Uri(App.BaseAddress, "/css/pointer.css").ToString() });
         await page.AddScriptTagAsync(new() { Url = new Uri(App.BaseAddress, "/js/pointer.js").ToString() });
+        await page.BringToFrontAsync();
+        await page.EvaluateAsync("async () => {await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}");
         return page;
     }
 
@@ -71,6 +79,8 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
             Assert.Equal(selection, await page.EvaluateAsync<string>("window.getSelection().toString()"));
         }
         finally { await page.Mouse.UpAsync(); }
+        // Releasing native selection can retarget the stationary pointer.
+        await page.Locator("#plain").DispatchEventAsync("pointerover", new { pointerType = "mouse" });
         await page.WaitForTimeoutAsync(250);
         await Expect(tip).ToBeVisibleAsync();
         await page.Locator("#plain").ClickAsync();
@@ -215,6 +225,9 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
             }
             """);
         await page.Keyboard.PressAsync("Tab");
+        await Expect(page.Locator("#one")).ToBeFocusedAsync();
+        await page.EvaluateAsync("() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))");
+        await page.Locator("#plain").DispatchEventAsync("pointerover", new { pointerType = "mouse" });
         await Expect(page.Locator(".lwc-tip.is-open")).ToHaveTextAsync("First tip");
         Assert.Equal(0, await page.EvaluateAsync<int>("window.unrelatedFieldReads"));
         await page.Locator("#edit").FocusAsync();
@@ -234,8 +247,10 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
                 const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth');
                 Object.defineProperty(Element.prototype, 'scrollWidth', { configurable:true, get() { reads++; return descriptor.get.call(this); } });
                 try {
+                    let x = 1;
                     for (const id of ['clip', 'plain', 'last', 'row1']) {
                         const e = document.getElementById(id);
+                        e.dispatchEvent(new PointerEvent('pointermove', {bubbles:true,pointerType:'mouse',clientX:x++,clientY:1,movementX:1}));
                         e.dispatchEvent(new PointerEvent('pointerover', {bubbles:true,pointerType:'mouse'}));
                         e.dispatchEvent(new PointerEvent('pointerout', {bubbles:true,pointerType:'mouse',relatedTarget:document.body}));
                     }
@@ -260,9 +275,14 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         await Expect(page.Locator(".lwc-tip.is-open")).ToBeVisibleAsync();
         if (interruption == "pagehide") await page.EvaluateAsync("() => window.dispatchEvent(new Event('pagehide'))");
         else await page.Locator("#one").DispatchEventAsync(interruption);
+        // A removed top-layer surface can expose the same owner without a move.
+        await page.Locator("#one").DispatchEventAsync("pointerover", new { pointerType = "mouse" });
         await page.WaitForTimeoutAsync(700);
         await Expect(page.Locator(".lwc-tip")).ToBeHiddenAsync();
         await Expect(page.Locator("#one")).ToHaveAttributeAsync("title", "First tip");
+        await page.Mouse.MoveAsync(800, 600);
+        await page.Locator("#one").HoverAsync();
+        await Expect(page.Locator(".lwc-tip.is-open")).ToBeVisibleAsync();
     }
 
     [Fact]
