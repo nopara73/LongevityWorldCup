@@ -6,13 +6,20 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class AthleteDialogFrameBrowserTests
 {
     [Theory]
-    [InlineData(160)]
-    [InlineData(195)]
-    [InlineData(240)]
-    public async Task StickyHeader_NarrowZoomWidthKeepsIdentityAndControlsVisible(int width)
+    [InlineData(160, 16, true)]
+    [InlineData(195, 16, true)]
+    [InlineData(240, 16, true)]
+    [InlineData(320, 16, false)]
+    [InlineData(320, 16, true)]
+    [InlineData(320, 32, false)]
+    [InlineData(320, 32, true)]
+    [InlineData(390, 32, false)]
+    [InlineData(390, 32, true)]
+    public async Task StickyHeader_NarrowZoomWidthKeepsIdentityAndControlsVisible(int width, int textSize, bool dark)
     {
-        await using var context = await NewContextAsync(width, 450, dark: true);
-        var page = await OpenProfileAsync(context, Profile, "michael-lustgarten");
+        await using var context = await NewContextAsync(width, 640, dark);
+        var page = await OpenProfileAsync(context, "/athlete/benjamin-garden", "benjamin-garden");
+        await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textSize}px !important; }}" });
         await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeHiddenAsync();
         await page.Locator("#detailsModal .modal-content").EvaluateAsync("content => content.scrollTop = content.scrollHeight / 2");
         await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeVisibleAsync();
@@ -20,13 +27,24 @@ public sealed partial class AthleteDialogFrameBrowserTests
             () => {
                 const failures = [];
                 const header = document.getElementById('modalStickyHeader');
-                for (const element of header.querySelectorAll('button, img, #stickyAthleteName')) {
+                const elements = [...header.querySelectorAll('button, img, #stickyAthleteName, .sticky-pro-badge')].filter(e => e.checkVisibility());
+                for (const element of elements) {
                     if (!element.checkVisibility()) continue;
                     const box = element.getBoundingClientRect();
                     if (box.left < 0 || box.right > innerWidth) failures.push(`${element.id || element.className}: clipped`);
                     if (element.tagName === 'BUTTON' && (box.width < 44 || box.height < 44)) failures.push('small control');
                     if (element.tagName === 'IMG' && Math.abs(box.width - box.height) > 1) failures.push('squashed portrait');
                     if (element.id === 'stickyAthleteName' && box.width < 60) failures.push('name disappeared');
+                    if (element.tagName === 'BUTTON' && !element.disabled
+                        && !element.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)))
+                        failures.push('control is obscured');
+                    for (const other of elements) {
+                        if (other === element) continue;
+                        const r = other.getBoundingClientRect();
+                        if (Math.min(box.right, r.right) - Math.max(box.left, r.left) > 1
+                            && Math.min(box.bottom, r.bottom) - Math.max(box.top, r.top) > 1)
+                            failures.push(`${element.id || element.className} overlaps ${other.id || other.className}`);
+                    }
                 }
                 return failures;
             }
