@@ -70,6 +70,8 @@ public sealed class InPageSubmissionBrowserTests(
     [InlineData("apply", "abort", 390)]
     [InlineData("edit", "success", 390)]
     [InlineData("edit", "error", 1440)]
+    [InlineData("edit", "error", 195)]
+    [InlineData("edit", "error", 187)]
     [InlineData("edit", "abort", 390)]
     [InlineData("proof", "success", 1440)]
     [InlineData("proof", "error", 390)]
@@ -78,8 +80,8 @@ public sealed class InPageSubmissionBrowserTests(
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = width, Height = 900 },
-            ColorScheme = width == 390 ? ColorScheme.Dark : ColorScheme.Light,
+            ViewportSize = new() { Width = width, Height = width <= 195 ? 422 : 900 },
+            ColorScheme = width <= 390 ? ColorScheme.Dark : ColorScheme.Light,
             ReducedMotion = ReducedMotion.NoPreference
         });
         await context.RouteAsync("**/api/**", route => route.Request.Method == "GET" ? route.FallbackAsync()
@@ -138,6 +140,20 @@ public sealed class InPageSubmissionBrowserTests(
         await Assertions.Expect(action).ToBeDisabledAsync();
         await Assertions.Expect(action).ToHaveTextAsync(label);
         Assert.InRange(await action.EvaluateAsync<double>("el=>el.getBoundingClientRect().width") - initialWidth, -1, 1);
+        if (width <= 195)
+        {
+            // A 390px phone at native 200% zoom has a 195px layout viewport,
+            // with 187px usable when its native scrollbar occupies 8px.
+            // Ordinary words must fit even though scroll/client sizes can agree.
+            Assert.True(await action.EvaluateAsync<bool>("""
+                el => {
+                    const text=el.querySelector('.flow-action__label').firstChild;
+                    const start=text.textContent.indexOf('request');
+                    const range=document.createRange();range.setStart(text,start);range.setEnd(text,start+7);
+                    return range.getClientRects().length===1;
+                }
+                """));
+        }
         if (flow == "edit" && width == 1440)
         {
             await page.SetViewportSizeAsync(320, 640);
