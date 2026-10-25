@@ -58,7 +58,10 @@ interface Window {
     // A mouse that moves after keyboard use takes hover back, but keeps the ring
     // until the next click so a nudge of the mouse does not lose the visitor's place.
     document.addEventListener("pointermove", event => {
-        if (event.pointerType === "mouse" && modality === "touch") setModality("pointer");
+        if (event.pointerType === "mouse" && modality === "touch") {
+            setModality("pointer");
+            pointerOver(event);
+        }
     }, { passive: true, capture: true });
 
     // ----------------------------------------------------------------- tooltip
@@ -87,6 +90,7 @@ interface Window {
     let tipAddedLabel: string | null = null;
     let tipFrame = 0;
     let tipSource: "pointer" | "keyboard" = "pointer";
+    let tipTouchReading = false;
     const coldDelay = 520;
     const warmDelay = 60;
     const warmWindow = 700;
@@ -211,6 +215,7 @@ interface Window {
     }
 
     function detachTipOwner(): void {
+        tipTouchReading = false;
         if (!tipOwner) return;
         if (tipAddedDescribedBy) {
             const rest = (tipOwner.getAttribute("aria-describedby") || "").split(/\s+/).filter(id => id && id !== tip.id);
@@ -275,6 +280,7 @@ interface Window {
     }
 
     function leaveTip(): void {
+        if (tipTouchReading && modality === "touch") return;
         window.clearTimeout(tipShowTimer);
         if (tip.hidden) { hideTip(true); return; }
         window.clearTimeout(tipHideTimer);
@@ -283,9 +289,10 @@ interface Window {
         tipHideTimer = window.setTimeout(() => hideTip(), 160);
     }
 
-    document.addEventListener("pointerover", event => {
-        if (event.pointerType === "touch" || event.buttons) return;
-        if (event.pointerType === "mouse" && modality === "touch") setModality("pointer");
+    function pointerOver(event: PointerEvent): void {
+        // Hiding a touch-owned tip can expose the stationary mouse's old target.
+        // That boundary event is not new mouse intent; actual movement re-arms it.
+        if (event.pointerType === "touch" || event.buttons || (event.pointerType === "mouse" && modality === "touch")) return;
         if (event.target instanceof Node && tip.contains(event.target)) {
             window.clearTimeout(tipHideTimer);
             return;
@@ -300,7 +307,8 @@ interface Window {
         }
         if (target === tipOwner) { tipSource = "pointer"; adoptTitle(target); return; }
         scheduleTip(target, coldDelay);
-    }, { passive: true });
+    }
+    document.addEventListener("pointerover", pointerOver, { passive: true });
 
     document.addEventListener("pointerout", event => {
         if (!tipOwner) return;
@@ -311,10 +319,16 @@ interface Window {
     }, { passive: true });
 
     document.addEventListener("pointerdown", event => {
+        if (event.target instanceof Node && tip.contains(event.target)) {
+            if (event.pointerType === "touch") tipTouchReading = true;
+            window.clearTimeout(tipHideTimer);
+        } else hideTip(true);
+    }, true);
+    // Native scrolling captures, then cancels, the finger's pointer stream.
+    // The explanation owns that gesture; outside interruptions still release it.
+    for (const type of ["pointercancel", "gotpointercapture"]) document.addEventListener(type, event => {
         if (!(event.target instanceof Node && tip.contains(event.target))) hideTip(true);
     }, true);
-    document.addEventListener("pointercancel", () => hideTip(true), true);
-    document.addEventListener("gotpointercapture", () => hideTip(true), true);
     window.addEventListener("scroll", event => {
         if (tipOwner && !(event.target instanceof Node && tip.contains(event.target))) hideTip(true);
     }, { passive: true, capture: true });

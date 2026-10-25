@@ -8,10 +8,11 @@ namespace LongevityWorldCup.Tests;
 public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    private async Task<IBrowserContext> ContextAsync(int width = 1440, bool dark = false)
+    private async Task<IBrowserContext> ContextAsync(int width = 1440, bool dark = false, bool touch = false)
     {
         var context = await Browser.NewContextAsync(new() {
             ViewportSize = new() { Width = width, Height = 900 },
+            HasTouch = touch,
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -86,6 +87,55 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         await Expect(page.Locator("#one")).ToHaveAttributeAsync("title", "Updated tip");
         await Expect(page.Locator("#one")).ToHaveAttributeAsync("aria-describedby", "help");
         Assert.Null(await page.Locator("#one").GetAttributeAsync("aria-label"));
+    }
+
+    [Theory]
+    [InlineData("touch")]
+    [InlineData("mouse")]
+    public async Task LongTooltip_HybridTouchCanScrollWithoutDismissalOrReopening(string ending)
+    {
+        await using var context = await ContextAsync(390, false, true);
+        var page = await FixtureAsync(context);
+        await page.Locator("#two").EvaluateAsync("e => e.title = 'All words remain reachable in this explanation. '.repeat(150)");
+        await page.Mouse.MoveAsync(2, 2);
+        await page.Locator("#two").HoverAsync();
+        var tip = page.Locator(".lwc-tip");
+        await Expect(tip).ToBeVisibleAsync();
+        Assert.True(await tip.EvaluateAsync<bool>("e => e.scrollHeight > e.clientHeight"));
+        await page.EvaluateAsync("""
+            () => {
+                window.tipInterrupted = false;
+                for (const type of ['gotpointercapture', 'pointercancel']) document.addEventListener(type, () => {
+                    if (document.querySelector('.lwc-tip').hidden) window.tipInterrupted = true;
+                }, true);
+            }
+            """);
+        var box = await tip.BoundingBoxAsync();
+        Assert.NotNull(box);
+        var x = box.X + box.Width / 2;
+        var y = Math.Min(700, box.Y + box.Height - 30);
+        var cdp = await context.NewCDPSessionAsync(page);
+        await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchStart", ["touchPoints"] = new[] { new { x, y, id = 1 } } });
+        for (var step = 1; step <= 6; step++)
+        {
+            await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchMove", ["touchPoints"] = new[] { new { x, y = y - step * 40, id = 1 } } });
+            await page.WaitForTimeoutAsync(30);
+        }
+        await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
+        await cdp.DetachAsync();
+        await page.WaitForTimeoutAsync(250);
+        await Expect(tip).ToBeVisibleAsync();
+        Assert.True(await tip.EvaluateAsync<bool>("e => e.scrollTop > 30"), "The native touch gesture must actually scroll the explanation.");
+        Assert.False(await page.EvaluateAsync<bool>("window.tipInterrupted"), "Pointer capture or cancellation dismissed and reopened the tip during the gesture.");
+        // Stay beyond Chromium's touch hit-test radius around the scrollable tip.
+        if (ending == "touch") await page.Touchscreen.TapAsync(388, 885);
+        else await page.Mouse.MoveAsync(388, 885);
+        await page.WaitForTimeoutAsync(750);
+        await Expect(tip).ToBeHiddenAsync();
+        Assert.Equal(ending == "touch" ? "touch" : "pointer", await page.EvaluateAsync<string>("window.LwcPointer.modality()"));
+        await page.Locator("#two").HoverAsync();
+        await Expect(tip).ToBeVisibleAsync();
+        Assert.Equal("pointer", await page.EvaluateAsync<string>("window.LwcPointer.modality()"));
     }
 
     [Fact]
