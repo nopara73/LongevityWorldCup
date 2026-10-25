@@ -4387,6 +4387,7 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
     updateLeaderboardStateIndicator();
     scheduleLeaderboardTableHeightSync();
     renderedLeaderboardSelection = getLeaderboardSelectionKey();
+    pageDocument.dispatchEvent(new Event('lwc:standings-ready'));
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
     if (!updateUrl) {
@@ -7734,6 +7735,7 @@ window.getLeaderboardStanding = name => {
         rank: athlete.rank,
         lastMonthRank: Number.isFinite(athlete.lastMonthRank) ? athlete.lastMonthRank : null,
         isNew: Boolean(athlete.isNew),
+        comparable: athleteResultsReady && !hasActiveLeaderboardState(),
         flag: athlete.canonicalFlag || ''
     });
 };

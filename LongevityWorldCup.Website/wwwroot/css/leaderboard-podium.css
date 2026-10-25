@@ -1,189 +1,11 @@
-/* =========================================================================
-   Podium moment and moving standings (Frontend/leaderboard-podium.ts)
-   - .lb-stage: full-page stage above the board; it shares the board's card,
-     so the plinths stand on the toolbar and the table runs on beneath them.
-   - .lb-glint / .lb-podium-lit: the #1 halo, here and on the homepage podium.
-   - .lb-rolling / .lb-move-flash / [data-lb-moved]: rank-change cues on rows.
-   Palette: existing --lwc-* tokens and the podium surfaces from
-   leaderboard-content.css section 7. No new hues.
-   ========================================================================= */
-
-/* ---------------------------------------------------------------- stage */
-.lb-stage{
-    --stage-gold-surface:#fff9db;
-    --stage-silver-surface:#e9eef2;
-    --stage-bronze-surface:#f3e8da;
-    --stage-portrait:132px;
-    --stage-step-1:116px;
-    --stage-step-2:84px;
-    --stage-step-3:62px;
-    display:grid;
-    grid-template-rows:1fr;
-    transition:grid-template-rows var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-}
-@media (prefers-color-scheme:dark){
-    .lb-stage{
-        --stage-gold-surface:#3a3320;
-        --stage-silver-surface:#29333d;
-        --stage-bronze-surface:#382e26;
-    }
-}
-.lb-stage[data-state="off"],
-.lb-stage[data-state="empty"]{ grid-template-rows:0fr; opacity:0; pointer-events:none; }
-.lb-stage-clip{
-    min-height:0; overflow:hidden;
-    border:1px solid var(--lwc-border); border-bottom:0;
-    border-radius:var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
-    background:
-        radial-gradient(ellipse 38% 82% at 50% 100%, color-mix(in srgb, var(--lwc-gold) 16%, transparent), transparent 100%),
-        radial-gradient(ellipse 60% 90% at 50% 0, var(--lwc-surface-accent), transparent 100%),
-        var(--lwc-surface);
-}
-.lb-stage[data-state="off"] .lb-stage-clip,
-.lb-stage[data-state="empty"] .lb-stage-clip{ border-color:transparent; }
-/* The stage and the board read as one card. */
-main[data-leaderboard-page="full"] .lb-stage[data-state="on"] + .leaderboard-controls{
-    border-top-left-radius:0; border-top-right-radius:0;
-}
-.lb-stage-floor{
-    display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); align-items:end;
-    max-width:960px; margin:0 auto; padding:var(--lwc-space-6) var(--lwc-space-4) 0;
-}
-.lb-stage-slot{
-    --metal:var(--lwc-bronze); --surface:var(--stage-bronze-surface); --step:var(--stage-step-3); --portrait:calc(var(--stage-portrait) * .82);
-    position:relative; display:flex; flex-direction:column; align-items:stretch; min-width:0;
-}
-.lb-stage-slot[data-slot="1"]{ --metal:var(--lwc-gold); --surface:var(--stage-gold-surface); --step:var(--stage-step-1); --portrait:var(--stage-portrait); z-index:1; }
-.lb-stage-slot[data-slot="2"]{ --metal:var(--lwc-silver); --surface:var(--stage-silver-surface); --step:var(--stage-step-2); --portrait:calc(var(--stage-portrait) * .88); }
-.lb-stage-cards{ position:relative; display:flex; justify-content:center; min-height:calc(var(--portrait) + 4.6rem); }
-
-/* The athlete standing on a plinth. */
-.lb-stage-card{
-    position:relative; display:flex; flex-direction:column; align-items:center; gap:.3rem;
-    width:100%; min-width:0; padding:var(--lwc-space-4) var(--lwc-space-2) var(--lwc-space-3); box-sizing:border-box;
-    color:var(--lwc-ink); text-decoration:none; text-align:center; transform-origin:50% 100%;
-}
-.lb-stage-card.is-leaving{ position:absolute; z-index:0; pointer-events:none; }
-.lb-stage-portrait{
-    position:relative; display:block; width:var(--portrait); height:var(--portrait); flex:0 0 auto; margin-bottom:.45rem;
-    border-radius:50%; box-shadow:0 0 0 4px var(--metal), var(--lwc-shadow-md);
-    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-}
-.lb-stage-portrait img{ display:block; width:100%; height:100%; border-radius:50%; object-fit:cover; background:var(--lwc-surface-muted); }
-.lb-stage-card:hover .lb-stage-portrait{ transform:translateY(-3px) scale(1.03); box-shadow:0 0 0 4px var(--metal), 0 0 0 9px color-mix(in srgb, var(--metal) 26%, transparent), var(--lwc-shadow-md); }
-.lb-stage-card:active .lb-stage-portrait{ transform:scale(.98); transition-duration:60ms; }
-/* The flag rides on the portrait's edge, as it does in the profile dialog. */
-.lb-stage-flagmark{ position:absolute; right:4%; bottom:4%; display:flex; line-height:0; }
-.lb-stage-flagmark:empty{ display:none; }
-.lb-stage-flag.fi{
-    width:30px; height:22px; border-radius:5px; background-size:cover;
-    box-shadow:0 0 0 3px var(--lwc-surface), var(--lwc-shadow-sm);
-}
-.lb-stage-name{
-    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    font-weight:700; font-size:1.05rem; color:var(--lwc-ink);
-    text-decoration:underline; text-decoration-color:var(--lwc-border-strong); text-underline-offset:3px;
-}
-.lb-stage-score{ color:var(--lwc-accent); font-weight:700; font-size:1.35rem; line-height:1.15; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.lb-stage-slot[data-slot="1"] .lb-stage-score{ font-size:1.7rem; }
-.lb-stage-slot[data-slot="1"] .lb-stage-name{ font-size:1.18rem; }
-
-/* #1: crown, gold halo and spotlight. */
-.lb-stage-crown{
-    position:absolute; top:calc(var(--lwc-space-4) - 1.9rem); left:50%; z-index:2; transform:translate(-50%, 0);
-    color:var(--lwc-gold); font-size:1.85rem;
-    filter:drop-shadow(0 3px 6px color-mix(in srgb, var(--lwc-gold) 45%, transparent));
-}
-.lb-stage-slot[data-slot="1"] .lb-stage-portrait{
-    box-shadow:0 0 0 5px var(--lwc-gold), 0 0 0 12px color-mix(in srgb, var(--lwc-gold) 18%, transparent), 0 14px 40px color-mix(in srgb, var(--lwc-gold) 30%, transparent);
-}
-.lb-stage-slot[data-slot="1"] .lb-stage-card{ padding-top:calc(var(--lwc-space-4) + 1.2rem); }
-
-/* Plinths share the toolbar as their floor. */
-.lb-stage-plinth{
-    position:relative; height:var(--step); display:flex; justify-content:center; align-items:flex-start;
-    border-top:4px solid var(--metal); background:linear-gradient(180deg, color-mix(in srgb, var(--metal) 22%, var(--surface)), var(--surface) 70%);
-    transform-origin:50% 100%;
-}
-.lb-stage-slot[data-slot="1"] .lb-stage-plinth{ border-radius:var(--lwc-radius-md) var(--lwc-radius-md) 0 0; }
-.lb-stage-slot[data-slot="2"] .lb-stage-plinth{ border-radius:var(--lwc-radius-md) 0 0 0; }
-.lb-stage-slot[data-slot="3"] .lb-stage-plinth{ border-radius:0 var(--lwc-radius-md) 0 0; }
-.lb-stage-place{
-    margin-top:.35rem; font-family:Orbitron, Roboto, sans-serif; font-weight:800; font-size:2rem; line-height:1;
-    color:color-mix(in srgb, var(--metal) 70%, var(--lwc-ink));
-    text-shadow:0 1px 0 color-mix(in srgb, var(--lwc-surface) 70%, transparent);
-}
-.lb-stage-slot[data-slot="1"] .lb-stage-place{ font-size:2.6rem; }
-.lb-stage-slot.is-empty .lb-stage-plinth{ opacity:.45; }
-.lb-stage-slot.is-empty .lb-stage-place{ visibility:hidden; }
-
-/* A single glint around the #1 ring (stage and homepage). */
-.lb-glint{
-    position:absolute; z-index:3; border-radius:50%; pointer-events:none;
-    background:conic-gradient(from 0deg, transparent 0 74%, color-mix(in srgb, #fff 85%, var(--lwc-gold)) 86%, transparent 96%);
-    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px), #000 calc(100% + 1px));
-    mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px), #000 calc(100% + 1px));
-}
-.lb-stage-card > .lb-glint{ margin:-5px; padding:5px; box-sizing:content-box; }
-
-/* Scrolling away: the athletes sink behind the floor while the board slides on. */
-@supports (animation-timeline: view()){
-    @media (prefers-reduced-motion: no-preference){
-        .lb-stage-floor{
-            animation:lb-stage-away linear both;
-            animation-timeline:view();
-            animation-range:exit 0% exit 100%;
-        }
-        .lb-stage-cards{
-            animation:lb-stage-sink linear both;
-            animation-timeline:view();
-            animation-range:exit -10% exit 90%;
-        }
-        /* …and the first three land in the table as it arrives. */
-        main[data-leaderboard-page="full"] .leaderboard tbody tr .rank[data-place]{
-            animation:lb-place-land linear both;
-            animation-timeline:view();
-            animation-range:entry 0% entry 100%;
-        }
-    }
-}
-@keyframes lb-stage-away{ to{ opacity:.35; filter:saturate(.5); } }
-@keyframes lb-stage-sink{ to{ transform:translateY(52%) scale(.86); opacity:.4; } }
-@keyframes lb-place-land{
-    from{ transform:scale(1.3); }
-    to{ transform:none; }
-}
-
-/* Phone and narrow tablet: same three plinths, sized down. */
-@media (max-width: 768px){
-    .lb-stage{ --stage-portrait:96px; --stage-step-1:78px; --stage-step-2:58px; --stage-step-3:44px; }
-    .lb-stage-floor{ padding:var(--lwc-space-5) var(--lwc-space-2) 0; }
-    .lb-stage-card{ padding-inline:2px; gap:.15rem; }
-    .lb-stage-name{ font-size:.9rem; }
-    .lb-stage-slot[data-slot="1"] .lb-stage-name{ font-size:.98rem; }
-    .lb-stage-score{ font-size:1.02rem; }
-    .lb-stage-slot[data-slot="1"] .lb-stage-score{ font-size:1.25rem; }
-    .lb-stage-place{ font-size:1.5rem; }
-    .lb-stage-slot[data-slot="1"] .lb-stage-place{ font-size:1.9rem; }
-    .lb-stage-crown{ font-size:1.45rem; top:calc(var(--lwc-space-4) - 1.55rem); }
-    .lb-stage-flag.fi{ width:22px; height:16px; border-radius:4px; box-shadow:0 0 0 2px var(--lwc-surface); }
-    .lb-stage-portrait{ box-shadow:0 0 0 3px var(--metal), var(--lwc-shadow-sm); }
-    .lb-stage-slot[data-slot="1"] .lb-stage-portrait{ box-shadow:0 0 0 4px var(--lwc-gold), 0 0 0 9px color-mix(in srgb, var(--lwc-gold) 18%, transparent), 0 10px 26px color-mix(in srgb, var(--lwc-gold) 28%, transparent); }
-}
-@media (max-width: 380px){
-    .lb-stage{ --stage-portrait:84px; }
-    .lb-stage-score{ font-size:.92rem; }
-    .lb-stage-slot[data-slot="1"] .lb-stage-score{ font-size:1.08rem; }
-}
-
+/* Homepage podium accents and comparable Ultimate rank changes. */
 /* ------------------------------------------------------ homepage podium */
 /* homepage.css animates this ring's box-shadow (home-champion-ring), so the
    halo is a filter that survives it. */
-html body main .podium.lb-podium-lit .podium-item.first img.podium-portrait{
+html body main .podium .podium-item.first img.podium-portrait{
     filter:drop-shadow(0 0 10px color-mix(in srgb, var(--lwc-gold) 45%, transparent)) drop-shadow(0 14px 26px color-mix(in srgb, var(--lwc-gold) 30%, transparent));
 }
-.podium.lb-podium-lit .podium-item-lower{ transform-origin:50% 100%; }
-.podium.lb-podium-lit .podium-item.first .podium-item-lower{
+.podium .podium-item.first .podium-item-lower{
     background:linear-gradient(180deg, color-mix(in srgb, var(--lwc-gold) 20%, var(--podium-surface)), var(--podium-surface) 75%);
 }
 
@@ -196,8 +18,8 @@ html body main .podium.lb-podium-lit .podium-item.first img.podium-portrait{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     animation-duration:620ms; animation-timing-function:cubic-bezier(.3,.8,.2,1); animation-fill-mode:both;
 }
-.leaderboard tbody .rank.lb-rolling::before{ content:attr(data-was); color:var(--lwc-muted); animation-delay:120ms; }
-.leaderboard tbody .rank.lb-rolling::after{ content:attr(data-now); animation-delay:120ms; }
+.leaderboard tbody .rank.lb-rolling::before{ content:attr(data-was) / ""; color:var(--lwc-muted); animation-delay:120ms; }
+.leaderboard tbody .rank.lb-rolling::after{ content:attr(data-now) / ""; animation-delay:120ms; }
 .leaderboard tbody .rank.lb-rolling.is-up::before{ animation-name:lb-roll-out-up; }
 .leaderboard tbody .rank.lb-rolling.is-up::after{ animation-name:lb-roll-in-up; color:var(--lwc-success); }
 .leaderboard tbody .rank.lb-rolling.is-down::before{ animation-name:lb-roll-out-down; }
@@ -208,22 +30,10 @@ html body main .podium.lb-podium-lit .podium-item.first img.podium-portrait{
 @keyframes lb-roll-out-down{ from{ transform:none; opacity:1; } to{ transform:translateY(110%); opacity:0; } }
 @keyframes lb-roll-in-down{ from{ transform:translateY(-110%); opacity:0; } to{ transform:none; opacity:1; } }
 
-/* The row breathes the direction's tint once, then settles. */
-.leaderboard tbody tr.lb-move-flash[data-lb-moved] > td{ animation:lb-move-tint 1.2s ease-out both; }
-.leaderboard tbody tr.lb-move-flash[data-lb-moved="up"] > td{ --move-tint:var(--lwc-success-soft); }
-.leaderboard tbody tr.lb-move-flash[data-lb-moved="down"] > td{ --move-tint:var(--lwc-danger-soft); }
-@keyframes lb-move-tint{ 0%, 25%{ background-color:var(--move-tint); } 100%{ background-color:transparent; } }
-/* A short edge mark stays as the memory of the move; #1 keeps a quiet gold
-   edge that continues the podium's lead into the table. Desktop rows only:
-   phone rows draw their rank as a floating chip. */
+/* Retain a static directional edge without competing with row motion. */
 @media (min-width: 769px){
     .leaderboard tbody tr[data-lb-moved] > td.rank-td{ box-shadow:inset 3px 0 0 var(--lb-edge, transparent); }
     .leaderboard tbody tr[data-lb-moved="up"]{ --lb-edge:color-mix(in srgb, var(--lwc-success) 70%, transparent); }
     .leaderboard tbody tr[data-lb-moved="down"]{ --lb-edge:color-mix(in srgb, var(--lwc-danger) 35%, transparent); }
     .leaderboard tbody tr:has(> td .rank[data-place="1"]) > td.rank-td{ box-shadow:inset 3px 0 0 var(--lwc-gold); }
-}
-
-@media (prefers-reduced-motion: reduce){
-    .lb-stage{ transition:none; }
-    .leaderboard tbody tr.lb-move-flash[data-lb-moved] > td{ animation:none; }
 }
