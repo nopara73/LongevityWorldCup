@@ -114,6 +114,36 @@ public sealed class AthleteTransitionBrowserTests(
     }
 
     [Fact]
+    public async Task ReopeningCachedProfile_KeepsTheWholeCardReadableFromItsFirstFrame()
+    {
+        await using var context = await NewContextAsync(1440, false);
+        var page = await OpenAsync(context);
+        var slug = await page.Locator("#detailsModal .modal-content").GetAttributeAsync("data-athlete-slug");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        var opacity = await page.EvaluateAsync<double>("""
+            async slug => {
+                await window.openAthleteModalBySlug(slug);
+                const modal = document.getElementById('detailsModal');
+                const card = modal.querySelector('.modal-content');
+                // Hold the actual entrance at its first frame, including any
+                // ancestor fade. A readable child inside a transparent overlay
+                // still paints the leaderboard through the profile.
+                getComputedStyle(modal).opacity;
+                for (const element of [modal, card]) {
+                    for (const animation of element.getAnimations()) {
+                        animation.pause();
+                        animation.currentTime = 0;
+                    }
+                }
+                return Number(getComputedStyle(modal).opacity)
+                    * Number(getComputedStyle(card).opacity);
+            }
+            """, slug);
+        Assert.True(opacity >= .85, $"The whole opening card faded through the board: effective opacity {opacity}.");
+    }
+
+    [Fact]
     public async Task CloseAnimation_KeepsTheActualContentTogetherAtItsFirstFrame()
     {
         await using var context = await NewContextAsync(1440, false);

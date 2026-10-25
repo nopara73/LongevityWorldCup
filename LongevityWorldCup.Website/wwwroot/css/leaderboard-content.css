@@ -5839,6 +5839,11 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
        viewport as their containing block. */
     animation:athlete-frame-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
 }
+@starting-style {
+    /* The card already moves in as a unit. Keep its surface opaque instead of
+       letting the shared overlay fade paint the board through the identity. */
+    #detailsModal.modal:not(.fade-out):not([hidden]){ opacity:1; }
+}
 #detailsModal.fade-out .modal-content{
     transform:translateY(8px) scale(.99);
     transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
