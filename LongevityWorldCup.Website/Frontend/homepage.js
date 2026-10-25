@@ -168,14 +168,16 @@ function stabilizeHomepageFragmentTarget() {
 
 function placeHomepageHighlightsForVisit() {
     const main = document.querySelector('main');
-    if (!isHomepageVisitCounterRoute()) {
+    const historyLayout = history.state?.lwcHomepageVisitLayout;
+    const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
+        && (historyLayout === 'default' || historyLayout === 'repeat');
+    // Filtering can add query parameters after this visit's layout was chosen.
+    // Back keeps that layout without counting another homepage visit.
+    if (!returning && !isHomepageVisitCounterRoute()) {
         if (main) main.dataset.homepageVisitLayout = 'default';
         return;
     }
 
-    const historyLayout = history.state?.lwcHomepageVisitLayout;
-    const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
-        && (historyLayout === 'default' || historyLayout === 'repeat');
     const layout = returning ? historyLayout
         : incrementHomepageVisitCount() < homepageHighlightsBeforePodiumVisit ? 'default' : 'repeat';
     if (!returning) history.replaceState({ ...history.state, lwcHomepageVisitLayout: layout }, '');
@@ -327,11 +329,20 @@ function watchHomepageHighlightsLayout() {
 
 document.addEventListener('DOMContentLoaded', function () {
     placeHomepageHighlightsForVisit();
-    fitHomepageHighlights();
-    LoadLeaderboard(true, 10);
+    const highlightsReady = fitHomepageHighlights();
+    const leaderboardReady = LoadLeaderboard(true, 10);
     stabilizeHomepageFragmentTarget();
 
     watchHomepageHighlightsLayout();
+    if (document.documentElement.classList.contains('homepage-restoring')) {
+        const loaded = document.readyState === 'complete' ? Promise.resolve()
+            : new Promise(resolve => window.addEventListener('load', resolve, { once: true }));
+        Promise.all([highlightsReady, leaderboardReady, document.fonts.ready, loaded])
+            .then(() => fitHomepageHighlights())
+            .finally(() => window.requestAnimationFrame(() => {
+                document.documentElement.classList.remove('homepage-restoring');
+            }));
+    }
 });
 
 (function initializeMerchCarousel() {

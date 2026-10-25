@@ -4,10 +4,10 @@
  * /play is a row of screens: the title, then the track choice or athlete
  * selection, then the athlete dashboard. play-menu.ts moves between them with a
  * direction (deeper slides in from the right, back from the left) and deals the
- * player card onto the table; the screen being left is an inert ghost, so the
- * new one takes input from its first frame.
+ * player card onto the table. The complete live card takes input from its first
+ * frame, without a departing copy covering its identity or commands.
  *
- * This sheet holds the pieces CSS owns: the ghost, the card glint, the price
+ * This sheet holds the pieces CSS owns: the card glint, the price
  * counter, press feedback for the flow's commands, the docked command bar
  * sliding up, and the search rows leaving. Durations and curves match the
  * shared motion tokens (90ms press, 140ms state, 200-280ms surfaces).
@@ -23,8 +23,7 @@
     --play-ease-pop: var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
 }
 
-/* 1) Screen moves. The ghost of the screen being left sits exactly where it
-   was, above the arriving screen, and never takes input. */
+/* 1) Screen moves keep the arriving card inside the viewport. */
 html.play-panel-transitioning .play-hub-main {
     position: relative;
     overflow-x: clip;
@@ -33,20 +32,6 @@ html.play-panel-transitioning .play-hub-main {
 html.play-panel-transitioning body {
     /* The arriving screen starts a little to the side; it must not widen the page. */
     overflow-x: clip;
-}
-
-.play-hub-panel.play-hub-panel--ghost {
-    position: absolute;
-    z-index: 3;
-    box-sizing: border-box;
-    margin: 0 !important;
-    pointer-events: none;
-    user-select: none;
-}
-
-.play-hub-panel--ghost * {
-    animation: none !important;
-    transition: none !important;
 }
 
 /* While the next screen prepares, the current one stays up and usable; the
@@ -148,8 +133,8 @@ body.play-route-pending {
     }
 }
 
-/* 5) The docked command bar slides up from the screen's edge instead of
-   appearing in place. The start menu keeps its own intro (play-menu.css). */
+/* 5) The command bar settles inside the screen: its buttons stay visible and
+   clickable throughout. The start menu keeps its own intro (play-menu.css). */
 @media (prefers-reduced-motion: no-preference) {
     body.play-flow-route:not(.play-start-active) .flow-action-stack.flow-action-stack--docked {
         transition:
@@ -159,7 +144,7 @@ body.play-route-pending {
 
     body.play-flow-route:not(.play-start-active) .flow-action-stack.flow-action-stack--docked.flow-action-stack--dock-entering {
         opacity: 1;
-        transform: translateY(calc(100% + 0.75rem)) !important;
+        transform: translateY(6px) !important;
         /* Establish the first frame immediately; removing the entry class
            then transitions toward the dock's resting position. */
         transition: none;
