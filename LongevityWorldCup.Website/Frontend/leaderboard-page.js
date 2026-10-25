@@ -2758,12 +2758,15 @@ let savedBodyScroll = 0;
 let savedBodyScrollRestoration = null;
 let savedBodyBackground = '';
 let currentAthleteModalRequestId = 0;
+let athleteDialogSnapshotRequest = null;
+let athleteDialogSnapshot = null;
 let athleteShareState = null;
 const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1';
 const athleteModalIsolation = new Map();
 const athleteModalFrames = new WeakSet();
 const athleteModalIsolationObserver = new MutationObserver(isolateAthleteModalBackground);
 let athleteModalFocusRevealFrame = 0;
+let athleteModalEntryFocusFrame = 0;
 const athleteModalFrameResizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(entries => {
     entries.forEach(entry => revealAthleteModalFrameFocus(entry.target));
 }) : null;
@@ -2801,7 +2804,7 @@ function isolateAthleteModalBackground() {
         for (const sibling of branch.parentElement.children) {
             if (sibling === branch || !(sibling instanceof HTMLElement)) continue;
             if (!athleteModalIsolation.has(sibling)) athleteModalIsolation.set(sibling, sibling.inert);
-            sibling.inert = true;
+            if (!sibling.inert) sibling.inert = true;
         }
     }
 }
@@ -2813,7 +2816,14 @@ function activateAthleteModal() {
         if (ancestor === document.body) break;
     }
     modal.querySelectorAll('iframe').forEach(bindAthleteModalFrame);
-    if (!modal.contains(document.activeElement)) closeBtn.focus({ preventScroll: true });
+    if (!modal.contains(document.activeElement)) {
+        cancelAnimationFrame(athleteModalEntryFocusFrame);
+        athleteModalEntryFocusFrame = requestAnimationFrame(() => {
+            athleteModalEntryFocusFrame = 0;
+            if (modal.style.display === 'block' && !modal.classList.contains('fade-out')
+                && !modal.contains(document.activeElement)) closeBtn.focus({ preventScroll: true });
+        });
+    }
 }
 
 function rememberAthleteModalOpener(options) {
@@ -2825,6 +2835,8 @@ function rememberAthleteModalOpener(options) {
 }
 
 function releaseAthleteModal() {
+    cancelAnimationFrame(athleteModalEntryFocusFrame);
+    athleteModalEntryFocusFrame = 0;
     athleteModalIsolationObserver.disconnect();
     athleteModalFrameResizeObserver?.disconnect();
     cancelAnimationFrame(athleteModalFocusRevealFrame);
@@ -2980,11 +2992,16 @@ function resetAthleteEventsFrame(athleteSlug) {
     return freshFrame;
 }
 
-function resetModalForLoading(athleteSlug) {
+function resetModalForLoading(athleteSlug, allowPaging = false) {
+    const modalContent = document.querySelector('.modal-content');
+    if (!modalContent) return null;
+    // Reset the old scroll before changing content/styles; writing scrollTop
+    // after those changes synchronously laid out the whole new profile.
+    if (modalContent.scrollTop !== 0) modalContent.scrollTo({ top: 0, behavior: 'instant' });
     modal.dispatchEvent(new CustomEvent('athlete-dialog-loading', { detail: { slug: athleteSlug } }));
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
-    modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
+    if (!allowPaging) modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
     const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
     if (viewer) closeEnlargedView(viewer);
     modal._historyClosePending = false;
@@ -2995,8 +3012,6 @@ function resetModalForLoading(athleteSlug) {
     }
     modal.classList.remove('fade-out');
 
-    const modalContent = document.querySelector('.modal-content');
-    if (!modalContent) return null;
     modalContent.inert = false;
 
     if (modalContent.dataset.serverRenderedProfile === athleteSlug) {
@@ -3015,7 +3030,6 @@ function resetModalForLoading(athleteSlug) {
     modalContent.classList.add('is-loading');
     modalContent.dataset.athleteSlug = athleteSlug;
     delete modalContent.dataset.profileImageId;
-    modalContent.scrollTop = 0;
 
     const loadError = document.getElementById('athleteLoadError');
     if (loadError) loadError.hidden = true;
@@ -3088,6 +3102,7 @@ function resetModalForLoading(athleteSlug) {
     }
     lockBodyScroll();
     activateAthleteModal();
+    if (allowPaging) updateAthleteDialogSteps();
 
     return modalContent;
 }
@@ -3104,6 +3119,7 @@ function lockBodyScroll() {
     if (document.body.classList.contains('no-scroll')) return;
 
     const bodyWidth = document.body.clientWidth;
+    const bodyBackground = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
     savedBodyScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     if ('scrollRestoration' in history) {
         savedBodyScrollRestoration ??= history.scrollRestoration;
@@ -3117,7 +3133,7 @@ function lockBodyScroll() {
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = getLockedBodyWidth(bodyWidth);
     savedBodyBackground = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
+    document.body.style.backgroundColor = bodyBackground;
 }
 
 function restoreAthleteHistoryScroll() {
@@ -3385,17 +3401,32 @@ function updateAthleteDialogSteps() {
     });
 }
 
+const athleteNeighbourPortraits = new Map();
+function preloadAthleteDialogNeighbours() {
+    const sources = new Set(Object.values(getAthleteDialogNeighbours()).filter(Boolean).map(getAthletePortraitUrl));
+    for (const source of athleteNeighbourPortraits.keys()) {
+        if (!sources.has(source)) athleteNeighbourPortraits.delete(source);
+    }
+    for (const source of sources) {
+        if (athleteNeighbourPortraits.has(source)) continue;
+        const image = new Image();
+        image.decoding = 'async';
+        image.src = source;
+        athleteNeighbourPortraits.set(source, image);
+        // Optional preparation never gates paging or changes the current image.
+        image.decode?.().catch(() => {});
+    }
+}
+
 function stepAthleteDialog(direction) {
     const modalContent = modal.querySelector('.modal-content');
     if (!modalContent || modal.style.display !== 'block' || modal._historyClosePending
-        || modalContent.matches('.guess-mode, .is-loading, .has-load-error, [data-server-rendered-profile], [data-server-rendered-loading]')
+        || modalContent.matches('.guess-mode, .has-load-error, [data-server-rendered-profile], [data-server-rendered-loading]')
+        || (modalContent.classList.contains('is-loading') && !modalContent.dataset.athleteStep)
         || modal.classList.contains('fade-out')
         || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
     const target = getAthleteDialogNeighbours()[direction];
     if (!target) return false;
-    // Restart the slide even when stepping the same way twice.
-    delete modalContent.dataset.athleteStep;
-    void modalContent.offsetWidth;
     modalContent.dataset.athleteStep = direction;
     fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
     return true;
@@ -3485,7 +3516,9 @@ function closeModal(options) {
         }
         disposeBiomarkerHistory();
         if (typeof window.destroyAgeRadarChart === 'function') window.destroyAgeRadarChart();
-        modalContent.scrollTop = 0;
+        // resetModalForLoading resets the scroll on the next open. Touching the
+        // hidden card here forces a layout of the newly unlocked page before
+        // focus can return, adding a long pause after the fade has finished.
 
         resetPageTitle();
         const returnFocusElement = closeReturn.returnFocusTo;
@@ -5819,6 +5852,36 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
     console.error('Error fetching full athlete data:', error);
 }
 
+// Record navigation intent before mutating the profile. History snapshots can
+// otherwise force a layout of half-hydrated content. Each newer intent replaces
+// the pending step immediately; only its request may commit profile content.
+function syncAthleteDialogHistory(athleteSlug, options) {
+    const pathnameBeforeOpen = window.location.pathname;
+    if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
+        originalAthletelessURL = getAthletelessURL();
+    }
+    const historyMode = options?.historyMode || 'push';
+    const previousState = history.state;
+    if (historyMode === 'replace' || (historyMode === 'push'
+        && previousState?.modal === 'details' && previousState.athlete === athleteSlug)) {
+        history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', window.location.href);
+    } else if (historyMode === 'step') {
+        // Stepping swaps the profile in place: Back and Close still return
+        // to the page the dialog was opened from.
+        history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', `/athlete/${athleteSlug}`);
+    } else if (historyMode === 'push') {
+        const previousIsProfile = previousState?.modal === 'details' || previousState?.modal === 'enlarged';
+        const previousDepth = previousState?.athleteDialogDepth;
+        const depth = previousIsProfile
+            ? (Number.isInteger(previousDepth) && previousDepth > 0
+                ? previousDepth + (previousState.modal === 'enlarged' ? 2 : 1)
+                : 0)
+            : 1;
+        history.pushState({ modal: 'details', athlete: athleteSlug, athleteDialogDepth: depth }, '', `/athlete/${athleteSlug}`);
+    }
+
+}
+
 function fetchFullAthleteData(athleteNameText, athleteData, options) {
     window.initializeSharedPageData();
     rememberAthleteModalOpener(options);
@@ -5828,11 +5891,12 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
     const normalizedAthleteName = normalizeAthleteSlugForLookup(athleteNameText);
     const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
     const requestId = ++currentAthleteModalRequestId;
-    const modalContent = resetModalForLoading(athleteSlug);
+    syncAthleteDialogHistory(athleteSlug, options);
+    const modalContent = resetModalForLoading(athleteSlug, options?.historyMode === 'step');
     if (modalContent && options?.historyMode !== 'step') delete modalContent.dataset.athleteStep;
 
-    return window.getSharedAthletes()
-        .then(athletes => {
+    const athletesRequest = window.getSharedAthletes();
+    const hydrate = athletes => {
             if (requestId !== currentAthleteModalRequestId) return;
             const fullAthleteData = athletes.find(a => {
                 const canonicalSlug = normalizeAthleteSlugForLookup(a.AthleteSlug);
@@ -5896,42 +5960,20 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 ? athleteData.chronoAtLowestBortzAge
                 : athleteData.chronoAtLowestPhenoAge;
 
-            // After populating the modal with athlete data but before showing it:
-            // Only update originalAthletelessURL when we're not already on an athlete URL, so a second open (e.g. URL sync with ?guessmyage=1) does not overwrite it with "/"
-            const pathnameBeforeOpen = window.location.pathname;
-            if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
-                originalAthletelessURL = getAthletelessURL();
-            }
-            const historyMode = options?.historyMode || 'push';
-            const previousState = history.state;
-            if (historyMode === 'replace' || (historyMode === 'push'
-                && previousState?.modal === 'details' && previousState.athlete === athleteSlug)) {
-                history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', window.location.href);
-            } else if (historyMode === 'step') {
-                // Stepping swaps the profile in place: Back and Close still return
-                // to the page the dialog was opened from.
-                history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', `/athlete/${athleteSlug}`);
-            } else if (historyMode === 'push') {
-                const previousIsProfile = previousState?.modal === 'details' || previousState?.modal === 'enlarged';
-                const previousDepth = previousState?.athleteDialogDepth;
-                const depth = previousIsProfile
-                    ? (Number.isInteger(previousDepth) && previousDepth > 0
-                        ? previousDepth + (previousState.modal === 'enlarged' ? 2 : 1)
-                        : 0)
-                    : 1;
-                history.pushState({ modal: 'details', athlete: athleteSlug, athleteDialogDepth: depth }, '', `/athlete/${athleteSlug}`);
-            }
-
             populateProofsGallery(fullAthleteData);
             const biomarkerHistory = buildBiomarkerHistory(fullAthleteData);
             renderBiomarkerHistory(biomarkerHistory, athletes);
 
             requestAnimationFrame(function() {
+                // Paint the identity and usable profile before optional chart
+                // construction. A newer step/close invalidates both callbacks.
+                window.setTimeout(function() {
                 if (requestId !== currentAthleteModalRequestId) return;
                 window.ensureChartJs().then(function() {
                     if (requestId !== currentAthleteModalRequestId) return;
                     generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults, biomarkerHistory.clockResults);
                 });
+                }, 0);
             });
             if (!modalContent) {
                 console.error('Modal content element not found');
@@ -5943,9 +5985,6 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             modalContent.dataset.athleteSlug = athleteSlug;
             if (profileImageId) modalContent.dataset.profileImageId = profileImageId;
             else delete modalContent.dataset.profileImageId;
-
-            // Always start at top when modal opens
-            modalContent.scrollTop = 0;
 
             // Hide sticky header initially
             const stickyHeader = document.getElementById('modalStickyHeader');
@@ -6038,11 +6077,29 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 history.replaceState({ ...history.state, modal: 'details', athlete: athleteSlug }, '', window.location.href);
             }
 
-        })
-        .catch(error => {
+            modal.dispatchEvent(new Event('athlete-dialog-ready'));
+            if (!modalContent.classList.contains('guess-mode')) preloadAthleteDialogNeighbours();
+
+        };
+    const failed = error => {
             if (requestId !== currentAthleteModalRequestId) return;
             handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error);
-        });
+        };
+    // Reuse only the exact shared request's resolved snapshot. Refreshes and
+    // image-identity updates replace that promise, so they cannot reuse stale
+    // data. Cached steps commit in one turn instead of exposing a reset state
+    // to mutation observers before an already-resolved promise resumes.
+    if (athleteDialogSnapshotRequest === athletesRequest && athleteDialogSnapshot) {
+        try { hydrate(athleteDialogSnapshot); }
+        catch (error) { failed(error); }
+        return Promise.resolve();
+    }
+    return athletesRequest.then(athletes => {
+        if (requestId !== currentAthleteModalRequestId) return;
+        athleteDialogSnapshotRequest = athletesRequest;
+        athleteDialogSnapshot = athletes;
+        hydrate(athletes);
+    }).catch(failed);
 }
 
 async function refreshAthleteAfterStaleGuess(athleteSlug) {
@@ -6182,7 +6239,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.src = getAthletePortraitUrl(fullAthleteData);
     profilePic.dataset.fullSrc = fullAthleteData.ProfilePic || profilePic.src;
     profilePic.alt = `${modalDisplayName} Profile Picture`;
-    profilePic.loading = 'lazy';
+    profilePic.loading = 'eager';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
     const stickyPortrait = document.getElementById('stickyAthletePortrait');
@@ -7657,11 +7714,10 @@ function updateAthleteInfoGrouping() {
         .map(id => document.getElementById(id))
         .filter(Boolean);
 
-    groupedRows.forEach(row => row.classList.remove('athlete-info-group-first'));
-    const firstVisibleRow = groupedRows.find(row => window.getComputedStyle(row).display !== 'none');
-    if (firstVisibleRow) {
-        firstVisibleRow.classList.add('athlete-info-group-first');
-    }
+    // These rows are controlled by their native hidden state. Reading computed
+    // styles here flushed the entire profile three times during each hydration.
+    const firstVisibleRow = groupedRows.find(row => !row.hidden);
+    groupedRows.forEach(row => row.classList.toggle('athlete-info-group-first', row === firstVisibleRow));
 }
 
 function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
