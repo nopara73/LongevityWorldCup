@@ -65,6 +65,7 @@ public sealed class StickyPlayScrollBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync(route, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => document.fonts.ready");
+        await page.Locator("#site-sticky-header .site-menu-toggle").WaitForAsync(new() { State = WaitForSelectorState.Attached });
         await page.Mouse.MoveAsync(width / 2, 500);
         await page.EvaluateAsync($$"""
             () => {
@@ -123,7 +124,8 @@ public sealed class StickyPlayScrollBrowserTests(
                 await document.fonts.ready;
                 await new Promise(requestAnimationFrame);
                 await new Promise(requestAnimationFrame);
-                return !!document.querySelector('.join-game');
+                return !!document.querySelector('.scrolled-button')
+                    && !!document.querySelector('#site-sticky-header .site-menu-toggle');
             }
             """, route);
         // The leaderboard and play flow deliberately use manual restoration.

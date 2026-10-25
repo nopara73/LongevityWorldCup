@@ -51,6 +51,7 @@ public sealed class PodiumEnlargedTextBrowserTests(
             "percent => parseFloat(getComputedStyle(document.documentElement).fontSize) >= 16 * percent / 100 - 0.5",
             textPercent);
         await page.EvaluateAsync("() => document.fonts.ready");
+        await WaitForFiniteAnimationsAsync(page);
         var enlargedSizes = await MeasureFontSizesAsync(page);
         for (var i = 0; i < originalSizes.Length; i++)
             Assert.InRange(enlargedSizes[i], originalSizes[i] * textPercent / 100 - 0.1, originalSizes[i] * textPercent / 100 + 0.1);
