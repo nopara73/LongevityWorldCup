@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -98,6 +99,51 @@ public sealed class ProofPreviewTests : IDisposable
         File.WriteAllBytes(Source, TiffTestFiles.Classic);
         using var service = CreateService();
         Assert.Null(await service.GetAsync("preview_test", "proof_1.png", default));
+    }
+
+    [Fact]
+    public async Task CatalogPathsAndRepresentativeRealReportsStayWithinPreviewBudgets()
+    {
+        var catalog = Path.Combine(AestheticSystemBrowserTests.FindRepositoryRoot(),
+            "LongevityWorldCup.Website", "wwwroot", "athletes");
+        var files = Directory.EnumerateFiles(catalog, "proof_*.*", SearchOption.AllDirectories)
+            .Where(p => !p.EndsWith(".br") && !p.EndsWith(".gz")).Select(p => new FileInfo(p)).ToArray();
+        Assert.NotEmpty(files);
+        foreach (var file in files)
+        {
+            Assert.True(ProofPreviewService.IsProofFile(file.Name), $"Unpreviewable proof: {file.FullName}");
+            Assert.Matches("^[a-zA-Z0-9_-]+$", file.Directory!.Name);
+            Assert.InRange(file.Length, 1, 32 * 1024 * 1024);
+            using var stream = file.OpenRead();
+            var info = ImageInput.Identify(stream);
+            Assert.InRange((long)info.Width * info.Height, 1, 40_000_000);
+        }
+
+        // Every extension's largest file, plus the first page from the three
+        // largest collections. Select from the current catalog, not one athlete.
+        var sample = files.GroupBy(f => f.Extension.ToLowerInvariant()).Select(g => g.MaxBy(f => f.Length)!)
+            .Concat(files.GroupBy(f => f.DirectoryName).OrderByDescending(g => g.Count()).Take(3)
+                .Select(g => g.OrderBy(f => f.Name, StringComparer.Ordinal).First()))
+            .DistinctBy(f => f.FullName);
+        using var service = CreateService();
+        foreach (var file in sample)
+        {
+            var athlete = file.Directory!.Name;
+            var folder = Path.Combine(_root, "athletes", athlete);
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, "athlete.json"), "{}");
+            var original = await File.ReadAllBytesAsync(file.FullName);
+            await File.WriteAllBytesAsync(Path.Combine(folder, file.Name), original);
+            var preview = Assert.IsType<ProofPreview>(await service.GetAsync(athlete, file.Name, default));
+            var bytes = await File.ReadAllBytesAsync(preview.Path);
+            Assert.True(bytes.Length <= 128 * 1024, $"{athlete}/{file.Name}: preview is {bytes.Length:N0} bytes (128 KiB budget)");
+            using var decoded = Image.Load(bytes);
+            Assert.InRange(decoded.Width, 1, 640);
+            Assert.InRange(decoded.Height, 1, 640);
+            if (original.Length > 128 * 1024)
+                Assert.True(bytes.Length < original.Length / 2, $"{athlete}/{file.Name}: large original was not substantially reduced");
+            Assert.Equal(original, await File.ReadAllBytesAsync(Path.Combine(folder, file.Name)));
+        }
     }
 
     [Fact]

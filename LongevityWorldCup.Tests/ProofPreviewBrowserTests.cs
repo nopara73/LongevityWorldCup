@@ -63,6 +63,53 @@ public sealed class ProofPreviewBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(viewer.Locator(".image-viewer-stage img")).ToHaveAttributeAsync("src", Original(1));
     }
 
+    [Theory]
+    [InlineData("anton-eich", 390)]
+    [InlineData("roman-v", 1280)]
+    [InlineData("ricardo-di-lazzaro-filho", 390)]
+    public async Task RealAthleteGalleriesUseBoundedPreviewsBeforeOpeningOriginals(string slug, int width)
+    {
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
+        var page = await context.NewPageAsync();
+        var originals = new ConcurrentQueue<string>();
+        var previews = new ConcurrentQueue<IResponse>();
+        page.Request += (_, request) =>
+        {
+            var path = new Uri(request.Url).AbsolutePath;
+            if (path.StartsWith("/athletes/") && Path.GetFileName(path).StartsWith("proof_")) originals.Enqueue(request.Url);
+        };
+        page.Response += (_, response) =>
+        {
+            if (new Uri(response.Url).AbsolutePath.StartsWith("/api/proof-previews/")) previews.Enqueue(response);
+        };
+        await page.GotoAsync($"/athlete/{slug}");
+        await page.Locator("#athlete-proofs").ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync("""
+            () => {
+                const images = [...document.querySelectorAll('#proofsGallery .proof-item:not([hidden]) img')];
+                return images.length > 0 && images.every(i => i.complete && i.naturalWidth > 0);
+            }
+            """);
+        Assert.Empty(originals);
+        Assert.NotEmpty(previews);
+        foreach (var response in previews)
+        {
+            Assert.True(response.Ok, response.Url);
+            Assert.InRange((await response.BodyAsync()).Length, 1, 128 * 1024);
+        }
+        var first = page.Locator("#proofsGallery img").First;
+        var original = await first.GetAttributeAsync("data-full-src");
+        Assert.StartsWith("/athletes/", original);
+        await first.ClickAsync();
+        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToHaveAttributeAsync("data-image-state", "ready");
+        await Assertions.Expect(page.Locator("#athleteImageViewer .image-viewer-stage img")).ToHaveAttributeAsync("src", original!);
+        Assert.Contains(originals, url => new Uri(url).PathAndQuery == original);
+    }
+
     private async Task<IBrowserContext> CreateContextAsync(int width, ConcurrentQueue<string> requests, bool failPreview = false)
     {
         var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
