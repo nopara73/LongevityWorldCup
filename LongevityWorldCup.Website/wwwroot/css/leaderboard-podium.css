@@ -1,0 +1,39 @@
+/* Homepage podium accents and comparable Ultimate rank changes. */
+/* ------------------------------------------------------ homepage podium */
+/* homepage.css animates this ring's box-shadow (home-champion-ring), so the
+   halo is a filter that survives it. */
+html body main .podium .podium-item.first img.podium-portrait{
+    filter:drop-shadow(0 0 10px color-mix(in srgb, var(--lwc-gold) 45%, transparent)) drop-shadow(0 14px 26px color-mix(in srgb, var(--lwc-gold) 30%, transparent));
+}
+.podium .podium-item.first .podium-item-lower{
+    background:linear-gradient(180deg, color-mix(in srgb, var(--lwc-gold) 20%, var(--podium-surface)), var(--podium-surface) 75%);
+}
+
+/* ------------------------------------------------------ rank-change cues */
+.leaderboard tbody .rank.lb-rolling{
+    position:relative; display:inline-block; overflow:hidden; color:transparent !important; vertical-align:middle;
+}
+.leaderboard tbody .rank.lb-rolling::before,
+.leaderboard tbody .rank.lb-rolling::after{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    animation-duration:620ms; animation-timing-function:cubic-bezier(.3,.8,.2,1); animation-fill-mode:both;
+}
+.leaderboard tbody .rank.lb-rolling::before{ content:attr(data-was) / ""; color:var(--lwc-muted); animation-delay:120ms; }
+.leaderboard tbody .rank.lb-rolling::after{ content:attr(data-now) / ""; animation-delay:120ms; }
+.leaderboard tbody .rank.lb-rolling.is-up::before{ animation-name:lb-roll-out-up; }
+.leaderboard tbody .rank.lb-rolling.is-up::after{ animation-name:lb-roll-in-up; color:var(--lwc-success); }
+.leaderboard tbody .rank.lb-rolling.is-down::before{ animation-name:lb-roll-out-down; }
+.leaderboard tbody .rank.lb-rolling.is-down::after{ animation-name:lb-roll-in-down; color:var(--lwc-danger); }
+.leaderboard tbody .rank[data-place].lb-rolling::after{ color:#17212b; }
+@keyframes lb-roll-out-up{ from{ transform:none; opacity:1; } to{ transform:translateY(-110%); opacity:0; } }
+@keyframes lb-roll-in-up{ from{ transform:translateY(110%); opacity:0; } to{ transform:none; opacity:1; } }
+@keyframes lb-roll-out-down{ from{ transform:none; opacity:1; } to{ transform:translateY(110%); opacity:0; } }
+@keyframes lb-roll-in-down{ from{ transform:translateY(-110%); opacity:0; } to{ transform:none; opacity:1; } }
+
+/* Retain a static directional edge without competing with row motion. */
+@media (min-width: 769px){
+    .leaderboard tbody tr[data-lb-moved] > td.rank-td{ box-shadow:inset 3px 0 0 var(--lb-edge, transparent); }
+    .leaderboard tbody tr[data-lb-moved="up"]{ --lb-edge:color-mix(in srgb, var(--lwc-success) 70%, transparent); }
+    .leaderboard tbody tr[data-lb-moved="down"]{ --lb-edge:color-mix(in srgb, var(--lwc-danger) 35%, transparent); }
+    .leaderboard tbody tr:has(> td .rank[data-place="1"]) > td.rank-td{ box-shadow:inset 3px 0 0 var(--lwc-gold); }
+}
