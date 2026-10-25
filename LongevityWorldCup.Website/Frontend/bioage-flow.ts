@@ -1012,11 +1012,18 @@ interface Window {
         start();
     }
 
-    function ensureBiomarkerVisible(input: HTMLInputElement | HTMLSelectElement): void {
+    function ensureBioageControlVisible(input: HTMLInputElement | HTMLSelectElement, immediate = false): void {
         const reveal = () => {
+            if (document.activeElement !== input || !input.isConnected) return;
             const dock = getFlowActionDock();
             dock?.refreshNow?.();
-            dock?.ensureClear?.(input, { margin: 16, behavior: 'auto' });
+            // The instrument controller may still be queued when a date receives
+            // focus. Read the fixed bars now, before relying on their observer.
+            if (immediate) {
+                window.cancelAnimationFrame(sectionBandOffsetFrame);
+                syncSectionBandOffset();
+            }
+            dock?.ensureClear?.(input, { margin: 16, behavior: immediate ? 'instant' : 'auto' });
 
             const visualViewport = window.visualViewport;
             const top = visualViewport?.offsetTop || 0;
@@ -1024,22 +1031,37 @@ interface Window {
             const band = input.closest('fieldset')?.querySelector<HTMLElement>(':scope > legend');
             const bandHeight = band && getComputedStyle(band).position === 'sticky'
                 ? band.getBoundingClientRect().height : 0;
-            const fixedBottom = parseFloat(getComputedStyle(document.documentElement)
-                .getPropertyValue('--bioage-band-top')) || 0;
+            const rootStyle = getComputedStyle(document.documentElement);
+            const fixedBottom = parseFloat(rootStyle.getPropertyValue('--bioage-band-top')) || 0;
             const clearTop = Math.max(top, fixedBottom) + bandHeight + 16;
+            const dockHeight = parseFloat(rootStyle.getPropertyValue('--flow-action-dock-height')) || 0;
+            const clearBottom = bottom - (immediate ? dockHeight : 0) - 16;
             const rect = input.getBoundingClientRect();
-            if (rect.top < clearTop) {
-                window.scrollBy({ top: Math.floor(rect.top - clearTop), behavior: 'auto' });
-            } else if (rect.bottom > bottom - 16) {
+            const label = immediate ? input.labels?.item(0) : null;
+            const labelRect = label?.getBoundingClientRect();
+            // Keep the date caption with its control when the pair fits. Very
+            // tall labels stay reachable in the surrounding scroll surface.
+            const includeLabel = labelRect && labelRect.bottom <= rect.top + 1
+                && rect.bottom - labelRect.top <= clearBottom - clearTop;
+            const upperEdge = includeLabel ? Math.min(rect.top, labelRect.top) : rect.top;
+            if (upperEdge < clearTop) {
+                window.scrollBy({ top: Math.floor(upperEdge - clearTop), behavior: immediate ? 'instant' : 'auto' });
+            } else if (rect.bottom > clearBottom) {
                 input.scrollIntoView({
                     block: 'center',
                     inline: 'nearest',
-                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+                    behavior: immediate ? 'instant'
+                        : window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
                 });
             }
         };
 
-        window.requestAnimationFrame(() => window.requestAnimationFrame(reveal));
+        if (immediate) reveal();
+        const initialScroll = window.scrollY;
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+            // A new focus or deliberate scroll supersedes a pending correction.
+            if (!immediate || Math.abs(window.scrollY - initialScroll) <= 1) reveal();
+        }));
     }
 
     function syncFixedUnitPresentation(input: HTMLInputElement): void {
@@ -1140,7 +1162,7 @@ interface Window {
     function focusBiomarkerInput(input: HTMLInputElement): void {
         expandBiomarkerCard(input);
         input.focus();
-        ensureBiomarkerVisible(input);
+        ensureBioageControlVisible(input);
     }
 
     function getFollowingBiomarkerInput(
@@ -1185,10 +1207,10 @@ interface Window {
 
             input.addEventListener('focus', () => {
                 expandBiomarkerCard(input);
-                ensureBiomarkerVisible(input);
+                ensureBioageControlVisible(input);
             });
             const unit = controller.form.querySelector<HTMLSelectElement>(`#${input.id}Unit`);
-            unit?.addEventListener('focus', () => ensureBiomarkerVisible(unit));
+            unit?.addEventListener('focus', () => ensureBioageControlVisible(unit));
             window.LwcFieldValidation.bind(input, {
                 validate: () => {
                     const valid = isCompleteBiomarkerInput(input)
@@ -1218,7 +1240,7 @@ interface Window {
                 }
                 if (!isCompleteBiomarkerInput(input)) {
                     setBiomarkerError(input, true);
-                    ensureBiomarkerVisible(input);
+                    ensureBioageControlVisible(input);
                     return;
                 }
                 moveToNextBiomarker(controller, input);
@@ -1240,7 +1262,7 @@ interface Window {
             setBiomarkerError(input, true);
             window.requestAnimationFrame(() => {
                 input.focus();
-                ensureBiomarkerVisible(input);
+                ensureBioageControlVisible(input);
             });
             window.setTimeout(() => {
                 controller.invalidBatchActive = false;
@@ -1251,7 +1273,12 @@ interface Window {
             syncBiomarkerHeaderSemantics(controller);
             getFlowActionDock()?.refresh?.();
         });
-        window.addEventListener('pagehide', () => saveBioageDraft(controller));
+        window.addEventListener('pagehide', () => {
+            saveBioageDraft(controller);
+            // Update views reload on cached return. Late commits from their
+            // calculated DOM must not replace the raw draft while inactive.
+            if (controller.isUpdate) controller.restoring = true;
+        });
     }
 
     function initializeBloodDrawDate(form: HTMLFormElement, defaultToToday: boolean): void {
@@ -1337,6 +1364,9 @@ interface Window {
             step: 1
         };
 
+        // Update drafts own raw values and units. Native history restoration
+        // must not reapply calculation-filled controls after that draft loads.
+        if (controller.isUpdate) options.form.autocomplete = 'off';
         options.form.classList.add('bioage-biomarker-entry-ready');
         biomarkerEntryControllers.set(options.clock, controller);
         bindBiomarkerEntry(controller);
@@ -2414,6 +2444,16 @@ interface Window {
             if (liveTimer && event.target instanceof HTMLInputElement) scheduleLiveInstrument(true);
         });
     }
+
+    // This module blocks parsing before the form. Capture date focus from the
+    // first interactive frame, independently of the later instrument setup.
+    document.addEventListener('focus', event => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement || input instanceof HTMLSelectElement)
+            || !input.matches('#dob-year, #dob-month, #dob-day, #blood-draw-date')
+            || !input.closest('form.bioageform')) return;
+        ensureBioageControlVisible(input, true);
+    }, true);
 
     window.LwcBioageFlow = {
         beginCalculation,

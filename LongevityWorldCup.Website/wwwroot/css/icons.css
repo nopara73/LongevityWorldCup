@@ -1,0 +1,317 @@
+/* One iconography for the site. icons.js draws every interface glyph as inline
+   SVG on a 24-unit grid; this sheet owns its geometry, optical weight, text
+   alignment and motion. Colour always comes from the surrounding text. */
+
+:root {
+    /* Strokes are in grid units; the drawn box is --lwc-icon-optical times the
+       text size, because the glyphs keep air inside the grid where a font glyph
+       fills its em. Smaller text gets a heavier pen so weight matches the text. */
+    --lwc-icon-optical: 1.25;
+    --lwc-icon-stroke-s: 2.35;   /* under 15px: small labels, chips, table cells */
+    --lwc-icon-stroke-m: 2.1;    /* body and button text */
+    --lwc-icon-stroke-l: 1.8;    /* display sizes */
+    --lwc-icon-nudge: 3px;
+    --lwc-icon-ease: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    --lwc-icon-pop: var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+}
+
+/* The host stays the page's own <i>, so its spacing rules still apply. */
+i[data-lwc-icon] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: 1em;
+    line-height: 1;
+    vertical-align: -0.14em;
+    font-style: normal;
+}
+
+i[data-lwc-icon]::before,
+i[data-lwc-icon]::after {
+    content: none !important;
+}
+
+i[data-lwc-icon].fa-fw {
+    width: 1.25em;
+}
+/* The compact phone Back control used an inline font box. Keep its optical
+   SVG centred when that page supplies a fixed host width. */
+.play-join-actions.play-join-actions #joinTrackBackBtn > i[data-lwc-icon] {
+    display: inline-flex;
+}
+
+/* Font Awesome's rotation would spin the whole box; the spinner animates its own arc. */
+i[data-lwc-icon].fa-spin,
+i[data-lwc-icon].fa-pulse {
+    animation: none;
+}
+
+/* Geometry is owned here, ahead of page rules written for other inline SVG. */
+.lwc-icon,
+i[data-lwc-icon] > svg.lwc-icon {
+    display: block;
+    flex: none;
+    width: calc(var(--lwc-icon-optical) * 1em);
+    height: calc(var(--lwc-icon-optical) * 1em);
+    min-width: 0;
+    max-width: none;
+    margin: calc((1 - var(--lwc-icon-optical)) * 0.5em);
+    padding: 0;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: var(--lwc-icon-stroke, var(--lwc-icon-stroke-m));
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+    transition:
+        translate var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease),
+        rotate var(--lwc-motion-base, 200ms) var(--lwc-icon-ease),
+        scale var(--lwc-motion-press, 90ms) var(--lwc-icon-ease);
+}
+
+[data-lwc-icon-tier="xs"] { --lwc-icon-optical: 1.5; --lwc-icon-stroke: var(--lwc-icon-stroke-s); }
+[data-lwc-icon-tier="s"] { --lwc-icon-optical: 1.38; --lwc-icon-stroke: var(--lwc-icon-stroke-s); }
+[data-lwc-icon-tier="l"] { --lwc-icon-stroke: var(--lwc-icon-stroke-l); }
+
+/* Dots sit on the same pen: a zero-length round-capped stroke a touch heavier. */
+.lwc-icon .lwc-icon__dot { stroke-width: calc(var(--lwc-icon-stroke, var(--lwc-icon-stroke-m)) * 1.35); }
+[data-lwc-icon-tier="xs"] > .lwc-icon .lwc-icon__dot,
+[data-lwc-icon-tier="s"] > .lwc-icon .lwc-icon__dot { stroke-width: calc(var(--lwc-icon-stroke-s) * 1.3); }
+
+/* Solid stars and hearts fill; regular ones stay outlined. */
+.lwc-icon .lwc-icon__fill {
+    fill: currentColor;
+    fill-opacity: 0;
+    transition: fill-opacity var(--lwc-motion-base, 200ms) var(--lwc-icon-ease);
+}
+[data-lwc-icon-filled] > .lwc-icon .lwc-icon__fill { fill-opacity: 1; }
+
+/* The spinner is one arc on a faint track. */
+.lwc-icon .lwc-icon__track { opacity: 0.22; }
+[data-lwc-icon="spinner"] > .lwc-icon {
+    animation: lwc-icon-turn 0.8s linear infinite;
+}
+.lwc-icon[data-lwc-glyph="spinner"] { animation: lwc-icon-turn 0.8s linear infinite; }
+@keyframes lwc-icon-turn { to { rotate: 1turn; } }
+
+/* ---- Expand / collapse: chevrons turn with their control ---------------- */
+:is([aria-expanded="true"], details[open] > summary, .is-open, .open, .active) > i[data-lwc-icon="chevron-down"] > .lwc-icon,
+:is([aria-expanded="true"], details[open] > summary) i[data-lwc-icon="chevron-down"]:last-child > .lwc-icon {
+    rotate: 180deg;
+}
+:is([aria-expanded="true"], details[open] > summary) > i[data-lwc-icon="chevron-right"] > .lwc-icon {
+    rotate: 90deg;
+}
+/* The icon system owns the turn, including controls that used to turn the font host. */
+.lmx-habit-history.lmx-habit-history > summary > i[data-lwc-icon] { transform: none; }
+:is([aria-expanded="true"], details[open] > summary) > .lwc-icon[data-lwc-glyph="chevron-down"] { rotate: 180deg; }
+:is([aria-expanded="true"], details[open] > summary) > .lwc-icon[data-lwc-glyph="chevron-right"] { rotate: 90deg; }
+
+/* ---- Glyph changes (copy → done, spinner → done, share → done) --------- */
+.lwc-icon[data-lwc-icon-enter="swap"] {
+    animation: lwc-icon-swap var(--lwc-motion-move, 260ms) var(--lwc-icon-pop) backwards;
+}
+.lwc-icon[data-lwc-icon-enter="spin"] {
+    animation:
+        lwc-icon-fade var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease) backwards,
+        lwc-icon-turn 0.8s linear infinite;
+}
+.lwc-icon[data-lwc-icon-enter="draw"] {
+    animation: lwc-icon-settle var(--lwc-motion-slow, 280ms) var(--lwc-icon-pop) backwards;
+}
+.lwc-icon[data-lwc-icon-enter="draw"] .lwc-icon__draw {
+    stroke-dasharray: 1;
+    animation: lwc-icon-draw 320ms var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)) 40ms backwards;
+}
+
+@keyframes lwc-icon-swap {
+    from { opacity: 0.5; scale: 0.88; }
+}
+@keyframes lwc-icon-fade {
+    from { opacity: 0.5; }
+}
+@keyframes lwc-icon-settle {
+    from { scale: 0.9; }
+}
+@keyframes lwc-icon-draw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+}
+
+/* Stars and hearts pop as they fill. */
+[data-lwc-icon-filled]:is([data-lwc-icon="star"], [data-lwc-icon="heart"]) > .lwc-icon[data-lwc-icon-enter] {
+    animation: lwc-icon-fill-pop var(--lwc-motion-slow, 280ms) var(--lwc-icon-pop) backwards;
+}
+@keyframes lwc-icon-fill-pop {
+    0% { scale: 0.9; }
+    60% { scale: 1.08; }
+}
+
+/* ---- Hover and press: each glyph moves the way it points --------------- */
+@media (hover: hover) and (pointer: fine) {
+    :is(a, button, summary, [role="button"], label):hover > i[data-lwc-icon="arrow-right"] > .lwc-icon,
+    :is(a, button, summary, [role="button"]):hover > i[data-lwc-icon="chevron-right"] > .lwc-icon {
+        translate: var(--lwc-icon-nudge) 0;
+    }
+    :is(a, button, summary, [role="button"], label):hover > i[data-lwc-icon="arrow-left"] > .lwc-icon,
+    :is(a, button, summary, [role="button"]):hover > i[data-lwc-icon="chevron-left"] > .lwc-icon {
+        translate: calc(var(--lwc-icon-nudge) * -1) 0;
+    }
+    :is(a, button, summary, [role="button"]):not([aria-expanded="true"]):hover > i[data-lwc-icon="chevron-down"] > .lwc-icon {
+        translate: 0 2px;
+    }
+    :is(a, button, summary, [role="button"]):is([aria-expanded="true"], details[open] > summary, .is-open, .open, .active):hover > i[data-lwc-icon="chevron-down"] > .lwc-icon {
+        translate: 0 -2px;
+    }
+    :is(a, button, summary, [role="button"]):is([aria-expanded="true"], details[open] > summary):hover > i[data-lwc-icon="chevron-right"] > .lwc-icon {
+        translate: 0 2px;
+    }
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="external"] > .lwc-icon,
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="paper-plane"] > .lwc-icon {
+        translate: 2px -2px;
+    }
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="arrow-up"] > .lwc-icon,
+    :is(a, button, [role="button"], label):hover > i[data-lwc-icon="upload"] > .lwc-icon {
+        translate: 0 -2px;
+    }
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="download"] > .lwc-icon,
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="arrow-down"] > .lwc-icon {
+        translate: 0 2px;
+    }
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="close"] > .lwc-icon {
+        rotate: 90deg;
+    }
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="undo"] > .lwc-icon {
+        rotate: -50deg;
+    }
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="redo"] > .lwc-icon {
+        rotate: 50deg;
+    }
+    :is(a, button, [role="button"]):hover > i:is([data-lwc-icon="share-nodes"], [data-lwc-icon="link"], [data-lwc-icon="copy"]) > .lwc-icon {
+        rotate: -12deg;
+        scale: 1.08;
+    }
+    :is(a, button, [role="button"], label):hover > i:is([data-lwc-icon="search"], [data-lwc-icon="camera"], [data-lwc-icon="image"], [data-lwc-icon="pen"]) > .lwc-icon {
+        scale: 1.12;
+    }
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="bell"] > .lwc-icon {
+        transform-origin: 50% 12%;
+        animation: lwc-icon-ring 420ms var(--lwc-icon-ease);
+    }
+    :is(a, button, [role="button"]):hover > i:is([data-lwc-icon="star"], [data-lwc-icon="heart"]) > .lwc-icon {
+        scale: 1.14;
+    }
+}
+
+@keyframes lwc-icon-ring {
+    25% { rotate: 14deg; }
+    55% { rotate: -10deg; }
+    80% { rotate: 5deg; }
+}
+
+:is(a, button, summary, [role="button"], label):active > i[data-lwc-icon] > .lwc-icon {
+    scale: 0.86;
+    transition-duration: var(--lwc-motion-press, 90ms);
+}
+
+/* ---- Header menu: the same pen, a two-beat morph ------------------------
+   Bars first meet in the middle, then turn into the close mark; closing plays
+   the beats backwards. The menu's own close mark is drawn with the same caps. */
+.site-menu-toggle.site-menu-toggle .site-menu-toggle-bars > span {
+    height: 2px;
+    border-radius: 999px;
+    transform: none;
+    transition:
+        translate var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease) var(--lwc-motion-fast, 140ms),
+        rotate var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease) 0ms,
+        opacity var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease),
+        width var(--lwc-motion-move, 260ms) var(--lwc-icon-ease),
+        scale var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease);
+}
+.site-menu-toggle.site-menu-toggle[aria-expanded="true"] .site-menu-toggle-bars > span {
+    transition:
+        translate var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease) 0ms,
+        rotate var(--lwc-motion-base, 200ms) var(--lwc-icon-pop) var(--lwc-motion-fast, 140ms),
+        opacity var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease),
+        width var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease),
+        scale var(--lwc-motion-fast, 140ms) var(--lwc-icon-ease);
+}
+.site-menu-toggle.site-menu-toggle[aria-expanded="true"] .site-menu-toggle-bars > span:nth-child(1) {
+    transform: none;
+    translate: 0 6px;
+    rotate: 45deg;
+}
+.site-menu-toggle.site-menu-toggle[aria-expanded="true"] .site-menu-toggle-bars > span:nth-child(2) {
+    transform: none;
+    width: 100%;
+    opacity: 0;
+    scale: 0.2 1;
+}
+.site-menu-toggle.site-menu-toggle[aria-expanded="true"] .site-menu-toggle-bars > span:nth-child(3) {
+    transform: none;
+    translate: 0 -6px;
+    rotate: -45deg;
+}
+
+.site-menu-close.site-menu-close > span {
+    transition: rotate var(--lwc-motion-base, 200ms) var(--lwc-icon-ease);
+}
+.site-menu-close.site-menu-close > span::before,
+.site-menu-close.site-menu-close > span::after {
+    border-radius: 999px;
+}
+@media (hover: hover) and (pointer: fine) {
+    .site-menu-close.site-menu-close:hover > span { rotate: 90deg; }
+}
+.site-menu[open] .site-menu-close > span {
+    animation: lwc-icon-swap var(--lwc-motion-move, 260ms) var(--lwc-icon-pop) 80ms backwards;
+}
+
+/* ---- Reduced motion: states change, nothing travels ------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .lwc-icon,
+    .lwc-icon .lwc-icon__fill,
+    .site-menu-toggle.site-menu-toggle .site-menu-toggle-bars > span,
+    .site-menu-close.site-menu-close > span {
+        transition: none !important;
+    }
+    .lwc-icon[data-lwc-icon-enter],
+    .lwc-icon[data-lwc-icon-enter] .lwc-icon__draw,
+    .site-menu[open] .site-menu-close > span,
+    :is(a, button, [role="button"]):hover > i[data-lwc-icon="bell"] > .lwc-icon {
+        animation: none !important;
+    }
+    /* A slow turn still says "working" without sweeping motion. */
+    [data-lwc-icon="spinner"] > .lwc-icon,
+    .lwc-icon[data-lwc-glyph="spinner"] {
+        animation: lwc-icon-turn 2.4s linear infinite !important;
+    }
+    :is(a, button, summary, [role="button"], label) > i[data-lwc-icon] > .lwc-icon {
+        translate: none !important;
+        scale: none !important;
+    }
+    :is(a, button, [role="button"]):hover > i:is([data-lwc-icon="close"], [data-lwc-icon="undo"], [data-lwc-icon="redo"], [data-lwc-icon="share-nodes"], [data-lwc-icon="link"], [data-lwc-icon="copy"]) > .lwc-icon {
+        rotate: none;
+    }
+    .site-menu-close.site-menu-close:hover > span { rotate: none; }
+}
+
+/* Typed glyphs (×, ‹, ›) were set large to look right as text; the drawn glyph
+   fills its box, so it comes back to the size the character appeared. */
+i[data-lwc-icon-typed] {
+    font-size: 0.7em;
+    vertical-align: middle;
+}
+i[data-lwc-icon-typed] { --lwc-icon-stroke: 2.2; }
+
+/* Controls drawn inside fixed badge boxes keep the nominal size and a firmer pen. */
+.badge-class i[data-lwc-icon][data-lwc-icon-tier] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    --lwc-icon-optical: 1.05;
+    --lwc-icon-stroke: 2.6;
+}

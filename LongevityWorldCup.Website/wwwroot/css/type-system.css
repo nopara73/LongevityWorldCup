@@ -1,0 +1,315 @@
+/*
+ * Longevity World Cup type system
+ *
+ * One fluid scale, one set of line-heights and one vertical rhythm for every
+ * page. Sizes grow smoothly from phone to desktop with clamp(); each step
+ * carries its own leading and tracking so big type tightens and small caps
+ * open up. Pages pick a role (display, title, section, eyebrow, lead,
+ * reading, caption, figure) instead of inventing sizes.
+ *
+ * Loaded by HtmlInjectionMiddleware right before aesthetic-system.css, which
+ * reads these tokens and stays the last stylesheet in the head.
+ */
+
+:root {
+    /* Scale: about 1.2 on phones opening to 1.25 on desktop. */
+    --lwc-type-2xs: 0.6875rem;
+    --lwc-type-xs: 0.75rem;
+    --lwc-type-sm: 0.875rem;
+    --lwc-type-body: 1rem;
+    --lwc-type-reading: 1rem;
+    --lwc-type-lead: 1.0625rem;
+    --lwc-type-h4: 1rem;
+    --lwc-type-h3: 1.125rem;
+    --lwc-type-h2: 1.375rem;
+    --lwc-type-h1: 1.75rem;
+    --lwc-type-display: 2.25rem;
+    --lwc-type-figure: 1.5rem;
+    --lwc-type-eyebrow: 0.8125rem;
+
+    /* Leading: tight for display, open for reading. */
+    --lwc-leading-display: 1.04;
+    --lwc-leading-h1: 1.1;
+    --lwc-leading-h2: 1.18;
+    --lwc-leading-h3: 1.26;
+    --lwc-leading-eyebrow: 1.2;
+    --lwc-leading-caption: 1.42;
+    --lwc-leading-body: 1.5;
+    --lwc-leading-lead: 1.55;
+    --lwc-leading-reading: 1.7;
+
+    /* Tracking: large type pulls in, small caps breathe. */
+    --lwc-tracking-display: -0.028em;
+    --lwc-tracking-h1: -0.021em;
+    --lwc-tracking-h2: -0.013em;
+    --lwc-tracking-h3: -0.006em;
+    --lwc-tracking-body: 0;
+    --lwc-tracking-caption: 0.006em;
+    --lwc-tracking-label: 0.02em;
+    --lwc-tracking-eyebrow: 0.09em;
+
+    --lwc-weight-regular: 400;
+    --lwc-weight-strong: 700;
+
+    /* Measure: comfortable line lengths for reading and leads. */
+    --lwc-measure: 68ch;
+    --lwc-measure-lead: 36em;
+    --lwc-measure-narrow: 46ch;
+
+    /* Rhythm: fluid vertical steps shared by headings, blocks and sections. */
+    --lwc-flow-3xs: 0.25rem;
+    --lwc-flow-2xs: 0.375rem;
+    --lwc-flow-xs: 0.5rem;
+    --lwc-flow-sm: 0.75rem;
+    --lwc-flow-md: 1rem;
+    --lwc-flow-lg: 1.5rem;
+    --lwc-flow-xl: 2rem;
+    --lwc-flow-2xl: 2.75rem;
+    --lwc-section-gap: var(--lwc-flow-lg);
+
+}
+
+/* Convert viewport width to a unitless scale, then multiply the whole size by
+ * rem. Unlike rem + vw, every part now honors the user's text size. The ratio
+ * tan(atan2(width, 1600px)) is width / 1600 without requiring newer CSS typed
+ * division. Older engines retain the readable rem-only defaults above.
+ * Resizing uses native CSS evaluation: no observer, timer or layout scan.
+ */
+@supports (font-size: calc(1rem * tan(atan2(1px, 1px)))) {
+    :root {
+        --lwc-type-viewport: tan(atan2(100vw, 1600px));
+        --lwc-type-reading: calc(clamp(1, 0.95 + 0.22 * var(--lwc-type-viewport), 1.0625) * 1rem);
+        --lwc-type-lead: calc(clamp(1.0625, 0.97 + 0.42 * var(--lwc-type-viewport), 1.25) * 1rem);
+        --lwc-type-h4: calc(clamp(1, 0.96 + 0.18 * var(--lwc-type-viewport), 1.0625) * 1rem);
+        --lwc-type-h3: calc(clamp(1.125, 1.03 + 0.42 * var(--lwc-type-viewport), 1.3125) * 1rem);
+        --lwc-type-h2: calc(clamp(1.375, 1.13 + 1.05 * var(--lwc-type-viewport), 1.875) * 1rem);
+        --lwc-type-h1: calc(clamp(1.75, 1.3 + 1.9 * var(--lwc-type-viewport), 2.625) * 1rem);
+        --lwc-type-display: calc(clamp(2.25, 1.55 + 3 * var(--lwc-type-viewport), 3.5) * 1rem);
+        --lwc-type-figure: calc(clamp(1.5, 1.2 + 1.3 * var(--lwc-type-viewport), 2.25) * 1rem);
+        --lwc-flow-2xs: calc(clamp(0.375, 0.33 + 0.2 * var(--lwc-type-viewport), 0.5) * 1rem);
+        --lwc-flow-xs: calc(clamp(0.5, 0.43 + 0.3 * var(--lwc-type-viewport), 0.75) * 1rem);
+        --lwc-flow-sm: calc(clamp(0.75, 0.64 + 0.45 * var(--lwc-type-viewport), 1) * 1rem);
+        --lwc-flow-md: calc(clamp(1, 0.85 + 0.65 * var(--lwc-type-viewport), 1.5) * 1rem);
+        --lwc-flow-lg: calc(clamp(1.5, 1.2 + 1.3 * var(--lwc-type-viewport), 2.25) * 1rem);
+        --lwc-flow-xl: calc(clamp(2, 1.45 + 2.4 * var(--lwc-type-viewport), 3.5) * 1rem);
+        --lwc-flow-2xl: calc(clamp(2.75, 1.9 + 3.6 * var(--lwc-type-viewport), 5) * 1rem);
+    }
+}
+
+/* --- Base --------------------------------------------------------------- */
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+@scope (body) to (.modal, [role="dialog"], [role="alertdialog"], [role="tooltip"], .badge-tip, [popover]) {
+
+:where(main) :where(h1, h2, h3, h4) {
+    font-weight: var(--lwc-weight-strong);
+    text-wrap: balance;
+}
+
+:where(main) h4 {
+    font-size: var(--lwc-type-h4);
+    line-height: var(--lwc-leading-h3);
+}
+
+/* --- Roles -------------------------------------------------------------- */
+
+/* Page roles stop before overlays, which own their type and fitting rules.
+   Roles are defaults. Component rules retain their fitting, wrapping and
+   compact-height behavior; headings never acquire a second motion owner. */
+/* Title: the title of a tool or app page. */
+main :where(main h1:not(.visually-hidden):not(.not-found-title),
+:is(
+    .play-hub-main .play-join-head .play-join-title,
+    .play-athlete-title,
+    main #mainPageTitleH2,
+    .lwc-share-host,
+    .bioage-form-container h1,
+    .events-page h1,
+    .apply-page h1
+)) {
+    font-size: var(--lwc-type-h1);
+    line-height: var(--lwc-leading-h1);
+    letter-spacing: var(--lwc-tracking-h1);
+}
+
+/* The join title keeps its uppercase voice, so it opens up instead. */
+main :where(.play-hub-main .play-join-head .play-join-title) {
+    letter-spacing: 0.02em;
+}
+
+/* Display: the title of a reading or showcase page. */
+main :where(:is(
+    .documentation-document h1,
+    .lmx-page .lmx-hero h1,
+    .lmx-hero h1,
+    #lmx-title,
+    .media-kit-title,
+    .media-kit-header h1
+)) {
+    font-size: var(--lwc-type-display);
+    line-height: var(--lwc-leading-display);
+    letter-spacing: var(--lwc-tracking-display);
+}
+
+/* Section: a heading that opens a block of content. */
+main :where(:is(
+    .documentation-document h2,
+    .media-kit-group-title,
+    .play-join-card-head h2,
+    .play-track-card h2
+)) {
+    font-size: var(--lwc-type-h2);
+    line-height: var(--lwc-leading-h2);
+    letter-spacing: var(--lwc-tracking-h2);
+}
+
+main :where(:is(
+    .documentation-document h3,
+    .documentation-timeline-heading
+)) {
+    font-size: var(--lwc-type-h3);
+    line-height: var(--lwc-leading-h3);
+    letter-spacing: var(--lwc-tracking-h3);
+}
+
+/* The section rhythm: room above a heading, a closer step below it. */
+main :where(.documentation-document h2) {
+    margin-top: var(--lwc-flow-2xl);
+    margin-bottom: var(--lwc-flow-sm);
+    padding-top: var(--lwc-flow-md);
+}
+
+main :where(.documentation-document h3) {
+    margin-top: var(--lwc-flow-lg);
+    margin-bottom: var(--lwc-flow-2xs);
+}
+
+main :where(.documentation-document h1) {
+    margin-bottom: var(--lwc-flow-md);
+}
+
+main :where(.documentation-document :is(p, ul, ol, blockquote)) {
+    margin-block: 0 var(--lwc-flow-sm);
+}
+
+/* Eyebrow: the uppercase strip title on cards, panels and sidebars. */
+main :where(:is(
+    main.homepage-main .section-container > h2,
+    .homepage-main .section-container h2,
+    .lmx-page .lmx-habit-heading,
+    .lmx-habit-heading,
+    .lmx-page .lmx-board-header h2,
+    .lmx-page .lmx-notes-header h2,
+    .proof-review-heading,
+    .documentation-nav-title,
+    .documentation-toc-title,
+    .filter-section h3,
+    .sidebar .filter-group h3
+)) {
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: var(--lwc-weight-strong);
+    line-height: var(--lwc-leading-eyebrow);
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Lead: the sentence under a title. */
+main :where(:is(
+    .documentation-cover p,
+    .ruleset-lede,
+    .lmx-page .lmx-hero-copy,
+    .lmx-hero-copy,
+    .media-kit-intro,
+    .play-join-tagline
+)) {
+    max-width: var(--lwc-measure-lead);
+    font-size: var(--lwc-type-lead);
+    line-height: var(--lwc-leading-lead);
+    letter-spacing: var(--lwc-tracking-body);
+    text-wrap: pretty;
+}
+
+main :where(.play-join-tagline) {
+    font-size: var(--lwc-type-body);
+}
+
+/* Reading: long-form prose keeps one size, one leading and one measure. */
+main :where(.documentation-document) {
+    font-size: var(--lwc-type-reading);
+    line-height: var(--lwc-leading-reading);
+}
+
+main :where(.documentation-document > p:not(:has(img)), .documentation-document > blockquote) {
+    max-width: var(--lwc-measure);
+    hanging-punctuation: first;
+}
+
+/* Years and figures inside prose sit in the text like lowercase letters. */
+main :where(:is(.documentation-document, .media-kit-intro, .lmx-hero-copy) :is(p, li, dd, blockquote)) {
+    font-variant-numeric: oldstyle-nums proportional-nums;
+}
+
+/* Caption: small supporting text. */
+main :where(:is(
+    figcaption,
+    .smaller-text,
+    .metadata,
+    .privacy-note,
+    .proof-page-source,
+    .ranking-explanation,
+    .homepage-section-footer
+)) {
+    line-height: var(--lwc-leading-caption);
+    letter-spacing: var(--lwc-tracking-caption);
+}
+
+/* Label: form labels and small bold controls. */
+main :where(:is(label, legend, .lwc-field-label)) {
+    letter-spacing: var(--lwc-tracking-label);
+}
+
+/* Figure: every number that is compared, ranked or animated keeps fixed-width
+   lining digits, so columns align and count-ups never jitter. */
+main :where(:is(
+    time,
+    output,
+    data,
+    .rank,
+    .age-reduction,
+    .podium-score,
+    .is-counting,
+    [data-lwc-number],
+    [data-bioage-result-visual],
+    .traffic-metric strong,
+    .traffic-outcome strong,
+    .lwc-merch-item-price,
+    .event-date,
+    .badge-count,
+    .lmx-score,
+    .lmx-streak,
+    .countdown,
+    .stat-value
+)) {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Big standalone figures tighten like headings. */
+main :where(:is(.podium-score .age-reduction, [data-bioage-result-visual])) {
+    letter-spacing: -0.015em;
+}
+
+}
+
+/* --- Phone ------------------------------------------------------------------ */
+
+@media (max-width: 600px) {
+    :root {
+        --lwc-tracking-display: -0.022em;
+        --lwc-tracking-h1: -0.016em;
+    }
+}

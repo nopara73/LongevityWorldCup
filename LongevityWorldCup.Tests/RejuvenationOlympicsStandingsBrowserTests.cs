@@ -124,7 +124,7 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
     }
 
     [Fact]
-    public async Task MissingPortrait_UsesTheVersionedFallback()
+    public async Task MissingPortrait_UsesADecodedFallbackWithTheAthletesIdentity()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         await context.RouteAsync("**/api/data/standings", async route =>
@@ -132,14 +132,16 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
             var response = await route.FetchAsync();
             var data = JsonNode.Parse(await response.TextAsync())!.AsArray();
             data[0]!["thumb"] = "/missing-review-portrait.webp";
+            data[0]!["name"] = "Review Athlete";
             data[1]!["ageReduction"] = null;
             await route.FulfillAsync(new() { Response = response, Body = data.ToJsonString() });
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync("/rejuvenation-olympics");
-        var fallback = await page.Locator("script[data-default-portrait]").GetAttributeAsync("data-default-portrait");
-        await Assertions.Expect(page.Locator(".ro-step-portrait img").First).ToHaveAttributeAsync("src", fallback!);
-        await page.WaitForFunctionAsync("() => document.querySelector('.ro-step-portrait img')?.naturalWidth > 0");
+        var image = page.Locator(".ro-step-portrait img").First;
+        await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(image, "RA");
+        await Assertions.Expect(image).ToHaveAttributeAsync("alt", "");
+        await Assertions.Expect(page.Locator(".ro-step-link").First).ToHaveAttributeAsync("aria-label", new System.Text.RegularExpressions.Regex("^Review Athlete, rank"));
         await Assertions.Expect(page.Locator(".ro-step-score").Nth(1)).ToHaveTextAsync("\u2014");
     }
 }

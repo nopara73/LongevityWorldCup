@@ -200,8 +200,10 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
+                        bodyContent = InjectPortraitSystem(bodyContent);
                         bodyContent = InjectTouchLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
+                        bodyContent = InjectDepthSystem(bodyContent);
                     }
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -595,7 +597,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            // Component interaction states precede the palette and its dark surface layer.
+            // Shared interaction and type styles precede the palette, dark
+            // lighting and the final depth scale. Component states retain priority.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
@@ -606,6 +609,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/share-sheet.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/charts.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/type-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
@@ -623,6 +627,37 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Surface and depth tokens follow the palette; components retain their
+        // semantic colours, focus indicators and transition ownership.
+        private string InjectDepthSystem(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Athlete portraits share one frame, loading, fallback and motion treatment on every page.
+        private string InjectPortraitSystem(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 

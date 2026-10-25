@@ -239,7 +239,7 @@ public sealed class AestheticSystemBrowserTests(
                         && rect.height > 0;
                 };
                 const icons = [...document.querySelectorAll(selector)]
-                    .filter(isVisible)
+                    .filter(element => isVisible(element) && !element.querySelector('svg.lwc-icon'))
                     .map(element => {
                         const pseudo = getComputedStyle(element, '::before');
                         return {
@@ -252,12 +252,13 @@ public sealed class AestheticSystemBrowserTests(
                             IsFooterIcon: Boolean(element.closest('.footer'))
                         };
                     });
-                const vectorIcons = [...document.querySelectorAll('.footer .footer-link svg')]
+                const vectorIcons = [...document.querySelectorAll('.footer .footer-link svg, .lmx-page svg.lwc-icon')]
                     .filter(isVisible)
                     .map(element => ({
                         Label: element.closest('a')?.textContent?.trim(),
                         Width: element.getBoundingClientRect().width,
                         Height: element.getBoundingClientRect().height,
+                        IsFooterIcon: Boolean(element.closest('.footer')),
                         HasPaintedShape: [...element.querySelectorAll('path, circle, ellipse, rect, line, polyline, polygon, use')]
                             .some(shape => {
                                 const style = getComputedStyle(shape);
@@ -278,7 +279,7 @@ public sealed class AestheticSystemBrowserTests(
                     BrandFaceLoaded: document.fonts.check('400 16px "Font Awesome 6 Brands"'),
                     Icons: icons,
                     VectorIcons: vectorIcons,
-                    FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.length,
+                    FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.filter(icon => icon.IsFooterIcon).length,
                     FooterPlatforms: [...document.querySelectorAll('.footer-follow-links .footer-link')]
                         .map(link => link.textContent.trim()),
                     LocalResources: resources.filter(name => new URL(name).origin === location.origin),
@@ -2095,11 +2096,12 @@ public sealed class AestheticSystemBrowserTests(
         foreach (var condition in conditions)
         {
             Assert.Equal("em", condition.Unit);
-            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "athlete-proofs", "athlete-results", "leaderboard" });
+            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "athlete-proofs", "athlete-results", "athlete-header", "leaderboard" });
             var desktop = condition.Name == "league-filters" || condition.Name == "podium" && condition.Value == 32;
             await page.SetViewportSizeAsync(desktop ? 1440 : 390, desktop ? 1000 : 844);
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
             var route = condition.Name == "podium" ? "/"
+                : condition.Name == "athlete-header" ? "/athlete/benjamin-garden"
                 : condition.Name is "athlete-stats" or "athlete-proofs" or "athlete-results" ? "/athlete/michael-lustgarten"
                 : "/leaderboard?filters=open,baby%20boomers";
             await NavigateAndSettleAsync(page, route);
@@ -2107,6 +2109,13 @@ public sealed class AestheticSystemBrowserTests(
                 await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             if (condition.Name == "podium") await page.Locator(".podium-item.first").WaitForAsync();
             if (condition.Name == "athlete-results") await page.Locator(".biomarker-overview-table .result-summary").First.WaitForAsync();
+            if (condition.Name == "athlete-header")
+            {
+                Assert.Equal("max", condition.Bound);
+                Assert.Contains(condition.Value, new double[] { 12, 20 });
+                await page.Locator("#detailsModal .modal-content").EvaluateAsync("content => content.scrollTop = content.scrollHeight / 2");
+                await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeVisibleAsync();
+            }
             // Clone the rendered component in its existing scope. Hydration and
             // scrolling keep ownership of the original while this probe resizes.
             var fontSize = await page.EvaluateAsync<double>("""
@@ -2142,6 +2151,15 @@ public sealed class AestheticSystemBrowserTests(
                             : parseFloat(getComputedStyle(probe.querySelector('.athlete-age-board > tr')).paddingLeft) < 15.5;
                         else if (arg.Name === 'athlete-proofs') applied = getComputedStyle(probe.querySelector('.proofs-gallery')).gridTemplateColumns.split(' ').length === 1;
                         else if (arg.Name === 'athlete-results') applied = getComputedStyle(probe.querySelector('.result-summary')).display === 'grid';
+                        else if (arg.Name === 'athlete-header') {
+                            const identity = probe.querySelector('.sticky-header-left').getBoundingClientRect();
+                            const close = probe.querySelector('.sticky-close-btn').getBoundingClientRect();
+                            const steps = probe.querySelector('.athlete-steps').getBoundingClientRect();
+                            const portrait = probe.querySelector('.sticky-athlete-portrait').getBoundingClientRect();
+                            const pro = probe.querySelector('.sticky-pro-badge').getBoundingClientRect();
+                            applied = arg.Value === 20 ? identity.top >= Math.max(close.bottom, steps.bottom) - 1
+                                : pro.top >= portrait.bottom - 1;
+                        }
                         else if (arg.Name === 'leaderboard') {
                             const row = probe.querySelector('tbody tr:not(.no-results):not(.tier-separator)');
                             applied = row.querySelector('.athlete-identity').getBoundingClientRect().top >= row.querySelector('.portrait-wrapper').getBoundingClientRect().bottom - 1;
@@ -3032,6 +3050,7 @@ public sealed class AestheticSystemBrowserTests(
         public double Width { get; set; }
         public double Height { get; set; }
         public bool HasPaintedShape { get; set; }
+        public bool IsFooterIcon { get; set; }
     }
 
     internal sealed class MotionDiagnostics

@@ -10,6 +10,48 @@ public sealed class FlowProgressBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/pheno-age", 160, 16)]
+    [InlineData("/pheno-age", 195, 16)]
+    [InlineData("/pheno-age", 320, 32)]
+    [InlineData("/bortz-age", 160, 16)]
+    [InlineData("/bortz-age", 195, 16)]
+    [InlineData("/bortz-age", 320, 32)]
+    [InlineData("/apply?fake=1", 160, 16)]
+    [InlineData("/apply?fake=1", 195, 16)]
+    [InlineData("/apply?fake=1", 320, 32)]
+    public async Task JourneyLabels_KeepWholeWordsAtPhoneZoomAndEnlargedText(string path, int width, int rootSize)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new ViewportSize { Width = width, Height = 640 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync($"document.addEventListener('DOMContentLoaded', () => document.documentElement.style.fontSize = '{rootSize}px', {{ once: true }});");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var issues = await page.Locator("#mainProgressBar .stage-label").EvaluateAllAsync<string[]>("""
+            labels => labels.flatMap(label => {
+                const range = document.createRange();
+                range.selectNodeContents(label);
+                const lines = [...range.getClientRects()];
+                const box = label.getBoundingClientRect();
+                const text = label.textContent.trim();
+                const failures = [];
+                if (new Set(lines.map(rect => Math.round(rect.top))).size !== 1) failures.push(text + ' splits across lines');
+                if (lines.some(rect => rect.left < box.left - 1 || rect.right > box.right + 1)) failures.push(text + ' overflows its stage');
+                if (parseFloat(getComputedStyle(label).fontSize) < parseFloat(getComputedStyle(document.documentElement).fontSize) * .75) failures.push(text + ' shrinks below the existing label size');
+                return failures;
+            })
+            """);
+        Assert.Equal(3, await page.Locator("#mainProgressBar .stage-label").CountAsync());
+        Assert.Empty(issues);
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1"));
+    }
+
+    [Theory]
     [InlineData(390, 844)]
     [InlineData(1440, 900)]
     public async Task ApplicationSubProgress_TracksEachOfTheSevenStepsInBothDirections(int width, int height)

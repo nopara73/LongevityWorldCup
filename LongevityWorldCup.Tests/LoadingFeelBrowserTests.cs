@@ -297,7 +297,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Empty(await CaptureStickyHandoffAsync(page, 0));
         await Assertions.Expect(page.Locator("header[role='banner'] .join-game")).ToBeFocusedAsync();
         await Assertions.Expect(sticky).ToHaveAttributeAsync("aria-hidden", "true");
-        await Assertions.Expect(sticky).ToBeHiddenAsync();
+        Assert.True(await sticky.EvaluateAsync<bool>("element => { const s = getComputedStyle(element); return element.inert && (s.display === 'none' || s.visibility === 'hidden' || Number(s.opacity) === 0); }"));
     }
 
     private static Task<string[]> CaptureStickyHandoffAsync(IPage page, int scrollY)
@@ -319,15 +319,27 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
                 for (let frame = 0; frame < 20; frame++) {
                     const rect = element.getBoundingClientRect();
                     if (y > 0) {
-                        if (element.inert || rect.top !== 0 || rect.height <= 0 || Math.abs(rect.height - first.height) > 1)
+                        if (element.inert || Number(getComputedStyle(element).opacity) !== 1
+                            || rect.top !== 0 || rect.height <= 0 || Math.abs(rect.height - first.height) > 1)
                             errors.add('The visible header moved or became inert.');
                         for (const control of element.querySelectorAll('.site-sticky-header-link, .scrolled-button, .site-menu-toggle')) {
                             const r = control.getBoundingClientRect();
                             if (!control.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)))
                                 errors.add(`Header control is not hittable: ${control.className}`);
                         }
-                    } else if (!element.inert || rect.height !== 0) {
-                        errors.add('The hidden header still occupies space or accepts focus.');
+                    } else {
+                        const style = getComputedStyle(element);
+                        const painted = style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0;
+                        if (!element.inert || painted || (rect.height && style.position !== 'fixed')
+                            || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-visible-sticky-height')) !== 0)
+                            errors.add('The hidden header is painted, participates in page flow or accepts focus.');
+                        for (const control of element.querySelectorAll('a, button')) {
+                            const r = control.getBoundingClientRect();
+                            if (r.width && r.height && control.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)))
+                                errors.add('A hidden header control is hittable.');
+                            control.focus({ preventScroll: true });
+                            if (element.contains(document.activeElement)) errors.add('A hidden header control accepts focus.');
+                        }
                     }
                     if (Math.abs(content.getBoundingClientRect().top + scrollY - contentTop) > 1)
                         errors.add('The header handoff shifted the document.');
@@ -435,9 +447,25 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         var sticky = page.Locator("#site-sticky-header");
         await Assertions.Expect(sticky).ToBeVisibleAsync();
         Assert.Equal("none", await sticky.EvaluateAsync<string>("element => getComputedStyle(element).transform"));
-        Assert.Equal(0, await sticky.EvaluateAsync<int>("element => element.getAnimations().length"));
-        await page.EvaluateAsync("() => window.scrollTo(0, 0)");
-        await Assertions.Expect(sticky).ToBeHiddenAsync();
+        var animationIssues = await sticky.EvaluateAsync<string[]>("""
+            element => element.getAnimations().flatMap(animation => {
+                const effect = animation.effect, timing = effect.getTiming();
+                const frames = effect.getKeyframes();
+                const step = value => /^steps\(1(?:,\s*end)?\)$/.test(value);
+                // CSS applies its timing function to each keyframe segment;
+                // WAAPI can apply the same binary curve to the whole effect.
+                const binaryEasing = (step(timing.easing) && frames.every(frame => frame.easing === 'linear'))
+                    || (timing.easing === 'linear' && frames.every(frame => step(frame.easing)));
+                const binaryPresence = animation.timeline?.constructor.name === 'ScrollTimeline'
+                    && timing.duration === 'auto' && binaryEasing
+                    && frames.length === 2 && Number(frames[0].opacity) === 0 && Number(frames[1].opacity) === 1
+                    && frames.every(frame => Object.keys(frame).every(key => ['offset','computedOffset','easing','composite','opacity'].includes(key)));
+                return binaryPresence ? [] : ['Reduced motion retained a clock-driven effect or interpolated movement: ' + JSON.stringify({timing,frames})];
+            })
+            """);
+        Assert.Empty(animationIssues);
+        Assert.Empty(await CaptureStickyHandoffAsync(page, 900));
+        Assert.Empty(await CaptureStickyHandoffAsync(page, 0));
     }
 
     private static async Task<TaskCompletionSource> HoldAsync(IBrowserContext context, string pattern)

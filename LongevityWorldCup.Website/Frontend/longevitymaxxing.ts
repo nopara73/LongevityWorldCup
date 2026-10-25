@@ -6144,7 +6144,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const imageUrl = image || ATHLETE_PLACEHOLDER_IMAGE;
         const placeholderClass = hasProfileImage ? "" : " placeholder";
         const alt = hasProfileImage ? `${athleteName} profile picture` : "";
-        return `<div class="lmx-quote-portrait${placeholderClass}">
+        return `<div class="lmx-quote-portrait${placeholderClass}" data-athlete-name="${escAttr(athleteName)}">
             <img src="${escAttr(imageUrl)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
             <span class="lmx-quote-portrait-badge" aria-hidden="true">
                 <i class="fas ${getQuoteDialogIconClass(quote.bucket)}"></i>
@@ -6869,15 +6869,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     event.preventDefault();
                     const save = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
                     if (!accessToken || save.disabled) return;
+                    const finishWait = window.LwcWait?.start(save, { message: "Saving…" });
+                    save.setAttribute("aria-busy", "true");
                     save.disabled = true;
                     try {
                         const latest = discussionFeedNotes.get(discussionPermalink(note))?.advice;
                         const result = await postJson(`${API}/advice/edit`, { accessToken, adviceId: advice.id, version: latest?.version ?? advice.version, story: textarea.value });
+                        void finishWait?.("success");
                         adviceStoryEditDirty = false;
                         form.remove();
                         acceptParticipantState(result);
                         renderParticipantDiscussion(result);
-                    } catch (error) { form.querySelector<HTMLElement>(".lmx-status")!.textContent = messageOf(error); save.disabled = false; }
+                    } catch (error) {
+                        void finishWait?.("error");
+                        form.querySelector<HTMLElement>(".lmx-status")!.textContent = messageOf(error);
+                        save.disabled = false;
+                    } finally { save.removeAttribute("aria-busy"); }
                 });
                 story.append(form);
                 textarea.focus();

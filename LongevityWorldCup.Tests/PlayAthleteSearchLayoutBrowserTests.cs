@@ -239,7 +239,9 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
             await page.WaitForFunctionAsync("""
                 () => {
                     const image = document.querySelector('[role=option] img');
-                    return image?.complete && image.naturalWidth > 16 && image.src.includes('play-athlete-placeholder.jpg');
+                    return image?.complete && image.naturalWidth > 16
+                        && image.hasAttribute('data-lwc-portrait-fallback')
+                        && decodeURIComponent(image.src).includes('>P' + image.closest('[role=option]').textContent.trim().split(/\s+/).at(-1)[0] + '</text>');
                 }
                 """);
             await Assertions.Expect(page.GetByRole(AriaRole.Option)).ToHaveAccessibleNameAsync(name);

@@ -9,6 +9,97 @@ public sealed class BioageKeyboardViewportBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/pheno-age", 160, 16, false)]
+    [InlineData("/pheno-age", 195, 16, false)]
+    [InlineData("/pheno-age", 320, 32, false)]
+    [InlineData("/bortz-age", 160, 16, false)]
+    [InlineData("/bortz-age", 195, 16, false)]
+    [InlineData("/bortz-age", 320, 32, false)]
+    [InlineData("/pheno-age", 160, 16, true)]
+    [InlineData("/pheno-age", 195, 16, true)]
+    [InlineData("/pheno-age", 320, 32, true)]
+    [InlineData("/bortz-age", 160, 16, true)]
+    [InlineData("/bortz-age", 195, 16, true)]
+    [InlineData("/bortz-age", 320, 32, true)]
+    public async Task DateSelect_TabBackKeepsTheFocusedControlAndLabelClearOfStickyBands(string path, int width, int rootSize, bool delayedController)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US",
+            ReducedMotion = ReducedMotion.NoPreference,
+            ViewportSize = new ViewportSize { Width = width, Height = rootSize == 32 ? 640 : 422 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync($"document.addEventListener('DOMContentLoaded', () => document.documentElement.style.fontSize = '{rootSize}px', {{ once: true }});");
+        if (delayedController)
+        {
+            // The page can paint while its instrument initializer is still queued.
+            // Date focus must work before that controller binds, too.
+            await context.AddInitScriptAsync("""
+                (() => {
+                    let api;
+                    Object.defineProperty(window, 'LwcBioageFlow', {
+                        configurable: true,
+                        get: () => api,
+                        set: value => {
+                            api = value;
+                            const initialize = value.initializeBiomarkerEntry;
+                            value.initializeBiomarkerEntry = options => {
+                                window.reviewResumeBiomarkerEntry = () => initialize(options);
+                                return { restoredDraft: false, step: 1 };
+                            };
+                        }
+                    });
+                })();
+                """);
+        }
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.WaitForFunctionAsync("""
+            () => !document.documentElement.hasAttribute('data-initial-view')
+                && document.getAnimations().filter(a => a.timeline === document.timeline && Number.isFinite(a.effect?.getComputedTiming().endTime))
+                    .every(a => !a.pending && ['finished', 'idle'].includes(a.playState))
+            """);
+        if (delayedController)
+        {
+            await page.WaitForFunctionAsync("typeof window.reviewResumeBiomarkerEntry === 'function'");
+            Assert.False(await page.Locator("form.bioageform").EvaluateAsync<bool>(
+                "form => form.classList.contains('bioage-biomarker-entry-ready')"));
+        }
+        await page.Locator("#dob-month").FocusAsync();
+        await page.Locator("#dob-month").ScrollIntoViewIfNeededAsync();
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.Keyboard.PressAsync("Shift+Tab");
+        Assert.Equal("dob-year", await page.EvaluateAsync<string>("document.activeElement.id"));
+        var issues = await page.EvaluateAsync<string[]>("""
+            async () => {
+                const issues = [];
+                const input = document.getElementById('dob-year');
+                for (let frame = 0; frame < 4; frame++) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    for (const target of [input, input.labels[0]]) {
+                        const rect = target.getBoundingClientRect();
+                        for (const [x, y] of [[.25, .1], [.75, .1], [.25, .9], [.75, .9]]) {
+                            const hit = document.elementFromPoint(rect.left + rect.width * x, rect.top + rect.height * y);
+                            if (!target.contains(hit)) issues.push(`Frame ${frame}: ${target.tagName} is covered by ${hit?.tagName} at ${rect.top}-${rect.bottom}`);
+                        }
+                    }
+                }
+                return issues;
+            }
+            """);
+        Assert.Empty(issues);
+        if (delayedController)
+        {
+            await page.EvaluateAsync("window.reviewResumeBiomarkerEntry()");
+            Assert.True(await page.Locator("form.bioageform").EvaluateAsync<bool>(
+                "form => form.classList.contains('bioage-biomarker-entry-ready')"));
+        }
+    }
+
     [Fact]
     public async Task FocusedInput_InWindowedViewportDoesNotTreatUnusedScreenSpaceAsAKeyboard()
     {

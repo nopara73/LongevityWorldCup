@@ -1188,18 +1188,19 @@
                     accountEmail: applicantData.accountEmail
                 });
 
+                const submissionWait = window.LwcWait?.start(submitButton, { message: 'Submitting...' });
                 isResultUploadSubmitting = true;
                 submitButton.disabled = true;
                 uploadProofButton.disabled = true;
                 if (takeProofPhotoButton) takeProofPhotoButton.disabled = true;
-                submitButton.textContent = 'Submitting...';
-                showLoading();
+                if (!submissionWait) { submitButton.textContent = 'Submitting...'; showLoading(); }
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(attempt => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
+                        else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishResultSubmission(attempt.submitResult, {
                                 submissionId: submissionId,
@@ -1239,7 +1240,8 @@
                         }
                     })
                     .catch(error => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait('error');
+                        else hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
                         const alertMessage = `Your connection was interrupted. Your results may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;
                         void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
