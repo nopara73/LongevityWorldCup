@@ -230,19 +230,26 @@ public sealed class InteractionMotionBrowserTests(
     [Theory]
     [InlineData(1280, 800)]
     [InlineData(390, 844)]
-    public async Task AthleteProfile_BackdropFadesInAsWellAsOut(int width, int height)
+    public async Task AthleteProfile_OpensOpaqueAndFadesOut(int width, int height)
     {
         await using var context = await NewMotionContextAsync(width, height);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/leaderboard");
-        // Observe the browser's transition lifecycle before the click. The 200ms
-        // entrance may finish before ClickAsync returns on a busy runner.
+        // The card stays opaque on entrance so the board cannot show through
+        // its identity. Record painted frames and transitions before the click.
         await page.EvaluateAsync("""
             () => {
                 window.__backdropMotion = [];
+                window.__backdropEntranceOpacity = [];
                 window.__backdropPhase = 'enter';
                 const backdrop = document.getElementById('detailsModal');
+                requestAnimationFrame(function sampleEntrance() {
+                    if (window.__backdropPhase !== 'enter') return;
+                    if (backdrop.getClientRects().length)
+                        window.__backdropEntranceOpacity.push(Number(getComputedStyle(backdrop).opacity));
+                    requestAnimationFrame(sampleEntrance);
+                });
                 // Transition events can be delivered after close cleanup removes
                 // fade-out. Keep the direction from the actual close lifecycle.
                 backdrop.addEventListener('athlete-dialog-closing', () => window.__backdropPhase = 'exit');
@@ -255,13 +262,15 @@ public sealed class InteractionMotionBrowserTests(
             }
             """);
         await page.Locator("#athleteLeaderboard tbody tr[data-athlete-name]").First.Locator(".athlete-name").ClickAsync();
-        await page.WaitForFunctionAsync("() => window.__backdropMotion.includes('enter:transitionend')");
+        await page.WaitForFunctionAsync("() => window.__backdropEntranceOpacity.length > 0");
         await Assertions.Expect(page.Locator("#detailsModal")).ToHaveCSSAsync("opacity", "1");
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        var entranceOpacity = await page.EvaluateAsync<double[]>("() => window.__backdropEntranceOpacity");
+        Assert.NotEmpty(entranceOpacity);
+        Assert.All(entranceOpacity, opacity => Assert.Equal(1, opacity));
         var transitions = await page.EvaluateAsync<string[]>("() => window.__backdropMotion");
-        Assert.Contains("enter:transitionrun", transitions);
-        Assert.Contains("enter:transitionend", transitions);
+        Assert.DoesNotContain("enter:transitionrun", transitions);
         Assert.Contains("exit:transitionrun", transitions);
     }
 
@@ -350,17 +359,27 @@ public sealed class InteractionMotionBrowserTests(
         await using var context = await NewMotionContextAsync(1280, 800);
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, route);
+        if (route == "/play")
+            await page.WaitForFunctionAsync("""
+                () => document.documentElement.classList.contains('play-route-ready')
+                    && !document.body.matches('.play-start-preintro, .play-start-intro')
+                """);
         // Check both the shared press treatment and the play flow's deliberate
         // override, rather than treating a component as the global default.
         var button = page.Locator(selector);
         await button.HoverAsync();
         await page.Mouse.DownAsync();
-        await page.WaitForTimeoutAsync(200);
-        var pressed = await button.EvaluateAsync<string>("element => getComputedStyle(element).scale");
-        await page.Mouse.MoveAsync(1, 1);
-        await page.Mouse.UpAsync();
-
-        Assert.Equal(expectedScale, pressed);
+        try
+        {
+            // Observe the held state instead of assuming a busy CI renderer
+            // has presented the press transition after a fixed wall-clock delay.
+            await Assertions.Expect(button).ToHaveCSSAsync("scale", expectedScale);
+        }
+        finally
+        {
+            await page.Mouse.MoveAsync(1, 1);
+            await page.Mouse.UpAsync();
+        }
     }
 
     [Fact]
