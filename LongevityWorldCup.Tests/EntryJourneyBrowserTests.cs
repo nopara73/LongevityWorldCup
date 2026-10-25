@@ -21,15 +21,16 @@ public sealed class EntryJourneyBrowserTests(
             window.__lwcReveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
             if (event.viewTransition) {
                 event.viewTransition.ready.then(() => {
-                    window.__lwcReveal.recorded = true;
                     window.__lwcReveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
                     window.__lwcReveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
-                }, error => {
+                    // Publish readiness only after the complete snapshot is available.
                     window.__lwcReveal.recorded = true;
+                }).catch(error => {
                     window.__lwcReveal.skipped = String(error);
                     window.__lwcReveal.animations = [];
+                    window.__lwcReveal.recorded = true;
                 });
             }
         });

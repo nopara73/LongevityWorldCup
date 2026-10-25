@@ -23,7 +23,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             return {
                 visible: bounds.bottom > 0 && bounds.top < innerHeight,
                 text: node.textContent,
-                rects: [...node.getClientRects()].map(rect => ({ y: rect.y, height: rect.height }))
+                rects: [...node.getClientRects()].map(rect => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height }))
             };
         })
         """;
@@ -120,7 +120,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             var oldRects = before[index].GetProperty("rects");
             var newRects = after[index].GetProperty("rects");
             Assert.True(oldRects.GetArrayLength() == newRects.GetArrayLength(),
-                $"Late fonts changed painted emphasis from {oldRects.GetArrayLength()} to {newRects.GetArrayLength()} fragments on {path}: {before[index].GetProperty("text").GetString()}");
+                $"Late fonts changed painted emphasis from {oldRects.GetArrayLength()} to {newRects.GetArrayLength()} fragments on {path}: {before[index].GetProperty("text").GetString()}. Before: {oldRects}; after: {newRects}");
             for (var fragment = 0; fragment < oldRects.GetArrayLength(); fragment++)
                 foreach (var dimension in new[] { "y", "height" })
                     Assert.True(Math.Abs(oldRects[fragment].GetProperty(dimension).GetDouble()
