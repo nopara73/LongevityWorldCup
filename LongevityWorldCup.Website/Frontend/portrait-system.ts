@@ -273,6 +273,15 @@ interface Window {
         tracked.set(img, { source, version: (previous?.version || 0) + 1 });
         setState(img, "loading");
         if (src && loaded(img)) finishDecode(img, true);
+        else if (src && img.complete && img.naturalWidth === 0) {
+            // The error may have fired before this deferred layer adopted the
+            // image. Give page handlers their turn, then recover a still-failed
+            // source just as the captured error listener would.
+            queueMicrotask(() => {
+                if (img.isConnected && signature(img) === source && img.complete && img.naturalWidth === 0
+                    && img.dataset["lwcPortraitFallback"] === undefined) useMonogram(img);
+            });
+        }
     }
 
     function onLoad(event: Event): void {

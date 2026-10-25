@@ -49,6 +49,26 @@ public sealed class PortraitSystemBrowserTests(
         """);
 
     [Fact]
+    public async Task ImageThatFailedBeforeEnhancement_RecoversInsteadOfShimmeringForever()
+    {
+        await using var context = await ContextAsync();
+        await context.RouteAsync("**/already-broken.webp", route => route.FulfillAsync(new() { Status = 404, Body = "" }));
+        var page = await OpenAsync(context);
+        await page.EvaluateAsync("""
+            async () => {
+                const image=document.createElement('img'); image.id='testPortrait'; image.alt='Cached Athlete';
+                const failed=new Promise(resolve=>image.addEventListener('error',resolve,{once:true}));
+                image.src='/already-broken.webp'; document.body.append(image);
+                await failed;
+                window.LwcPortrait.enhance(image);
+            }
+            """);
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("data-lwc-portrait-fallback", "");
+        await ReadyAsync(page);
+        Assert.Contains(">CA</text>", Uri.UnescapeDataString(await page.Locator("#testPortrait").GetAttributeAsync("src") ?? ""));
+    }
+
+    [Fact]
     public async Task SlowRecycledImage_DoesNotPaintThePreviousBitmapWhileItsReplacementLoads()
     {
         await using var context = await ContextAsync();
