@@ -124,11 +124,6 @@
             transition-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
         }
 
-        /* Hover intent: rows wait a beat before lighting, so a fast sweep across
-         * the board does not strobe; leaving is immediate. */
-        :root:not([data-lwc-input="touch"]) :is(.leaderboard, .events-board) table tbody tr:hover > td {
-            transition-delay: 35ms;
-        }
     }
 }
 
@@ -158,8 +153,11 @@
     line-height: 1.35;
     letter-spacing: 0.01em;
     max-width: 320px;
-    overflow: visible;
-    pointer-events: none;
+    box-sizing: border-box;
+    max-height: calc(100dvh - 16px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    pointer-events: auto;
     box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.45), 0 2px 6px rgba(15, 23, 42, 0.18);
     opacity: 0;
     translate: 0 4px;
@@ -177,24 +175,6 @@
 .lwc-tip[data-side="bottom"] {
     translate: 0 -4px;
     transform-origin: var(--lwc-tip-arrow, 50%) 0;
-}
-
-.lwc-tip::after {
-    content: "";
-    position: absolute;
-    left: var(--lwc-tip-arrow, 50%);
-    bottom: -5px;
-    width: 10px;
-    height: 10px;
-    margin-left: -5px;
-    background: inherit;
-    border-radius: 2px;
-    rotate: 45deg;
-}
-
-.lwc-tip[data-side="bottom"]::after {
-    bottom: auto;
-    top: -5px;
 }
 
 .lwc-tip.is-open {
@@ -221,7 +201,7 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --lwc-tip-surface: color-mix(in srgb, var(--lwc-surface, #17212b) 70%, var(--lwc-ink, #e6edf3) 14%);
+        --lwc-tip-surface: color-mix(in srgb, var(--lwc-surface, #17212b) 83.333%, var(--lwc-ink, #e6edf3) 16.667%);
         --lwc-tip-ink: var(--lwc-ink, #e6edf3);
     }
 
@@ -247,7 +227,7 @@
     width: var(--lwc-ring-w, 0);
     height: var(--lwc-ring-h, 0);
     translate: var(--lwc-ring-x, 0) var(--lwc-ring-y, 0);
-    border: 2.5px solid var(--lwc-ring-color);
+    border: 0;
     border-radius: var(--lwc-ring-radius, 8px);
     box-shadow: 0 0 0 4px var(--lwc-ring-halo);
     pointer-events: none;
@@ -280,27 +260,11 @@
     }
 }
 
-/* While the ring draws focus, the element's own outline steps aside so the
- * two never double up. Without the ring (modal dialogs, popovers, text
- * fields, forced colours, no script) the native outline below is in charge. */
-:root[data-lwc-ring="on"][data-lwc-input="keyboard"] :focus-visible:not(input, textarea, select, [contenteditable="true"], dialog:modal *, :popover-open *) {
-    outline-color: transparent !important;
-}
-
-/* The fallback outline is crisp and settles in, using a transition only. */
+/* Focus stays on the actual control immediately; only its outer halo travels.
+ * Page-specific focus shells and forced-colour outlines remain authoritative. */
 :where(a, button, summary, [role="button"], [role="tab"], [tabindex], label.view-badge, .view-badge):where(:focus-visible) {
     outline: 3px solid var(--lwc-ring-color);
     outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    :where(a, button, summary, [role="button"], [role="tab"], [tabindex], label.view-badge, .view-badge) {
-        transition-property: background-color, border-color, color, box-shadow, opacity, transform, scale, translate, outline-color, outline-offset;
-    }
-
-    :where(a, button, summary, [role="button"], [role="tab"], [tabindex]):where(:not(:focus-visible)) {
-        outline-offset: 6px;
-    }
 }
 
 @media (forced-colors: active) {

@@ -8,9 +8,8 @@
 //   counts and truncated text. It waits before the first tip, then follows
 //   quickly while the visitor skims, and flips or slides to stay on screen.
 //   Badges keep their own richer popover from badges.ts.
-// - Focus ring: one ring glides from the previously focused control to the
-//   next one while the visitor uses the keyboard. Controls inside modal
-//   dialogs and popovers keep their own animated outline instead.
+// - Focus: the control keeps its outline while an outer halo glides between
+//   keyboard stops. Modal dialogs, popovers and fields keep their own treatment.
 // - Lists: arrow keys move through rows, tabs, chips and menus that do not
 //   already handle them; Home and End jump to the ends. Reaching an end
 //   nudges the ring, and Escape pulses it where focus returns.
@@ -85,19 +84,25 @@ interface Window {
     let tipHideTimer = 0;
     let tipWarmUntil = 0;
     let tipAddedDescribedBy = false;
+    let tipAddedLabel: string | null = null;
+    let tipFrame = 0;
+    let tipSource: "pointer" | "keyboard" = "pointer";
     const coldDelay = 520;
     const warmDelay = 60;
     const warmWindow = 700;
 
-    function mountTip(): void {
-        if (!tip.isConnected) document.body.append(tip);
+    function mountTip(owner: HTMLElement): void {
+        // A popover outside a modal is still inert. Keep long explanations
+        // inside the modal's focus and pointer boundary.
+        const host = owner.closest("dialog:modal") || document.body;
+        if (tip.parentElement !== host) host.append(tip);
     }
 
     function textFor(element: HTMLElement): string {
-        const stored = element.getAttribute(tipOwnTitle);
-        if (stored !== null) return stored;
         const title = element.getAttribute("title");
         if (title !== null) return title;
+        const stored = element.getAttribute(tipOwnTitle);
+        if (stored !== null) return stored;
         if (element.dataset.lwcTip) return element.dataset.lwcTip;
         return (element.textContent || "").replace(/\s+/g, " ").trim();
     }
@@ -130,7 +135,10 @@ interface Window {
         const hasName = element.hasAttribute("aria-label") || element.hasAttribute("aria-labelledby")
             || (element.textContent || "").trim().length > 0
             || !!element.querySelector("img[alt]:not([alt=''])");
-        if (!hasName && title.trim()) element.setAttribute("aria-label", title);
+        if (!hasName && title.trim()) {
+            element.setAttribute("aria-label", title);
+            tipAddedLabel = title;
+        }
         element.setAttribute(tipOwnTitle, title);
         element.removeAttribute("title");
     }
@@ -141,6 +149,8 @@ interface Window {
         element.removeAttribute(tipOwnTitle);
         // Page code may have set a fresh title meanwhile; that one wins.
         if (!element.hasAttribute("title")) element.setAttribute("title", stored);
+        if (tipAddedLabel !== null && element.getAttribute("aria-label") === tipAddedLabel) element.removeAttribute("aria-label");
+        tipAddedLabel = null;
     }
 
     function placeTip(owner: HTMLElement): void {
@@ -150,6 +160,7 @@ interface Window {
         const viewportWidth = document.documentElement.clientWidth;
         const viewportHeight = window.innerHeight;
         tip.style.maxWidth = `${Math.min(320, viewportWidth - margin * 2)}px`;
+        tip.style.maxHeight = `${viewportHeight - margin * 2}px`;
         const width = tip.offsetWidth;
         const height = tip.offsetHeight;
         const centre = rect.left + rect.width / 2;
@@ -158,18 +169,23 @@ interface Window {
         const fitsAbove = above >= margin;
         const fitsBelow = rect.bottom + gap + height <= viewportHeight - margin;
         const placeBelow = !fitsAbove && fitsBelow;
-        const top = placeBelow ? rect.bottom + gap : Math.max(margin, above);
+        const top = Math.max(margin, Math.min(placeBelow ? rect.bottom + gap : above, viewportHeight - height - margin));
         tip.dataset.side = placeBelow ? "bottom" : "top";
         tip.style.left = `${Math.round(left)}px`;
         tip.style.top = `${Math.round(top)}px`;
         const arrow = Math.min(Math.max(12, centre - left), width - 12);
         tip.style.setProperty("--lwc-tip-arrow", `${Math.round(arrow)}px`);
+        const scrollable = tip.scrollHeight > tip.clientHeight;
+        tip.toggleAttribute("data-scrollable", scrollable);
+        if (scrollable) tip.tabIndex = 0;
+        else tip.removeAttribute("tabindex");
     }
 
     function showTip(owner: HTMLElement): void {
         const text = textFor(owner);
-        if (!text || !owner.isConnected) return;
-        mountTip();
+        if (tipOwner !== owner) return;
+        if (!text || !owner.isConnected || !visible(owner)) { hideTip(true); return; }
+        mountTip(owner);
         window.clearTimeout(tipHideTimer);
         if (tipOwner && tipOwner !== owner) detachTipOwner();
         tipOwner = owner;
@@ -187,7 +203,11 @@ interface Window {
         }
         // While skimming from one tip to the next, the tip slides instead of fading.
         tip.classList.toggle("is-gliding", wasOpen);
-        requestAnimationFrame(() => tip.classList.add("is-open"));
+        cancelAnimationFrame(tipFrame);
+        tipFrame = requestAnimationFrame(() => {
+            tipFrame = 0;
+            if (tipOwner === owner) tip.classList.add("is-open");
+        });
     }
 
     function detachTipOwner(): void {
@@ -205,7 +225,9 @@ interface Window {
     function hideTip(immediate = false): void {
         window.clearTimeout(tipShowTimer);
         window.clearTimeout(tipHideTimer);
-        if (tipOwner) tipWarmUntil = performance.now() + warmWindow;
+        cancelAnimationFrame(tipFrame);
+        tipFrame = 0;
+        if (!tip.hidden) tipWarmUntil = performance.now() + warmWindow;
         detachTipOwner();
         tip.classList.remove("is-open", "is-gliding");
         const finish = () => {
@@ -217,23 +239,59 @@ interface Window {
         else tipHideTimer = window.setTimeout(finish, 120);
     }
 
-    function scheduleTip(owner: HTMLElement, delay: number): void {
+    function scheduleTip(owner: HTMLElement, delay: number, source: "pointer" | "keyboard" = "pointer"): void {
         window.clearTimeout(tipShowTimer);
         window.clearTimeout(tipHideTimer);
+        cancelAnimationFrame(tipFrame);
+        if (tipOwner !== owner) detachTipOwner();
+        // Own the pending delay as well as the visible tip. Every exit can now
+        // cancel it and restore the title, including before the first paint.
+        tipOwner = owner;
+        tipSource = source;
+        adoptTitle(owner);
         if (owner.closest(tipSilenced)) {
             // Keep the native box away without drawing a second card.
-            adoptTitle(owner);
-            if (tipOwner !== owner) { hideTip(); tipOwner = owner; }
+            tip.classList.remove("is-open", "is-gliding");
+            tip.hidden = true;
+            if (supportsPopover && tip.matches(":popover-open")) tip.hidePopover();
             return;
         }
-        adoptTitle(owner);
         const wait = performance.now() < tipWarmUntil || !tip.hidden ? warmDelay : delay;
-        tipShowTimer = window.setTimeout(() => showTip(owner), wait);
+        tipShowTimer = window.setTimeout(() => {
+            if (tipOwner !== owner) return;
+            // Truncation requires layout. Probe only after hover intent, never
+            // synchronously for every pointerover on a large leaderboard.
+            const target = tipTargetFrom(owner);
+            if (!target) { hideTip(true); return; }
+            if (target !== owner) {
+                detachTipOwner();
+                tipOwner = target;
+                adoptTitle(target);
+            }
+            showTip(target);
+        }, wait);
+    }
+
+    function leaveTip(): void {
+        window.clearTimeout(tipShowTimer);
+        if (tip.hidden) { hideTip(true); return; }
+        window.clearTimeout(tipHideTimer);
+        // A short bridge lets the pointer enter the tooltip itself, including
+        // long content with a native scrollbar.
+        tipHideTimer = window.setTimeout(() => hideTip(), 160);
     }
 
     document.addEventListener("pointerover", event => {
-        if (event.pointerType === "touch") return;
-        const target = tipTargetFrom(event.target);
+        if (event.pointerType === "touch" || event.buttons) return;
+        if (event.pointerType === "mouse" && modality === "touch") setModality("pointer");
+        if (event.target instanceof Node && tip.contains(event.target)) {
+            window.clearTimeout(tipHideTimer);
+            return;
+        }
+        const start = event.target instanceof Element ? event.target : null;
+        if (start?.closest(tipExcluded)) { hideTip(true); return; }
+        const titled = start?.closest(`[title], [${tipOwnTitle}], [data-lwc-tip]`);
+        const target = titled instanceof HTMLElement ? titled : start instanceof HTMLElement ? start : start?.parentElement;
         if (!target) {
             if (tipOwner && !(event.target instanceof Node && tipOwner.contains(event.target))) hideTip();
             return;
@@ -245,20 +303,28 @@ interface Window {
     document.addEventListener("pointerout", event => {
         if (!tipOwner) return;
         const next = event.relatedTarget;
-        if (next instanceof Node && tipOwner.contains(next)) return;
-        hideTip();
+        if (next instanceof Node && (tipOwner.contains(next) || tip.contains(next))) return;
+        if (tipSource === "keyboard" && document.activeElement === tipOwner) return;
+        leaveTip();
     }, { passive: true });
 
-    document.addEventListener("pointerdown", () => hideTip(true), true);
-    window.addEventListener("scroll", () => { if (tipOwner) hideTip(true); }, { passive: true, capture: true });
+    document.addEventListener("pointerdown", event => {
+        if (!(event.target instanceof Node && tip.contains(event.target))) hideTip(true);
+    }, true);
+    document.addEventListener("pointercancel", () => hideTip(true), true);
+    document.addEventListener("gotpointercapture", () => hideTip(true), true);
+    window.addEventListener("scroll", event => {
+        if (tipOwner && !(event.target instanceof Node && tip.contains(event.target))) hideTip(true);
+    }, { passive: true, capture: true });
     window.addEventListener("blur", () => hideTip(true));
+    window.addEventListener("resize", () => hideTip(true), { passive: true });
 
     // ------------------------------------------------------------- focus ring
     const ring = document.createElement("div");
     ring.className = "lwc-focus-ring";
     ring.setAttribute("aria-hidden", "true");
     ring.hidden = true;
-    const ringExcludedHosts = "dialog:modal, [popover]:popover-open, .lwc-tip";
+    const ringExcludedHosts = "dialog:modal, [role='dialog'], [popover]:popover-open, .lwc-tip";
     let ringTarget: HTMLElement | null = null;
     let ringFrame = 0;
     let ringIdleFrames = 0;
@@ -269,7 +335,7 @@ interface Window {
         if (element === document.body || element === document.documentElement) return false;
         if (element.closest(ringExcludedHosts)) return false;
         // Text fields keep their own focus treatment from form-controls.css.
-        if (element.matches("input:not([type='checkbox'], [type='radio'], [type='range'], [type='button'], [type='submit']), textarea, select, [contenteditable='true']")) return false;
+        if (element.matches("input, textarea, select") || element.isContentEditable) return false;
         return element.matches(":focus-visible");
     }
 
@@ -277,6 +343,7 @@ interface Window {
         ringTarget = null;
         root.removeAttribute("data-lwc-ring");
         ring.classList.remove("is-on");
+        for (const animation of ring.getAnimations()) animation.cancel();
         cancelAnimationFrame(ringFrame);
         ringFrame = 0;
     }
@@ -284,7 +351,7 @@ interface Window {
     function measureRing(): boolean {
         if (!ringTarget || !ringTarget.isConnected) { hideRing(); return false; }
         const rect = ringTarget.getBoundingClientRect();
-        if (rect.width === 0 && rect.height === 0) { ring.classList.remove("is-on"); return false; }
+        if (rect.width === 0 && rect.height === 0) { hideRing(); return false; }
         const key = `${rect.left}|${rect.top}|${rect.width}|${rect.height}`;
         if (key === lastRect) return false;
         lastRect = key;
@@ -314,7 +381,8 @@ interface Window {
         const radius = parseFloat(style.borderTopLeftRadius) || 0;
         if (element.matches("tr")) return "6px";
         // A circle stays a circle; everything else gets a soft corner plus the gap.
-        if (style.borderTopLeftRadius.endsWith("%") || radius >= Math.min(element.offsetWidth, element.offsetHeight) / 2 - 1) return "999px";
+        const rect = element.getBoundingClientRect();
+        if (style.borderTopLeftRadius.endsWith("%") || radius >= Math.min(rect.width, rect.height) / 2 - 1) return "999px";
         return `${Math.max(4, radius + 3)}px`;
     }
 
@@ -330,7 +398,6 @@ interface Window {
             // Appear in place: no travel from wherever the ring last rested.
             ring.classList.remove("is-on");
             measureRing();
-            void ring.offsetWidth;
         } else {
             measureRing();
         }
@@ -347,34 +414,43 @@ interface Window {
 
     document.addEventListener("focusin", event => {
         const target = event.target;
-        if (!(target instanceof HTMLElement)) return;
+        if (!(target instanceof HTMLElement) || tip.contains(target)) return;
         if (modality !== "keyboard") { hideRing(); return; }
         // :focus-visible is resolved after focusin in some engines; check next frame.
         requestAnimationFrame(() => {
-            if (document.activeElement !== target) return;
+            if (document.activeElement !== target || modality !== "keyboard") return;
             if (ringAllowed(target)) moveRing(target);
             else hideRing();
-            if (tipTargetFrom(target) === target && target.matches(":focus-visible")) scheduleTip(target, 650);
+            if (target.matches(":focus-visible") && !target.closest(tipExcluded)) scheduleTip(target, 650, "keyboard");
         });
     });
     document.addEventListener("focusout", event => {
-        if (tipOwner && event.target === tipOwner) hideTip();
         const next = event.relatedTarget;
+        if (tipOwner && (event.target === tipOwner || event.target === tip) && !(next instanceof Node && (tip.contains(next) || tipOwner.contains(next)))) hideTip(true);
         if (!(next instanceof HTMLElement)) requestAnimationFrame(() => {
             if (!(document.activeElement instanceof HTMLElement) || document.activeElement === document.body) hideRing();
         });
     });
-    const wake = () => { if (ringTarget) { lastRect = ""; trackRing(); } };
+    const wake = (event: Event) => {
+        if (!ringTarget || event.target === ring) return;
+        if ((event.type === "transitionrun" || event.type === "animationstart")
+            && !(event.target instanceof Element && event.target.contains(ringTarget))) return;
+        ring.classList.remove("is-gliding"); lastRect = ""; trackRing();
+    };
     window.addEventListener("scroll", wake, { passive: true, capture: true });
     window.addEventListener("resize", wake, { passive: true });
     document.addEventListener("transitionrun", wake, true);
     document.addEventListener("animationstart", wake, true);
     // A dialog opening or closing changes which host draws the focus.
-    document.addEventListener("toggle", () => requestAnimationFrame(refreshRing), true);
+    document.addEventListener("toggle", event => {
+        if (event.target !== tip) hideTip(true);
+        requestAnimationFrame(refreshRing);
+    }, true);
     document.addEventListener("close", () => requestAnimationFrame(refreshRing), true);
 
     function pulseRing(kind: "return" | "bump", direction = 0): void {
         if (!ringTarget || reduced.matches || typeof ring.animate !== "function") return;
+        for (const animation of ring.getAnimations()) animation.cancel();
         if (kind === "return") {
             ring.animate([
                 { boxShadow: "0 0 0 0 var(--lwc-ring-halo)", scale: "1.06" },
@@ -392,7 +468,7 @@ interface Window {
 
     // ------------------------------------------------------------ arrow lists
     const focusable = "a[href], button:not(:disabled), [role='tab'], [role='menuitem'], [role='option'], summary, [tabindex]:not([tabindex='-1']), input[type='checkbox'], input[type='radio']";
-    const editable = "input:not([type='checkbox'], [type='radio'], [type='button'], [type='submit'], [type='reset']), textarea, select, [contenteditable='true'], [role='slider'], [role='spinbutton'], [role='combobox'], [role='grid'], [role='listbox'], [role='radiogroup'], canvas, video, audio";
+    const editable = "input, textarea, select, [contenteditable], [role='slider'], [role='spinbutton'], [role='combobox'], [role='grid'], [role='listbox'], [role='radiogroup'], canvas, video, audio";
     const rowLists = [
         "#athleteLeaderboard > table > tbody",
         ".leaderboard table tbody",
@@ -416,15 +492,18 @@ interface Window {
     function visible(element: Element): boolean {
         if (!(element instanceof HTMLElement)) return false;
         if (element.hidden || element.closest("[hidden], [inert], [aria-hidden='true']")) return false;
-        return element.getClientRects().length > 0;
+        return element.getClientRects().length > 0 && getComputedStyle(element).visibility === "visible";
     }
 
     function focusablesIn(container: Element): HTMLElement[] {
-        return Array.from(container.querySelectorAll<HTMLElement>(focusable)).filter(element => visible(element) && !element.closest("[aria-disabled='true']"));
+        return Array.from(container.querySelectorAll<HTMLElement>(focusable)).filter(element => visible(element) && !element.matches(":disabled") && !element.closest("[aria-disabled='true']"));
     }
+
+    const arrivals = new Map<HTMLElement, number>();
 
     function settleFocus(next: HTMLElement, direction: number): void {
         next.focus({ preventScroll: true });
+        if (document.activeElement !== next) return;
         const rect = next.getBoundingClientRect();
         const header = parseFloat(getComputedStyle(root).scrollPaddingTop) || 64;
         const outOfView = rect.top < header + 4 || rect.bottom > window.innerHeight - 12;
@@ -435,10 +514,12 @@ interface Window {
         }
         const row = next.closest<HTMLElement>("tr");
         if (row && !reduced.matches) {
-            row.classList.remove("lwc-key-arrive");
-            void row.offsetWidth;
+            window.clearTimeout(arrivals.get(row));
             row.classList.add("lwc-key-arrive");
-            window.setTimeout(() => row.classList.remove("lwc-key-arrive"), 420);
+            arrivals.set(row, window.setTimeout(() => {
+                row.classList.remove("lwc-key-arrive");
+                arrivals.delete(row);
+            }, 420));
         }
     }
 
@@ -493,6 +574,7 @@ interface Window {
         if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
         const current = event.target;
         if (!(current instanceof HTMLElement) || current.closest(editable)) return;
+        if (!window.getSelection()?.isCollapsed) return;
 
         if (event.key === "Escape") {
             hideTip(true);
@@ -524,13 +606,54 @@ interface Window {
     // Escape that a page handler already consumed still deserves the return pulse.
     document.addEventListener("keydown", event => {
         if (event.key !== "Escape") return;
+        const owner = tipOwner;
+        const tipFocused = tip.contains(document.activeElement);
+        hideTip(true);
+        if (tipFocused && owner?.isConnected) { owner.focus({ preventScroll: true }); event.preventDefault(); }
         const before = document.activeElement;
         requestAnimationFrame(() => requestAnimationFrame(() => {
             if (event.defaultPrevented && document.activeElement !== before) { refreshRing(); pulseRing("return"); }
         }));
     }, true);
 
-    reduced.addEventListener?.("change", () => { ring.classList.remove("is-gliding"); });
+    // Only an overflowing tip adds a keyboard stop. Return to the owner's
+    // normal tab sequence when leaving it; ordinary short tips never steal Tab.
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Tab" || event.defaultPrevented || !tipOwner || tip.hidden || !tip.hasAttribute("data-scrollable")) return;
+        if (document.activeElement === tipOwner && !event.shiftKey) {
+            event.preventDefault(); tip.focus({ preventScroll: true });
+        } else if (document.activeElement === tip) {
+            const owner = tipOwner;
+            const scope = owner.closest("dialog:modal, [role='dialog']") || document.body;
+            const items = Array.from(scope.querySelectorAll<HTMLElement>("a[href], button, input, textarea, select, summary, [contenteditable], [tabindex]"))
+                .filter(item => item.tabIndex >= 0 && visible(item) && !item.matches(":disabled") && !tip.contains(item))
+                .sort((a, b) => (a.tabIndex || Infinity) - (b.tabIndex || Infinity));
+            const next = event.shiftKey ? owner : items[items.indexOf(owner) + 1];
+            if (next) { event.preventDefault(); hideTip(true); next.focus(); }
+        }
+    });
+
+    function clearArrivals(): void {
+        for (const [row, timer] of arrivals) { window.clearTimeout(timer); row.classList.remove("lwc-key-arrive"); }
+        arrivals.clear();
+    }
+
+    function clearTransientState(): void { hideTip(true); hideRing(); clearArrivals(); }
+    new MutationObserver(() => {
+        if (tipOwner && !tipOwner.isConnected) hideTip(true);
+        if (ringTarget && !ringTarget.isConnected) hideRing();
+    }).observe(root, { childList: true, subtree: true });
+    window.addEventListener("pagehide", clearTransientState);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) clearTransientState(); });
+    window.addEventListener("blur", hideRing);
+    reduced.addEventListener?.("change", () => {
+        ring.classList.remove("is-gliding");
+        tip.classList.remove("is-gliding");
+        for (const animation of [...ring.getAnimations(), ...tip.getAnimations()]) animation.cancel();
+        clearArrivals();
+        refreshRing();
+    });
+    forcedColors.addEventListener?.("change", refreshRing);
 
     window.LwcPointer = {
         modality: () => modality,

@@ -201,8 +201,8 @@ namespace LongevityWorldCup.Website.Middleware
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
                         bodyContent = InjectTouchLayer(bodyContent);
-                        bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                         bodyContent = InjectPointerLayer(bodyContent);
+                        bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                     }
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -624,8 +624,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             return html.Insert(closingHeadIndex, assets);
         }
 
-        // The desktop pointer and keyboard layer comes last, so its hover, focus
-        // ring and tooltip rules can settle what the shared styles leave open.
+        // Pointer behavior follows touch; the aesthetic system still owns the
+        // final cascade, including page-specific focus and control treatments.
         private string InjectPointerLayer(string html)
         {
             const string closingHeadTag = "</head>";
