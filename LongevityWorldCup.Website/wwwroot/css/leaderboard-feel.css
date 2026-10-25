@@ -119,10 +119,6 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
     transition:scale var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease), translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
 }
 
-/* 4) Leaving rows: inert copies that fade where the row stood. */
-.lb-ghosts{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:1; }
-.lb-ghosts > .lb-ghost{ position:absolute; margin:0; border-collapse:collapse; table-layout:fixed; }
-
 /* 6) Phone rank rail: rank anchors along the edge, with a thumb that shows
       the rank under the column heads. Only numbers, no new words. */
 .lb-rail{
@@ -167,14 +163,6 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
     .lb-peek{ display:none; }
 }
 
-/* 7) By Flag crossfade (view transitions). */
-main[data-leaderboard-page="full"] #athleteLeaderboard.lb-crossfade{ view-transition-name:lb-board; }
-::view-transition-group(lb-board){ animation-duration:var(--lwc-motion-move, 260ms); animation-timing-function:var(--lwc-ease-standard, ease); }
-::view-transition-old(lb-board){ animation:lb-board-out var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in) both; }
-::view-transition-new(lb-board){ animation:lb-board-in var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out) both; }
-@keyframes lb-board-out{ to{ opacity:0; scale:.99; } }
-@keyframes lb-board-in{ from{ opacity:0; translate:0 8px; } }
-
 @media (prefers-reduced-motion:no-preference){
     main[data-leaderboard-page="full"] #athleteLeaderboard > table > thead th{
         transition-duration:var(--lwc-motion-base, 200ms);
@@ -192,9 +180,6 @@ main[data-leaderboard-page="full"] #athleteLeaderboard.lb-crossfade{ view-transi
     }
     .lb-rail-thumb{ transition:scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease); }
     main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]:active{ scale:.992; }
-}
-@media (prefers-reduced-motion:reduce){
-    ::view-transition-group(lb-board), ::view-transition-old(lb-board), ::view-transition-new(lb-board){ animation:none !important; }
 }
 html:not([data-lwc-motion="on"]) :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
 html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg),

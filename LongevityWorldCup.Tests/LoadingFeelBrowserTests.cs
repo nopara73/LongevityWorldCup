@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -7,7 +8,7 @@ namespace LongevityWorldCup.Tests;
 /// <summary>
 /// How pages arrive and change: no layout shift while data arrives, placeholders
 /// that hand over to content, no wrong-theme first frames, a sticky bar that
-/// slides instead of popping, same-site view transitions, and instant states
+/// stays stable during scroll handoffs, same-site view transitions, and instant states
 /// under reduced motion.
 /// </summary>
 [Collection(BrowserTestCollections.WorkloadB)]
@@ -16,17 +17,28 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
 {
     private const double ShiftBudget = 0.05;
 
+    private const string MeasureEmphasis = """
+        () => [...document.querySelectorAll('main strong')].map(node => {
+            const bounds = node.getBoundingClientRect();
+            return {
+                visible: bounds.bottom > 0 && bounds.top < innerHeight,
+                text: node.textContent,
+                rects: [...node.getClientRects()].map(rect => ({ y: rect.y, height: rect.height }))
+            };
+        })
+        """;
+
     private const string RecordShifts = """
         window.__lwcShifts = [];
         new PerformanceObserver(list => {
             for (const entry of list.getEntries()) {
                 if (entry.hadRecentInput) continue;
                 const sources = (entry.sources || []).map(source => {
-                    const node = source.node;
+                    const node = source.node?.nodeType === 3 ? source.node.parentElement : source.node;
                     const name = !node || node.nodeType !== 1 ? '#text'
                         : node.id ? '#' + node.id : node.tagName.toLowerCase() + (typeof node.className === 'string' && node.className ? '.' + node.className.trim().split(/\s+/)[0] : '');
                     const box = rect => [rect.x, rect.y, rect.width, rect.height].map(Math.round).join(',');
-                    return `${name} [${box(source.previousRect)}]->[${box(source.currentRect)}]@${Math.round(entry.startTime)}`;
+                    return `${name} (${node?.textContent?.slice(0, 80)}) [${box(source.previousRect)}]->[${box(source.currentRect)}]@${Math.round(entry.startTime)}`;
                 });
                 window.__lwcShifts.push({ value: entry.value, sources: sources.join(' ') });
             }
@@ -68,12 +80,15 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         await context.AddInitScriptAsync(RecordShifts);
         var release = await HoldAsync(context, late);
         var page = await context.NewPageAsync();
+        JsonElement? paintedCopy = null;
         try
         {
             await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
             await NextPaintAsync(page);
             // Late fonts arrive well after the first paint, as on a slow connection.
             await page.WaitForTimeoutAsync(late.Contains("woff2") ? 1500 : 400);
+            if (late.Contains("woff2"))
+                paintedCopy = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
         }
         finally { release.TrySetResult(); }
 
@@ -85,10 +100,72 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-route-ready')", null, new() { Timeout = 20_000 });
         await page.WaitForTimeoutAsync(600);
 
+        if (paintedCopy is { } before)
+            await AssertPaintedEmphasisDidNotReflowAsync(page, before, path);
+
         var shifts = await page.EvaluateAsync<Shift[]>("window.__lwcShifts");
         var total = shifts.Sum(shift => shift.Value);
         Assert.True(total < ShiftBudget,
             $"{path} at {width}px shifted {total:0.000} (budget {ShiftBudget}): " + string.Join("; ", shifts.Select(s => $"{s.Value:0.000} {s.Sources}")));
+    }
+
+    private static async Task AssertPaintedEmphasisDidNotReflowAsync(IPage page, JsonElement before, string path)
+    {
+        var after = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
+        Assert.Equal(before.GetArrayLength(), after.GetArrayLength());
+        for (var index = 0; index < before.GetArrayLength(); index++)
+        {
+            if (!before[index].GetProperty("visible").GetBoolean()) continue;
+            Assert.Equal(before[index].GetProperty("text").GetString(), after[index].GetProperty("text").GetString());
+            var oldRects = before[index].GetProperty("rects");
+            var newRects = after[index].GetProperty("rects");
+            Assert.True(oldRects.GetArrayLength() == newRects.GetArrayLength(),
+                $"Late fonts changed painted emphasis from {oldRects.GetArrayLength()} to {newRects.GetArrayLength()} fragments on {path}: {before[index].GetProperty("text").GetString()}");
+            for (var fragment = 0; fragment < oldRects.GetArrayLength(); fragment++)
+                foreach (var dimension in new[] { "y", "height" })
+                    Assert.True(Math.Abs(oldRects[fragment].GetProperty(dimension).GetDouble()
+                        - newRects[fragment].GetProperty(dimension).GetDouble()) <= 1,
+                        $"Late fonts reflowed painted emphasis on {path}: {before[index].GetProperty("text").GetString()}");
+        }
+    }
+
+    [Theory]
+    [InlineData("Regular", "700", 1280)]
+    [InlineData("Bold", "400", 1280)]
+    [InlineData("Regular", "700", 390)]
+    [InlineData("Bold", "400", 390)]
+    public async Task StaggeredFontWeights_KeepTheDocumentStable(string lastFace, string firstWeight, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 800 } });
+        await context.AddInitScriptAsync(RecordShifts);
+        var release = await HoldAsync(context, "**/*.woff2*");
+        var releaseLast = await HoldAsync(context, $"**/Roboto-{lastFace}.woff2*");
+        var page = await context.NewPageAsync();
+        JsonElement paintedCopy = default;
+        try
+        {
+            await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.WaitForTimeoutAsync(1500);
+            paintedCopy = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
+            release.TrySetResult();
+            await page.EvaluateAsync("weight => document.fonts.load(`${weight} 17px Roboto`)", firstWeight);
+            await NextPaintAsync(page);
+            // Give the mixed network/fallback state a real painted frame.
+            await page.WaitForTimeoutAsync(150);
+            await AssertPaintedEmphasisDidNotReflowAsync(page, paintedCopy, $"/ruleset with Roboto {lastFace} pending");
+        }
+        finally
+        {
+            release.TrySetResult();
+            releaseLast.TrySetResult();
+        }
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await NextPaintAsync(page);
+        await AssertPaintedEmphasisDidNotReflowAsync(page, paintedCopy, "/ruleset");
+        var shifts = await page.EvaluateAsync<Shift[]>("window.__lwcShifts");
+        Assert.True(shifts.Sum(shift => shift.Value) < ShiftBudget,
+            $"Roboto {lastFace} arriving last shifted {shifts.Sum(shift => shift.Value):0.000}: " +
+            string.Join("; ", shifts.Select(shift => $"{shift.Value:0.000} {shift.Sources}")));
     }
 
     [Theory]
@@ -201,28 +278,33 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Equal(1, await page.Locator("style#lwc-first-paint").CountAsync());
     }
 
-    [Fact]
-    public async Task StickyBar_RevealsAndHidesWithoutMovingItsMeasuredFrame()
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task StickyBar_RevealsAndHidesWithoutMovingItsMeasuredFrame(int width)
     {
-        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 800 } });
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/history");
         var sticky = page.Locator("#site-sticky-header");
+        await sticky.Locator(".site-menu-toggle").WaitForAsync(new() { State = WaitForSelectorState.Attached });
 
-        var entering = await CaptureStickyTransitionAsync(page, 900);
-        Assert.Contains("clip-path", entering, StringComparison.Ordinal);
+        Assert.Empty(await CaptureStickyHandoffAsync(page, 900));
         await Assertions.Expect(sticky).ToBeVisibleAsync();
-        await page.WaitForFunctionAsync("() => !document.getElementById('site-sticky-header').getAnimations().length");
+        await Assertions.Expect(sticky).ToHaveAttributeAsync("aria-hidden", "false");
 
-        var leaving = await CaptureStickyTransitionAsync(page, 0);
-        Assert.True(leaving.StartsWith("flex") && leaving.Contains("clip-path"), $"The bar must fold away before it hides ({leaving}).");
-        Assert.True(await sticky.EvaluateAsync<bool>("element => element.inert"), "A leaving bar must not take focus or clicks.");
+        await sticky.Locator(".scrolled-button").FocusAsync();
+        Assert.Empty(await CaptureStickyHandoffAsync(page, 0));
+        await Assertions.Expect(page.Locator("header[role='banner'] .join-game")).ToBeFocusedAsync();
+        await Assertions.Expect(sticky).ToHaveAttributeAsync("aria-hidden", "true");
         await Assertions.Expect(sticky).ToBeHiddenAsync();
     }
 
-    private static Task<string> CaptureStickyTransitionAsync(IPage page, int scrollY)
-        => page.EvaluateAsync<string>("""
+    private static Task<string[]> CaptureStickyHandoffAsync(IPage page, int scrollY)
+        => page.EvaluateAsync<string[]>("""
             async y => {
+                const content = document.querySelector('.documentation-document');
+                const contentTop = content.getBoundingClientRect().top + scrollY;
                 scrollTo(0, y);
                 const element = document.getElementById('site-sticky-header');
                 const deadline = performance.now() + 5000;
@@ -230,9 +312,28 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
                     if (performance.now() > deadline) throw new Error('The sticky state did not change.');
                     await new Promise(requestAnimationFrame);
                 }
-                // Inspect in the reveal frame: a remote round trip can outlast
-                // this intentionally short transition on a busy runner.
-                return getComputedStyle(element).display + ' ' + element.getAnimations().map(a => a.transitionProperty).join(',');
+                // Navigation now changes state without an entrance/exit animation.
+                // Check the first painted state and subsequent frames, not a retired CSS effect.
+                const first = element.getBoundingClientRect();
+                const errors = new Set();
+                for (let frame = 0; frame < 20; frame++) {
+                    const rect = element.getBoundingClientRect();
+                    if (y > 0) {
+                        if (element.inert || rect.top !== 0 || rect.height <= 0 || Math.abs(rect.height - first.height) > 1)
+                            errors.add('The visible header moved or became inert.');
+                        for (const control of element.querySelectorAll('.site-sticky-header-link, .scrolled-button, .site-menu-toggle')) {
+                            const r = control.getBoundingClientRect();
+                            if (!control.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)))
+                                errors.add(`Header control is not hittable: ${control.className}`);
+                        }
+                    } else if (!element.inert || rect.height !== 0) {
+                        errors.add('The hidden header still occupies space or accepts focus.');
+                    }
+                    if (Math.abs(content.getBoundingClientRect().top + scrollY - contentTop) > 1)
+                        errors.add('The header handoff shifted the document.');
+                    await new Promise(requestAnimationFrame);
+                }
+                return [...errors];
             }
             """, scrollY);
 

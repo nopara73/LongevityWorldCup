@@ -8,28 +8,43 @@ namespace LongevityWorldCup.Tests;
 public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    [Fact]
-    public async Task StickyRemeasurement_PreservesTheEntranceAndItsFrame()
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task StickyRemeasurement_PreservesVisibilityAndItsFrame(int width)
     {
-        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 800 } });
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/history");
-        var result = await page.EvaluateAsync<bool[]>("""
+        var result = await page.EvaluateAsync<string[]>("""
             async () => {
                 const bar = document.getElementById('site-sticky-header');
                 handleScroll(0, true);
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                const errors = new Set();
+                if (bar.getBoundingClientRect().height !== 0 || !bar.inert)
+                    errors.add('Measuring the hidden header exposed it.');
                 // A font/resize can invalidate the cached height on the scroll
                 // that first reveals the bar.
+                scrollTo(0, 900);
                 handleScroll(900, true);
                 const frame = bar.getBoundingClientRect();
-                return [bar.classList.contains('visible'), !bar.inert,
-                    bar.getAnimations().some(a => a.transitionProperty === 'clip-path'),
-                    frame.top === 0 && frame.height > 0,
-                    !bar.classList.contains('is-measuring')];
+                for (let i = 0; i < 4; i++) {
+                    handleScroll(scrollY, true);
+                    const current = bar.getBoundingClientRect();
+                    const reserved = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-visible-sticky-height'));
+                    if (!bar.classList.contains('visible') || bar.inert || getComputedStyle(bar).visibility !== 'visible')
+                        errors.add('Remeasuring concealed or disabled the visible header.');
+                    if (current.top !== 0 || current.height <= 0 || Math.abs(current.height - frame.height) > 1)
+                        errors.add('Remeasuring moved the header frame.');
+                    if (!Number.isFinite(reserved) || Math.abs(reserved - current.height) > 1)
+                        errors.add('Anchor clearance differs from the measured header.');
+                    await new Promise(requestAnimationFrame);
+                }
+                return [...errors];
             }
             """);
-        Assert.All(result, Assert.True);
+        Assert.Empty(result);
     }
 
     [Theory]

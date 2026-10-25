@@ -130,7 +130,11 @@ public sealed class StickyPlayScrollBrowserTests(
             """, route);
         // The leaderboard and play flow deliberately use manual restoration.
         // Both a restored scroll position and a return to the banner need PLAY.
-        var returned = await page.EvaluateAsync<ScrollState>(Snapshot);
+        // History can replace the document between the readiness check and this
+        // round trip. Resolve a complete header and read it in the same browser
+        // evaluation, so the snapshot cannot observe a half-parsed replacement.
+        var returned = await page.Locator("#site-sticky-header:has(.scrolled-button):has(.site-menu-toggle)")
+            .EvaluateAsync<ScrollState>($"element => ({Snapshot})()");
         Assert.True(returned.AnyPlay, "Back navigation lost the Play action.");
         if (returned.PastBanner) AssertScrolledState(returned);
         await page.GoForwardAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });

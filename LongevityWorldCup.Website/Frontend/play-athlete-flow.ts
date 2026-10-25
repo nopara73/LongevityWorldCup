@@ -327,14 +327,6 @@ function watchAthleteImageLoad(image: HTMLImageElement, onLoaded: () => void): (
     return handleImageLoad;
 }
 
-function waitForNextPaint<T>(value: T): Promise<T> {
-    return new Promise<T>(resolve => {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => resolve(value));
-        });
-    });
-}
-
 function waitForImageElementReady(image: HTMLImageElement): Promise<HTMLImageElement | void> {
     const loaded = image.complete
         ? Promise.resolve()
@@ -349,14 +341,15 @@ function waitForImageElementReady(image: HTMLImageElement): Promise<HTMLImageEle
             image.addEventListener("error", done);
         });
 
-    return loaded
-        .then(() => {
-            if (typeof image.decode === "function" && image.complete && image.naturalWidth > 0) {
-                return image.decode().catch(() => {});
-            }
-            return undefined;
-        })
-        .then(() => waitForNextPaint(image));
+    // Decoding is the readiness gate. These frames often belong to a hidden
+    // destination panel; waiting for paints here adds idle frames before it
+    // can be shown and can stall it entirely in a backgrounded document.
+    return loaded.then(() => {
+        if (typeof image.decode === "function" && image.complete && image.naturalWidth > 0) {
+            return image.decode().catch(() => {});
+        }
+        return undefined;
+    });
 }
 
 function waitForAthletePictureFrameReady(frame: HTMLElement | null): Promise<unknown> {
@@ -383,7 +376,7 @@ function transitionAthletePicture(frame: HTMLElement, image: HTMLImageElement, s
     let hasFinished = false;
 
     function finishReady(): void {
-        waitForNextPaint(image).then(() => resolveReady(image));
+        resolveReady(image);
     }
 
     function finishImageSwap(): void {
@@ -463,7 +456,7 @@ function replaceAthletePictureImmediately(frame: HTMLElement, image: HTMLImageEl
             }
 
             frame.replaceChildren(image);
-            waitForNextPaint(image).then(() => resolveReady(image));
+            resolveReady(image);
         });
     }
 

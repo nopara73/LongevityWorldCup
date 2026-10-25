@@ -53,19 +53,22 @@
     font-family: 'Roboto Fallback';
     font-weight: 300 400;
     src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('Arimo');
-    size-adjust: 99.66%;
-    ascent-override: 93.09%;
-    descent-override: 24.5%;
+    /* Match regular widths as well as bold, keeping mixed-weight line breaks
+       steady during font loading. Preserve the effective vertical metrics. */
+    size-adjust: 100.5%;
+    ascent-override: 92.31%;
+    descent-override: 24.30%;
     line-gap-override: 0%;
 }
 @font-face {
     font-family: 'Roboto Fallback';
     font-weight: 700;
     src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('Arimo Bold');
-    /* Preserve bold line wrapping with Arial's Linux substitutes too. */
-    size-adjust: 98%;
-    ascent-override: 94.67%;
-    descent-override: 24.91%;
+    /* Match Roboto's bold widths so staggered regular/bold downloads do not
+       rewrap mixed-weight paragraphs twice. Keep the vertical metrics aligned. */
+    size-adjust: 96%;
+    ascent-override: 96.64%;
+    descent-override: 25.43%;
     line-gap-override: 0%;
 }
 
@@ -1032,7 +1035,9 @@ body {
     background: var(--header-to-body-bg);
     color: var(--dark-text-color);
     line-height: 1.5;
-    text-rendering: optimizeLegibility;
+    /* Preserve fractional glyph widths: Linux hinting otherwise rounds away
+       the fallback's size adjustment and rewraps text as each weight arrives. */
+    text-rendering: geometricPrecision;
     font-synthesis: none;
 }
 

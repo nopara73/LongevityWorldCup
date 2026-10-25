@@ -555,7 +555,12 @@ interface Window {
     function sheet(overlay: HTMLElement, options: LwcTouchSheetOptions): void {
         if (overlay.dataset["lwcSheet"] !== undefined) return;
         overlay.dataset["lwcSheet"] = "";
-        let drag: { id: number; y: number; x: number; t: number; dy: number; active: boolean; panel: HTMLElement } | null = null;
+        let drag: { id: number; y: number; x: number; t: number; dy: number; offset: number; active: boolean; panel: HTMLElement } | null = null;
+        let returnMotion: Animation | null = null;
+        const cancelReturn = () => {
+            returnMotion?.cancel();
+            returnMotion = null;
+        };
 
         gestureListener(overlay, "pointerdown", event => {
             registerCancellation(overlay, cancel);
@@ -564,7 +569,16 @@ interface Window {
             if (!panel || !panel.contains(event.target) || event.target.closest(gestureExclusions)) return;
             const scroller = options.scroller?.() ?? panel;
             if (scroller.scrollTop > 0 || scrollsVertically(event.target, scroller) || scrollsSideways(event.target, panel)) return;
-            drag = { id: event.pointerId, y: event.clientY, x: event.clientX, t: performance.now(), dy: 0, active: false, panel };
+            const offset = returnMotion ? Math.max(0, parseFloat(getComputedStyle(panel).translate.split(/\s+/)[1] || "0") || 0) : 0;
+            if (offset && !claim(overlay)) return;
+            cancelReturn();
+            // Re-grabbing a returning sheet takes over its painted position,
+            // without snapping it home or leaving the old animation in control.
+            if (offset) {
+                panel.style.translate = `0 ${offset}px`;
+                overlay.dataset["lwcSheetDragging"] = "";
+            }
+            drag = { id: event.pointerId, y: event.clientY, x: event.clientX, t: performance.now(), dy: offset, offset, active: offset > 0, panel };
         }, { passive: true });
 
         // A drag that starts at the top of the content would otherwise scroll
@@ -584,7 +598,7 @@ interface Window {
                 drag.active = true;
                 overlay.dataset["lwcSheetDragging"] = "";
             }
-            drag.dy = Math.max(0, dy - slop);
+            drag.dy = Math.max(0, drag.offset + dy - (drag.offset ? 0 : slop));
             const height = drag.panel.getBoundingClientRect().height || 1;
             const progress = Math.min(1, drag.dy / height);
             overlay.style.setProperty("--lwc-sheet-progress", String(progress));
@@ -593,14 +607,14 @@ interface Window {
 
         const settle = (event: PointerEvent) => {
             if (!drag || event.pointerId !== drag.id) return;
-            const { dy, t, active, panel, id } = drag;
+            const { dy, offset, t, active, panel, id } = drag;
             drag = null;
             release(overlay);
             if (panel.hasPointerCapture(id)) panel.releasePointerCapture(id);
             if (!active) return;
             delete overlay.dataset["lwcSheetDragging"];
             const height = panel.getBoundingClientRect().height || 1;
-            const velocity = dy / Math.max(1, performance.now() - t);
+            const velocity = Math.max(0, dy - offset) / Math.max(1, performance.now() - t);
             const close = event.type === "pointerup" && (dy > height / 3 || (dy > 48 && velocity > 0.6));
             const from = panel.style.translate || "0 0";
             panel.style.translate = "";
@@ -609,7 +623,14 @@ interface Window {
                 options.dismiss();
                 return;
             }
-            if (moves()) panel.animate([{ translate: from }, { translate: "0 0" }], { duration: token("--lwc-motion-move", 260), easing: ease("--lwc-ease-pop") });
+            if (moves() && typeof panel.animate === "function") {
+                try {
+                    const animation = panel.animate([{ translate: from }, { translate: "0 0" }], { duration: token("--lwc-motion-move", 260), easing: ease("--lwc-ease-pop") });
+                    returnMotion = animation;
+                    const releaseMotion = () => { if (returnMotion === animation) returnMotion = null; };
+                    void animation.finished.then(releaseMotion, releaseMotion);
+                } catch { /* The gesture is already settled; decoration is optional. */ }
+            }
         };
         gestureListener(overlay, "pointerup", settle);
         gestureListener(overlay, "pointercancel", settle);
@@ -620,6 +641,7 @@ interface Window {
         });
         const cancel = () => {
             if (drag) settle(new PointerEvent("pointercancel", { pointerId: drag.id }));
+            cancelReturn();
         };
         registerCancellation(overlay, cancel);
         overlay.addEventListener("athlete-dialog-closing", cancel);

@@ -18,14 +18,16 @@ public sealed class EntryJourneyBrowserTests(
     private const string RecordPageReveal = """
         window.__lwcReveal = null;
         window.addEventListener('pagereveal', event => {
-            window.__lwcReveal = { transition: Boolean(event.viewTransition) };
+            window.__lwcReveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
             if (event.viewTransition) {
                 event.viewTransition.ready.then(() => {
+                    window.__lwcReveal.recorded = true;
                     window.__lwcReveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
                     window.__lwcReveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
                 }, error => {
+                    window.__lwcReveal.recorded = true;
                     window.__lwcReveal.skipped = String(error);
                     window.__lwcReveal.animations = [];
                 });
@@ -204,7 +206,7 @@ public sealed class EntryJourneyBrowserTests(
     [Theory]
     [InlineData(1440, 900)]
     [InlineData(390, 844)]
-    public async Task JoinEntrance_RisesTitleThenTracksAndOnlyFadesTheFoot(int width, int height)
+    public async Task JoinEntrance_RisesTitleAndTracksWhileTheFooterStaysReadableAndStill(int width, int height)
     {
         await using var context = await NewJourneyContextAsync(width, height, dark: false, reducedMotion: false);
         // Keep every animation that starts, so finished ones can still be read.
@@ -231,7 +233,7 @@ public sealed class EntryJourneyBrowserTests(
                 if (!title.length) issues.push('title does not rise');
                 if (!rule.length) issues.push('accent rule does not draw');
                 if (cards.some(list => !list.length)) issues.push('a track does not rise');
-                if (!foot.length) issues.push('foot does not fade in');
+                if (getComputedStyle(panel.querySelector('.play-join-foot')).opacity !== '1') issues.push('foot is not immediately readable');
                 const all = [...title, ...rule, ...cards.flat(), ...foot];
                 for (const a of all) {
                     const t = timing(a);
@@ -242,6 +244,7 @@ public sealed class EntryJourneyBrowserTests(
                 if (cards.every(list => list.length) && !(timing(cards[0][0]).delay >= timing(title[0] || cards[0][0]).delay)) issues.push('tracks rise before the title');
                 for (const a of foot) {
                     if (a.effect.getKeyframes().some(k => k.transform && k.transform !== 'none')) issues.push('foot moves while the dock measures it');
+                    if (a.effect.getKeyframes().some(k => k.opacity !== undefined && Number(k.opacity) < 1)) issues.push('foot hides its controls during arrival');
                 }
                 return issues;
             }
@@ -332,7 +335,9 @@ public sealed class EntryJourneyBrowserTests(
             ? (width < 600 ? "#joinMobileGoProButton" : "#joinGoProButton")
             : (width < 600 ? "#joinMobileStartAmateurBtn" : "#joinStartAmateurBtn")).ClickAsync();
         await page.WaitForURLAsync(pro ? "**/bortz-age**" : "**/pheno-age**");
-        await page.WaitForFunctionAsync("() => window.__lwcReveal?.animations");
+        await page.WaitForFunctionAsync("() => window.__lwcReveal?.recorded");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.__lwcReveal.transition && !window.__lwcReveal.skipped"),
+            "Native route transition was unavailable or skipped: " + await page.EvaluateAsync<string>("() => JSON.stringify(window.__lwcReveal)"));
 
         Assert.Equal("lwc-site-header", await page.EvaluateAsync<string>("window.__lwcReveal.headerName"));
 
