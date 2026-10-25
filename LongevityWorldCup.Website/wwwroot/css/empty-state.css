@@ -169,28 +169,22 @@ main[data-leaderboard-page="full"] .no-results-empty-state[data-lwc-empty] {
 /* ---- Inline glyph (pickers, search hints) ------------------------------ */
 
 .lwc-empty--glyph {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    align-items: center;
-    gap: var(--lwc-space-2, 0.5rem);
+    display: block;
     overflow-wrap: anywhere;
 }
 
 .lwc-empty__glyph {
+    display: inline-block;
     flex: none;
     width: 1.25em;
     height: 1.25em;
     overflow: visible;
+    vertical-align: -0.2em;
+    margin-inline-end: 0.4em;
 }
 
 .lwc-empty__glyph .lwc-empty__body { stroke-width: 2; }
 .lwc-empty__glyph .lwc-empty__stroke { stroke-width: 2.6; }
-
-/* The play flow toggles this hint with an inline block display. */
-.athlete-search-empty > .lwc-empty__glyph {
-    vertical-align: -0.2em;
-    margin-inline-end: 0.4em;
-}
 
 /* ---- Idle loop: bob, breathe, blink, twinkle --------------------------- */
 
