@@ -442,7 +442,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                             .Replace("placeholder=\"Search athletes\"", "placeholder=\"Search flags or athletes\"", StringComparison.Ordinal)
                             .Replace("aria-label=\"Search athletes\"", "aria-label=\"Search flags or athletes\"", StringComparison.Ordinal)
                             .Replace(">Search athletes</label>", ">Search flags or athletes</label>", StringComparison.Ordinal);
-                        html = html.Replace("<!--FLAG-LEADERBOARD-->", "<!--FLAG-LEADERBOARD--><p class=\"flag-empty\">Loading flags...</p>", StringComparison.Ordinal);
+                        html = html.Replace("<!--FLAG-LEADERBOARD-->", "<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", StringComparison.Ordinal);
                         html = PublicProfileHtmlRenderer.SetContent(html, "rankingExplanation", FlagLeaderboard.Explanation(selection.View))
                             .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     }
@@ -463,7 +463,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     {
                         var teams = selection.FlagTeams;
                         var isPreview = path is "/" or "/contribute" || IsAthleteRoute(path);
-                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(isPreview ? teams.Take(10) : teams, selection.View == "ultimate"), StringComparison.Ordinal);
+                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(isPreview ? teams.Take(10) : teams, selection.View == "ultimate"), StringComparison.Ordinal);
                     }
                     if (path is "/" or "/contribute" || IsAthleteRoute(path))
                     {
@@ -599,6 +599,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             // Shared interaction styles precede the palette and the depth scale.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/empty-state.js")}\" defer></script>{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/form-controls.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/form-controls.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/share-sheet.js")}\" defer></script>{Environment.NewLine}"

@@ -21,13 +21,18 @@ public sealed class EntryJourneyBrowserTests(
             const reveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
             window.__lwcReveal = reveal;
             if (event.viewTransition) {
-                event.viewTransition.ready.then(() => {
+                // pagereveal can precede parsing the banner on a streamed document.
+                const parsed = document.readyState === 'loading'
+                    ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
+                    : Promise.resolve();
+                Promise.all([event.viewTransition.ready, parsed]).then(() => {
                     reveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
                     reveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
+                    // Publish readiness only after the complete snapshot is available.
                     reveal.recorded = true;
-                }, error => {
+                }).catch(error => {
                     reveal.skipped = String(error);
                     reveal.animations = [];
                     reveal.recorded = true;

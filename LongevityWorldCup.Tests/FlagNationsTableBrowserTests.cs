@@ -320,6 +320,10 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
         await using var _ = context;
         var empty = page.Locator(".flag-empty");
         await Assertions.Expect(empty).ToHaveTextAsync("No flags match this leaderboard.");
+        var art = empty.Locator(":scope > svg.lwc-empty__art");
+        await Assertions.Expect(art).ToHaveCountAsync(1);
+        await Assertions.Expect(art).ToHaveAttributeAsync("aria-hidden", "true");
+        await Assertions.Expect(art).ToHaveAttributeAsync("focusable", "false");
         var result = await empty.EvaluateAsync<string[]>(
             """
             card => {
@@ -330,7 +334,7 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
             }
             """);
         Assert.Equal("dashed", result[0]);
-        Assert.NotEqual("none", result[1]);
+        Assert.Equal("none", result[1]);
         Assert.Equal("700", result[2]);
         Assert.True(Number(result[3]) <= 2, "The empty card is centred in the board.");
         await ExpectNoHorizontalOverflowAsync(page);

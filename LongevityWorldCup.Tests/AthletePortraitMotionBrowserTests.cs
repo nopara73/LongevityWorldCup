@@ -196,7 +196,9 @@ public sealed class AthletePortraitMotionBrowserTests(
         {
             page = await LoadAsync(context, "/leaderboard");
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
-            await page.Locator($"a.athlete-name[href='/athlete/{slug}']").First.ClickAsync();
+            var opener = page.Locator($"a.athlete-name[href='/athlete/{slug}']").First;
+            await opener.EvaluateAsync("e => e.scrollIntoView({block:'center', behavior:'instant'})");
+            await opener.ClickAsync();
         }
 
         await page.WaitForFunctionAsync("() => window.profileMotionStarts === 1");
@@ -215,7 +217,9 @@ public sealed class AthletePortraitMotionBrowserTests(
         if (!direct)
         {
             await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
-            await page.Locator($"a.athlete-name[href='/athlete/{slug}']").First.ClickAsync();
+            var opener = page.Locator($"a.athlete-name[href='/athlete/{slug}']").First;
+            await opener.EvaluateAsync("e => e.scrollIntoView({block:'center', behavior:'instant'})");
+            await opener.ClickAsync();
             await page.WaitForFunctionAsync("() => window.profileMotionStarts === 3");
         }
     }
