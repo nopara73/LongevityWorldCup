@@ -248,7 +248,9 @@ public sealed class EditProfileLayoutBrowserTests(
                 const select = document.getElementById('divisionDisplaySelect');
                 const style = getComputedStyle(select);
                 const canvas = document.createElement('canvas').getContext('2d');
-                canvas.font = style.font;
+                // Numeric variants can make style.font empty; retain the rendered font size.
+                canvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                canvas.letterSpacing = style.letterSpacing;
                 const text = select.selectedOptions[0].textContent;
                 const room = select.getBoundingClientRect().width - parseFloat(style.paddingLeft)
                     - parseFloat(style.paddingRight) - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);

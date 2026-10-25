@@ -40,10 +40,13 @@ jobs:
       run: sh LongevityWorldCup.Website/Scripts/test-sync-owned-web-assets.sh
     - name: Verify independent outage assets and rollback
       run: sh LongevityWorldCup.Website/Scripts/test-sync-outage-assets.sh
+    - name: Read repository SDK version
+      id: repo_sdk
+      run: echo "version=$(jq -r '.sdk.version' global.json)" >> "$GITHUB_OUTPUT"
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 10.0.402 # Published SDK; avoid unpublished channel redirects.
+        dotnet-version: ${{ steps.repo_sdk.outputs.version }}
     - name: Setup Node.js
       uses: actions/setup-node@v7
       with:

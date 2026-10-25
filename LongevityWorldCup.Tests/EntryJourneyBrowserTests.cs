@@ -21,10 +21,18 @@ public sealed class EntryJourneyBrowserTests(
             const reveal = { transition: Boolean(event.viewTransition), recorded: !event.viewTransition };
             window.__lwcReveal = reveal;
             if (event.viewTransition) {
-                // pagereveal can precede parsing the banner on a streamed document.
-                const parsed = document.readyState === 'loading'
-                    ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
-                    : Promise.resolve();
+                // A streamed banner may parse after pagereveal, but deferred
+                // scripts can postpone DOMContentLoaded until the transition
+                // has finished. Observe the banner itself, then sample ready.
+                const parsed = new Promise(resolve => {
+                    const header = document.querySelector('header[role=banner]');
+                    if (header) return resolve(header);
+                    const observer = new MutationObserver(() => {
+                        const header = document.querySelector('header[role=banner]');
+                        if (header) { observer.disconnect(); resolve(header); }
+                    });
+                    observer.observe(document, { childList: true, subtree: true });
+                });
                 Promise.all([event.viewTransition.ready, parsed]).then(() => {
                     reveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
                     reveal.animations = document.getAnimations()

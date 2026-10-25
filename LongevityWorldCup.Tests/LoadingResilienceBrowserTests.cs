@@ -19,11 +19,26 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
         var result = await page.EvaluateAsync<string[]>("""
             async () => {
                 const bar = document.getElementById('site-sticky-header');
+                const content = document.querySelector('.documentation-document');
+                const contentTop = content.getBoundingClientRect().top + scrollY;
                 handleScroll(0, true);
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                 const errors = new Set();
-                if (bar.getBoundingClientRect().height !== 0 || !bar.inert)
+                const hiddenStyle = getComputedStyle(bar), hiddenFrame = bar.getBoundingClientRect();
+                const painted = hiddenStyle.display !== 'none' && hiddenStyle.visibility !== 'hidden' && Number(hiddenStyle.opacity) !== 0;
+                const hiddenReserved = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-visible-sticky-height'));
+                if (painted || !bar.inert || hiddenReserved !== 0
+                    || (hiddenFrame.height && hiddenStyle.position !== 'fixed'))
                     errors.add('Measuring the hidden header exposed it.');
+                if (Math.abs(content.getBoundingClientRect().top + scrollY - contentTop) > 1)
+                    errors.add('Measuring the hidden header shifted the document.');
+                for (const control of bar.querySelectorAll('a, button')) {
+                    const r = control.getBoundingClientRect();
+                    if (r.width && r.height && control.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)))
+                        errors.add('Measuring exposed a hidden control to pointer input.');
+                    control.focus({ preventScroll: true });
+                    if (bar.contains(document.activeElement)) errors.add('Measuring exposed a hidden control to keyboard focus.');
+                }
                 // A font/resize can invalidate the cached height on the scroll
                 // that first reveals the bar.
                 scrollTo(0, 900);

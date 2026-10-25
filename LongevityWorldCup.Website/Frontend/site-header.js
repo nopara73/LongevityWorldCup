@@ -44,6 +44,8 @@ let measuredStickyHeight = 0;
 let measuredRootFontSize = '';
 let stickyVisibilityThreshold = Infinity;
 let fittedStickyHeight = 0;
+const nativeHeaderHandoffSupported = CSS.supports('animation-timeline', 'scroll(root block)')
+    && CSS.supports('animation-range', '0px 1px');
 
 window.addEventListener('scroll', function () {
     lastKnownScrollPosition = window.scrollY;
@@ -59,7 +61,7 @@ window.addEventListener('scroll', function () {
 
         ticking = true;
     }
-});
+}, { passive: true });
 handleScroll(window.scrollY);
 
 // Text and loaded fonts can change both headers without a scroll event.
@@ -117,6 +119,18 @@ function handleScroll(scrollPos, remeasure = false) {
     const originalTop = joinGameBtn?.getBoundingClientRect().top + scrollPos;
     const threshold = mainJoinButtonVisible
         ? Math.min(bannerThreshold, Math.max(0, originalTop - 4)) : bannerThreshold;
+    // Configure compositor presence at scroll zero; the cached semantic handoff
+    // below keeps focus and assistive technology in sync without event-time reads.
+    const nativeHandoff = threshold > 0 && nativeHeaderHandoffSupported;
+    if (nativeHandoff) {
+        const end = `${threshold}px`;
+        if (stickyHeader.style.getPropertyValue('--site-sticky-threshold') !== end) {
+            stickyHeader.style.setProperty('--site-sticky-threshold', end);
+        }
+    }
+    if (stickyHeader.hasAttribute('data-scroll-handoff') !== nativeHandoff) {
+        stickyHeader.toggleAttribute('data-scroll-handoff', nativeHandoff);
+    }
     stickyVisibilityThreshold = threshold;
     fittedStickyHeight = measuredStickyHeight;
     syncStickyHeaderVisibility(scrollPos, mainHeader, stickyHeader);
@@ -136,9 +150,13 @@ function syncStickyHeaderVisibility(scrollPos,
         target?.focus({ preventScroll: true });
     }
     stickyHeader.classList.toggle('visible', willBeVisible);
-    stickyHeader.inert = !willBeVisible;
-    stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
-    document.documentElement.style.setProperty('--site-visible-sticky-height', `${willBeVisible ? fittedStickyHeight : 0}px`);
+    if (stickyHeader.inert === willBeVisible) stickyHeader.inert = !willBeVisible;
+    const hidden = String(!willBeVisible);
+    if (stickyHeader.getAttribute('aria-hidden') !== hidden) stickyHeader.setAttribute('aria-hidden', hidden);
+    const visibleHeight = `${willBeVisible ? fittedStickyHeight : 0}px`;
+    if (document.documentElement.style.getPropertyValue('--site-visible-sticky-height') !== visibleHeight) {
+        document.documentElement.style.setProperty('--site-visible-sticky-height', visibleHeight);
+    }
 }
 
 function fitStickyHeader(stickyHeader) {
