@@ -249,6 +249,128 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AthleteShare_ScrolledEnlargedProfileFitsBelowItsStickyHeader(bool dark)
+    {
+        await using var nativeBrowser = await Browser.BrowserType.LaunchAsync(new() { Headless = true, IgnoreDefaultArgs = ["--hide-scrollbars"] });
+        await using var context = await ContextAsync(browser: nativeBrowser);
+        var page = await context.NewPageAsync();
+        await page.BringToFrontAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
+        await OpenPageAsync(page, "/leaderboard");
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize='32px'");
+        await page.AddStyleTagAsync(new() { Content = "::-webkit-scrollbar { width:15px; height:15px; }" });
+        await page.Locator("#athleteLeaderboard .athlete-name").Filter(new() { HasText = "Joe V" }).ClickAsync();
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await page.Locator("#detailsModal .modal-content").EvaluateAsync("e => e.scrollTo({top:1200,behavior:'instant'})");
+        await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeVisibleAsync();
+        await page.Locator("#shareAthleteProfile").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview.is-loaded img')?.naturalWidth === 1200");
+        await page.Locator("#detailsModal .modal-content").EvaluateAsync("e => e.scrollBy({top:600,behavior:'instant'})");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))");
+        await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeVisibleAsync();
+        await AssertFitAsync(page.Locator("#athleteShareMenu"));
+        await AssertAthleteMenuInsideCardAsync(page);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task AthleteShare_ParentScrollingKeepsControlsVisibleAndCloseCancelsLayoutWork(int width, int height)
+    {
+        await using var context = await ContextAsync(width, height);
+        var page = await context.NewPageAsync();
+        await page.BringToFrontAsync();
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/michael-lustgarten");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await page.Locator("#shareAthleteProfile").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview.is-loaded img')?.naturalWidth === 1200");
+        await page.EvaluateAsync("() => document.querySelector('#detailsModal .modal-content').scrollBy({top:300,behavior:'instant'})");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))");
+        await page.EvaluateAsync("() => document.querySelector('#detailsModal .modal-content').scrollBy({top:300,behavior:'instant'})");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))");
+        await AssertAthleteMenuInsideCardAsync(page);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeFocusedAsync();
+        await page.EvaluateAsync("() => document.querySelector('#detailsModal .modal-content').scrollBy({top:100,behavior:'instant'})");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeHiddenAsync();
+        Assert.Equal("", await page.Locator("#athleteShareMenu").EvaluateAsync<string>("e => e.style.getPropertyValue('--athlete-share-offset')"));
+    }
+
+    private static async Task AssertAthleteMenuInsideCardAsync(IPage page)
+    {
+        var fit = await page.EvaluateAsync<JsonElement>("""
+            () => {
+                const menu=document.getElementById('athleteShareMenu'), card=menu.closest('.modal-content');
+                const rect=menu.getBoundingClientRect(), frame=card.getBoundingClientRect();
+                const header=card.querySelector('.modal-sticky-header.visible')?.getBoundingClientRect();
+                const top=Math.max(0,frame.top,header?.bottom||0), bottom=Math.min(innerHeight,frame.bottom);
+                const controls=[...menu.querySelectorAll('button,a')].filter(e=>e.getClientRects().length).map(e=>{
+                    const r=e.getBoundingClientRect(), hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+                    return {top:r.top,bottom:r.bottom,hit:!!hit&&(hit===e||e.contains(hit))};
+                });
+                return {top,bottom,menuTop:rect.top,menuBottom:rect.bottom,controls};
+            }
+            """);
+        Assert.True(fit.GetProperty("menuTop").GetDouble() >= fit.GetProperty("top").GetDouble(), fit.ToString());
+        Assert.True(fit.GetProperty("menuBottom").GetDouble() <= fit.GetProperty("bottom").GetDouble(), fit.ToString());
+        foreach (var control in fit.GetProperty("controls").EnumerateArray())
+        {
+            Assert.True(control.GetProperty("top").GetDouble() >= fit.GetProperty("top").GetDouble(), fit.ToString());
+            Assert.True(control.GetProperty("bottom").GetDouble() <= fit.GetProperty("bottom").GetDouble(), fit.ToString());
+            Assert.True(control.GetProperty("hit").GetBoolean(), fit.ToString());
+        }
+    }
+
+    [Theory]
+    [InlineData(320, false)]
+    [InlineData(320, true)]
+    [InlineData(390, false)]
+    [InlineData(390, true)]
+    public async Task AthleteShare_EnlargedPhoneHeaderKeepsAShortNameProBadgeAndControlsVisible(int width, bool dark)
+    {
+        await using var nativeBrowser = await Browser.BrowserType.LaunchAsync(new() { Headless = true, IgnoreDefaultArgs = ["--hide-scrollbars"] });
+        await using var context = await ContextAsync(width, 844, browser: nativeBrowser);
+        var page = await context.NewPageAsync();
+        await page.BringToFrontAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/joe-v");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await page.WaitForFunctionAsync("() => document.getElementById('stickyAthleteName').textContent === 'Joe V' && document.querySelector('#detailsModal .modal-content').dataset.athleteSlug === 'joe-v'");
+        await page.AddStyleTagAsync(new() { Content = "html { font-size:32px; } ::-webkit-scrollbar { width:15px; height:15px; }" });
+        var fontSize = await page.Locator("#stickyAthleteName").EvaluateAsync<double>("e => parseFloat(getComputedStyle(e).fontSize)");
+        // Isolate the earned PRO header state from calendar-dependent score
+        // fixtures. The matching rendered gallery uses Joe V's real data.
+        await page.EvaluateAsync("() => { document.getElementById('modalStickyHeader').classList.add('is-pro'); document.querySelector('#detailsModal .modal-content').scrollTo({top:1200,behavior:'instant'}); }");
+        await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeVisibleAsync();
+        var fit = await page.Locator("#modalStickyHeader").EvaluateAsync<JsonElement>("""
+            header => {
+                const name=header.querySelector('.sticky-athlete-name'), badge=header.querySelector('.sticky-pro-badge');
+                const n=name.getBoundingClientRect(), b=badge.getBoundingClientRect(), h=header.getBoundingClientRect();
+                const controls=[...header.querySelectorAll('button')].map(e=>{const r=e.getBoundingClientRect(), hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {width:r.width,height:r.height,hit:!!hit&&(e===hit||e.contains(hit))};});
+                return {text:name.textContent,sh:name.scrollHeight,ch:name.clientHeight,sw:name.scrollWidth,cw:name.clientWidth,font:parseFloat(getComputedStyle(name).fontSize),badgeFits:badge.scrollWidth<=badge.clientWidth&&b.top>=h.top&&b.bottom<=h.bottom,nameFits:n.top>=h.top&&n.bottom<=h.bottom,controls};
+            }
+            """);
+        Assert.Equal("Joe V", fit.GetProperty("text").GetString());
+        Assert.Equal(fontSize, fit.GetProperty("font").GetDouble(), 2);
+        Assert.True(fit.GetProperty("sw").GetInt32() <= fit.GetProperty("cw").GetInt32(), fit.ToString());
+        Assert.True(fit.GetProperty("sh").GetInt32() <= fit.GetProperty("ch").GetInt32(), fit.ToString());
+        Assert.True(fit.GetProperty("badgeFits").GetBoolean() && fit.GetProperty("nameFits").GetBoolean(), fit.ToString());
+        Assert.Equal(3, fit.GetProperty("controls").GetArrayLength());
+        foreach (var control in fit.GetProperty("controls").EnumerateArray())
+        {
+            Assert.True(control.GetProperty("width").GetDouble() >= 44 && control.GetProperty("height").GetDouble() >= 44, fit.ToString());
+            Assert.True(control.GetProperty("hit").GetBoolean(), fit.ToString());
+        }
+    }
+
     [Fact]
     public async Task ConstrainedSheet_ScrollsContentWhileOnlyTheHandleDrags()
     {

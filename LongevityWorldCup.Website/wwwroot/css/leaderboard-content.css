@@ -1654,7 +1654,8 @@
      left:0;
      z-index:80;
      min-width:12.5rem;
-     max-height:calc(100dvh - 6rem);
+     max-height:var(--athlete-share-available-height, calc(100dvh - 24px));
+     translate:0 var(--athlete-share-offset, 0px);
      overflow-y:auto;
      overscroll-behavior:contain;
      padding:.35rem;
@@ -5128,10 +5129,11 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 #detailsModal .athlete-share-menu{
     width:min(22.5rem, calc(100vw - 2rem));
     min-width:0;
-    padding:.75rem;
+    /* Enlarged type needs its space; decorative gaps need not double too. */
+    padding:min(.75rem, 12px);
     display:flex;
     flex-direction:column;
-    gap:.6rem;
+    gap:min(.6rem, 10px);
     border-radius:var(--lwc-radius-lg);
     background:var(--athlete-modal-surface);
     box-sizing:border-box;
@@ -5692,6 +5694,40 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 #detailsModal .sticky-athlete-portrait[hidden]{ display:none; }
 #detailsModal .modal-sticky-header .athlete-steps{ margin-inline-start:auto; }
 
+/* Compact decorative phone spacing and keep controls usable as text grows.
+   Narrower container layouts below retain ownership of identity placement. */
+@media (max-width:480px){
+    #detailsModal .modal-sticky-header{
+        gap:4px;
+        padding-block:min(.6rem, 10px);
+    }
+    #detailsModal .modal-sticky-header .sticky-header-left{
+        display:grid;
+        grid-template-columns:auto minmax(0, 1fr);
+        column-gap:4px;
+        row-gap:0;
+    }
+    #detailsModal .sticky-athlete-portrait{
+        grid-column:1;
+        grid-row:1 / 3;
+        width:min(2rem, 30px);
+        height:min(2rem, 30px);
+    }
+    #detailsModal .modal-sticky-header .sticky-athlete-name{
+        grid-column:2;
+        grid-row:1;
+        line-height:1.2;
+    }
+    #detailsModal .modal-sticky-header .sticky-pro-badge{
+        grid-column:2;
+        grid-row:2;
+        justify-self:start;
+        line-height:1.2;
+        padding-block:min(.25em, 3px);
+    }
+    #detailsModal .modal-sticky-header .athlete-steps{ gap:min(.4rem, 6px); }
+}
+
 /* Text enlargement can need the same two rows as a narrow zoomed viewport.
    Query the header in its own ems so controls never compete with the identity. */
 @container athlete-header (max-width:20em){
@@ -5981,6 +6017,8 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
    profile steps between athletes, so it leaves vertical panning to the page,
    and an age that counts in keeps its real text while an overlay counts. */
 #detailsModal .modal-content:not(.guess-mode) #athlete-profile{ touch-action:pan-y pinch-zoom; }
+
+
 #detailsModal [data-lwc-count]{
     position:relative;
     color:transparent !important;

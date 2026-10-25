@@ -101,6 +101,62 @@ public sealed class AthleteShareSheetBrowserTests(
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EnlargedShareMenu_KeepsNativeScrollingAndLastKeyboardControlInView(bool dark)
+    {
+        await using var context = await CreateAsync(320, 640, dark, copyFails: false);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('#leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.AddStyleTagAsync(new() { Content = "::-webkit-scrollbar{width:15px;height:15px}" });
+        await page.Locator("#athleteLeaderboard .athlete-name").Filter(new() { HasText = "Joe V" }).ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content')?.dataset.athleteSlug === 'joe-v' && !document.querySelector('#detailsModal .modal-content').matches('.is-loading,.has-load-error')");
+        var share = page.Locator("#shareAthleteProfile");
+        await share.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await page.WaitForFunctionAsync("() => document.querySelector('.athlete-share-preview')?.classList.contains('is-loaded')");
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await ExpectSheetInViewportAsync(page);
+
+        var menu = page.Locator("#athleteShareMenu");
+        Assert.True(await menu.EvaluateAsync<bool>("e => e.scrollHeight > e.clientHeight"), "Long enlarged content needs a reachable native scroller.");
+        var box = (await menu.BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
+        await page.Mouse.WheelAsync(0, 180);
+        await page.WaitForFunctionAsync("() => document.getElementById('athleteShareMenu').scrollTop > 0");
+        for (var n = 0; n < 4; n++)
+        {
+            await page.Keyboard.PressAsync("Tab");
+            Assert.True(await page.EvaluateAsync<bool>(
+                """
+                () => {
+                    const e = document.activeElement, r = e.getBoundingClientRect();
+                    return [0.15, 0.5, 0.85].every(x => [0.15, 0.5, 0.85].every(y => {
+                        const hit = document.elementFromPoint(r.x + r.width * x, r.y + r.height * y);
+                        return !!hit && e.contains(hit);
+                    }));
+                }
+                """), "Every part of each focused control must remain clear of the profile controls.");
+        }
+        var last = page.Locator("#shareAthleteProfileEmail");
+        await Assertions.Expect(last).ToBeFocusedAsync();
+        Assert.True(await last.EvaluateAsync<bool>(
+            """
+            e => {
+                const box = e.getBoundingClientRect(), menu = e.closest('#athleteShareMenu').getBoundingClientRect();
+                const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+                return box.left >= 0 && box.right <= innerWidth && box.top >= Math.max(0, menu.top)
+                    && box.bottom <= Math.min(innerHeight, menu.bottom) && !!hit && e.contains(hit);
+            }
+            """), "The last keyboard control must be fully visible and unobscured.");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(share).ToBeFocusedAsync();
+    }
+
+    [Theory]
     [InlineData("/athlete/michael-lustgarten?ctx=pheno")]
     [InlineData("/leaderboard")]
     public async Task Preview_UsesTheSharedProfilesCurrentSignatureAcrossPageContexts(string path)

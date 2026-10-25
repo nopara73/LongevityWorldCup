@@ -11,6 +11,44 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Header_HandsPlayOverInTheScrollEventWithoutMeasuringLayout(bool dark)
+    {
+        await using var context = await NewHeaderContextAsync(390, 844, dark ? ColorScheme.Dark : ColorScheme.Light);
+        var page = await context.NewPageAsync();
+        await NavigateHeaderAsync(page, "/leaderboard");
+        var state = await page.EvaluateAsync<int[]>("""
+            () => {
+                const frame = window.requestAnimationFrame;
+                const style = window.getComputedStyle;
+                const rect = Element.prototype.getBoundingClientRect;
+                const queued = [];
+                let reads = 0;
+                window.requestAnimationFrame = callback => { queued.push(callback); return 0; };
+                window.getComputedStyle = function(...args) { reads++; return style.apply(this, args); };
+                Element.prototype.getBoundingClientRect = function(...args) { reads++; return rect.apply(this, args); };
+                try {
+                    window.scrollTo({top:35, behavior:'instant'});
+                    window.dispatchEvent(new Event('scroll'));
+                } finally {
+                    window.requestAnimationFrame = frame;
+                    window.getComputedStyle = style;
+                    Element.prototype.getBoundingClientRect = rect;
+                    queued.forEach(callback => frame(callback));
+                }
+                const header = document.getElementById('site-sticky-header');
+                const play = header.querySelector('.scrolled-button');
+                const r = play.getBoundingClientRect();
+                const hit = document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+                return [Number(header.classList.contains('visible')), Number(!header.inert),
+                    Number(header.getAttribute('aria-hidden') === 'false'), Number(!!hit && play.contains(hit)), reads];
+            }
+            """);
+        Assert.Equal(new[] { 1, 1, 1, 1, 0 }, state);
+    }
+
+    [Theory]
     [InlineData("/", 320, 640)]
     [InlineData("/", 390, 844)]
     [InlineData("/", 639, 844)]

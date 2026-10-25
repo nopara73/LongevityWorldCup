@@ -96,6 +96,10 @@ img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
     background-size: 240% 100%;
     background-color: var(--lwc-portrait-shimmer-base);
     background-repeat: no-repeat;
+    animation: none;
+}
+
+img[data-lwc-portrait][data-lwc-portrait-state="loading"][data-lwc-portrait-in-view] {
     animation: lwc-portrait-shimmer 1.4s linear infinite;
 }
 
@@ -121,6 +125,10 @@ html.lwc-media-fade img[data-lwc-portrait][data-lwc-media="ready"]:not([data-lwc
 }
 
 html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"] {
+    animation: none;
+}
+
+html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"][data-lwc-portrait-in-view] {
     animation: lwc-portrait-shimmer 1.4s linear infinite;
 }
 
@@ -216,8 +224,8 @@ img[data-lwc-portrait-fallback] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    img[data-lwc-portrait][data-lwc-portrait-state="loading"],
-    html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"],
+    img[data-lwc-portrait][data-lwc-portrait-state="loading"][data-lwc-portrait-in-view],
+    html.lwc-media-fade img[data-lwc-portrait][data-lwc-portrait-state="loading"][data-lwc-portrait-in-view],
     :root img[data-lwc-portrait][data-lwc-portrait-state="developing"] {
         animation: none;
     }

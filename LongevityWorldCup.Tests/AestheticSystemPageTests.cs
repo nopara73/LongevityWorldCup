@@ -64,6 +64,11 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         var motionIndex = html.IndexOf("/css/motion.css?v=", StringComparison.Ordinal);
         var controlsScriptIndex = html.IndexOf("/js/form-controls.js?v=", StringComparison.Ordinal);
         var controlsStyleIndex = html.IndexOf("/css/form-controls.css?v=", StringComparison.Ordinal);
+        var pointerScriptIndex = html.IndexOf("/js/pointer.js?v=", StringComparison.Ordinal);
+        var pointerStyleIndex = html.IndexOf("/css/pointer.css?v=", StringComparison.Ordinal);
+        Assert.True(pointerScriptIndex >= 0 && pointerStyleIndex > pointerScriptIndex && pointerStyleIndex < stylesheetIndex);
+        Assert.Equal(1, html.Split("/js/pointer.js?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/css/pointer.css?v=", StringSplitOptions.None).Length - 1);
         Assert.True(motionIndex >= 0 && controlsScriptIndex > motionIndex);
         Assert.True(controlsStyleIndex > controlsScriptIndex && controlsStyleIndex < stylesheetIndex);
         Assert.Equal(1, html.Split("/js/form-controls.js?v=", StringSplitOptions.None).Length - 1);

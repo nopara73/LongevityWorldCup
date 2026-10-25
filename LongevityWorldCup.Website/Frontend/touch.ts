@@ -678,8 +678,8 @@ interface Window {
             registerCancellation(surface, cancel);
             const touch = event.touches[0];
             if (busy || event.touches.length !== 1 || !touch || !(event.target instanceof Element)) { start = null; return; }
-            if (window.scrollY > 0 || scrollsVertically(event.target, surface) || scrollsSideways(event.target, surface) || !window.getSelection()?.isCollapsed) return;
             if (event.target.closest(gestureExclusions) || document.querySelector("[aria-modal='true']:not([hidden]), dialog[open]")?.contains(event.target)) return;
+            if (window.scrollY > 0 || scrollsVertically(event.target, surface) || scrollsSideways(event.target, surface) || !window.getSelection()?.isCollapsed) return;
             start = { y: touch.clientY, x: touch.clientX };
             distance = 0;
             pulling = false;

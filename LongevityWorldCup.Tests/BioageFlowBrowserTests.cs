@@ -927,17 +927,32 @@ public sealed class BioageFlowBrowserTests(
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
         var page = await context.NewPageAsync();
+        await page.BringToFrontAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => typeof window.LwcBioageFlow?.animateBioageResult === 'function'");
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.EvaluateAsync(
+            """
+            async () => {
+                const result = document.getElementById('phenoAgeResult');
+                result.classList.add('show');
+                window.LwcBioageFlow.syncBioageResultVisibility();
+                // Settle the dock and explicitly place the result before testing
+                // reentry. CSS 'auto' can start a smooth scroll; an offscreen
+                // result legitimately completes without staged animation.
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                window.LwcBioageFlow.revealBioageResult(result, { instant: true });
+            }
+            """);
+        Assert.True(await page.Locator("#phenoAgeResult .bio-age-number-container").EvaluateAsync<bool>(
+            "e => { const r=e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }"),
+            "The reentry test must begin with the animated value visible.");
         await page.EvaluateAsync(
             """
             () => {
                 const result = document.getElementById('phenoAgeResult');
-                result.classList.add('show');
-                window.LwcBioageFlow.syncBioageResultVisibility();
-                result.scrollIntoView({ block: 'center', behavior: 'auto' });
                 result.querySelector('#animatedAge').textContent = '81.1';
                 window.LwcBioageFlow.announceBioageResult(result, 'Your biological age is 81.1 years.');
                 const container = result.querySelector('.bio-age-number-container');
