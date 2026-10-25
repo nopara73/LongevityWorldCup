@@ -293,7 +293,9 @@ public sealed class AestheticAccessibilityBrowserTests(
         var headingBox = await heading.BoundingBoxAsync();
         Assert.NotNull(toggleBox);
         Assert.NotNull(headingBox);
-        Assert.True(toggleBox.Height >= 44, $"Documentation disclosure measured {toggleBox.Height}px high.");
+        // Chromium's translated geometry can report 43.999985 for a 44px box.
+        const double geometryEpsilon = 0.001;
+        Assert.True(toggleBox.Height + geometryEpsilon >= 44, $"Documentation disclosure measured {toggleBox.Height}px high.");
         Assert.True(headingBox.Y < 260, $"Collapsed navigation delayed the History heading to y={headingBox.Y}px.");
 
         await toggle.ClickAsync();
@@ -307,7 +309,7 @@ public sealed class AestheticAccessibilityBrowserTests(
         {
             var box = await targets.Nth(index).BoundingBoxAsync();
             Assert.NotNull(box);
-            Assert.True(box.Height >= 44, $"Documentation navigation target {index + 1} measured {box.Height}px high.");
+            Assert.True(box.Height + geometryEpsilon >= 44, $"Documentation navigation target {index + 1} measured {box.Height}px high.");
         }
 
         var nestedMargin = await page.Locator(".documentation-nav-level-3").First.EvaluateAsync<double>(

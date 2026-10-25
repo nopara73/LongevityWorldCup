@@ -3996,6 +3996,10 @@ function renderFlagTeams(teams, view) {
             <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
     const nextChildren = [...template.content.children].map(incoming => {
+        if (incoming.classList.contains('flag-empty')) {
+            const existing = container.querySelector('.flag-empty:not([aria-busy="true"])');
+            return existing?.textContent.trim() === incoming.textContent.trim() ? existing : incoming;
+        }
         if (incoming.classList.contains('flag-section-heading')) {
             return existingHeadings.get(incoming.textContent) || incoming;
         }
@@ -4314,8 +4318,8 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     leaderboardOrderingSnapshot = { key: filterKey, athletes: athleteResults, entries: cohortEntries };
     const matchingEntries = window.LwcLeaderboardOrder.sort(cohortEntries, selectedState.ordering);
     const tableBody = document.querySelector('.leaderboard table tbody');
-    tableBody.querySelector('.no-results')?.remove();
-    const allRows = Array.from(tableBody.querySelectorAll('tr'));
+    tableBody.querySelector('.leaderboard-load-error-row')?.remove();
+    const allRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)'));
     const rowsByName = new Map(allRows.filter(row => row.dataset.athleteName).map(row => [row.dataset.athleteName, row]));
     window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
@@ -4721,15 +4725,20 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
 }
 
 function displayNoResults(tableRows, podiumItems, query) {
-    // Remove existing no-results message if any
     const existingMessage = document.querySelector('.no-results');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
 
     // Check if any rows or podium items are visible
     const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
 
+    if (anyVisible) {
+        existingMessage?.remove();
+        return;
+    }
+    if (existingMessage) {
+        const host = existingMessage.querySelector('.no-results-empty-state');
+        if (host) window.LwcEmptyState?.decorate(host, query.trim() ? 'search' : 'filter');
+        return;
+    }
     if (!anyVisible) {
         const tableBody = document.querySelector('.leaderboard table tbody');
         const noResults = document.createElement('tr');

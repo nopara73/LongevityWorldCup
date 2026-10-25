@@ -6764,7 +6764,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const anchor = discussionFeedAnchor();
         syncDiscussionFeed(notes);
         if (!discussionFeedOrder.length) {
-            container.innerHTML = `<div class="lmx-note"><strong>No discussion yet.</strong></div>`;
+            container.innerHTML = `<div class="lmx-note lmx-note-empty"><strong>No discussion yet.</strong></div>`;
             updateDiscussionFeedControls();
             return;
         }
