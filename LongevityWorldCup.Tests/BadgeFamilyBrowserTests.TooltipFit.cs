@@ -7,11 +7,15 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class BadgeFamilyBrowserTests
 {
     [Theory]
-    [InlineData(1440, false)]
-    [InlineData(1440, true)]
-    [InlineData(390, false)]
-    [InlineData(390, true)]
-    public async Task BadgeExplanation_TextArrivesTogetherWithItsCard(int width, bool tray)
+    [InlineData(1440, false, false)]
+    [InlineData(1440, true, false)]
+    [InlineData(390, false, false)]
+    [InlineData(390, true, false)]
+    [InlineData(1440, false, true)]
+    [InlineData(1440, true, true)]
+    [InlineData(390, false, true)]
+    [InlineData(390, true, true)]
+    public async Task BadgeExplanation_TextArrivesTogetherWithItsCard(int width, bool tray, bool openCard)
     {
         await using var context = await NewBadgeContextAsync(width, 844, dark: false);
         var page = await OpenCollectibleFixtureAsync(context);
@@ -23,19 +27,23 @@ public sealed partial class BadgeFamilyBrowserTests
                 }))}, document.querySelector('#collectible-fixture'))
                 """);
         var badge = page.Locator(tray ? "#collectible-fixture .badge-overflow-count" : "#collectible-fixture .badge-class");
-        await badge.FocusAsync();
-        // Capture the whole entrance, including the first frames after Enter.
-        // Inner text must not fade or clip in after its containing card.
+        if (openCard) await badge.FocusAsync();
+        // Capture the first frame of either the focus peek or full card.
+        // An opaque row is still unreadable when its parent fades over the page.
         await page.EvaluateAsync("""
-            () => {
+            eventName => {
                 window.badgeReadability = new Promise(resolve => {
-                    document.addEventListener('keydown', () => {
+                    document.addEventListener(eventName, () => {
                         const failures = [], start = performance.now();
                         const frame = () => {
                             const tip = document.querySelector('.badge-tip');
                             const content = tip.querySelector('.badge-tip-content');
                             const contentRect = content.getBoundingClientRect();
                             if (getComputedStyle(content).clipPath !== 'none') failures.push('Text is clipped while its card is arriving');
+                            for (let node = content; node; node = node.parentElement) {
+                                if (Number(getComputedStyle(node).opacity) < .99)
+                                    failures.push('The page shows through the arriving explanation');
+                            }
                             for (const row of content.children) {
                                 const r = row.getBoundingClientRect();
                                 if (r.bottom > contentRect.top && r.top < contentRect.bottom && Number(getComputedStyle(row).opacity) < .99)
@@ -48,8 +56,9 @@ public sealed partial class BadgeFamilyBrowserTests
                     }, {once:true, capture:true});
                 });
             }
-            """);
-        await page.Keyboard.PressAsync("Enter");
+            """, openCard ? "keydown" : "focusin");
+        if (openCard) await page.Keyboard.PressAsync("Enter");
+        else await badge.FocusAsync();
         Assert.Empty(await page.EvaluateAsync<string[]>("() => window.badgeReadability"));
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(page.Locator(".badge-tip")).ToBeHiddenAsync();

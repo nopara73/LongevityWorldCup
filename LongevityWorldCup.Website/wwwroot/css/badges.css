@@ -377,13 +377,15 @@ html .badge-class.badge-family-domain.is-badge-tip-owner{filter:drop-shadow(0 0 
 .badge-class.is-badge-tip-owner i::after{opacity:.7}
 
 /* --- The peek (hover/focus) grows out of its badge ------------------------ */
+/* Keep the surface opaque while it moves, so the page cannot show through
+   the explanation. Inner text opacity alone does not preserve readability. */
 :is(.badge-tip,.badge-tip-exit){
     transform-origin:var(--badge-tip-origin,50% 100%);
     animation:badge-peek-in 170ms var(--badge-enter-ease)
 }
-@keyframes badge-peek-in{from{opacity:0;transform:translateY(4px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes badge-peek-in{from{transform:translateY(4px) scale(.94)}to{transform:none}}
 :is(.badge-tip,.badge-tip-exit)[data-side="below"]{animation-name:badge-peek-in-below}
-@keyframes badge-peek-in-below{from{opacity:0;transform:translateY(-4px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes badge-peek-in-below{from{transform:translateY(-4px) scale(.94)}to{transform:none}}
 
 /* --- The card: a chosen badge is minted again ----------------------------- */
 :is(.badge-tip,.badge-tip-exit).is-card{
@@ -396,8 +398,8 @@ html .badge-class.badge-family-domain.is-badge-tip-owner{filter:drop-shadow(0 0 
     animation:badge-card-in 260ms var(--badge-enter-ease) both
 }
 :is(.badge-tip,.badge-tip-exit).is-card[data-side="below"]{animation-name:badge-card-in-below}
-@keyframes badge-card-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
-@keyframes badge-card-in-below{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes badge-card-in{from{transform:translateY(8px) scale(.9)}to{transform:none}}
+@keyframes badge-card-in-below{from{transform:translateY(-8px) scale(.9)}to{transform:none}}
 .badge-tip-stage{
     position:relative;
     display:grid;
