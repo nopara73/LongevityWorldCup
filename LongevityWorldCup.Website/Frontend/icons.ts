@@ -187,6 +187,7 @@ interface Window {
     // Optical tiers: small glyphs get a heavier stroke so every size reads with
     // the same visual weight next to its text.
     const pendingTier = new Set<HTMLElement>();
+    const tierHosts = new WeakSet<HTMLElement>();
     let tierFrame = 0;
     const tierObserver = new ResizeObserver(entries => {
         for (const entry of entries) if (entry.target instanceof HTMLElement) queueTier(entry.target);
@@ -194,6 +195,12 @@ interface Window {
     function queueTier(host: HTMLElement): void {
         pendingTier.add(host);
         if (!tierFrame) tierFrame = requestAnimationFrame(flushTiers);
+    }
+    function observeTier(host: HTMLElement): void {
+        queueTier(host);
+        if (tierHosts.has(host)) return;
+        tierHosts.add(host);
+        tierObserver.observe(host);
     }
     function flushTiers(): void {
         tierFrame = 0;
@@ -214,6 +221,7 @@ interface Window {
     let settled = false;
     const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
     const entering = new Set<SVGSVGElement>();
+    let entryFrame = 0;
 
     function controlOf(host: Element): Element | null {
         return host.closest("button, a, [role='button'], summary, label, .custom-alert-mark");
@@ -224,12 +232,24 @@ interface Window {
         svg.removeAttribute("data-lwc-icon-enter");
     }
 
+    function clearUnstartedEntries(): void {
+        entryFrame = 0;
+        // Hidden controls never emit animationend/cancel. Read the effects as
+        // one batch before clearing markers; revealing them must not replay
+        // feedback from an earlier, invisible update.
+        const inactive = [...entering].filter(svg => !svg.isConnected || !svg.getAnimations({ subtree: true }).some(animation =>
+            animation instanceof CSSAnimation && animation.animationName.startsWith("lwc-icon-")
+            && Number.isFinite(animation.effect?.getComputedTiming().endTime ?? Infinity)));
+        for (const svg of inactive) clearEntry(svg);
+    }
+
     function enter(svg: SVGSVGElement, state: string): void {
         if (!settled || reducedMotion.matches) return;
         // Each entry belongs to a new SVG. Inserting it starts the animation;
         // no synchronous layout read or restart delay is needed.
         svg.setAttribute("data-lwc-icon-enter", state);
         entering.add(svg);
+        if (!entryFrame) entryFrame = requestAnimationFrame(clearUnstartedEntries);
     }
 
     document.addEventListener("animationend", event => {
@@ -253,6 +273,7 @@ interface Window {
         const svg = host.querySelector<SVGSVGElement>(":scope > svg.lwc-icon");
         if (svg) { clearEntry(svg); svg.remove(); }
         tierObserver.unobserve(host);
+        tierHosts.delete(host);
         pendingTier.delete(host);
         delete host.dataset.lwcIcon;
         delete host.dataset.lwcIconTier;
@@ -277,7 +298,10 @@ interface Window {
                 const text = typedText.get(host);
                 removeDrawing(host);
                 if (text) host.replaceWith(document.createTextNode(text));
-            } else if (!host.querySelector(":scope > svg.lwc-icon")) replay(host);
+            } else {
+                observeTier(host);
+                if (!host.querySelector(":scope > svg.lwc-icon")) replay(host);
+            }
             return;
         }
         let name = resolve(host);
@@ -295,6 +319,7 @@ interface Window {
         const fillChanged = host.hasAttribute("data-lwc-icon-filled") !== filled;
         host.toggleAttribute("data-lwc-icon-filled", filled);
         if (current === name && host.querySelector(":scope > svg.lwc-icon")) {
+            observeTier(host);
             if (fillChanged && (name === "star" || name === "heart")) replay(host);
             return;
         }
@@ -308,8 +333,7 @@ interface Window {
         host.dataset.lwcIcon = name;
         host.append(svg);
         if (control) lastInControl.set(control, name);
-        queueTier(host);
-        tierObserver.observe(host);
+        observeTier(host);
 
         // Only morph after the visitor has done something: loads never animate.
         if (settled && previous && previous !== name) {
@@ -341,8 +365,7 @@ interface Window {
         typedText.set(host, control.textContent ?? "");
         host.append(svg);
         control.replaceChildren(host);
-        queueTier(host);
-        tierObserver.observe(host);
+        observeTier(host);
         lastInControl.set(control, name);
     }
 
@@ -375,6 +398,7 @@ interface Window {
                 if (!(node instanceof HTMLElement) || node.isConnected) return;
                 for (const icon of [node, ...node.querySelectorAll<HTMLElement>("i[data-lwc-icon]")]) {
                     tierObserver.unobserve(icon);
+                    tierHosts.delete(icon);
                     pendingTier.delete(icon);
                     const svg = icon.querySelector<SVGSVGElement>(":scope > svg.lwc-icon");
                     if (svg) clearEntry(svg);

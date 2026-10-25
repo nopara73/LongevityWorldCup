@@ -140,10 +140,35 @@ public sealed class IconSystemBrowserTests(PlaywrightBrowserFixture browserFixtu
         await Assertions.Expect(button.Locator("i")).ToHaveAttributeAsync("data-lwc-icon-tier", "xs");
         await button.EvaluateAsync("e => e.firstElementChild.style.fontSize='32px'");
         await Assertions.Expect(button.Locator("i")).ToHaveAttributeAsync("data-lwc-icon-tier", "l");
+        await button.EvaluateAsync("e => { window.detachedIconProbe=e; e.remove(); }");
+        await page.EvaluateAsync("() => new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+        await page.EvaluateAsync("() => { const e=window.detachedIconProbe; e.firstElementChild.style.fontSize='10px'; document.body.prepend(e); }");
+        await Assertions.Expect(button.Locator("i")).ToHaveAttributeAsync("data-lwc-icon-tier", "xs");
+        await button.FocusAsync();
         await button.EvaluateAsync("e => e.setAttribute('data-lwc-icon-keep','')");
         await Assertions.Expect(button).ToHaveTextAsync("×");
         await Assertions.Expect(button).ToBeFocusedAsync();
         await Assertions.Expect(button).ToHaveAccessibleNameAsync("Close probe");
         Assert.Equal("", await page.EvaluateAsync<string>("window.LwcIcons.svg('constructor')"));
+    }
+
+    [Fact]
+    public async Task HiddenControlUpdates_ClearFeedbackThatNeverStartedBeforeRevealingTheControl()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.NoPreference });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard");
+        await page.Keyboard.PressAsync("Shift");
+        await page.EvaluateAsync("""
+            () => { const button=document.createElement('button');button.id='hiddenIconProbe';button.ariaLabel='Hidden feedback probe';button.innerHTML='<i class="fa fa-link"></i>';document.body.prepend(button); }
+            """);
+        var button = page.Locator("#hiddenIconProbe");
+        await Assertions.Expect(button.Locator("i")).ToHaveAttributeAsync("data-lwc-icon", "link");
+        await button.EvaluateAsync("e => {e.hidden=true;e.firstElementChild.className='fa fa-check';}");
+        await Assertions.Expect(button.Locator("i")).ToHaveAttributeAsync("data-lwc-icon", "check");
+        await Assertions.Expect(button.Locator("svg")).Not.ToHaveAttributeAsync("data-lwc-icon-enter", "draw");
+        await button.EvaluateAsync("e => e.hidden=false");
+        await Assertions.Expect(button).ToBeVisibleAsync();
+        Assert.Equal(0, await button.Locator("svg").EvaluateAsync<int>("e=>e.getAnimations({subtree:true}).filter(a=>a instanceof CSSAnimation).length"));
     }
 }
