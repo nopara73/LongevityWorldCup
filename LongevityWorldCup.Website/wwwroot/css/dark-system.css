@@ -1,0 +1,340 @@
+/*
+ * Longevity World Cup dark system
+ *
+ * Dark mode as its own design rather than the light theme inverted. Every
+ * colour here is mixed from the existing --lwc-* palette; no new hues.
+ *
+ * - The canvas carries a faint teal light from above, so the page has a top.
+ * - Surfaces step up in three levels (canvas, card, overlay). On dark, height
+ *   reads from light, not from shadow: each level gets a lift gradient, a
+ *   top highlight and a hairline edge instead of a drop shadow.
+ * - Running copy sits one notch below headings so full-white text no longer
+ *   glares; headings, figures and controls keep full ink.
+ * - Photos and portraits are dimmed slightly and come up to full on hover.
+ * - Controls sit in recessed wells and answer with an accent glow.
+ *
+ * This sheet loads early, so rules that must win use `html:root body` (or
+ * `:root:root` for tokens). Defaults that anything else may override use
+ * `:where()` and carry no specificity.
+ */
+
+@media (prefers-color-scheme: dark) {
+    :root:root {
+        /* Text hierarchy */
+        --lwc-dark-copy: color-mix(in srgb, var(--lwc-ink) 84%, var(--lwc-muted));
+        --lwc-dark-heading: var(--lwc-ink);
+
+        /* Surfaces: canvas (0), card (1), overlay (2), well (-1) */
+        --lwc-dark-well: color-mix(in srgb, var(--lwc-canvas) 78%, var(--lwc-surface));
+        --lwc-dark-raise: color-mix(in srgb, var(--lwc-surface) 86%, var(--lwc-surface-muted));
+        --lwc-dark-overlay: color-mix(in srgb, var(--lwc-surface) 70%, var(--lwc-surface-muted));
+        --lwc-dark-lift: linear-gradient(180deg, color-mix(in srgb, var(--lwc-ink) 3.5%, transparent) 0, transparent 9rem);
+        --lwc-dark-lift-strong: linear-gradient(180deg, color-mix(in srgb, var(--lwc-ink) 5.5%, transparent) 0, transparent 12rem);
+
+        /* Edges and light */
+        --lwc-dark-edge: color-mix(in srgb, var(--lwc-border) 78%, var(--lwc-canvas));
+        --lwc-dark-edge-strong: color-mix(in srgb, var(--lwc-border) 82%, var(--lwc-accent));
+        --lwc-dark-rim: color-mix(in srgb, var(--lwc-border) 64%, var(--lwc-ink));
+        --lwc-dark-highlight: color-mix(in srgb, var(--lwc-ink) 7%, transparent);
+        --lwc-dark-glow: color-mix(in srgb, var(--lwc-accent) 26%, transparent);
+        --lwc-dark-glow-soft: color-mix(in srgb, var(--lwc-accent) 11%, transparent);
+        --lwc-dark-shade: color-mix(in srgb, #000 62%, var(--lwc-canvas));
+        --lwc-dark-elevation-1: inset 0 1px 0 var(--lwc-dark-highlight), 0 0 0 1px color-mix(in srgb, var(--lwc-canvas) 40%, transparent);
+        --lwc-dark-elevation-2:
+            inset 0 1px 0 color-mix(in srgb, var(--lwc-ink) 9%, transparent),
+            0 0 0 1px var(--lwc-dark-edge-strong),
+            0 28px 70px -24px var(--lwc-dark-shade),
+            0 0 90px -40px var(--lwc-dark-glow);
+        --lwc-dark-scrim: color-mix(in srgb, var(--lwc-canvas) 78%, transparent);
+
+        /* Media */
+        --lwc-dark-photo: brightness(0.84) saturate(0.9);
+        --lwc-dark-artwork: brightness(0.76) contrast(1.04) saturate(0.9);
+        --lwc-dark-portrait: brightness(0.94) saturate(0.96);
+        --lwc-dark-metal: brightness(0.9) saturate(0.94);
+
+        /* Focus */
+        --lwc-dark-focus: color-mix(in srgb, var(--lwc-accent) 88%, var(--lwc-ink));
+        --lwc-dark-focus-halo: 0 0 0 4px color-mix(in srgb, var(--lwc-accent) 22%, transparent);
+
+        /* Shared systems pick up the dark values */
+        --lwc-shadow-sm: var(--lwc-dark-elevation-1);
+        --lwc-shadow-md: var(--lwc-dark-elevation-2);
+        --lwc-control-ring: color-mix(in srgb, var(--lwc-accent) 34%, transparent);
+        --lwc-chart-grid: color-mix(in srgb, var(--lwc-border) 62%, transparent);
+        --lwc-chart-track: color-mix(in srgb, var(--lwc-surface-muted) 80%, var(--lwc-canvas));
+        --lwc-chart-tip-bg: var(--lwc-dark-overlay);
+        --badge-rim: color-mix(in srgb, var(--lwc-ink) 22%, transparent);
+
+        scrollbar-color: color-mix(in srgb, var(--lwc-border) 85%, var(--lwc-accent)) var(--lwc-canvas);
+        caret-color: var(--lwc-accent);
+    }
+
+    /* ---- Canvas: a faint light from above instead of a flat void ---- */
+
+    html:root {
+        background-color: var(--lwc-canvas);
+        background-image:
+            radial-gradient(70rem 32rem at 50% -14rem, color-mix(in srgb, var(--lwc-accent) 13%, transparent), transparent 72%),
+            radial-gradient(48rem 36rem at 105% -6rem, color-mix(in srgb, var(--lwc-success) 5%, transparent), transparent 70%),
+            radial-gradient(40rem 30rem at -8% 30%, color-mix(in srgb, var(--lwc-accent) 3%, transparent), transparent 72%);
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+    }
+
+    html:root body,
+    html:root body main {
+        background-color: transparent;
+    }
+
+    /* ---- Chrome: the header and footer sit on a lit hairline ---- */
+
+    html:root body header[role="banner"] {
+        box-shadow:
+            0 1px 0 color-mix(in srgb, var(--lwc-accent) 16%, transparent),
+            0 14px 34px -22px var(--lwc-dark-shade);
+    }
+
+    html:root body footer.footer {
+        box-shadow: 0 -1px 0 color-mix(in srgb, var(--lwc-accent) 12%, transparent);
+    }
+
+    /* ---- Level 1: cards and boards ---- */
+
+    html:root body :is(
+        .section-container,
+        .events-board,
+        .leaderboard,
+        .archive-table-wrapper,
+        .archive-mobile-card,
+        .documentation-document,
+        .documentation-nav,
+        .track-card,
+        .play-track-card,
+        .convergence-form,
+        .form-container,
+        .bioage-form-container,
+        .filter-section,
+        .lwc-merch-item,
+        .lwc-merch-mobile-slide,
+        .application-review-panel,
+        .lmx-title-panel,
+        .lmx-panel,
+        .homepage-faq-item,
+        .contribute-panel,
+        .newsletter-panel,
+        .media-asset,
+        .media-card,
+        .error-card,
+        .unsubscribe-panel
+    ) {
+        border-color: var(--lwc-dark-edge);
+        border-top-color: var(--lwc-dark-rim);
+        background-image: var(--lwc-dark-lift);
+        box-shadow: var(--lwc-dark-elevation-1);
+    }
+
+    /* Header bands inside cards read as a step up, not a stripe. */
+    html:root body :is(.leaderboard table thead, .archive-table thead, .events-board thead) {
+        background-image: linear-gradient(180deg, color-mix(in srgb, var(--lwc-accent) 7%, transparent), transparent);
+    }
+
+    html:root body :is(.leaderboard table tbody tr, .archive-table tbody tr) {
+        transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    }
+
+    html:root body :is(.leaderboard table tbody tr:hover, .archive-table tbody tr:hover) {
+        box-shadow: inset 2px 0 0 var(--lwc-dark-glow), inset 0 0 0 9999px var(--lwc-dark-glow-soft);
+    }
+
+    /* ---- Level 2: dialogs, menus and popovers float on light ---- */
+
+    html:root body :is(
+        .modal-content,
+        .dialog-content,
+        .custom-alert-content,
+        .site-menu,
+        .share-sheet,
+        .badge-tip,
+        .proof-review-dialog,
+        .lmx-advice-story-dialog,
+        .lwc-chart-tip
+    ) {
+        border-color: var(--lwc-dark-edge-strong);
+        background-image: var(--lwc-dark-lift-strong);
+        box-shadow: var(--lwc-dark-elevation-2);
+    }
+
+    html:root body :is(.proof-review-dialog, .lmx-advice-story-dialog)::backdrop {
+        background: var(--lwc-dark-scrim);
+        backdrop-filter: blur(3px) saturate(0.85);
+    }
+
+    /* ---- Text hierarchy: copy one notch below headings ---- */
+
+    :where(html body main, html body .modal-content, html body .dialog-content) :where(p, li, dd, blockquote, figcaption) {
+        color: var(--lwc-dark-copy);
+    }
+
+    :where(html body) :where(h1, h2, h3, h4, strong, b, th) {
+        color: var(--lwc-dark-heading);
+    }
+
+    html:root body :is(h1, h2) {
+        text-shadow: 0 0 28px color-mix(in srgb, var(--lwc-accent) 10%, transparent);
+    }
+
+    /* Rules between sections fade out at the ends rather than cutting across. */
+    html:root body main hr {
+        border: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--lwc-dark-edge) 18%, var(--lwc-dark-edge) 82%, transparent);
+    }
+
+    /* ---- Photos and portraits: a touch dimmer until you reach for them ---- */
+
+    :where(html body) :where(main, .modal-content, .dialog-content, footer) :where(img, video):where(:not(
+        [src$=".svg"],
+        [src*="/flags/"],
+        [src*="logo" i],
+        [src*="icon" i],
+        [class*="flag"],
+        [class*="logo"],
+        [class*="icon"],
+        [class*="badge"],
+        [aria-hidden="true"]
+    )) {
+        filter: var(--lwc-dark-photo);
+        transition: filter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    }
+
+    /* Large light artwork inside documents would otherwise be the brightest thing on the page. */
+    :where(html body) :where(.documentation-document, .documentation-page) :where(img) {
+        filter: var(--lwc-dark-artwork);
+    }
+
+    :where(html body) :where(
+        [class*="avatar"],
+        [class*="portrait"],
+        [class*="profile-pic"],
+        [class*="athlete-pic"],
+        [class*="podium"],
+        .athlete-cell,
+        .modal-profile,
+        #detailsModal .profile-picture-container
+    ) :where(img) {
+        filter: var(--lwc-dark-portrait);
+    }
+
+    :where(html body) :where(a, button, [role="button"], figure, picture, .media-asset, .media-card):is(:hover, :focus-visible) :where(img, video),
+    :where(html body) :where(img, video):hover {
+        filter: none;
+    }
+
+    /* ---- Badges and metals: keep the shine, lose the glare ---- */
+
+    html:root body .badge-class:not(:hover):not(:focus-visible) {
+        filter: var(--lwc-dark-metal);
+    }
+
+    /* ---- Form controls: recessed wells that light up when used ---- */
+
+    html:root body :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"], :read-only), select, textarea:not(:read-only)) {
+        background-color: var(--lwc-dark-well);
+        border-color: color-mix(in srgb, var(--lwc-border-strong) 70%, var(--lwc-border));
+        box-shadow: inset 0 1px 2px color-mix(in srgb, #000 30%, transparent);
+        transition:
+            border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+            box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+            background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    }
+
+    html:root body :is(input:not([type="checkbox"], [type="radio"], [type="range"], :read-only, :disabled), select:not(:disabled), textarea:not(:read-only, :disabled)):hover {
+        border-color: var(--lwc-dark-edge-strong);
+    }
+
+    html:root body :is(input:not([type="checkbox"], [type="radio"], [type="range"], :read-only), select, textarea:not(:read-only)):focus {
+        background-color: color-mix(in srgb, var(--lwc-dark-well) 70%, var(--lwc-surface-accent));
+        border-color: var(--lwc-accent);
+        box-shadow: inset 0 1px 2px color-mix(in srgb, #000 24%, transparent), 0 0 0 3px var(--lwc-dark-glow), 0 0 22px -6px var(--lwc-dark-glow);
+    }
+
+    html:root body :is(input, select, textarea):is([aria-invalid="true"], .invalid, .input-error, :user-invalid) {
+        border-color: var(--lwc-danger);
+        box-shadow: inset 0 1px 2px color-mix(in srgb, #000 24%, transparent), 0 0 0 3px color-mix(in srgb, var(--lwc-danger) 22%, transparent);
+    }
+
+    html:root body :is(input, select, textarea)::placeholder {
+        color: color-mix(in srgb, var(--lwc-subtle) 82%, var(--lwc-canvas));
+    }
+
+    /* Autofill keeps the well instead of flashing a light yellow slab. */
+    html:root body :is(input, textarea, select):-webkit-autofill {
+        -webkit-text-fill-color: var(--lwc-ink);
+        box-shadow: inset 0 0 0 100px var(--lwc-surface-accent);
+        caret-color: var(--lwc-accent);
+    }
+
+    html:root body :is(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
+        accent-color: var(--lwc-accent);
+    }
+
+    html:root body :is(button, input, select, textarea, [role="button"]):disabled,
+    html:root body [aria-disabled="true"] {
+        filter: saturate(0.6);
+    }
+
+    /* ---- Focus: one glowing ring everywhere ---- */
+
+    :where(html body) :where(a, button, input, select, textarea, summary, [tabindex], [role="button"], [role="tab"], [role="link"]):focus-visible {
+        outline: 2px solid var(--lwc-dark-focus);
+        outline-offset: 3px;
+    }
+
+    html:root body :is(a, button, summary, [role="button"], [role="tab"]):focus-visible {
+        outline-color: var(--lwc-dark-focus);
+        box-shadow: var(--lwc-dark-focus-halo);
+    }
+
+    /* ---- Selection, scrollbars ---- */
+
+    ::selection {
+        background: color-mix(in srgb, var(--lwc-accent) 34%, transparent);
+        color: var(--lwc-ink);
+    }
+
+    ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border: 3px solid transparent;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--lwc-border) 85%, var(--lwc-accent)) padding-box;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, var(--lwc-border-strong) 70%, var(--lwc-accent)) padding-box;
+    }
+
+    ::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+}
+
+/* ---- System theme changes cross-fade instead of snapping ----
+   By the time the change event fires the page has already restyled, so the
+   head script lays a veil of the outgoing canvas (#lwc-theme-veil) over it
+   and dissolves it into the new theme. Reduced motion snaps. */
+
+#lwc-theme-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    pointer-events: none;
+}

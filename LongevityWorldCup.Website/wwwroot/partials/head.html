@@ -2,6 +2,28 @@
 <script>document.activeViewTransition?.ready.catch(() => {});</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#101820" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0b1117" media="(prefers-color-scheme: dark)" />
+<script>
+    // When the system theme flips, the outgoing canvas dissolves into the new one instead of snapping.
+    (function () {
+        var query = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+        var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+        if (!query || !query.addEventListener) return;
+        query.addEventListener('change', function (event) {
+            if ((still && still.matches) || !document.body || !document.body.animate) return;
+            var old = document.getElementById('lwc-theme-veil');
+            if (old) old.remove();
+            var veil = document.createElement('div');
+            veil.id = 'lwc-theme-veil';
+            veil.setAttribute('aria-hidden', 'true');
+            veil.style.background = event.matches ? '#f3f5f7' : '#0d141b';
+            document.body.appendChild(veil);
+            veil.animate([{ opacity: 0.82 }, { opacity: 0 }], { duration: 440, easing: 'cubic-bezier(0.2, 0, 0, 1)', fill: 'forwards' })
+                .finished.then(function () { veil.remove(); }, function () { veil.remove(); });
+        });
+    })();
+</script>
 <style id="lwc-first-paint">html{background:#f3f5f7;color:#17212b}@media (prefers-color-scheme:dark){html{background:#0d141b;color:#e6edf3}}</style>
 <link rel="preload" href="{{ASSET_ROBOTO_REGULAR}}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{{ASSET_ROBOTO_BOLD}}" as="font" type="font/woff2" crossorigin>
