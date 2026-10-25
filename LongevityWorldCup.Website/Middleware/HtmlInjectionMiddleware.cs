@@ -202,6 +202,7 @@ namespace LongevityWorldCup.Website.Middleware
                     {
                         bodyContent = InjectTouchLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
+                        bodyContent = InjectPointerLayer(bodyContent);
                     }
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -620,6 +621,22 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // The desktop pointer and keyboard layer comes last, so its hover, focus
+        // ring and tooltip rules can settle what the shared styles leave open.
+        private string InjectPointerLayer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/pointer.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 
