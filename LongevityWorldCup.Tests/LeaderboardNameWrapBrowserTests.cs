@@ -12,6 +12,27 @@ public sealed class LeaderboardNameWrapBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/", 1440)]
+    [InlineData("/leaderboard", 1440)]
+    public async Task ServerRenderedRows_KeepNamesReadableBeforeHydration(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, JavaScriptEnabled = false
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '32px'");
+        var broken = await page.EvaluateAsync<string[]>("""
+            () => [...document.querySelectorAll('.server-rendered-leaderboard-row .athlete-name')]
+                .filter(name => name.getBoundingClientRect().height > parseFloat(getComputedStyle(name).fontSize) * 5)
+                .map(name => name.textContent)
+            """);
+        Assert.Empty(broken);
+        Assert.True(await page.Locator(".server-rendered-leaderboard-row").CountAsync() > 0);
+    }
+
+    [Theory]
     [InlineData(320, 640, 100)]
     [InlineData(390, 844, 200)]
     [InlineData(320, 640, 200)]
@@ -95,17 +116,14 @@ public sealed class LeaderboardNameWrapBrowserTests(
         });
         const string lastResort = "AbcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         var names = new[] { "HealthOptimisers", "EatBiohackLove", "Vishwamithra Shashishekara", "Élodie-Anne Đorđević", "山田太郎", lastResort };
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             // A compact real-data fixture covers each spelling without duplicating
             // the synthetic extreme hundreds of times during every resize.
-            athletes = new JsonArray(athletes.Take(18).Select(athlete => athlete!.DeepClone()).ToArray());
+            while (athletes.Count > 18) athletes.RemoveAt(athletes.Count - 1);
             var index = 0;
             foreach (var athlete in athletes.OfType<JsonObject>())
                 athlete["DisplayName"] = names[index++ % names.Length];
-            await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
         });
         var page = await context.NewPageAsync();
         foreach (var path in new[] { "/", "/leaderboard" })

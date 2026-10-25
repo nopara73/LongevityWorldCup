@@ -329,11 +329,20 @@ function watchHomepageHighlightsLayout() {
 
 document.addEventListener('DOMContentLoaded', function () {
     placeHomepageHighlightsForVisit();
-    fitHomepageHighlights();
-    LoadLeaderboard(true, 10);
+    const highlightsReady = fitHomepageHighlights();
+    const leaderboardReady = LoadLeaderboard(true, 10);
     stabilizeHomepageFragmentTarget();
 
     watchHomepageHighlightsLayout();
+    if (document.documentElement.classList.contains('homepage-restoring')) {
+        const loaded = document.readyState === 'complete' ? Promise.resolve()
+            : new Promise(resolve => window.addEventListener('load', resolve, { once: true }));
+        Promise.all([highlightsReady, leaderboardReady, document.fonts.ready, loaded])
+            .then(() => fitHomepageHighlights())
+            .finally(() => window.requestAnimationFrame(() => {
+                document.documentElement.classList.remove('homepage-restoring');
+            }));
+    }
 });
 
 (function initializeMerchCarousel() {
