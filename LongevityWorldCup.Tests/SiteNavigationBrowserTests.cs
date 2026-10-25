@@ -162,7 +162,7 @@ public sealed class SiteNavigationBrowserTests(
     [InlineData(320)]
     [InlineData(390)]
     [InlineData(844)]
-    public async Task StickyArrival_KeepsTheAnimatedBrandClearOfBothControls(int width)
+    public async Task StickyNavigation_KeepsTheBrandClearOfBothControls(int width)
     {
         await using var context = await ContextAsync(width, 720);
         var page = await context.NewPageAsync();
@@ -203,37 +203,40 @@ public sealed class SiteNavigationBrowserTests(
             () => {
                 window.testClockAnimation = document.querySelector('.play-join-card').animate(
                     [{ opacity: 0.5 }, { opacity: 1 }], { duration: 200, fill: 'forwards' });
+                window.testScrollAnimation = document.querySelector('header[role="banner"]').animate(
+                    [{ opacity: 1 }, { opacity: 0.9 }],
+                    { timeline: new ScrollTimeline({ source: document.documentElement }), fill: 'both' });
             }
             """);
         await WaitForFiniteAnimationsAsync(page);
         Assert.Equal("finished", await page.EvaluateAsync<string>("window.testClockAnimation.playState"));
         Assert.True(await page.EvaluateAsync<bool>("""
-            () => document.getAnimations().some(animation =>
-                animation.effect?.target?.closest?.('header[role="banner"]')
-                && animation.timeline !== document.timeline && animation.playState === 'running')
+            () => window.testScrollAnimation.timeline !== document.timeline
+                && window.testScrollAnimation.playState === 'running'
             """));
     }
 
     [Fact]
-    public async Task Headroom_RevealsFocusedControlsAndRestoredScroll()
+    public async Task ScrolledNavigation_RemainsAvailableThroughFocusAndRestoredScroll()
     {
         await using var context = await ContextAsync(390, 844);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("scrollTo(0, 800)");
         await Assertions.Expect(page.Locator("#site-sticky-header")).ToHaveAttributeAsync("aria-hidden", "false");
-        await page.EvaluateAsync("scrollBy(0, 100)");
-        await page.WaitForFunctionAsync("() => document.querySelector('#site-sticky-header').classList.contains('is-tucked')");
+        var position = await page.EvaluateAsync<double>("scrollY");
+        await page.Mouse.WheelAsync(0, 100);
+        await page.WaitForFunctionAsync("y => scrollY > y", position);
+        await FloatingPlayScrollBrowserTests.AssertControlsAsync(page);
         await page.Locator(".site-sticky-menu-toggle").FocusAsync();
-        Assert.False(await page.Locator("#site-sticky-header").EvaluateAsync<bool>("e => e.classList.contains('is-tucked')"));
-        await page.EvaluateAsync("scrollBy(0, 150)");
-        Assert.False(await page.Locator("#site-sticky-header").EvaluateAsync<bool>("e => e.classList.contains('is-tucked')"));
+        await page.Keyboard.PressAsync("ArrowDown");
+        await FloatingPlayScrollBrowserTests.AssertControlsAsync(page);
         await page.Locator(".site-sticky-menu-toggle").ClickAsync();
         await page.EvaluateAsync("dispatchEvent(new Event('pagehide'))");
         await Assertions.Expect(page.Locator("#site-menu")).ToBeHiddenAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.body.classList.contains('site-menu-open')"));
         await page.EvaluateAsync("dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))");
-        Assert.False(await page.Locator("#site-sticky-header").EvaluateAsync<bool>("e => e.classList.contains('is-tucked')"));
+        await FloatingPlayScrollBrowserTests.AssertControlsAsync(page);
     }
 
     [Theory]

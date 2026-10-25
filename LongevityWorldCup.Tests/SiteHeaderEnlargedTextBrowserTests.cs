@@ -212,7 +212,8 @@ public sealed class SiteHeaderEnlargedTextBrowserTests(
                             const rects = [...range.getClientRects()].filter(rect => rect.width > 0);
                             if (new Set(rects.map(rect => Math.round(rect.top))).size > 1) issues.push(`split word ${word[0]}`);
                             for (const rect of rects) {
-                                const outer = container.getBoundingClientRect();
+                                const outer = sticky && root === action
+                                    ? { top: 0, bottom: innerHeight } : container.getBoundingClientRect();
                                 if (rect.left < -1 || rect.right > innerWidth + 1 || rect.top < outer.top - 2 || rect.bottom > outer.bottom + 2)
                                     issues.push(`uncontained ${word[0]}`);
                                 for (let ancestor = node.parentElement; ancestor && ancestor !== container.parentElement; ancestor = ancestor.parentElement) {

@@ -21,6 +21,7 @@ public sealed class EntryJourneyBrowserTests(
             window.__lwcReveal = { transition: Boolean(event.viewTransition) };
             if (event.viewTransition) {
                 event.viewTransition.ready.then(() => {
+                    window.__lwcReveal.headerName = getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName;
                     window.__lwcReveal.animations = document.getAnimations()
                         .filter(a => a.effect && String(a.effect.pseudoElement || '').startsWith('::view-transition'))
                         .map(a => ({ name: a.animationName, pseudo: a.effect.pseudoElement, duration: a.effect.getTiming().duration, delay: a.effect.getTiming().delay }));
@@ -324,13 +325,16 @@ public sealed class EntryJourneyBrowserTests(
         var page = await OpenJoinAsync(context);
         await SettleAnimationsAsync(page);
 
-        Assert.Equal("lwc-site-header", await page.EvaluateAsync<string>(
+        // The resting banner must not trap floating PLAY in a stacking context.
+        Assert.Equal("none", await page.EvaluateAsync<string>(
             "() => getComputedStyle(document.querySelector('header[role=banner]')).viewTransitionName"));
         await page.Locator(pro
             ? (width < 600 ? "#joinMobileGoProButton" : "#joinGoProButton")
             : (width < 600 ? "#joinMobileStartAmateurBtn" : "#joinStartAmateurBtn")).ClickAsync();
         await page.WaitForURLAsync(pro ? "**/bortz-age**" : "**/pheno-age**");
         await page.WaitForFunctionAsync("() => window.__lwcReveal?.animations");
+
+        Assert.Equal("lwc-site-header", await page.EvaluateAsync<string>("window.__lwcReveal.headerName"));
 
         var animations = await page.EvaluateAsync<string[]>(
             "() => window.__lwcReveal.animations.map(a => `${a.name}|${a.pseudo}|${a.duration}|${a.delay}`)");

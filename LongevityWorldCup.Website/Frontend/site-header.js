@@ -42,7 +42,6 @@ let lastKnownScrollPosition = 0;
 let ticking = false;
 let measuredStickyHeight = 0;
 let measuredRootFontSize = '';
-let lastStickyActionAvailable = null;
 
 window.addEventListener('scroll', function () {
     lastKnownScrollPosition = window.scrollY;
@@ -75,6 +74,7 @@ for (const element of [document.querySelector('header[role="banner"]'),
     if (element) headerResizeObserver.observe(element);
 }
 window.addEventListener('resize', () => handleScroll(window.scrollY, true));
+window.addEventListener('pageshow', () => handleScroll(window.scrollY, true));
 
 function handleScroll(scrollPos, remeasure = false) {
     const compactLandscape = window.matchMedia('(max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
@@ -89,37 +89,17 @@ function handleScroll(scrollPos, remeasure = false) {
     // Measure the complete bar before it appears, so the first anchor jump
     // and keyboard scroll reserve the same space as subsequent ones.
     // Cache this geometry between layout changes, keeping scrolling cheap.
-    if (remeasure || !measuredStickyHeight || lastStickyActionAvailable !== actionAvailable
-        || measuredRootFontSize !== rootFontSize) {
-        // Only a hidden bar is briefly shown to measure; a visible one keeps
-        // any entrance that a resize callback lands in the middle of.
+    if (remeasure || !measuredStickyHeight || measuredRootFontSize !== rootFontSize) {
+        // Measure synchronously without painting the hidden bar.
         const measuring = !stickyHeader.classList.contains('visible');
-        if (measuring) {
-            stickyHeader.classList.add('is-measuring');
-            scrolledJoinButton?.classList.add('is-measuring');
-        }
         const visibility = stickyHeader.style.visibility;
-        const actionVisibility = scrolledJoinButton?.style.visibility;
-        const actionDisplay = scrolledJoinButton?.style.display;
         stickyHeader.style.visibility = 'hidden';
         stickyHeader.classList.add('visible');
-        if (scrolledJoinButton) {
-            scrolledJoinButton.style.visibility = 'hidden';
-            scrolledJoinButton.style.display = actionAvailable ? 'inline-flex' : 'none';
-        }
         measuredStickyHeight = fitStickyHeader(stickyHeader);
         measuredRootFontSize = rootFontSize;
-        lastStickyActionAvailable = actionAvailable;
         stickyHeader.style.visibility = visibility;
-        if (scrolledJoinButton) scrolledJoinButton.style.visibility = actionVisibility;
         if (measuring) {
-            // Restore the hidden state before starting a real entrance. A font
-            // or resize callback can invalidate geometry on that same scroll.
             stickyHeader.classList.remove('visible');
-            if (scrolledJoinButton) scrolledJoinButton.style.display = actionDisplay;
-            stickyHeader.getBoundingClientRect();
-            stickyHeader.classList.remove('is-measuring');
-            scrolledJoinButton?.classList.remove('is-measuring');
         }
     }
     // A bar taller than the original banner must wait until that banner leaves
@@ -130,18 +110,23 @@ function handleScroll(scrollPos, remeasure = false) {
     const willBeVisible = scrollPos >= threshold;
     // A focused sticky link must not disappear from the keyboard's location
     // when scrolling or resizing brings the original banner back into view.
-    if (!willBeVisible && (stickyHeader.contains(document.activeElement) || document.activeElement === scrolledJoinButton)) {
-        const target = document.activeElement === scrolledJoinButton && mainJoinButtonVisible
-            ? joinGameBtn
-            : document.activeElement?.matches('.site-menu-toggle')
+    if (!willBeVisible && stickyHeader.contains(document.activeElement)) {
+        const target = document.activeElement?.matches('.site-menu-toggle')
                 ? mainHeader.querySelector('.site-menu-toggle') : mainHeader.querySelector('.header-link');
         target?.focus({ preventScroll: true });
     }
     stickyHeader.classList.toggle('visible', willBeVisible);
     stickyHeader.inert = !willBeVisible;
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
+    document.documentElement.style.setProperty('--site-visible-sticky-height', `${willBeVisible ? measuredStickyHeight : 0}px`);
     if (scrolledJoinButton) {
-        const actionVisible = willBeVisible && actionAvailable;
+        // Restore the independent bottom-right action. Show it before the
+        // original invitation is clipped, including short or enlarged layouts.
+        const original = joinGameBtn?.getBoundingClientRect();
+        const originalFits = mainJoinButtonVisible && original && original.top >= 0
+            && original.bottom <= innerHeight && original.left >= 0 && original.right <= innerWidth;
+        const actionVisible = actionAvailable && (scrollPos > 100 || !originalFits);
+        if (!actionVisible && document.activeElement === scrolledJoinButton) joinGameBtn?.focus({ preventScroll: true });
         scrolledJoinButton.inert = !actionVisible;
         scrolledJoinButton.setAttribute('aria-hidden', String(!actionVisible));
         scrolledJoinButton.style.display = actionVisible ? 'inline-flex' : 'none';
@@ -149,11 +134,9 @@ function handleScroll(scrollPos, remeasure = false) {
 }
 
 function fitStickyHeader(stickyHeader) {
-    const action = scrolledJoinButton?.getBoundingClientRect();
     const toggle = stickyHeader.querySelector('.site-menu-toggle')?.getBoundingClientRect();
-    const hasAction = action && action.width > 0;
     const hasToggle = toggle && toggle.width > 0;
-    const controls = [hasAction && action, hasToggle && toggle].filter(Boolean);
+    const controls = hasToggle ? [toggle] : [];
     const actionHeight = Math.max(0, ...controls.map(rect => rect.height));
     const reserved = controls.length ? document.documentElement.clientWidth - Math.min(...controls.map(rect => rect.left)) + 8 : 0;
     stickyHeader.style.setProperty('--site-sticky-action-space', `${reserved}px`);
@@ -162,23 +145,9 @@ function fitStickyHeader(stickyHeader) {
     const style = getComputedStyle(stickyHeader);
     const link = stickyHeader.querySelector('.site-sticky-header-link');
     const available = stickyHeader.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    // offsetWidth is the layout box; the arrival animation must not change fitting.
     const stacked = controls.length && link && link.offsetWidth > available + 1;
     stickyHeader.classList.toggle('is-stacked', Boolean(stacked));
-    // Let the lockup settle from a larger size only while it stays clear of
-    // the action row. The entrance must fit as well as its final layout.
-    const fittedStyle = getComputedStyle(stickyHeader);
-    const arrivalWidth = stickyHeader.clientWidth - parseFloat(fittedStyle.paddingLeft) - parseFloat(fittedStyle.paddingRight);
     const height = stickyHeader.getBoundingClientRect().height;
-    const rowGap = stacked && link ? height - actionHeight - 4 - link.offsetTop - link.offsetHeight : Infinity;
-    const arrivalY = Math.min(6, Math.max(0, rowGap - 1));
-    const verticalScale = link?.offsetHeight ? 1 + 2 * Math.max(0, rowGap - arrivalY - 1) / link.offsetHeight : 1;
-    stickyHeader.style.setProperty('--site-sticky-arrival-scale', String(link?.offsetWidth
-        ? Math.max(1, Math.min(1.22, verticalScale, arrivalWidth / link.offsetWidth)) : 1));
-    stickyHeader.style.setProperty('--site-sticky-arrival-y', `${arrivalY}px`);
-    if (hasAction) {
-        scrolledJoinButton.style.top = `${stacked ? height - actionHeight - 4 + (actionHeight - action.height) / 2 : (height - action.height) / 2}px`;
-    }
     document.documentElement.style.setProperty('--site-sticky-height', `${height}px`);
     return height;
 }
@@ -535,43 +504,6 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     const toggles = Array.from(document.querySelectorAll('.site-menu-toggle'));
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
     const sheetQuery = matchMedia('(max-width: 640px)');
-    let lastY = window.scrollY;
-    let travel = 0;
-    let anchorScroll = false;
-    let anchorTimer = 0;
-    function setTucked(tucked) {
-        if (!stickyHeader) return;
-        if (tucked && (stickyHeader.contains(document.activeElement)
-            || document.activeElement === scrolledJoinButton || menu?.open || anchorScroll)) tucked = false;
-        stickyHeader.classList.toggle('is-tucked', tucked);
-        scrolledJoinButton?.classList.toggle('is-tucked', tucked);
-    }
-    function reveal() { travel = 0; lastY = window.scrollY; setTucked(false); }
-    function revealAnchor() {
-        anchorScroll = true;
-        reveal();
-        clearTimeout(anchorTimer);
-        anchorTimer = setTimeout(() => { anchorScroll = false; }, 250);
-    }
-    window.addEventListener('scroll', () => {
-        const y = window.scrollY;
-        const delta = y - lastY;
-        lastY = y;
-        if (anchorScroll) { revealAnchor(); return; }
-        if (Math.abs(delta) > 600) { reveal(); return; }
-        if (!stickyHeader?.classList.contains('visible') || y < 1) { reveal(); return; }
-        travel = Math.sign(delta) === Math.sign(travel) ? travel + delta : delta;
-        if (travel > 48) setTucked(true);
-        else if (travel < -12) setTucked(false);
-    }, { passive: true });
-    document.addEventListener('click', event => {
-        const link = event.target instanceof Element && event.target.closest('a[href]');
-        if (link && link.origin === location.origin && link.pathname === location.pathname && link.hash) revealAnchor();
-    }, true);
-    window.addEventListener('hashchange', revealAnchor);
-    window.addEventListener('pageshow', reveal);
-    stickyHeader?.addEventListener('focusin', reveal);
-    scrolledJoinButton?.addEventListener('focus', reveal);
 
     if (!menu || !panel || !body || !toggles.length) return;
     let builtFrom = null;
@@ -644,7 +576,6 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         document.body.classList.add('site-menu-open');
         menu.showModal();
         toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
-        reveal();
         panel.getBoundingClientRect();
         menu.classList.add('is-open');
         const current = body.querySelector('.site-menu-pages [aria-current="page"]') || body.querySelector('.footer-link');
@@ -669,7 +600,6 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
             return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
         };
         if (restoreFocus) {
-            reveal();
             const target = usable(previous) ? previous : toggles.find(usable);
             target?.focus({ preventScroll: true });
         }

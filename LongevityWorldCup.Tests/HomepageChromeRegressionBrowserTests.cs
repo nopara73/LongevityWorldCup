@@ -489,7 +489,6 @@ public sealed class HomepageChromeRegressionBrowserTests(
                     ActionRight: actionRect.right,
                     ActionWidth: actionRect.width,
                     ActionHeight: actionRect.height,
-                    ActionFontSize: parseFloat(actionStyle.fontSize),
                     ActionOverlapsBrand: intersects,
                     ActionBackgroundAlpha: background[3] ?? 1,
                     LogoNaturalWidth: logo.naturalWidth,
@@ -507,6 +506,11 @@ public sealed class HomepageChromeRegressionBrowserTests(
                 .map(action => {
                     const style = getComputedStyle(action);
                     const rect = action.getBoundingClientRect();
+                    let opacity = 1;
+                    for (let element = action; element; element = element.parentElement)
+                        opacity *= Number(getComputedStyle(element).opacity);
+                    const hit = [[.5,.5],[.15,.25],[.85,.25],[.15,.75],[.85,.75]]
+                        .every(([x,y]) => action.contains(document.elementFromPoint(rect.left + rect.width*x, rect.top + rect.height*y)));
                     const brand = action.classList.contains('scrolled-button')
                         ? document.querySelector('.site-sticky-header-link')
                         : document.querySelector('header[role="banner"] .header-link');
@@ -523,6 +527,7 @@ public sealed class HomepageChromeRegressionBrowserTests(
                         ScrollY: scrollY,
                         MaxScroll: Math.max(0, document.documentElement.scrollHeight - innerHeight),
                         Visible: style.display !== 'none' && style.visibility !== 'hidden'
+                            && opacity >= .98 && style.pointerEvents !== 'none' && hit
                             && rect.width > 0 && rect.height > 0
                             && rect.right > 0 && rect.left < innerWidth
                             && rect.bottom > 0 && rect.top < innerHeight,
@@ -599,7 +604,6 @@ public sealed class HomepageChromeRegressionBrowserTests(
         public double ActionRight { get; set; }
         public double ActionWidth { get; set; }
         public double ActionHeight { get; set; }
-        public double ActionFontSize { get; set; }
         public bool ActionOverlapsBrand { get; set; }
         public double ActionBackgroundAlpha { get; set; }
         public double LogoNaturalWidth { get; set; }
@@ -664,17 +668,6 @@ public sealed class HomepageChromeRegressionBrowserTests(
         public double LogoRenderedAspectRatio { get; set; }
         public double LogoNaturalAspectRatio { get; set; }
         public bool HasHorizontalOverflow { get; set; }
-    }
-
-    internal sealed class StickyActionFitDiagnostics
-    {
-        public double ActionWidth { get; set; }
-        public double ActionHeight { get; set; }
-        public double StickyTop { get; set; }
-        public double StickyBottom { get; set; }
-        public double HaloTop { get; set; }
-        public double HaloBottom { get; set; }
-        public double CenterOffset { get; set; }
     }
 
     internal sealed class InvitationCueDiagnostics

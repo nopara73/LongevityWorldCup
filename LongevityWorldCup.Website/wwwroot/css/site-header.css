@@ -231,9 +231,9 @@ h2 {
 
 .scrolled-button {
     position: fixed;
-    top: 7px;
-    bottom: auto;
-    right: 24px;
+    top: auto;
+    bottom: max(20px, env(safe-area-inset-bottom, 0px));
+    right: max(20px, env(safe-area-inset-right, 0px));
     transform: none;
     z-index: 1000;
     margin-top: 0;
@@ -842,12 +842,11 @@ button.option-button:disabled {
     z-index: 999;
     background: var(--background-color);
     color: var(--light-text-color);
-    padding: 0.25rem 1rem;
+    padding: calc(0.25rem + env(safe-area-inset-top, 0px)) 1rem 0.25rem;
     display: none;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 .site-sticky-header.visible {
     display: flex;
@@ -923,8 +922,6 @@ button.option-button:disabled {
     }
 
     .scrolled-button {
-        top: max(0.35rem, env(safe-area-inset-top, 0px));
-        right: max(0.5rem, env(safe-area-inset-right, 0px));
         min-width: 4.25rem;
         padding: 0.55rem 0.85rem;
         font-size: 0.95rem;
@@ -1153,10 +1150,6 @@ header[role="banner"] .tagline {
 .join-game:not(.scrolled-button) {
     position: absolute;
     right: max(var(--space-5), env(safe-area-inset-right, 0px));
-}
-
-.scrolled-button {
-    top: max(var(--space-1), env(safe-area-inset-top, 0px));
 }
 
 .join-game::before,
@@ -1606,7 +1599,7 @@ html {
 
 .site-sticky-header {
     box-sizing: border-box;
-    min-height: calc(var(--site-sticky-action-height, 2.75rem) + 0.5rem);
+    min-height: calc(var(--site-sticky-action-height, 2.75rem) + 0.5rem + env(safe-area-inset-top, 0px));
     padding-right: max(1rem, var(--site-sticky-action-space, 0px));
 }
 
@@ -1791,13 +1784,8 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 }
 
 :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
-    /* The homepage's primary action must lead the navigation, even after its
-       invitation animation ends or when motion is disabled. */
-    width: max-content;
-    min-width: 15rem;
-    min-height: 60px;
-    padding: var(--space-4) var(--space-6);
-    font-size: 1.25rem;
+    min-height: 50px;
+    font-size: 1rem;
 }
 
 /* Sticky bar: the same lockup, compacted and aligned to the same column. */
@@ -1813,55 +1801,15 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     display: none;
 }
 
-/* Reveal the bar without translating its measured frame or the separate
-   fixed PLAY action. Anchors and keyboard clearance use that stable edge.
-   Display flips at the end of the exit. */
-.site-sticky-header {
-    clip-path: inset(0 0 100%);
-    opacity: 0;
-    transition:
-        clip-path var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
-        opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
-        display var(--lwc-duration-normal, 220ms) allow-discrete;
-}
-
-.site-sticky-header.visible {
-    clip-path: inset(0);
-    opacity: 1;
-}
-
-@starting-style {
-    .site-sticky-header.visible {
-        clip-path: inset(0 0 100%);
-        opacity: 0;
-    }
-}
-
+/* The compact navigation has one stable state after the banner scrolls away.
+   PLAY stays independent at the viewport's bottom-right corner. */
 .scrolled-button {
     transition:
         background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
         color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
         border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
         box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
-        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
-        opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
-        display var(--lwc-duration-normal, 220ms) allow-discrete;
-}
-
-.scrolled-button[style*="display: none"] {
-    opacity: 0;
-}
-
-@starting-style {
-    .scrolled-button {
-        opacity: 0;
-    }
-}
-
-/* Measuring the bar off-screen must not start its entrance or exit. */
-.site-sticky-header.is-measuring,
-.scrolled-button.is-measuring {
-    transition: none !important;
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .site-sticky-header-link {
@@ -1884,8 +1832,10 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
 }
 
 .scrolled-button {
-    right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
-    padding-inline: var(--space-4);
+    right: max(20px, env(safe-area-inset-right, 0px));
+    min-width: 0;
+    max-width: calc(100vw - max(20px, env(safe-area-inset-right, 0px)) - max(20px, env(safe-area-inset-left, 0px)));
+    padding-inline: clamp(8px, 3vw, 16px);
     font-size: 0.9rem;
     letter-spacing: 0.04em;
 }
@@ -2010,9 +1960,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         max-width: 26rem;
         align-self: center;
         margin-left: 0;
-        min-height: 60px;
-        padding-inline: var(--space-4);
-        font-size: 1.25rem;
+        min-height: 48px;
         box-sizing: border-box;
     }
 
@@ -2038,9 +1986,6 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         gap: var(--space-2);
     }
 
-    .scrolled-button {
-        right: max(var(--space-3), env(safe-area-inset-right, 0px));
-    }
 }
 
 @media (min-width: 440px) and (max-width: 640px) {
@@ -2087,7 +2032,7 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     }
 
     :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
-        width: max-content;
+        width: auto;
         margin-left: auto;
         align-self: center;
     }
@@ -2236,10 +2181,10 @@ header[role="banner"] > .site-menu-toggle {
     margin-left: calc(var(--space-2) - var(--space-5));
 }
 
-/* The bar's toggle sits at its right edge; PLAY moves in beside it. */
+/* The navigation toggle stays in the compact bar. PLAY floats independently. */
 .site-sticky-menu-toggle {
     position: absolute;
-    top: 50%;
+    top: calc((100% + env(safe-area-inset-top, 0px)) / 2);
     right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
     translate: 0 -50%;
 }
@@ -2250,42 +2195,13 @@ header[role="banner"] > .site-menu-toggle {
     translate: none;
 }
 
-body.has-site-menu .scrolled-button {
-    right: calc(max(var(--chrome-gutter), env(safe-area-inset-right, 0px)) + var(--site-nav-toggle) + var(--space-2));
-}
-
-/* Headroom: the bar rolls up into its own top edge while reading down. */
-.site-sticky-header.visible.is-tucked {
-    clip-path: inset(0 0 100%);
-    opacity: 0;
-    pointer-events: none;
-    transition:
-        clip-path var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease-in),
-        opacity var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease-in);
-}
-
 .site-sticky-header-link,
 .site-sticky-menu-toggle {
     transition:
-        translate var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
         background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
         border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
         outline-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
         outline-offset var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease);
-}
-
-.site-sticky-header.is-tucked .site-sticky-header-link {
-    translate: 0 -40%;
-}
-
-.scrolled-button.is-tucked {
-    opacity: 0;
-    translate: 0 -14px;
-    pointer-events: none;
-}
-
-.scrolled-button {
-    transition-property: background, color, border-color, box-shadow, transform, opacity, translate, display;
 }
 
 /* Reading progress: a hairline along the bar's lower edge. */
@@ -2305,36 +2221,10 @@ body.has-site-menu .scrolled-button {
         pointer-events: none;
     }
 
-    /* The band condenses as it leaves: the lockup settles and the tagline fades. */
-    header[role="banner"] .header-link {
-        transform-origin: left center;
-        animation: site-banner-condense linear both;
-        animation-timeline: scroll(root block);
-        animation-range: 0 110px;
-    }
-
-    header[role="banner"] {
-        animation: site-banner-shade linear both;
-        animation-timeline: scroll(root block);
-        animation-range: 0 110px;
-    }
 }
 
 @keyframes site-nav-progress {
     to { transform: scaleX(1); }
-}
-
-@keyframes site-banner-condense {
-    to {
-        transform: scale(0.9);
-        opacity: 0.72;
-    }
-}
-
-@keyframes site-banner-shade {
-    to {
-        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18), 0 18px 30px -18px rgba(2, 12, 18, 0.9);
-    }
 }
 
 /* Focus travels: chrome controls carry a resting, invisible ring that pulls
@@ -2578,7 +2468,6 @@ body.site-menu-open {
     .site-menu-panel,
     .site-menu[data-layout] .site-menu-panel,
     .site-menu[data-layout].is-open .site-menu-panel,
-    .site-sticky-header.visible.is-tucked,
     .site-sticky-header-link,
     .site-sticky-menu-toggle,
     .back-button > i:first-child,
@@ -2592,7 +2481,6 @@ body.site-menu-open {
         animation: none;
     }
 
-    .site-sticky-header.is-tucked .site-sticky-header-link,
     .back-button:is(:hover, :focus-visible, :active) > i:first-child {
         translate: none;
     }
@@ -2616,9 +2504,6 @@ body.site-menu-open {
         right: max(var(--space-3), env(safe-area-inset-right, 0px));
     }
 
-    body.has-site-menu .scrolled-button {
-        right: calc(max(var(--space-3), env(safe-area-inset-right, 0px)) + var(--site-nav-toggle) + var(--space-2));
-    }
 }
 
 @media (forced-colors: active) {
@@ -2636,38 +2521,6 @@ body.site-menu-open {
 
 @keyframes site-menu-glide-in {
     from { opacity: 0; }
-}
-
-/* The band condenses into the bar: its lockup arrives a size larger and
-   settles to the bar's scale as the bar unrolls. */
-.site-sticky-header-link {
-    transform-origin: left center;
-    transition:
-        translate var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
-        scale var(--lwc-motion-slow, 280ms) var(--lwc-ease-enter, ease-out),
-        opacity var(--lwc-motion-base, 200ms) var(--lwc-ease-enter, ease-out),
-        background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
-        outline-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
-        outline-offset var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease);
-}
-
-@starting-style {
-    .site-sticky-header.visible .site-sticky-header-link {
-        scale: var(--site-sticky-arrival-scale, 1);
-        translate: 0 var(--site-sticky-arrival-y, 0px);
-        opacity: 0.4;
-    }
-}
-
-.site-sticky-header.is-measuring .site-sticky-header-link {
-    transition: none;
-}
-
-@supports (animation-timeline: scroll()) {
-    header[role="banner"] .header-link,
-    header[role="banner"] {
-        animation-range: 0 48px;
-    }
 }
 
 /* The travelling tint supplements the focused link's own visible outline. */
