@@ -417,7 +417,9 @@ public sealed class ApplyStageLifecycleBrowserTests(
                     const select = document.getElementById('division');
                     if (select.getBoundingClientRect().width) {
                         const style = getComputedStyle(select), context = document.createElement('canvas').getContext('2d');
-                        context.font = style.font;
+                        // Numeric variants can make style.font empty; retain the rendered font size.
+                        context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                        context.letterSpacing = style.letterSpacing;
                         const available = select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 20;
                         if (context.measureText(select.selectedOptions[0].textContent).width > available + 1) issues.push('Native selected text is clipped');
                     }

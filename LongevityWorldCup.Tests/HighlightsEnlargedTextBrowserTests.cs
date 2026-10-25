@@ -168,10 +168,19 @@ public sealed class HighlightsEnlargedTextBrowserTests(
                                 for (const word of node.textContent.matchAll(/[^\s\-\u00ad]+/g)) {
                                     range.setStart(node, word.index); range.setEnd(node, word.index + word[0].length);
                                     const rects = [...range.getClientRects()].filter(r => r.width > 0);
-                                    const canvas = document.createElement('canvas').getContext('2d');
-                                    canvas.font = getComputedStyle(node.parentElement).font;
-                                    if (canvas.measureText(word[0]).width <= box.width && new Set(rects.map(r => Math.round(r.top))).size > 1)
-                                        issues.push(`${word[0]} breaks despite fitting its message`);
+                                    if (new Set(rects.map(r => Math.round(r.top))).size > 1) {
+                                        // Numeric variants cannot be serialized into the CSS font shorthand.
+                                        // Measuring that empty shorthand on canvas silently uses 10px sans-serif.
+                                        // Inherit the actual rendered type and features for the unbroken word.
+                                        const probe = document.createElement('span');
+                                        probe.textContent = word[0];
+                                        probe.style.cssText = 'position:absolute;visibility:hidden;display:inline-block;width:max-content;max-width:none;min-width:0;padding:0;border:0;margin:0;white-space:nowrap;font:inherit;font-variant:inherit;font-feature-settings:inherit;letter-spacing:inherit';
+                                        node.parentElement.append(probe);
+                                        const wordWidth = probe.getBoundingClientRect().width;
+                                        probe.remove();
+                                        if (wordWidth <= box.width)
+                                            issues.push(`${word[0]} breaks despite fitting its message`);
+                                    }
                                 }
                             }
                         }

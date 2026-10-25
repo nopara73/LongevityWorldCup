@@ -74,7 +74,6 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_ROBOTO_REGULAR}}"] = "/assets/fonts/Roboto-Regular.woff2",
         ["{{ASSET_SITE_DARK_WEBMANIFEST}}"] = "/assets/site-dark.webmanifest",
         ["{{ASSET_STANDALONE_FEEL_CSS}}"] = "/css/standalone-feel.css",
-        ["{{ASSET_TYPE_SYSTEM_CSS}}"] = "/css/type-system.css",
         ["{{ASSET_SITE_STATISTICS_CSS}}"] = "/css/site-statistics.css",
         ["{{ASSET_CHARTS_CSS}}"] = "/css/charts.css",
         ["{{ASSET_CHARTS_JS}}"] = "/js/charts.js",
