@@ -180,6 +180,43 @@ public sealed class PortraitSystemBrowserTests(
         await ReadyAsync(page);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OffscreenLoadingPortrait_AnimatesOnlyInViewAndRespectsRuntimeMotionChanges(bool legacyMediaFade)
+    {
+        await using var context = await ContextAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/pending.webp", async route =>
+        {
+            await release.Task;
+            await route.FulfillAsync(new() { ContentType = "image/svg+xml", Body = Svg });
+        });
+        var page = await OpenAsync(context);
+        if (legacyMediaFade) await page.EvaluateAsync("() => document.documentElement.classList.add('lwc-media-fade')");
+        try
+        {
+            await page.AddStyleTagAsync(new() { Content = "body{min-height:3200px}#testPortrait{display:block;margin-top:2000px}" });
+            await AddAsync(page, "/pending.webp");
+            var image = page.Locator("#testPortrait");
+            if (legacyMediaFade) await image.EvaluateAsync("image => image.dataset.lwcMedia='ready'");
+            await Assertions.Expect(image).ToHaveAttributeAsync("data-lwc-portrait-state", "loading");
+            await page.EvaluateAsync("() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))");
+            Assert.Empty(await image.EvaluateAsync<string[]>("image=>image.getAnimations().filter(a=>a.playState==='running').map(a=>a.animationName)"));
+            await image.ScrollIntoViewIfNeededAsync();
+            await page.WaitForFunctionAsync("() => testPortrait.getAnimations().some(a=>a.animationName==='lwc-portrait-shimmer'&&a.playState==='running')");
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+            Assert.Empty(await image.EvaluateAsync<string[]>("image=>image.getAnimations().filter(a=>a.playState==='running').map(a=>a.animationName)"));
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            await page.WaitForFunctionAsync("() => testPortrait.getAnimations().some(a=>a.animationName==='lwc-portrait-shimmer'&&a.playState==='running')");
+            await page.EvaluateAsync("() => window.scrollTo(0,0)");
+            await page.WaitForFunctionAsync("() => testPortrait.getAnimations().every(a=>a.playState!=='running')");
+            await Assertions.Expect(image).ToHaveAttributeAsync("data-lwc-portrait-state", "loading");
+        }
+        finally { release.TrySetResult(); }
+        await ReadyAsync(page);
+    }
+
     [Fact]
     public async Task RecycledPortrait_WaitsForCurrentDecodeAndNeverOverlaysThePreviousAthlete()
     {
