@@ -197,8 +197,11 @@ interface Window {
         if (!tierFrame) tierFrame = requestAnimationFrame(flushTiers);
     }
     function observeTier(host: HTMLElement): void {
-        queueTier(host);
         if (tierHosts.has(host)) return;
+        // Moving a row keeps its observed hosts and their sizes. Only newly
+        // adopted/reconnected icons need an initial read; resize reports keep
+        // actual text-size changes current without work on every filter.
+        queueTier(host);
         tierHosts.add(host);
         tierObserver.observe(host);
     }

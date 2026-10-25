@@ -122,6 +122,35 @@ public sealed class IconSystemBrowserTests(PlaywrightBrowserFixture browserFixtu
     }
 
     [Fact]
+    public async Task ReorderingExistingControls_DoesNotRemeasureEveryGlyphButStillTracksTextSizeChanges()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard");
+        await page.EvaluateAsync("""
+            () => {
+                const root=document.createElement('div');root.id='reorderIconProbe';
+                root.style.cssText='display:grid;grid-template-columns:repeat(10,44px)';
+                root.innerHTML=Array.from({length:100},()=>'<button aria-label="Recycled icon probe" style="width:44px;height:44px"><i class="fa fa-link" style="font-size:16px"></i></button>').join('');
+                document.body.append(root);
+            }
+            """);
+        await Assertions.Expect(page.Locator("#reorderIconProbe i[data-lwc-icon-tier=m]")).ToHaveCountAsync(100);
+        await page.EvaluateAsync("() => new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+        await page.EvaluateAsync("""
+            () => {
+                const read=window.getComputedStyle;window.reorderedIconFontReads=0;
+                window.getComputedStyle=function(e,...args){if(e.matches?.('#reorderIconProbe i'))window.reorderedIconFontReads++;return read.call(this,e,...args)};
+                const root=document.getElementById('reorderIconProbe');root.append(...[...root.children].reverse());
+            }
+            """);
+        await page.EvaluateAsync("() => new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.reorderedIconFontReads"));
+        await page.Locator("#reorderIconProbe i").First.EvaluateAsync("e => e.style.fontSize='32px'");
+        await Assertions.Expect(page.Locator("#reorderIconProbe i").First).ToHaveAttributeAsync("data-lwc-icon-tier", "l");
+    }
+
+    [Fact]
     public async Task TypedGlyphsAndOpticalTiers_FollowReusedControlsAndActualTextSize()
     {
         await using var context = await NewContextAsync(Browser, App, new());
