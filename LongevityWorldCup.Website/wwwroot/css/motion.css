@@ -287,15 +287,15 @@
     z-index: -1;
     border-radius: inherit;
     pointer-events: none;
+    /* Keep the approved label/background contrast throughout the wait. */
     background:
         linear-gradient(90deg, transparent, currentColor, transparent) 0 bottom / 38% 2px no-repeat,
-        linear-gradient(100deg, transparent 35%, color-mix(in srgb, currentColor 12%, transparent) 50%, transparent 65%) 0 0 / 250% 100% no-repeat,
-        color-mix(in srgb, currentColor 8%, transparent);
+        linear-gradient(100deg, transparent 35%, color-mix(in srgb, currentColor 12%, transparent) 50%, transparent 65%) 0 bottom / 250% 4px no-repeat;
     animation: lwc-wait-sheen var(--lwc-wait-travel) linear infinite;
 }
 @keyframes lwc-wait-sheen {
-    from { background-position: -60% bottom, 130% 0, 0 0; }
-    to { background-position: 160% bottom, -30% 0, 0 0; }
+    from { background-position: -60% bottom, 130% bottom; }
+    to { background-position: 160% bottom, -30% bottom; }
 }
 [data-lwc-wait-end] > .lwc-wait-fill {
     animation: lwc-wait-fade var(--lwc-wait-settle) ease-out forwards;
@@ -361,6 +361,6 @@
     :root:is([data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync {
         animation: none;
     }
-    .lwc-wait-fill { background: color-mix(in srgb, currentColor 8%, transparent); }
+    .lwc-wait-fill { background: linear-gradient(currentColor, currentColor) left bottom / 100% 2px no-repeat; }
     .lwc-wait-line, #lwc-sync { background: var(--lwc-wait-line); }
 }

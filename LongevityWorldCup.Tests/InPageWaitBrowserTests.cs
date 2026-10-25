@@ -1,4 +1,6 @@
 using Microsoft.Playwright;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -40,6 +42,27 @@ public sealed class InPageWaitBrowserTests(
         await page.GotoAsync("/wait-regression");
         await page.WaitForFunctionAsync("() => !!window.LwcWait");
         return page;
+    }
+
+    [Fact]
+    public async Task PendingLabel_RetainsItsApprovedPaintedBackground()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        var action = page.Locator("#save");
+        using var before = Image.Load<Rgba32>(await action.ScreenshotAsync());
+        // The clear band above the label shares its background. Sampling real
+        // pixels catches overlays that computed background-color cannot see.
+        var approved = before[before.Width / 2, 8];
+        await page.EvaluateAsync("() => { LwcWait.start(save); save.disabled=true; }");
+        await page.WaitForTimeoutAsync(180);
+        await page.EvaluateAsync("""
+            () => { for(const animation of document.querySelector('.lwc-wait-fill').getAnimations()) {
+                animation.pause(); animation.currentTime=3000;
+            }}
+            """);
+        using var during = Image.Load<Rgba32>(await action.ScreenshotAsync());
+        Assert.Equal(approved, during[during.Width / 2, 8]);
     }
 
     [Fact]
