@@ -48,6 +48,18 @@ public sealed class PortraitSystemBrowserTests(
         () => testPortrait.complete && testPortrait.naturalWidth > 0 && testPortrait.dataset.lwcPortraitState === 'ready'
         """);
 
+    internal static async Task AssertDecodedFallbackAsync(ILocator image, string? initials = null)
+    {
+        await Assertions.Expect(image).ToHaveAttributeAsync("data-lwc-portrait-fallback", "");
+        await Assertions.Expect(image).ToHaveAttributeAsync("data-lwc-portrait-state", "ready");
+        Assert.True(await image.EvaluateAsync<bool>("image => image.complete && image.naturalWidth > 0"));
+        var source = Uri.UnescapeDataString(await image.GetAttributeAsync("src") ?? "");
+        Assert.StartsWith("data:image/svg+xml", source);
+        if (initials is not null) Assert.Equal(initials,
+            System.Text.RegularExpressions.Regex.Match(source, "<text\\b[^>]*>([^<]*)</text>").Groups[1].Value);
+        else Assert.DoesNotContain("<text", source);
+    }
+
     [Fact]
     public async Task ImageThatFailedBeforeEnhancement_RecoversInsteadOfShimmeringForever()
     {
