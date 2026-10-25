@@ -20,6 +20,7 @@ public sealed class FrontendTypeScriptBuildTests
         "flow-action-dock",
         "form-controls",
         "initial-view",
+        "icons",
         "leaderboard-feel",
         "leaderboard-podium",
         "longevitymaxxing",

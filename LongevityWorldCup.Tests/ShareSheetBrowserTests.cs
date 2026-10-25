@@ -111,6 +111,29 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await Assertions.Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false");
     }
 
+    [Fact]
+    public async Task RepeatedCopyFeedback_KeepsTheNewestTriggerStateUntilItsOwnDeadline()
+    {
+        await using var context = await ContextAsync();
+        var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
+        await OpenPageAsync(page, "/leaderboard");
+        await page.Clock.PauseAtAsync(DateTime.UtcNow.AddSeconds(1));
+        var trigger = page.Locator("#leaderboardTitle [data-lwc-share]");
+        await trigger.ClickAsync();
+        await page.Locator(".lwc-share__copy").ClickAsync();
+        await Assertions.Expect(trigger).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-copied"));
+        await page.Keyboard.PressAsync("Escape");
+        await page.Clock.FastForwardAsync(1200);
+        await trigger.ClickAsync();
+        await page.Locator(".lwc-share__copy").ClickAsync();
+        await page.Clock.FastForwardAsync(900);
+        await Assertions.Expect(trigger).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-copied"));
+        Assert.Equal(2, (await page.EvaluateAsync<string[]>("window.__copies")).Length);
+        await page.Clock.FastForwardAsync(1150);
+        await Assertions.Expect(trigger).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-copied"));
+    }
+
     [Theory]
     [InlineData("/pheno-age")]
     [InlineData("/bortz-age")]

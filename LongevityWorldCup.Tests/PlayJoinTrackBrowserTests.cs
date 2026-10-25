@@ -338,9 +338,10 @@ public sealed class PlayJoinTrackBrowserTests(
     private static async Task ExpectJoinControlsReadableAsync(IPage page)
     {
         var problems = await page.EvaluateAsync<string[]>(
-            """
+            $$"""
             () => {
                 const issues = [];
+                const ink = {{BrowserIconAssertions.Ink}};
                 const actions = [...document.querySelectorAll('.play-join-actions > .flow-action')]
                     .filter(action => action.getBoundingClientRect().width > 0);
                 const inside = (inner, outer) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1
@@ -354,12 +355,11 @@ public sealed class PlayJoinTrackBrowserTests(
                         range.selectNodeContents(label);
                         if ([...range.getClientRects()].some(rect => !inside(rect, box))) issues.push(`${action.id}: clipped text`);
                     }
-                    const icon = action.querySelector('i'), iconBox = icon.getBoundingClientRect();
+                    const icon = action.querySelector('i'), iconBox = ink(icon) || icon.getBoundingClientRect();
                     if (iconBox.width && !inside(iconBox, box)) issues.push(`${action.id}: clipped icon`);
                     if (action.id === 'joinTrackBackBtn' && !label.getBoundingClientRect().width) {
-                        const glyph = getComputedStyle(icon, '::before').content;
-                        if (!iconBox.width || !iconBox.height || glyph === 'none' || glyph === 'normal') issues.push('Back: missing arrow');
-                        if (Math.abs(iconBox.left + iconBox.width / 2 - box.left - box.width / 2) > 1) issues.push('Back: arrow not centered');
+                        if (!ink(icon)) issues.push('Back: missing arrow');
+                        if (Math.abs(iconBox.left + iconBox.width / 2 - box.left - box.width / 2) > 1) issues.push(`Back: arrow not centered (${iconBox.left + iconBox.width / 2} vs ${box.left + box.width / 2})`);
                     }
                 }
                 for (let i = 0; i < actions.length; i++) for (let j = i + 1; j < actions.length; j++) {
