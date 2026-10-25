@@ -45,9 +45,15 @@ public sealed class InteractionMotionBrowserTests(
     private const string WatchLayoutShiftScript = """
         () => {
             window.__lwcShift = 0;
+            window.__lwcShiftEntries = [];
             new PerformanceObserver(list => {
                 for (const entry of list.getEntries()) {
-                    if (!entry.hadRecentInput) window.__lwcShift += entry.value;
+                    if (!entry.hadRecentInput) {
+                        window.__lwcShift += entry.value;
+                        window.__lwcShiftEntries.push({ value: entry.value, at: entry.startTime,
+                            sources: entry.sources.map(source => ({ node: source.node?.outerHTML?.slice(0, 250),
+                                previous: source.previousRect, current: source.currentRect })) });
+                    }
                 }
             }).observe({ type: 'layout-shift' });
         }
@@ -139,7 +145,8 @@ public sealed class InteractionMotionBrowserTests(
         Assert.Contains(exiting, motion => motion is "translate" or "scale");
 
         await Assertions.Expect(page.Locator("#custom-alert")).ToHaveCSSAsync("display", "none");
-        Assert.True(await page.EvaluateAsync<double>("() => window.__lwcShift") < 0.001);
+        Assert.True(await page.EvaluateAsync<double>("() => window.__lwcShift") < 0.001,
+            await page.EvaluateAsync<string>("() => JSON.stringify(window.__lwcShiftEntries)"));
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
@@ -187,7 +194,8 @@ public sealed class InteractionMotionBrowserTests(
         Assert.Equal("none", await page.Locator("#leaderboardOrderPanel").EvaluateAsync<string>("panel => getComputedStyle(panel).pointerEvents"));
         Assert.Contains("opacity", exiting);
         await Assertions.Expect(page.Locator("#leaderboardOrderPanel")).ToHaveCSSAsync("display", "none");
-        Assert.True(await page.EvaluateAsync<double>("() => window.__lwcShift") < 0.001);
+        Assert.True(await page.EvaluateAsync<double>("() => window.__lwcShift") < 0.001,
+            await page.EvaluateAsync<string>("() => JSON.stringify(window.__lwcShiftEntries)"));
         var toolbarAfter = await toolbar.BoundingBoxAsync();
         Assert.NotNull(toolbarBefore);
         Assert.NotNull(toolbarAfter);
@@ -195,6 +203,48 @@ public sealed class InteractionMotionBrowserTests(
         Assert.InRange(Math.Abs(toolbarAfter.Y - toolbarBefore.Y), 0, 0.5);
         Assert.InRange(Math.Abs(toolbarAfter.Width - toolbarBefore.Width), 0, 0.5);
         Assert.InRange(Math.Abs(toolbarAfter.Height - toolbarBefore.Height), 0, 0.5);
+    }
+
+    [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(390, 844)]
+    public async Task OrderPanel_ClosingReleasesFlowSpaceWhileItsExitStillPaints(int width, int height)
+    {
+        await using var context = await NewMotionContextAsync(width, height);
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var toggle = page.Locator("#leaderboardOrderToggle");
+        var board = page.Locator("#athleteLeaderboard");
+        var closed = await board.BoundingBoxAsync();
+        await toggle.ClickAsync();
+        await WaitForFiniteAnimationsAsync(page);
+        var open = await board.BoundingBoxAsync();
+        Assert.True(open!.Y > closed!.Y + 40);
+        await toggle.EvaluateAsync("""
+            target => {
+                target.addEventListener('click', () => {
+                    window.__orderExitBefore = document.getElementById('leaderboardOrderPanel').getBoundingClientRect().toJSON();
+                }, {once:true, capture:true});
+                target.addEventListener('click', () => {
+                    window.__heldOrderExit = document.getElementById('leaderboardOrderPanel').getAnimations();
+                    __heldOrderExit.forEach(animation => animation.pause());
+                }, {once:true});
+            }
+            """);
+        await toggle.ClickAsync();
+        var panel = page.Locator("#leaderboardOrderPanel");
+        Assert.NotEqual("none", await panel.EvaluateAsync<string>("e => getComputedStyle(e).display"));
+        Assert.Equal("none", await panel.EvaluateAsync<string>("e => getComputedStyle(e).pointerEvents"));
+        var frameDelta = await panel.EvaluateAsync<double[]>("e => {const before=__orderExitBefore, after=e.getBoundingClientRect();return ['x','y','width','height'].map(key=>Math.abs(after[key]-before[key]));}");
+        Assert.All(frameDelta, difference => Assert.InRange(difference, 0, 1));
+        var closing = await board.BoundingBoxAsync();
+        Assert.InRange(Math.Abs(closing!.Y - closed.Y), 0, 0.5);
+        await page.EvaluateAsync("() => __heldOrderExit.forEach(animation => animation.play())");
+        await toggle.ClickAsync();
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        Assert.Null(await panel.GetAttributeAsync("data-order-exit"));
+        Assert.Equal("static", await panel.EvaluateAsync<string>("e => getComputedStyle(e).position"));
     }
 
     [Fact]

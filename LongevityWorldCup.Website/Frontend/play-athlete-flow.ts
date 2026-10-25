@@ -190,6 +190,7 @@ function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
 function createAthleteOptionThumb(athlete: PlayAthlete): HTMLImageElement {
     const thumb = document.createElement("img");
     thumb.className = "athlete-option-thumb";
+    thumb.dataset["athleteName"] = athlete.DisplayName || athlete.Name || "";
     thumb.alt = "";
     thumb.width = 40;
     thumb.height = 40;
