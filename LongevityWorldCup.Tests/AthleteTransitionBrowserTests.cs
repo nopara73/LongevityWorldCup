@@ -96,6 +96,62 @@ public sealed class AthleteTransitionBrowserTests(
     }
 
     [Fact]
+    public async Task PagerCounterUpdates_MeasureFiguresBeforeChangingTheirStyles()
+    {
+        await using var context = await NewContextAsync(1440, false);
+        var page = await OpenAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                window.counterLayoutAudit = { writes: 0, readsAfterWrite: 0, readsBeforePaint: 0 };
+                let wrote = false;
+                let beforePaint = false;
+                document.addEventListener('click', event => {
+                    if (!event.target.closest('[data-step]')) return;
+                    beforePaint = true;
+                    requestAnimationFrame(() => beforePaint = false);
+                }, true);
+                for (const name of ['setProperty', 'removeProperty']) {
+                    const original = CSSStyleDeclaration.prototype[name];
+                    CSSStyleDeclaration.prototype[name] = function(property, ...args) {
+                        if (property === '--lwc-count-color') {
+                            window.counterLayoutAudit.writes++;
+                            wrote = true;
+                            queueMicrotask(() => wrote = false);
+                        }
+                        return original.call(this, property, ...args);
+                    };
+                }
+                for (const name of ['getClientRects', 'getBoundingClientRect']) {
+                    const original = Element.prototype[name];
+                    Element.prototype[name] = function(...args) {
+                        if (this.matches('.age-board-figure,#ageRadarCenterValue,#ageRadarCenterBio')) {
+                            if (wrote) window.counterLayoutAudit.readsAfterWrite++;
+                            if (beforePaint) window.counterLayoutAudit.readsBeforePaint++;
+                        }
+                        return original.apply(this, args);
+                    };
+                }
+                const checkVisibility = Element.prototype.checkVisibility;
+                Element.prototype.checkVisibility = function(...args) {
+                    if (beforePaint && this.id === 'modalProfilePic') window.counterLayoutAudit.readsBeforePaint++;
+                    return checkVisibility.apply(this, args);
+                };
+            }
+            """);
+        await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
+        await WaitForProfileAsync(page);
+        await page.Locator("#lowestBortzAge").ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync("() => window.counterLayoutAudit.writes > 0");
+        var audit = await page.EvaluateAsync<int[]>("""
+            () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() =>
+                resolve([window.counterLayoutAudit.writes, window.counterLayoutAudit.readsAfterWrite, window.counterLayoutAudit.readsBeforePaint]))))
+            """);
+        Assert.True(audit[0] > 0, "The real counter update must run during the pager step.");
+        Assert.Equal(0, audit[1]);
+        Assert.Equal(0, audit[2]);
+    }
+
+    [Fact]
     public async Task ClosingPendingStep_CancelsItsCompletionAndRestoresTheCallingPage()
     {
         await using var context = await NewContextAsync(390, false);

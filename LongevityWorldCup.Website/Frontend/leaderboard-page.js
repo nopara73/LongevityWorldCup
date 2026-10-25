@@ -656,13 +656,24 @@ function initializeAthletePortraitMotion() {
             visiblePortraits.unobserve(entry.target);
             const img = entry.target;
             const start = () => {
-                if (podiumPlayed.has(motionFor(img))) return;
+                const motion = motionFor(img);
+                if (img === profile) {
+                    if (!profileReady(motion) || profilePlayed === motion) return;
+                } else if (podiumPlayed.has(motion)) return;
                 play(img);
             };
             if (img.complete) start();
             else img.addEventListener('load', start, { once: true });
         }
     }, { threshold: .5 });
+
+    function profileReady(motion) {
+        return profileModal.style.display === 'block'
+            && !profileModal.classList.contains('fade-out')
+            && !profileContent.inert
+            && !profileContent.classList.contains('is-loading')
+            && motion;
+    }
 
     function scan() {
         for (const [img, playback] of active) {
@@ -682,18 +693,17 @@ function initializeAthletePortraitMotion() {
 
         if (!profile) return;
         const profileMotion = motionFor(profile);
-        const profileOpen = profileModal.style.display === 'block'
-            && !profileModal.classList.contains('fade-out')
-            && !profileContent.inert
-            && !profileContent.classList.contains('is-loading')
-            && profileMotion;
-        if (!profileOpen) {
+        if (!profileReady(profileMotion)) {
+            visiblePortraits?.unobserve(profile);
             profilePlayed = null;
             active.get(profile)?.stop();
             return;
         }
         wire(profile);
-        if (profilePlayed !== profileMotion && profile.complete) play(profile);
+        // The portrait is already visible. Start its decorative clip from the
+        // browser's visibility report instead of forcing the rebuilt card to
+        // resolve layout synchronously inside every pager click.
+        if (profilePlayed !== profileMotion) visiblePortraits?.observe(profile);
     }
 
     const updates = new MutationObserver(scan);

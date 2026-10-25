@@ -304,12 +304,20 @@
 
     const counts = new WeakMap<Element, number>();
     let shownText = new WeakMap<Element, string>();
-    const waiting = new Set<Element>();
+    const waiting = new Map<HTMLElement, string | null>();
+    const pendingCounts = new Map<HTMLElement, boolean>();
+    let countBatchQueued = false;
     const watcher = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
+        const ready: { figure: HTMLElement; previous: string | null; color: string }[] = [];
         for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            watcher?.unobserve(entry.target);
-            if (waiting.delete(entry.target) && entry.target instanceof HTMLElement) countIn(entry.target, null);
+            const figure = entry.target;
+            if (!entry.isIntersecting || !(figure instanceof HTMLElement) || !waiting.has(figure)) continue;
+            ready.push({ figure, previous: waiting.get(figure) ?? null, color: getComputedStyle(figure).color });
+        }
+        for (const { figure, previous, color } of ready) {
+            watcher?.unobserve(figure);
+            waiting.delete(figure);
+            countIn(figure, previous, color);
         }
     }) : null;
 
@@ -349,6 +357,7 @@
 
     function stopCount(figure: HTMLElement): void {
         const frame = counts.get(figure);
+        if (frame === undefined && !figure.hasAttribute("data-lwc-count") && !figure.style.getPropertyValue("--lwc-count-color")) return;
         if (frame !== undefined) cancelAnimationFrame(frame);
         counts.delete(figure);
         delete figure.dataset["lwcCount"];
@@ -357,7 +366,7 @@
 
     // The figure keeps its real text throughout; only a drawn overlay counts,
     // so reading, copying and assistive technology always get the result.
-    function countIn(figure: HTMLElement, previous: string | null): void {
+    function countIn(figure: HTMLElement, previous: string | null, color: string): void {
         const text = figure.textContent || "";
         const target = parseFigure(text);
         stopCount(figure);
@@ -381,7 +390,7 @@
             figure.dataset["lwcCount"] = format(from + (target.value - from) * (1 - Math.pow(1 - progress, 3)));
             counts.set(figure, requestAnimationFrame(tick));
         };
-        figure.style.setProperty("--lwc-count-color", getComputedStyle(figure).color);
+        figure.style.setProperty("--lwc-count-color", color);
         figure.dataset["lwcCount"] = format(from);
         counts.set(figure, requestAnimationFrame(tick));
     }
@@ -389,26 +398,55 @@
     // `fresh` counts from the figure's starting rule; otherwise a changed
     // figure counts on from the value it showed before.
     function scheduleCount(figure: HTMLElement, fresh: boolean): void {
-        const text = figure.textContent || "";
-        const previous = fresh ? null : shownText.get(figure) ?? null;
-        if (!fresh && text === previous) return;
-        if (!enabled() || !isOpen() || isClosing() || content()?.classList.contains("is-loading")) {
-            shownText.set(figure, text);
-            return;
+        pendingCounts.set(figure, fresh || pendingCounts.get(figure) === true);
+        if (countBatchQueued) return;
+        countBatchQueued = true;
+        queueMicrotask(flushCounts);
+    }
+
+    function flushCounts(): void {
+        countBatchQueued = false;
+        const batch = [...pendingCounts];
+        pendingCounts.clear();
+        // Let the browser report visibility after layout. Reading every figure's
+        // geometry here forced the rebuilt profile to lay out inside a pager
+        // click, even when all the age figures were below the fold.
+        // The fallback also separates its reads from counter style changes.
+        const ready: { figure: HTMLElement; text: string; previous: string | null; visible: boolean; color: string }[] = [];
+        for (const [figure, fresh] of batch) {
+            if (!figure.isConnected) continue;
+            const text = figure.textContent || "";
+            const previous = fresh ? null : shownText.get(figure) ?? null;
+            if (!fresh && text === previous) continue;
+            if (!enabled() || !isOpen() || isClosing() || content()?.classList.contains("is-loading")) {
+                shownText.set(figure, text);
+                continue;
+            }
+            if (watcher) {
+                shownText.set(figure, text);
+                stopCount(figure);
+                waiting.set(figure, previous);
+                watcher.unobserve(figure);
+                watcher.observe(figure);
+                continue;
+            }
+            const visible = shown(figure) && inViewport(figure.getBoundingClientRect());
+            const color = visible ? figure.style.getPropertyValue("--lwc-count-color") || getComputedStyle(figure).color : "";
+            ready.push({ figure, text, previous, visible, color });
         }
-        if (shown(figure) && inViewport(figure.getBoundingClientRect())) {
-            waiting.delete(figure);
-            countIn(figure, previous);
-        } else if (watcher) {
-            shownText.set(figure, text);
-            stopCount(figure);
-            waiting.add(figure);
-            watcher.observe(figure);
+        for (const { figure, text, previous, visible, color } of ready) {
+            if (visible) {
+                countIn(figure, previous, color);
+            } else {
+                shownText.set(figure, text);
+                stopCount(figure);
+            }
         }
     }
 
     function resetCounts(): void {
-        waiting.forEach(figure => watcher?.unobserve(figure));
+        pendingCounts.clear();
+        waiting.forEach((_, figure) => watcher?.unobserve(figure));
         waiting.clear();
         modal!.querySelectorAll<HTMLElement>("[data-lwc-count]").forEach(stopCount);
         shownText = new WeakMap();
