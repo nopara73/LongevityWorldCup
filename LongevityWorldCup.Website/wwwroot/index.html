@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
     <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
     <script>
-        // One clock from first paint, including cards replaced during hydration.
-        // No hidden base styles, extra requests, or waits for content readiness.
+        // One first-paint clock, including hydrated replacements.
         (() => {
             if (location.pathname === '/contribute' && !location.hash) {
                 history.replaceState(history.state, '', location.pathname + location.search + '#contribute');
@@ -42,9 +41,7 @@
                 if (finished) return;
                 if (startedAt === undefined) {
                     if (!pendingFrame && document.querySelector('header .main-logo-image')) {
-                        // The timeline can still be zero during parsing. Anchor
-                        // to an actual frame so a cold load cannot consume the
-                        // entrance before anything has been painted.
+                        // Anchor to a painted frame, not the parser's zero timeline.
                         pendingFrame = requestAnimationFrame(time => { pendingFrame = null; startedAt = time; enter(); });
                     }
                     return;
@@ -82,8 +79,7 @@
                     tracks.set(selector, { element, animation });
                 });
             };
-            // Bounded to the opening second. Observing child insertion catches
-            // both parser output and hydration before their next paint.
+            // Observe parser and hydration insertions during the opening second.
             const observer = new MutationObserver(enter);
             root.classList.add('homepage-arriving');
             observer.observe(root, { childList: true, subtree: true });
