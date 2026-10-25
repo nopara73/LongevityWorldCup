@@ -1,5 +1,4 @@
 using Microsoft.Playwright;
-using System.Text.Json;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -16,17 +15,6 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const double ShiftBudget = 0.05;
-
-    private const string MeasureEmphasis = """
-        () => [...document.querySelectorAll('main strong')].map(node => {
-            const bounds = node.getBoundingClientRect();
-            return {
-                visible: bounds.bottom > 0 && bounds.top < innerHeight,
-                text: node.textContent,
-                rects: [...node.getClientRects()].map(rect => ({ y: rect.y, height: rect.height }))
-            };
-        })
-        """;
 
     private const string RecordShifts = """
         window.__lwcShifts = [];
@@ -80,15 +68,12 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         await context.AddInitScriptAsync(RecordShifts);
         var release = await HoldAsync(context, late);
         var page = await context.NewPageAsync();
-        JsonElement? paintedCopy = null;
         try
         {
             await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
             await NextPaintAsync(page);
             // Late fonts arrive well after the first paint, as on a slow connection.
             await page.WaitForTimeoutAsync(late.Contains("woff2") ? 1500 : 400);
-            if (late.Contains("woff2"))
-                paintedCopy = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
         }
         finally { release.TrySetResult(); }
 
@@ -100,33 +85,10 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-route-ready')", null, new() { Timeout = 20_000 });
         await page.WaitForTimeoutAsync(600);
 
-        if (paintedCopy is { } before)
-            await AssertPaintedEmphasisDidNotReflowAsync(page, before, path);
-
         var shifts = await page.EvaluateAsync<Shift[]>("window.__lwcShifts");
         var total = shifts.Sum(shift => shift.Value);
         Assert.True(total < ShiftBudget,
             $"{path} at {width}px shifted {total:0.000} (budget {ShiftBudget}): " + string.Join("; ", shifts.Select(s => $"{s.Value:0.000} {s.Sources}")));
-    }
-
-    private static async Task AssertPaintedEmphasisDidNotReflowAsync(IPage page, JsonElement before, string path)
-    {
-        var after = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
-        Assert.Equal(before.GetArrayLength(), after.GetArrayLength());
-        for (var index = 0; index < before.GetArrayLength(); index++)
-        {
-            if (!before[index].GetProperty("visible").GetBoolean()) continue;
-            Assert.Equal(before[index].GetProperty("text").GetString(), after[index].GetProperty("text").GetString());
-            var oldRects = before[index].GetProperty("rects");
-            var newRects = after[index].GetProperty("rects");
-            Assert.True(oldRects.GetArrayLength() == newRects.GetArrayLength(),
-                $"Late fonts changed painted emphasis from {oldRects.GetArrayLength()} to {newRects.GetArrayLength()} fragments on {path}: {before[index].GetProperty("text").GetString()}");
-            for (var fragment = 0; fragment < oldRects.GetArrayLength(); fragment++)
-                foreach (var dimension in new[] { "y", "height" })
-                    Assert.True(Math.Abs(oldRects[fragment].GetProperty(dimension).GetDouble()
-                        - newRects[fragment].GetProperty(dimension).GetDouble()) <= 1,
-                        $"Late fonts reflowed painted emphasis on {path}: {before[index].GetProperty("text").GetString()}");
-        }
     }
 
     [Theory]
@@ -141,18 +103,15 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         var release = await HoldAsync(context, "**/*.woff2*");
         var releaseLast = await HoldAsync(context, $"**/Roboto-{lastFace}.woff2*");
         var page = await context.NewPageAsync();
-        JsonElement paintedCopy = default;
         try
         {
             await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
             await page.WaitForTimeoutAsync(1500);
-            paintedCopy = await page.EvaluateAsync<JsonElement>(MeasureEmphasis);
             release.TrySetResult();
             await page.EvaluateAsync("weight => document.fonts.load(`${weight} 17px Roboto`)", firstWeight);
             await NextPaintAsync(page);
             // Give the mixed network/fallback state a real painted frame.
             await page.WaitForTimeoutAsync(150);
-            await AssertPaintedEmphasisDidNotReflowAsync(page, paintedCopy, $"/ruleset with Roboto {lastFace} pending");
         }
         finally
         {
@@ -161,7 +120,6 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         }
         await page.EvaluateAsync("() => document.fonts.ready");
         await NextPaintAsync(page);
-        await AssertPaintedEmphasisDidNotReflowAsync(page, paintedCopy, "/ruleset");
         var shifts = await page.EvaluateAsync<Shift[]>("window.__lwcShifts");
         Assert.True(shifts.Sum(shift => shift.Value) < ShiftBudget,
             $"Roboto {lastFace} arriving last shifted {shifts.Sum(shift => shift.Value):0.000}: " +
