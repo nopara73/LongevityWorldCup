@@ -48,7 +48,7 @@ public sealed class EmptyStateBrowserTests(PlaywrightBrowserFixture browserFixtu
         foreach (var query in new[] { "zzzzemptyreview2", "zzzzemptyreview3", "zzzzemptyreview4" })
         {
             await search.FillAsync(query);
-            await page.WaitForTimeoutAsync(350);
+            await page.WaitForFunctionAsync("query => new URL(location.href).searchParams.get('search') === query", query);
             Assert.True(await host.EvaluateAsync<bool>("e => e === window.reviewEmptyHost && !e.classList.contains('lwc-empty--enter')"));
         }
         Assert.True(await host.EvaluateAsync<bool>("e => e.getAnimations({subtree:true}).length > 0"));
@@ -114,7 +114,7 @@ public sealed class EmptyStateBrowserTests(PlaywrightBrowserFixture browserFixtu
         await Assertions.Expect(flag).ToHaveAttributeAsync("data-lwc-empty", "flag");
         await flag.EvaluateAsync("e => window.reviewFlagHost = e");
         await page.Locator("#athleteSearch").FillAsync("zzzzemptyreviewagain");
-        await page.WaitForTimeoutAsync(350);
+        await page.WaitForFunctionAsync("() => new URL(location.href).searchParams.get('search') === 'zzzzemptyreviewagain'");
         Assert.True(await flag.EvaluateAsync<bool>("e => e === window.reviewFlagHost"));
         await Assertions.Expect(flag).ToHaveTextAsync("No flags match this leaderboard.");
         await Assertions.Expect(flag.Locator("svg")).ToHaveCountAsync(1);
