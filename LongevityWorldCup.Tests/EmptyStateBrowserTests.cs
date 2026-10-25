@@ -161,4 +161,32 @@ public sealed class EmptyStateBrowserTests(PlaywrightBrowserFixture browserFixtu
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('.lwc-empty')].every(e => e.getAnimations({subtree:true}).length === 0)");
     }
+
+    [Theory]
+    [InlineData(390, 844)]
+    [InlineData(320, 640)]
+    public async Task PlayEmptyHint_AtEnlargedTextRemainsReachableAboveTheActions(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/select-athlete");
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '32px'");
+        await page.Locator("#playAthleteInput").FillAsync("zzzzemptyreview");
+        await Assertions.Expect(page.Locator(".athlete-search-empty svg")).ToHaveCountAsync(1);
+        await WaitForFiniteAnimationsAsync(page);
+        await page.EvaluateAsync("() => scrollTo(0, document.documentElement.scrollHeight)");
+        await page.WaitForTimeoutAsync(100);
+        var metrics = await page.EvaluateAsync<double[]>("""
+            () => {
+                const hint = document.querySelector('.athlete-search-empty').getBoundingClientRect();
+                const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
+                const placeholder = document.querySelector('.play-athlete-panel > .flow-action-dock-placeholder');
+                return [hint.top, hint.bottom, actions.top, placeholder?.getBoundingClientRect().height ?? 0,
+                    parseFloat(placeholder?.style.height || '0'), scrollY, document.documentElement.scrollHeight];
+            }
+            """);
+        Assert.True(metrics[0] >= 0 && metrics[1] <= metrics[2] - 4, $"{width}px: hint and dock {string.Join(", ", metrics)}");
+    }
 }
