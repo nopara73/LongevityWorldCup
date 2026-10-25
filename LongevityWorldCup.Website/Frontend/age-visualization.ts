@@ -538,7 +538,8 @@
         if (tabPheno) tabPheno.onclick = function () { selectClock(false); };
         if (tabBortz) tabBortz.onclick = function () { selectClock(true); };
         function handleClockKey(event: KeyboardEvent): void {
-            if (!bothClocks) return;
+            if (!bothClocks || event.defaultPrevented || event.altKey || event.ctrlKey
+                || event.metaKey || event.shiftKey || event.isComposing) return;
             if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
                 event.preventDefault();
                 var nextBortz = event.key === 'Home' || (event.key !== 'End' && !useBortz);

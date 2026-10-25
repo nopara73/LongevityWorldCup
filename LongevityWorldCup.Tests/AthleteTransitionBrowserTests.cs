@@ -129,6 +129,11 @@ public sealed class AthleteTransitionBrowserTests(
         Assert.Equal(0, await page.EvaluateAsync<int>("window.chartBuilds.length"));
         await page.Locator("#ageTabPheno").ClickAsync();
         var selectedValue = await page.Locator("#ageRadarCenterValue").InnerTextAsync();
+        await page.Locator("#ageTabPheno").FocusAsync();
+        await page.EvaluateAsync("document.addEventListener('keydown', event => { if (event.key === 'Home') window.modifiedClockDefaultPrevented = event.defaultPrevented; })");
+        await page.Keyboard.PressAsync("Control+Home");
+        Assert.False(await page.EvaluateAsync<bool>("window.modifiedClockDefaultPrevented"));
+        await Assertions.Expect(page.Locator("#ageTabPheno")).ToHaveAttributeAsync("aria-selected", "true");
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await page.EvaluateAsync("window.heldChartBuilds[1]()");
         await page.WaitForFunctionAsync("window.chartBuilds.length === 1");
