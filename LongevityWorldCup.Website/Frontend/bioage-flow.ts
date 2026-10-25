@@ -1017,6 +1017,9 @@ interface Window {
             if (document.activeElement !== input || !input.isConnected) return;
             const dock = getFlowActionDock();
             dock?.refreshNow?.();
+            // The instrument controller may still be queued when a date receives
+            // focus. Read the fixed bars now, before relying on their observer.
+            if (immediate) syncSectionBandOffset();
             dock?.ensureClear?.(input, { margin: 16, behavior: immediate ? 'instant' : 'auto' });
 
             const visualViewport = window.visualViewport;
@@ -1194,12 +1197,6 @@ interface Window {
             syncBiomarkerCompletion(controller);
             scheduleBioageDraftSave(controller);
         };
-
-        // Native Tab can reach a date field that is inside the viewport but
-        // covered by its sticky legend. Clear it before the next paint.
-        controller.form.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-            '#dob-year, #dob-month, #dob-day, #blood-draw-date'
-        ).forEach(input => input.addEventListener('focus', () => ensureBioageControlVisible(input, true)));
 
         controller.inputs.forEach(input => {
             syncFixedUnitPresentation(input);
@@ -2444,6 +2441,16 @@ interface Window {
             if (liveTimer && event.target instanceof HTMLInputElement) scheduleLiveInstrument(true);
         });
     }
+
+    // This module blocks parsing before the form. Capture date focus from the
+    // first interactive frame, independently of the later instrument setup.
+    document.addEventListener('focus', event => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement || input instanceof HTMLSelectElement)
+            || !input.matches('#dob-year, #dob-month, #dob-day, #blood-draw-date')
+            || !input.closest('form.bioageform')) return;
+        ensureBioageControlVisible(input, true);
+    }, true);
 
     window.LwcBioageFlow = {
         beginCalculation,

@@ -10,13 +10,19 @@ public sealed class BioageKeyboardViewportBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/pheno-age", 160, 16)]
-    [InlineData("/pheno-age", 195, 16)]
-    [InlineData("/pheno-age", 320, 32)]
-    [InlineData("/bortz-age", 160, 16)]
-    [InlineData("/bortz-age", 195, 16)]
-    [InlineData("/bortz-age", 320, 32)]
-    public async Task DateSelect_TabBackKeepsTheFocusedControlAndLabelClearOfStickyBands(string path, int width, int rootSize)
+    [InlineData("/pheno-age", 160, 16, false)]
+    [InlineData("/pheno-age", 195, 16, false)]
+    [InlineData("/pheno-age", 320, 32, false)]
+    [InlineData("/bortz-age", 160, 16, false)]
+    [InlineData("/bortz-age", 195, 16, false)]
+    [InlineData("/bortz-age", 320, 32, false)]
+    [InlineData("/pheno-age", 160, 16, true)]
+    [InlineData("/pheno-age", 195, 16, true)]
+    [InlineData("/pheno-age", 320, 32, true)]
+    [InlineData("/bortz-age", 160, 16, true)]
+    [InlineData("/bortz-age", 195, 16, true)]
+    [InlineData("/bortz-age", 320, 32, true)]
+    public async Task DateSelect_TabBackKeepsTheFocusedControlAndLabelClearOfStickyBands(string path, int width, int rootSize, bool delayedController)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -27,6 +33,28 @@ public sealed class BioageKeyboardViewportBrowserTests(
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.AddInitScriptAsync($"document.addEventListener('DOMContentLoaded', () => document.documentElement.style.fontSize = '{rootSize}px', {{ once: true }});");
+        if (delayedController)
+        {
+            // The page can paint while its instrument initializer is still queued.
+            // Date focus must work before that controller binds, too.
+            await context.AddInitScriptAsync("""
+                (() => {
+                    let api;
+                    Object.defineProperty(window, 'LwcBioageFlow', {
+                        configurable: true,
+                        get: () => api,
+                        set: value => {
+                            api = value;
+                            const initialize = value.initializeBiomarkerEntry;
+                            value.initializeBiomarkerEntry = options => {
+                                window.reviewResumeBiomarkerEntry = () => initialize(options);
+                                return { restoredDraft: false, step: 1 };
+                            };
+                        }
+                    });
+                })();
+                """);
+        }
         var page = await context.NewPageAsync();
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => document.fonts.ready");
@@ -35,6 +63,12 @@ public sealed class BioageKeyboardViewportBrowserTests(
                 && document.getAnimations().filter(a => a.timeline === document.timeline && Number.isFinite(a.effect?.getComputedTiming().endTime))
                     .every(a => !a.pending && ['finished', 'idle'].includes(a.playState))
             """);
+        if (delayedController)
+        {
+            await page.WaitForFunctionAsync("typeof window.reviewResumeBiomarkerEntry === 'function'");
+            Assert.False(await page.Locator("form.bioageform").EvaluateAsync<bool>(
+                "form => form.classList.contains('bioage-biomarker-entry-ready')"));
+        }
         await page.Locator("#dob-month").FocusAsync();
         await page.Locator("#dob-month").ScrollIntoViewIfNeededAsync();
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
@@ -58,6 +92,12 @@ public sealed class BioageKeyboardViewportBrowserTests(
             }
             """);
         Assert.Empty(issues);
+        if (delayedController)
+        {
+            await page.EvaluateAsync("window.reviewResumeBiomarkerEntry()");
+            Assert.True(await page.Locator("form.bioageform").EvaluateAsync<bool>(
+                "form => form.classList.contains('bioage-biomarker-entry-ready')"));
+        }
     }
 
     [Fact]
