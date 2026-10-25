@@ -269,11 +269,14 @@ public sealed class SharedInteractionFeelBrowserTests(
         cdp.Event("Tracing.dataCollected").OnEvent += (_, value) =>
         {
             foreach (var entry in value!.Value.GetProperty("value").EnumerateArray())
-                // Tracing is browser-wide, including other concurrent test contexts.
+                // Chromium tracing is browser-wide, including the other
+                // workload collections' pages. Measure this fixture only.
                 if (entry.GetProperty("name").GetString() == "UpdateLayoutTree"
-                    && entry.GetProperty("args").TryGetProperty("beginData", out var begin)
-                    && begin.TryGetProperty("frame", out var frame) && frame.GetString() == frameId
-                    && entry.GetProperty("args").TryGetProperty("elementCount", out var count))
+                    && entry.GetProperty("args") is var args
+                    && args.TryGetProperty("beginData", out var begin)
+                    && begin.TryGetProperty("frame", out var frame)
+                    && frame.GetString() == frameId
+                    && args.TryGetProperty("elementCount", out var count))
                     restyledCounts.Add(count.GetInt32());
         };
         cdp.Event("Tracing.tracingComplete").OnEvent += (_, _) => complete.TrySetResult();
@@ -285,7 +288,7 @@ public sealed class SharedInteractionFeelBrowserTests(
         Assert.True(await page.EvaluateAsync<bool>("() => LwcMotion.enabled()"));
         Assert.NotEmpty(restyledCounts);
         Assert.True(restyledCounts.Max() < 100,
-            $"Enabling motion restyled {restyledCounts.Max()} elements, including the unrelated 6,000-node content.");
+            $"Enabling motion restyled {restyledCounts.Max()} elements in the fixture with 6,000 unrelated nodes.");
         await cdp.DetachAsync();
     }
 

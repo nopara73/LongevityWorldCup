@@ -3090,7 +3090,8 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         animation-delay: 150ms;
     }
 
-    /* Keep the action band still and readable while its dock is measured. */
+    /* The footer stays readable and stationary while its actions are measured
+       and moved into the shared dock. The title and track tiles own arrival. */
 }
 
 @media (prefers-reduced-motion: reduce) {

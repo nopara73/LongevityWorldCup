@@ -487,9 +487,7 @@ html .badge-class.badge-tip-medal[data-badge-rarity="rare"]:not(.badge-family-do
 :is(.badge-tip,.badge-tip-exit).is-card .badge-tip-title{font-size:1rem;font-weight:800;letter-spacing:.005em}
 :is(.badge-tip,.badge-tip-exit).is-card .badge-tip-detail{margin-top:.15rem;font-size:.85rem;color:rgba(255,255,255,.76)}
 :is(.badge-tip,.badge-tip-exit).is-card[data-rarity="legendary"] .badge-tip-title{color:#ffe680}
-:is(.badge-tip,.badge-tip-exit).is-card .badge-tip-row,
-:is(.badge-tip,.badge-tip-exit).has-tray .badge-tip-row{animation:badge-row-up 280ms var(--badge-enter-ease) calc(170ms + var(--row-i,0) * 55ms) both}
-@keyframes badge-row-up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* Text travels with its card; a second stagger leaves a mostly empty panel. */
 
 /* The card leaving: a detached copy shrinks back toward its badge. */
 :is(.badge-tip,.badge-tip-exit).is-leaving{pointer-events:none;animation:badge-card-out 170ms var(--lwc-ease,ease) forwards!important}
@@ -529,10 +527,8 @@ html :is(.badge-tip,.badge-tip-exit)[data-side="sheet"] .badge-class.badge-tip-m
 :is(.badge-tip,.badge-tip-exit).has-tray{max-width:min(22rem,calc(100vw - 16px))}
 :is(.badge-tip,.badge-tip-exit).has-tray .badge-tip-content{
     padding:.6rem .75rem;
-    scroll-snap-type:y proximity;
-    animation:badge-tray-unroll 260ms var(--badge-enter-ease) both
+    scroll-snap-type:y proximity
 }
-@keyframes badge-tray-unroll{from{clip-path:inset(0 0 100% 0 round 8px)}to{clip-path:inset(0 0 0 0 round 8px)}}
 .badge-tip-row.has-medal{
     display:grid;
     grid-template-columns:26px minmax(0,1fr);
@@ -542,8 +538,6 @@ html :is(.badge-tip,.badge-tip-exit)[data-side="sheet"] .badge-class.badge-tip-m
 }
 .badge-tip-row.has-medal>.badge-class{grid-row:1/span 2;align-self:center}
 .badge-tip-row.has-medal>.badge-tip-title,.badge-tip-row.has-medal>.badge-tip-detail{grid-column:2}
-:is(.badge-tip,.badge-tip-exit).has-tray .badge-tip-row{animation-name:badge-row-in}
-@keyframes badge-row-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
 html .badge-class.badge-tip-mini{
     width:26px!important;
     height:26px!important;
@@ -553,12 +547,12 @@ html .badge-class.badge-tip-mini{
     max-height:none!important;
     margin:0!important;
     font-size:.78rem!important;
-    animation:badge-mini-pop 360ms var(--badge-mint-ease) calc(120ms + var(--row-i,0) * 55ms) both
+    animation:badge-mini-pop 240ms var(--badge-mint-ease) both
 }
 html .badge-class.badge-tip-mini.badge-family-domain{width:29px!important}
 html .badge-class.badge-tip-mini.badge-family-pace{border-radius:8px}
 html .badge-class.badge-tip-mini.badge-family-utility{border-radius:7px}
-@keyframes badge-mini-pop{0%{opacity:0;transform:scale(.4) rotate(-12deg)}60%{opacity:1;transform:scale(1.12)}100%{opacity:1;transform:none}}
+@keyframes badge-mini-pop{0%{transform:scale(.9) rotate(-6deg)}60%{transform:scale(1.04)}100%{transform:none}}
 
 /* --- Newly earned in the feed --------------------------------------------- */
 html .badge-class.badge-earned{

@@ -3680,7 +3680,8 @@ function updateLeaderboardSelectionSummary(count) {
     summary.hidden = false;
     const isFlags = getSelectedLeaderboardState().byFlag;
     const resultLabel = `${count} ${isFlags ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
-    document.getElementById('leaderboardResultCount').textContent = resultLabel;
+    const resultCount = document.getElementById('leaderboardResultCount');
+    if (resultCount.textContent !== resultLabel) resultCount.textContent = resultLabel;
     const showResults = document.getElementById('showLeaderboardResults');
     if (showResults) showResults.textContent = `Show ${resultLabel}`;
 
@@ -4650,13 +4651,13 @@ function syncCollapsedTitleHeight() {
 
 function measureCollapsedTitleHeight() {
     const collapsedTitle = document.querySelector('.collapsed-title');
-    if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return 0;
+    if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return null;
 
     // Short result sets still need room for the complete league name.
     // Measure the visible rail, independently of the current row count. Its
     // icon follows the table head and can be taller than the drawer heading.
     const heading = document.querySelector('.sidebar-rail-icon') || document.querySelector('.sidebar-heading');
-    if (!heading) return 0;
+    if (!heading) return null;
     return Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
 }
 
@@ -7361,7 +7362,10 @@ function syncLeaderboardTableHeight() {
         return;
     }
     const tableHeight = table.getBoundingClientRect().height;
-    const titleHeight = measureCollapsedTitleHeight();
+    // Hover/expansion temporarily hides the rail title. Keep its measured
+    // footprint so opening the overlay cannot shorten the board beneath it.
+    const titleHeight = measureCollapsedTitleHeight()
+        ?? (parseFloat(sidebar.style.getPropertyValue('--leaderboard-title-height')) || 0);
     const sidebarTop = Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top));
     if (headHeight > 0) sidebar.style.setProperty('--leaderboard-head-height', `${Math.ceil(headHeight)}px`);
     else sidebar.style.removeProperty('--leaderboard-head-height');
