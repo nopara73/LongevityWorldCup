@@ -60,8 +60,10 @@
     margin-top: 0.25rem;
 }
 .age-radar-fallback {
-    width: min(100%, 160px);
+    width: 10rem;
+    max-width: 100%;
     height: auto;
+    min-height: 10rem;
     aspect-ratio: 1;
     box-sizing: border-box;
     margin: 0 auto;

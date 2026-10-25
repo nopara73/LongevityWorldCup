@@ -1012,11 +1012,12 @@ interface Window {
         start();
     }
 
-    function ensureBiomarkerVisible(input: HTMLInputElement | HTMLSelectElement): void {
+    function ensureBioageControlVisible(input: HTMLInputElement | HTMLSelectElement, immediate = false): void {
         const reveal = () => {
+            if (document.activeElement !== input || !input.isConnected) return;
             const dock = getFlowActionDock();
             dock?.refreshNow?.();
-            dock?.ensureClear?.(input, { margin: 16, behavior: 'auto' });
+            dock?.ensureClear?.(input, { margin: 16, behavior: immediate ? 'instant' : 'auto' });
 
             const visualViewport = window.visualViewport;
             const top = visualViewport?.offsetTop || 0;
@@ -1024,22 +1025,37 @@ interface Window {
             const band = input.closest('fieldset')?.querySelector<HTMLElement>(':scope > legend');
             const bandHeight = band && getComputedStyle(band).position === 'sticky'
                 ? band.getBoundingClientRect().height : 0;
-            const fixedBottom = parseFloat(getComputedStyle(document.documentElement)
-                .getPropertyValue('--bioage-band-top')) || 0;
+            const rootStyle = getComputedStyle(document.documentElement);
+            const fixedBottom = parseFloat(rootStyle.getPropertyValue('--bioage-band-top')) || 0;
             const clearTop = Math.max(top, fixedBottom) + bandHeight + 16;
+            const dockHeight = parseFloat(rootStyle.getPropertyValue('--flow-action-dock-height')) || 0;
+            const clearBottom = bottom - (immediate ? dockHeight : 0) - 16;
             const rect = input.getBoundingClientRect();
-            if (rect.top < clearTop) {
-                window.scrollBy({ top: Math.floor(rect.top - clearTop), behavior: 'auto' });
-            } else if (rect.bottom > bottom - 16) {
+            const label = immediate ? input.labels?.item(0) : null;
+            const labelRect = label?.getBoundingClientRect();
+            // Keep the date caption with its control when the pair fits. Very
+            // tall labels stay reachable in the surrounding scroll surface.
+            const includeLabel = labelRect && labelRect.bottom <= rect.top + 1
+                && rect.bottom - labelRect.top <= clearBottom - clearTop;
+            const upperEdge = includeLabel ? Math.min(rect.top, labelRect.top) : rect.top;
+            if (upperEdge < clearTop) {
+                window.scrollBy({ top: Math.floor(upperEdge - clearTop), behavior: immediate ? 'instant' : 'auto' });
+            } else if (rect.bottom > clearBottom) {
                 input.scrollIntoView({
                     block: 'center',
                     inline: 'nearest',
-                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+                    behavior: immediate ? 'instant'
+                        : window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
                 });
             }
         };
 
-        window.requestAnimationFrame(() => window.requestAnimationFrame(reveal));
+        if (immediate) reveal();
+        const initialScroll = window.scrollY;
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+            // A new focus or deliberate scroll supersedes a pending correction.
+            if (!immediate || Math.abs(window.scrollY - initialScroll) <= 1) reveal();
+        }));
     }
 
     function syncFixedUnitPresentation(input: HTMLInputElement): void {
@@ -1140,7 +1156,7 @@ interface Window {
     function focusBiomarkerInput(input: HTMLInputElement): void {
         expandBiomarkerCard(input);
         input.focus();
-        ensureBiomarkerVisible(input);
+        ensureBioageControlVisible(input);
     }
 
     function getFollowingBiomarkerInput(
@@ -1179,16 +1195,22 @@ interface Window {
             scheduleBioageDraftSave(controller);
         };
 
+        // Native Tab can reach a date field that is inside the viewport but
+        // covered by its sticky legend. Clear it before the next paint.
+        controller.form.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+            '#dob-year, #dob-month, #dob-day, #blood-draw-date'
+        ).forEach(input => input.addEventListener('focus', () => ensureBioageControlVisible(input, true)));
+
         controller.inputs.forEach(input => {
             syncFixedUnitPresentation(input);
             getOrCreateBiomarkerError(input);
 
             input.addEventListener('focus', () => {
                 expandBiomarkerCard(input);
-                ensureBiomarkerVisible(input);
+                ensureBioageControlVisible(input);
             });
             const unit = controller.form.querySelector<HTMLSelectElement>(`#${input.id}Unit`);
-            unit?.addEventListener('focus', () => ensureBiomarkerVisible(unit));
+            unit?.addEventListener('focus', () => ensureBioageControlVisible(unit));
             window.LwcFieldValidation.bind(input, {
                 validate: () => {
                     const valid = isCompleteBiomarkerInput(input)
@@ -1218,7 +1240,7 @@ interface Window {
                 }
                 if (!isCompleteBiomarkerInput(input)) {
                     setBiomarkerError(input, true);
-                    ensureBiomarkerVisible(input);
+                    ensureBioageControlVisible(input);
                     return;
                 }
                 moveToNextBiomarker(controller, input);
@@ -1240,7 +1262,7 @@ interface Window {
             setBiomarkerError(input, true);
             window.requestAnimationFrame(() => {
                 input.focus();
-                ensureBiomarkerVisible(input);
+                ensureBioageControlVisible(input);
             });
             window.setTimeout(() => {
                 controller.invalidBatchActive = false;

@@ -4,7 +4,7 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadD)]
-public sealed class StickyPlayScrollBrowserTests(
+public sealed partial class StickyPlayScrollBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture) : BrowserIntegrationTest(browserFixture, appFixture)
 {

@@ -47,12 +47,7 @@
     --lwc-duration-fast: 140ms;
     --lwc-duration-normal: 220ms;
     --lwc-ease: cubic-bezier(0.2, 0, 0, 1);
-    --lwc-type-xs: 0.75rem;
-    --lwc-type-sm: 0.875rem;
-    --lwc-type-body: 1rem;
-    --lwc-type-h3: clamp(1.15rem, 2vw, 1.35rem);
-    --lwc-type-h2: clamp(1.5rem, 3vw, 2rem);
-    --lwc-type-h1: clamp(2rem, 4vw, 3rem);
+    /* Type scale, leading, tracking and rhythm tokens live in type-system.css. */
 }
 
 html {
@@ -63,7 +58,7 @@ body {
     background: var(--lwc-canvas);
     color: var(--lwc-ink);
     font-size: var(--lwc-type-body);
-    line-height: 1.5;
+    line-height: var(--lwc-leading-body);
     font-synthesis: none;
 }
 
@@ -101,22 +96,27 @@ h2,
 h3 {
     font-family: 'Roboto', 'Roboto Fallback', system-ui, sans-serif;
     font-weight: 700;
-    line-height: 1.15;
     text-shadow: none;
     text-wrap: balance;
     break-after: avoid;
 }
 
-h1 {
+:where(main) :where(h1):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h1);
+    line-height: var(--lwc-leading-h1);
+    letter-spacing: var(--lwc-tracking-h1);
 }
 
-h2 {
+:where(main) :where(h2):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h2);
+    line-height: var(--lwc-leading-h2);
+    letter-spacing: var(--lwc-tracking-h2);
 }
 
-h3 {
+:where(main) :where(h3):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h3);
+    line-height: var(--lwc-leading-h3);
+    letter-spacing: var(--lwc-tracking-h3);
 }
 
 p,
@@ -937,10 +937,10 @@ html body #biomarker-checklist .proof-tracker-head h4 {
     margin: 0 !important;
     padding: 14px 0;
     color: inherit;
-    font-size: 0.85rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    line-height: 1.15;
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: 700;
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    line-height: var(--lwc-leading-eyebrow);
     text-transform: uppercase;
 }
 .proof-preparation {
@@ -2108,6 +2108,10 @@ main.homepage-main .section-container h2,
 main.homepage-main .events-board thead th,
 main.homepage-main .lwc-countdown-header-row {
     padding-block: 6px;
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: var(--lwc-weight-strong);
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    line-height: var(--lwc-leading-eyebrow);
 }
 
 main.homepage-main .section-container h2 {
@@ -2121,10 +2125,10 @@ main.homepage-main .section-container h2 {
     border-bottom: 1px solid var(--lwc-border);
     background: var(--lwc-surface-accent);
     color: var(--lwc-accent-hover);
-    font-size: 0.85rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    line-height: 1.15;
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: 700;
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    line-height: var(--lwc-leading-eyebrow);
     text-align: left;
     text-transform: uppercase;
 }
@@ -2254,11 +2258,6 @@ main.homepage-main .lwc-merch-body {
 
     main.homepage-main .section-container h2 {
         padding-inline: 14px;
-    }
-
-    main.homepage-main .section-container h2,
-    main.homepage-main .lwc-countdown-header-row {
-        font-size: 0.82rem;
     }
 
     main.homepage-main .contribute-content > p,

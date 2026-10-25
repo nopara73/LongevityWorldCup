@@ -202,7 +202,9 @@ public sealed class LeagueFilterResponsiveBrowserTests(
                 const input = document.querySelector('#athleteSearch');
                 const style = getComputedStyle(input);
                 const canvas = document.createElement('canvas').getContext('2d');
-                canvas.font = style.font;
+                // Numeric variants can make style.font empty; retain the rendered font size.
+                canvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                canvas.letterSpacing = style.letterSpacing;
                 const textWidth = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                 // Long queries may scroll; a useful portion must remain readable beside Clear.
                 if (textWidth < canvas.measureText('Mich').width)
