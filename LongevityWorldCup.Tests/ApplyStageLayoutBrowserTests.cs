@@ -31,6 +31,7 @@ public sealed class ApplyStageLayoutBrowserTests(
         await page.WaitForFunctionAsync("() => document.body.dataset.convergenceStage === '1' && !document.getElementById('nextButton').disabled");
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        await WaitForFiniteAnimationsAsync(page);
         var stageOneTitleTop = await page.Locator("h1").EvaluateAsync<double>("title => title.getBoundingClientRect().top + scrollY");
 
         await page.Locator("#nextButton").ClickAsync();
@@ -45,6 +46,7 @@ public sealed class ApplyStageLayoutBrowserTests(
                 return story.height > 0 && task.height > 0 && Math.abs(task.top - story.bottom) <= 1;
             }
             """, options: new() { Timeout = 5_000 });
+        await WaitForFiniteAnimationsAsync(page);
 
         var layout = await page.EvaluateAsync<double[]>(
             """

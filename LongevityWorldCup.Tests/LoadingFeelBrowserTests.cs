@@ -7,7 +7,7 @@ namespace LongevityWorldCup.Tests;
 /// <summary>
 /// How pages arrive and change: no layout shift while data arrives, placeholders
 /// that hand over to content, no wrong-theme first frames, a sticky bar that
-/// slides instead of popping, same-site view transitions, and instant states
+/// stays stable during scroll handoffs, same-site view transitions, and instant states
 /// under reduced motion.
 /// </summary>
 [Collection(BrowserTestCollections.WorkloadB)]
@@ -201,27 +201,33 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Equal(1, await page.Locator("style#lwc-first-paint").CountAsync());
     }
 
-    [Fact]
-    public async Task StickyBar_RevealsAndHidesWithoutMovingItsMeasuredFrame()
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task StickyBar_RevealsAndHidesWithoutMovingItsMeasuredFrame(int width)
     {
-        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 800 } });
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/history");
         var sticky = page.Locator("#site-sticky-header");
+        await sticky.Locator(".site-menu-toggle").WaitForAsync(new() { State = WaitForSelectorState.Attached });
 
-        var entering = await CaptureStickyFrameAsync(page, 900);
-        Assert.All(entering, Assert.True);
+        Assert.Empty(await CaptureStickyHandoffAsync(page, 900));
         await Assertions.Expect(sticky).ToBeVisibleAsync();
+        await Assertions.Expect(sticky).ToHaveAttributeAsync("aria-hidden", "false");
 
-        var leaving = await CaptureStickyFrameAsync(page, 0);
-        Assert.All(leaving, Assert.True);
-        Assert.True(await sticky.EvaluateAsync<bool>("element => element.inert"), "A leaving bar must not take focus or clicks.");
+        await sticky.Locator(".scrolled-button").FocusAsync();
+        Assert.Empty(await CaptureStickyHandoffAsync(page, 0));
+        await Assertions.Expect(page.Locator("header[role='banner'] .join-game")).ToBeFocusedAsync();
+        await Assertions.Expect(sticky).ToHaveAttributeAsync("aria-hidden", "true");
         await Assertions.Expect(sticky).ToBeHiddenAsync();
     }
 
-    private static Task<bool[]> CaptureStickyFrameAsync(IPage page, int scrollY)
-        => page.EvaluateAsync<bool[]>("""
+    private static Task<string[]> CaptureStickyHandoffAsync(IPage page, int scrollY)
+        => page.EvaluateAsync<string[]>("""
             async y => {
+                const content = document.querySelector('.documentation-document');
+                const contentTop = content.getBoundingClientRect().top + scrollY;
                 scrollTo(0, y);
                 const element = document.getElementById('site-sticky-header');
                 const deadline = performance.now() + 5000;
@@ -229,16 +235,28 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
                     if (performance.now() > deadline) throw new Error('The sticky state did not change.');
                     await new Promise(requestAnimationFrame);
                 }
-                // The approved header keeps PLAY fully available at the
-                // handover; clipping it during an entrance is a regression.
-                const style = getComputedStyle(element);
-                const frame = element.getBoundingClientRect();
-                const play = y > 0 ? element.querySelector('.scrolled-button') : document.querySelector('header[role=banner] .join-game');
-                const action = play.getBoundingClientRect();
-                return [style.clipPath === 'none',
-                    y === 0 || (frame.top === 0 && frame.height > 0 && Number(style.opacity) === 1),
-                    action.width >= 44 && action.height >= 44,
-                    play.contains(document.elementFromPoint(action.x + action.width / 2, action.y + action.height / 2))];
+                // Navigation now changes state without an entrance/exit animation.
+                // Check the first painted state and subsequent frames, not a retired CSS effect.
+                const first = element.getBoundingClientRect();
+                const errors = new Set();
+                for (let frame = 0; frame < 20; frame++) {
+                    const rect = element.getBoundingClientRect();
+                    if (y > 0) {
+                        if (element.inert || rect.top !== 0 || rect.height <= 0 || Math.abs(rect.height - first.height) > 1)
+                            errors.add('The visible header moved or became inert.');
+                        for (const control of element.querySelectorAll('.site-sticky-header-link, .scrolled-button, .site-menu-toggle')) {
+                            const r = control.getBoundingClientRect();
+                            if (!control.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)))
+                                errors.add(`Header control is not hittable: ${control.className}`);
+                        }
+                    } else if (!element.inert || rect.height !== 0) {
+                        errors.add('The hidden header still occupies space or accepts focus.');
+                    }
+                    if (Math.abs(content.getBoundingClientRect().top + scrollY - contentTop) > 1)
+                        errors.add('The header handoff shifted the document.');
+                    await new Promise(requestAnimationFrame);
+                }
+                return [...errors];
             }
             """, scrollY);
 

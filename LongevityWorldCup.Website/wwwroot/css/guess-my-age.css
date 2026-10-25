@@ -1112,6 +1112,11 @@
     z-index: 40 !important;
 }
 
+/* The fullscreen jackpot also clears the body-mounted celebration layer. */
+#detailsModal.gma-exact-takeover-active {
+    z-index: var(--athlete-dialog-layer, 10020);
+}
+
 .gma-exact-jackpot::before {
     content: '';
     position: absolute;
