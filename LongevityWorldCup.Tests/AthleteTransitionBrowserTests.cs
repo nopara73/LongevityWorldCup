@@ -95,7 +95,7 @@ public sealed class AthleteTransitionBrowserTests(
         await rows.First.Locator(".athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
         await Assertions.Expect(page.Locator("#ageResultDate")).ToHaveAttributeAsync("datetime", dates[firstName]);
-        await page.WaitForFunctionAsync("window.chartBuilds.length === 1");
+        await page.WaitForFunctionAsync("() => window.chartBuilds.length === 1");
         await page.EvaluateAsync("""
             () => {
                 window.heldChartBuilds = [];
@@ -114,14 +114,14 @@ public sealed class AthleteTransitionBrowserTests(
             }
             """);
         await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
-        await page.WaitForFunctionAsync("window.chartFrames.length === 1 && window.heldChartBuilds.length === 1");
+        await page.WaitForFunctionAsync("() => window.chartFrames.length === 1 && window.heldChartBuilds.length === 1");
         var firstFrame = await page.EvaluateAsync<System.Text.Json.JsonElement>("window.chartFrames[0]");
         Assert.Contains(nextName, firstFrame.GetProperty("name").GetString());
         Assert.Equal(dates[nextName], firstFrame.GetProperty("date").GetString());
         Assert.Equal(Figure(nextFigure), Figure(firstFrame.GetProperty("value").GetString()!), 1);
         Assert.Equal(0, firstFrame.GetProperty("builds").GetInt32());
         await page.Locator(".modal-content > .athlete-steps [data-step=previous]").ClickAsync();
-        await page.WaitForFunctionAsync("window.chartFrames.length === 2 && window.heldChartBuilds.length === 2");
+        await page.WaitForFunctionAsync("() => window.chartFrames.length === 2 && window.heldChartBuilds.length === 2");
         var reversed = await page.EvaluateAsync<System.Text.Json.JsonElement>("window.chartFrames[1]");
         Assert.Equal(dates[firstName], reversed.GetProperty("date").GetString());
         await page.EvaluateAsync("window.heldChartBuilds[0]()");
@@ -136,12 +136,12 @@ public sealed class AthleteTransitionBrowserTests(
         await Assertions.Expect(page.Locator("#ageTabPheno")).ToHaveAttributeAsync("aria-selected", "true");
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await page.EvaluateAsync("window.heldChartBuilds[1]()");
-        await page.WaitForFunctionAsync("window.chartBuilds.length === 1");
+        await page.WaitForFunctionAsync("() => window.chartBuilds.length === 1");
         Assert.Equal(selectedValue, await page.Locator("#ageRadarCenterValue").InnerTextAsync());
         await Assertions.Expect(page.Locator("#ageTabPheno")).ToHaveAttributeAsync("aria-selected", "true");
         Assert.Equal(0, await page.EvaluateAsync<int>("window.chartBuilds[0].duration"));
         await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
-        await page.WaitForFunctionAsync("window.heldChartBuilds.length === 3");
+        await page.WaitForFunctionAsync("() => window.heldChartBuilds.length === 3");
         await page.Keyboard.PressAsync("Escape");
         await page.EvaluateAsync("window.heldChartBuilds[2]()");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
