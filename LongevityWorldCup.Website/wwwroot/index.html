@@ -11,6 +11,8 @@
 if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !location.hash) {
     document.documentElement.classList.add('homepage-restoring');
 }
+// One clock from first paint, including cards replaced during hydration.
+// No hidden base styles, extra requests, or waits for content readiness.
 (() => {
     if (location.pathname === '/contribute' && !location.hash) {
         history.replaceState(history.state, '', location.pathname + location.search + '#contribute');
@@ -44,6 +46,9 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
         if (finished) return;
         if (startedAt === undefined) {
             if (!pendingFrame && document.querySelector('header .main-logo-image')) {
+                // The timeline can still be zero during parsing. Anchor
+                // to an actual frame so a cold load cannot consume the
+                // entrance before anything has been painted.
                 pendingFrame = requestAnimationFrame(time => { pendingFrame = null; startedAt = time; enter(); });
             }
             return;
@@ -81,6 +86,8 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
             tracks.set(selector, { element, animation });
         });
     };
+    // Bounded to the opening second. Observing child insertion catches
+    // both parser output and hydration before their next paint.
     const observer = new MutationObserver(enter);
     root.classList.add('homepage-arriving');
     observer.observe(root, { childList: true, subtree: true });
@@ -92,12 +99,12 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
 <body{{BODY_CLASS_ATTRIBUTE}}>
     <!--HEADER-->
     <script>
-        // Restore the visit's header before native Back scrolling.
-        if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
-            && ['default', 'repeat'].includes(history.state?.lwcHomepageVisitLayout)) {
-            document.body.classList.add('home-page');
-            document.querySelector('header[role="banner"] .tagline')?.remove();
-        }
+// Restore the visit's header before native Back scrolling.
+if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
+    && ['default', 'repeat'].includes(history.state?.lwcHomepageVisitLayout)) {
+    document.body.classList.add('home-page');
+    document.querySelector('header[role="banner"] .tagline')?.remove();
+}
     </script>
     <main class="homepage-main">
         <h1 class="visually-hidden">Longevity World Cup</h1>
