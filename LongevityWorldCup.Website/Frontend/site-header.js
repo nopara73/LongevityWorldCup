@@ -42,9 +42,14 @@ let lastKnownScrollPosition = 0;
 let ticking = false;
 let measuredStickyHeight = 0;
 let measuredRootFontSize = '';
+let stickyVisibilityThreshold = Infinity;
+let fittedStickyHeight = 0;
 
 window.addEventListener('scroll', function () {
     lastKnownScrollPosition = window.scrollY;
+    // The banner may leave the compositor's viewport before another rAF.
+    // Hand over PLAY now using the last fit; measurements remain batched.
+    syncStickyHeaderVisibility(lastKnownScrollPosition);
 
     if (!ticking) {
         window.requestAnimationFrame(function () {
@@ -112,7 +117,16 @@ function handleScroll(scrollPos, remeasure = false) {
     const originalTop = joinGameBtn?.getBoundingClientRect().top + scrollPos;
     const threshold = mainJoinButtonVisible
         ? Math.min(bannerThreshold, Math.max(0, originalTop - 4)) : bannerThreshold;
-    const willBeVisible = scrollPos >= threshold;
+    stickyVisibilityThreshold = threshold;
+    fittedStickyHeight = measuredStickyHeight;
+    syncStickyHeaderVisibility(scrollPos, mainHeader, stickyHeader);
+}
+
+function syncStickyHeaderVisibility(scrollPos,
+    mainHeader = document.querySelector('header[role="banner"]'),
+    stickyHeader = document.getElementById('site-sticky-header')) {
+    if (!mainHeader || !stickyHeader || !Number.isFinite(stickyVisibilityThreshold)) return;
+    const willBeVisible = scrollPos >= stickyVisibilityThreshold;
     // A focused sticky link must not disappear from the keyboard's location
     // when scrolling or resizing brings the original banner back into view.
     if (!willBeVisible && stickyHeader.contains(document.activeElement)) {
@@ -124,7 +138,7 @@ function handleScroll(scrollPos, remeasure = false) {
     stickyHeader.classList.toggle('visible', willBeVisible);
     stickyHeader.inert = !willBeVisible;
     stickyHeader.setAttribute('aria-hidden', String(!willBeVisible));
-    document.documentElement.style.setProperty('--site-visible-sticky-height', `${willBeVisible ? measuredStickyHeight : 0}px`);
+    document.documentElement.style.setProperty('--site-visible-sticky-height', `${willBeVisible ? fittedStickyHeight : 0}px`);
 }
 
 function fitStickyHeader(stickyHeader) {
