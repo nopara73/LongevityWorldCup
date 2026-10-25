@@ -41,6 +41,8 @@ const joinGameBtn = document.querySelector('.join-game');
 let ticking = false;
 let measuredStickyHeight = 0;
 let measuredRootFontSize = '';
+const nativeHeaderHandoffSupported = CSS.supports('animation-timeline', 'scroll(root block)')
+    && CSS.supports('animation-range', '0px 1px');
 
 // Scroll events already follow the rendering cadence. Update the semantic
 // handoff here, alongside the native scroll animation, without another frame.
@@ -105,7 +107,7 @@ function handleScroll(scrollPos, remeasure = false) {
     // Keep the compositor's presence animation active from scroll 0. Starting
     // its range at the threshold attaches it too late for the first wheel paint.
     // The class below remains the fallback and owns focus/assistive technology.
-    const nativeHandoff = threshold > 0 && CSS.supports('animation-timeline', 'scroll(root block)');
+    const nativeHandoff = threshold > 0 && nativeHeaderHandoffSupported;
     if (nativeHandoff) {
         const end = `${threshold}px`;
         if (stickyHeader.style.getPropertyValue('--site-sticky-threshold') !== end) {

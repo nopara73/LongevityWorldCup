@@ -853,7 +853,7 @@ button.option-button:disabled {
 }
 /* Paint the same binary handoff in the scroll compositor, before its scroll
    event reaches script. No fade or intermediate half-visible navigation. */
-@supports (animation-timeline: scroll(root block)) {
+@supports (animation-timeline: scroll(root block)) and (animation-range: 0px 1px) {
     .site-sticky-header[data-scroll-handoff] {
         display: flex;
         opacity: 0;
