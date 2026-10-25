@@ -1,0 +1,261 @@
+/*
+ * Longevity World Cup surface and depth
+ *
+ * One elevation scale for the whole site. Every surface sits on one of five
+ * levels, and its shadow and neutral border come from the
+ * same row of tokens, so a card, a sticky bar and a dialog read as one family.
+ *
+ *   0  flat      the canvas and sections that only need a hairline
+ *   1  resting   cards and panels lying on the canvas
+ *   2  raised    a hovered card, a stuck bar, the header band
+ *   3  floating  menus, popovers, share sheet, badge cards
+ *   4  overlay   dialogs, sheets and the alert, over a soft scrim
+ *
+ * Colours are derived from the existing palette only: light shadows are tints
+ * of --lwc-ink, dark borders and glows mix --lwc-border with --lwc-ink or
+ * --lwc-accent, and the scrim is the dark canvas. No new hues.
+ *
+ * Motion: a card lifts 2px on hover and settles under a press; a sticky bar
+ * gains depth once content runs under it (depth-system.ts sets
+ * data-lwc-stuck). Reduced motion keeps the depth and drops the travel.
+ * Backdrop blur is desktop-only; phones get a deeper scrim instead.
+ */
+
+:root {
+    /* Shadow colour: the site's ink, never a new grey. */
+    --lwc-depth-ink: 23, 33, 43;
+    --lwc-depth-key: rgba(var(--lwc-depth-ink), 0.10);
+    --lwc-depth-ambient: rgba(var(--lwc-depth-ink), 0.06);
+
+    --lwc-elevation-0: none;
+    --lwc-elevation-1:
+        0 1px 2px rgba(var(--lwc-depth-ink), 0.06),
+        0 1px 3px -1px rgba(var(--lwc-depth-ink), 0.06);
+    --lwc-elevation-2:
+        0 1px 2px rgba(var(--lwc-depth-ink), 0.05),
+        0 4px 8px -2px rgba(var(--lwc-depth-ink), 0.08),
+        0 12px 24px -10px rgba(var(--lwc-depth-ink), 0.16);
+    --lwc-elevation-3:
+        0 2px 4px rgba(var(--lwc-depth-ink), 0.05),
+        0 10px 20px -6px rgba(var(--lwc-depth-ink), 0.12),
+        0 24px 48px -18px rgba(var(--lwc-depth-ink), 0.24);
+    --lwc-elevation-4:
+        0 3px 6px rgba(var(--lwc-depth-ink), 0.06),
+        0 18px 36px -10px rgba(var(--lwc-depth-ink), 0.18),
+        0 44px 88px -24px rgba(var(--lwc-depth-ink), 0.36);
+    /* A shadow cast downward by a bar onto the content scrolling under it. */
+    --lwc-elevation-bar:
+        0 1px 0 rgba(var(--lwc-depth-ink), 0.06),
+        0 6px 14px -8px rgba(var(--lwc-depth-ink), 0.28);
+    /* Recessed wells inside a card (nested muted regions). */
+    --lwc-elevation-well: inset 0 1px 2px rgba(var(--lwc-depth-ink), 0.07);
+
+    --lwc-elevation-border-0: var(--lwc-border);
+    --lwc-elevation-border-1: var(--lwc-border);
+    --lwc-elevation-border-2: color-mix(in srgb, var(--lwc-border) 72%, var(--lwc-border-strong));
+    --lwc-elevation-border-3: color-mix(in srgb, var(--lwc-border) 82%, var(--lwc-border-strong));
+    --lwc-elevation-border-4: color-mix(in srgb, var(--lwc-border) 86%, var(--lwc-border-strong));
+    /* A hovered interactive card picks up a trace of the action colour. */
+    --lwc-elevation-border-hover: color-mix(in srgb, var(--lwc-border) 62%, var(--lwc-accent));
+
+    --lwc-elevation-surface-0: var(--lwc-canvas);
+    --lwc-elevation-surface-1: var(--lwc-surface);
+    --lwc-elevation-surface-2: var(--lwc-surface);
+    --lwc-elevation-surface-3: var(--lwc-surface);
+    --lwc-elevation-surface-4: var(--lwc-surface);
+
+    /* The overlay scrim is the dark canvas (#0d141b), not black. */
+    --lwc-elevation-scrim: rgba(13, 20, 27, 0.52);
+    --lwc-elevation-scrim-solid: rgba(13, 20, 27, 0.68);
+    --lwc-elevation-blur: blur(6px) saturate(115%);
+
+    --lwc-elevation-lift: -2px;
+    --lwc-elevation-duration: var(--lwc-motion-base, 200ms);
+    --lwc-elevation-ease: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+
+    /* Older shared shadow tokens now read from the scale. */
+    --lwc-shadow-sm: var(--lwc-elevation-1);
+    --lwc-shadow-md: var(--lwc-elevation-3);
+    --shadow-sm: var(--lwc-elevation-1);
+    --shadow-md: var(--lwc-elevation-3);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Shadows barely read on a dark canvas, so depth comes from light:
+           raised surfaces keep their approved colours, with a brighter edge, a top
+           highlight and, at the overlay level, a faint accent glow. */
+        --lwc-depth-shade: 0, 0, 0;
+        --lwc-depth-light: 230, 237, 243;
+
+        --lwc-elevation-1:
+            inset 0 1px 0 rgba(var(--lwc-depth-light), 0.035),
+            0 1px 2px rgba(var(--lwc-depth-shade), 0.32);
+        --lwc-elevation-2:
+            inset 0 1px 0 rgba(var(--lwc-depth-light), 0.05),
+            0 2px 4px rgba(var(--lwc-depth-shade), 0.3),
+            0 12px 24px -10px rgba(var(--lwc-depth-shade), 0.6);
+        --lwc-elevation-3:
+            inset 0 1px 0 rgba(var(--lwc-depth-light), 0.06),
+            0 10px 20px -6px rgba(var(--lwc-depth-shade), 0.5),
+            0 24px 48px -16px rgba(var(--lwc-depth-shade), 0.7);
+        --lwc-elevation-4:
+            inset 0 1px 0 rgba(var(--lwc-depth-light), 0.07),
+            0 0 0 1px color-mix(in srgb, var(--lwc-accent) 10%, transparent),
+            0 0 48px -8px color-mix(in srgb, var(--lwc-accent) 12%, transparent),
+            0 32px 72px -16px rgba(var(--lwc-depth-shade), 0.8);
+        --lwc-elevation-bar:
+            0 1px 0 rgba(var(--lwc-depth-light), 0.06),
+            0 8px 18px -8px rgba(var(--lwc-depth-shade), 0.75);
+        --lwc-elevation-well: inset 0 1px 3px rgba(var(--lwc-depth-shade), 0.35);
+
+        --lwc-elevation-border-1: var(--lwc-border);
+        --lwc-elevation-border-2: color-mix(in srgb, var(--lwc-border) 80%, var(--lwc-ink));
+        --lwc-elevation-border-3: color-mix(in srgb, var(--lwc-border) 76%, var(--lwc-ink));
+        --lwc-elevation-border-4: color-mix(in srgb, var(--lwc-border) 70%, var(--lwc-accent));
+        --lwc-elevation-border-hover: color-mix(in srgb, var(--lwc-border) 55%, var(--lwc-accent));
+
+        --lwc-elevation-surface-2: var(--lwc-surface);
+        --lwc-elevation-surface-3: var(--lwc-surface);
+        --lwc-elevation-surface-4: var(--lwc-surface);
+
+        --lwc-elevation-scrim: rgba(4, 8, 12, 0.6);
+        --lwc-elevation-scrim-solid: rgba(4, 8, 12, 0.76);
+
+        --lwc-shadow-sm: var(--lwc-elevation-1);
+        --lwc-shadow-md: var(--lwc-elevation-3);
+        --shadow-sm: var(--lwc-elevation-1);
+        --shadow-md: var(--lwc-elevation-3);
+    }
+}
+
+/* Resting surfaces. Component-specific state borders, backgrounds and focus
+   indicators keep ownership; neutral surfaces share the same shadow scale. */
+:root body :is(
+    .lmx-panel, .lmx-card, .lmx-board-wrap, .lmx-habit-card, .lmx-action-card, .lmx-access-panel,
+    .track-card, .play-track-card, .play-join-card, .play-dashboard-card, .play-athlete-card,
+    .biomarker-card, .proof-page-card, .application-review-panel, .unsubscribe-panel,
+    .not-found-card, .error-card, .media-kit-panel, .lab-access-panel, .stats-panel,
+    .archive-mobile-card, .lwc-merch-item, .form-container, .bioage-form-container, .convergence-form,
+    .events-board
+) {
+    box-shadow: var(--lwc-elevation-1);
+}
+
+:root body main.homepage-main .section-container { box-shadow: var(--lwc-elevation-1); }
+:root body #detailsModal .modal-content { box-shadow: var(--lwc-elevation-4); }
+
+/* Only whole-card links lift. A panel containing buttons, an editable field,
+   a cropper or several links must not move under that interaction or become
+   a new containing block for fixed descendants. Existing transitions remain
+   owned by the component. */
+:root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card) {
+    transition: box-shadow var(--lwc-elevation-duration) var(--lwc-elevation-ease),
+        border-color var(--lwc-elevation-duration) var(--lwc-elevation-ease),
+        translate var(--lwc-elevation-duration) var(--lwc-elevation-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):hover {
+        border-color: var(--lwc-elevation-border-hover);
+        box-shadow: var(--lwc-elevation-2);
+    }
+}
+
+:root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):focus-visible {
+    outline: 2px solid var(--lwc-accent);
+    outline-offset: 3px;
+    box-shadow: var(--lwc-elevation-2);
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):hover {
+        translate: 0 var(--lwc-elevation-lift);
+    }
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card):active {
+        translate: 0 0;
+        box-shadow: var(--lwc-elevation-1);
+        transition-duration: var(--lwc-motion-press, 90ms);
+    }
+}
+
+:root body :where(.play-track-card):has(input:checked) {
+    box-shadow: var(--lwc-elevation-2);
+}
+
+:root body :where(.lmx-card, .lmx-panel, .play-dashboard-card, .application-review-panel, .stats-panel)
+    :where(pre, .lmx-quote, .lmx-empty, .play-dashboard-empty) {
+    box-shadow: var(--lwc-elevation-well);
+}
+
+/* Sticky depth must not replace the header's reveal animation, add a filter
+   containing block, or animate a shadow on every scroll frame. */
+:root body [data-lwc-sticky][data-lwc-stuck] {
+    box-shadow: var(--lwc-elevation-bar);
+}
+:root body #detailsModal .modal-sticky-header.visible {
+    box-shadow: var(--lwc-elevation-bar);
+}
+
+/* Floating surfaces. Order is an in-flow strip, not a floating menu. */
+:root body :is(.lwc-share, .athlete-share-menu, .lmx-mention-options,
+    .lmx-timezone-list, .lmx-timezone-popover, .site-menu-panel) {
+    box-shadow: var(--lwc-elevation-3);
+}
+
+/* The border of an alert or selected track carries meaning. Do not replace
+   it via an ID-bearing :is() list, which raises every selector's specificity. */
+:root body :is(.modal-content, .dialog-content, .custom-alert-panel,
+    .loading-dialog-panel, .proof-review-dialog, .lmx-checkin-dialog) {
+    box-shadow: var(--lwc-elevation-4);
+}
+
+/* Only backdrop owners receive a scrim. Native dialog panels (including
+   badges) keep their own background; their ::backdrop is a separate surface.
+   The profile's moving card keeps its existing motion and containing blocks. */
+:root body :is(#detailsModal, #custom-alert, #loading-dialog, #modalOverlay, #lmxCheckinDialogBackdrop, .badge-tip-scrim) {
+    background-color: var(--lwc-elevation-scrim-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+:root body :is(dialog.proof-review-dialog, dialog.lmx-checkin-dialog)::backdrop {
+    background-color: var(--lwc-elevation-scrim-solid);
+}
+
+/* Blur belongs on stationary alert backdrops only, never on a moving card or
+   a table header containing interactive descendants. Phones use the scrim. */
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    :root body :is(#custom-alert, #loading-dialog) {
+        background-color: var(--lwc-elevation-scrim);
+        -webkit-backdrop-filter: var(--lwc-elevation-blur);
+        backdrop-filter: var(--lwc-elevation-blur);
+    }
+}
+@media (prefers-reduced-transparency: reduce) {
+    :root body :is(#custom-alert, #loading-dialog) {
+        background-color: var(--lwc-elevation-scrim-solid);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}
+
+:root body .footer {
+    box-shadow: 0 -1px 0 rgba(var(--lwc-depth-ink), 0.04), 0 -10px 24px -18px rgba(var(--lwc-depth-ink), 0.35);
+}
+@media (prefers-color-scheme: dark) {
+    :root body .footer {
+        box-shadow: 0 -1px 0 rgba(var(--lwc-depth-light), 0.05), 0 -12px 28px -18px rgba(0, 0, 0, 0.8);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    :root body :is(a.track-card, a.play-track-card, a.lwc-merch-item, a.not-found-card, a.biomarker-card) {
+        translate: none;
+        transition-duration: 0s;
+    }
+}
+@media (forced-colors: active) {
+    :root body :is(.modal-content, .dialog-content, .custom-alert-panel, .loading-dialog-panel,
+        .proof-review-dialog, .lwc-share, .athlete-share-menu, .site-menu-panel) {
+        border: 1px solid CanvasText;
+    }
+}

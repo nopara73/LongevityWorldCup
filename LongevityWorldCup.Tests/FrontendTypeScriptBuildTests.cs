@@ -28,6 +28,7 @@ public sealed class FrontendTypeScriptBuildTests
         "portrait-system",
         "share-sheet",
         "touch",
+        "depth-system",
         "site-statistics",
         "site-statistics-tracking"
     ];

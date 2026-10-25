@@ -45,6 +45,9 @@ public sealed class LeaderboardStandingMotionBrowserTests(PlaywrightBrowserFixtu
             }
         });
         var page = await context.NewPageAsync();
+        // Own the cleanup clock before page code schedules timers. This lets
+        // a slow runner inspect the real mounted effect before it expires.
+        await page.Clock.InstallAsync(new() { TimeDate = DateTime.UtcNow.AddMinutes(-5) });
         await page.GotoAsync("/leaderboard");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         var row = page.Locator(".leaderboard tbody tr[data-athlete-name]:visible").Nth(down ? 1 : 0);
@@ -52,15 +55,35 @@ public sealed class LeaderboardStandingMotionBrowserTests(PlaywrightBrowserFixtu
         var rank = row.Locator(".rank");
         var current = await rank.InnerTextAsync();
         Assert.Equal(0, await page.Locator(".lb-rolling").CountAsync());
+        await page.Clock.PauseAtAsync(DateTime.UtcNow.AddMinutes(5));
+        await rank.EvaluateAsync("""
+            rank => {
+                const observer = new MutationObserver(() => {
+                    if (!rank.classList.contains('lb-rolling')) return;
+                    for (const animation of rank.getAnimations({subtree:true})) {
+                        animation.pause();
+                        animation.currentTime = Number(animation.effect.getTiming().duration) / 2;
+                    }
+                    observer.disconnect();
+                });
+                observer.observe(rank, {attributes:true, attributeFilter:['class']});
+            }
+            """);
         await page.Keyboard.PressAsync("Shift");
+        await page.Clock.RunForAsync(32);
         await Assertions.Expect(rank).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lb-rolling"));
         Assert.Equal(down ? "1" : "9", await rank.GetAttributeAsync("data-was"));
         Assert.Equal(current, await rank.InnerTextAsync());
         Assert.Equal(down ? "down" : "up", await row.GetAttributeAsync("data-lb-moved"));
+        var animations = await rank.EvaluateAsync<string[]>("rank => rank.getAnimations({subtree:true}).map(animation => animation.animationName)");
+        Assert.Contains(down ? "lb-roll-out-down" : "lb-roll-out-up", animations);
+        Assert.Contains(down ? "lb-roll-in-down" : "lb-roll-in-up", animations);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await Assertions.Expect(page.Locator(".lb-rolling")).ToHaveCountAsync(0);
         Assert.Null(await rank.GetAttributeAsync("data-was"));
         Assert.Equal(current, await rank.InnerTextAsync());
+        Assert.Empty(await rank.EvaluateAsync<string[]>("rank => rank.getAnimations({subtree:true}).map(animation => animation.animationName).filter(name => name?.startsWith('lb-roll-'))"));
+        await page.Clock.ResumeAsync();
 
         await page.Locator("label[for=view-pheno]").ClickAsync();
         Assert.Equal(0, await page.Locator("tr[data-lb-moved]").CountAsync());
