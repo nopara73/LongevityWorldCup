@@ -163,6 +163,12 @@ i[data-lwc-icon] > svg.lwc-icon {
     :is(a, button, summary, [role="button"]):not([aria-expanded="true"]):hover > i[data-lwc-icon="chevron-down"] > .lwc-icon {
         translate: 0 2px;
     }
+    :is(a, button, summary, [role="button"]):is([aria-expanded="true"], details[open] > summary, .is-open, .open, .active):hover > i[data-lwc-icon="chevron-down"] > .lwc-icon {
+        translate: 0 -2px;
+    }
+    :is(a, button, summary, [role="button"]):is([aria-expanded="true"], details[open] > summary):hover > i[data-lwc-icon="chevron-right"] > .lwc-icon {
+        translate: 0 2px;
+    }
     :is(a, button, [role="button"]):hover > i[data-lwc-icon="external"] > .lwc-icon,
     :is(a, button, [role="button"]):hover > i[data-lwc-icon="paper-plane"] > .lwc-icon {
         translate: 2px -2px;

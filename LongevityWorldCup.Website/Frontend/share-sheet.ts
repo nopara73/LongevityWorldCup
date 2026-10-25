@@ -40,6 +40,7 @@ interface Window {
     let version = 0;
     let closeTimer = 0;
     let feedbackTimer = 0;
+    const triggerFeedbackTimers = new WeakMap<HTMLElement, number>();
     let pendingNative: { trigger: HTMLElement; version: number } | null = null;
     let pendingCopy = false;
     const inertSiblings = new Map<HTMLElement, boolean>();
@@ -502,10 +503,14 @@ interface Window {
 
     // The trigger that opened the sheet answers too: its icon turns into a check.
     function pulseTrigger(trigger: HTMLElement): void {
+        window.clearTimeout(triggerFeedbackTimers.get(trigger));
         trigger.classList.add("is-copied");
         const done = trigger.querySelector<HTMLElement>(".lwc-share-trigger__done");
         if (done) window.LwcIcons?.replay(done);
-        window.setTimeout(() => trigger.classList.remove("is-copied"), feedbackMs + 900);
+        triggerFeedbackTimers.set(trigger, window.setTimeout(() => {
+            triggerFeedbackTimers.delete(trigger);
+            trigger.classList.remove("is-copied");
+        }, feedbackMs + 900));
     }
 
     // ---- Keyboard and drag ----------------------------------------------------

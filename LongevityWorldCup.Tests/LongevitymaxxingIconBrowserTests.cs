@@ -25,6 +25,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await WaitForFiniteAnimationsAsync(page);
         var angle = await toggle.Locator("svg.lwc-icon").EvaluateAsync<double>("e=>{const m=e.getScreenCTM();return Math.abs(Math.atan2(m.b,m.a)*180/Math.PI)}");
         Assert.InRange(angle,179,181);
+        if (await page.EvaluateAsync<bool>("matchMedia('(hover: hover) and (pointer: fine)').matches"))
+        {
+            await toggle.HoverAsync();
+            await Assertions.Expect(toggle.Locator("svg.lwc-icon")).ToHaveCSSAsync("translate", "0px -2px");
+        }
         await toggle.ClickAsync();
         await toggle.ClickAsync();
         await toggle.ClickAsync();
