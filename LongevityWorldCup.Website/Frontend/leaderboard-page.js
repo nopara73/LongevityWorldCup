@@ -855,9 +855,6 @@ function normalizeLeaderboardUrl() {
 
 
 if (!isAthleteDialogOnlyRuntime) {
-    // Prevent browser auto-restoring scroll on leaderboard history navigation.
-    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { }
-
     /* ------- ScrollGuard: block untrusted scrolls during anchor jump ------- */
     (function () {
         if (window.__scrollGuardInstalled) return;
@@ -3534,27 +3531,23 @@ function clearSearch() {
     history.replaceState(history.state || {}, "", url.toString());
 }
 
-// Wrap the filter function with debounce
-const debouncedFilter = debounce(() => {
-    performFilter();
-}, 400);
-
-function debounce(func, delay) {
-    let debounceTimer;
-    const debounced = function (...args) {
-        const context = this;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            debounceTimer = undefined;
-            func.apply(context, args);
-        }, delay);
+// Coalesce typing within a frame without leaving the previous results on
+// screen after the visitor has already entered their next query.
+const debouncedFilter = (() => {
+    let filterFrame = 0;
+    const debounced = function () {
+        if (filterFrame) return;
+        filterFrame = requestAnimationFrame(() => {
+            filterFrame = 0;
+            performFilter();
+        });
     };
     debounced.cancel = () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = undefined;
+        cancelAnimationFrame(filterFrame);
+        filterFrame = 0;
     };
     return debounced;
-}
+})();
 
 function hasActiveLeaderboardState() {
     const searchInput = document.getElementById('athleteSearch');
@@ -4012,10 +4005,67 @@ function renderFlagTeams(teams, view) {
     });
 }
 
+const leaderboardRowAnimations = new Map();
+const leaderboardReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+function finishLeaderboardRowMotion() {
+    leaderboardRowAnimations.forEach(animation => animation.cancel());
+    leaderboardRowAnimations.clear();
+}
+leaderboardReducedMotion.addEventListener('change', finishLeaderboardRowMotion);
+window.addEventListener('pagehide', finishLeaderboardRowMotion);
+
+function captureLeaderboardRowMotion() {
+    if (!window.LwcMotion?.enabled() || document.hidden) {
+        finishLeaderboardRowMotion();
+        return null;
+    }
+    const rows = [...document.querySelectorAll('.leaderboard table tbody tr')]
+        .filter(row => row.style.display !== 'none');
+    // Measure the old viewport before changing any labels, ranks or filters.
+    // Large ranking changes get a short directional cue in their new slot:
+    // crossing whole rows (or leaving copies over new results) obscures names.
+    const style = getComputedStyle(pageDocument.documentElement);
+    const durationText = style.getPropertyValue('--lwc-motion-base').trim();
+    const duration = parseFloat(durationText) * (durationText.endsWith('ms') ? 1 : 1000) || 200;
+    const easing = style.getPropertyValue('--lwc-ease-standard').trim() || 'ease';
+    const before = new Map(rows.map((row, index) => [row, index]));
+    const visibleSlots = rows.flatMap((row, index) => {
+        const box = row.getBoundingClientRect();
+        return box.height && box.bottom > 0 && box.top < innerHeight ? [index] : [];
+    });
+    finishLeaderboardRowMotion();
+    return { before, duration, easing, first: visibleSlots[0], last: visibleSlots.at(-1) };
+}
+
+function moveLeaderboardRows(mutate, motion) {
+    const next = mutate().filter(row => row.style.display !== 'none');
+    if (!motion || motion.first === undefined) return;
+    // Slot order supplies the direction without forcing layout halfway through
+    // the update. The browser can lay out rows, counts and the rail together.
+    const { before, duration, easing, first, last } = motion;
+    for (let index = first; index <= Math.min(last, next.length - 1); index++) {
+        const row = next[index];
+        if (typeof row.animate !== 'function') continue;
+        const previous = before.get(row);
+        if (previous === index) continue;
+        const offset = previous === undefined ? 4 : Math.sign(previous - index) * 4;
+        const animation = row.animate([
+            { translate: `0 ${offset}px`, opacity: previous === undefined ? .8 : 1 },
+            { translate: '0 0', opacity: 1 }
+        ], { duration, easing });
+        leaderboardRowAnimations.set(row, animation);
+        const release = () => {
+            if (leaderboardRowAnimations.get(row) === animation) leaderboardRowAnimations.delete(row);
+        };
+        void animation.finished.then(release, release);
+    }
+}
+
 function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     // Immediate filter changes already consume the current query. A stale timer
     // must not rewrite a profile URL opened from those freshly filtered rows.
     debouncedFilter.cancel();
+    const rowMotion = captureLeaderboardRowMotion();
     const selectedState = getSelectedLeaderboardState();
     const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
     const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: document.getElementById('athleteSearch').value });
@@ -4306,8 +4356,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const visibleOrdered = tableVisibleAthletes.map(a => rowsByName.get(a.name)).filter(Boolean);
     const visibleRows = new Set(visibleOrdered);
     // Rows keep their identity, so a reorder or filter glides instead of jumping.
-    const moveRows = window.LwcMotion?.flip || ((rows, mutate) => mutate());
-    moveRows(allRows, () => {
+    moveLeaderboardRows(() => {
         rowsByName.forEach(row => {
             const display = visibleRows.has(row) ? '' : 'none';
             if (row.style.display !== display) row.style.display = display;
@@ -4329,7 +4378,8 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             if (row === nextRow) nextRow = nextRow.nextElementSibling;
             else tableBody.insertBefore(row, nextRow);
         }
-    });
+        return orderedRows;
+    }, rowMotion);
 
     // An ordering change cannot alter the search or sidebar membership. Keep
     // their DOM and computed counts intact instead of rebuilding them per click.
@@ -4557,17 +4607,19 @@ function buildLeaderboardPresentation(state) {
 }
 
 function syncCollapsedTitleHeight() {
+    scheduleLeaderboardTableHeightSync();
+}
+
+function measureCollapsedTitleHeight() {
     const collapsedTitle = document.querySelector('.collapsed-title');
-    if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return;
+    if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return 0;
 
     // Short result sets still need room for the complete league name.
     // Measure the visible rail, independently of the current row count. Its
     // icon follows the table head and can be taller than the drawer heading.
     const heading = document.querySelector('.sidebar-rail-icon') || document.querySelector('.sidebar-heading');
-    const leaderboard = document.querySelector('.leaderboard');
-    if (!heading || !leaderboard) return;
-    const minimumHeight = Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
-    leaderboard.style.setProperty('--leaderboard-title-height', `${minimumHeight}px`);
+    if (!heading) return 0;
+    return Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
 }
 
 function updateLeaderboardTitles(state) {
@@ -7230,27 +7282,30 @@ function syncLeaderboardTableHeight() {
     const table = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
     if (!leaderboard || !table) return;
 
-    if (leaderboard.closest('main[data-leaderboard-page="full"]')) {
-        const headHeight = table.tHead?.getBoundingClientRect().height;
-        if (headHeight > 0) leaderboard.style.setProperty('--leaderboard-head-height', `${Math.ceil(headHeight)}px`);
-        else leaderboard.style.removeProperty('--leaderboard-head-height');
-    }
-
+    // Complete geometry reads before writing styles. Sidebar measurements must
+    // not invalidate every athlete and badge through inherited board variables.
+    const headHeight = table.tHead?.getBoundingClientRect().height;
     if (isMobileDrawerViewport()) {
-        leaderboard.style.removeProperty('--leaderboard-table-height');
-        leaderboard.style.removeProperty('--leaderboard-title-height');
-        leaderboard.style.removeProperty('--leaderboard-sidebar-viewport-top');
+        leaderboard.style.removeProperty('min-height');
+        sidebar?.style.removeProperty('--leaderboard-table-height');
+        sidebar?.style.removeProperty('--leaderboard-title-height');
+        sidebar?.style.removeProperty('--leaderboard-sidebar-viewport-top');
+        sidebar?.style.removeProperty('--leaderboard-head-height');
         return;
     }
-
     const tableHeight = table.getBoundingClientRect().height;
+    const titleHeight = measureCollapsedTitleHeight();
+    const sidebarTop = Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top));
+    if (headHeight > 0) sidebar.style.setProperty('--leaderboard-head-height', `${Math.ceil(headHeight)}px`);
+    else sidebar.style.removeProperty('--leaderboard-head-height');
     if (tableHeight > 0) {
-        leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
-        syncCollapsedTitleHeight();
+        sidebar.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
+        sidebar.style.setProperty('--leaderboard-title-height', `${titleHeight}px`);
+        leaderboard.style.minHeight = `${Math.max(Math.ceil(tableHeight), titleHeight)}px`;
     }
     // A newly opened panel may start below its sticky position. Size its scroll
     // area to the space actually on screen, then refit as the page scrolls.
-    leaderboard.style.setProperty('--leaderboard-sidebar-viewport-top', `${Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top))}px`);
+    sidebar.style.setProperty('--leaderboard-sidebar-viewport-top', `${sidebarTop}px`);
 }
 
 function installLeaderboardTableHeightObserver() {

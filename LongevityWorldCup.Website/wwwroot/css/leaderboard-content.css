@@ -173,10 +173,13 @@
  .leaderboard{
      --leaderboard-table-height: calc(100vh - 2rem);
      --leaderboard-sidebar-sticky-top: 4rem;
-     --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
      display:flex; align-items:flex-start; background-color:var(--card-bg);
      min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
      border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
+ }
+
+ .leaderboard .sidebar{
+     --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
  }
 
  .podium-skeleton-item{
