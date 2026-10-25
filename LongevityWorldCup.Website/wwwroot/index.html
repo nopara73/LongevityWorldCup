@@ -94,8 +94,7 @@
 <body{{BODY_CLASS_ATTRIBUTE}}>
     <!--HEADER-->
     <script>
-        // Filters can change a homepage URL after its header was rendered.
-        // Restore that visit's header before layout and native scroll restoration.
+        // Restore the visit's header before native Back scrolling.
         if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
             && ['default', 'repeat'].includes(history.state?.lwcHomepageVisitLayout)) {
             document.body.classList.add('home-page');
