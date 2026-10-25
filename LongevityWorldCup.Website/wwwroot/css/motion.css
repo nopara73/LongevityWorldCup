@@ -254,3 +254,113 @@
         transition: none;
     }
 }
+
+/* 7) In-page waits. The moving line means activity, never measured progress.
+ * Component-owned content, focus rings and entrances keep their own styles. */
+:root {
+    --lwc-wait-delay: 140ms;
+    --lwc-wait-settle: 520ms;
+    --lwc-wait-sync-delay: 360ms;
+    --lwc-wait-travel: 1150ms;
+    --lwc-wait-line: var(--lwc-accent-bright, #19c3d1);
+    --lwc-wait-success: var(--lwc-success, #1f7a38);
+    --lwc-wait-danger: var(--lwc-danger, #b4233b);
+}
+
+:root [data-lwc-wait] { cursor: progress !important; }
+:root :is([data-lwc-wait], [data-lwc-wait-end]) { isolation: isolate; }
+
+/* Preserve native disabled semantics and the pressed control's appearance. */
+:root :is([data-lwc-wait], [data-lwc-wait-end]):is(:disabled, [aria-disabled="true"]) {
+    background-color: var(--lwc-wait-bg) !important;
+    background-image: var(--lwc-wait-image) !important;
+    color: var(--lwc-wait-fg) !important;
+    border-color: var(--lwc-wait-border) !important;
+    box-shadow: var(--lwc-wait-shadow) !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.lwc-wait-fill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    /* Keep the approved label/background contrast throughout the wait. */
+    background:
+        linear-gradient(90deg, transparent, currentColor, transparent) 0 bottom / 38% 2px no-repeat,
+        linear-gradient(100deg, transparent 35%, color-mix(in srgb, currentColor 12%, transparent) 50%, transparent 65%) 0 bottom / 250% 4px no-repeat;
+    animation: lwc-wait-sheen var(--lwc-wait-travel) linear infinite;
+}
+@keyframes lwc-wait-sheen {
+    from { background-position: -60% bottom, 130% bottom; }
+    to { background-position: 160% bottom, -30% bottom; }
+}
+[data-lwc-wait-end] > .lwc-wait-fill {
+    animation: lwc-wait-fade var(--lwc-wait-settle) ease-out forwards;
+}
+[data-lwc-wait-end="success"] { --lwc-wait-ring-color: var(--lwc-wait-success); }
+[data-lwc-wait-end="error"] { --lwc-wait-ring-color: var(--lwc-wait-danger); }
+.lwc-wait-ring {
+    position: absolute;
+    inset: 1px;
+    border: 2px solid var(--lwc-wait-ring-color);
+    border-radius: inherit;
+    pointer-events: none;
+    animation: lwc-wait-ring var(--lwc-wait-settle) ease-out both;
+}
+@keyframes lwc-wait-ring {
+    0% { opacity: 0; }
+    25% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@keyframes lwc-wait-fade { to { opacity: 0; } }
+
+/* The label remains readable; this separate live node announces the operation. */
+.lwc-wait-status {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    border: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* Refreshes keep every child's visibility and full contrast. */
+.lwc-wait-line, #lwc-sync {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    z-index: 4;
+    block-size: 2px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--lwc-wait-line), transparent) -60% 0 / 38% 100% no-repeat;
+    animation: lwc-wait-line-travel var(--lwc-wait-travel) ease-in-out infinite;
+}
+@keyframes lwc-wait-line-travel {
+    from { background-position: -60% 0; }
+    to { background-position: 160% 0; }
+}
+.lwc-wait-line[data-lwc-wait-end],
+:root:is([data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync {
+    background: var(--lwc-wait-line);
+    animation: lwc-wait-fade var(--lwc-wait-settle) ease-out forwards;
+}
+:root[data-lwc-sync="error"] #lwc-sync { --lwc-wait-line: var(--lwc-wait-danger); }
+#lwc-sync { position: fixed; z-index: 10001; block-size: 3px; display: none; }
+:root:is([data-lwc-sync="on"], [data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+    :root .lwc-wait-fill,
+    :root .lwc-wait-ring,
+    :root .lwc-wait-line,
+    :root .lwc-wait-line[data-lwc-wait-end],
+    :root #lwc-sync,
+    :root:is([data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync {
+        animation: none;
+    }
+    .lwc-wait-fill { background: linear-gradient(currentColor, currentColor) left bottom / 100% 2px no-repeat; }
+    .lwc-wait-line, #lwc-sync { background: var(--lwc-wait-line); }
+}
