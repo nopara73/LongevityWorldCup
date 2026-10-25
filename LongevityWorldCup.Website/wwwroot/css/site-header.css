@@ -62,10 +62,11 @@
     font-family: 'Roboto Fallback';
     font-weight: 700;
     src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('Arimo Bold');
-    /* Preserve bold line wrapping with Arial's Linux substitutes too. */
-    size-adjust: 98%;
-    ascent-override: 94.67%;
-    descent-override: 24.91%;
+    /* Match Roboto's bold widths so staggered regular/bold downloads do not
+       rewrap mixed-weight paragraphs twice. Keep the vertical metrics aligned. */
+    size-adjust: 94.7%;
+    ascent-override: 97.97%;
+    descent-override: 25.78%;
     line-gap-override: 0%;
 }
 
