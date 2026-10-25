@@ -1019,7 +1019,10 @@ interface Window {
             dock?.refreshNow?.();
             // The instrument controller may still be queued when a date receives
             // focus. Read the fixed bars now, before relying on their observer.
-            if (immediate) syncSectionBandOffset();
+            if (immediate) {
+                window.cancelAnimationFrame(sectionBandOffsetFrame);
+                syncSectionBandOffset();
+            }
             dock?.ensureClear?.(input, { margin: 16, behavior: immediate ? 'instant' : 'auto' });
 
             const visualViewport = window.visualViewport;
