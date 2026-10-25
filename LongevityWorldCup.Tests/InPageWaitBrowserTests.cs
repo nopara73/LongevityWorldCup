@@ -60,6 +60,37 @@ public sealed class InPageWaitBrowserTests(
         Assert.False(await page.EvaluateAsync<bool>("() => save.hasAttribute('data-lwc-wait')"));
     }
 
+    [Fact]
+    public async Task Newsletter_DeadlineIncludesAStalledResponseBody()
+    {
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => !!window.LwcWait && typeof fetchWithTimeout==='function'");
+        await page.Clock.InstallAsync();
+        await page.EvaluateAsync("""
+            () => window.fetchWithTimeout = async (url, options) => ({
+                ok:true, status:200,
+                text:()=>new Promise((resolve,reject)=>{
+                    window.newsletterBodyStarted=true;
+                    options.signal?.addEventListener('abort',()=>{
+                        window.newsletterTransferAborted=true;
+                        reject(new DOMException('Aborted','AbortError'));
+                    },{once:true});
+                })
+            })
+            """);
+        await page.Locator("#emailInput").FillAsync("slow@example.test");
+        await page.Locator("#newsletter-form button[type=submit]").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.newsletterBodyStarted");
+        await Assertions.Expect(page.Locator("#newsletter-form")).ToHaveAttributeAsync("aria-busy", "true");
+        await page.Clock.RunForAsync(10001);
+        await Assertions.Expect(page.Locator("#newsletter-form")).ToHaveAttributeAsync("aria-busy", "false");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.newsletterTransferAborted===true"));
+        await Assertions.Expect(page.Locator("#newsletter-form button[type=submit]")).ToHaveTextAsync("Retry");
+        await Assertions.Expect(page.Locator("#emailInput")).ToHaveValueAsync("slow@example.test");
+    }
+
     [Theory]
     [InlineData(170)]
     [InlineData(600)]
@@ -230,6 +261,26 @@ public sealed class InPageWaitBrowserTests(
         await page.EvaluateAsync("() => { abortSave(); return backgroundResult; }");
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-lwc-sync')");
         Assert.Equal("Rolled back", await page.Locator("#draft").InputValueAsync());
+    }
+
+    [Fact]
+    public async Task PendingSave_UsesTheBackgroundIndicatorWhenItsControlScrollsAway()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                document.body.style.height='2400px';
+                window.pendingSave=LwcWait.optimistic(()=>{},()=>new Promise(resolve=>window.resolveSave=resolve),save);
+            }
+            """);
+        await page.WaitForTimeoutAsync(180);
+        Assert.Null(await page.Locator("html").GetAttributeAsync("data-lwc-sync"));
+        await page.EvaluateAsync("() => scrollTo(0,1400)");
+        await page.WaitForFunctionAsync("() => document.documentElement.dataset.lwcSync==='on'");
+        await page.EvaluateAsync("() => { resolveSave(); return pendingSave; }");
+        await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-lwc-sync')");
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(0);
     }
 
     [Theory]

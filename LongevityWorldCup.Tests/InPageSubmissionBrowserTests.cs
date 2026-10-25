@@ -83,6 +83,13 @@ public sealed class InPageSubmissionBrowserTests(
         await Assertions.Expect(action).ToBeDisabledAsync();
         await Assertions.Expect(action).ToHaveTextAsync(label);
         Assert.InRange(await action.EvaluateAsync<double>("el=>el.getBoundingClientRect().width") - initialWidth, -1, 1);
+        if (flow == "edit" && width == 1440)
+        {
+            await page.SetViewportSizeAsync(320, 640);
+            await page.EvaluateAsync("() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))");
+            Assert.True(await action.EvaluateAsync<bool>("el=>{const r=el.getBoundingClientRect();return r.width>0 && r.left>=0 && r.right<=innerWidth}"));
+            Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth<=innerWidth"));
+        }
         Assert.False(await page.EvaluateAsync<bool>("() => document.querySelector('main').inert"));
         Assert.Equal("Submitting...", await page.Locator(".lwc-wait-status").InnerTextAsync());
         if (flow != "proof")

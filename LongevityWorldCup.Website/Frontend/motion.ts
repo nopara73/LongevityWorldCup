@@ -280,7 +280,7 @@ interface Window {
     }
     const controls = new Map<HTMLElement, ControlWait>();
     const regions = new Map<HTMLElement, RegionWait>();
-    const hosts = new Map<HTMLElement, { count: number; position: string; priority: string }>();
+    const hosts = new Map<HTMLElement, { count: number; position: string; priority: string; changed: boolean }>();
     const background = new Set<symbol>();
     let syncTimer: number | undefined;
     let syncGeneration = 0;
@@ -296,15 +296,17 @@ interface Window {
     function retainHost(host: HTMLElement): void {
         const existing = hosts.get(host);
         if (existing) { existing.count++; return; }
-        const value = { count: 1, position: host.style.getPropertyValue("position"), priority: host.style.getPropertyPriority("position") };
+        const value = { count: 1, position: host.style.getPropertyValue("position"), priority: host.style.getPropertyPriority("position"),
+            changed: getComputedStyle(host).position === "static" };
         hosts.set(host, value);
-        if (getComputedStyle(host).position === "static") host.style.position = "relative";
+        if (value.changed) host.style.position = "relative";
     }
 
     function releaseHost(host: HTMLElement): void {
         const value = hosts.get(host);
         if (!value || --value.count > 0) return;
         hosts.delete(host);
+        if (!value.changed || host.style.position !== "relative") return;
         if (value.position) host.style.setProperty("position", value.position, value.priority);
         else host.style.removeProperty("position");
     }
@@ -339,7 +341,7 @@ interface Window {
         const width = control.getBoundingClientRect().width;
         retainHost(control);
         properties.forEach((name, i) => control.style.setProperty(name, values[i] || ""));
-        if (width > 0) control.style.minInlineSize = `${width}px`;
+        if (width > 0) control.style.minInlineSize = `min(${width}px, 100%)`;
         const fill = document.createElement("span");
         fill.className = "lwc-wait-fill";
         fill.setAttribute("aria-hidden", "true");
@@ -538,15 +540,18 @@ interface Window {
         const undo = apply();
         const end = control instanceof HTMLElement ? start(control) : null;
         const operation = Symbol();
-        if (!end) { background.add(operation); refreshSync(); }
+        background.add(operation);
+        refreshSync();
         try {
             const result = await request();
             void end?.("success");
             return result;
         } catch (error) {
-            if (typeof undo === "function") undo();
-            void end?.("error");
-            if (background.has(operation)) syncFailed = true;
+            try { if (typeof undo === "function") undo(); }
+            finally {
+                void end?.("error");
+                if (background.has(operation)) syncFailed = true;
+            }
             throw error;
         } finally {
             if (background.delete(operation)) refreshSync();

@@ -588,6 +588,32 @@ function showNewsletterFailure(email, message) {
     setNewsletterStatus(newsletterEmailInput.value.trim() === email ? message : `${email}: ${message}`, true);
 }
 
+async function readNewsletterSubscription(email) {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    let deadline;
+    try {
+        return await Promise.race([
+            (async () => {
+                const response = await fetchWithTimeout('/api/home/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                    signal: controller?.signal
+                }, 10000);
+                return { response, message: (await response.text()).trim() };
+            })(),
+            new Promise((_, reject) => {
+                deadline = setTimeout(() => {
+                    controller?.abort();
+                    reject(new Error('Request timed out'));
+                }, 10000);
+            })
+        ]);
+    } finally {
+        clearTimeout(deadline);
+    }
+}
+
 newsletterEmailInput.addEventListener('input', () => {
     newsletterRetryEmail = '';
     newsletterEmailInput.removeAttribute('aria-invalid');
@@ -616,12 +642,7 @@ newsletterForm.addEventListener('submit', async function (e) {
     let waitOutcome = 'error';
     renderNewsletterAction();
     try {
-        const response = await fetchWithTimeout('/api/home/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        }, 10000);
-        const message = (await response.text()).trim();
+        const { response, message } = await readNewsletterSubscription(email);
         const alreadySubscribed = response.status === 400 && message === 'This email is already subscribed.';
         if (!response.ok && !alreadySubscribed) {
             const explanation = response.status === 400 && response.headers.get('content-type')?.includes('text/plain') && message
