@@ -329,6 +329,48 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         }
     }
 
+    [Theory]
+    [InlineData(320, false)]
+    [InlineData(320, true)]
+    [InlineData(390, false)]
+    [InlineData(390, true)]
+    public async Task AthleteShare_EnlargedPhoneHeaderKeepsAShortNameProBadgeAndControlsVisible(int width, bool dark)
+    {
+        await using var nativeBrowser = await Browser.BrowserType.LaunchAsync(new() { Headless = true, IgnoreDefaultArgs = ["--hide-scrollbars"] });
+        await using var context = await ContextAsync(width, 844, browser: nativeBrowser);
+        var page = await context.NewPageAsync();
+        await page.BringToFrontAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
+        await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/joe-v");
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await page.WaitForFunctionAsync("() => document.getElementById('stickyAthleteName').textContent === 'Joe V' && document.querySelector('#detailsModal .modal-content').dataset.athleteSlug === 'joe-v'");
+        await page.AddStyleTagAsync(new() { Content = "html { font-size:32px; } ::-webkit-scrollbar { width:15px; height:15px; }" });
+        var fontSize = await page.Locator("#stickyAthleteName").EvaluateAsync<double>("e => parseFloat(getComputedStyle(e).fontSize)");
+        // Isolate the earned PRO header state from calendar-dependent score
+        // fixtures. The matching rendered gallery uses Joe V's real data.
+        await page.EvaluateAsync("() => { document.getElementById('modalStickyHeader').classList.add('is-pro'); document.querySelector('#detailsModal .modal-content').scrollTo({top:1200,behavior:'instant'}); }");
+        await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeVisibleAsync();
+        var fit = await page.Locator("#modalStickyHeader").EvaluateAsync<JsonElement>("""
+            header => {
+                const name=header.querySelector('.sticky-athlete-name'), badge=header.querySelector('.sticky-pro-badge');
+                const n=name.getBoundingClientRect(), b=badge.getBoundingClientRect(), h=header.getBoundingClientRect();
+                const controls=[...header.querySelectorAll('button')].map(e=>{const r=e.getBoundingClientRect(), hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {width:r.width,height:r.height,hit:!!hit&&(e===hit||e.contains(hit))};});
+                return {text:name.textContent,sh:name.scrollHeight,ch:name.clientHeight,sw:name.scrollWidth,cw:name.clientWidth,font:parseFloat(getComputedStyle(name).fontSize),badgeFits:badge.scrollWidth<=badge.clientWidth&&b.top>=h.top&&b.bottom<=h.bottom,nameFits:n.top>=h.top&&n.bottom<=h.bottom,controls};
+            }
+            """);
+        Assert.Equal("Joe V", fit.GetProperty("text").GetString());
+        Assert.Equal(fontSize, fit.GetProperty("font").GetDouble(), 2);
+        Assert.True(fit.GetProperty("sw").GetInt32() <= fit.GetProperty("cw").GetInt32(), fit.ToString());
+        Assert.True(fit.GetProperty("sh").GetInt32() <= fit.GetProperty("ch").GetInt32(), fit.ToString());
+        Assert.True(fit.GetProperty("badgeFits").GetBoolean() && fit.GetProperty("nameFits").GetBoolean(), fit.ToString());
+        Assert.Equal(3, fit.GetProperty("controls").GetArrayLength());
+        foreach (var control in fit.GetProperty("controls").EnumerateArray())
+        {
+            Assert.True(control.GetProperty("width").GetDouble() >= 44 && control.GetProperty("height").GetDouble() >= 44, fit.ToString());
+            Assert.True(control.GetProperty("hit").GetBoolean(), fit.ToString());
+        }
+    }
+
     [Fact]
     public async Task ConstrainedSheet_ScrollsContentWhileOnlyTheHandleDrags()
     {
