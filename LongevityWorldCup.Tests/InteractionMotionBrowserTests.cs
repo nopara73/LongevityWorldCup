@@ -230,19 +230,26 @@ public sealed class InteractionMotionBrowserTests(
     [Theory]
     [InlineData(1280, 800)]
     [InlineData(390, 844)]
-    public async Task AthleteProfile_BackdropFadesInAsWellAsOut(int width, int height)
+    public async Task AthleteProfile_OpensOpaqueAndFadesOut(int width, int height)
     {
         await using var context = await NewMotionContextAsync(width, height);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/leaderboard");
-        // Observe the browser's transition lifecycle before the click. The 200ms
-        // entrance may finish before ClickAsync returns on a busy runner.
+        // The card stays opaque on entrance so the board cannot show through
+        // its identity. Record painted frames and transitions before the click.
         await page.EvaluateAsync("""
             () => {
                 window.__backdropMotion = [];
+                window.__backdropEntranceOpacity = [];
                 window.__backdropPhase = 'enter';
                 const backdrop = document.getElementById('detailsModal');
+                requestAnimationFrame(function sampleEntrance() {
+                    if (window.__backdropPhase !== 'enter') return;
+                    if (backdrop.getClientRects().length)
+                        window.__backdropEntranceOpacity.push(Number(getComputedStyle(backdrop).opacity));
+                    requestAnimationFrame(sampleEntrance);
+                });
                 // Transition events can be delivered after close cleanup removes
                 // fade-out. Keep the direction from the actual close lifecycle.
                 backdrop.addEventListener('athlete-dialog-closing', () => window.__backdropPhase = 'exit');
@@ -255,13 +262,15 @@ public sealed class InteractionMotionBrowserTests(
             }
             """);
         await page.Locator("#athleteLeaderboard tbody tr[data-athlete-name]").First.Locator(".athlete-name").ClickAsync();
-        await page.WaitForFunctionAsync("() => window.__backdropMotion.includes('enter:transitionend')");
+        await page.WaitForFunctionAsync("() => window.__backdropEntranceOpacity.length > 0");
         await Assertions.Expect(page.Locator("#detailsModal")).ToHaveCSSAsync("opacity", "1");
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        var entranceOpacity = await page.EvaluateAsync<double[]>("() => window.__backdropEntranceOpacity");
+        Assert.NotEmpty(entranceOpacity);
+        Assert.All(entranceOpacity, opacity => Assert.Equal(1, opacity));
         var transitions = await page.EvaluateAsync<string[]>("() => window.__backdropMotion");
-        Assert.Contains("enter:transitionrun", transitions);
-        Assert.Contains("enter:transitionend", transitions);
+        Assert.DoesNotContain("enter:transitionrun", transitions);
         Assert.Contains("exit:transitionrun", transitions);
     }
 
