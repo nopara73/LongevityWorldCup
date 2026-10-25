@@ -282,7 +282,7 @@ body.flow-input-keyboard-open::after {
     user-select: none;
 }
 
-.flow-action-stack.flow-action-stack--hide-disabled-primary > .flow-action:disabled {
+.flow-action-stack.flow-action-stack--hide-disabled-primary > .flow-action:disabled:not([data-lwc-wait]):not([data-lwc-wait-end]) {
     display: none;
 }
 
@@ -341,6 +341,22 @@ body.flow-input-keyboard-open::after {
     .option-button.flow-action.flow-action--icon-left > i,
     .flow-action--icon-left .flow-action__icon {
         left: 1.2rem;
+    }
+}
+
+/* Native phone zoom can leave less than 200px of usable layout width. Give
+   the caption the whole line before placing its icon on the next one. */
+@media (max-width: 280px) {
+    .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action[data-flow-dock] > .flow-action:not(.back-button) {
+        flex-direction: column;
+        gap: 0.4em;
+        padding-inline: 0.75rem;
+    }
+
+    .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action[data-flow-dock] > .flow-action:not(.back-button) > :is(i, .flow-action__icon) {
+        position: static;
+        width: auto;
+        transform: none;
     }
 }
 

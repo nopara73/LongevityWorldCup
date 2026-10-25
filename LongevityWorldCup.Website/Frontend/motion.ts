@@ -13,11 +13,29 @@ interface LwcMotionApi {
     readonly settle: (element: Element) => void;
 }
 
+type LwcWaitOutcome = "success" | "error" | "idle";
+type LwcWaitFinish = (outcome?: LwcWaitOutcome) => Promise<void>;
+
+interface LwcWaitOptions {
+    // Associates the control with its panel without disabling that panel.
+    readonly region?: Element | null;
+    readonly message?: string;
+}
+
+interface LwcWaitApi {
+    readonly start: (control: Element, options?: LwcWaitOptions) => LwcWaitFinish;
+    readonly finish: (control: Element, outcome?: LwcWaitOutcome) => Promise<void>;
+    readonly region: (region: Element, busy: boolean) => void;
+    readonly optimistic: <T>(apply: () => (() => void) | void, request: () => Promise<T>, control?: Element | null) => Promise<T>;
+}
+
 interface Window {
     LwcMotion: LwcMotionApi;
+    LwcWait: LwcWaitApi;
 }
 
 (() => {
+    if (window.LwcMotion) return;
     const root = document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     // Rows further than this outside the viewport snap: nobody sees them travel.
@@ -229,4 +247,315 @@ interface Window {
 
     window.LwcMotion = Object.freeze({ enabled, flip, afterExit, settle });
 
+})();
+
+// Explicit operations own their result. aria-busy can also provide a quiet,
+// indeterminate wait; disabled alone never means network activity. Component
+// entrances and content visibility remain owned by the component.
+(() => {
+    if (window.LwcWait) return;
+    const root = document.documentElement;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const selector = "button, [role='button'], a.button, .lmx-button";
+    const properties = ["--lwc-wait-bg", "--lwc-wait-image", "--lwc-wait-fg", "--lwc-wait-border", "--lwc-wait-shadow"];
+    interface ControlWait {
+        readonly control: HTMLElement;
+        readonly manual: boolean;
+        readonly ownsBusy: boolean;
+        readonly styles: readonly (readonly [string, string, string])[];
+        readonly fill: HTMLElement;
+        readonly ring: HTMLElement;
+        readonly status: HTMLElement | null;
+        readonly done: Promise<void>;
+        readonly resolve: () => void;
+        timer: number | undefined;
+        ending: boolean;
+        shown: boolean;
+    }
+    interface RegionWait {
+        readonly host: HTMLElement;
+        readonly line: HTMLElement;
+        timer: number | undefined;
+        ending: boolean;
+    }
+    const controls = new Map<HTMLElement, ControlWait>();
+    const regions = new Map<HTMLElement, RegionWait>();
+    const hosts = new Map<HTMLElement, { count: number; position: string; priority: string; changed: boolean }>();
+    const background = new Set<symbol>();
+    let syncTimer: number | undefined;
+    let syncGeneration = 0;
+    let syncFailed = false;
+    let scrollFrame = 0;
+
+    function token(name: string, fallback: number): number {
+        const value = getComputedStyle(root).getPropertyValue(name).trim();
+        const parsed = parseFloat(value) * (value.endsWith("ms") ? 1 : 1000);
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+    }
+
+    function retainHost(host: HTMLElement): void {
+        const existing = hosts.get(host);
+        if (existing) { existing.count++; return; }
+        const value = { count: 1, position: host.style.getPropertyValue("position"), priority: host.style.getPropertyPriority("position"),
+            changed: getComputedStyle(host).position === "static" };
+        hosts.set(host, value);
+        if (value.changed) host.style.position = "relative";
+    }
+
+    function releaseHost(host: HTMLElement): void {
+        const value = hosts.get(host);
+        if (!value || --value.count > 0) return;
+        hosts.delete(host);
+        if (!value.changed || host.style.position !== "relative") return;
+        if (value.position) host.style.setProperty("position", value.position, value.priority);
+        else host.style.removeProperty("position");
+    }
+
+    function clearControl(wait: ControlWait): void {
+        window.clearTimeout(wait.timer);
+        if (controls.get(wait.control) !== wait) { wait.resolve(); return; }
+        controls.delete(wait.control);
+        const control = wait.control;
+        control.removeAttribute("data-lwc-wait");
+        control.removeAttribute("data-lwc-wait-end");
+        control.removeAttribute("data-lwc-wait-ring");
+        if (wait.ownsBusy && control.getAttribute("aria-busy") === "true") control.removeAttribute("aria-busy");
+        wait.fill.remove();
+        wait.ring.remove();
+        wait.status?.remove();
+        for (const [name, value, priority] of wait.styles) {
+            if (value) control.style.setProperty(name, value, priority);
+            else control.style.removeProperty(name);
+        }
+        releaseHost(control);
+        wait.resolve();
+    }
+
+    function begin(control: HTMLElement, options: LwcWaitOptions, manual: boolean): ControlWait {
+        const previous = controls.get(control);
+        if (previous) clearControl(previous);
+        const computed = getComputedStyle(control);
+        const values = [computed.backgroundColor, computed.backgroundImage, computed.color, computed.borderColor, computed.boxShadow];
+        const styles = [...properties, "min-inline-size"].map(name =>
+            [name, control.style.getPropertyValue(name), control.style.getPropertyPriority(name)] as const);
+        const width = control.getBoundingClientRect().width;
+        retainHost(control);
+        properties.forEach((name, i) => control.style.setProperty(name, values[i] || ""));
+        if (width > 0) control.style.minInlineSize = `min(${width}px, 100%)`;
+        const fill = document.createElement("span");
+        fill.className = "lwc-wait-fill";
+        fill.setAttribute("aria-hidden", "true");
+        const ring = document.createElement("span");
+        ring.className = "lwc-wait-ring";
+        ring.setAttribute("aria-hidden", "true");
+        let resolve = () => {};
+        const done = new Promise<void>(complete => { resolve = complete; });
+        const status = options.message ? document.createElement("span") : null;
+        if (status) {
+            status.className = "lwc-wait-status";
+            status.setAttribute("role", "status");
+            status.setAttribute("aria-live", "polite");
+            document.body.append(status);
+            status.textContent = options.message || "";
+        }
+        const wait: ControlWait = { control, manual, ownsBusy: control.getAttribute("aria-busy") !== "true", styles,
+            fill, ring, status, done, resolve, timer: undefined, ending: false, shown: false };
+        controls.set(control, wait);
+        control.setAttribute("data-lwc-wait", "pending");
+        if (wait.ownsBusy) control.setAttribute("aria-busy", "true");
+        wait.timer = window.setTimeout(() => {
+            if (controls.get(control) !== wait || wait.ending) return;
+            if (!control.isConnected) { clearControl(wait); return; }
+            wait.shown = true;
+            control.append(fill);
+            control.setAttribute("data-lwc-wait", "shown");
+            refreshSync();
+        }, token("--lwc-wait-delay", 140));
+        return wait;
+    }
+
+    function complete(wait: ControlWait, outcome: LwcWaitOutcome = "idle"): Promise<void> {
+        const control = wait.control;
+        if (controls.get(control) !== wait || wait.ending) return wait.done;
+        window.clearTimeout(wait.timer);
+        wait.ending = true;
+        // Semantic readiness is immediate; the ending never gates content or input.
+        control.removeAttribute("data-lwc-wait");
+        if (wait.ownsBusy && control.getAttribute("aria-busy") === "true") control.removeAttribute("aria-busy");
+        wait.status?.remove();
+        if (outcome === "idle" || !control.isConnected) { clearControl(wait); refreshSync(); return wait.done; }
+        control.setAttribute("data-lwc-wait-end", outcome);
+        control.setAttribute("data-lwc-wait-ring", outcome);
+        control.append(wait.ring);
+        // An instant response confirms without ever inserting a pending fill.
+        if (wait.shown) wait.fill.setAttribute("data-lwc-wait-end", outcome);
+        wait.timer = window.setTimeout(() => { clearControl(wait); refreshSync(); },
+            reduced.matches ? 0 : token("--lwc-wait-settle", 520));
+        refreshSync();
+        return wait.done;
+    }
+
+    function start(control: Element, options: LwcWaitOptions = {}): LwcWaitFinish {
+        if (!(control instanceof HTMLElement) || !control.isConnected) return () => Promise.resolve();
+        const wait = begin(control, options, true);
+        // A late response can only complete the operation that created this handle.
+        return outcome => complete(wait, outcome);
+    }
+
+    function finish(control: Element, outcome?: LwcWaitOutcome): Promise<void> {
+        const wait = control instanceof HTMLElement ? controls.get(control) : undefined;
+        return wait ? complete(wait, outcome) : Promise.resolve();
+    }
+
+    function clearRegion(region: HTMLElement, wait: RegionWait): void {
+        window.clearTimeout(wait.timer);
+        wait.line.remove();
+        if (regions.get(region) !== wait) return;
+        regions.delete(region);
+        region.removeAttribute("data-lwc-wait-region");
+        releaseHost(wait.host);
+    }
+
+    function region(target: Element, busy: boolean): void {
+        if (!(target instanceof HTMLElement)) return;
+        const previous = regions.get(target);
+        if (busy) {
+            if (previous && !previous.ending) return;
+            if (previous) clearRegion(target, previous);
+            if (!target.isConnected) return;
+            let host = target;
+            while (host.parentElement && /^(TABLE|TBODY|THEAD|TFOOT|TR|UL|OL|DL|SELECT)$/.test(host.tagName)) host = host.parentElement;
+            retainHost(host);
+            const line = document.createElement("span");
+            line.className = "lwc-wait-line";
+            line.setAttribute("aria-hidden", "true");
+            host.prepend(line);
+            const wait: RegionWait = { host, line, timer: undefined, ending: false };
+            regions.set(target, wait);
+            target.setAttribute("data-lwc-wait-region", "refresh");
+        } else if (previous && !previous.ending) {
+            previous.ending = true;
+            target.setAttribute("data-lwc-wait-region", "settle");
+            previous.line.setAttribute("data-lwc-wait-end", "");
+            previous.timer = window.setTimeout(() => { clearRegion(target, previous); refreshSync(); },
+                reduced.matches ? 0 : token("--lwc-wait-settle", 520));
+        }
+        refreshSync();
+    }
+
+    function onScreen(element: HTMLElement): boolean {
+        const rect = element.getBoundingClientRect();
+        return element.isConnected && rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+    }
+
+    function refreshSync(): void {
+        const generation = ++syncGeneration;
+        window.clearTimeout(syncTimer);
+        syncTimer = undefined;
+        const visible = [...controls.values()].some(wait => !wait.ending && wait.shown && onScreen(wait.control))
+            || [...regions].some(([element, wait]) => !wait.ending && onScreen(element));
+        if (background.size && !visible) {
+            if (root.getAttribute("data-lwc-sync") === "on") return;
+            syncTimer = window.setTimeout(() => {
+                if (generation !== syncGeneration || !background.size) return;
+                if (!document.getElementById("lwc-sync")) {
+                    const line = document.createElement("div");
+                    line.id = "lwc-sync"; line.setAttribute("aria-hidden", "true"); document.body.append(line);
+                }
+                root.setAttribute("data-lwc-sync", "on");
+            }, token("--lwc-wait-sync-delay", 360));
+        } else if (root.hasAttribute("data-lwc-sync")) {
+            root.setAttribute("data-lwc-sync", syncFailed ? "error" : "done");
+            syncTimer = window.setTimeout(() => {
+                if (generation === syncGeneration) root.removeAttribute("data-lwc-sync");
+            }, reduced.matches ? 0 : token("--lwc-wait-settle", 520));
+        }
+        if (!background.size) syncFailed = false;
+    }
+
+    function attributeChanged(target: HTMLElement): void {
+        if (target.closest("[data-lwc-wait-skip]")) return;
+        const busy = target.getAttribute("aria-busy") === "true";
+        if (target.matches(selector)) {
+            const current = controls.get(target);
+            if (current) { if (!current.manual && !current.ending && !busy) void complete(current); return; }
+            if (busy) begin(target, {}, false);
+        } else if (busy) {
+            // Task views, dialogs, proof processing and games already own their
+            // loading presentation. Only declared list/board regions adopt here.
+            if (!target.matches("[data-lwc-wait-refresh], #athleteLeaderboard tbody, #events-root")) return;
+            if (!target.hasAttribute("data-lwc-wait-refresh") &&
+                !target.querySelector("tr[data-athlete-name], tr.main-row")) return;
+            if ([...controls.keys()].some(control => target.contains(control))) return;
+            region(target, true);
+        } else if (regions.has(target)) region(target, false);
+    }
+
+    const observer = new MutationObserver(records => {
+        let removed = false;
+        for (const record of records) {
+            if (record.type === "attributes" && record.target instanceof HTMLElement) attributeChanged(record.target);
+            else if (record.removedNodes.length) removed = true;
+        }
+        if (removed) {
+            for (const wait of controls.values()) if (!wait.control.isConnected) clearControl(wait);
+            for (const [element, wait] of regions) if (!element.isConnected || !wait.line.isConnected) clearRegion(element, wait);
+        }
+    });
+    function observe(): void {
+        observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["aria-busy"] });
+        document.querySelectorAll<HTMLElement>("[aria-busy='true']").forEach(attributeChanged);
+    }
+    if (document.body) observe();
+    else document.addEventListener("DOMContentLoaded", observe, { once: true });
+
+    function dispose(): void {
+        observer.disconnect();
+        for (const wait of controls.values()) clearControl(wait);
+        for (const [element, wait] of regions) clearRegion(element, wait);
+        background.clear();
+        window.clearTimeout(syncTimer);
+        cancelAnimationFrame(scrollFrame);
+        scrollFrame = 0;
+        syncGeneration++;
+        root.removeAttribute("data-lwc-sync");
+        syncFailed = false;
+    }
+    window.addEventListener("pagehide", dispose);
+    window.addEventListener("pageshow", event => { if (event.persisted) observe(); });
+    window.addEventListener("scroll", () => {
+        if (!background.size || scrollFrame) return;
+        scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; refreshSync(); });
+    }, { passive: true });
+    function preferenceChanged(): void {
+        if (!reduced.matches) return;
+        for (const wait of controls.values()) if (wait.ending) clearControl(wait);
+        for (const [element, wait] of regions) if (wait.ending) clearRegion(element, wait);
+        refreshSync();
+    }
+    if (typeof reduced.addEventListener === "function") reduced.addEventListener("change", preferenceChanged);
+    else reduced.addListener?.(preferenceChanged);
+
+    async function optimistic<T>(apply: () => (() => void) | void, request: () => Promise<T>, control?: Element | null): Promise<T> {
+        const undo = apply();
+        const end = control instanceof HTMLElement ? start(control) : null;
+        const operation = Symbol();
+        background.add(operation);
+        refreshSync();
+        try {
+            const result = await request();
+            void end?.("success");
+            return result;
+        } catch (error) {
+            try { if (typeof undo === "function") undo(); }
+            finally {
+                void end?.("error");
+                if (background.has(operation)) syncFailed = true;
+            }
+            throw error;
+        } finally {
+            if (background.delete(operation)) refreshSync();
+        }
+    }
+    window.LwcWait = Object.freeze({ start, finish, region, optimistic });
 })();
