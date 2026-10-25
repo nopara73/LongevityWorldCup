@@ -173,8 +173,13 @@ function placeHomepageHighlightsForVisit() {
         return;
     }
 
-    const visitCount = incrementHomepageVisitCount();
-    if (visitCount < homepageHighlightsBeforePodiumVisit) {
+    const historyLayout = history.state?.lwcHomepageVisitLayout;
+    const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
+        && (historyLayout === 'default' || historyLayout === 'repeat');
+    const layout = returning ? historyLayout
+        : incrementHomepageVisitCount() < homepageHighlightsBeforePodiumVisit ? 'default' : 'repeat';
+    if (!returning) history.replaceState({ ...history.state, lwcHomepageVisitLayout: layout }, '');
+    if (layout === 'default') {
         if (main) main.dataset.homepageVisitLayout = 'default';
         return;
     }

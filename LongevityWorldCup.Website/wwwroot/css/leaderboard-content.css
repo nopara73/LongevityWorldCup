@@ -173,10 +173,13 @@
  .leaderboard{
      --leaderboard-table-height: calc(100vh - 2rem);
      --leaderboard-sidebar-sticky-top: 4rem;
-     --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
      display:flex; align-items:flex-start; background-color:var(--card-bg);
      min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
      border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
+ }
+
+ .leaderboard .sidebar{
+     --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
  }
 
  .podium-skeleton-item{
@@ -4098,6 +4101,13 @@
      border-top-right-radius:0;
  }
  #detailsModal #athlete-profile > #modalBadgeStrip:empty{ display:none; }
+ /* Badge names remain readable when visitors enlarge text. The generic strip's
+    two-line clamp otherwise hides part of the athlete's earned title. */
+ #detailsModal #modalBadgeStrip .modal-badge-name{
+     display:block;
+     -webkit-line-clamp:unset;
+     overflow:visible;
+ }
 
  /* The why stays an open pull quote: the one unframed voice between the
     rank card and the data cards, held to the same rhythm. */
@@ -5810,9 +5820,10 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 #detailsModal #athlete-profile > .athlete-links .athlete-share-menu.is-above{ transform-origin:bottom center; }
 #detailsModal #athlete-profile > .athlete-links + #athleteRankings{ margin-top:1.35rem; }
 
-/* Opening: the card settles in; stepping slides the next athlete in from the side. */
+/* Keep the whole card readable during entry. Athlete paging owns its small,
+   interruptible directional motion in athlete-browse-motion.js. */
 @keyframes athlete-frame-in{
-    from{ opacity:var(--athlete-entry-opacity, 0); transform:translateY(var(--athlete-entry-offset, 12px)) scale(var(--athlete-entry-scale, .985)); }
+    from{ opacity:var(--athlete-entry-opacity, .94); transform:translateY(var(--athlete-entry-offset, 12px)) scale(var(--athlete-entry-scale, .985)); }
     to{ opacity:1; transform:none; }
 }
 @keyframes athlete-step-next{
@@ -5831,12 +5842,6 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
 #detailsModal.fade-out .modal-content{
     transform:translateY(8px) scale(.99);
     transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-}
-#detailsModal .modal-content[data-athlete-step="next"]:not(.is-loading) #athlete-profile{
-    animation:athlete-step-next var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
-}
-#detailsModal .modal-content[data-athlete-step="previous"]:not(.is-loading) #athlete-profile{
-    animation:athlete-step-previous var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
 }
 
 @media (max-width: 768px){
@@ -5857,7 +5862,7 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     /* Keep one animation name across viewport changes and guess mode, so
        neither resizing nor leaving a round replays the entrance. */
     #detailsModal .modal-content{
-        --athlete-entry-opacity:.4;
+        --athlete-entry-opacity:.94;
         --athlete-entry-offset:6%;
         --athlete-entry-scale:1;
     }
@@ -5909,6 +5914,23 @@ main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
     #detailsModal .modal-content,
     #detailsModal .modal-content[data-athlete-step] #athlete-profile{ animation:none; }
     #detailsModal.fade-out .modal-content{ transform:none; transition:none; }
+}
+
+/* A genuine network wait is a compact, closable state. Cached steps hydrate in
+   the same turn and keep the full card; neither path exposes an empty slab. */
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]){
+    height:auto;
+    min-height:9rem;
+}
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]) > :not(#closeAthleteDetailsModal):not(.athlete-steps):not(#athlete-profile){
+    display:none;
+}
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]) #athlete-profile > :not(#athleteName):not(#athleteLoadError){
+    display:none;
+}
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]) #athlete-profile{
+    padding-top:calc(var(--athlete-frame-control) + 1rem);
+    padding-bottom:1rem;
 }
 
 /* 19) Browsing motion (athlete-browse-motion.js): a horizontal swipe on the

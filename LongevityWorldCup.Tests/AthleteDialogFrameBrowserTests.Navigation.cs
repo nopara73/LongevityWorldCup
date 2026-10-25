@@ -94,20 +94,26 @@ public sealed partial class AthleteDialogFrameBrowserTests
     }
 
     [Fact]
-    public async Task Steps_DoNotInterruptLoadingAndClosedRequestsCannotReopenTheDialog()
+    public async Task Steps_AdvancePendingIntentAndClosedRequestsCannotReopenTheDialog()
     {
         await using var context = await NewContextAsync(1280, 860, dark: true);
         var page = await OpenProfileAsync(context, Profile, "michael-lustgarten");
         await page.EvaluateAsync("""
             () => {
                 const original = window.getSharedAthletes;
-                window.getSharedAthletes = () => new Promise(resolve => { window.releaseProfile = async () => resolve(await original()); });
+                window.pendingProfiles = [];
+                window.getSharedAthletes = () => new Promise(resolve => window.pendingProfiles.push(resolve));
+                window.releaseProfile = async () => {
+                    const athletes = await original();
+                    window.pendingProfiles.reverse().forEach(resolve => resolve(athletes));
+                };
             }
             """);
         await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
         var pendingSlug = await page.Locator("#detailsModal .modal-content").GetAttributeAsync("data-athlete-slug");
         await page.Keyboard.PressAsync("ArrowRight");
-        Assert.Equal(pendingSlug, await page.Locator("#detailsModal .modal-content").GetAttributeAsync("data-athlete-slug"));
+        Assert.NotEqual(pendingSlug, await page.Locator("#detailsModal .modal-content").GetAttributeAsync("data-athlete-slug"));
+        Assert.Equal(2, await page.EvaluateAsync<int>("window.pendingProfiles.length"));
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
         await page.EvaluateAsync("window.releaseProfile()");
