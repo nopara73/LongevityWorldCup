@@ -397,6 +397,7 @@ interface Window {
         const focus = (): void => show(Math.max(0, selected));
         const blur = (event: FocusEvent): void => { if (!(event.relatedTarget instanceof Node && host!.contains(event.relatedTarget))) hide(); };
         const key = (event: KeyboardEvent): void => {
+            if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
             const count = options.points().length;
             if (event.key === "Escape") { hide(); event.preventDefault(); return; }
             if (tip.contains(event.target as Node)) return;
