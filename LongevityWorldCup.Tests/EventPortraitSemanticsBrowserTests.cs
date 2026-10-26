@@ -66,7 +66,7 @@ public sealed class EventPortraitSemanticsBrowserTests(
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.WaitForDocumentLoadedAsync();
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link=>link.sheet)");
         await page.EvaluateAsync("() => document.fonts.ready");
         await page.WaitForFunctionAsync("() => !document.querySelector('.events-board[aria-busy=true]')");

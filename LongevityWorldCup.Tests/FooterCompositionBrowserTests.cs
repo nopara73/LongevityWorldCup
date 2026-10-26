@@ -202,7 +202,7 @@ public sealed class FooterCompositionBrowserTests(
         Assert.Equal(Destinations[4], await page.EvaluateAsync<string>("window.footerContact"));
         await context.RouteAsync(Destinations[6], r => r.FulfillAsync(new() { Status = 200, ContentType = "text/html", Body = "<title>External navigation fixture</title>" }));
         var popup = await page.RunAndWaitForPopupAsync(() => page.Locator(".footer-follow-links .footer-link").First.TapAsync());
-        await popup.WaitForLoadStateAsync();
+        await popup.WaitForDocumentLoadedAsync();
         Assert.Equal(Destinations[6], popup.Url);
         Assert.True(await popup.EvaluateAsync<bool>("window.opener === null"));
         await popup.CloseAsync();
@@ -234,7 +234,7 @@ public sealed class FooterCompositionBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/ruleset");
         await page.GetByRole(AriaRole.Link, new() { Name = "Get browser notifications on Highlights", Exact = true }).ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.WaitForDocumentLoadedAsync();
         await SettleAsync(page);
         await Assertions.Expect(page.Locator("#eventBoardTitle")).ToBeInViewportAsync();
         Assert.Equal(0, await page.EvaluateAsync<int>("window.footerPermissionRequests"));

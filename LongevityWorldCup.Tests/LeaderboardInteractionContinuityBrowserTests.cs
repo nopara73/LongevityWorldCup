@@ -69,7 +69,7 @@ public sealed class LeaderboardInteractionContinuityBrowserTests(
                 await page.WaitForTimeoutAsync(700);
             }
             finally { releaseFonts.TrySetResult(); }
-            await page.WaitForLoadStateAsync(LoadState.Load);
+            await page.WaitForDocumentLoadedAsync();
             await page.EvaluateAsync("() => document.fonts.ready");
             await page.WaitForTimeoutAsync(800);
         }

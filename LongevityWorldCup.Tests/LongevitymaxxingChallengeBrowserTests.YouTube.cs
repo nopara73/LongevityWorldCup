@@ -95,7 +95,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         // Exercise native keyboard navigation without depending on YouTube availability.
         await context.RouteAsync(url, route => route.FulfillAsync(new() { ContentType = "text/html", Body = "Video destination" }));
         var popup = await page.RunAndWaitForPopupAsync(() => page.Keyboard.PressAsync("Enter"));
-        await popup.WaitForLoadStateAsync();
+        await popup.WaitForDocumentLoadedAsync();
         Assert.Equal(url, popup.Url);
     }
 

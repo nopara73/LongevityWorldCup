@@ -157,7 +157,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
             await page.WaitForFunctionAsync("() => !!window.LwcBioAgeRankPreview");
             await page.EvaluateAsync("() => window.modulesReady");
             release.TrySetResult();
-            await page.WaitForLoadStateAsync(LoadState.Load);
+            await page.WaitForDocumentLoadedAsync();
             await WaitForEntryAsync(page);
             await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
             await AssertRawDraftAsync(page);
@@ -226,7 +226,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
         await page.Locator("#continueButton").ClickAsync();
         await page.WaitForURLAsync("**/proofs");
-        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await page.WaitForDocumentContentLoadedAsync();
         var readyGates = 0;
 
         // Resolve the form modules before DOM-ready initialization on the return.
@@ -240,7 +240,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         });
         await page.GoBackAsync();
         await WaitForEntryAsync(page);
-        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.WaitForDocumentLoadedAsync();
         Assert.True(readyGates > 0, "The return must exercise the controlled module-loading order.");
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");

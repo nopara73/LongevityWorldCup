@@ -154,7 +154,7 @@ public sealed class HomepageArrivalBrowserTests(
             releasePage.TrySetResult();
         }
 
-        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await page.WaitForDocumentContentLoadedAsync();
         await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
         Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
         Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));

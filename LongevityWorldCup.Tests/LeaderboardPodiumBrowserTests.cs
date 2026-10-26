@@ -213,7 +213,7 @@ public sealed class LeaderboardPodiumBrowserTests(
         }
         else
         {
-            await page.WaitForLoadStateAsync(LoadState.Load);
+            await page.WaitForDocumentLoadedAsync();
         }
     }
 

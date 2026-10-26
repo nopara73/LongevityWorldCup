@@ -268,7 +268,7 @@ public sealed class LoadingFeelBrowserTests(PlaywrightBrowserFixture browserFixt
             await page.WaitForTimeoutAsync(500);
         }
         finally { release.TrySetResult(); }
-        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.WaitForDocumentLoadedAsync();
         await page.WaitForTimeoutAsync(500);
         var frames = await page.EvaluateAsync<double[]>("() => { window.__lwcStopCanvas = true; return window.__lwcCanvas; }");
         Assert.NotEmpty(frames);

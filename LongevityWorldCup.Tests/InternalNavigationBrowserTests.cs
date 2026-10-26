@@ -233,7 +233,7 @@ public sealed class InternalNavigationBrowserTests(
 
     private static async Task WaitForLeaderboardAsync(IPage page)
     {
-        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await page.WaitForDocumentContentLoadedAsync();
         await page.WaitForFunctionAsync("() => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
     }
 }
