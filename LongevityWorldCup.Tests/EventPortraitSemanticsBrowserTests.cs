@@ -75,7 +75,7 @@ public sealed class EventPortraitSemanticsBrowserTests(
         Assert.Contains("/assets/HdLogo_thumb_sm.png", originalSource);
         var chrome = await LogoChromeAsync(logo);
         Assert.NotEqual("none", chrome[0]);
-        var approvedPixels = await logo.ScreenshotAsync(new() { Animations = ScreenshotAnimations.Disabled });
+        var approvedPixels = await CaptureSettledLogoAsync(logo);
         var approvedGeometry = await logo.EvaluateAsync<string>("image=>JSON.stringify({rect:image.getBoundingClientRect().toJSON(),scrollY,dpr:devicePixelRatio})");
         await page.AddScriptTagAsync(new() { Url = "/js/portrait-system.js?semantic-probe=1" });
         await page.WaitForFunctionAsync("() => !!window.LwcPortrait");
@@ -102,7 +102,7 @@ public sealed class EventPortraitSemanticsBrowserTests(
             Assert.Null(await logo.GetAttributeAsync("data-lwc-portrait-state"));
             Assert.Equal("Longevity World Cup", await logo.GetAttributeAsync("alt"));
             Assert.Equal(chrome, await LogoChromeAsync(logo));
-            var actualPixels = await logo.ScreenshotAsync(new() { Animations = ScreenshotAnimations.Disabled });
+            var actualPixels = await CaptureSettledLogoAsync(logo);
             try { AssertLogoPixels(approvedPixels, actualPixels); }
             catch
             {
@@ -133,9 +133,57 @@ public sealed class EventPortraitSemanticsBrowserTests(
         Assert.Empty(errors);
     }
 
+    private static async Task<byte[]> CaptureSettledLogoAsync(ILocator logo)
+    {
+        await logo.ScrollIntoViewIfNeededAsync();
+        // Rerendering creates exit copies and can trigger native scroll
+        // anchoring. Capture actual settled pixels rather than fast-forwarding
+        // animations while the screenshot's clip is being measured.
+        await logo.Page.WaitForFunctionAsync("""
+            image => !document.querySelector('.events-exit-ghost') && document.getAnimations().every(animation => {
+                const target=animation.effect?.target;
+                return !(target instanceof Element) || !target.contains(image)
+                    || !(animation.timeline instanceof DocumentTimeline)
+                    || animation.playState!=='running' || animation.effect.getComputedTiming().iterations===Infinity;
+            })
+            """, await logo.ElementHandleAsync());
+        await logo.EvaluateAsync("""
+            async image => {
+                let previous='', stable=0;
+                const deadline=performance.now()+5000;
+                while(stable<3) {
+                    await new Promise(requestAnimationFrame);
+                    const current=JSON.stringify([image.getBoundingClientRect().toJSON(),scrollX,scrollY]);
+                    stable=current===previous?stable+1:0;
+                    previous=current;
+                    if(performance.now()>deadline)throw Error('Logo capture geometry did not settle');
+                }
+            }
+            """);
+        // Locator screenshots scroll again after measuring their clip. Native
+        // scroll anchoring can then offset the crop even though the document
+        // image did not move. Capture its document coordinates directly.
+        var clip = await logo.EvaluateAsync<JsonElement>("""
+            image => {const r=image.getBoundingClientRect();return {
+                x:r.left+scrollX,y:r.top+scrollY,width:r.width,height:r.height,scale:1
+            }}
+            """);
+        var cdp = await logo.Page.Context.NewCDPSessionAsync(logo.Page);
+        try
+        {
+            var result = await cdp.SendAsync("Page.captureScreenshot", new Dictionary<string, object>
+            {
+                ["format"] = "png", ["fromSurface"] = true,
+                ["captureBeyondViewport"] = true, ["clip"] = clip
+            });
+            return Convert.FromBase64String(result!.Value.GetProperty("data").GetString()!);
+        }
+        finally { await cdp.DetachAsync(); }
+    }
+
     private static Task<string[]> LogoChromeAsync(ILocator image) => image.EvaluateAsync<string[]>("""
         image=>{const s=getComputedStyle(image);return [s.boxShadow,s.borderColor,s.borderWidth,s.borderRadius,
-            s.outlineStyle,s.objectFit,s.objectPosition,s.content]}
+            s.outlineStyle,s.objectFit,s.objectPosition,s.content,s.filter]}
         """);
 
     private static void AssertLogoPixels(byte[] approved, byte[] actual)
