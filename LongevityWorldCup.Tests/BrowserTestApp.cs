@@ -79,6 +79,7 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
         IBrowserContext context,
         Func<Uri, Task>? beforeLoopbackContinueAsync = null)
     {
+        await context.TrackDocumentReadinessAsync();
         var clientAddress = $"2001:db8::{Interlocked.Increment(ref s_nextBrowserContextAddress):x}";
         if (beforeLoopbackContinueAsync is null)
         {

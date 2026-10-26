@@ -8,10 +8,13 @@ public sealed class BrowserReadinessTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture) : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    [Fact]
-    public async Task DocumentReadiness_WaitsForPendingResourcesAndAcceptsCompletedEvents()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DocumentReadiness_WaitsForPendingResourcesAndAcceptsCompletedEvents(bool installClock)
     {
         await using var context = await Browser.NewContextAsync();
+        await context.TrackDocumentReadinessAsync();
         var releaseImage = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("https://readiness.test/", route => route.FulfillAsync(new()
         {
@@ -28,6 +31,7 @@ public sealed class BrowserReadinessTests(
             });
         });
         var page = await context.NewPageAsync();
+        if (installClock) await page.Clock.InstallAsync(new() { Time = "2026-07-01T10:00:00Z" });
         try
         {
             await page.GotoAsync("https://readiness.test/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
