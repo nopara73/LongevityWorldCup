@@ -291,16 +291,45 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
             "The escalation phase must start a new copy beat before the driver observes it.");
 
         // The finale holds, and the takeover dissolves before it is removed.
+        // RunFor advances JS timers, while CSS uses the real rendering timeline.
+        // Capture and pause the actual outro when it starts; on a busy runner its
+        // full 900ms fade can finish before RunFor returns to the assertion.
+        await page.EvaluateAsync("""
+            () => {
+                const overlay = document.querySelector('.gma-exact-jackpot');
+                window.__gmaOutro = null;
+                overlay.addEventListener('transitionrun', event => {
+                    if (event.target !== overlay || event.propertyName !== 'opacity'
+                        || overlay.dataset.ending !== 'true') return;
+                    const fade = overlay.getAnimations().find(animation => animation.transitionProperty === 'opacity');
+                    if (fade) {
+                        fade.pause();
+                        window.__gmaOutro = fade;
+                    }
+                });
+            }
+            """);
         await page.Clock.RunForAsync(9100);
         var ending = await page.EvaluateAsync<JsonElement>(
             """
             () => {
                 const overlay = document.querySelector('.gma-exact-jackpot');
+                const fade = window.__gmaOutro;
+                const duration = fade?.effect.getTiming().duration ?? 0;
+                const sample = progress => {
+                    if (!fade) return -1;
+                    fade.currentTime = duration * progress;
+                    return Number(getComputedStyle(overlay).opacity);
+                };
                 return {
                     present: Boolean(overlay),
                     ending: overlay?.dataset.ending ?? '',
                     final: overlay?.querySelector('.gma-exact-jackpot-copy').classList.contains('is-final') ?? false,
-                    fading: overlay?.getAnimations().some(animation => animation.transitionProperty === 'opacity') ?? false
+                    fading: overlay?.getAnimations().some(animation => animation.transitionProperty === 'opacity') ?? false,
+                    duration,
+                    startOpacity: sample(0),
+                    middleOpacity: sample(0.5),
+                    endOpacity: sample(1)
                 };
             }
             """);
@@ -308,6 +337,10 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
         Assert.Equal("true", ending.GetProperty("ending").GetString());
         Assert.True(ending.GetProperty("final").GetBoolean());
         Assert.True(ending.GetProperty("fading").GetBoolean(), "The jackpot cuts out instead of fading.");
+        Assert.Equal(900, ending.GetProperty("duration").GetDouble());
+        Assert.InRange(ending.GetProperty("startOpacity").GetDouble(), 0.99, 1);
+        Assert.InRange(ending.GetProperty("middleOpacity").GetDouble(), 0.001, 0.99);
+        Assert.InRange(ending.GetProperty("endOpacity").GetDouble(), 0, 0.01);
         await page.Clock.RunForAsync(1200);
         Assert.Equal(0, await page.Locator(".gma-exact-jackpot").CountAsync());
     }

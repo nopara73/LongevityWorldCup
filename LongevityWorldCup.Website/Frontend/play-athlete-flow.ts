@@ -266,9 +266,9 @@ function shouldUseDefaultForLoadedAthleteImage(image: HTMLImageElement | null | 
 }
 
 function setDefaultAthleteImageSource(image: HTMLImageElement | null | undefined): boolean {
-    if (!image || isDefaultHeadshotSrc(image.currentSrc || image.src)) {
-        return false;
-    }
+    if (!image) return false;
+    image.dataset["lwcImageRole"] = "illustration";
+    if (isDefaultHeadshotSrc(image.currentSrc || image.src)) return false;
 
     image.classList.add("athlete-picture-placeholder");
     image.src = getDefaultHeadshotJpeg();

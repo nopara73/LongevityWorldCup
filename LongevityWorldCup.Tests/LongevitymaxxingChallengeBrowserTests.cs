@@ -1302,7 +1302,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal("/athlete/ari-able", await ariReplyIdentity.GetAttributeAsync("href"));
         await Assertions.Expect(ariReplyIdentity.Locator("strong")).ToHaveTextAsync("Ari");
         await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(ariReplyIdentity.Locator("img"),
-            (await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content"))!);
+            "/assets/content-images/play-athlete-placeholder.jpg");
+        await Assertions.Expect(ariReplyIdentity.Locator("img")).ToHaveAttributeAsync("alt", "Ari profile picture");
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-edit]").CountAsync());
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-delete]").CountAsync());
         Assert.Equal(0, await foxSurfaces.First.Locator("[data-discussion-reply-id='r4'] [data-discussion-reply-edit]").CountAsync());
