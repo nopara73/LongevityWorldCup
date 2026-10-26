@@ -76,6 +76,9 @@ public sealed class AthleteSocialProfilesTests
     public void EventAndCustomRenderers_UseSlugIdentityAndDestinationSpecificAccounts()
     {
         using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        // This formatter fixture injects its own directory; stop startup reloads
+        // before they can replace those records during the assertions.
+        fixture.Athletes.Dispose();
         AthleteForX alice = new("alice_one", "Alice", 1, 30, 31, 40, -10, -9, null, "@alice_x",
             "https://instagram.com/alice.ig", "@alice.threads", "@alice.ig");
         var namesake = alice with { Slug = "alice_two", XHandle = null, ThreadsHandle = null,
