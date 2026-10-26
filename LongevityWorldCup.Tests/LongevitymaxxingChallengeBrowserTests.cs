@@ -40,7 +40,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal(expectedDay, await page.Locator(".lmx-dashboard-day.today").InnerTextAsync());
         var placeholder = await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content");
         Assert.StartsWith("/assets/content-images/play-athlete-placeholder.webp?v=", placeholder);
-        await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(page.Locator(".lmx-participant-avatar.placeholder img").First, "BT");
+        await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(page.Locator(".lmx-participant-avatar.placeholder img").First, placeholder!);
         await Assertions.Expect(page.Locator(".lmx-participant-avatar.placeholder img").First).ToHaveAttributeAsync("alt", "");
         var todayCells = await page.Locator(".lmx-category-day.today").AllAsync();
         Assert.Equal(4, todayCells.Count);
@@ -1301,7 +1301,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             .Locator("[data-discussion-reply-id='r4'] .lmx-discussion-author-identity");
         Assert.Equal("/athlete/ari-able", await ariReplyIdentity.GetAttributeAsync("href"));
         await Assertions.Expect(ariReplyIdentity.Locator("strong")).ToHaveTextAsync("Ari");
-        await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(ariReplyIdentity.Locator("img"), "A");
+        await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(ariReplyIdentity.Locator("img"),
+            "/assets/content-images/play-athlete-placeholder.jpg");
+        await Assertions.Expect(ariReplyIdentity.Locator("img")).ToHaveAttributeAsync("alt", "Ari profile picture");
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-edit]").CountAsync());
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-delete]").CountAsync());
         Assert.Equal(0, await foxSurfaces.First.Locator("[data-discussion-reply-id='r4'] [data-discussion-reply-edit]").CountAsync());

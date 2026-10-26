@@ -91,7 +91,7 @@ public sealed class HomepageLoadingBrowserTests(
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 2", target,
             new() { Timeout = 3000 });
         await page.Clock.FastForwardAsync(10_001);
-        await page.WaitForFunctionAsync("window.publicDataAborts === 2");
+        await page.WaitForFunctionAsync("() => window.publicDataAborts === 2");
         // Font/size observers can request a fit as the final timeout settles.
         // Fitting must not consume recovery by starting another data request.
         await page.EvaluateAsync("fitHomepageHighlights()");

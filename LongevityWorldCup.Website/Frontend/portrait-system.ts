@@ -7,8 +7,8 @@
 // - Loading: a portrait that is still on its way shows a soft shimmer in its
 //   own frame, then "develops" into the photo once decoded.
 //   Anything already decoded appears at once.
-// - Fallback: the white logo stand-in becomes a monogram (initials, or a
-//   silhouette when there is no name) drawn in the site's teal.
+// - Fallback: recover an actually failed photo only after its page handlers.
+//   Supplied logos, silhouettes and illustrations keep their approved artwork.
 // - Identity: page-owned whole-card motion handles athlete changes; a portrait
 //   never overlays the previous athlete on the new profile.
 // - Crisp: generated thumbnails get a srcset/sizes pair, so phones and retina
@@ -33,13 +33,13 @@ interface Window {
     root.dataset["lwcPortraits"] = "on";
 
     const SELECTOR = [
+        'img[data-lwc-image-role="athlete"]',
         "img.portrait",
         "img.podium-portrait",
         "img#modalProfilePic",
         "img.sticky-athlete-portrait",
         ".flag-team-portraits img",
-        ".events-board img.avatar",
-        "img.event-athlete-preview-portrait",
+        ".event-athlete-preview-portrait img",
         ".lmx-participant-avatar img",
         ".lmx-mention-avatar img",
         ".lmx-quote-portrait img",
@@ -51,20 +51,41 @@ interface Window {
         ".ro-step-portrait img",
         "img.gma-avatar"
     ].join(",");
+    // Reinserted originals may no longer match an athlete selector. Visit the
+    // owned marker too so their old portrait state can be relinquished.
+    const SCAN_SELECTOR = `${SELECTOR},img[data-lwc-portrait]`;
 
     // Pictures with their own illustrated placeholder or their own transition.
     const OWN_MOTION = ".athlete-picture-frame img, img.athlete-picture-placeholder:not(.athlete-option-thumb)";
-    const FALLBACK_PATHS = ["/assets/HdLogo_thumb_sm.png", "/assets/content-images/play-athlete-placeholder"];
+    // These are authored artwork, including the two legacy silhouette URLs.
+    // A portrait-shaped slot does not turn them into missing-photo markers.
+    const INTENTIONAL_ARTWORK_PATHS = new Set([
+        "/assets/HdLogo_thumb_sm.png",
+        "/assets/content-images/play-athlete-placeholder.webp",
+        "/assets/content-images/play-athlete-placeholder.jpg",
+        "/assets/content-images/headshot.webp",
+        "/assets/content-images/headshot.jpg"
+    ]);
     const THUMB = /^(.*\/generated\/thumbs\/athletes\/.+)_thumb_(sm|md)_([0-9a-f]+\.webp)(\?.*)?$/i;
     const THUMB_WIDTH: Record<string, number> = { sm: 96, md: 320 };
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const known = new WeakSet<HTMLImageElement>();
+    const adopted = new WeakSet<HTMLImageElement>();
     const tracked = new WeakMap<HTMLImageElement, { source: string; version: number; timer?: number; decoding?: boolean }>();
     const failedThumbs = new WeakMap<HTMLImageElement, string>();
     const ownSrcset = new WeakMap<HTMLImageElement, string>();
+    const ownMonogram = new WeakMap<HTMLImageElement, { source: string; url: string }>();
     const monogramCache = new Map<string, string>();
+
+    function isAthletePortrait(img: HTMLImageElement): boolean {
+        const role = img.closest<HTMLElement>("[data-lwc-image-role]")?.dataset["lwcImageRole"];
+        return img.matches(SELECTOR) && (role === undefined || role === "athlete")
+            && !isIntentionalArtworkSrc(img.getAttribute("src") || "")
+            && img.dataset["lwcPortraitGhost"] === undefined && !img.matches(OWN_MOTION)
+            && !img.closest("[data-athlete-motion-copy]");
+    }
 
     // --- Tiers --------------------------------------------------------------
 
@@ -79,6 +100,8 @@ interface Window {
         ? new ResizeObserver(entries => {
             for (const entry of entries) {
                 const img = entry.target as HTMLImageElement;
+                if (!known.has(img)) continue;
+                if (!isAthletePortrait(img)) { relinquish(img); continue; }
                 const width = entry.borderBoxSize?.[0]?.inlineSize ?? img.getBoundingClientRect().width;
                 if (width > 0) applySize(img, width);
             }
@@ -215,21 +238,24 @@ interface Window {
         return url;
     }
 
-    function isFallbackSrc(src: string): boolean {
+    function isIntentionalArtworkSrc(src: string): boolean {
         if (!src) return false;
         try {
             const path = new URL(src, location.href).pathname;
-            return FALLBACK_PATHS.some(fallback => path.startsWith(fallback));
+            return INTENTIONAL_ARTWORK_PATHS.has(path);
         } catch {
             return false;
         }
     }
 
     function useMonogram(img: HTMLImageElement): void {
-        if (img.matches(OWN_MOTION)) return;
+        if (!isAthletePortrait(img)) return;
         // Responsive sources supplied by a page keep that page's recovery path.
         if (img.srcset && img.getAttribute("srcset") !== ownSrcset.get(img)) return;
         const url = monogram(nameOf(img));
+        const source = img.getAttribute("src") || "";
+        const previous = ownMonogram.get(img);
+        ownMonogram.set(img, { source: previous?.url === source ? previous.source : source, url });
         img.dataset["lwcPortraitFallback"] = "";
         releaseSources(img);
         if (img.getAttribute("src") !== url) img.src = url;
@@ -251,13 +277,13 @@ interface Window {
 
     function finishDecode(img: HTMLImageElement, instant = false): void {
         const state = tracked.get(img);
-        if (!state || state.decoding || !loaded(img)) return;
+        if (!state || state.decoding || !loaded(img) || !isAthletePortrait(img)) return;
         const version = state.version;
         const source = signature(img);
         state.decoding = true;
         void img.decode().then(() => {
             if (!img.isConnected || tracked.get(img) !== state || state.version !== version
-                || signature(img) !== source || !loaded(img)) return;
+                || signature(img) !== source || !loaded(img) || !isAthletePortrait(img)) return;
             state.decoding = false;
             setState(img, instant || reduced.matches ? "ready" : "developing");
             if (!instant && !reduced.matches) {
@@ -271,14 +297,14 @@ interface Window {
     }
 
     function track(img: HTMLImageElement): void {
+        if (!isAthletePortrait(img)) { relinquish(img); return; }
         const src = img.getAttribute("src") || "";
+        if (ownMonogram.get(img)?.url !== src) {
+            ownMonogram.delete(img);
+            delete img.dataset["lwcPortraitFallback"];
+        }
         // Clear owned candidates even when the page removes src during a step.
         syncSrcset(img);
-        if (isFallbackSrc(src)) {
-            useMonogram(img);
-            return;
-        }
-        if (!src.startsWith("data:")) delete img.dataset["lwcPortraitFallback"];
         const source = signature(img);
         const previous = tracked.get(img);
         if (previous?.source === source) return;
@@ -300,6 +326,7 @@ interface Window {
     function onLoad(event: Event): void {
         const img = event.target;
         if (!(img instanceof HTMLImageElement) || !known.has(img)) return;
+        if (!isAthletePortrait(img)) { relinquish(img); return; }
         // Page handlers can reject a tiny image or select another candidate.
         // Start decode only after those handlers have finished.
         queueMicrotask(() => {
@@ -312,6 +339,7 @@ interface Window {
     function onError(event: Event): void {
         const img = event.target;
         if (!(img instanceof HTMLImageElement) || !known.has(img)) return;
+        if (!isAthletePortrait(img)) { relinquish(img); return; }
         const failed = img.getAttribute("src") || "";
         const match = THUMB.exec(failed);
         if (match) failedThumbs.set(img, match[1]!);
@@ -333,7 +361,7 @@ interface Window {
 
     function deep(img: Element | null): img is HTMLImageElement {
         return img instanceof HTMLImageElement
-            && known.has(img)
+            && known.has(img) && isAthletePortrait(img)
             && (img.dataset["lwcPortraitTier"] === "md" || img.dataset["lwcPortraitTier"] === "lg");
     }
 
@@ -369,10 +397,10 @@ interface Window {
     // --- Registry ------------------------------------------------------------
 
     function enhance(img: HTMLImageElement): void {
-        if (img.dataset["lwcPortraitGhost"] !== undefined || img.matches(OWN_MOTION)
-            || img.closest("[data-athlete-motion-copy]")) return;
+        if (!isAthletePortrait(img)) { relinquish(img); return; }
         if (!known.has(img)) {
             known.add(img);
+            adopted.add(img);
             img.dataset["lwcPortrait"] = "";
             sizer?.observe(img);
             if (visibility) visibility.observe(img);
@@ -383,8 +411,8 @@ interface Window {
     }
 
     function scan(node: ParentNode = document): void {
-        if (node instanceof HTMLImageElement && node.matches(SELECTOR)) enhance(node);
-        node.querySelectorAll?.<HTMLImageElement>(SELECTOR).forEach(enhance);
+        if (node instanceof HTMLImageElement && (node.matches(SELECTOR) || adopted.has(node))) enhance(node);
+        node.querySelectorAll?.<HTMLImageElement>(SCAN_SELECTOR).forEach(enhance);
     }
 
     document.addEventListener("load", onLoad, true);
@@ -393,7 +421,8 @@ interface Window {
     document.addEventListener("pointerleave", clearDrift);
     document.addEventListener("animationend", event => {
         const img = event.target;
-        if (img instanceof HTMLImageElement && event.animationName === "lwc-portrait-develop") setState(img, "ready");
+        if (img instanceof HTMLImageElement && known.has(img) && isAthletePortrait(img)
+            && event.animationName === "lwc-portrait-develop") setState(img, "ready");
     }, true);
 
     function release(img: HTMLImageElement): void {
@@ -407,15 +436,32 @@ interface Window {
         if (driftTarget === img) clearDrift();
     }
 
+    function relinquish(img: HTMLImageElement): void {
+        // Detached/recycled originals retain ownership; page-owned motion copies
+        // only copy attributes and must never be mistaken for adopted elements.
+        if (!adopted.has(img)) return;
+        releaseSources(img);
+        const monogram = ownMonogram.get(img);
+        if (monogram && img.getAttribute("src") === monogram.url) {
+            if (monogram.source) img.setAttribute("src", monogram.source);
+            else img.removeAttribute("src");
+        }
+        ownMonogram.delete(img);
+        release(img);
+        adopted.delete(img);
+        for (const attribute of ["data-lwc-portrait", "data-lwc-portrait-tier", "data-lwc-portrait-state", "data-lwc-portrait-fallback"])
+            img.removeAttribute(attribute);
+    }
+
     new MutationObserver(records => {
         const changed = new Set<HTMLImageElement>();
         for (const record of records) {
             if (record.type === "attributes") {
                 const target = record.target;
-                if (target instanceof HTMLImageElement && (known.has(target) || target.matches(SELECTOR))) {
+                if (target instanceof HTMLImageElement && (adopted.has(target) || target.matches(SELECTOR))) {
                     changed.add(target);
-                } else if (target instanceof Element && ["data-athlete-name", "data-display-name"].includes(record.attributeName || "")) {
-                    target.querySelectorAll<HTMLImageElement>(SELECTOR).forEach(img => changed.add(img));
+                } else if (target instanceof Element && ["data-athlete-name", "data-display-name", "data-lwc-image-role"].includes(record.attributeName || "")) {
+                    target.querySelectorAll<HTMLImageElement>(SCAN_SELECTOR).forEach(img => changed.add(img));
                 }
                 continue;
             }
@@ -430,16 +476,19 @@ interface Window {
         }
         for (const img of changed) {
             if (!img.isConnected) continue;
-            if (img.dataset["lwcPortraitFallback"] !== undefined && img.src.startsWith("data:")) useMonogram(img);
+            if (!isAthletePortrait(img)) { relinquish(img); continue; }
+            if (ownMonogram.get(img)?.url === img.getAttribute("src")) useMonogram(img);
             enhance(img);
         }
     }).observe(root, { childList: true, subtree: true, attributes: true,
-        attributeFilter: ["src", "srcset", "alt", "data-athlete-name", "data-display-name"] });
+        attributeFilter: ["src", "srcset", "alt", "data-athlete-name", "data-display-name", "data-lwc-image-role"] });
 
     reduced.addEventListener("change", () => {
         if (reduced.matches) {
             clearDrift();
-            document.querySelectorAll<HTMLImageElement>('img[data-lwc-portrait-state="developing"]').forEach(img => setState(img, "ready"));
+            document.querySelectorAll<HTMLImageElement>('img[data-lwc-portrait-state="developing"]').forEach(img => {
+                if (known.has(img) && isAthletePortrait(img)) setState(img, "ready");
+            });
         }
     });
     scan();

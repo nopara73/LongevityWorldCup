@@ -233,19 +233,20 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
         Assert.Contains("favicon-128x128.png", sources[0]);
         Assert.Contains("favicon-128x128.png", sources[1]);
         Assert.Contains("favicon-512x512.png", sources[2]);
+        var approvedSilhouette = await page.EvaluateAsync<string>("() => document.body.dataset.defaultHeadshotJpeg");
+        Assert.StartsWith("/assets/content-images/play-athlete-placeholder.jpg?v=", approvedSilhouette);
         foreach (var name in new[] { "Portrait Missing", "Portrait Broken", "Portrait Tiny" })
         {
             await input.FillAsync(name);
-            await page.WaitForFunctionAsync("""
-                () => {
-                    const image = document.querySelector('[role=option] img');
-                    return image?.complete && image.naturalWidth > 16
-                        && image.hasAttribute('data-lwc-portrait-fallback')
-                        && decodeURIComponent(image.src).includes('>P' + image.closest('[role=option]').textContent.trim().split(/\s+/).at(-1)[0] + '</text>');
-                }
-                """);
-            await Assertions.Expect(page.GetByRole(AriaRole.Option)).ToHaveAccessibleNameAsync(name);
-            await Assertions.Expect(page.GetByRole(AriaRole.Option).Locator("img")).ToHaveAttributeAsync("alt", "");
+            var option = page.GetByRole(AriaRole.Option, new() { Name = name, Exact = true });
+            await Assertions.Expect(option).ToHaveCountAsync(1);
+            var image = option.Locator("img");
+            await Assertions.Expect(image).ToHaveAttributeAsync("src", approvedSilhouette);
+            await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(image, approvedSilhouette);
+            Assert.True(await image.EvaluateAsync<bool>("image=>image.naturalWidth>16"));
+            await Assertions.Expect(image).ToHaveAttributeAsync("data-lwc-image-role", "illustration");
+            await Assertions.Expect(option).ToHaveAccessibleNameAsync(name);
+            await Assertions.Expect(image).ToHaveAttributeAsync("alt", "");
         }
         Assert.Empty(errors);
     }

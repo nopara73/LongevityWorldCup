@@ -240,13 +240,13 @@ public sealed class EventLivingFeedBrowserTests(
         Assert.Equal(0, await page.EvaluateAsync<int>("feedFetchCount"));
         await page.EvaluateAsync("() => {Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'));}");
         await Assertions.Expect(page.Locator(".event-rel")).ToContainTextAsync("2 days ago");
-        await page.WaitForFunctionAsync("feedFetchCount===2");
+        await page.WaitForFunctionAsync("() => feedFetchCount === 2");
         await page.EvaluateAsync("() => dispatchEvent(new PageTransitionEvent('pagehide'))");
         await page.Clock.FastForwardAsync(120000);
         Assert.Equal(2, await page.EvaluateAsync<int>("feedFetchCount"));
         await page.EvaluateAsync("() => dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}))");
         await page.Clock.FastForwardAsync(90001);
-        await page.WaitForFunctionAsync("feedFetchCount===4");
+        await page.WaitForFunctionAsync("() => feedFetchCount === 4");
     }
 
     [Fact]

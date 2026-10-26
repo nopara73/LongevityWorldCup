@@ -197,7 +197,10 @@ function createAthleteOptionThumb(athlete: PlayAthlete): HTMLImageElement {
     thumb.loading = "lazy";
     thumb.decoding = "async";
     const inspectLoadedImage = watchAthleteImageLoad(thumb, () => {});
-    thumb.src = athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || getDefaultHeadshotJpeg();
+    const source = athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || getDefaultHeadshotJpeg();
+    thumb.dataset["lwcImageRole"] = source === getDefaultHeadshotJpeg() || source === getDefaultHeadshotWebp()
+        ? "illustration" : "athlete";
+    thumb.src = source;
     if (thumb.complete) inspectLoadedImage();
     return thumb;
 }
@@ -263,9 +266,9 @@ function shouldUseDefaultForLoadedAthleteImage(image: HTMLImageElement | null | 
 }
 
 function setDefaultAthleteImageSource(image: HTMLImageElement | null | undefined): boolean {
-    if (!image || isDefaultHeadshotSrc(image.currentSrc || image.src)) {
-        return false;
-    }
+    if (!image) return false;
+    image.dataset["lwcImageRole"] = "illustration";
+    if (isDefaultHeadshotSrc(image.currentSrc || image.src)) return false;
 
     image.classList.add("athlete-picture-placeholder");
     image.src = getDefaultHeadshotJpeg();
