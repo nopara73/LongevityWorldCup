@@ -42,8 +42,8 @@
     <PackageReference Include="NBitcoin.Secp256k1" Version="4.0.4" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />
     <PackageReference Include="Quartz" Version="4.6.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.2.0" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.2.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
     <!-- Override MimeKit's vulnerable transitive minimum until it adopts the security patch. -->
