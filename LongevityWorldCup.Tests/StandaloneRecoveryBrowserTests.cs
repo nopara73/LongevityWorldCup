@@ -38,6 +38,22 @@ public sealed class StandaloneRecoveryBrowserTests(
     [InlineData(502)]
     [InlineData(503)]
     [InlineData(504)]
+    public async Task Outage_ConfirmedRecoveryDoesNotWaitForDecorativeTimers(int pageStatus)
+    {
+        await using var context = await RecoveryContextAsync(200);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.Clock.InstallAsync();
+        await page.Clock.PauseAtAsync(DateTime.UtcNow.AddHours(1));
+        await page.GotoAsync($"/error/{pageStatus}.html");
+        await page.RunAndWaitForRequestAsync(() => page.Locator("button[data-retry]").ClickAsync(),
+            request => request.IsNavigationRequest && request.Method == "GET", new() { Timeout = 4000 });
+    }
+
+    [Theory]
+    [InlineData(502)]
+    [InlineData(503)]
+    [InlineData(504)]
     public async Task Outage_RecoversToSuccessfulAndClientErrorResponses(int pageStatus)
     {
         foreach (var recoveredStatus in new[] { 200, 204, 403, 404 })

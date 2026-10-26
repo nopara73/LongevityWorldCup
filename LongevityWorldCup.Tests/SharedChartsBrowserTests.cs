@@ -10,6 +10,33 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task FocusedSvgChart_PreservesNativeModifiedPageNavigation()
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), ReducedMotion = ReducedMotion.Reduce });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/site-statistics.html");
+        await page.EvaluateAsync("""
+            () => {
+                document.body.innerHTML = '<main><div style="height:1200px"></div><div><svg id="chart" viewBox="0 0 200 100" style="width:400px;height:200px"></svg></div><div style="height:1600px"></div></main>';
+                LwcCharts.crosshair(document.querySelector('svg'), {points:()=>[
+                    {x:20,y:40,key:'first',title:'First',lines:['One reading']},
+                    {x:180,y:60,key:'last',title:'Last',lines:['Another reading']}], onPick:key=>window.picked=key});
+            }
+            """);
+        var chart = page.Locator("#chart");
+        await chart.FocusAsync();
+        await chart.PressAsync("Control+End");
+        await page.WaitForFunctionAsync("() => scrollY + innerHeight >= document.documentElement.scrollHeight - 2");
+        await Expect(page.Locator(".lwc-chart-tip")).ToContainTextAsync("First");
+        await page.Keyboard.PressAsync("Control+Home");
+        await page.WaitForFunctionAsync("() => scrollY === 0");
+        await page.Keyboard.PressAsync("End");
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Equal("last", await page.EvaluateAsync<string>("() => window.picked"));
+    }
+
+    [Fact]
     public async Task ColdAssets_BindTheFirstTrafficChart_AndUseIndependentVersions()
     {
         await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString(), ReducedMotion = ReducedMotion.Reduce });
