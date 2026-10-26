@@ -854,6 +854,9 @@ public sealed class AthleteDialogLinkBrowserTests(
                     && Number.parseFloat(frame.style.height) > 1;
             }
             """);
+        // This fixture stubs the chart dependency. Compare the rendered fallback
+        // on both routes, after the deferred chart load has resolved.
+        await Assertions.Expect(page.Locator("#ageRadarFallback")).ToBeVisibleAsync();
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
         await page.EvaluateAsync(
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");

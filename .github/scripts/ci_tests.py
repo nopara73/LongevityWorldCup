@@ -1,4 +1,4 @@
-"""Partition discovered tests, then require every planned method exactly once.
+"""Partition discovered tests, then require every method on exactly one runner.
 
 Coverage is merged by source line and branch identity, never by averaging rates.
 Only timings are cached; a stale cache cannot change the discovered test set.
@@ -65,6 +65,7 @@ def read_results(path):
     for result in root.findall(".//{*}UnitTestResult"):
         results.append(dict(method=definitions[result.attrib["testId"]],
                             id=result.attrib["testId"],
+                            executionId=result.attrib["executionId"],
                             name=result.attrib["testName"], outcome=result.attrib["outcome"],
                             seconds=seconds(result.attrib.get("duration", "0:0:0"))))
     if not results:
@@ -73,6 +74,9 @@ def read_results(path):
 
 
 def verify_results(plan, reports):
+    planned = [name for shard in plan["shards"] for name in shard["methods"]]
+    if len(planned) != len(set(planned)) or len(planned) != plan["discoveredMethods"]:
+        raise ValueError("The plan omitted a method or assigned it to multiple runners")
     if set(reports) != {shard["index"] for shard in plan["shards"]}:
         raise ValueError("Missing or unexpected shard reports")
     identities = set()
@@ -84,7 +88,10 @@ def verify_results(plan, reports):
             raise ValueError(f"Shard {shard['index']} did not execute its exact planned methods: "
                              f"missing={set(shard['methods']) - actual}; extra={actual - set(shard['methods'])}")
         for result in results:
-            identity = result["method"], result.get("id", result["name"])
+            # Deferred data rows can share both testId and a truncated name.
+            # TRX executionId identifies the actual execution record; the
+            # disjoint method plan prevents overlap between runners.
+            identity = result["executionId"]
             if identity in identities:
                 raise ValueError(f"Duplicate test execution: {identity}")
             identities.add(identity)
@@ -192,6 +199,8 @@ def main():
                           timings, args.shards, args.revision)
         write_plan(plan, args.output)
         print(f"Assigned {plan['discoveredMethods']} discovered methods to {len(plan['shards'])} shards")
+        measured = sum(name in timings for shard in plan["shards"] for name in shard["methods"])
+        print(f"Measured durations available for {measured} methods")
     else:
         aggregate(json.loads(args.plan.read_text()), args.results, args.output)
 

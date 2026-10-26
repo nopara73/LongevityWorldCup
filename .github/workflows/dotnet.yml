@@ -10,12 +10,17 @@ on:
         description: Optional full commit SHA of a reference test suite for pruning audits
         type: string
         required: false
+      timing_seed_run:
+        description: Optional run ID whose complete passing reports should seed duration estimates
+        type: string
+        required: false
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
 permissions:
+  actions: read
   contents: read
   issues: write
   pull-requests: write
@@ -162,6 +167,36 @@ jobs:
         path: ${{ runner.temp }}/lwc-ci-timings.json
         key: ci-test-timings-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: ci-test-timings-${{ runner.os }}-
+    - name: Validate optional timing seed
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      env:
+        TIMING_SEED_RUN: ${{ inputs.timing_seed_run }}
+      run: '[[ "$TIMING_SEED_RUN" =~ ^[1-9][0-9]*$ ]]'
+    - name: Read seed discovery plan
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      uses: actions/download-artifact@v8
+      with:
+        name: ci-build
+        path: ${{ runner.temp }}/ci-seed-build
+        run-id: ${{ inputs.timing_seed_run }}
+        github-token: ${{ github.token }}
+    - name: Read seed test reports
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      uses: actions/download-artifact@v8
+      with:
+        pattern: test-results-*
+        path: ${{ runner.temp }}/ci-seed-results
+        run-id: ${{ inputs.timing_seed_run }}
+        github-token: ${{ github.token }}
+    - name: Validate complete seed reports and use their measured durations
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      run: |
+        mkdir -p "$RUNNER_TEMP/ci-seed-plan"
+        tar -xzf "$RUNNER_TEMP/ci-seed-build/ci-build.tgz" -C "$RUNNER_TEMP/ci-seed-plan" .artifacts/ci-tests/plan.json
+        python3 .github/scripts/ci_tests.py aggregate \
+          --plan "$RUNNER_TEMP/ci-seed-plan/.artifacts/ci-tests/plan.json" \
+          --results "$RUNNER_TEMP/ci-seed-results" --output "$RUNNER_TEMP/ci-seed-report"
+        cp "$RUNNER_TEMP/ci-seed-report/timings.json" "$RUNNER_TEMP/lwc-ci-timings.json"
     - name: Discover and balance the complete suite
       shell: bash
       run: |
