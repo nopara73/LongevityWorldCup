@@ -54,6 +54,16 @@ public sealed class HomepageArrivalBrowserTests(
             await releaseAthletes.Task;
             await route.ContinueAsync();
         });
+        if (width == 390 && visits == 3)
+        {
+            // A parser script after the podium can outlive the entrance clock.
+            // The frame hold must survive other consumers such as icon sizing.
+            await context.RouteAsync("**/js/custom-event-markup.js*", async route =>
+            {
+                await Task.Delay(1200);
+                await route.ContinueAsync();
+            });
+        }
         var page = await context.NewPageAsync();
         try
         {
@@ -260,24 +270,36 @@ public sealed class HomepageArrivalBrowserTests(
         // otherwise consume the bounded entrance before its final target exists.
         // The late-parser test releases this frame while the final target is absent.
         const requestFrame = window.requestAnimationFrame.bind(window);
-        let holdOpeningFrame = true;
+        const cancelFrame = window.cancelAnimationFrame.bind(window);
+        const heldFrames = new Map();
+        let nextHeldHandle = -1;
+        let openingReleased = false;
         window.requestAnimationFrame = callback => {
-            if (!holdOpeningFrame || !document.documentElement.classList.contains('homepage-arriving'))
+            if (openingReleased || !document.documentElement.classList.contains('homepage-arriving'))
                 return requestFrame(callback);
-            holdOpeningFrame = false;
-            return requestFrame(() => {
-                let held = callback;
-                window.releaseOpeningFrame = () => {
-                    if (!held) return;
-                    const next = held;
-                    held = null;
-                    requestFrame(next);
-                };
-                if (document.readyState === 'loading')
-                    document.addEventListener('DOMContentLoaded', window.releaseOpeningFrame, { once: true });
-                else window.releaseOpeningFrame();
+            const handle = nextHeldHandle--;
+            heldFrames.set(handle, { callback, nativeHandle: null });
+            return handle;
+        };
+        window.cancelAnimationFrame = handle => {
+            const frame = heldFrames.get(handle);
+            if (!frame) return cancelFrame(handle);
+            if (frame.nativeHandle !== null) cancelFrame(frame.nativeHandle);
+            heldFrames.delete(handle);
+        };
+        window.releaseOpeningFrame = () => {
+            if (openingReleased) return;
+            openingReleased = true;
+            heldFrames.forEach((frame, handle) => {
+                frame.nativeHandle = requestFrame(time => {
+                    if (!heldFrames.delete(handle)) return;
+                    frame.callback(time);
+                });
             });
         };
+        if (document.readyState === 'loading')
+            document.addEventListener('DOMContentLoaded', window.releaseOpeningFrame, { once: true });
+        else window.releaseOpeningFrame();
         """);
 
     private static async Task CaptureAsync(IPage page, string name)
