@@ -17,14 +17,13 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task UnreadablePortrait_PreservesTheDraftAndAllowsAnotherImage()
     {
         await using var context = await CreateContextAsync(390, 844, dark: true);
-        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
         {
-            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
-                ContentType = css ? "text/css" : "application/javascript"
+                ContentType = "application/javascript"
             });
         });
         var page = await OpenEditorAsync(context);
@@ -412,11 +411,12 @@ public sealed class EditProfileLayoutBrowserTests(
         // The integration host stubs external scripts. Test the page's cropper
         // contract with a real canvas; manual review also uses the pinned library.
         await context.AddInitScriptAsync("""
-            window.Cropper = class {
+            window.LwcPortraitCropper = class {
                 ready = true;
                 constructor(image, options) { queueMicrotask(() => options.ready?.()); }
                 destroy() {}
-                getCroppedCanvas() {
+                disable() {}
+                toCanvas() {
                     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32;
                     const ctx = canvas.getContext('2d'); ctx.fillStyle = '#26766e'; ctx.fillRect(0, 0, 32, 32);
                     return canvas;
@@ -486,7 +486,7 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task CropDialog_KeepsFocusedCommandsVisibleAcrossTextAndViewportChanges()
     {
         await using var context = await CreateContextAsync(1440, 900);
-        await context.AddInitScriptAsync("window.Cropper = class { ready = true; constructor(image, options) { queueMicrotask(() => options.ready?.()); } destroy() {} };");
+        await context.AddInitScriptAsync("window.LwcPortraitCropper = class { ready = true; constructor(image, options) { queueMicrotask(() => options.ready?.()); } destroy() {} };");
         var page = await OpenEditorAsync(context);
         var scroll = await page.EvaluateAsync<double>("() => scrollY");
         var file = new FilePayload
@@ -541,11 +541,11 @@ public sealed class EditProfileLayoutBrowserTests(
         var page = await OpenEditorAsync(context);
         await page.EvaluateAsync("""
             () => {
-                window.Cropper = class {
+                window.LwcPortraitCropper = class {
                     ready = false;
                     constructor(image, options) { window.finishCropReady = () => { this.ready = true; options.ready(); }; }
                     destroy() {}
-                    getCroppedCanvas() { throw new Error('Crop requested before image readiness'); }
+                    toCanvas() { throw new Error('Crop requested before image readiness'); }
                 };
             }
             """);
@@ -576,7 +576,7 @@ public sealed class EditProfileLayoutBrowserTests(
                 window.profileReads = [];
                 window.profileCropSources = [];
                 window.FileReader = class { readAsDataURL() { profileReads.push(this); } };
-                window.Cropper = class {
+                window.LwcPortraitCropper = class {
                     ready = true;
                     constructor(image, options) { profileCropSources.push(image.src); queueMicrotask(() => options.ready()); }
                     destroy() {}
@@ -610,14 +610,13 @@ public sealed class EditProfileLayoutBrowserTests(
         await using var context = await CreateContextAsync(1440, 900);
         // The exact production version is copied before the Node-free publish
         // check removes node_modules. Keep this a real-library geometry test.
-        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
         {
-            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
-                ContentType = css ? "text/css" : "application/javascript"
+                ContentType = "application/javascript"
             });
         });
         var page = await OpenEditorAsync(context);
@@ -652,6 +651,22 @@ public sealed class EditProfileLayoutBrowserTests(
             Assert.True(Math.Abs(selection[2] - 512) <= 2 && Math.Abs(selection[3] - 512) <= 2,
                 $"{scenario}: resize changed the selected photo area.");
             Assert.All(selection.Skip(4), clearance => Assert.True(clearance >= -1, $"{scenario}: the crop escaped its preview."));
+            var pixelError = await page.EvaluateAsync<int>("""
+                async () => {
+                    const cropper = window.changeProfileCropper;
+                    const actual = await cropper.toCanvas({ width: 64, height: 64 });
+                    const expected = document.createElement('canvas');
+                    expected.width = expected.height = 64;
+                    expected.getContext('2d').drawImage(cropper.element, 256, 256, 512, 512, 0, 0, 64, 64);
+                    const samples = [[8, 8], [32, 32], [55, 55]];
+                    return Math.max(...samples.flatMap(([x, y]) => {
+                        const a = actual.getContext('2d').getImageData(x, y, 1, 1).data;
+                        const b = expected.getContext('2d').getImageData(x, y, 1, 1).data;
+                        return [...a].map((value, channel) => Math.abs(value - b[channel]));
+                    }));
+                }
+                """);
+            Assert.True(pixelError <= 5, $"{scenario}: exported pixels no longer match the selected source region (error {pixelError}).");
         }
         await page.Locator("#changeProfileCancelButton").ClickAsync();
         await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
