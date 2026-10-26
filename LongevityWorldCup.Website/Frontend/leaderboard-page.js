@@ -6321,6 +6321,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     wirePortraitFallback(profilePic, fullAthleteData);
     const stickyPortrait = document.getElementById('stickyAthletePortrait');
     if (stickyPortrait) {
+        stickyPortrait.dataset.athleteName = modalDisplayName;
         stickyPortrait.src = profilePic.src;
         stickyPortrait.hidden = !profilePic.src;
         stickyPortrait.onerror = () => { stickyPortrait.hidden = true; };

@@ -448,6 +448,33 @@ public sealed class PortraitSystemBrowserTests(
     }
 
     [Fact]
+    public async Task MissingProfilePhoto_AlsoKeepsTheStickyPortraitsPublicIdentity()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
+        var found = false;
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            foreach (var athlete in athletes.OfType<System.Text.Json.Nodes.JsonObject>())
+            {
+                if (!(athlete["Name"]?.GetValue<string>() ?? "").Contains("Michael Lustgarten", StringComparison.Ordinal)) continue;
+                found = true;
+                athlete["Name"] = "Visible Athlete";
+                athlete["DisplayName"] = "Visible Athlete";
+                foreach (var key in athlete.Select(p => p.Key).Where(key => key.StartsWith("ProfilePic", StringComparison.Ordinal)).ToArray())
+                    athlete[key] = null;
+            }
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten");
+        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync("Visible Athlete");
+        Assert.True(found);
+        await AssertDecodedFallbackAsync(page.Locator("#modalProfilePic"), "VA");
+        await AssertDecodedFallbackAsync(page.Locator("#stickyAthletePortrait"), "VA");
+        await Assertions.Expect(page.Locator("#stickyAthletePortrait")).ToHaveAttributeAsync("alt", "");
+    }
+
+    [Fact]
     public async Task RecycledPortrait_CanRelinquishOwnershipToArtworkAndBecomeAnAthleteAgain()
     {
         await using var context = await ContextAsync();
