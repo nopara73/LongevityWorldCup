@@ -179,6 +179,7 @@ jobs:
         tar -czf "$RUNNER_TEMP/ci-build.tgz" \
           --exclude=LongevityWorldCup.Tests/obj --exclude=LongevityWorldCup.Tests/TestResults \
           LongevityWorldCup.Tests \
+          LongevityWorldCup.Website/obj/Debug/net10.0/compressed \
           LongevityWorldCup.Website/wwwroot/js \
           LongevityWorldCup.Website/wwwroot/css/athlete-dialog \
           LongevityWorldCup.Website/wwwroot/css/documentation-reading.css \
@@ -213,7 +214,17 @@ jobs:
         name: ci-build
         path: ${{ runner.temp }}
     - name: Unpack the verified build
-      run: tar -xzf "$RUNNER_TEMP/ci-build.tgz"
+      run: |
+        tar -xzf "$RUNNER_TEMP/ci-build.tgz"
+        python3 - <<'PY'
+        import json
+        from pathlib import Path
+
+        manifest = Path('LongevityWorldCup.Tests/bin/Debug/net10.0/LongevityWorldCup.Website.staticwebassets.runtime.json')
+        for root in json.loads(manifest.read_text())['ContentRoots']:
+            if not Path(root).is_dir():
+                raise SystemExit(f'Build artifact is missing static assets: {root}')
+        PY
     - name: Restore test dependencies
       run: dotnet restore LongevityWorldCup.Tests/LongevityWorldCup.Tests.csproj -p:BuildFrontend=false
     - name: Install Playwright Chromium
