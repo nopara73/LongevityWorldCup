@@ -574,6 +574,7 @@ public sealed class EditProfileLayoutBrowserTests(
             return route.FulfillAsync(new()
             {
                 Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
                 ContentType = css ? "text/css" : "application/javascript"
             });
         });
