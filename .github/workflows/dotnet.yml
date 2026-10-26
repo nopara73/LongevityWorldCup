@@ -29,6 +29,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  TEST_SHARDS: 10
+
 jobs:
   prepare:
 
@@ -36,6 +39,7 @@ jobs:
     timeout-minutes: 20
     outputs:
       sdk: ${{ steps.repo_sdk.outputs.version }}
+      matrix: ${{ steps.test_plan.outputs.matrix }}
 
     steps:
     - uses: actions/checkout@v7
@@ -198,6 +202,7 @@ jobs:
           --results "$RUNNER_TEMP/ci-seed-results" --output "$RUNNER_TEMP/ci-seed-report"
         cp "$RUNNER_TEMP/ci-seed-report/timings.json" "$RUNNER_TEMP/lwc-ci-timings.json"
     - name: Discover and balance the complete suite
+      id: test_plan
       shell: bash
       run: |
         mkdir -p .artifacts/ci-tests
@@ -206,7 +211,8 @@ jobs:
         python3 .github/scripts/ci_tests.py plan \
           --discovery .artifacts/ci-tests/discovered.txt \
           --timings "$RUNNER_TEMP/lwc-ci-timings.json" \
-          --output .artifacts/ci-tests --revision "$GITHUB_SHA"
+          --output .artifacts/ci-tests --revision "$GITHUB_SHA" --shards "$TEST_SHARDS"
+        echo "matrix=$(jq -c '{shard: [.shards[].index]}' .artifacts/ci-tests/plan.json)" >> "$GITHUB_OUTPUT"
     - name: Package the verified build
       shell: bash
       run: |
@@ -234,8 +240,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3]
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     env:
       SHARD: ${{ matrix.shard }}
       DOTNET_CLI_UI_LANGUAGE: en-US
