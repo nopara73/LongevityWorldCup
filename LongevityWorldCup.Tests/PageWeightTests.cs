@@ -68,7 +68,7 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
             "/js/site-header.js", "/js/site-footer.js", "/js/leaderboard-page.js",
             "/js/leaderboard-embed-listener.js", "/js/guess-my-age.js",
             "/css/site-header.css", "/css/site-footer.css", "/css/leaderboard-content.css",
-            "/css/guess-my-age.css", "/css/age-visualization.css"
+            "/css/guess-my-age.css", "/css/age-visualization.css", "/css/dark-system.css"
         };
         foreach (var path in paths)
         {

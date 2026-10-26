@@ -3390,8 +3390,7 @@ function getAthleteDialogBoardSequence() {
     return athleteDialogBoardSequence;
 }
 
-function getAthleteDialogNeighbours() {
-    const slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '';
+function getAthleteDialogNeighbours(slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '') {
     if (!slug) return { previous: null, next: null };
     const matches = athlete => normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug;
     for (const sequence of [getAthleteDialogBoardSequence(), athleteResults]) {
@@ -3401,15 +3400,22 @@ function getAthleteDialogNeighbours() {
     return { previous: null, next: null };
 }
 
+function focusAvailableAthleteStep(neighbours) {
+    const focused = pageDocument.activeElement;
+    if (!focused?.matches('.athlete-step') || !modal.contains(focused) || neighbours[focused.dataset.step]) return;
+    const replacement = focused.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${focused.dataset.step}"])`);
+    if (!replacement || !neighbours[replacement.dataset.step]) return;
+    if (replacement.disabled) replacement.disabled = false;
+    replacement.focus({ preventScroll: true });
+}
+
 function updateAthleteDialogSteps() {
     const neighbours = getAthleteDialogNeighbours();
+    focusAvailableAthleteStep(neighbours);
     const available = !!(neighbours.previous || neighbours.next);
     modal.querySelectorAll('.athlete-steps').forEach(group => { group.hidden = !available; });
     modal.querySelectorAll('.athlete-step').forEach(button => {
         const blocked = !neighbours[button.dataset.step];
-        if (blocked && pageDocument.activeElement === button) {
-            button.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${button.dataset.step}"])`)?.focus({ preventScroll: true });
-        }
         button.disabled = blocked;
     });
 }
@@ -3440,6 +3446,8 @@ function stepAthleteDialog(direction) {
         || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
     const target = getAthleteDialogNeighbours()[direction];
     if (!target) return false;
+    // Transfer boundary focus before hydration invalidates the card's layout.
+    focusAvailableAthleteStep(getAthleteDialogNeighbours(normalizeAthleteSlugForLookup(target.athleteSlug || target.name)));
     modalContent.dataset.athleteStep = direction;
     fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
     return true;
