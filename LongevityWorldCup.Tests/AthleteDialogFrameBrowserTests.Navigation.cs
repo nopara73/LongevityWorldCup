@@ -5,6 +5,27 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class AthleteDialogFrameBrowserTests
 {
+    [Fact]
+    public async Task DirectProfilePaging_DoesNotKeepThePreviousPortraitsAccessibleIdentity()
+    {
+        await using var context = await NewContextAsync(390, 844, dark: true);
+        var page = await OpenProfileAsync(context, Profile, "michael-lustgarten");
+        await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
+        await WaitForProfileAsync(page);
+
+        var portrait = page.Locator("#modalProfilePic");
+        var currentAlt = await portrait.GetAttributeAsync("alt");
+        Assert.DoesNotContain("Michael Lustgarten", currentAlt);
+        Assert.DoesNotContain("Michael Lustgarten", await portrait.GetAttributeAsync("aria-label"));
+        await Assertions.Expect(portrait).ToHaveAccessibleNameAsync("Enlarge athlete profile picture");
+        await portrait.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#athleteImageViewer img").First).ToHaveAttributeAsync("alt", currentAlt!);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(portrait).ToBeFocusedAsync();
+    }
+
     [Theory]
     [InlineData(160, 16, true)]
     [InlineData(195, 16, true)]

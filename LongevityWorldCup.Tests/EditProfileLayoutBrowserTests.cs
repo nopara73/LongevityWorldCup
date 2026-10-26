@@ -13,6 +13,43 @@ public sealed class EditProfileLayoutBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task UnreadablePortrait_PreservesTheDraftAndAllowsAnotherImage()
+    {
+        await using var context = await CreateContextAsync(390, 844, dark: true);
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        {
+            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            return route.FulfillAsync(new()
+            {
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
+                ContentType = css ? "text/css" : "application/javascript"
+            });
+        });
+        var page = await OpenEditorAsync(context);
+        await page.Locator("#whyDisplayInput").FillAsync("Keep this unsent motivation.");
+        var before = await page.Locator(".edit-profile-visual .illustration").GetAttributeAsync("src");
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(new FilePayload
+        {
+            Name = "unreadable.png", MimeType = "image/png", Buffer = "not image bytes"u8.ToArray()
+        });
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToContainTextAsync("Profile picture upload failed.");
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("Keep this unsent motivation.");
+        Assert.Equal(before, await page.Locator(".edit-profile-visual .illustration").GetAttributeAsync("src"));
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
+        await page.WaitForFunctionAsync("() => window.changeProfileCropper?.ready && !document.getElementById('changeProfileCropButton').disabled");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("Keep this unsent motivation.");
+        Assert.Equal(before, await page.Locator(".edit-profile-visual .illustration").GetAttributeAsync("src"));
+    }
+
     [Theory]
     [InlineData(390, 844, false)]
     [InlineData(320, 640, true)]

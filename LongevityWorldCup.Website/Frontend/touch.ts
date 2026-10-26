@@ -317,10 +317,11 @@ interface Window {
             delete element.dataset['lwcHit'];
             delete element.dataset['lwcHitAnchor'];
         });
-        const targets = Array.from(document.querySelectorAll<HTMLElement>(tappable)).filter(element => visible(element) && !element.closest('[inert]'));
+        // An open dialog makes the background ineligible before any layout reads.
+        const targets = Array.from(document.querySelectorAll<HTMLElement>(tappable)).filter(element => !element.closest('[inert]') && visible(element));
         const boxes = targets.map(element => ({ element, rect: element.getBoundingClientRect() }));
         for (const element of Array.from(scope.querySelectorAll<HTMLElement>(smallControls))) {
-            if (!visible(element) || element.closest('[inert]')) continue;
+            if (element.closest('[inert]') || !visible(element)) continue;
             const rect = element.getBoundingClientRect();
             if (rect.width >= minTarget && rect.height >= minTarget) continue;
             const padX = Math.min(10, Math.max(0, (minTarget - rect.width) / 2));

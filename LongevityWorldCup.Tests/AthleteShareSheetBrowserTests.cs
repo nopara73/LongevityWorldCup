@@ -256,6 +256,35 @@ public sealed class AthleteShareSheetBrowserTests(
     }
 
     [Theory]
+    [InlineData(1280, 760)]
+    [InlineData(320, 640)]
+    public async Task ShareSheet_ContainsKeyboardFocusThroughCopyRecoveryAndReturnsItOnEscape(int width, int height)
+    {
+        await using var context = await CreateAsync(width, height, dark: width == 320, copyFails: true);
+        var page = await OpenShareSheetAsync(context);
+        var copy = page.Locator("#copyAthleteProfileLink");
+        var last = page.Locator("#shareAthleteProfileEmail");
+
+        await Assertions.Expect(copy).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(last).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(copy).ToBeFocusedAsync();
+
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#athleteShareLink")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(copy).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Shift+Tab");
+        await Assertions.Expect(last).ToBeFocusedAsync();
+
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+    }
+
+    [Theory]
     [InlineData(390, 844)]
     [InlineData(1280, 760)]
     public async Task FailedCopy_GivesTheLinkTheRoomThePreviewHad(int width, int height)

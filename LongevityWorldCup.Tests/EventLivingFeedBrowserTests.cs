@@ -31,7 +31,7 @@ public sealed class EventLivingFeedBrowserTests(
         """;
 
     private async Task<IBrowserContext> OpenAsync(string route = "/events", string? events = null, string? athletes = null,
-        int width = 1440, int height = 900, bool dark = false, bool reduced = true, IBrowser? browser = null)
+        int width = 1440, int height = 900, bool dark = false, bool reduced = true, IBrowser? browser = null, bool freezeTime = true)
     {
         var context = await NewContextAsync(browser ?? Browser, App, new()
         {
@@ -44,7 +44,7 @@ public sealed class EventLivingFeedBrowserTests(
         await context.RouteAsync("**/api/events", r => r.FulfillAsync(new() { ContentType = "application/json", Body = events ?? Events }));
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
         var page = await context.NewPageAsync();
-        await page.Clock.SetFixedTimeAsync(new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc));
+        if (freezeTime) await page.Clock.SetFixedTimeAsync(new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc));
         await NavigateAndSettleAsync(page, route);
         await page.Locator("#eventsTable tr.main-row").First.WaitForAsync();
         return context;
@@ -144,6 +144,92 @@ public sealed class EventLivingFeedBrowserTests(
         Assert.True(await updated.EvaluateAsync<bool>("keptRow===document.querySelector('[data-event-id=\"joined\"].main-row')"));
         await Assertions.Expect(updated.Locator("[data-event-id='joined'].main-row")).ToContainTextAsync("Ada Updated");
         await Assertions.Expect(updated.Locator("[data-event-id='joined'].main-row")).ToContainTextAsync("#1");
+    }
+
+    [Fact]
+    public async Task Refresh_ExpandedAnnouncementUpdatesWithoutReopeningOrMovingTheReader()
+    {
+        var events = Enumerable.Range(0, 24).Select(i => new
+        {
+            Id = "item-" + i, Type = 6,
+            Text = $"Announcement {i}\n\n" + string.Join("\n\n", Enumerable.Range(0, 6).Select(j =>
+                $"Paragraph {j}: This synthetic announcement exercises reading continuity during a background update.")),
+            OccurredAt = new DateTime(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc).AddDays(-i).ToString("O")
+        });
+        await using var context = await OpenAsync(events: JsonSerializer.Serialize(events), reduced: false);
+        var page = context.Pages[0];
+        await page.Locator(".main-row[data-event-id='item-10'] .custom-event-expander").ClickAsync();
+        await page.WaitForTimeoutAsync(350); // Let the deliberate user expansion finish.
+        await page.EvaluateAsync("""
+            () => {
+                const row = document.querySelector('.main-row[data-event-id="item-11"]');
+                row.scrollIntoView({ block: 'center', behavior: 'instant' });
+                scrollBy(0, 200);
+                row.querySelector('button').focus({ preventScroll: true });
+            }
+            """);
+        var drift = await page.EvaluateAsync<double>("""
+            async () => {
+                const row = document.querySelector('.main-row[data-event-id="item-11"]');
+                const top = row.getBoundingClientRect().top;
+                const data = await getSharedEvents(), athletes = await getSharedAthletes();
+                window.fetchPublicJson = async url => url.includes('athletes') ? athletes : data.map(event =>
+                    event.Id === 'item-10' ? { ...event, Text: event.Text.replaceAll('Paragraph', 'Updated: ') } : event);
+                await loadEventsTable(null, false, null, true, { live: true });
+                let maximum = Math.abs(row.getBoundingClientRect().top - top);
+                const end = performance.now() + 500;
+                while (performance.now() < end) {
+                    await new Promise(requestAnimationFrame);
+                    maximum = Math.max(maximum, Math.abs(row.getBoundingClientRect().top - top));
+                }
+                return maximum;
+            }
+            """);
+        Assert.InRange(drift, 0, 2);
+        await Assertions.Expect(page.Locator(".main-row[data-event-id='item-10'] .custom-event-expander"))
+            .ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(page.Locator(".main-row[data-event-id='item-11'] .custom-event-expander")).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task HistoryReturn_RestoresExpandedStoriesAndTheNativeReadingPosition()
+    {
+        var events = Enumerable.Range(0, 60).Select(i => new
+        {
+            Id = "item-" + i, Type = 6,
+            Text = $"Announcement {i}\n\nThis synthetic story stays open when the reader returns.\n\n[Read the rules](https://longevityworldcup.com/ruleset)",
+            OccurredAt = new DateTime(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc).AddDays(-i).ToString("O")
+        });
+        // The clock double omits PerformanceNavigationTiming; exercise native history.
+        await using var context = await OpenAsync(events: JsonSerializer.Serialize(events), freezeTime: false);
+        var page = context.Pages[0];
+        // Browser Find also exposes later chunks; returning must retain that
+        // extent so the browser has room to restore its native scroll offset.
+        await page.Keyboard.PressAsync("Control+f");
+        await page.Locator(".main-row[data-event-id='item-45'] .custom-event-expander").ClickAsync();
+        await page.EvaluateAsync("""
+            () => {
+                const row = document.querySelector('.main-row[data-event-id="item-45"]');
+                scrollTo({ top: row.getBoundingClientRect().top + scrollY - 160, behavior: 'instant' });
+                row.querySelector('button').focus({ preventScroll: true });
+                history.replaceState({ ...history.state, auditMarker: 'preserved' }, '');
+            }
+            """);
+        var scroll = await page.EvaluateAsync<double>("scrollY");
+        await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.Load });
+        await page.GoBackAsync(new() { WaitUntil = WaitUntilState.Load });
+        await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
+        await page.WaitForTimeoutAsync(850); // Include the former delayed opening scroll.
+        Assert.True(Math.Abs(await page.EvaluateAsync<double>("scrollY") - scroll) <= 2,
+            await page.EvaluateAsync<string>("""
+                () => JSON.stringify({ y: scrollY, nav: performance.getEntriesByType('navigation')[0]?.type,
+                    state: history.state, rows: document.querySelectorAll('.main-row').length,
+                    open: [...document.querySelectorAll('.main-row.is-open')].map(row => row.dataset.eventId) })
+                """));
+        await Assertions.Expect(page.Locator(".main-row[data-event-id='item-45'] .custom-event-expander"))
+            .ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(page.Locator(".main-row[data-event-id='item-45'] .custom-event-expander")).ToBeFocusedAsync();
+        Assert.Equal("preserved", await page.EvaluateAsync<string>("history.state.auditMarker"));
     }
 
     [Fact]

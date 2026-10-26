@@ -42,6 +42,7 @@ const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnl
 let athleteResultsReady = false;
 let athleteResultsLoadPromise = null;
 let renderedLeaderboardSelection = '';
+let renderedStandingsComparable = false;
 let athleteDialogReturnFocusElement = null;
 const defaultProfilePic = leaderboardPageAssets.defaultProfilePic;
 
@@ -2878,8 +2879,11 @@ function getAthleteModalFocusables(root = modal) {
 
 function containAthleteModalFocus(event) {
     if (event.key !== 'Tab' || event.defaultPrevented || modal.style.display !== 'block') return;
-    if (modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return;
-    const controls = getAthleteModalFocusables();
+    if (modal.querySelector('#athleteImageViewer[aria-hidden="false"]')) return;
+    // The athlete share sheet lives inside this dialog, independently of the
+    // site's shared sheet. Keep its keyboard loop above the profile controls.
+    const focusRoot = modal.querySelector('#athleteShareMenu:not([hidden])') || modal;
+    const controls = getAthleteModalFocusables(focusRoot);
     const active = event.target.ownerDocument.activeElement;
     const first = controls[0];
     const last = controls[controls.length - 1];
@@ -3015,6 +3019,9 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     // Reset the old scroll before changing content/styles; writing scrollTop
     // after those changes synchronously laid out the whole new profile.
     if (modalContent.scrollTop !== 0) modalContent.scrollTo({ top: 0, behavior: 'instant' });
+    // Read the page's scrollbar/background before rebuilding the card. Doing
+    // this after showing the loading state forced an intermediate full layout.
+    lockBodyScroll();
     modal.dispatchEvent(new CustomEvent('athlete-dialog-loading', { detail: { slug: athleteSlug } }));
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
@@ -3037,7 +3044,6 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
         document.getElementById('shareAthleteProfile').disabled = true;
         const loadError = document.getElementById('athleteLoadError');
         if (loadError) loadError.hidden = true;
-        lockBodyScroll();
         activateAthleteModal();
         return modalContent;
     }
@@ -3117,7 +3123,6 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     if (modal.style.display !== "block") {
         modal.style.display = "block";
     }
-    lockBodyScroll();
     activateAthleteModal();
     if (allowPaging) updateAthleteDialogSteps();
 
@@ -4501,6 +4506,9 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
     updateLeaderboardStateIndicator();
     scheduleLeaderboardTableHeightSync();
     renderedLeaderboardSelection = getLeaderboardSelectionKey();
+    // All row cues compare the same committed selection. Reading every filter
+    // again for each athlete turns a single input into thousands of DOM queries.
+    renderedStandingsComparable = !hasActiveLeaderboardState();
     pageDocument.dispatchEvent(new Event('lwc:standings-ready'));
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
@@ -6328,6 +6336,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.src = getAthletePortraitUrl(fullAthleteData);
     profilePic.dataset.fullSrc = fullAthleteData.ProfilePic || profilePic.src;
     profilePic.alt = `${modalDisplayName} Profile Picture`;
+    // This control survives paging and also appears in hidden-identity rounds.
+    profilePic.setAttribute('aria-label', 'Enlarge athlete profile picture');
     profilePic.loading = 'eager';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
@@ -7939,7 +7949,7 @@ window.getLeaderboardStanding = name => {
         rank: athlete.rank,
         lastMonthRank: Number.isFinite(athlete.lastMonthRank) ? athlete.lastMonthRank : null,
         isNew: Boolean(athlete.isNew),
-        comparable: athleteResultsReady && !hasActiveLeaderboardState(),
+        comparable: athleteResultsReady && renderedStandingsComparable,
         flag: athlete.canonicalFlag || ''
     });
 };
