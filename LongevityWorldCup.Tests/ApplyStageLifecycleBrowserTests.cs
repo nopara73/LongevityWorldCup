@@ -17,6 +17,43 @@ public sealed class ApplyStageLifecycleBrowserTests(
         => await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.getElementById('nextButton')?.disabled === false");
 
     [Fact]
+    public async Task UnreadablePortrait_PreservesTheDraftAndAllowsAnotherImage()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        {
+            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            return route.FulfillAsync(new()
+            {
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
+                ContentType = css ? "text/css" : "application/javascript"
+            });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+        const string draft = "() => JSON.stringify({profilePic, fields: [...document.querySelectorAll('#name, #division, #flag, #why, #personalLink, #mediaContact')].map(field => [field.id, field.value])})";
+        var before = await page.EvaluateAsync<string>(draft);
+        await page.Locator("#profilePicInput").SetInputFilesAsync(new FilePayload
+        {
+            Name = "unreadable.png", MimeType = "image/png", Buffer = "not image bytes"u8.ToArray()
+        });
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToContainTextAsync("Profile picture upload failed.");
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await Assertions.Expect(page.Locator("#croppingPart")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#uploadButton")).ToBeFocusedAsync();
+        Assert.Equal(before, await page.EvaluateAsync<string>(draft));
+        Assert.False(await page.EvaluateAsync<bool>("() => applicationProfilePending"));
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.ready && !document.getElementById('cropButton').disabled");
+        await page.Locator("#cancelProfileCropButton").ClickAsync();
+        Assert.Equal(before, await page.EvaluateAsync<string>(draft));
+    }
+
+    [Fact]
     public async Task PortraitReplacement_DisablesCropBeforeTheNewImageInitializes()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });

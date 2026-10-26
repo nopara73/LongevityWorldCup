@@ -1742,6 +1742,7 @@
 
         function closeChangeProfileCropperDialog({ destroyCropper = true, restoreFocus = true } = {}) {
             ++profilePictureReadVersion;
+            cropperImage.onerror = null;
             if (destroyCropper && window.changeProfileCropper) {
                 try { window.changeProfileCropper.destroy(); } catch (_) { }
             }
@@ -1832,6 +1833,13 @@
 
             if (isChangeProfileCropProcessing) return;
             const version = ++profilePictureReadVersion;
+            const failProfilePicture = () => {
+                if (version !== profilePictureReadVersion) return;
+                closeChangeProfileCropperDialog({ restoreFocus: false });
+                const failedVersion = profilePictureReadVersion;
+                customAlert('Profile picture upload failed. Please try another image.')
+                    .then(() => { if (failedVersion === profilePictureReadVersion) restoreProfileCropperFocus(); });
+            };
             const reader = new FileReader();
             reader.onload = (evt) => {
                 if (version !== profilePictureReadVersion) return;
@@ -1840,6 +1848,8 @@
                         window.changeProfileCropper.destroy();
                         window.changeProfileCropper = null;
                     }
+                    // Cropper's ready callback never runs when image decoding fails.
+                    cropperImage.onerror = failProfilePicture;
                     cropperImage.src = evt.target.result;
                     cropBtn.disabled = true;
                     openChangeProfileCropperDialog();
@@ -1857,6 +1867,7 @@
                         ready() {
                             requestAnimationFrame(() => {
                                 if (version !== profilePictureReadVersion || cropperModal.hidden) return;
+                                cropperImage.onerror = null;
                                 cropBtn.disabled = false;
                                 refreshProfileCropperLayout();
                                 if (document.activeElement === cropperModal) cropBtn.focus({ preventScroll: true });
@@ -1864,20 +1875,10 @@
                         },
                     });
                 } catch (_) {
-                    if (window.changeProfileCropper) {
-                        try { window.changeProfileCropper.destroy(); } catch (_) { }
-                        window.changeProfileCropper = null;
-                    }
-                    closeChangeProfileCropperDialog({ destroyCropper: false, restoreFocus: false });
-                    customAlert('Profile picture upload failed. Please try another image.')
-                        .then(restoreProfileCropperFocus);
+                    failProfilePicture();
                 }
             };
-            reader.onerror = () => {
-                if (version !== profilePictureReadVersion) return;
-                customAlert('Profile picture upload failed. Please try another image.')
-                    .then(restoreProfileCropperFocus);
-            };
+            reader.onerror = failProfilePicture;
             reader.onabort = reader.onerror;
             reader.readAsDataURL(file);
         }

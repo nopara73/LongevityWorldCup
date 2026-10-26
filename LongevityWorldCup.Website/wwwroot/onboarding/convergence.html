@@ -2520,7 +2520,26 @@
                 observer.observe(document.querySelector('.convergence-crop-stage'));
             }
 
+            function failProfileUpload(version) {
+                if (version !== profileReadVersion) return;
+                const failedVersion = ++profileReadVersion;
+                applicationProfilePending = false;
+                pendingProfileSource = null;
+                document.getElementById('cropperImage').onerror = null;
+                if (cropper) {
+                    try { cropper.destroy(); } catch (_) { }
+                    cropper = null;
+                }
+                document.getElementById('uploadPart').style.display = '';
+                document.getElementById('croppingPart').style.display = 'none';
+                if (currentStage === 4) document.getElementById('nextButton').disabled = !profilePic;
+                updateUploadButtons();
+                customAlert('Profile picture upload failed. Please try another image.')
+                    .then(() => { if (failedVersion === profileReadVersion && currentStage === 4) uploadButton?.focus(); });
+            }
+
             function showProfileCrop(source) {
+                const version = profileReadVersion;
                 const nextButton = document.getElementById('nextButton');
                 try {
                     nextButton.disabled = true;
@@ -2528,7 +2547,10 @@
                     updateUploadButtons();
                     if (cropper) cropper.destroy();
                     cropper = null;
-                    document.getElementById('cropperImage').src = source;
+                    const image = document.getElementById('cropperImage');
+                    // Reading bytes successfully does not mean the browser can decode them.
+                    image.onerror = () => failProfileUpload(version);
+                    image.src = source;
                     document.getElementById('uploadPart').style.display = 'none';
                     document.getElementById('croppingPart').style.display = 'block';
                     cropper = new Cropper(document.getElementById('cropperImage'), {
@@ -2537,7 +2559,11 @@
                         autoCropArea: 1,
                         minContainerWidth: 0,
                         minContainerHeight: 0,
-                        ready() { window.requestAnimationFrame(syncProfileCropLayout); },
+                        ready() {
+                            if (version !== profileReadVersion) return;
+                            image.onerror = null;
+                            window.requestAnimationFrame(syncProfileCropLayout);
+                        },
                         movable: true,
                         zoomable: true,
                         rotatable: false,
@@ -2547,17 +2573,7 @@
                         minCropBoxHeight: 150,
                     });
                 } catch (_) {
-                    applicationProfilePending = false;
-                    if (cropper) {
-                        try { cropper.destroy(); } catch (_) { }
-                        cropper = null;
-                    }
-                    document.getElementById('uploadPart').style.display = '';
-                    document.getElementById('croppingPart').style.display = 'none';
-                    nextButton.disabled = !profilePic;
-                    updateUploadButtons();
-                    customAlert('Profile picture upload failed. Please try another image.')
-                        .then(() => { if (currentStage === 4) uploadButton?.focus(); });
+                    failProfileUpload(version);
                 }
             }
 
@@ -2592,13 +2608,7 @@
                         if (currentStage === 4) showProfileCrop(e.target.result);
                         else pendingProfileSource = e.target.result;
                     };
-                    reader.onerror = function () {
-                        if (version !== profileReadVersion) return;
-                        applicationProfilePending = false;
-                        if (currentStage === 4) document.getElementById('nextButton').disabled = !profilePic;
-                        customAlert('Profile picture upload failed. Please try another image.')
-                            .then(() => { if (currentStage === 4) uploadButton?.focus(); });
-                    };
+                    reader.onerror = () => failProfileUpload(version);
                     reader.onabort = reader.onerror;
                     reader.readAsDataURL(file);
                 }
@@ -2674,6 +2684,7 @@
                     applicationProfilePending = false;
                     pendingProfileSource = null;
                     ++profileReadVersion;
+                    document.getElementById('cropperImage').onerror = null;
                     if (cropper) {
                         try { cropper.destroy(); } catch (_) { }
                         cropper = null;
