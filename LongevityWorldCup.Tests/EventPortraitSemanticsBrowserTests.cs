@@ -66,8 +66,10 @@ public sealed class EventPortraitSemanticsBrowserTests(
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForLoadStateAsync(LoadState.Load);
         await page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link=>link.sheet)");
         await page.EvaluateAsync("() => document.fonts.ready");
+        await page.WaitForFunctionAsync("() => !document.querySelector('.events-board[aria-busy=true]')");
         var logo = page.Locator($"tr[data-event-id='brand-{generation}'] img.custom-event-avatar");
         await Assertions.Expect(logo).ToHaveCountAsync(1);
         await logo.EvaluateAsync("image=>image.decode()");
@@ -135,18 +137,20 @@ public sealed class EventPortraitSemanticsBrowserTests(
 
     internal static async Task<byte[]> CaptureSettledLogoAsync(ILocator logo)
     {
+        await logo.Page.WaitForFunctionAsync("() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link=>link.sheet)");
+        await logo.Page.EvaluateAsync("() => document.fonts.ready");
         await logo.ScrollIntoViewIfNeededAsync();
+        await logo.EvaluateAsync("image=>image.decode()");
+        await logo.Page.EvaluateAsync("() => Promise.allSettled([...document.images].filter(image=>{const r=image.getBoundingClientRect();return r.width&&r.height&&r.bottom>0&&r.top<innerHeight}).map(image=>image.decode()))");
         // Rerendering creates exit copies and can trigger native scroll
         // anchoring. Capture actual settled pixels rather than fast-forwarding
         // animations while the screenshot's clip is being measured.
         await logo.Page.WaitForFunctionAsync("""
-            image => !document.querySelector('.events-exit-ghost') && document.getAnimations().every(animation => {
-                const target=animation.effect?.target;
-                return !(target instanceof Element) || !target.contains(image)
-                    || !(animation.timeline instanceof DocumentTimeline)
+            () => !document.querySelector('.events-exit-ghost') && document.getAnimations().every(animation => {
+                return !(animation.timeline instanceof DocumentTimeline)
                     || animation.playState!=='running' || animation.effect.getComputedTiming().iterations===Infinity;
             })
-            """, await logo.ElementHandleAsync());
+            """);
         await logo.EvaluateAsync("""
             async image => {
                 let previous='', stable=0;
@@ -160,23 +164,39 @@ public sealed class EventPortraitSemanticsBrowserTests(
                 }
             }
             """);
-        // Locator screenshots scroll again after measuring their clip. Native
-        // scroll anchoring can then offset the crop even though the document
-        // image did not move. Capture its document coordinates directly.
-        var clip = await logo.EvaluateAsync<JsonElement>("""
+        // Capture the real viewport before cropping. A document-space clip can
+        // relocate sticky board columns, while locator screenshots scroll again.
+        const string geometry = """
             image => {const r=image.getBoundingClientRect();return {
-                x:r.left+scrollX,y:r.top+scrollY,width:r.width,height:r.height,scale:1
+                x:r.left,y:r.top,width:r.width,height:r.height,dpr:devicePixelRatio,scrollX,scrollY
             }}
-            """);
+            """;
+        var frame = await logo.EvaluateAsync<JsonElement>(geometry);
         var cdp = await logo.Page.Context.NewCDPSessionAsync(logo.Page);
         try
         {
             var result = await cdp.SendAsync("Page.captureScreenshot", new Dictionary<string, object>
             {
                 ["format"] = "png", ["fromSurface"] = true,
-                ["captureBeyondViewport"] = true, ["clip"] = clip
+                ["captureBeyondViewport"] = false
             });
-            return Convert.FromBase64String(result!.Value.GetProperty("data").GetString()!);
+            Assert.Equal(frame.GetRawText(), (await logo.EvaluateAsync<JsonElement>(geometry)).GetRawText());
+            using var viewport = Image.Load<Rgba32>(Convert.FromBase64String(result!.Value.GetProperty("data").GetString()!));
+            var dpr = frame.GetProperty("dpr").GetDouble();
+            var left = (int)Math.Floor(frame.GetProperty("x").GetDouble() * dpr);
+            var top = (int)Math.Floor(frame.GetProperty("y").GetDouble() * dpr);
+            var right = (int)Math.Ceiling((frame.GetProperty("x").GetDouble() + frame.GetProperty("width").GetDouble()) * dpr);
+            var bottom = (int)Math.Ceiling((frame.GetProperty("y").GetDouble() + frame.GetProperty("height").GetDouble()) * dpr);
+            Assert.InRange(left, 0, viewport.Width - 1);
+            Assert.InRange(top, 0, viewport.Height - 1);
+            Assert.InRange(right, left + 1, viewport.Width);
+            Assert.InRange(bottom, top + 1, viewport.Height);
+            using var artwork = new Image<Rgba32>(right - left, bottom - top);
+            for (var y = 0; y < artwork.Height; y++)
+            for (var x = 0; x < artwork.Width; x++) artwork[x, y] = viewport[left + x, top + y];
+            using var output = new MemoryStream();
+            artwork.SaveAsPng(output);
+            return output.ToArray();
         }
         finally { await cdp.DetachAsync(); }
     }

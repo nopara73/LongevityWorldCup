@@ -104,9 +104,11 @@ public sealed class PortraitSystemBrowserTests(
 
     internal static async Task AssertApprovedArtworkAsync(ILocator image, string source)
     {
-        await Assertions.Expect(image).ToHaveAttributeAsync("src", source);
+        var absoluteSource = new Uri(new Uri(image.Page.Url), source).AbsoluteUri;
+        await Assertions.Expect(image).ToHaveJSPropertyAsync("src", absoluteSource);
         if (await image.GetAttributeAsync("loading") == "lazy") await image.ScrollIntoViewIfNeededAsync();
         await image.EvaluateAsync("image=>image.decode()");
+        Assert.Equal(absoluteSource, await image.EvaluateAsync<string>("image=>image.currentSrc"));
         Assert.True(await image.EvaluateAsync<bool>("image=>image.complete&&image.naturalWidth>0"));
         Assert.Null(await image.GetAttributeAsync("data-lwc-portrait"));
         Assert.Null(await image.GetAttributeAsync("data-lwc-portrait-fallback"));

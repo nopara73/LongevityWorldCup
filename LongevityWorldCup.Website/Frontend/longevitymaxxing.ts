@@ -8311,6 +8311,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function replaceAvatarContents(container: HTMLElement, source: string, alt: string): void {
+        const current = container.firstElementChild;
+        if (container.childElementCount === 1 && current instanceof HTMLImageElement
+            && current.getAttribute("src") === source) {
+            if (current.alt !== alt) current.alt = alt;
+            return;
+        }
         const image = document.createElement("img");
         image.setAttribute("src", source);
         image.setAttribute("alt", alt);

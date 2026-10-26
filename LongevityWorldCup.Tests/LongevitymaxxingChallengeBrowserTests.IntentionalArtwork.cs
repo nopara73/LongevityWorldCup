@@ -8,6 +8,40 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Fact]
+    public async Task IntentionalArtwork_EnrichmentKeepsTheDecodedPlaceholderNode()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }
+        });
+        await RouteChallengeResourcesAsync(context);
+        await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        var releaseDirectory = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await releaseDirectory.Task;
+            await FulfillJsonAsync(route, "[]");
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/longevitymaxxing", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            var image = page.Locator(".lmx-participant-avatar.placeholder img:visible").First;
+            await image.ScrollIntoViewIfNeededAsync();
+            await image.EvaluateAsync("async image=>{await image.decode();window.decodedArtwork=image}");
+            var source = await image.GetAttributeAsync("src");
+            var responseTask = page.WaitForResponseAsync(response => new Uri(response.Url).AbsolutePath == "/api/data/athletes");
+            releaseDirectory.TrySetResult();
+            await (await responseTask).FinishedAsync();
+            await page.EvaluateAsync("() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))");
+            Assert.True(await image.EvaluateAsync<bool>("image=>image===window.decodedArtwork&&image.isConnected&&image.complete&&image.naturalWidth>0"),
+                "Optional athlete enrichment discarded an already decoded, unchanged illustration.");
+            await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(image, source!);
+        }
+        finally { releaseDirectory.TrySetResult(); }
+    }
+
     [Theory]
     [InlineData(1440, ColorScheme.Light)]
     [InlineData(1440, ColorScheme.Dark)]

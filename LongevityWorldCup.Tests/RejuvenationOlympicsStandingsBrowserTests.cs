@@ -26,7 +26,10 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
             ViewportSize = new() { Width = width, Height = height }, ColorScheme = theme, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/rejuvenation-olympics");
+        var standingsResponse = await page.RunAndWaitForResponseAsync(
+            () => page.GotoAsync("/rejuvenation-olympics"),
+            response => new Uri(response.Url).AbsolutePath == "/api/data/standings" && response.Ok);
+        await standingsResponse.FinishedAsync();
         await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-ready"));
         await page.AddStyleTagAsync(new() { Content = $"html {{font-size:{text}% !important}}" });
         await page.EvaluateAsync("() => document.fonts.ready");
@@ -124,7 +127,7 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
     }
 
     [Fact]
-    public async Task MissingPortrait_UsesADecodedFallbackWithTheAthletesIdentity()
+    public async Task MissingPortrait_KeepsThePageOwnedArtworkAndAthleteIdentity()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         await context.RouteAsync("**/api/data/standings", async route =>
@@ -139,7 +142,9 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/rejuvenation-olympics");
         var image = page.Locator(".ro-step-portrait img").First;
-        await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(image, "RA");
+        await Assertions.Expect(image).ToHaveAttributeAsync("src", new System.Text.RegularExpressions.Regex("^/assets/HdLogo_thumb_sm\\.png\\?v=[0-9a-f]{16}$"));
+        await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(image, (await image.GetAttributeAsync("src"))!);
+        await Assertions.Expect(image).ToHaveAttributeAsync("data-athlete-name", "Review Athlete");
         await Assertions.Expect(image).ToHaveAttributeAsync("alt", "");
         await Assertions.Expect(page.Locator(".ro-step-link").First).ToHaveAttributeAsync("aria-label", new System.Text.RegularExpressions.Regex("^Review Athlete, rank"));
         await Assertions.Expect(page.Locator(".ro-step-score").Nth(1)).ToHaveTextAsync("\u2014");
