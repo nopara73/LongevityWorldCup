@@ -3018,6 +3018,9 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     // Reset the old scroll before changing content/styles; writing scrollTop
     // after those changes synchronously laid out the whole new profile.
     if (modalContent.scrollTop !== 0) modalContent.scrollTo({ top: 0, behavior: 'instant' });
+    // Read the page's scrollbar/background before rebuilding the card. Doing
+    // this after showing the loading state forced an intermediate full layout.
+    lockBodyScroll();
     modal.dispatchEvent(new CustomEvent('athlete-dialog-loading', { detail: { slug: athleteSlug } }));
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
@@ -3040,7 +3043,6 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
         document.getElementById('shareAthleteProfile').disabled = true;
         const loadError = document.getElementById('athleteLoadError');
         if (loadError) loadError.hidden = true;
-        lockBodyScroll();
         activateAthleteModal();
         return modalContent;
     }
@@ -3120,7 +3122,6 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     if (modal.style.display !== "block") {
         modal.style.display = "block";
     }
-    lockBodyScroll();
     activateAthleteModal();
     if (allowPaging) updateAthleteDialogSteps();
 
