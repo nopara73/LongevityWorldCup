@@ -5,6 +5,11 @@ name: .NET
 
 on:
   workflow_dispatch:
+    inputs:
+      reference_tests:
+        description: Optional full commit SHA of a reference test suite for pruning audits
+        type: string
+        required: false
   push:
     branches: [ "master" ]
   pull_request:
@@ -20,13 +25,25 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build:
+  prepare:
 
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 20
+    outputs:
+      sdk: ${{ steps.repo_sdk.outputs.version }}
 
     steps:
     - uses: actions/checkout@v7
+    - name: Restore reference tests for a manual audit
+      if: github.event_name == 'workflow_dispatch' && inputs.reference_tests != ''
+      env:
+        REFERENCE_TESTS: ${{ inputs.reference_tests }}
+      run: |
+        [[ "$REFERENCE_TESTS" =~ ^[a-f0-9]{40}$ ]]
+        git fetch --no-tags --depth=1 origin "$REFERENCE_TESTS"
+        git restore --source=FETCH_HEAD --staged --worktree -- LongevityWorldCup.Tests
+    - name: Verify CI accounting guards
+      run: python3 -B -m unittest discover -s .github/scripts -p test_ci_tests.py
     - name: Reject tracked local artifacts
       shell: bash
       run: |
@@ -139,67 +156,155 @@ jobs:
             "$publish_output/wwwroot/css/documentation-reading.css"
         cmp LongevityWorldCup.Documentation/MediaKit.zip \
             "$publish_output/wwwroot/assets/media-kit/MediaKit.zip"
+    - name: Restore measured test durations
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ runner.temp }}/lwc-ci-timings.json
+        key: ci-test-timings-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: ci-test-timings-${{ runner.os }}-
+    - name: Discover and balance the complete suite
+      shell: bash
+      run: |
+        mkdir -p .artifacts/ci-tests
+        dotnet vstest LongevityWorldCup.Tests/bin/Debug/net10.0/LongevityWorldCup.Tests.dll \
+          /ListFullyQualifiedTests /ListTestsTargetPath:.artifacts/ci-tests/discovered.txt
+        python3 .github/scripts/ci_tests.py plan \
+          --discovery .artifacts/ci-tests/discovered.txt \
+          --timings "$RUNNER_TEMP/lwc-ci-timings.json" \
+          --output .artifacts/ci-tests --revision "$GITHUB_SHA"
+    - name: Package the verified build
+      shell: bash
+      run: |
+        # A tar preserves the executable Playwright driver and generated assets.
+        tar -czf "$RUNNER_TEMP/ci-build.tgz" \
+          --exclude=LongevityWorldCup.Tests/obj --exclude=LongevityWorldCup.Tests/TestResults \
+          LongevityWorldCup.Tests \
+          LongevityWorldCup.Website/wwwroot/js \
+          LongevityWorldCup.Website/wwwroot/css/athlete-dialog \
+          LongevityWorldCup.Website/wwwroot/css/documentation-reading.css \
+          LongevityWorldCup.Website/wwwroot/assets/media-kit/MediaKit.zip \
+          .artifacts/ci-tests
+    - uses: actions/upload-artifact@v7
+      with:
+        name: ci-build
+        path: ${{ runner.temp }}/ci-build.tgz
+        compression-level: 0
+        retention-days: 1
+        if-no-files-found: error
+
+  test:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    env:
+      SHARD: ${{ matrix.shard }}
+      DOTNET_CLI_UI_LANGUAGE: en-US
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: ${{ needs.prepare.outputs.sdk }}
+    - uses: actions/download-artifact@v8
+      with:
+        name: ci-build
+        path: ${{ runner.temp }}
+    - name: Unpack the verified build
+      run: tar -xzf "$RUNNER_TEMP/ci-build.tgz"
+    - name: Restore test dependencies
+      run: dotnet restore LongevityWorldCup.Tests/LongevityWorldCup.Tests.csproj -p:BuildFrontend=false
     - name: Install Playwright Chromium
       run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
     - name: Test with coverage
       run: >
-        dotnet test
-        --no-build
-        --verbosity normal
-        --blame-hang-timeout 10m
-        --blame-hang-dump-type none
+        dotnet test LongevityWorldCup.Tests/LongevityWorldCup.Tests.csproj
+        --no-build --no-restore --verbosity minimal
+        --settings ".artifacts/ci-tests/shard-$SHARD.runsettings"
+        --logger "trx;LogFileName=tests.trx"
+        --results-directory "$RUNNER_TEMP/test-results"
+        --blame-hang-timeout 10m --blame-hang-dump-type none
         -p:CollectCoverage=true
-        -p:CoverletOutput=TestResults/Coverage/
-        -p:CoverletOutputFormat=cobertura
+        -p:CoverletOutput="$RUNNER_TEMP/test-results/coverage"
+        -p:CoverletOutputFormat=json%2ccobertura
     - name: Report interrupted test sequence
       if: failure()
       shell: bash
       run: |
         python3 - <<'PY'
+        import os
         from pathlib import Path
         import xml.etree.ElementTree as ET
 
-        for path in Path('.').rglob('Sequence*.xml'):
+        for path in (Path(os.environ['RUNNER_TEMP']) / 'test-results').rglob('Sequence*.xml'):
             print(f'Interrupted test sequence: {path}')
             tests = list(ET.parse(path).getroot().iter('Test'))
             unfinished = [test for test in tests if any(test.get(key, '').lower() == 'false'
                           for key in ('Completed', 'IsCompleted'))]
             for test in unfinished or tests[-20:]:
-                print({key: value for key, value in test.attrib.items()
-                       if key in ('Name', 'DisplayName', 'Completed', 'IsCompleted')})
+                print(test.attrib)
         PY
-    - name: Summarize .NET coverage
+    - name: Preserve shard results and diagnostics
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-results-${{ matrix.shard }}
+        path: ${{ runner.temp }}/test-results/
+        retention-days: 3
+        if-no-files-found: error
+
+  build:
+    # Keep the existing required check name; it succeeds only after all shards.
+    if: always()
+    needs: [prepare, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/download-artifact@v8
+      with:
+        name: ci-build
+        path: ${{ runner.temp }}
+    - name: Read the discovered test plan
+      run: tar -xzf "$RUNNER_TEMP/ci-build.tgz" .artifacts/ci-tests/plan.json
+    - uses: actions/download-artifact@v8
+      with:
+        pattern: test-results-*
+        path: ${{ runner.temp }}/ci-results
+    - name: Reconcile every test and combine coverage
       id: coverage
       shell: bash
+      env:
+        PREPARE_RESULT: ${{ needs.prepare.result }}
+        TEST_RESULT: ${{ needs.test.result }}
       run: |
-        set -euo pipefail
-
-        coverage_file="$(find . -name coverage.cobertura.xml -print | head -n 1)"
-        if [[ -z "$coverage_file" ]]; then
-          echo "coverage.cobertura.xml was not produced." >&2
-          exit 1
-        fi
-
-        python3 - "$coverage_file" <<'PY' | tee coverage-summary.md
-        import sys
-        import xml.etree.ElementTree as ET
-
-        root = ET.parse(sys.argv[1]).getroot()
-        line_coverage = float(root.attrib.get("line-rate", "0")) * 100
-        branch_coverage = float(root.attrib.get("branch-rate", "0")) * 100
-
-        print("## .NET test coverage")
-        print()
-        print(f"- Line coverage: {line_coverage:.1f}%")
-        print(f"- Branch coverage: {branch_coverage:.1f}%")
-        PY
-
-        cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
+        test "$PREPARE_RESULT" = success
+        test "$TEST_RESULT" = success
+        python3 .github/scripts/ci_tests.py aggregate \
+          --plan .artifacts/ci-tests/plan.json --results "$RUNNER_TEMP/ci-results" \
+          --output "$RUNNER_TEMP/ci-report"
+        cat "$RUNNER_TEMP/ci-report/summary.md" >> "$GITHUB_STEP_SUMMARY"
+        cp "$RUNNER_TEMP/ci-report/timings.json" "$RUNNER_TEMP/lwc-ci-timings.json"
         {
-          echo "markdown<<DOTNET_COVERAGE_SUMMARY"
-          cat coverage-summary.md
-          echo "DOTNET_COVERAGE_SUMMARY"
+          echo 'markdown<<DOTNET_COVERAGE_SUMMARY'
+          cat "$RUNNER_TEMP/ci-report/summary.md"
+          echo DOTNET_COVERAGE_SUMMARY
         } >> "$GITHUB_OUTPUT"
+    - name: Preserve combined evidence
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: ci-verification
+        path: ${{ runner.temp }}/ci-report/
+        retention-days: 3
+    - name: Save measured durations for the next run
+      if: success() && github.event_name != 'pull_request'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ runner.temp }}/lwc-ci-timings.json
+        key: ci-test-timings-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
     - name: Comment .NET coverage on PR
       if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
       uses: actions/github-script@v9
