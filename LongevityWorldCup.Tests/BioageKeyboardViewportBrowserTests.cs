@@ -65,7 +65,9 @@ public sealed class BioageKeyboardViewportBrowserTests(
             """);
         if (delayedController)
         {
-            await page.WaitForFunctionAsync("typeof window.reviewResumeBiomarkerEntry === 'function'");
+            // A function can be compiled once; re-evaluating a string on later
+            // animation frames is blocked by the page's production CSP.
+            await page.WaitForFunctionAsync("() => typeof window.reviewResumeBiomarkerEntry === 'function'");
             Assert.False(await page.Locator("form.bioageform").EvaluateAsync<bool>(
                 "form => form.classList.contains('bioage-biomarker-entry-ready')"));
         }

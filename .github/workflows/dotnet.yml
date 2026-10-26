@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  TEST_SHARDS: 10
+  TEST_SHARDS: 12
 
 jobs:
   prepare:
