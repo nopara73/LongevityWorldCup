@@ -565,7 +565,15 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
     else initialize();
-    new MutationObserver(initialize).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    // Only the play-flow route class changes footer availability. Dialog and
+    // menu scroll locks must not force a page-wide style read before painting.
+    let playFlowRoute = document.body.classList.contains('play-flow-route');
+    new MutationObserver(() => {
+        const current = document.body.classList.contains('play-flow-route');
+        if (current === playFlowRoute) return;
+        playFlowRoute = current;
+        initialize();
+    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     let opener = null;
     let closeTimer = 0;
