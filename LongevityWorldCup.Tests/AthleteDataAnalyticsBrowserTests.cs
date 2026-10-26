@@ -620,7 +620,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             });
         });
         var chartScript = Path.Combine(AppContext.BaseDirectory, "Fixtures", "chart.umd.js");
-        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => route.FulfillAsync(new()
+        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.6.1", route => route.FulfillAsync(new()
         {
             ContentType = "application/javascript", Path = chartScript
         }));

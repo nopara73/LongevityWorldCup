@@ -295,8 +295,10 @@ public sealed class GuessMyAgeBrowserTests(
                 rickrollMethod = route.Request.Method;
                 rickrollWasMainFrameNavigation = route.Request.IsNavigationRequest
                     && route.Request.Frame == page.MainFrame;
+                // Explicitly cancel the navigation so Playwright can advance the retained document's clock.
+                // Playwright 1.64 can leave a synthetic 204 navigation pending for clock evaluation.
+                await route.AbortAsync("aborted");
                 rickrollAttempt.TrySetResult(true);
-                await route.FulfillAsync(new RouteFulfillOptions { Status = 204 });
             });
 
         await page.Clock.InstallAsync();
@@ -465,8 +467,10 @@ public sealed class GuessMyAgeBrowserTests(
             async route =>
             {
                 rickrollRequests++;
+                // Explicitly cancel the navigation so Playwright can advance the retained document's clock.
+                // Playwright 1.64 can leave a synthetic 204 navigation pending for clock evaluation.
+                await route.AbortAsync("aborted");
                 rickrollAttempt.TrySetResult(true);
-                await route.FulfillAsync(new RouteFulfillOptions { Status = 204 });
             });
 
         await page.Clock.InstallAsync();

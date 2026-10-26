@@ -12,7 +12,7 @@
     "verify:outputs": "node Scripts/verify-frontend-outputs.mjs"
   },
   "devDependencies": {
-    "chart.js": "4.5.1",
+    "chart.js": "4.6.1",
     "cropperjs": "1.7.0",
     "typescript": "7.0.2"
   }
