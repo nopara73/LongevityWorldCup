@@ -477,7 +477,7 @@ button.option-button:disabled {
     max-height: calc(100dvh - 2.5rem);
     overflow: auto;
     box-sizing: border-box;
-    padding: 2rem clamp(1.25rem, 5vw, 1.75rem) clamp(1.25rem, 5vw, 1.5rem);
+    padding: clamp(1rem, 5dvh, 2rem) clamp(1.25rem, 5vw, 1.75rem) clamp(1.25rem, 5vw, 1.5rem);
     padding-left: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-left));
     padding-right: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-right));
     border: 1px solid var(--lwc-border);
@@ -717,11 +717,11 @@ button.option-button:disabled {
     }
 }
 
-@media (max-height: 300px) {
+@media (max-height: 400px) {
     .custom-alert-panel {
         max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
-        padding-block: 0.75rem;
-        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        padding-block: min(0.75rem, 3dvh);
+        padding-bottom: max(min(0.75rem, 3dvh), env(safe-area-inset-bottom));
     }
 
     .custom-alert-mark {
@@ -729,7 +729,7 @@ button.option-button:disabled {
     }
 
     #custom-alert p {
-        margin-bottom: 0.75rem;
+        margin-bottom: min(0.75rem, 3dvh);
     }
 }
 
