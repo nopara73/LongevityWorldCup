@@ -589,15 +589,16 @@ public sealed class EditProfileLayoutBrowserTests(
         await page.Locator("#profileCameraInputModal").SetInputFilesAsync(file);
         await page.EvaluateAsync("""
             () => {
-                profileReads[1].onload({target: {result: '/second-photo.jpg'}});
-                profileReads[0].onload({target: {result: '/first-photo.jpg'}});
+                profileReads[1].onload({target: {result: '/assets/content-images/play-athlete-placeholder.jpg?selection=second'}});
+                profileReads[0].onload({target: {result: '/assets/content-images/play-athlete-placeholder.jpg?selection=first'}});
             }
             """);
-        Assert.Equal(new[] { new Uri(new Uri(page.Url), "/second-photo.jpg").ToString() },
+        Assert.Equal(new[] { new Uri(new Uri(page.Url), "/assets/content-images/play-athlete-placeholder.jpg?selection=second").ToString() },
             await page.EvaluateAsync<string[]>("() => profileCropSources"));
+        await page.Locator("#changeProfileCropperImage").EvaluateAsync("image => image.decode()");
         await page.Locator("#changeProfileCancelButton").ClickAsync();
         await Assertions.Expect(page.Locator("#takeProfileSelfieButton")).ToBeFocusedAsync();
-        await page.EvaluateAsync("() => profileReads[0].onload({target: {result: '/first-photo.jpg'}})");
+        await page.EvaluateAsync("() => profileReads[0].onload({target: {result: '/assets/content-images/play-athlete-placeholder.jpg?selection=first'}})");
         await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
         Assert.Null(await page.EvaluateAsync<string?>("() => sessionStorage.getItem('tempAthlete')"));
