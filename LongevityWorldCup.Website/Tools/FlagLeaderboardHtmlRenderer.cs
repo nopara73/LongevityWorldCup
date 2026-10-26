@@ -25,7 +25,7 @@ public static class FlagLeaderboardHtmlRenderer
                 .Append($"<span class=\"flag-team-name\"><span class=\"flag-team-icon\" aria-hidden=\"true\">{Icon(team.Flag.Name)}</span><span>{Encode(team.Flag.Name)}</span></span>")
                 .Append("<span class=\"flag-team-portraits\" aria-hidden=\"true\">");
             foreach (var athlete in team.Athletes)
-                html.Append($"<img src=\"{Portrait(athlete)}\" alt=\"\" loading=\"lazy\">");
+                html.Append($"<img src=\"{Portrait(athlete)}\" data-athlete-name=\"{Encode(athlete.DisplayName)}\" alt=\"\" loading=\"lazy\">");
             html.Append($"</span><span class=\"flag-team-score\">{(team.Rank.HasValue ? PublicHtmlFormat.Signed(team.Score, 2) : team.Athletes.Count + "/3")} <small>{(team.Rank.HasValue ? "years total" : "to qualify")}</small></span><span class=\"flag-team-chevron\" aria-hidden=\"true\">⌄</span></summary><ol class=\"flag-team-athletes\" aria-label=\"Top {FlagLeaderboard.Label(team.View)} athletes for {Encode(team.Flag.Name)}\">");
             var place = 0;
             foreach (var athlete in team.Athletes)

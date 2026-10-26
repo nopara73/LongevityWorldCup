@@ -3523,7 +3523,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const shown = (pictured.length ? pictured : rows).slice(0, 7);
         const faces = shown.map(row => {
             const avatar = participantAvatarDetails(row, row.displayName);
-            return `<span class="lmx-participant-avatar${avatar.hasProfileImage ? "" : " placeholder"}" ${participantAvatarHydrationAttributes("participant", row.participantId, row.displayName)} aria-hidden="true">
+            return `<span class="lmx-participant-avatar${avatar.hasProfileImage ? "" : " placeholder"}" ${participantAvatarHydrationAttributes("participant", row.participantId, row.displayName, avatar.hasProfileImage)} aria-hidden="true">
                 <img src="${escAttr(avatar.image)}" alt="" loading="lazy" decoding="async">
             </span>`;
         }).join("");
@@ -4331,7 +4331,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const athlete = findAthleteForParticipant(row);
         const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
         const image = athleteProfileImage || String(row.profileImageUrl || "").trim();
-        const hydrationAttributes = participantAvatarHydrationAttributes("mention", row.participantId, row.displayName);
+        const hydrationAttributes = participantAvatarHydrationAttributes("mention", row.participantId, row.displayName, !!image);
         if (image) {
             return `<span class="lmx-mention-avatar" ${hydrationAttributes} aria-hidden="true"><img src="${escAttr(image)}" alt="" loading="lazy" decoding="async"></span>`;
         }
@@ -5213,7 +5213,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const avatarClass = avatar.hasProfileImage
             ? "lmx-discussion-author-avatar"
             : "lmx-discussion-author-avatar placeholder";
-        const hydrationAttributes = participantAvatarHydrationAttributes("discussion", participantId, displayName);
+        const hydrationAttributes = participantAvatarHydrationAttributes("discussion", participantId, displayName, avatar.hasProfileImage);
         return `<span class="${avatarClass}" ${hydrationAttributes} aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
             </span>`;
@@ -5316,6 +5316,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 image.dataset.fallback = "true";
                 image.alt = "";
                 avatar.classList.add("placeholder");
+                avatar.dataset.lwcImageRole = "illustration";
                 image.src = ATHLETE_PLACEHOLDER_IMAGE;
             }
         }, true);
@@ -6144,7 +6145,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const imageUrl = image || ATHLETE_PLACEHOLDER_IMAGE;
         const placeholderClass = hasProfileImage ? "" : " placeholder";
         const alt = hasProfileImage ? `${athleteName} profile picture` : "";
-        return `<div class="lmx-quote-portrait${placeholderClass}" data-athlete-name="${escAttr(athleteName)}">
+        return `<div class="lmx-quote-portrait${placeholderClass}" data-lwc-image-role="${image ? "athlete" : "illustration"}" data-athlete-name="${escAttr(athleteName)}">
             <img src="${escAttr(imageUrl)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
             <span class="lmx-quote-portrait-badge" aria-hidden="true">
                 <i class="fas ${getQuoteDialogIconClass(quote.bucket)}"></i>
@@ -8243,7 +8244,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function participantNameHtml(row: LeaderboardRow, nameHtml: string, rank: number): string {
         const avatar = participantAvatarDetails(row, row.displayName);
         const avatarClass = avatar.hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
-        const hydrationAttributes = participantAvatarHydrationAttributes("participant", row.participantId, row.displayName);
+        const hydrationAttributes = participantAvatarHydrationAttributes("participant", row.participantId, row.displayName, avatar.hasProfileImage);
         const badges = [row.challengeInactive ? "Resting" : ""].filter(Boolean);
         const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
         const rankHtml = rankNumber && rankNumber > 0
@@ -8277,9 +8278,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function participantAvatarHydrationAttributes(
         kind: "participant" | "discussion" | "mention",
         participantId: string,
-        displayName: string
+        displayName: string,
+        hasProfileImage: boolean
     ): string {
-        return `data-lmx-participant-avatar="${escAttr(kind)}" data-participant-id="${escAttr(participantId)}" data-display-name="${escAttr(displayName)}"`;
+        return `data-lmx-participant-avatar="${escAttr(kind)}" data-participant-id="${escAttr(participantId)}" data-display-name="${escAttr(displayName)}" data-lwc-image-role="${hasProfileImage ? "athlete" : "illustration"}"`;
     }
 
     function hydrateRenderedParticipantAvatars(): void {
@@ -8290,6 +8292,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
             const displayName = String(container.dataset.displayName || row.displayName || "Participant");
             const avatar = participantAvatarDetails(row, displayName);
+            container.dataset.lwcImageRole = avatar.hasProfileImage ? "athlete" : "illustration";
             if (container.dataset.lmxParticipantAvatar === "mention") {
                 container.className = avatar.hasProfileImage ? "lmx-mention-avatar" : "lmx-mention-avatar fallback";
                 container.setAttribute("aria-hidden", "true");
@@ -8308,6 +8311,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function replaceAvatarContents(container: HTMLElement, source: string, alt: string): void {
+        const current = container.firstElementChild;
+        if (container.childElementCount === 1 && current instanceof HTMLImageElement
+            && current.getAttribute("src") === source) {
+            if (current.alt !== alt) current.alt = alt;
+            return;
+        }
         const image = document.createElement("img");
         image.setAttribute("src", source);
         image.setAttribute("alt", alt);
