@@ -360,6 +360,14 @@ interface Window {
                     return row;
                 }));
             }
+            // A fixed tooltip must not outlive its visible chart. Keep the
+            // selected reading so scrolling the focused chart back restores it.
+            if (!box.width || !box.height || box.bottom <= 0 || box.top >= window.innerHeight
+                || box.right <= 0 || box.left >= document.documentElement.clientWidth) {
+                delete host!.dataset["lwcReading"];
+                tip.hidden = true;
+                return;
+            }
             tip.hidden = false;
             const margin = 8;
             tip.style.maxWidth = Math.max(1, document.documentElement.clientWidth - margin * 2) + "px";

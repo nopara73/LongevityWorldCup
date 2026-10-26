@@ -43,11 +43,16 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
         await page.WaitForFunctionAsync("() => scrollY + innerHeight >= document.documentElement.scrollHeight - 2");
         await page.WaitForFunctionAsync("() => window.chartScrollEnded");
         await Expect(page.Locator(".lwc-chart-tip")).ToContainTextAsync("First");
+        await Expect(page.Locator(".lwc-chart-tip")).ToBeHiddenAsync();
         await page.Keyboard.PressAsync("Control+Home");
         await page.WaitForFunctionAsync("() => scrollY === 0");
         await page.Keyboard.PressAsync("End");
         await page.Keyboard.PressAsync("Enter");
         Assert.Equal("last", await page.EvaluateAsync<string>("() => window.picked"));
+        await Expect(page.Locator(".lwc-chart-tip")).ToBeHiddenAsync();
+        await chart.ScrollIntoViewIfNeededAsync();
+        await Expect(page.Locator(".lwc-chart-tip")).ToBeVisibleAsync();
+        await Expect(page.Locator(".lwc-chart-tip")).ToContainTextAsync("Last");
     }
 
     [Fact]
