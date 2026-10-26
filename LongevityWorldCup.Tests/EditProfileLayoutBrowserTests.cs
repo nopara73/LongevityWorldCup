@@ -568,7 +568,7 @@ public sealed class EditProfileLayoutBrowserTests(
         await using var context = await CreateContextAsync(1440, 900);
         // The exact production version is copied before the Node-free publish
         // check removes node_modules. Keep this a real-library geometry test.
-        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
         {
             var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()

@@ -217,7 +217,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests
     {
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
-            await page.Context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+            await page.Context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
             {
                 var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
                 return route.FulfillAsync(new()
