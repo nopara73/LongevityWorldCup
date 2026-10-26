@@ -8,7 +8,6 @@
     <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
     <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.7.0/cropper.min.css" integrity="sha384-HbayhLlUlAvalqv7mU9jxEeK9BNSbM0t5RHBj3b3TJenPxibMWIlg9YDGrsaHLpg" crossorigin="anonymous">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -1855,15 +1854,10 @@
                     openChangeProfileCropperDialog();
 
                     // expose globally so crop/cancel buttons can access it
-                    window.changeProfileCropper = new Cropper(cropperImage, {
-                        aspectRatio: 1,
-                        viewMode: 1,
-                        autoCropArea: 1,
-                        minContainerWidth: 0,
-                        minContainerHeight: 0,
+                    window.changeProfileCropper = new LwcPortraitCropper(cropperImage, {
+                        error: failProfilePicture,
                         // The stage observer handles viewport and text reflow,
                         // preserving image coordinates across aspect changes.
-                        responsive: false,
                         ready() {
                             requestAnimationFrame(() => {
                                 if (version !== profilePictureReadVersion || cropperModal.hidden) return;
@@ -1897,10 +1891,12 @@
             cropBtn.disabled = true;
             cancelBtn.disabled = true;
             try {
-                const canvas = activeCropper.getCroppedCanvas({
+                activeCropper.disable();
+                const canvas = await activeCropper.toCanvas({
                     width: 1024,
                     height: 1024,
                 });
+                if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
                 if (!canvas) {
                     closeChangeProfileCropperDialog({ restoreFocus: false });
                     customAlert('Profile picture crop failed. Please try another image.')
@@ -1926,6 +1922,7 @@
                 updateSubmitButtonState(changeProfileBtn);
                 closeChangeProfileCropperDialog();
             } catch (_) {
+                if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
                 closeChangeProfileCropperDialog({ restoreFocus: false });
                 customAlert('Profile picture crop failed. Please try another image.')
                     .then(restoreProfileCropperFocus);
@@ -2141,6 +2138,7 @@
             return setProfileFieldError('whyDisplayInput', v ? '' : 'Enter your motivation.');
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.7.0/cropper.min.js" integrity="sha384-0R5HTHwwnCZgM2kzH1PMWrPHmnpGaobQwNz5X7gQDvpG6VcymwxLjPny37bCTzxp" crossorigin="anonymous" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@2.3.1/dist/cropper.min.js" integrity="sha384-q877KRoDGCc9TE0/aHg20sWS2aLAr60y01aKWeVzpJhbJh90PH+lt1GmABR1GOdz" crossorigin="anonymous" defer></script>
+    <script src="{{ASSET_PORTRAIT_CROPPER_JS}}" defer></script>
 </body>
 </html>

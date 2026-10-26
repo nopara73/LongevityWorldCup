@@ -8,7 +8,6 @@
     <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.7.0/cropper.min.css" integrity="sha384-HbayhLlUlAvalqv7mU9jxEeK9BNSbM0t5RHBj3b3TJenPxibMWIlg9YDGrsaHLpg" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
     <link rel="expect" href="#lwc-site-header" blocking="render">
@@ -2553,22 +2552,14 @@
                     image.src = source;
                     document.getElementById('uploadPart').style.display = 'none';
                     document.getElementById('croppingPart').style.display = 'block';
-                    cropper = new Cropper(document.getElementById('cropperImage'), {
-                        aspectRatio: 1,
-                        viewMode: 1,
-                        autoCropArea: 1,
-                        minContainerWidth: 0,
-                        minContainerHeight: 0,
+                    cropper = new LwcPortraitCropper(document.getElementById('cropperImage'), {
+                        maxHeight: 320,
+                        error: () => failProfileUpload(version),
                         ready() {
                             if (version !== profileReadVersion) return;
                             image.onerror = null;
                             window.requestAnimationFrame(syncProfileCropLayout);
                         },
-                        movable: true,
-                        zoomable: true,
-                        rotatable: false,
-                        scalable: false,
-                        cropBoxResizable: true,
                         minCropBoxWidth: 200,
                         minCropBoxHeight: 150,
                     });
@@ -2628,10 +2619,12 @@
                     cropButton.disabled = true;
                     cancelProfileCropButton.disabled = true;
                     try {
-                        const croppedCanvas = activeCropper.getCroppedCanvas({
+                        activeCropper.disable();
+                        const croppedCanvas = await activeCropper.toCanvas({
                             width: 1024,
                             height: 768,
                         });
+                        if (version !== profileReadVersion || cropper !== activeCropper) return;
                         if (!croppedCanvas) {
                             customAlert('Profile picture crop failed. Please try another image.')
                                 .then(() => cropButton.focus());
@@ -2639,7 +2632,6 @@
                         }
 
                         const raw = croppedCanvas.toDataURL('image/png');
-                        activeCropper.disable();
                         let croppedImageDataURL = raw;
                         try {
                             const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
@@ -2671,6 +2663,7 @@
                         if (currentStage === 4) nextButton.disabled = false;
                         updateUploadButtons();
                     } catch (_) {
+                        if (version !== profileReadVersion || cropper !== activeCropper) return;
                         customAlert('Profile picture crop failed. Please try another image.')
                             .then(() => cropButton.focus());
                     } finally {
@@ -2922,6 +2915,7 @@
             return { valid: true };
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.7.0/cropper.min.js" integrity="sha384-0R5HTHwwnCZgM2kzH1PMWrPHmnpGaobQwNz5X7gQDvpG6VcymwxLjPny37bCTzxp" crossorigin="anonymous" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@2.3.1/dist/cropper.min.js" integrity="sha384-q877KRoDGCc9TE0/aHg20sWS2aLAr60y01aKWeVzpJhbJh90PH+lt1GmABR1GOdz" crossorigin="anonymous" defer></script>
+    <script src="{{ASSET_PORTRAIT_CROPPER_JS}}" defer></script>
 </body>
 </html>

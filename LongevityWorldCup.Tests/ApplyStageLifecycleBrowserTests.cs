@@ -20,14 +20,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
     public async Task UnreadablePortrait_PreservesTheDraftAndAllowsAnotherImage()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
-        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
         {
-            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
-                ContentType = css ? "text/css" : "application/javascript"
+                ContentType = "application/javascript"
             });
         });
         var page = await context.NewPageAsync();
@@ -54,6 +53,44 @@ public sealed class ApplyStageLifecycleBrowserTests(
         Assert.Equal(before, await page.EvaluateAsync<string>(draft));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PortraitCanvasExport_ObsoleteCompletionPreservesTheNewSelection(bool reject)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+        var before = await page.EvaluateAsync<string?>("() => profilePic");
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.ready");
+        await page.EvaluateAsync("""
+            async reject => {
+                const cropper = document.getElementById('cropperImage').cropper;
+                const canvas = await cropper.toCanvas();
+                window.oldPortraitCropper = cropper;
+                cropper.toCanvas = () => new Promise((resolve, fail) => {
+                    window.finishOldPortraitExport = () => reject ? fail(new Error('Old export failed')) : resolve(canvas);
+                });
+            }
+            """, reject);
+        await page.Locator("#cropButton").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.finishOldPortraitExport");
+        await page.Locator("#profilePicInput").SetInputFilesAsync(
+            Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => { const current = document.getElementById('cropperImage').cropper; return current?.ready && current !== window.oldPortraitCropper; }");
+        await page.EvaluateAsync("() => window.finishOldPortraitExport()");
+        await Assertions.Expect(page.Locator("#cropButton")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator("#croppingPart")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
+        Assert.Equal(before, await page.EvaluateAsync<string?>("() => profilePic"));
+        Assert.True(await page.EvaluateAsync<bool>("() => applicationProfilePending"));
+        await page.Locator("#cancelProfileCropButton").ClickAsync();
+    }
+
     [Fact]
     public async Task PortraitCrop_NativeTouchDragCannotAlsoNavigateBack()
     {
@@ -61,14 +98,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
         {
             ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true
         });
-        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
         {
-            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
-                ContentType = css ? "text/css" : "application/javascript"
+                ContentType = "application/javascript"
             });
         });
         var page = await context.NewPageAsync();
@@ -102,14 +138,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
     public async Task PortraitReplacement_DisablesCropBeforeTheNewImageInitializes()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
-        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
         {
-            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
-                ContentType = css ? "text/css" : "application/javascript"
+                ContentType = "application/javascript"
             });
         });
         var page = await context.NewPageAsync();
@@ -123,8 +158,8 @@ public sealed class ApplyStageLifecycleBrowserTests(
         await Assertions.Expect(page.Locator("#cropButton")).ToBeEnabledAsync();
         await page.EvaluateAsync("""
             () => {
-                const RealCropper = window.Cropper;
-                window.Cropper = class extends RealCropper {
+                const RealCropper = window.LwcPortraitCropper;
+                window.LwcPortraitCropper = class extends RealCropper {
                     constructor(image, options) {
                         const actionEnabled = !document.getElementById('cropButton').disabled;
                         super(image, options);
@@ -366,14 +401,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
     public async Task PortraitCrop_RemainsPendingAcrossBackAndLateFileReads(bool delayRead)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
-        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
         {
-            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
-                ContentType = css ? "text/css" : "application/javascript"
+                ContentType = "application/javascript"
             });
         });
         if (delayRead) await context.AddInitScriptAsync("""
@@ -420,7 +454,7 @@ public sealed class ApplyStageLifecycleBrowserTests(
             await page.EvaluateAsync("() => window.releaseProfileRead()");
         }
         await page.WaitForFunctionAsync("() => document.querySelector('#croppingPart .cropper-crop-box')?.getBoundingClientRect().width > 0");
-        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.getCroppedCanvas()?.width > 0");
+        await page.WaitForFunctionAsync("async () => (await document.getElementById('cropperImage').cropper?.toCanvas())?.width > 0");
         await page.EvaluateAsync("() => { window.optimizeImageClient = raw => new Promise(resolve => { window.releaseProfileSave = () => resolve({ dataUrl: raw }); }); }");
         await page.Locator("#cropButton").ClickAsync();
         await page.WaitForFunctionAsync("() => window.releaseProfileSave");
@@ -443,7 +477,7 @@ public sealed class ApplyStageLifecycleBrowserTests(
                 await page.WaitForFunctionAsync("() => window.releaseProfileRead");
                 await page.EvaluateAsync("() => window.releaseProfileRead()");
             }
-            await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.getCroppedCanvas()?.width > 0");
+            await page.WaitForFunctionAsync("async () => (await document.getElementById('cropperImage').cropper?.toCanvas())?.width > 0");
         }
         await SelectPortraitAsync();
         await page.EvaluateAsync("() => { window.releaseProfileSave = null; }");
@@ -527,14 +561,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
         {
             ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
         });
-        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
         {
-            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
-                ContentType = css ? "text/css" : "application/javascript"
+                ContentType = "application/javascript"
             });
         });
         var page = await context.NewPageAsync();
@@ -543,7 +576,7 @@ public sealed class ApplyStageLifecycleBrowserTests(
         await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
         var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
-        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.getCroppedCanvas()?.width > 0");
+        await page.WaitForFunctionAsync("async () => (await document.getElementById('cropperImage').cropper?.toCanvas())?.width > 0");
         await page.SetViewportSizeAsync(width, height);
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
         await page.WaitForFunctionAsync("""

@@ -130,18 +130,16 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
     private static async Task FulfillExternalResourceAsync(IRoute route)
     {
         var uri = new Uri(route.Request.Url);
-        if (uri.Host.Equals("cdnjs.cloudflare.com", StringComparison.OrdinalIgnoreCase)
-            && uri.AbsolutePath is "/ajax/libs/cropperjs/1.7.0/cropper.min.js"
-                or "/ajax/libs/cropperjs/1.7.0/cropper.min.css")
+        if (uri.Host.Equals("cdn.jsdelivr.net", StringComparison.OrdinalIgnoreCase)
+            && uri.AbsolutePath == "/npm/cropperjs@2.3.1/dist/cropper.min.js")
         {
             // Integrity-protected CDN resources must use the package bytes in
-            // every browser test, including tests that only await stylesheets.
-            var stylesheet = uri.AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            // every browser test; Cropper 2 provides its styles in custom elements.
             await route.FulfillAsync(new RouteFulfillOptions
             {
                 Status = 200,
-                ContentType = stylesheet ? "text/css" : "application/javascript",
-                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", stylesheet ? "cropper.min.css" : "cropper.min.js"),
+                ContentType = "application/javascript",
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
                 Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" }
             });
             return;
