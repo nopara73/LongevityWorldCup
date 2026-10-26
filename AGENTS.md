@@ -4,6 +4,7 @@
 - Preserve the product's humor, personality, established names, and user-approved wording. Keep "Questions, concerns, or signs of aging? Reply to this email." and "Update profile request..." exactly unless asked to change them. Cleanup does not authorize rewriting neighboring copy.
 - Add or rewrite agent instructions, design guidance, or the glossary only when the user explicitly requests documentation changes. Keep routine implementation detail in source and tests.
 - Fix the underlying issue and check affected backend/frontend paths. Use existing tests and browser tools; verify desktop and mobile UI when affected.
+- Only write worthwhile tests. Apply a high bar when judging whether a test is worthwhile.
 - For small copy or styling changes, keep scope and verification proportional to the change. Prefer targeted checks over broad local builds, test suites, and repeated browser checks. After committing, pushing, and verifying the remote commit, report publication promptly with the current deployment status. Do not claim the change is live until verified.
 - Frontend source is `LongevityWorldCup.Website/Frontend`; never commit generated `wwwroot/js`. Read [Frontend/README.md](LongevityWorldCup.Website/Frontend/README.md) for loading or publishing changes. Keep temporary outputs and review screenshots in ignored `.artifacts/`.
 - Do not adopt ImageSharp v4+ or ImageSharp.Drawing v3+ until the project adopts their licensing path or removes those dependencies.
