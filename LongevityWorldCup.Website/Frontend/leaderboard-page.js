@@ -42,6 +42,7 @@ const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnl
 let athleteResultsReady = false;
 let athleteResultsLoadPromise = null;
 let renderedLeaderboardSelection = '';
+let renderedStandingsComparable = false;
 let athleteDialogReturnFocusElement = null;
 const defaultProfilePic = leaderboardPageAssets.defaultProfilePic;
 
@@ -4504,6 +4505,9 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
     updateLeaderboardStateIndicator();
     scheduleLeaderboardTableHeightSync();
     renderedLeaderboardSelection = getLeaderboardSelectionKey();
+    // All row cues compare the same committed selection. Reading every filter
+    // again for each athlete turns a single input into thousands of DOM queries.
+    renderedStandingsComparable = !hasActiveLeaderboardState();
     pageDocument.dispatchEvent(new Event('lwc:standings-ready'));
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
@@ -7944,7 +7948,7 @@ window.getLeaderboardStanding = name => {
         rank: athlete.rank,
         lastMonthRank: Number.isFinite(athlete.lastMonthRank) ? athlete.lastMonthRank : null,
         isNew: Boolean(athlete.isNew),
-        comparable: athleteResultsReady && !hasActiveLeaderboardState(),
+        comparable: athleteResultsReady && renderedStandingsComparable,
         flag: athlete.canonicalFlag || ''
     });
 };
