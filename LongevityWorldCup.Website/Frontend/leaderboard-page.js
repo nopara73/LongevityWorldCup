@@ -680,20 +680,23 @@ function initializeAthletePortraitMotion() {
             && motion;
     }
 
-    function scan() {
+    function scan(records) {
         for (const [img, playback] of active) {
             if (!img.isConnected || motionFor(img) !== playback.motion) playback.stop();
         }
-        // Server-rendered table rows remain usable while hydration is pending or fails.
-        leaderboard?.querySelectorAll('img.portrait').forEach(wire);
-        // Initial hydration replaces the podium cards. Wait for their final
-        // portraits so a replacement cannot consume autoplay before it is seen.
-        if (athleteResultsReady) {
-            podium?.querySelectorAll('img.podium-portrait').forEach(img => {
-                wire(img);
-                const motion = motionFor(img);
-                if (motion && !podiumPlayed.has(motion) && !reducedMotion.matches) visiblePortraits?.observe(img);
-            });
+        // Paging changes the profile, not the hundreds of portraits behind it.
+        // Only a board mutation (or the initial scan) needs to recheck those photos.
+        if (!records || records.some(record => !profileModal?.contains(record.target))) {
+            // Server-rendered rows also work while hydration is pending or fails.
+            leaderboard?.querySelectorAll('img.portrait').forEach(wire);
+            // Hydration replaces podium cards; only their final portraits autoplay.
+            if (athleteResultsReady) {
+                podium?.querySelectorAll('img.podium-portrait').forEach(img => {
+                    wire(img);
+                    const motion = motionFor(img);
+                    if (motion && !podiumPlayed.has(motion) && !reducedMotion.matches) visiblePortraits?.observe(img);
+                });
+            }
         }
 
         if (!profile) return;
@@ -718,7 +721,7 @@ function initializeAthletePortraitMotion() {
         updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
         updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
         updates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
-        profile.addEventListener('load', scan);
+        profile.addEventListener('load', () => scan([]));
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
