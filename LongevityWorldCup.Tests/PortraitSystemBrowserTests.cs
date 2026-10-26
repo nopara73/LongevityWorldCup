@@ -12,6 +12,7 @@ public sealed class PortraitSystemBrowserTests(
     BrowserTestAppFixture appFixture) : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const string Photo = "/generated/thumbs/athletes/first_thumb_sm_abcdef.webp";
+    private const string MissingPhoto = "/missing-portrait.webp";
     private const string Svg = "<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='96' height='96' fill='teal'/></svg>";
 
     private async Task<IBrowserContext> ContextAsync()
@@ -19,6 +20,7 @@ public sealed class PortraitSystemBrowserTests(
         var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.NoPreference });
         await context.RouteAsync("**/generated/thumbs/athletes/*", route => route.FulfillAsync(new() { ContentType = "image/svg+xml", Body = Svg }));
         await context.RouteAsync("**/original.webp", route => route.FulfillAsync(new() { ContentType = "image/svg+xml", Body = Svg }));
+        await context.RouteAsync("**/missing-portrait.webp", route => route.FulfillAsync(new() { Status = 404, Body = "" }));
         await context.RouteAsync("**/portrait-fixture", route => route.FulfillAsync(new()
         {
             ContentType = "text/html",
@@ -39,10 +41,50 @@ public sealed class PortraitSystemBrowserTests(
         return page;
     }
 
+    [Theory]
+    [InlineData("/assets/content-images/play-athlete-placeholder.webp")]
+    [InlineData("/assets/content-images/play-athlete-placeholder.jpg")]
+    [InlineData("/assets/HdLogo_thumb_sm.png")]
+    public async Task IntentionalArtwork_StaysOriginalEvenOnAPortraitSurface(string source)
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await AddAsync(page, source);
+        var image = page.Locator("#testPortrait");
+        await image.EvaluateAsync("image=>image.decode()");
+        await page.EvaluateAsync("() => window.LwcPortrait.scan()");
+        await Assertions.Expect(image).ToHaveAttributeAsync("src", source);
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait"));
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait-fallback"));
+        Assert.True(await image.EvaluateAsync<bool>("image=>image.complete&&image.naturalWidth>0"));
+        await page.EvaluateAsync("source=>{testPortrait.src=source;testPortrait.alt='A real athlete'}", Photo);
+        await ReadyAsync(page);
+        await Assertions.Expect(image).ToHaveAttributeAsync("src", Photo);
+    }
+
     private static Task AddAsync(IPage page, string source = Photo) => page.EvaluateAsync("""
         src => { const img = document.createElement('img'); img.id='testPortrait'; img.className='portrait';
             img.alt='First Athlete'; img.src=src; document.body.append(img); }
         """, source);
+
+    [Theory]
+    [InlineData("/assets/content-images/play-athlete-placeholder.webp")]
+    [InlineData("/assets/content-images/play-athlete-placeholder.jpg")]
+    [InlineData("/assets/content-images/headshot.webp")]
+    [InlineData("/assets/content-images/headshot.jpg")]
+    [InlineData("/assets/HdLogo_thumb_sm.png")]
+    public async Task IntentionalArtwork_IsNotReplacedWhenItsOwnAssetFails(string source)
+    {
+        await using var context = await ContextAsync();
+        await context.RouteAsync("**" + source, route => route.FulfillAsync(new() { Status = 404, Body = "" }));
+        var page = await OpenAsync(context);
+        await AddAsync(page, source);
+        await page.Locator("#testPortrait").EvaluateAsync("image=>image.decode().catch(()=>{})");
+        await page.EvaluateAsync("() => window.LwcPortrait.scan()");
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("src", source);
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait"));
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait-fallback"));
+    }
 
     private static Task ReadyAsync(IPage page) => page.WaitForFunctionAsync("""
         () => testPortrait.complete && testPortrait.naturalWidth > 0 && testPortrait.dataset.lwcPortraitState === 'ready'
@@ -58,6 +100,16 @@ public sealed class PortraitSystemBrowserTests(
         if (initials is not null) Assert.Equal(initials,
             System.Text.RegularExpressions.Regex.Match(source, "<text\\b[^>]*>([^<]*)</text>").Groups[1].Value);
         else Assert.DoesNotContain("<text", source);
+    }
+
+    internal static async Task AssertApprovedArtworkAsync(ILocator image, string source)
+    {
+        await Assertions.Expect(image).ToHaveAttributeAsync("src", source);
+        if (await image.GetAttributeAsync("loading") == "lazy") await image.ScrollIntoViewIfNeededAsync();
+        await image.EvaluateAsync("image=>image.decode()");
+        Assert.True(await image.EvaluateAsync<bool>("image=>image.complete&&image.naturalWidth>0"));
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait"));
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait-fallback"));
     }
 
     [Fact]
@@ -437,11 +489,11 @@ public sealed class PortraitSystemBrowserTests(
     }
 
     [Fact]
-    public async Task NamedAthletePlaceholder_StillBecomesItsOwnDecodedMonogram()
+    public async Task BrokenAthletePhoto_RecoversWithItsOwnDecodedIdentity()
     {
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
-        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await AddAsync(page, MissingPhoto);
         await ReadyAsync(page);
         await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
         await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("alt", "First Athlete");
@@ -469,8 +521,10 @@ public sealed class PortraitSystemBrowserTests(
         await page.GotoAsync("/athlete/michael-lustgarten");
         await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync("Visible Athlete");
         Assert.True(found);
-        await AssertDecodedFallbackAsync(page.Locator("#modalProfilePic"), "VA");
-        await AssertDecodedFallbackAsync(page.Locator("#stickyAthletePortrait"), "VA");
+        var artwork = await page.Locator("script[data-default-profile-pic][src*='leaderboard-page']").GetAttributeAsync("data-default-profile-pic");
+        await AssertApprovedArtworkAsync(page.Locator("#modalProfilePic"), artwork!);
+        await AssertApprovedArtworkAsync(page.Locator("#stickyAthletePortrait"), artwork!);
+        await Assertions.Expect(page.Locator("#stickyAthletePortrait")).ToHaveAttributeAsync("data-athlete-name", "Visible Athlete");
         await Assertions.Expect(page.Locator("#stickyAthletePortrait")).ToHaveAttributeAsync("alt", "");
     }
 
@@ -506,11 +560,12 @@ public sealed class PortraitSystemBrowserTests(
     {
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
-        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await AddAsync(page, MissingPhoto);
         await ReadyAsync(page);
         await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
+        await context.RouteAsync("**/missing-portrait.webp", route => route.FulfillAsync(new() { ContentType = "image/svg+xml", Body = Svg }));
         await page.EvaluateAsync("parent => (parent?testPortrait.parentElement:testPortrait).dataset.lwcImageRole='brand'", roleOnParent);
-        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("src", "/assets/HdLogo_thumb_sm.png");
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("src", MissingPhoto);
         await page.Locator("#testPortrait").EvaluateAsync("image=>image.decode()");
         Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait"));
         Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait-fallback"));
@@ -521,7 +576,7 @@ public sealed class PortraitSystemBrowserTests(
     {
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
-        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await AddAsync(page, MissingPhoto);
         await ReadyAsync(page);
         await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
         var photo = "data:image/svg+xml," + Uri.EscapeDataString(Svg.Replace("teal", "red"));
@@ -542,9 +597,10 @@ public sealed class PortraitSystemBrowserTests(
     {
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
-        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await AddAsync(page, MissingPhoto);
         await ReadyAsync(page);
         await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
+        await context.RouteAsync("**/missing-portrait.webp", route => route.FulfillAsync(new() { ContentType = "image/svg+xml", Body = Svg }));
         await page.EvaluateAsync("() => {window.recycledPortrait=testPortrait;testPortrait.remove()}");
         await page.EvaluateAsync("""
             wrapper => {
@@ -557,7 +613,7 @@ public sealed class PortraitSystemBrowserTests(
             }
             """, reinsertWrapper);
         var logo = page.Locator("#testPortrait");
-        await Assertions.Expect(logo).ToHaveAttributeAsync("src", "/assets/HdLogo_thumb_sm.png");
+        await Assertions.Expect(logo).ToHaveAttributeAsync("src", MissingPhoto);
         await logo.EvaluateAsync("image=>image.decode()");
         foreach (var attribute in new[] { "data-lwc-portrait", "data-lwc-portrait-fallback", "data-lwc-portrait-state", "data-lwc-portrait-tier", "srcset", "sizes" })
             Assert.Null(await logo.GetAttributeAsync(attribute));

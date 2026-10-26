@@ -477,17 +477,21 @@ function wirePortraitFallback(img, athlete) {
         }
     };
     const currentSrc = toAbsoluteUrl(img.getAttribute('src') || img.src || '');
+    const isDefaultArtwork = source => toAbsoluteUrl(source).split('?')[0] === toAbsoluteUrl(defaultProfilePic).split('?')[0];
+    img.dataset.lwcImageRole = isDefaultArtwork(currentSrc) ? 'brand' : 'athlete';
     const currentIndex = candidates.findIndex(candidate => toAbsoluteUrl(candidate) === currentSrc);
     let nextCandidateIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
 
     img.onerror = function () {
         const nextCandidate = candidates[nextCandidateIndex++];
         if (nextCandidate) {
+            this.dataset.lwcImageRole = isDefaultArtwork(nextCandidate) ? 'brand' : 'athlete';
             this.src = nextCandidate;
             return;
         }
 
         this.onerror = null;
+        this.dataset.lwcImageRole = 'brand';
         this.src = defaultProfilePic;
         this.classList.add('portrait-fallback');
     };
@@ -6330,6 +6334,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     const stickyPortrait = document.getElementById('stickyAthletePortrait');
     if (stickyPortrait) {
         stickyPortrait.dataset.athleteName = modalDisplayName;
+        stickyPortrait.dataset.lwcImageRole = profilePic.dataset.lwcImageRole || 'athlete';
         stickyPortrait.src = profilePic.src;
         stickyPortrait.hidden = !profilePic.src;
         stickyPortrait.onerror = () => { stickyPortrait.hidden = true; };

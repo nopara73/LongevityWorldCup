@@ -124,7 +124,7 @@ public sealed class EventPortraitSemanticsBrowserTests(
             await Assertions.Expect(athlete).ToHaveAttributeAsync("alt", "Real Athlete");
             Assert.True(await athlete.EvaluateAsync<bool>("image=>image.complete&&image.naturalWidth>0"));
             var missing = page.Locator($"tr[data-event-id='missing-{generation}'] .event-avatar-frame img");
-            await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(missing, "MA");
+            await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(missing, "/assets/HdLogo_thumb_sm.png");
             await Assertions.Expect(missing).ToHaveAttributeAsync("alt", "Missing Athlete");
             Assert.Equal(1, await page.Locator($"tr[data-event-id='donation-{generation}'] .donation-gift-avatar .fa-gift").CountAsync());
             Assert.Equal(1, await page.Locator($"tr[data-event-id='milestone-{generation}'] .milestone-people-avatar .fa-people-group").CountAsync());
@@ -133,7 +133,7 @@ public sealed class EventPortraitSemanticsBrowserTests(
         Assert.Empty(errors);
     }
 
-    private static async Task<byte[]> CaptureSettledLogoAsync(ILocator logo)
+    internal static async Task<byte[]> CaptureSettledLogoAsync(ILocator logo)
     {
         await logo.ScrollIntoViewIfNeededAsync();
         // Rerendering creates exit copies and can trigger native scroll
@@ -186,7 +186,7 @@ public sealed class EventPortraitSemanticsBrowserTests(
             s.outlineStyle,s.objectFit,s.objectPosition,s.content,s.filter]}
         """);
 
-    private static void AssertLogoPixels(byte[] approved, byte[] actual)
+    internal static void AssertLogoPixels(byte[] approved, byte[] actual)
     {
         using var before = Image.Load<Rgba32>(approved);
         using var after = Image.Load<Rgba32>(actual);

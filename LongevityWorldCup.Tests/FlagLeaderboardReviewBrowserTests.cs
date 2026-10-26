@@ -48,10 +48,11 @@ public sealed class FlagLeaderboardReviewBrowserTests(PlaywrightBrowserFixture b
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         var portraits = page.Locator(".flag-team-portraits img");
         await Assertions.Expect(portraits).ToHaveCountAsync(6);
+        var artwork = await page.Locator("script[data-default-profile-pic][src*='leaderboard-page']").GetAttributeAsync("data-default-profile-pic");
         foreach (var image in await portraits.AllAsync())
         {
             await Assertions.Expect(image).ToHaveAttributeAsync("data-athlete-name", new System.Text.RegularExpressions.Regex("^Public Athlete "));
-            await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(image, "PA");
+            await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(image, artwork!);
             await Assertions.Expect(image).ToHaveAttributeAsync("alt", "");
         }
     }

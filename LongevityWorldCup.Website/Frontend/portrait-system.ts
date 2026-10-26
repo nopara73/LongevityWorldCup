@@ -7,8 +7,8 @@
 // - Loading: a portrait that is still on its way shows a soft shimmer in its
 //   own frame, then "develops" into the photo once decoded.
 //   Anything already decoded appears at once.
-// - Fallback: the white logo stand-in becomes a monogram (initials, or a
-//   silhouette when there is no name) drawn in the site's teal.
+// - Fallback: recover an actually failed photo only after its page handlers.
+//   Supplied logos, silhouettes and illustrations keep their approved artwork.
 // - Identity: page-owned whole-card motion handles athlete changes; a portrait
 //   never overlays the previous athlete on the new profile.
 // - Crisp: generated thumbnails get a srcset/sizes pair, so phones and retina
@@ -57,12 +57,14 @@ interface Window {
 
     // Pictures with their own illustrated placeholder or their own transition.
     const OWN_MOTION = ".athlete-picture-frame img, img.athlete-picture-placeholder:not(.athlete-option-thumb)";
-    // These are missing-photo markers only on a surface that owns an athlete
-    // portrait. The same logo is intentional brand artwork elsewhere.
-    const ATHLETE_PLACEHOLDERS = new Set([
+    // These are authored artwork, including the two legacy silhouette URLs.
+    // A portrait-shaped slot does not turn them into missing-photo markers.
+    const INTENTIONAL_ARTWORK_PATHS = new Set([
         "/assets/HdLogo_thumb_sm.png",
         "/assets/content-images/play-athlete-placeholder.webp",
-        "/assets/content-images/play-athlete-placeholder.jpg"
+        "/assets/content-images/play-athlete-placeholder.jpg",
+        "/assets/content-images/headshot.webp",
+        "/assets/content-images/headshot.jpg"
     ]);
     const THUMB = /^(.*\/generated\/thumbs\/athletes\/.+)_thumb_(sm|md)_([0-9a-f]+\.webp)(\?.*)?$/i;
     const THUMB_WIDTH: Record<string, number> = { sm: 96, md: 320 };
@@ -80,6 +82,7 @@ interface Window {
     function isAthletePortrait(img: HTMLImageElement): boolean {
         const role = img.closest<HTMLElement>("[data-lwc-image-role]")?.dataset["lwcImageRole"];
         return img.matches(SELECTOR) && (role === undefined || role === "athlete")
+            && !isIntentionalArtworkSrc(img.getAttribute("src") || "")
             && img.dataset["lwcPortraitGhost"] === undefined && !img.matches(OWN_MOTION)
             && !img.closest("[data-athlete-motion-copy]");
     }
@@ -235,11 +238,11 @@ interface Window {
         return url;
     }
 
-    function isFallbackSrc(src: string): boolean {
+    function isIntentionalArtworkSrc(src: string): boolean {
         if (!src) return false;
         try {
             const path = new URL(src, location.href).pathname;
-            return ATHLETE_PLACEHOLDERS.has(path);
+            return INTENTIONAL_ARTWORK_PATHS.has(path);
         } catch {
             return false;
         }
@@ -302,10 +305,6 @@ interface Window {
         }
         // Clear owned candidates even when the page removes src during a step.
         syncSrcset(img);
-        if (isFallbackSrc(src)) {
-            useMonogram(img);
-            return;
-        }
         const source = signature(img);
         const previous = tracked.get(img);
         if (previous?.source === source) return;

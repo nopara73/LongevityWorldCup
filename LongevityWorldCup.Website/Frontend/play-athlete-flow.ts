@@ -197,7 +197,10 @@ function createAthleteOptionThumb(athlete: PlayAthlete): HTMLImageElement {
     thumb.loading = "lazy";
     thumb.decoding = "async";
     const inspectLoadedImage = watchAthleteImageLoad(thumb, () => {});
-    thumb.src = athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || getDefaultHeadshotJpeg();
+    const source = athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || getDefaultHeadshotJpeg();
+    thumb.dataset["lwcImageRole"] = source === getDefaultHeadshotJpeg() || source === getDefaultHeadshotWebp()
+        ? "illustration" : "athlete";
+    thumb.src = source;
     if (thumb.complete) inspectLoadedImage();
     return thumb;
 }
