@@ -534,4 +534,32 @@ public sealed class PortraitSystemBrowserTests(
         var center = frame[frame.Width / 2, frame.Height / 2];
         Assert.True(center.R > 200 && center.G < 80, "The current data photo was replaced by an old initials fallback.");
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DetachedPortrait_RecycledAsUnclassifiedArtworkRelinquishesOwnedState(bool reinsertWrapper)
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await ReadyAsync(page);
+        await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
+        await page.EvaluateAsync("() => {window.recycledPortrait=testPortrait;testPortrait.remove()}");
+        await page.EvaluateAsync("""
+            wrapper => {
+                const image=window.recycledPortrait;
+                image.className='custom-event-avatar';
+                image.dataset.lwcImageRole='brand';
+                image.alt='Longevity World Cup';
+                const target=wrapper?document.body.appendChild(document.createElement('div')):document.body;
+                target.append(image);
+            }
+            """, reinsertWrapper);
+        var logo = page.Locator("#testPortrait");
+        await Assertions.Expect(logo).ToHaveAttributeAsync("src", "/assets/HdLogo_thumb_sm.png");
+        await logo.EvaluateAsync("image=>image.decode()");
+        foreach (var attribute in new[] { "data-lwc-portrait", "data-lwc-portrait-fallback", "data-lwc-portrait-state", "data-lwc-portrait-tier", "srcset", "sizes" })
+            Assert.Null(await logo.GetAttributeAsync(attribute));
+    }
 }

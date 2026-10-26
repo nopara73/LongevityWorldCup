@@ -51,6 +51,9 @@ interface Window {
         ".ro-step-portrait img",
         "img.gma-avatar"
     ].join(",");
+    // Reinserted originals may no longer match an athlete selector. Visit the
+    // owned marker too so their old portrait state can be relinquished.
+    const SCAN_SELECTOR = `${SELECTOR},img[data-lwc-portrait]`;
 
     // Pictures with their own illustrated placeholder or their own transition.
     const OWN_MOTION = ".athlete-picture-frame img, img.athlete-picture-placeholder:not(.athlete-option-thumb)";
@@ -409,8 +412,8 @@ interface Window {
     }
 
     function scan(node: ParentNode = document): void {
-        if (node instanceof HTMLImageElement && node.matches(SELECTOR)) enhance(node);
-        node.querySelectorAll?.<HTMLImageElement>(SELECTOR).forEach(enhance);
+        if (node instanceof HTMLImageElement && (node.matches(SELECTOR) || adopted.has(node))) enhance(node);
+        node.querySelectorAll?.<HTMLImageElement>(SCAN_SELECTOR).forEach(enhance);
     }
 
     document.addEventListener("load", onLoad, true);
@@ -456,10 +459,10 @@ interface Window {
         for (const record of records) {
             if (record.type === "attributes") {
                 const target = record.target;
-                if (target instanceof HTMLImageElement && (known.has(target) || target.matches(SELECTOR))) {
+                if (target instanceof HTMLImageElement && (adopted.has(target) || target.matches(SELECTOR))) {
                     changed.add(target);
                 } else if (target instanceof Element && ["data-athlete-name", "data-display-name", "data-lwc-image-role"].includes(record.attributeName || "")) {
-                    target.querySelectorAll<HTMLImageElement>(SELECTOR).forEach(img => changed.add(img));
+                    target.querySelectorAll<HTMLImageElement>(SCAN_SELECTOR).forEach(img => changed.add(img));
                 }
                 continue;
             }
