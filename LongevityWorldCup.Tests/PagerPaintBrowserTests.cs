@@ -34,7 +34,7 @@ public sealed class PagerPaintBrowserTests(
                     const original = Element.prototype[method];
                     Element.prototype[method] = function (...args) {
                         if (window.insidePagerTask && this.matches(selector))
-                            window.pagerLayoutReads.push({ method, id: this.id });
+                            window.pagerLayoutReads.push({ method, id: this.id, stack: new Error().stack });
                         return Reflect.apply(original, this, args);
                     };
                 }
@@ -62,7 +62,8 @@ public sealed class PagerPaintBrowserTests(
         }
         Assert.Equal(initial, await page.Locator("#detailsModal .modal-content").GetAttributeAsync("data-athlete-slug"));
         await Assertions.Expect(page.Locator(".modal-content > .athlete-steps [data-step=next]")).ToBeFocusedAsync();
-        Assert.Empty(await page.EvaluateAsync<string[]>("() => window.pagerLayoutReads.map(read => JSON.stringify(read))"));
+        var reads = await page.EvaluateAsync<string[]>("() => window.pagerLayoutReads.map(read => JSON.stringify(read))");
+        Assert.True(reads.Length == 0, string.Join(Environment.NewLine, reads));
         await Assertions.Expect(page.Locator("#athleteName")).ToBeVisibleAsync();
     }
 
