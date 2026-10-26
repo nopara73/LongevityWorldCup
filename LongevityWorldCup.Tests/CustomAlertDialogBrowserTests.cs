@@ -12,6 +12,33 @@ public sealed class CustomAlertDialogBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(320, 640, false)]
+    [InlineData(640, 320, true)]
+    public async Task Alert_ShortErrorFitsAtEnlargedTextWithoutInternalScrolling(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/apply");
+        await page.AddStyleTagAsync(new() { Content = "html { font-size:200% !important; } ::-webkit-scrollbar { width:16px; height:16px; }" });
+        const string message = "Profile picture upload failed. Please try another image.";
+        await page.EvaluateAsync("message => { void customAlert(message); }", message);
+        await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToHaveTextAsync(message);
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => [...document.querySelectorAll('.custom-alert-panel, #custom-alert-message')].every(e =>
+                e.scrollHeight <= e.clientHeight + 1 && e.scrollWidth <= e.clientWidth + 1)
+            """), "This short alert must fit without a nested scrollbar or clipped line.");
+        Assert.True(await page.Locator("#custom-alert-message").EvaluateAsync<bool>("e => parseFloat(getComputedStyle(e).fontSize) >= 32"));
+        Assert.True(await page.Locator("#custom-alert-close").EvaluateAsync<bool>("e => { const r=e.getBoundingClientRect(); return r.top>=0 && r.bottom<=innerHeight && e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)); }"));
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();
+    }
+
+    [Theory]
     [InlineData(1440, 900)]
     [InlineData(390, 844)]
     public async Task GlobalDialogs_StayAboveJourneyContentAfterScrolling(int width, int height)
