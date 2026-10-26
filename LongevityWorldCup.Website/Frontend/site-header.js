@@ -38,15 +38,30 @@
 
 const scrolledJoinButton = document.querySelector('.scrolled-button');
 const joinGameBtn = document.querySelector('.join-game');
+let lastKnownScrollPosition = 0;
 let ticking = false;
 let measuredStickyHeight = 0;
 let measuredRootFontSize = '';
+let stickyVisibilityThreshold = Infinity;
+let fittedStickyHeight = 0;
 const nativeHeaderHandoffSupported = CSS.supports('animation-timeline', 'scroll(root block)')
     && CSS.supports('animation-range', '0px 1px');
 
-// Scroll events already follow the rendering cadence. Update the semantic
-// handoff here, alongside the native scroll animation, without another frame.
-window.addEventListener('scroll', () => handleScroll(window.scrollY), { passive: true });
+window.addEventListener('scroll', function () {
+    lastKnownScrollPosition = window.scrollY;
+    // The banner may leave the compositor's viewport before another rAF.
+    // Hand over PLAY now using the last fit; measurements remain batched.
+    syncStickyHeaderVisibility(lastKnownScrollPosition);
+
+    if (!ticking) {
+        window.requestAnimationFrame(function () {
+            handleScroll(lastKnownScrollPosition);
+            ticking = false;
+        });
+
+        ticking = true;
+    }
+}, { passive: true });
 handleScroll(window.scrollY);
 
 // Text and loaded fonts can change both headers without a scroll event.
@@ -104,9 +119,8 @@ function handleScroll(scrollPos, remeasure = false) {
     const originalTop = joinGameBtn?.getBoundingClientRect().top + scrollPos;
     const threshold = mainJoinButtonVisible
         ? Math.min(bannerThreshold, Math.max(0, originalTop - 4)) : bannerThreshold;
-    // Keep the compositor's presence animation active from scroll 0. Starting
-    // its range at the threshold attaches it too late for the first wheel paint.
-    // The class below remains the fallback and owns focus/assistive technology.
+    // Configure compositor presence at scroll zero; the cached semantic handoff
+    // below keeps focus and assistive technology in sync without event-time reads.
     const nativeHandoff = threshold > 0 && nativeHeaderHandoffSupported;
     if (nativeHandoff) {
         const end = `${threshold}px`;
@@ -117,7 +131,16 @@ function handleScroll(scrollPos, remeasure = false) {
     if (stickyHeader.hasAttribute('data-scroll-handoff') !== nativeHandoff) {
         stickyHeader.toggleAttribute('data-scroll-handoff', nativeHandoff);
     }
-    const willBeVisible = scrollPos >= threshold;
+    stickyVisibilityThreshold = threshold;
+    fittedStickyHeight = measuredStickyHeight;
+    syncStickyHeaderVisibility(scrollPos, mainHeader, stickyHeader);
+}
+
+function syncStickyHeaderVisibility(scrollPos,
+    mainHeader = document.querySelector('header[role="banner"]'),
+    stickyHeader = document.getElementById('site-sticky-header')) {
+    if (!mainHeader || !stickyHeader || !Number.isFinite(stickyVisibilityThreshold)) return;
+    const willBeVisible = scrollPos >= stickyVisibilityThreshold;
     // A focused sticky link must not disappear from the keyboard's location
     // when scrolling or resizing brings the original banner back into view.
     if (!willBeVisible && stickyHeader.contains(document.activeElement)) {
@@ -130,7 +153,7 @@ function handleScroll(scrollPos, remeasure = false) {
     if (stickyHeader.inert === willBeVisible) stickyHeader.inert = !willBeVisible;
     const hidden = String(!willBeVisible);
     if (stickyHeader.getAttribute('aria-hidden') !== hidden) stickyHeader.setAttribute('aria-hidden', hidden);
-    const visibleHeight = `${willBeVisible ? measuredStickyHeight : 0}px`;
+    const visibleHeight = `${willBeVisible ? fittedStickyHeight : 0}px`;
     if (document.documentElement.style.getPropertyValue('--site-visible-sticky-height') !== visibleHeight) {
         document.documentElement.style.setProperty('--site-visible-sticky-height', visibleHeight);
     }

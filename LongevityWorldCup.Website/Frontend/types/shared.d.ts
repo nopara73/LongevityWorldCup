@@ -489,7 +489,8 @@ interface Window {
         chronoAge: number,
         athleteData: AgeVisualizationAthlete | null | undefined,
         athleteResults: readonly AgeVisualizationAthlete[] | null | undefined,
-        history?: AgeVisualizationHistory
+        history?: AgeVisualizationHistory,
+        loadChart?: () => Promise<unknown>
     ): void;
     generateAgeVisualizationInternal?(
         visualizationContainer: HTMLElement,

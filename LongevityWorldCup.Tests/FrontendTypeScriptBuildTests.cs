@@ -24,6 +24,7 @@ public sealed class FrontendTypeScriptBuildTests
         "leaderboard-feel",
         "leaderboard-podium",
         "longevitymaxxing",
+        "pointer",
         "motion",
         "portrait-system",
         "share-sheet",

@@ -202,6 +202,7 @@ namespace LongevityWorldCup.Website.Middleware
                     {
                         bodyContent = InjectPortraitSystem(bodyContent);
                         bodyContent = InjectTouchLayer(bodyContent);
+                        bodyContent = InjectPointerLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                         bodyContent = InjectDepthSystem(bodyContent);
                     }
@@ -625,6 +626,22 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Pointer behavior follows touch; the surface systems retain their
+        // page-specific focus and control treatments later in the cascade.
+        private string InjectPointerLayer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/pointer.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 

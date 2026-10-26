@@ -102,6 +102,19 @@ interface Window {
         })
         : null;
 
+    // Lazy portraits outside the viewport can remain pending indefinitely.
+    // Keep their loading state, but spend animation work only where it is seen.
+    const visibility = "IntersectionObserver" in window
+        ? new IntersectionObserver(entries => {
+            for (const entry of entries) {
+                const img = entry.target as HTMLImageElement;
+                if (img.isConnected && known.has(img)) {
+                    img.toggleAttribute("data-lwc-portrait-in-view", entry.isIntersecting);
+                }
+            }
+        })
+        : null;
+
     // Small portraits are oversampled: a 32px avatar on a 3x phone is exactly
     // 96 device pixels, which reads soft once the ring and rim crop it.
     function slot(width: number): string {
@@ -388,6 +401,8 @@ interface Window {
             adopted.add(img);
             img.dataset["lwcPortrait"] = "";
             sizer?.observe(img);
+            if (visibility) visibility.observe(img);
+            else img.setAttribute("data-lwc-portrait-in-view", "");
             if (!sizer) applySize(img, Number(img.getAttribute("width")) || 64);
         }
         track(img);
@@ -410,6 +425,8 @@ interface Window {
 
     function release(img: HTMLImageElement): void {
         sizer?.unobserve(img);
+        visibility?.unobserve(img);
+        img.removeAttribute("data-lwc-portrait-in-view");
         known.delete(img);
         const state = tracked.get(img);
         if (state?.timer) clearTimeout(state.timer);
