@@ -340,14 +340,11 @@
       }
       var timer = 0;
       var deadline = 0;
-      var transition = 0;
       var probe = null;
       var active = true;
-      var motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
       function stop() {
         clearTimeout(timer);
         clearTimeout(deadline);
-        clearTimeout(transition);
         var previous = probe;
         probe = null;
         if (previous) previous.abort();
@@ -373,7 +370,6 @@
         if (meter) meter.classList.remove("is-running");
         card.setAttribute("data-retry", "checking");
         button.setAttribute("aria-busy", "true");
-        var started = Date.now();
         var recovered = false;
         deadline = setTimeout(function () { controller.abort(); }, 8000);
         try {
@@ -388,20 +384,16 @@
           if (probe === controller) clearTimeout(deadline);
         }
         if (probe !== controller) return;
-        transition = setTimeout(function () {
-          if (probe !== controller) return;
-          if (recovered) {
-            card.setAttribute("data-retry", "back");
-            transition = setTimeout(function () {
-              if (probe === controller) window.location.reload();
-            }, motion.matches ? 260 : 0);
-          } else {
-            probe = null;
-            button.removeAttribute("aria-busy");
-            card.setAttribute("data-retry", "still");
-            schedule();
-          }
-        }, motion.matches ? Math.max(0, 700 - (Date.now() - started)) : 0);
+        // The probe owns readiness; decorative motion must not delay recovery.
+        if (recovered) {
+          card.setAttribute("data-retry", "back");
+          window.location.reload();
+        } else {
+          probe = null;
+          button.removeAttribute("aria-busy");
+          card.setAttribute("data-retry", "still");
+          schedule();
+        }
       }
       button.addEventListener("click", check);
       card.addEventListener("animationend", function (event) {
