@@ -501,15 +501,17 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task CropDialog_WaitsForImageReadiness_AndCancelInvalidatesLateReady()
     {
         await using var context = await CreateContextAsync(390, 844);
-        await context.AddInitScriptAsync("""
-            window.Cropper = class {
-                ready = false;
-                constructor(image, options) { window.finishCropReady = () => { this.ready = true; options.ready(); }; }
-                destroy() {}
-                getCroppedCanvas() { throw new Error('Crop requested before image readiness'); }
-            };
-            """);
         var page = await OpenEditorAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                window.Cropper = class {
+                    ready = false;
+                    constructor(image, options) { window.finishCropReady = () => { this.ready = true; options.ready(); }; }
+                    destroy() {}
+                    getCroppedCanvas() { throw new Error('Crop requested before image readiness'); }
+                };
+            }
+            """);
         var errors = CapturePageErrors(page);
         var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         await page.Locator("#profilePicInputModal").SetInputFilesAsync(
@@ -531,17 +533,19 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task PictureSelection_LatestReadWins_AndCanceledReadsCannotReopenTheDialog()
     {
         await using var context = await CreateContextAsync(390, 844);
-        await context.AddInitScriptAsync("""
-            window.profileReads = [];
-            window.profileCropSources = [];
-            window.FileReader = class { readAsDataURL() { profileReads.push(this); } };
-            window.Cropper = class {
-                ready = true;
-                constructor(image, options) { profileCropSources.push(image.src); queueMicrotask(() => options.ready()); }
-                destroy() {}
-            };
-            """);
         var page = await OpenEditorAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                window.profileReads = [];
+                window.profileCropSources = [];
+                window.FileReader = class { readAsDataURL() { profileReads.push(this); } };
+                window.Cropper = class {
+                    ready = true;
+                    constructor(image, options) { profileCropSources.push(image.src); queueMicrotask(() => options.ready()); }
+                    destroy() {}
+                };
+            }
+            """);
         var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         var file = Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg");
         await page.Locator("#profilePicInputModal").SetInputFilesAsync(file);
