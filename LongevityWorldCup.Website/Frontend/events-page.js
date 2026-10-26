@@ -1239,6 +1239,37 @@ const eventsPageAssets = document.currentScript.dataset;
         else { startFeedClocks(); refreshLiveFeeds(); }
     });
     window.addEventListener('pagehide', stopFeedClocks);
+    // Store presentation in this history entry, leaving native scroll restoration
+    // in charge. A cold Back needs the same open stories and mounted extent as
+    // the page it left; otherwise the browser can only restore into a short feed.
+    const historyFeedKey = table => table.closest('#events-root-index') ? 'home'
+        : table.closest('.event-board-page') ? 'events' : null;
+    window.addEventListener('pagehide', () => {
+        const feeds = {};
+        document.querySelectorAll('#events-root-index #eventsTable, .event-board-page #eventsTable').forEach(table => {
+            const rows = [...table.querySelectorAll('tr.main-row')];
+            const active = document.activeElement;
+            const focusedRow = active?.closest('tr');
+            const mainRow = focusedRow?.classList.contains('details-row') ? focusedRow.previousElementSibling : focusedRow;
+            feeds[historyFeedKey(table)] = {
+                rendered: rows.length,
+                height: table.closest('.events-board').getBoundingClientRect().height,
+                expanded: rows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId),
+                focus: rows.includes(mainRow) ? {
+                    eventId: mainRow.dataset.eventId, details: focusedRow !== mainRow,
+                    href: active.getAttribute('href'), label: active.getAttribute('aria-label') || active.textContent,
+                    index: [...focusedRow.querySelectorAll('a, button')].indexOf(active)
+                } : null
+            };
+        });
+        if (Object.keys(feeds).length) history.replaceState({ ...history.state, lwcEventFeeds: feeds }, '');
+    });
+    if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward') {
+        document.querySelectorAll('#events-root-index #eventsTable, .event-board-page #eventsTable').forEach(table => {
+            const height = history.state?.lwcEventFeeds?.[historyFeedKey(table)]?.height;
+            if (height > 0) table.closest('.events-board').style.minHeight = `${height}px`;
+        });
+    }
     window.addEventListener('pageshow', startFeedClocks);
     window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
         if (!event.matches) return;
@@ -1574,9 +1605,12 @@ const eventsPageAssets = document.currentScript.dataset;
         rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
         const timelineRows = [...table.querySelectorAll('tr.main-row')];
+        const restoredFeed = !timelineRows.length && performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
+            ? history.state?.lwcEventFeeds?.[historyFeedKey(table)] : null;
         const existingRows = new Map(timelineRows.map(row => [row.dataset.eventId, row]));
         for (const unit of table._feedPending || []) existingRows.set(unit[0].dataset.eventId, unit[0]);
         const expandedEvents = new Set(timelineRows.filter(row => row.classList.contains('is-open')).map(row => row.dataset.eventId));
+        restoredFeed?.expanded?.forEach(id => expandedEvents.add(id));
         const active = document.activeElement;
         const focusedRow = active?.closest('tr');
         const focusedMainRow = focusedRow?.classList.contains('details-row') ? focusedRow.previousElementSibling : focusedRow;
@@ -1586,7 +1620,7 @@ const eventsPageAssets = document.currentScript.dataset;
             href: active.getAttribute('href'),
             label: active.getAttribute('aria-label') || active.textContent,
             index: [...focusedRow.querySelectorAll('a, button')].indexOf(active)
-        } : null;
+        } : (!active || active === document.body) ? restoredFeed?.focus : null;
         const nextIds = new Set((Array.isArray(rows) ? rows : []).map(r => r && r.id ? String(r.id) : '').filter(Boolean));
         const previousFeed = captureFeedRows(table, nextIds, !options?.layoutOnly);
         resetFeedMore(table);
@@ -1602,6 +1636,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
         if (!Array.isArray(rows) || rows.length === 0){
             tbody.innerHTML = `<tr class="events-empty-row"><td colspan="3">No events yet</td></tr>`;
+            table.closest('.events-board').style.removeProperty('min-height');
             return;
         }
 
@@ -2128,7 +2163,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const requestedId = getRequestedEventId();
             const requestedIndex = requestedId ? units.findIndex(unit => unit[0].dataset?.eventId === requestedId) : -1;
             const retainedEnd = units.findLastIndex(unit => previousFeed?.positions.has(unit[0].dataset.eventId));
-            const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10);
+            const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10, restoredFeed?.rendered || 0);
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
         } else {
@@ -2149,7 +2184,7 @@ const eventsPageAssets = document.currentScript.dataset;
         // Restore replacement details before any geometry is read. Measuring a
         // briefly collapsed announcement moves the reading anchor and then
         // plays an unsolicited expansion when its open state is restored.
-        const renderedTimelineRows = new Map(timelineRows.length
+        const renderedTimelineRows = new Map(timelineRows.length || restoredFeed
             ? [...table.querySelectorAll('tr.main-row[data-event-id]')].map(row => [row.dataset.eventId, row])
             : []);
         expandedEvents.forEach(id => renderedTimelineRows.get(id)?._setCustomEventExpanded?.(true));
@@ -2157,6 +2192,7 @@ const eventsPageAssets = document.currentScript.dataset;
         applyZebraStriping(tbody);
         markFeedGroups(tbody);
         if (chapters) mountFeedMore(table);
+        table.closest('.events-board').style.removeProperty('min-height');
 
         const seenMode = options?.seenMode;
         if (previousFeed) {
@@ -2194,7 +2230,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 ? (sameLink(controls[timelineFocus.index]) ? controls[timelineFocus.index]
                     : controls.find(sameLink) || controls.find(element => element.getAttribute('href') === timelineFocus.href))
                 : controls[timelineFocus.index];
-            (active?.isConnected ? active : control)?.focus({ preventScroll: true });
+            (timelineRows.includes(focusedMainRow) && active?.isConnected ? active : control)?.focus({ preventScroll: true });
         }
 
         const rowsNow = table.querySelectorAll(".row-appear:not(.is-visible)");
@@ -2693,6 +2729,7 @@ const eventsPageAssets = document.currentScript.dataset;
             if (!current()) return;
             // A missed background refresh leaves the feed as it is.
             if (live) return;
+            loadRoot.style.removeProperty('min-height');
             clearEventsLoadingState('Events could not load.');
             const status = document.getElementById('eventsStatus');
             if (status) status.setAttribute('role', 'alert');

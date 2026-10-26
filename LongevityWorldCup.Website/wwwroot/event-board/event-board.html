@@ -32,12 +32,13 @@
 <!--FOOTER-->
 
 <script>
-    history.replaceState({}, '', '/events' + (window.location.search || '') + (window.location.hash || ''));
+    history.replaceState(history.state, '', '/events' + (window.location.search || '') + (window.location.hash || ''));
 
     function initEventBoard() {
         const headingEl = document.querySelector('.event-board-heading');
         const requestedEventId = new URLSearchParams(window.location.search).get('event')?.trim();
-        if (headingEl && headingEl.scrollIntoView && !requestedEventId) {
+        const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+        if (headingEl && headingEl.scrollIntoView && !requestedEventId && !returning) {
             const interactions = ['pointermove', 'pointerdown', 'touchstart', 'wheel', 'keydown', 'focusin'];
             let scrollTimer, cleanupTimer, scrolling = false;
             const finishOpeningScroll = () => {
