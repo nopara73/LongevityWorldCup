@@ -376,6 +376,34 @@ public sealed class AthletePortraitMotionBrowserTests(
             await Assertions.Expect(overlay).ToHaveCountAsync(0);
     }
 
+    [Fact]
+    public async Task Paging_DoesNotRecheckUnchangedBackgroundPortraitSources()
+    {
+        await using var context = await NewContextAsync();
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        var page = await LoadAsync(context, "/leaderboard");
+        await page.Locator(".leaderboard a.athlete-name").Nth(1).ClickAsync();
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.EvaluateAsync("""
+            () => {
+                window.backgroundPortraitReads = 0;
+                const source = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+                document.querySelectorAll('.leaderboard img.portrait').forEach(image => {
+                    Object.defineProperty(image, 'src', {
+                        configurable: true,
+                        get() { window.backgroundPortraitReads++; return source.get.call(this); },
+                        set(value) { source.set.call(this, value); }
+                    });
+                });
+            }
+            """);
+        await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
+        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync("Siim Land");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.backgroundPortraitReads"));
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width = 1440)
     {
         var context = await Browser.NewContextAsync(new()

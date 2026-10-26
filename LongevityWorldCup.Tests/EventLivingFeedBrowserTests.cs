@@ -216,8 +216,25 @@ public sealed class EventLivingFeedBrowserTests(
             }
             """);
         var scroll = await page.EvaluateAsync<double>("scrollY");
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/events", async route =>
+        {
+            requested.TrySetResult();
+            await release.Task;
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = JsonSerializer.Serialize(events) });
+        });
         await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.Load });
-        await page.GoBackAsync(new() { WaitUntil = WaitUntilState.Load });
+        await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        try
+        {
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await page.WaitForFunctionAsync("y => Math.abs(scrollY - y) <= 2", scroll);
+            Assert.True(await page.Locator(".events-skeleton-row").First.EvaluateAsync<bool>("""
+                row => { const box = row.getBoundingClientRect(); return box.bottom > 0 && box.top < innerHeight; }
+                """), "A delayed history return must keep loading feedback in the restored viewport.");
+        }
+        finally { release.TrySetResult(); }
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
         await page.WaitForTimeoutAsync(850); // Include the former delayed opening scroll.
         Assert.True(Math.Abs(await page.EvaluateAsync<double>("scrollY") - scroll) <= 2,

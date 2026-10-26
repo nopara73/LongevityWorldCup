@@ -63,6 +63,16 @@
 }
 
 .events-skeleton-row td{ cursor:default; }
+/* A cold Back reserves the prior feed height for native scroll restoration.
+   Keep the existing loading sketch with the reader throughout that extent. */
+.events-board[data-history-loading] {
+    overflow: clip;
+    overflow-anchor: none;
+}
+.events-board[data-history-loading][aria-busy="true"] > table {
+    position: sticky;
+    top: var(--site-visible-sticky-height, 0px);
+}
 
 .events-status{
     position:absolute;
