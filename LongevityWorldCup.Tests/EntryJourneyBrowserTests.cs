@@ -140,7 +140,7 @@ public sealed class EntryJourneyBrowserTests(
         {
             await page.Locator("#joinStartAmateurBtn").ClickAsync();
             await page.WaitForURLAsync("**/pheno-age**");
-            await page.WaitForLoadStateAsync(LoadState.Load);
+            await page.WaitForDocumentLoadedAsync();
             await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
             Assert.True(errors.Count == 0, string.Join("\n", errors));
         }
@@ -406,7 +406,7 @@ public sealed class EntryJourneyBrowserTests(
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync(from);
-        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.WaitForDocumentLoadedAsync();
         await page.EvaluateAsync("to => { window.location.href = to; }", to);
         await page.WaitForURLAsync("**" + to + "**");
         await page.WaitForFunctionAsync("() => window.__lwcReveal !== null");

@@ -288,7 +288,7 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         var popupTask = page.WaitForPopupAsync();
         await page.Mouse.ClickAsync(box.X + box.Width - 8, box.Y + 60);
         var popup = await popupTask;
-        await popup.WaitForLoadStateAsync();
+        await popup.WaitForDocumentLoadedAsync();
         Assert.Equal("https://merch.longevityworldcup.com/product/organic-cotton-hoodie/", popup.Url);
         await popup.CloseAsync();
         await WaitForProductPositionAsync(page, 1);

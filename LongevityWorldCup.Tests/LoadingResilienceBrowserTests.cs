@@ -88,7 +88,7 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
             await page.Keyboard.PressAsync("Enter");
             await Assertions.Expect(page.Locator(".documentation-nav-links")).ToBeVisibleAsync();
             release.TrySetResult();
-            await page.WaitForLoadStateAsync(LoadState.Load);
+            await page.WaitForDocumentLoadedAsync();
             await Assertions.Expect(toggle).ToHaveAttributeAsync("aria-expanded", "true");
             Assert.InRange(Math.Abs(await page.Locator(".documentation-document").EvaluateAsync<double>("element => element.getBoundingClientRect().top") - top), 0, 1);
             // Both the fallback and the enhanced binding toggle only once.
