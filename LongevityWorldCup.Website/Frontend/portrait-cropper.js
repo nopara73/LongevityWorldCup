@@ -105,7 +105,11 @@
                 : stage.clientHeight;
             if (!width || !height || !this.naturalWidth) return;
             const side = Math.min(this.naturalWidth, this.naturalHeight);
-            const selected = this.ready ? this.getData() : {
+            // Image readiness can arrive while Back has hidden the stage. Until
+            // a first layout exists there are no image coordinates to preserve.
+            const hasSelection = this.ready && this.width > 0 && this.height > 0
+                && this.selection.width > 0 && this.selection.height > 0;
+            const selected = hasSelection ? this.getData() : {
                 x: (this.naturalWidth - side) / 2, y: (this.naturalHeight - side) / 2, width: side, height: side
             };
             this.adjusting = true;

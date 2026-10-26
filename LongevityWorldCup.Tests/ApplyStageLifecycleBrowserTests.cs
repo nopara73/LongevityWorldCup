@@ -92,6 +92,52 @@ public sealed class ApplyStageLifecycleBrowserTests(
     }
 
     [Fact]
+    public async Task PortraitReadinessWhileHidden_InitializesTheSelectionWhenReturning()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                currentStage = 4; goToStage(4);
+                const prototype = customElements.get('cropper-image').prototype;
+                const original = prototype.$ready;
+                window.heldPortraitReady = [];
+                prototype.$ready = function (callback) {
+                    const ready = original.call(this, callback);
+                    if (callback) return ready;
+                    return new Promise((resolve, reject) => window.heldPortraitReady.push(() => ready.then(resolve, reject)));
+                };
+                window.releasePortraitReady = () => {
+                    prototype.$ready = original;
+                    for (const release of window.heldPortraitReady) release();
+                };
+            }
+            """);
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(
+            Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => window.heldPortraitReady.length > 0 && document.getElementById('cropperImage').cropper");
+        await page.Locator("#backButton").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.convergence-crop-stage').clientWidth === 0");
+        await page.EvaluateAsync("() => window.releasePortraitReady()");
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper.ready");
+        await page.Locator("#nextButton").ClickAsync();
+        await page.WaitForFunctionAsync("() => { const c = document.getElementById('cropperImage').cropper; return c.ready && !c.disabled && Math.abs(c.getContainerData().width - document.querySelector('.convergence-crop-stage').clientWidth) <= 1; }");
+        Assert.True(await page.EvaluateAsync<bool>("() => { const box = document.getElementById('cropperImage').cropper.getCropBoxData(); return box.width > 0 && box.height > 0; }"),
+            "Returning after readiness completed offscreen must initialize a real selection before enabling Crop.");
+        var pixels = await page.EvaluateAsync<int[]>("""
+            async () => {
+                const canvas = await document.getElementById('cropperImage').cropper.toCanvas({ width: 64, height: 64 });
+                return [canvas.width, canvas.height, canvas.getContext('2d').getImageData(32, 32, 1, 1).data[3]];
+            }
+            """);
+        Assert.Equal(new[] { 64, 64, 255 }, pixels);
+        await page.Locator("#cancelProfileCropButton").ClickAsync();
+    }
+
+    [Fact]
     public async Task PortraitCrop_NativeTouchDragCannotAlsoNavigateBack()
     {
         await using var context = await NewContextAsync(Browser, App, new()
