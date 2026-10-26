@@ -1,0 +1,59 @@
+/* Dark surfaces share the approved palette, geometry and semantic states.
+   Loaded after the shared systems; component states retain the final say. */
+@media (prefers-color-scheme: dark) and (forced-colors: none) {
+    :root {
+        --lwc-dark-edge: color-mix(in srgb, var(--lwc-border) 78%, var(--lwc-canvas));
+        --lwc-dark-rim: color-mix(in srgb, var(--lwc-border) 64%, var(--lwc-ink));
+        --lwc-dark-edge-strong: color-mix(in srgb, var(--lwc-border) 82%, var(--lwc-accent));
+        --lwc-dark-highlight: color-mix(in srgb, var(--lwc-ink) 7%, transparent);
+        --lwc-dark-shade: color-mix(in srgb, #000 62%, var(--lwc-canvas));
+        --lwc-dark-lift: linear-gradient(180deg, color-mix(in srgb, var(--lwc-ink) 3.5%, transparent), transparent 9rem);
+        --lwc-dark-lift-strong: linear-gradient(180deg, color-mix(in srgb, var(--lwc-ink) 5.5%, transparent), transparent 12rem);
+        --lwc-dark-elevation-1: inset 0 1px 0 var(--lwc-dark-highlight), 0 0 0 1px color-mix(in srgb, var(--lwc-canvas) 40%, transparent);
+        --lwc-dark-elevation-2: inset 0 1px 0 color-mix(in srgb, var(--lwc-ink) 9%, transparent),
+            0 0 0 1px var(--lwc-dark-edge-strong), 0 28px 70px -24px var(--lwc-dark-shade);
+    }
+
+    /* Paint on the existing opaque canvas. No viewport-fixed layer, image
+       filter, text recolouring, scrollbar sizing or geometry changes. */
+    body {
+        background-image:
+            radial-gradient(70rem 32rem at 50% -14rem, color-mix(in srgb, var(--lwc-accent) 13%, transparent), transparent 72%),
+            radial-gradient(48rem 36rem at 105% -6rem, color-mix(in srgb, var(--lwc-success) 5%, transparent), transparent 70%);
+        background-repeat: no-repeat;
+    }
+
+    :where(body) :is(
+        .section-container, .events-board, .leaderboard,
+        .archive-table-wrapper, .archive-mobile-card,
+        .documentation-document, .documentation-nav,
+        .track-card, .play-track-card, .convergence-form,
+        .form-container, .bioage-form-container, .filter-section,
+        .lwc-merch-item, .lwc-merch-mobile-slide,
+        .application-review-panel, .lmx-title-panel, .lmx-panel,
+        .homepage-faq-item, .contribute-panel, .newsletter-panel,
+        .media-asset, .media-card, .error-card, .unsubscribe-panel
+    ) {
+        border-color: var(--lwc-dark-edge);
+        border-top-color: var(--lwc-dark-rim);
+        background-image: var(--lwc-dark-lift);
+        box-shadow: var(--lwc-dark-elevation-1);
+    }
+
+    :where(body) :is(.leaderboard table thead, .archive-table thead, .events-board thead) {
+        background-image: linear-gradient(180deg, color-mix(in srgb, var(--lwc-accent) 7%, transparent), transparent);
+    }
+
+    /* The active card and its cloned exit must paint identically. Scope to
+       the actual opaque panels, never their full-screen interaction hosts. */
+    :where(body) :is(
+        .modal-content, .dialog-content, .custom-alert-panel,
+        .site-menu-panel, .athlete-share-menu,
+        .badge-tip, .badge-tip-exit,
+        .proof-review-dialog, .lmx-advice-story-dialog, .lwc-chart-tip
+    ) {
+        border-color: var(--lwc-dark-edge-strong);
+        background-image: var(--lwc-dark-lift-strong);
+        box-shadow: var(--lwc-dark-elevation-2);
+    }
+}
