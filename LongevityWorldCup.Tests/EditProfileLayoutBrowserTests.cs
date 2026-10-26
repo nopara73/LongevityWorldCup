@@ -501,15 +501,17 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task CropDialog_WaitsForImageReadiness_AndCancelInvalidatesLateReady()
     {
         await using var context = await CreateContextAsync(390, 844);
-        await context.AddInitScriptAsync("""
-            window.Cropper = class {
-                ready = false;
-                constructor(image, options) { window.finishCropReady = () => { this.ready = true; options.ready(); }; }
-                destroy() {}
-                getCroppedCanvas() { throw new Error('Crop requested before image readiness'); }
-            };
-            """);
         var page = await OpenEditorAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                window.Cropper = class {
+                    ready = false;
+                    constructor(image, options) { window.finishCropReady = () => { this.ready = true; options.ready(); }; }
+                    destroy() {}
+                    getCroppedCanvas() { throw new Error('Crop requested before image readiness'); }
+                };
+            }
+            """);
         var errors = CapturePageErrors(page);
         var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         await page.Locator("#profilePicInputModal").SetInputFilesAsync(
@@ -531,17 +533,19 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task PictureSelection_LatestReadWins_AndCanceledReadsCannotReopenTheDialog()
     {
         await using var context = await CreateContextAsync(390, 844);
-        await context.AddInitScriptAsync("""
-            window.profileReads = [];
-            window.profileCropSources = [];
-            window.FileReader = class { readAsDataURL() { profileReads.push(this); } };
-            window.Cropper = class {
-                ready = true;
-                constructor(image, options) { profileCropSources.push(image.src); queueMicrotask(() => options.ready()); }
-                destroy() {}
-            };
-            """);
         var page = await OpenEditorAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                window.profileReads = [];
+                window.profileCropSources = [];
+                window.FileReader = class { readAsDataURL() { profileReads.push(this); } };
+                window.Cropper = class {
+                    ready = true;
+                    constructor(image, options) { profileCropSources.push(image.src); queueMicrotask(() => options.ready()); }
+                    destroy() {}
+                };
+            }
+            """);
         var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         var file = Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg");
         await page.Locator("#profilePicInputModal").SetInputFilesAsync(file);
@@ -568,12 +572,13 @@ public sealed class EditProfileLayoutBrowserTests(
         await using var context = await CreateContextAsync(1440, 900);
         // The exact production version is copied before the Node-free publish
         // check removes node_modules. Keep this a real-library geometry test.
-        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
         {
             var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
                 Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
                 ContentType = css ? "text/css" : "application/javascript"
             });
         });

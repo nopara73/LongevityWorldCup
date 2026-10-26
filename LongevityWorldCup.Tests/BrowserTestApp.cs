@@ -129,6 +129,23 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
     private static async Task FulfillExternalResourceAsync(IRoute route)
     {
         var uri = new Uri(route.Request.Url);
+        if (uri.Host.Equals("cdnjs.cloudflare.com", StringComparison.OrdinalIgnoreCase)
+            && uri.AbsolutePath is "/ajax/libs/cropperjs/1.7.0/cropper.min.js"
+                or "/ajax/libs/cropperjs/1.7.0/cropper.min.css")
+        {
+            // Integrity-protected CDN resources must use the package bytes in
+            // every browser test, including tests that only await stylesheets.
+            var stylesheet = uri.AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = stylesheet ? "text/css" : "application/javascript",
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", stylesheet ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" }
+            });
+            return;
+        }
+
         if (uri.Host.Equals("ipapi.co", StringComparison.OrdinalIgnoreCase))
         {
             await route.FulfillAsync(new RouteFulfillOptions
