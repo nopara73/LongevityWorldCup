@@ -2146,6 +2146,14 @@ const eventsPageAssets = document.currentScript.dataset;
             }
         }
 
+        // Restore replacement details before any geometry is read. Measuring a
+        // briefly collapsed announcement moves the reading anchor and then
+        // plays an unsolicited expansion when its open state is restored.
+        const renderedTimelineRows = new Map(timelineRows.length
+            ? [...table.querySelectorAll('tr.main-row[data-event-id]')].map(row => [row.dataset.eventId, row])
+            : []);
+        expandedEvents.forEach(id => renderedTimelineRows.get(id)?._setCustomEventExpanded?.(true));
+
         applyZebraStriping(tbody);
         markFeedGroups(tbody);
         if (chapters) mountFeedMore(table);
@@ -2176,10 +2184,6 @@ const eventsPageAssets = document.currentScript.dataset;
             if (newest) writeSeenAt(seenMode, newest);
         }
 
-        const renderedTimelineRows = new Map(timelineRows.length
-            ? [...table.querySelectorAll('tr.main-row[data-event-id]')].map(row => [row.dataset.eventId, row])
-            : []);
-        expandedEvents.forEach(id => renderedTimelineRows.get(id)?._setCustomEventExpanded?.(true));
         if (timelineFocus) {
             const mainRow = renderedTimelineRows.get(timelineFocus.eventId);
             const row = timelineFocus.details ? mainRow?.nextElementSibling : mainRow;

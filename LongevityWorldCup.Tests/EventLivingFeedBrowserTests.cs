@@ -147,6 +147,51 @@ public sealed class EventLivingFeedBrowserTests(
     }
 
     [Fact]
+    public async Task Refresh_ExpandedAnnouncementUpdatesWithoutReopeningOrMovingTheReader()
+    {
+        var events = Enumerable.Range(0, 24).Select(i => new
+        {
+            Id = "item-" + i, Type = 6,
+            Text = $"Announcement {i}\n\n" + string.Join("\n\n", Enumerable.Range(0, 6).Select(j =>
+                $"Paragraph {j}: This synthetic announcement exercises reading continuity during a background update.")),
+            OccurredAt = new DateTime(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc).AddDays(-i).ToString("O")
+        });
+        await using var context = await OpenAsync(events: JsonSerializer.Serialize(events), reduced: false);
+        var page = context.Pages[0];
+        await page.Locator(".main-row[data-event-id='item-10'] .custom-event-expander").ClickAsync();
+        await page.WaitForTimeoutAsync(350); // Let the deliberate user expansion finish.
+        await page.EvaluateAsync("""
+            () => {
+                const row = document.querySelector('.main-row[data-event-id="item-11"]');
+                row.scrollIntoView({ block: 'center', behavior: 'instant' });
+                scrollBy(0, 200);
+                row.querySelector('button').focus({ preventScroll: true });
+            }
+            """);
+        var drift = await page.EvaluateAsync<double>("""
+            async () => {
+                const row = document.querySelector('.main-row[data-event-id="item-11"]');
+                const top = row.getBoundingClientRect().top;
+                const data = await getSharedEvents(), athletes = await getSharedAthletes();
+                window.fetchPublicJson = async url => url.includes('athletes') ? athletes : data.map(event =>
+                    event.Id === 'item-10' ? { ...event, Text: event.Text.replaceAll('Paragraph', 'Updated: ') } : event);
+                await loadEventsTable(null, false, null, true, { live: true });
+                let maximum = Math.abs(row.getBoundingClientRect().top - top);
+                const end = performance.now() + 500;
+                while (performance.now() < end) {
+                    await new Promise(requestAnimationFrame);
+                    maximum = Math.max(maximum, Math.abs(row.getBoundingClientRect().top - top));
+                }
+                return maximum;
+            }
+            """);
+        Assert.InRange(drift, 0, 2);
+        await Assertions.Expect(page.Locator(".main-row[data-event-id='item-10'] .custom-event-expander"))
+            .ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(page.Locator(".main-row[data-event-id='item-11'] .custom-event-expander")).ToBeFocusedAsync();
+    }
+
+    [Fact]
     public async Task FailedRefresh_KeepsTheReadableFeedAndRecoversOnTheNextAttempt()
     {
         await using var context = await OpenAsync();
