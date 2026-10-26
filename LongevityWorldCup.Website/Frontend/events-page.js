@@ -44,7 +44,10 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function clearEventsLoadingState(message='Events loaded.'){
         const root = document.getElementById('events-root');
-        if (root) root.setAttribute('aria-busy', 'false');
+        if (root) {
+            root.setAttribute('aria-busy', 'false');
+            root.removeAttribute('data-history-loading');
+        }
         const status = document.getElementById('eventsStatus');
         if (status) status.textContent = message;
     }
@@ -1267,7 +1270,11 @@ const eventsPageAssets = document.currentScript.dataset;
     if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward') {
         document.querySelectorAll('#events-root-index #eventsTable, .event-board-page #eventsTable').forEach(table => {
             const height = history.state?.lwcEventFeeds?.[historyFeedKey(table)]?.height;
-            if (height > 0) table.closest('.events-board').style.minHeight = `${height}px`;
+            if (height > 0) {
+                const board = table.closest('.events-board');
+                board.style.minHeight = `${height}px`;
+                board.setAttribute('data-history-loading', '');
+            }
         });
     }
     window.addEventListener('pageshow', startFeedClocks);
