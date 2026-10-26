@@ -13,10 +13,10 @@ updates:
       # License-key enforcement was also backported to these minor releases.
       - dependency-name: "SixLabors.ImageSharp"
         versions:
-          - "[3.2.0,)"
+          - ">= 3.2.0"
       - dependency-name: "SixLabors.ImageSharp.Drawing"
         versions:
-          - "[2.2.0,)"
+          - ">= 2.2.0"
     groups:
       nuget-minor-patch:
         patterns:
