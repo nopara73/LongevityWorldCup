@@ -154,7 +154,7 @@ img[data-lwc-portrait-fallback] {
 }
 
 /* Initials the pages render as text share the monogram look. */
-.events-board .avatar-fallback:not(.donation-gift-avatar):not(.milestone-people-avatar),
+.events-board .avatar-fallback[data-lwc-image-role="athlete"],
 .bioage-rank-row-avatar-fallback,
 .lmx-mention-avatar.fallback {
     background:

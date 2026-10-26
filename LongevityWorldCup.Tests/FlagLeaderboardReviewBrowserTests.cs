@@ -10,6 +10,53 @@ public sealed class FlagLeaderboardReviewBrowserTests(PlaywrightBrowserFixture b
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task ServerRenderedTeamPortraits_CarryTheSamePublicNamesAsTheirMembers()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/pheno?group=flags");
+        var teams = page.Locator(".flag-team");
+        Assert.True(await teams.CountAsync() > 0);
+        foreach (var team in await teams.AllAsync())
+        {
+            var expected = await team.Locator(".flag-athlete-name").EvaluateAllAsync<string[]>("names=>names.map(name=>name.firstChild.textContent)");
+            var portraits = team.Locator(".flag-team-portraits img");
+            var actual = await portraits.EvaluateAllAsync<string[]>("images=>images.map(image=>image.dataset.athleteName)");
+            Assert.Equal(expected, actual);
+            Assert.All(actual, name => Assert.False(string.IsNullOrWhiteSpace(name)));
+            foreach (var image in await portraits.AllAsync()) await Assertions.Expect(image).ToHaveAttributeAsync("alt", "");
+        }
+    }
+
+    [Fact]
+    public async Task MissingTeamPortraits_KeepEachPublicIdentityWithoutAddingDecorativeAltText()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            var index = 0;
+            foreach (var athlete in athletes.OfType<JsonObject>())
+            {
+                athlete["Flag"] = index < 3 ? "Hungary" : index < 6 ? "Germany" : "";
+                athlete["DisplayName"] = $"Public Athlete {++index}";
+                foreach (var key in athlete.Select(p => p.Key).Where(key => key.StartsWith("ProfilePic", StringComparison.Ordinal)).ToArray())
+                    athlete[key] = null;
+            }
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/pheno?group=flags");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var portraits = page.Locator(".flag-team-portraits img");
+        await Assertions.Expect(portraits).ToHaveCountAsync(6);
+        foreach (var image in await portraits.AllAsync())
+        {
+            await Assertions.Expect(image).ToHaveAttributeAsync("data-athlete-name", new System.Text.RegularExpressions.Regex("^Public Athlete "));
+            await PortraitSystemBrowserTests.AssertDecodedFallbackAsync(image, "PA");
+            await Assertions.Expect(image).ToHaveAttributeAsync("alt", "");
+        }
+    }
+
+    [Fact]
     public async Task FlagSearch_UsesPublicNames_AndSidebarCountsFollowWholeMatchingTeams()
     {
         await using var context = await NewContextAsync(Browser, App, new());

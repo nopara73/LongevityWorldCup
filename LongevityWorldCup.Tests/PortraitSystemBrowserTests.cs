@@ -128,6 +128,7 @@ public sealed class PortraitSystemBrowserTests(
                 const failed=new Promise(resolve=>image.addEventListener('error',resolve,{once:true}));
                 image.src='/already-broken.webp'; document.body.append(image);
                 await failed;
+                image.className='portrait';
                 window.LwcPortrait.enhance(image);
             }
             """);
@@ -205,6 +206,7 @@ public sealed class PortraitSystemBrowserTests(
     [InlineData("lmx-discussion-quick-avatar")]
     [InlineData("lmx-discussion-author-avatar")]
     [InlineData("ro-step-portrait")]
+    [InlineData("event-athlete-preview-portrait")]
     public async Task ExistingPortraitWrappers_EnhanceTheirImage(string wrapper)
     {
         await using var context = await ContextAsync();
@@ -294,5 +296,178 @@ public sealed class PortraitSystemBrowserTests(
         await Assertions.Expect(image).ToHaveAttributeAsync("alt", "Élodie Example");
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         Assert.Equal("none", await image.EvaluateAsync<string>("img=>getComputedStyle(img).animationName"));
+    }
+
+    [Theory]
+    [InlineData("brand")]
+    [InlineData("organization")]
+    [InlineData("illustration")]
+    [InlineData("badge")]
+    public async Task DeclaredNonPortrait_KeepsItsArtworkEvenInsideAPortraitWrapper(string role)
+    {
+        await using var context = await ContextAsync();
+        await context.RouteAsync("**/artwork-broken.webp", route => route.FulfillAsync(new() { Status = 404, Body = "" }));
+        var page = await OpenAsync(context);
+        await page.EvaluateAsync("""
+            role => {
+                const wrapper=document.createElement('span');wrapper.className='lmx-quote-portrait';
+                const image=document.createElement('img');image.id='artwork';image.className='portrait';
+                image.dataset.lwcImageRole=role;image.alt='First Athlete';
+                image.src='/assets/HdLogo_thumb_sm.png';wrapper.append(image);document.body.append(wrapper);
+                window.LwcPortrait.enhance(image);window.LwcPortrait.scan(wrapper);
+            }
+            """, role);
+        var image = page.Locator("#artwork");
+        await image.EvaluateAsync("image => image.decode()");
+        await Assertions.Expect(image).ToHaveAttributeAsync("src", "/assets/HdLogo_thumb_sm.png");
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait"));
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait-state"));
+        Assert.Equal("fill", await image.EvaluateAsync<string>("image=>getComputedStyle(image).objectFit"));
+        await page.EvaluateAsync("""
+            () => {artwork.srcset='/original.webp 500w';artwork.sizes='37px';
+                const wrapper=artwork.parentElement;wrapper.remove();document.body.append(wrapper);
+                window.LwcPortrait.scan(wrapper);}
+            """);
+        await image.EvaluateAsync("image => image.decode()");
+        await Assertions.Expect(image).ToHaveAttributeAsync("srcset", "/original.webp 500w");
+        await Assertions.Expect(image).ToHaveAttributeAsync("sizes", "37px");
+        await page.EvaluateAsync("""
+            async () => {artwork.removeAttribute('srcset');artwork.removeAttribute('sizes');
+                const failed=new Promise(resolve=>artwork.addEventListener('error',resolve,{once:true}));
+                artwork.src='/artwork-broken.webp';await failed;window.LwcPortrait.enhance(artwork);}
+            """);
+        await Assertions.Expect(image).ToHaveAttributeAsync("src", "/artwork-broken.webp");
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait-fallback"));
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait"));
+        await Assertions.Expect(image).ToHaveAttributeAsync("alt", "First Athlete");
+    }
+
+    [Fact]
+    public async Task ExplicitEnhance_DoesNotAdoptAnUnclassifiedLogo()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await page.EvaluateAsync("""
+            () => {const image=document.createElement('img');image.id='logo';image.alt='Longevity World Cup';
+                image.src='/assets/HdLogo_thumb_sm.png';document.body.append(image);window.LwcPortrait.enhance(image);}
+            """);
+        var image = page.Locator("#logo");
+        await image.EvaluateAsync("image=>image.decode()");
+        await Assertions.Expect(image).ToHaveAttributeAsync("src", "/assets/HdLogo_thumb_sm.png");
+        Assert.Null(await image.GetAttributeAsync("data-lwc-portrait"));
+    }
+
+    [Fact]
+    public async Task OnlyAthleteTextFallbacks_ReceivePortraitStyling()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        var before = await page.EvaluateAsync<string[]>("""
+            () => {
+                document.body.className='events-board';
+                document.body.innerHTML='<style>.avatar-fallback{background:orange;color:navy;font-weight:400;box-shadow:0 0 6px orange}</style>'
+                    +['brand','organization','illustration','badge','unknown','athlete'].map(role=>
+                        `<div id="${role}" class="avatar-fallback" data-lwc-image-role="${role}">FA</div>`).join('');
+                document.querySelector('link[href*=portrait-system]').disabled=true;
+                window.fallbackStyles=()=>['brand','organization','illustration','badge','unknown'].map(id=>{
+                    const s=getComputedStyle(document.getElementById(id));
+                    return JSON.stringify([s.backgroundImage,s.backgroundColor,s.color,s.fontWeight,s.boxShadow,s.textShadow,s.letterSpacing]);
+                });
+                return fallbackStyles();
+            }
+            """);
+        var after = await page.EvaluateAsync<string[]>("""
+            async () => {document.querySelector('link[href*=portrait-system]').disabled=false;
+                await new Promise(requestAnimationFrame);return fallbackStyles();}
+            """);
+        Assert.Equal(before, after);
+        Assert.Contains("gradient", await page.Locator("#athlete").EvaluateAsync<string>("e=>getComputedStyle(e).backgroundImage"));
+        await Assertions.Expect(page.Locator("#athlete")).ToHaveTextAsync("FA");
+    }
+
+    [Theory]
+    [InlineData("/assets/HdLogo_thumb_sm.png-athlete.webp")]
+    [InlineData("/assets/content-images/play-athlete-placeholder-custom.webp")]
+    public async Task RealPortraitSharingAPlaceholderPrefix_IsNotReplaced(string source)
+    {
+        await using var context = await ContextAsync();
+        await context.RouteAsync("**" + source, route => route.FulfillAsync(new() { ContentType = "image/svg+xml", Body = Svg }));
+        var page = await OpenAsync(context);
+        await AddAsync(page, source);
+        await ReadyAsync(page);
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("src", source);
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait-fallback"));
+    }
+
+    [Fact]
+    public async Task NamedAthletePlaceholder_StillBecomesItsOwnDecodedMonogram()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await ReadyAsync(page);
+        await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("alt", "First Athlete");
+    }
+
+    [Fact]
+    public async Task RecycledPortrait_CanRelinquishOwnershipToArtworkAndBecomeAnAthleteAgain()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await AddAsync(page);
+        await ReadyAsync(page);
+        await page.EvaluateAsync("""
+            () => {testPortrait.dataset.lwcImageRole='brand';testPortrait.src='/assets/HdLogo_thumb_sm.png';}
+            """);
+        await Assertions.Expect(page.Locator("#testPortrait")).Not.ToHaveAttributeAsync("data-lwc-portrait", "");
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("src", "/assets/HdLogo_thumb_sm.png");
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("srcset"));
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("sizes"));
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait-state"));
+        await page.Locator("#testPortrait").EvaluateAsync("image=>image.decode()");
+        await page.EvaluateAsync("""
+            src => {testPortrait.alt='Second Athlete';testPortrait.src=src;testPortrait.dataset.lwcImageRole='athlete';}
+            """, Photo.Replace("first", "second"));
+        await ReadyAsync(page);
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("alt", "Second Athlete");
+        Assert.NotEmpty(await page.Locator("#testPortrait").GetAttributeAsync("srcset") ?? "");
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait-fallback"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RecycledMonogram_BecomingBrandArtworkRestoresItsOriginalSource(bool roleOnParent)
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await ReadyAsync(page);
+        await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
+        await page.EvaluateAsync("parent => (parent?testPortrait.parentElement:testPortrait).dataset.lwcImageRole='brand'", roleOnParent);
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("src", "/assets/HdLogo_thumb_sm.png");
+        await page.Locator("#testPortrait").EvaluateAsync("image=>image.decode()");
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait"));
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait-fallback"));
+    }
+
+    [Fact]
+    public async Task NewDataPhoto_ReplacesAnOwnedMonogramWithoutRegeneratingOldInitials()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        await AddAsync(page, "/assets/HdLogo_thumb_sm.png");
+        await ReadyAsync(page);
+        await AssertDecodedFallbackAsync(page.Locator("#testPortrait"), "FA");
+        var photo = "data:image/svg+xml," + Uri.EscapeDataString(Svg.Replace("teal", "red"));
+        await page.EvaluateAsync("source=>{testPortrait.alt='Second Athlete';testPortrait.src=source}", photo);
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("src", photo);
+        await ReadyAsync(page);
+        Assert.Null(await page.Locator("#testPortrait").GetAttributeAsync("data-lwc-portrait-fallback"));
+        await Assertions.Expect(page.Locator("#testPortrait")).ToHaveAttributeAsync("alt", "Second Athlete");
+        using var frame = Image.Load<Rgba32>(await page.Locator("#testPortrait").ScreenshotAsync());
+        var center = frame[frame.Width / 2, frame.Height / 2];
+        Assert.True(center.R > 200 && center.G < 80, "The current data photo was replaced by an old initials fallback.");
     }
 }
