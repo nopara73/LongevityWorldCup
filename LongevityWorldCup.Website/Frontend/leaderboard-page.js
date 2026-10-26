@@ -2878,8 +2878,11 @@ function getAthleteModalFocusables(root = modal) {
 
 function containAthleteModalFocus(event) {
     if (event.key !== 'Tab' || event.defaultPrevented || modal.style.display !== 'block') return;
-    if (modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return;
-    const controls = getAthleteModalFocusables();
+    if (modal.querySelector('#athleteImageViewer[aria-hidden="false"]')) return;
+    // The athlete share sheet lives inside this dialog, independently of the
+    // site's shared sheet. Keep its keyboard loop above the profile controls.
+    const focusRoot = modal.querySelector('#athleteShareMenu:not([hidden])') || modal;
+    const controls = getAthleteModalFocusables(focusRoot);
     const active = event.target.ownerDocument.activeElement;
     const first = controls[0];
     const last = controls[controls.length - 1];
@@ -6328,6 +6331,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.src = getAthletePortraitUrl(fullAthleteData);
     profilePic.dataset.fullSrc = fullAthleteData.ProfilePic || profilePic.src;
     profilePic.alt = `${modalDisplayName} Profile Picture`;
+    // This control survives paging and also appears in hidden-identity rounds.
+    profilePic.setAttribute('aria-label', 'Enlarge athlete profile picture');
     profilePic.loading = 'eager';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
