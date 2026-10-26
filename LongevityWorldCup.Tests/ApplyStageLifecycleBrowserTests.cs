@@ -20,12 +20,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
     public async Task PortraitReplacement_DisablesCropBeforeTheNewImageInitializes()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
-        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
         {
             var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
                 Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
                 ContentType = css ? "text/css" : "application/javascript"
             });
         });
@@ -283,12 +284,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
     public async Task PortraitCrop_RemainsPendingAcrossBackAndLateFileReads(bool delayRead)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
-        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
         {
             var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
                 Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
                 ContentType = css ? "text/css" : "application/javascript"
             });
         });
@@ -443,12 +445,13 @@ public sealed class ApplyStageLifecycleBrowserTests(
         {
             ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
         });
-        await context.RouteAsync("**/cropperjs/1.5.13/cropper.min.*", route =>
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
         {
             var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
             return route.FulfillAsync(new()
             {
                 Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
                 ContentType = css ? "text/css" : "application/javascript"
             });
         });
