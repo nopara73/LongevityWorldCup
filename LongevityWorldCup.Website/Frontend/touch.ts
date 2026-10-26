@@ -64,7 +64,7 @@ interface Window {
     ].join(", ");
     const notTappable = ":disabled, [aria-disabled='true'], .no-results, .tier-separator, .leaderboard-skeleton-row, .events-skeleton-row";
     // Gestures never start on something that already owns a drag.
-    const gestureExclusions = "a, button, input, select, textarea, canvas, iframe, video, [contenteditable]:not([contenteditable='false']), [role='button'], [role='slider'], [role='spinbutton'], [role='menu'], [role='listbox'], .athlete-share-menu, .site-menu, .sidebar-filter-list, [data-lwc-no-gesture]";
+    const gestureExclusions = "a, button, input, select, textarea, canvas, iframe, video, [contenteditable]:not([contenteditable='false']), [role='button'], [role='slider'], [role='spinbutton'], [role='menu'], [role='listbox'], .cropper-container, .athlete-share-menu, .site-menu, .sidebar-filter-list, [data-lwc-no-gesture]";
     const smallControls = [
         "button", "[role='button']", "summary", "label.view-badge", "a.modal-link",
         ".athlete-step", ".close", ".sticky-close-btn", ".clear-icon", ".image-nav",
