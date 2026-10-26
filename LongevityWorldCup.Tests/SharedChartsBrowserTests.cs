@@ -26,8 +26,22 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
             """);
         var chart = page.Locator("#chart");
         await chart.FocusAsync();
+        // Rounded offsets can reach the bottom before Chromium finishes the native
+        // scroll. Wait for that scrollend before sending the opposite navigation key.
+        await page.EvaluateAsync("""
+            () => {
+                window.chartScrollEnded = false;
+                const finished = () => {
+                    if (scrollY + innerHeight < document.documentElement.scrollHeight - 2) return;
+                    window.chartScrollEnded = true;
+                    document.removeEventListener('scrollend', finished);
+                };
+                document.addEventListener('scrollend', finished);
+            }
+            """);
         await chart.PressAsync("Control+End");
         await page.WaitForFunctionAsync("() => scrollY + innerHeight >= document.documentElement.scrollHeight - 2");
+        await page.WaitForFunctionAsync("() => window.chartScrollEnded");
         await Expect(page.Locator(".lwc-chart-tip")).ToContainTextAsync("First");
         await page.Keyboard.PressAsync("Control+Home");
         await page.WaitForFunctionAsync("() => scrollY === 0");
