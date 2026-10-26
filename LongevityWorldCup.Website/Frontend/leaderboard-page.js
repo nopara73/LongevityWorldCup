@@ -6331,6 +6331,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.src = getAthletePortraitUrl(fullAthleteData);
     profilePic.dataset.fullSrc = fullAthleteData.ProfilePic || profilePic.src;
     profilePic.alt = `${modalDisplayName} Profile Picture`;
+    // This control survives paging and also appears in hidden-identity rounds.
+    profilePic.setAttribute('aria-label', 'Enlarge athlete profile picture');
     profilePic.loading = 'eager';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
