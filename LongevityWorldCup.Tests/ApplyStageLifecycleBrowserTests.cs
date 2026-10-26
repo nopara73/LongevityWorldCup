@@ -50,6 +50,7 @@ public sealed class ApplyStageLifecycleBrowserTests(
         await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
         await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.ready && !document.getElementById('cropButton').disabled");
         await page.Locator("#cancelProfileCropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#uploadButton")).ToBeFocusedAsync();
         Assert.Equal(before, await page.EvaluateAsync<string>(draft));
     }
 

@@ -72,6 +72,40 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
     }
 
     [Fact]
+    public async Task DialogUpdates_DoNotMeasureTheInertBackgroundForTouchTargets()
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
+        await page.EvaluateAsync("""
+            async () => {
+                const background = document.getElementById('main');
+                for (let i = 0; i < 120; i++) {
+                    const button = document.createElement('button');
+                    button.textContent = `Background action ${i}`;
+                    background.append(button);
+                }
+                background.inert = true;
+                document.getElementById('overlay').hidden = false;
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                window.inertGeometryReads = 0;
+                const original = Element.prototype.getBoundingClientRect;
+                Element.prototype.getBoundingClientRect = function (...args) {
+                    if (this.closest('[inert]')) window.inertGeometryReads++;
+                    return original.apply(this, args);
+                };
+                document.getElementById('panel').innerHTML = '<button id="dialogAction">Dialog action</button>';
+                window.dialogActions = 0;
+                document.getElementById('dialogAction').onclick = () => window.dialogActions++;
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                Element.prototype.getBoundingClientRect = original;
+            }
+            """);
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.inertGeometryReads"));
+        await page.Locator("#dialogAction").TapAsync();
+        Assert.Equal(1, await page.EvaluateAsync<int>("window.dialogActions"));
+    }
+
+    [Fact]
     public async Task Pull_RejectsControlsAndDialogContentBeforeMeasuringScrollContainers()
     {
         await using var context = await ContextAsync();
