@@ -620,7 +620,7 @@ public sealed class BiomarkerHistoryBrowserTests(
     public async Task RadarHistory_DateSelectionStillWorksWithoutTheChartLibrary()
     {
         await using var context = await NewContextAsync(390, true);
-        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => route.FulfillAsync(new() { ContentType = "application/javascript", Body = "" }));
+        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.6.1", route => route.FulfillAsync(new() { ContentType = "application/javascript", Body = "" }));
         var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
         var earlier = JsonSerializer.SerializeToNode(AlbuminCapTestData.Marker(50))!.AsObject();
         earlier["Date"] = "2025-01-01";
@@ -662,7 +662,7 @@ public sealed class BiomarkerHistoryBrowserTests(
         await using var context = await NewContextAsync(390, true);
         var allowChart = false;
         var chartScript = ChartScriptPath();
-        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => allowChart
+        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.6.1", route => allowChart
             ? route.FulfillAsync(new() { ContentType = "application/javascript", Path = chartScript })
             : route.AbortAsync());
         var athlete = await HistoryAthleteAsync("Benjamin Garden", 44, partial: false);
@@ -996,7 +996,7 @@ public sealed class BiomarkerHistoryBrowserTests(
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var chartScript = ChartScriptPath();
-        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.5.1", route => route.FulfillAsync(new()
+        await context.RouteAsync("https://cdn.jsdelivr.net/npm/chart.js@4.6.1", route => route.FulfillAsync(new()
         {
             ContentType = "application/javascript", Path = chartScript
         }));
