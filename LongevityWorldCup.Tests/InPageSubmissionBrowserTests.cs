@@ -133,13 +133,23 @@ public sealed class InPageSubmissionBrowserTests(
             """);
         var action = page.Locator(flow == "apply" ? "#nextButton" : "#submitButton");
         var label = await action.InnerTextAsync();
-        var initialWidth = await action.EvaluateAsync<double>("el=>el.getBoundingClientRect().width");
+        // Native click actionability can finish docking the newly enabled action.
+        // Compare the actual input layout with the pending state, not the earlier
+        // inline layout (408px) with its normal desktop dock slot (304px). Use the
+        // border-box layout width so the intentional press scale is not a resize.
+        await action.EvaluateAsync("""
+            el => el.addEventListener('pointerdown', () => {
+                el.dataset.submissionWidthAtInput = String(el.offsetWidth);
+            }, {capture:true, once:true})
+            """);
         await action.ClickAsync();
         await page.WaitForFunctionAsync("() => window.submissionCount===1");
         await Assertions.Expect(action).ToBeVisibleAsync();
         await Assertions.Expect(action).ToBeDisabledAsync();
         await Assertions.Expect(action).ToHaveTextAsync(label);
-        Assert.InRange(await action.EvaluateAsync<double>("el=>el.getBoundingClientRect().width") - initialWidth, -1, 1);
+        var initialWidth = await action.EvaluateAsync<double>("el=>Number(el.dataset.submissionWidthAtInput)");
+        Assert.True(double.IsFinite(initialWidth) && initialWidth > 0, "The native input width was not captured.");
+        Assert.InRange(await action.EvaluateAsync<double>("el=>el.offsetWidth") - initialWidth, -1, 1);
         if (width <= 195)
         {
             // A 390px phone at native 200% zoom has a 195px layout viewport,

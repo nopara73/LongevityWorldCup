@@ -1325,7 +1325,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 return renderBadgeBubbleForLabel(b[bm['badgelabel']] || b[bm['label']] || '', athlete, b[bm['leaguecategory']] ?? null, b[bm['leaguevalue']] ?? null, b[bm['place']] ?? null, false);
             }).join('');
             const portrait = pic
-                ? `<img src="${esc(pic)}" alt="" decoding="async" referrerpolicy="no-referrer">`
+                ? `<img src="${esc(pic)}" data-lwc-image-role="athlete" data-athlete-name="${esc(name)}" alt="" decoding="async" referrerpolicy="no-referrer">`
                 : `<span class="avatar-fallback">${esc(initialsFromName(name))}</span>`;
             card.dataset.slug = slug;
             card.setAttribute('aria-label', name);
@@ -1678,8 +1678,8 @@ const eventsPageAssets = document.currentScript.dataset;
 
             if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
                 const portrait = img
-                    ? `<img class="avatar" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
-                    : `<div class="avatar-fallback">${initialsFromName(name)}</div>`;
+                    ? `<img class="avatar" data-lwc-image-role="athlete" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
+                    : `<div class="avatar-fallback" data-lwc-image-role="athlete">${initialsFromName(name)}</div>`;
                 const framed = `<span class="event-avatar-frame">${portrait}${eventKindMark(r)}</span>`;
                 avatarHtml = canLinkAvatar
                     ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}>${framed}</a>`
@@ -1690,7 +1690,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
             } else if (r.type === EVENT_TYPE.CustomEvent) {
                 const logo = eventsPageAssets.defaultProfilePic;
-                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
+                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" data-lwc-image-role="brand" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
             } else if (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult) {
                 avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`;
             } else {
@@ -2052,6 +2052,8 @@ const eventsPageAssets = document.currentScript.dataset;
                 imgEl.addEventListener("error", () => {
                     const fallback = document.createElement("div");
                     fallback.className = imgEl.classList.contains("custom-event-avatar") ? "avatar-fallback custom-event-avatar" : "avatar-fallback";
+                    const imageRole = imgEl.dataset.lwcImageRole;
+                    if (imageRole) fallback.dataset.lwcImageRole = imageRole;
                     fallback.textContent = initials;
                     imgEl.replaceWith(fallback);
                 }, { once: true });

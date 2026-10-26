@@ -413,7 +413,7 @@ declare global {
 
     function buildAvatar(row: RankRow): string {
         if (row.isYou) {
-            return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-placeholder" aria-hidden="true">' +
+            return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-placeholder" data-lwc-image-role="illustration" aria-hidden="true">' +
                 '<img src="' + escapeHtml(athletePlaceholderImage) + '" alt="" loading="lazy" decoding="async">' +
                 '</span>';
         }
@@ -421,7 +421,7 @@ declare global {
         var name = row.displayName || row.name || '';
         var image = row.profilePicThumb || '';
         if (image) {
-            return '<span class="bioage-rank-row-avatar" data-athlete-name="' + escapeHtml(name) + '" aria-hidden="true">' +
+            return '<span class="bioage-rank-row-avatar" data-lwc-image-role="athlete" data-athlete-name="' + escapeHtml(name) + '" aria-hidden="true">' +
                 '<img src="' + escapeHtml(image) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">' +
                 '</span>';
         }

@@ -477,17 +477,21 @@ function wirePortraitFallback(img, athlete) {
         }
     };
     const currentSrc = toAbsoluteUrl(img.getAttribute('src') || img.src || '');
+    const isDefaultArtwork = source => toAbsoluteUrl(source).split('?')[0] === toAbsoluteUrl(defaultProfilePic).split('?')[0];
+    img.dataset.lwcImageRole = isDefaultArtwork(currentSrc) ? 'brand' : 'athlete';
     const currentIndex = candidates.findIndex(candidate => toAbsoluteUrl(candidate) === currentSrc);
     let nextCandidateIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
 
     img.onerror = function () {
         const nextCandidate = candidates[nextCandidateIndex++];
         if (nextCandidate) {
+            this.dataset.lwcImageRole = isDefaultArtwork(nextCandidate) ? 'brand' : 'athlete';
             this.src = nextCandidate;
             return;
         }
 
         this.onerror = null;
+        this.dataset.lwcImageRole = 'brand';
         this.src = defaultProfilePic;
         this.classList.add('portrait-fallback');
     };
@@ -4011,7 +4015,7 @@ function renderFlagTeams(teams, view) {
         return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
             <summary title="${labels[team.view]}"><span class="flag-team-rank" data-rank="${team.rank || ''}" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
             <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
-            <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy">`).join('')}</span>
+            <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" data-athlete-name="${escapeHtml(a.displayName)}" alt="" loading="lazy">`).join('')}</span>
             <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`} <small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
             <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
@@ -6329,6 +6333,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     wirePortraitFallback(profilePic, fullAthleteData);
     const stickyPortrait = document.getElementById('stickyAthletePortrait');
     if (stickyPortrait) {
+        stickyPortrait.dataset.athleteName = modalDisplayName;
+        stickyPortrait.dataset.lwcImageRole = profilePic.dataset.lwcImageRole || 'athlete';
         stickyPortrait.src = profilePic.src;
         stickyPortrait.hidden = !profilePic.src;
         stickyPortrait.onerror = () => { stickyPortrait.hidden = true; };
