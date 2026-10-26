@@ -434,8 +434,10 @@ public sealed class AthleteBrowseMotionBrowserTests(
         // Synthetic values isolate formatting from the athlete calculation pipeline.
         foreach (var value in new[] { "−5.4", "+3.2", "0.84", "—" })
         {
-            await ClearLogAsync(page);
-            await page.Locator("#lowestBortzAge").EvaluateAsync("(f, value) => { f.textContent = value; }", value);
+            // An old counter can tick between separate host calls. Begin the
+            // recording window with the value change in one browser task.
+            await page.Locator("#lowestBortzAge").EvaluateAsync(
+                "(f, value) => { window.__motion.animations.length = 0; window.__motion.counts.length = 0; f.textContent = value; }", value);
             await page.WaitForTimeoutAsync(600);
             Assert.Equal(value, await page.Locator("#lowestBortzAge").InnerTextAsync());
             Assert.False(await page.Locator("#lowestBortzAge").EvaluateAsync<bool>("f => f.hasAttribute('data-lwc-count')"));
