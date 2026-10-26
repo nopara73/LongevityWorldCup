@@ -55,6 +55,50 @@ public sealed class ApplyStageLifecycleBrowserTests(
     }
 
     [Fact]
+    public async Task PortraitCrop_NativeTouchDragCannotAlsoNavigateBack()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true
+        });
+        await context.RouteAsync("**/cropperjs/1.7.0/cropper.min.*", route =>
+        {
+            var css = new Uri(route.Request.Url).AbsolutePath.EndsWith(".css", StringComparison.Ordinal);
+            return route.FulfillAsync(new()
+            {
+                Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", css ? "cropper.min.css" : "cropper.min.js"),
+                Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
+                ContentType = css ? "text/css" : "application/javascript"
+            });
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.ready");
+        await page.Locator(".cropper-face").ScrollIntoViewIfNeededAsync();
+        await page.EvaluateAsync("() => { document.getElementById('cropperImage').cropper.setCropBoxData({width:210,height:210,left:10,top:10}); }");
+        var before = await page.EvaluateAsync<double>("() => document.getElementById('cropperImage').cropper.getData().x");
+        var box = (await page.Locator(".cropper-face").BoundingBoxAsync())!;
+        var x = box.X + box.Width / 3;
+        var y = box.Y + box.Height / 2;
+        var cdp = await context.NewCDPSessionAsync(page);
+        await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchStart", ["touchPoints"] = new[] { new { x, y, id = 1 } } });
+        for (var step = 1; step <= 8; step++)
+        {
+            await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchMove", ["touchPoints"] = new[] { new { x = x + step * 12, y, id = 1 } } });
+            await page.WaitForTimeoutAsync(20);
+        }
+        await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
+        Assert.Equal(4, await page.EvaluateAsync<int>("() => currentStage"));
+        Assert.True(await page.EvaluateAsync<double>("() => document.getElementById('cropperImage').cropper.getData().x") > before + 5,
+            "The cropper must still receive and move with the native touch drag.");
+        await cdp.DetachAsync();
+    }
+
+    [Fact]
     public async Task PortraitReplacement_DisablesCropBeforeTheNewImageInitializes()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
