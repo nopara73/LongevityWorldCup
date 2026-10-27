@@ -95,9 +95,14 @@ html textarea:focus {
     }
 }
 
-/* Numbers: digits line up while typing, spinners give way to steppers. */
+/* Numbers keep native keyboard steps; wheel gestures scroll their container. */
 :where(input[type="number"]) {
     font-variant-numeric: tabular-nums;
+}
+
+/* Appearance alone leaves the native wheel-stepping widget laid out. */
+:where(input[type="number"])::-webkit-inner-spin-button {
+    display: none;
 }
 
 :where(input[type="number"][data-lwc-stepper]) {
