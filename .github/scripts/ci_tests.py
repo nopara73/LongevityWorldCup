@@ -9,6 +9,7 @@ import copy
 import json
 from pathlib import Path
 import re
+import tarfile
 import xml.etree.ElementTree as ET
 
 
@@ -148,10 +149,36 @@ def coverage_totals(coverage):
                 branchesValid=len(branches), branchesCovered=sum(hits > 0 for hits in branches))
 
 
+def latest_attempt(directory, name):
+    # Partial reruns retain successful jobs from earlier attempts. Keep that
+    # evidence, but never let an older result hide a failed/incomplete retry.
+    candidates = [(0, directory / name)] if (directory / name).is_dir() else []
+    for folder in directory.glob(name + "-attempt-*"):
+        match = re.fullmatch(re.escape(name) + r"-attempt-([1-9][0-9]*)", folder.name)
+        if not match or not folder.is_dir():
+            raise ValueError(f"Invalid attempt artifact: {folder}")
+        candidates.append((int(match[1]), folder))
+    if not candidates:
+        raise ValueError(f"Missing artifact: {name}")
+    return max(candidates, key=lambda candidate: candidate[0])[1]
+
+
+def extract_seed_plan(directory, output):
+    # Read only this known member, without extracting untrusted archive paths.
+    archive = latest_attempt(directory, "ci-build") / "ci-build.tgz"
+    with tarfile.open(archive, "r:gz") as build:
+        member = build.getmember(".artifacts/ci-tests/plan.json")
+        if not member.isfile():
+            raise ValueError("Seed test plan must be a regular file")
+        plan = json.load(build.extractfile(member))
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(plan))
+
+
 def aggregate(plan, directory, output):
     reports, coverage = {}, []
     for shard in plan["shards"]:
-        folder = directory / f"test-results-{shard['index']}"
+        folder = latest_attempt(directory, f"test-results-{shard['index']}")
         reports[shard["index"]] = read_results(folder / "tests.trx")
         coverage.append(json.loads((folder / "coverage.json").read_text()))
     total, timings = verify_results(plan, reports)
@@ -185,6 +212,9 @@ def main():
     report.add_argument("--plan", type=Path, required=True)
     report.add_argument("--results", type=Path, required=True)
     report.add_argument("--output", type=Path, required=True)
+    seed = commands.add_parser("extract-seed-plan")
+    seed.add_argument("--builds", type=Path, required=True)
+    seed.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "plan":
         timings = {}
@@ -201,6 +231,8 @@ def main():
         print(f"Assigned {plan['discoveredMethods']} discovered methods to {len(plan['shards'])} shards")
         measured = sum(name in timings for shard in plan["shards"] for name in shard["methods"])
         print(f"Measured durations available for {measured} methods")
+    elif args.command == "extract-seed-plan":
+        extract_seed_plan(args.builds, args.output)
     else:
         aggregate(json.loads(args.plan.read_text()), args.results, args.output)
 
