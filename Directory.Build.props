@@ -7,6 +7,9 @@
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
+    <!-- Tiled fax TIFF decoding is also excluded by ImageInput's format allowlist.
+         The 3.2 backport adds license enforcement; retain the existing boundary. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-v76p-62qx-wwq2" />
     <!-- In v3 the ICC CLUT bug requires IccProfile.Entries, which the application
          never accesses. Loading, cloning and encoding preserve the raw ICC bytes.
          Reassess these specific exceptions when changing ImageSharp or image processing.

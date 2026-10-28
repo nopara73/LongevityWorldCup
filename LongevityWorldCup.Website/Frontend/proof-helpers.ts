@@ -255,6 +255,569 @@ const proofProcessingButtons = new WeakSet<HTMLButtonElement>();
 const proofStepIsActive = new WeakMap<HTMLButtonElement, () => boolean>();
 const maxProofImages = 37;
 
+const proofOptimizationOptions = {
+    maxSize: 2560,
+    quality: 0.88,
+    targetMaxBytes: 1.5 * 1024 * 1024
+};
+let preferredProofCanvasContentType: Promise<'image/webp' | 'image/jpeg'> | null = null;
+
+// Helper to read a File or encoded canvas Blob as a data URL.
+const readDataURL: (file: Blob) => Promise<string> = file => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => {
+        if (typeof r.result === 'string') {
+            res(r.result);
+        } else {
+            rej(new Error('Proof file could not be read as a data URL.'));
+        }
+    };
+    r.onerror = () => rej(r.error ?? new Error('Proof file could not be read.'));
+    r.onabort = () => rej(new Error('Proof file read was aborted.'));
+    r.readAsDataURL(file);
+});
+
+const encodeCanvasBlob = (
+    canvas: HTMLCanvasElement,
+    contentType: string,
+    quality: number
+): Promise<Blob | null> => new Promise(resolve => canvas.toBlob(resolve, contentType, quality));
+
+const resizeProofCanvas = (source: HTMLCanvasElement, scale: number): HTMLCanvasElement => {
+    const width = Math.max(1, Math.round(source.width * scale));
+    const height = Math.max(1, Math.round(source.height * scale));
+    if (width === source.width && height === source.height) return source;
+
+    const resized = document.createElement('canvas');
+    resized.width = width;
+    resized.height = height;
+    const context = resized.getContext('2d');
+    if (!context) throw new Error('Canvas context unavailable.');
+    context.drawImage(source, 0, 0, width, height);
+    return resized;
+};
+
+const getPreferredProofCanvasContentType = (): Promise<'image/webp' | 'image/jpeg'> => {
+    if (preferredProofCanvasContentType) return preferredProofCanvasContentType;
+
+    preferredProofCanvasContentType = (async () => {
+        const probe = document.createElement('canvas');
+        probe.width = 1;
+        probe.height = 1;
+        const webpBlob = await encodeCanvasBlob(
+            probe,
+            'image/webp',
+            proofOptimizationOptions.quality);
+        return webpBlob?.type.toLowerCase() === 'image/webp'
+            ? 'image/webp'
+            : 'image/jpeg';
+    })();
+    return preferredProofCanvasContentType;
+};
+
+const encodeProofCanvas: (canvas: HTMLCanvasElement) => Promise<string> = async canvas => {
+    const maxDimension = Math.max(canvas.width, canvas.height);
+    let workingCanvas = maxDimension > proofOptimizationOptions.maxSize
+        ? resizeProofCanvas(canvas, proofOptimizationOptions.maxSize / maxDimension)
+        : canvas;
+    const contentType = await getPreferredProofCanvasContentType();
+    let lastBlob: Blob | null = null;
+
+    // Try progressively lower quality at each size, then downscale according to
+    // the measured excess. This preserves the same bounds as normal image uploads
+    // without round-tripping a PDF canvas through createImageBitmap.
+    for (let attempt = 0; attempt < 12; attempt++) {
+        const qualityStep = attempt % 4;
+        const quality = Math.max(0.43, proofOptimizationOptions.quality - qualityStep * 0.15);
+        const blob = await encodeCanvasBlob(workingCanvas, contentType, quality);
+        if (!blob || blob.type.toLowerCase() !== contentType) {
+            throw new Error('Proof canvas could not be encoded in a bounded image format.');
+        }
+
+        lastBlob = blob;
+        if (blob.size <= proofOptimizationOptions.targetMaxBytes) {
+            return await readDataURL(blob);
+        }
+
+        if (qualityStep === 3) {
+            const measuredScale = Math.sqrt(proofOptimizationOptions.targetMaxBytes / blob.size) * 0.92;
+            const nextScale = Math.min(0.8, Math.max(0.45, measuredScale));
+            workingCanvas = resizeProofCanvas(workingCanvas, nextScale);
+        }
+    }
+
+    throw new Error(
+        `Proof canvas remained too large after bounded encoding (${lastBlob?.size ?? 0} bytes).`);
+};
+
+const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
+    if (window.crypto?.subtle) {
+        const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest))
+            .map(value => value.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    // Content-based fallback for older embedded browsers. This is a duplicate
+    // hint, not a security boundary.
+    let hash = 2166136261;
+    for (const value of new Uint8Array(bytes)) {
+        hash = Math.imul(hash ^ value, 16777619);
+    }
+    return `${bytes.byteLength}:${(hash >>> 0).toString(16)}`;
+};
+
+
+interface ProofArea { x: number; y: number; width: number; height: number; }
+interface ProofEditPage {
+    areas: ProofArea[];
+    undo: ProofArea[][];
+    selected: number;
+    scale: number;
+    x: number;
+    y: number;
+}
+
+// Drafts contain only geometry. Applying flattens all edited pages before the
+// owner atomically replaces submission bytes and its duplicate/removal caches.
+class ProofRedaction {
+    readonly element = document.createElement('div');
+    readonly controls = document.createElement('div');
+    readonly pages = new Map<number, ProofEditPage>();
+    busy = false;
+    private image = document.createElement('img');
+    private sheet = document.createElement('div');
+    private overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    private page: ProofEditPage | null = null;
+    private index = -1;
+    private tool: 'hide' | 'move' = 'hide';
+    private pointers = new Map<number, { x: number; y: number }>();
+    private gesture: { kind: string; x: number; y: number; before: ProofArea[]; area: ProofArea | null; corner: string } | null = null;
+    private pinch: { distance: number; scale: number; x: number; y: number } | null = null;
+    private lastFit = 0;
+    private observer: ResizeObserver;
+    private status = document.createElement('span');
+    private applyButton: HTMLButtonElement;
+    private undoButton: HTMLButtonElement;
+    private deleteButton: HTMLButtonElement;
+    private fitButton: HTMLButtonElement;
+    private apply: () => Promise<void>;
+
+    constructor(apply: () => Promise<void>) {
+        this.apply = apply;
+        this.element.className = 'proof-edit-stage';
+        this.element.setAttribute('data-lwc-no-gesture', '');
+        this.element.tabIndex = 0;
+        this.element.setAttribute('role', 'region');
+        this.element.setAttribute('aria-label', 'Hide details on proof page');
+        this.element.setAttribute('aria-description', 'Drag to hide an area. Enter adds an area. Page Up and Page Down select areas. Arrow keys move the selection; Shift and arrows resize it; Alt makes fine adjustments. Delete removes it. Escape deselects. Control Z undoes. Plus and minus zoom. With no selection, arrows pan.');
+        this.image.alt = '';
+        this.image.draggable = false;
+        this.sheet.className = 'proof-edit-sheet';
+        this.sheet.append(this.image, this.overlay);
+        this.element.append(this.sheet);
+        this.controls.className = 'proof-edit-controls';
+        const tools = document.createElement('div');
+        tools.className = 'proof-edit-tools';
+        const modes = document.createElement('div');
+        modes.className = 'proof-edit-modes';
+        for (const [mode, label] of [['hide', 'Hide'], ['move', 'Move']] as const) {
+            const button = this.button(label, `proof-edit-${mode}`, () => {
+                this.finishGesture(true);
+                this.tool = mode;
+                if (mode === 'move' && this.page) this.page.selected = -1;
+                this.render();
+            });
+            button.setAttribute('aria-pressed', String(this.tool === mode));
+            modes.append(button);
+        }
+        this.undoButton = this.button('Undo', 'proof-edit-undo', () => this.undo());
+        this.deleteButton = this.button('Delete', 'proof-edit-delete', () => this.deleteSelection());
+        tools.append(modes, this.deleteButton, this.undoButton);
+        const actions = document.createElement('div');
+        actions.className = 'proof-edit-actions';
+        const zoom = document.createElement('div');
+        zoom.className = 'proof-edit-zoom';
+        const out = this.button('−', 'proof-edit-zoom-out', () => this.zoom(1 / 1.4));
+        out.setAttribute('aria-label', 'Zoom out');
+        this.fitButton = this.button('Fit', 'proof-edit-fit', () => this.fit());
+        this.fitButton.setAttribute('aria-label', 'Fit proof page');
+        const into = this.button('+', 'proof-edit-zoom-in', () => this.zoom(1.4));
+        into.setAttribute('aria-label', 'Zoom in');
+        zoom.append(out, this.fitButton, into);
+        this.applyButton = this.button('Apply', 'proof-edit-apply', () => { void this.apply(); });
+        actions.append(zoom, this.applyButton);
+        this.status.className = 'proof-edit-status';
+        this.status.setAttribute('role', 'status');
+        this.controls.append(tools, this.status, actions);
+        this.element.addEventListener('pointerdown', event => this.pointerDown(event));
+        this.element.addEventListener('pointermove', event => this.pointerMove(event));
+        this.element.addEventListener('pointerup', event => this.pointerEnd(event, false));
+        this.element.addEventListener('pointercancel', event => this.pointerEnd(event, true));
+        this.element.addEventListener('lostpointercapture', event => this.pointerEnd(event, true));
+        // This surface owns touch drawing/panning. Suppress the compatibility
+        // mouse gesture so the next tap can activate a toolbar control directly.
+        for (const type of ['touchstart', 'touchmove']) this.element.addEventListener(type, event => {
+            if (this.page && !this.busy) event.preventDefault();
+        }, { passive: false });
+        this.element.addEventListener('keydown', event => this.keydown(event));
+        this.element.addEventListener('wheel', event => {
+            // Browser zoom remains native, including Ctrl+wheel at 200%.
+            if (!this.page || this.busy || event.ctrlKey) return;
+            event.preventDefault();
+            this.page.x -= event.deltaX;
+            this.page.y -= event.deltaY;
+            this.render();
+        }, { passive: false });
+        this.observer = new ResizeObserver(() => {
+            if (!this.page || this.busy) return;
+            if (Math.abs(this.page.scale - this.lastFit) < .001) this.fit();
+            else this.render();
+        });
+        this.observer.observe(this.element);
+    }
+
+    private button(label: string, name: string, action: () => void): HTMLButtonElement {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = name;
+        button.textContent = label;
+        button.addEventListener('click', () => { if (!this.busy) action(); });
+        return button;
+    }
+
+    async show(index: number, source: string): Promise<void> {
+        if (index === this.index) return;
+        this.finishGesture(true);
+        this.pointers.clear();
+        this.pinch = null;
+        this.index = index;
+        this.page = null;
+        this.sheet.hidden = true;
+        this.image.src = source;
+        this.status.textContent = 'Loading page…';
+        try {
+            await this.image.decode();
+            if (this.index !== index || !this.element.isConnected) return;
+            const existing = this.pages.get(index);
+            this.page = existing || { areas: [], undo: [], selected: -1, scale: 1, x: 0, y: 0 };
+            this.pages.set(index, this.page);
+            this.sheet.style.width = `${this.image.naturalWidth}px`;
+            this.sheet.style.height = `${this.image.naturalHeight}px`;
+            this.overlay.setAttribute('viewBox', `0 0 ${this.image.naturalWidth} ${this.image.naturalHeight}`);
+            this.sheet.hidden = false;
+            if (existing) this.render();
+            else this.fit();
+        } catch (_) {
+            if (this.index === index) this.status.textContent = 'This page could not be opened. Cancel and try again.';
+        }
+    }
+
+    private fitScale(): number {
+        return Math.min((this.element.clientWidth - 32) / this.image.naturalWidth,
+            (this.element.clientHeight - 32) / this.image.naturalHeight, 1);
+    }
+
+    private fit(): void {
+        if (!this.page || this.busy) return;
+        this.page.scale = Math.max(.01, this.fitScale());
+        this.lastFit = this.page.scale;
+        this.page.x = (this.element.clientWidth - this.image.naturalWidth * this.page.scale) / 2;
+        this.page.y = (this.element.clientHeight - this.image.naturalHeight * this.page.scale) / 2;
+        this.render();
+    }
+
+    private zoom(factor: number): void {
+        if (!this.page) return;
+        this.finishGesture(true);
+        this.zoomAt(this.page.scale * factor, this.element.clientWidth / 2, this.element.clientHeight / 2);
+        this.render();
+    }
+
+    private zoomAt(scale: number, x: number, y: number): void {
+        if (!this.page) return;
+        const next = Math.max(this.fitScale(), Math.min(8, scale));
+        this.page.x = x - (x - this.page.x) * next / this.page.scale;
+        this.page.y = y - (y - this.page.y) * next / this.page.scale;
+        this.page.scale = next;
+    }
+
+    private point(event: PointerEvent): { x: number; y: number } {
+        const bounds = this.element.getBoundingClientRect();
+        return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    }
+
+    private imagePoint(point: { x: number; y: number }): { x: number; y: number } {
+        const page = this.page!;
+        return { x: Math.max(0, Math.min(this.image.naturalWidth, (point.x - page.x) / page.scale)),
+            y: Math.max(0, Math.min(this.image.naturalHeight, (point.y - page.y) / page.scale)) };
+    }
+
+    private pointerDown(event: PointerEvent): void {
+        if (!this.page || this.busy || event.button > 0) return;
+        if (event.pointerType !== 'touch') event.preventDefault();
+        this.element.focus({ preventScroll: true });
+        this.element.setPointerCapture(event.pointerId);
+        const point = this.point(event);
+        this.pointers.set(event.pointerId, point);
+        if (this.pointers.size === 2) {
+            // A second finger turns a tentative mark into a pinch, never a redaction.
+            this.finishGesture(true);
+            const [a, b] = [...this.pointers.values()] as [{ x: number; y: number }, { x: number; y: number }];
+            const center = this.imagePoint({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+            this.pinch = { distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), scale: this.page.scale, ...center };
+            return;
+        }
+        if (this.pointers.size !== 1) return;
+        const p = this.imagePoint(point);
+        const target = event.target instanceof Element ? event.target.closest('[data-area]') : null;
+        const index = target ? Number(target.getAttribute('data-area')) : -1;
+        const area = this.page.areas[index];
+        const corner = target?.getAttribute('data-corner') || '';
+        const before = this.copyAreas();
+        if (this.tool === 'move') {
+            this.gesture = { kind: 'pan', ...point, before, area: null, corner };
+        } else if (area) {
+            this.page.selected = index;
+            this.gesture = { kind: corner ? 'resize' : 'move', ...p, before, area: { ...area }, corner };
+        } else {
+            const inside = point.x >= this.page.x && point.x <= this.page.x + this.image.naturalWidth * this.page.scale
+                && point.y >= this.page.y && point.y <= this.page.y + this.image.naturalHeight * this.page.scale;
+            if (!inside) { this.page.selected = -1; this.render(); return; }
+            this.page.selected = this.page.areas.length;
+            this.page.areas.push({ ...p, width: 0, height: 0 });
+            this.gesture = { kind: 'draw', ...p, before, area: null, corner };
+        }
+        this.render();
+    }
+
+    private pointerMove(event: PointerEvent): void {
+        const page = this.page;
+        if (!page || !this.pointers.has(event.pointerId)) return;
+        const point = this.point(event);
+        this.pointers.set(event.pointerId, point);
+        if (this.pinch && this.pointers.size >= 2) {
+            const [a, b] = [...this.pointers.values()] as [{ x: number; y: number }, { x: number; y: number }];
+            this.zoomAt(this.pinch.scale * Math.hypot(a.x - b.x, a.y - b.y) / this.pinch.distance, 0, 0);
+            page.x = (a.x + b.x) / 2 - this.pinch.x * page.scale;
+            page.y = (a.y + b.y) / 2 - this.pinch.y * page.scale;
+        } else if (this.gesture) {
+            const g = this.gesture;
+            const p = this.imagePoint(point);
+            const area = page.areas[page.selected];
+            if (g.kind === 'pan') {
+                page.x += point.x - g.x; page.y += point.y - g.y;
+                g.x = point.x; g.y = point.y;
+            } else if (area) {
+                if (g.kind === 'draw') {
+                    Object.assign(area, { x: Math.min(g.x, p.x), y: Math.min(g.y, p.y), width: Math.abs(p.x - g.x), height: Math.abs(p.y - g.y) });
+                } else if (g.area && g.kind === 'move') {
+                    area.x = Math.max(0, Math.min(this.image.naturalWidth - area.width, g.area.x + p.x - g.x));
+                    area.y = Math.max(0, Math.min(this.image.naturalHeight - area.height, g.area.y + p.y - g.y));
+                } else if (g.area) {
+                    const anchorX = g.corner.includes('w') ? g.area.x + g.area.width : g.area.x;
+                    const anchorY = g.corner.includes('n') ? g.area.y + g.area.height : g.area.y;
+                    Object.assign(area, { x: Math.min(anchorX, p.x), y: Math.min(anchorY, p.y), width: Math.abs(anchorX - p.x), height: Math.abs(anchorY - p.y) });
+                }
+            }
+        }
+        this.render();
+    }
+
+    private pointerEnd(event: PointerEvent, canceled: boolean): void {
+        if (!this.pointers.has(event.pointerId)) return;
+        this.pointers.delete(event.pointerId);
+        if (this.element.hasPointerCapture(event.pointerId)) this.element.releasePointerCapture(event.pointerId);
+        this.finishGesture(canceled);
+        // Keep a pinch inert until both fingers lift; the remaining finger must
+        // not accidentally paint or move an area.
+        if (!this.pointers.size) this.pinch = null;
+        this.render();
+    }
+
+    private copyAreas(): ProofArea[] { return this.page!.areas.map(area => ({ ...area })); }
+
+    private finishGesture(cancel: boolean): void {
+        if (!this.gesture || !this.page) return;
+        const g = this.gesture;
+        this.gesture = null;
+        const area = this.page.areas[this.page.selected];
+        if (g.kind === 'pan') return;
+        if (cancel || !area || area.width * this.page.scale < 3 || area.height * this.page.scale < 3) {
+            this.page.areas = g.before;
+            this.page.selected = -1;
+        } else if (JSON.stringify(g.before) !== JSON.stringify(this.page.areas)) {
+            this.page.undo.push(g.before);
+        }
+    }
+
+    private undo(): void {
+        if (!this.page) return;
+        this.finishGesture(true);
+        const areas = this.page.undo.pop();
+        if (areas) { this.page.areas = areas; this.page.selected = -1; }
+        this.render();
+    }
+
+    private deleteSelection(): void {
+        if (!this.page || this.page.selected < 0) return;
+        this.page.undo.push(this.copyAreas());
+        this.page.areas.splice(this.page.selected, 1);
+        this.page.selected = -1;
+        this.render();
+    }
+
+    private keydown(event: KeyboardEvent): void {
+        if (!this.page || this.busy) return;
+        const page = this.page;
+        const area = page.areas[page.selected];
+        const arrows = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+        if (!['Enter', 'Delete', 'Backspace', 'Escape', 'PageUp', 'PageDown', '+', '=', '-', 'z', 'Z', ...arrows].includes(event.key)) return;
+        if (event.key.toLowerCase() === 'z' && !(event.ctrlKey || event.metaKey)) return;
+        if (event.key === 'Escape' && page.selected < 0 && !this.gesture) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.key.toLowerCase() === 'z') { this.undo(); return; }
+        if (event.key === '+' || event.key === '=') { this.zoom(1.4); return; }
+        if (event.key === '-') { this.zoom(1 / 1.4); return; }
+        if (event.key === 'PageUp' || event.key === 'PageDown') {
+            this.finishGesture(true);
+            if (page.areas.length) {
+                page.selected = page.selected < 0 ? (event.key === 'PageDown' ? 0 : page.areas.length - 1)
+                    : (page.selected + (event.key === 'PageDown' ? 1 : -1) + page.areas.length) % page.areas.length;
+                this.tool = 'hide';
+                const selected = page.areas[page.selected]!;
+                const x = page.x + selected.x * page.scale, y = page.y + selected.y * page.scale;
+                if (x < 16 || y < 16 || x + selected.width * page.scale > this.element.clientWidth - 16
+                    || y + selected.height * page.scale > this.element.clientHeight - 16) {
+                    page.x = this.element.clientWidth / 2 - (selected.x + selected.width / 2) * page.scale;
+                    page.y = this.element.clientHeight / 2 - (selected.y + selected.height / 2) * page.scale;
+                }
+            }
+        } else if (event.key === 'Escape') { this.finishGesture(true); page.selected = -1; }
+        else if (event.key === 'Delete' || event.key === 'Backspace') { this.deleteSelection(); return; }
+        else if (event.key === 'Enter') {
+            page.undo.push(this.copyAreas());
+            const center = this.imagePoint({ x: this.element.clientWidth / 2, y: this.element.clientHeight / 2 });
+            const width = Math.min(this.image.naturalWidth, this.element.clientWidth * .35 / page.scale);
+            const height = Math.min(this.image.naturalHeight, 44 / page.scale);
+            page.selected = page.areas.length;
+            page.areas.push({ x: Math.max(0, Math.min(this.image.naturalWidth - width, center.x - width / 2)),
+                y: Math.max(0, Math.min(this.image.naturalHeight - height, center.y - height / 2)), width, height });
+            this.tool = 'hide';
+        } else if (area && this.tool === 'hide') {
+            if (!event.repeat) page.undo.push(this.copyAreas());
+            const step = event.altKey ? 1 : Math.max(1, Math.round(5 / page.scale));
+            const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+            const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+            if (event.shiftKey) {
+                area.width = Math.max(1, Math.min(this.image.naturalWidth - area.x, area.width + dx));
+                area.height = Math.max(1, Math.min(this.image.naturalHeight - area.y, area.height + dy));
+            } else {
+                area.x = Math.max(0, Math.min(this.image.naturalWidth - area.width, area.x + dx));
+                area.y = Math.max(0, Math.min(this.image.naturalHeight - area.height, area.y + dy));
+            }
+        } else {
+            page.x += event.key === 'ArrowLeft' ? 80 : event.key === 'ArrowRight' ? -80 : 0;
+            page.y += event.key === 'ArrowUp' ? 80 : event.key === 'ArrowDown' ? -80 : 0;
+        }
+        this.render();
+    }
+
+    render(): void {
+        const page = this.page;
+        if (!page) return;
+        const w = this.image.naturalWidth * page.scale, h = this.image.naturalHeight * page.scale;
+        page.x = w <= this.element.clientWidth - 32 ? (this.element.clientWidth - w) / 2 : Math.max(this.element.clientWidth - w - 16, Math.min(16, page.x));
+        page.y = h <= this.element.clientHeight - 32 ? (this.element.clientHeight - h) / 2 : Math.max(this.element.clientHeight - h - 16, Math.min(16, page.y));
+        this.sheet.style.transform = `translate(${page.x}px, ${page.y}px) scale(${page.scale})`;
+        this.element.dataset.tool = this.tool;
+        let shapeIndex = 0;
+        const shape = (tag: string, attributes: Record<string, string | number>): SVGElement => {
+            const previous = this.overlay.children.item(shapeIndex++);
+            const element = previous?.tagName === tag ? previous : document.createElementNS('http://www.w3.org/2000/svg', tag);
+            for (const attribute of Array.from(element.attributes)) {
+                if (!(attribute.name in attributes)) element.removeAttribute(attribute.name);
+            }
+            for (const [key, value] of Object.entries(attributes)) {
+                if (element.getAttribute(key) !== String(value)) element.setAttribute(key, String(value));
+            }
+            if (element !== previous) {
+                if (previous) previous.replaceWith(element);
+                else this.overlay.append(element);
+            }
+            return element as SVGElement;
+        };
+        page.areas.forEach((area, index) => {
+            shape('rect', { ...area, fill: '#000', 'data-area': index });
+            if (index !== page.selected || this.tool === 'move') return;
+            shape('rect', { ...area, fill: 'none', stroke: '#fff', 'stroke-width': 3 / page.scale, 'pointer-events': 'none' });
+            shape('rect', { ...area, fill: 'none', stroke: '#087f8c', 'stroke-width': 1.5 / page.scale, 'pointer-events': 'none' });
+            for (const [corner, x, y] of [['nw', area.x, area.y], ['ne', area.x + area.width, area.y], ['sw', area.x, area.y + area.height], ['se', area.x + area.width, area.y + area.height]] as const) {
+                shape('circle', { cx: x, cy: y, r: 5 / page.scale, fill: '#fff', stroke: '#087f8c', 'stroke-width': 2 / page.scale, 'pointer-events': 'none' });
+                shape('circle', { cx: x, cy: y, r: 22 / page.scale, fill: 'transparent', 'data-area': index, 'data-corner': corner, class: 'proof-edit-handle' });
+            }
+        });
+        while (this.overlay.children.length > shapeIndex) this.overlay.lastElementChild?.remove();
+        for (const mode of ['hide', 'move']) this.controls.querySelector(`.proof-edit-${mode}`)!.setAttribute('aria-pressed', String(this.tool === mode));
+        this.undoButton.disabled = this.busy || !page.undo.length;
+        this.deleteButton.disabled = this.busy || page.selected < 0;
+        const count = [...this.pages.values()].reduce((sum, draft) => sum + draft.areas.length, 0);
+        this.applyButton.disabled = this.busy || !count;
+        this.applyButton.textContent = this.busy ? 'Applying…' : count ? `Apply (${count})` : 'Apply';
+        this.fitButton.textContent = `${Math.round(page.scale * 100)}%`;
+        this.element.setAttribute('aria-label', `Hide details on proof page${page.selected >= 0 ? `, area ${page.selected + 1} of ${page.areas.length} selected` : ''}`);
+        const keyboard = this.element.matches(':focus-visible');
+        this.status.textContent = this.busy ? 'Saving hidden areas…' : page.selected >= 0
+            ? keyboard ? 'Arrows: move · Shift: resize · Delete: remove' : 'Drag corners to adjust · Delete to remove'
+            : keyboard ? page.areas.length ? 'Enter: add · Page ↑ / ↓: select · Arrows: pan' : 'Enter: add area · Arrows: pan · + / −: zoom'
+                : this.tool === 'hide' ? 'Drag to hide · Pinch or + to zoom' : 'Drag to move · Pinch or + to zoom';
+        this.element.dispatchEvent(new Event('proof-edit-change', { bubbles: true }));
+    }
+
+    async flatten(images: readonly string[]): Promise<Map<string, string>> {
+        this.finishGesture(false);
+        const replacements = new Map<string, string>();
+        for (const [index, page] of this.pages) {
+            if (!page.areas.length) continue;
+            const source = images[index];
+            if (!source) throw new Error('Proof page no longer available.');
+            const image = new Image();
+            image.src = source;
+            await image.decode();
+            const canvas = document.createElement('canvas');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            try {
+                const context = canvas.getContext('2d');
+                if (!context) throw new Error('Canvas unavailable.');
+                context.drawImage(image, 0, 0);
+                context.fillStyle = '#000';
+                for (const area of page.areas) {
+                    // Round outward to cover the entire chosen area with opaque pixels.
+                    const x = Math.floor(area.x), y = Math.floor(area.y);
+                    context.fillRect(x, y, Math.ceil(area.x + area.width) - x, Math.ceil(area.y + area.height) - y);
+                }
+                // Encode the flattened canvas directly: no original-image fallback.
+                replacements.set(source, await encodeProofCanvas(canvas));
+            } finally { canvas.width = canvas.height = 0; image.src = ''; }
+        }
+        return replacements;
+    }
+
+    error(): void { this.status.textContent = 'Could not apply. Your selections are kept; try again.'; }
+
+    dispose(): void {
+        this.observer.disconnect();
+        this.index = -1;
+        this.page = null;
+        this.pages.clear();
+        this.image.removeAttribute('src');
+        this.element.remove();
+        this.controls.remove();
+    }
+}
+
 class ProofReview {
     readonly labels = new Map<string, string>();
     private removed: { image: string; index: number }[] = [];
@@ -264,6 +827,8 @@ class ProofReview {
     private viewerIndex = 0;
     private opener: HTMLElement | null = null;
     private zoomed = false;
+    private editor: ProofRedaction | null = null;
+    private replaceSources: (replacements: Map<string, string>) => Promise<void>;
     // Pages already on screen; anything new is revealed as it arrives.
     private shown = new Set<string>();
     private arrivals = new Map<string, number>();
@@ -278,11 +843,13 @@ class ProofReview {
         event.returnValue = '';
     };
 
-    constructor(container: HTMLElement, images: string[], changed: () => void, hasUnsubmittedProofs: () => boolean) {
+    constructor(container: HTMLElement, images: string[], changed: () => void, hasUnsubmittedProofs: () => boolean,
+        replaceSources: (replacements: Map<string, string>) => Promise<void>) {
         this.container = container;
         this.images = images;
         this.changed = changed;
         this.hasUnsubmittedProofs = hasUnsubmittedProofs;
+        this.replaceSources = replaceSources;
         images.forEach(image => this.shown.add(image));
         container.classList.add('proof-review-panel');
     }
@@ -504,15 +1071,16 @@ class ProofReview {
             dialog.innerHTML = `<div class="proof-review-toolbar"><div class="proof-review-title"><span class="proof-review-position" role="status"></span><h2></h2></div><button type="button" class="proof-review-close" aria-label="Close proof review"><span class="proof-review-close-label">Close </span><span aria-hidden="true">×</span></button></div>
                 <div class="proof-review-stage" tabindex="0" role="region" aria-label="Proof page"><img alt=""></div>
                 <div class="proof-review-filmstrip" role="group" aria-label="Proof pages"></div>
-                <div class="proof-review-navigation"><div class="proof-review-steps"><button type="button" class="proof-review-previous"><span>←</span> <span class="proof-review-step-label">Previous</span></button><button type="button" class="proof-review-next"><span class="proof-review-step-label">Next</span> <span>→</span></button></div><button type="button" class="proof-review-zoom"><span class="proof-review-zoom-label">Zoom in</span></button></div>`;
-            dialog.querySelector('.proof-review-close')?.addEventListener('click', () => dialog.close());
+                <div class="proof-review-navigation"><div class="proof-review-steps"><button type="button" class="proof-review-previous"><span>←</span> <span class="proof-review-step-label">Previous</span></button><button type="button" class="proof-review-next"><span class="proof-review-step-label">Next</span> <span>→</span></button></div><button type="button" class="proof-review-zoom"><span class="proof-review-zoom-label">Zoom in</span></button><button type="button" class="proof-review-hide">Hide details</button></div>`;
+            dialog.querySelector('.proof-review-close')?.addEventListener('click', () => this.editor ? this.cancelEdit() : dialog.close());
+            dialog.querySelector('.proof-review-hide')?.addEventListener('click', () => this.startEdit());
             dialog.querySelector('.proof-review-previous')?.addEventListener('click', () => this.navigate(-1));
             dialog.querySelector('.proof-review-next')?.addEventListener('click', () => this.navigate(1));
             dialog.querySelector('.proof-review-zoom')?.addEventListener('click', () => { this.zoomed = !this.zoomed; this.updateViewer(); });
             dialog.addEventListener('keydown', event => {
                 const inFilmstrip = document.activeElement?.closest('.proof-review-filmstrip');
                 if (event.key === 'Tab') {
-                    const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]'));
+                    const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]')).filter(control => control.getClientRects().length > 0);
                     const first = controls[0];
                     const last = controls[controls.length - 1];
                     if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
@@ -520,6 +1088,7 @@ class ProofReview {
                         (event.shiftKey ? last : first)?.focus();
                     }
                 }
+                if (this.editor && !inFilmstrip) return;
                 if (this.zoomed && !inFilmstrip && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
                     event.preventDefault();
                     const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
@@ -540,19 +1109,26 @@ class ProofReview {
                     dialog.querySelector<HTMLButtonElement>('.proof-review-thumb[aria-current="true"]')?.focus({ preventScroll: true });
                 }
             });
+            dialog.addEventListener('cancel', event => {
+                if (!this.editor) return;
+                event.preventDefault();
+                this.cancelEdit();
+            });
             dialog.addEventListener('click', event => {
                 if (event.target !== dialog) return;
                 const box = dialog.getBoundingClientRect();
-                if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
+                if (!this.editor && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) dialog.close();
             });
             dialog.addEventListener('close', () => {
                 // Native close events are queued: the user may already have
                 // moved focus or reopened this same dialog before delivery.
                 if (dialog.open) return;
+                this.endEdit();
                 document.body.classList.remove('proof-review-open');
                 const active = document.activeElement;
-                if (this.opener?.isConnected && (!active || active === document.body || dialog.contains(active))) {
-                    this.opener.focus({ preventScroll: true });
+                if (!active || active === document.body || dialog.contains(active)) {
+                    const opener = this.opener?.isConnected ? this.opener : this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.viewerIndex];
+                    opener?.focus({ preventScroll: true });
                 }
             });
             this.dialog = dialog;
@@ -593,6 +1169,7 @@ class ProofReview {
     }
 
     private navigate(direction: number): void {
+        if (this.editor?.busy) return;
         this.viewerIndex = Math.max(0, Math.min(this.images.length - 1, this.viewerIndex + direction));
         this.zoomed = false;
         this.updateViewer();
@@ -610,7 +1187,7 @@ class ProofReview {
         const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
         const requiredHeight = toolbar.offsetHeight + strip.offsetHeight + navigation.offsetHeight
             + parseFloat(getComputedStyle(stage).minHeight);
-        dialog.classList.toggle('is-compact-height', requiredHeight > dialog.clientHeight);
+        dialog.classList.toggle('is-compact-height', !this.editor && requiredHeight > dialog.clientHeight);
         const steps = dialog.querySelector<HTMLElement>('.proof-review-steps')!;
         steps.classList.remove('is-compact');
         const buttons = Array.from(steps.querySelectorAll('button'));
@@ -652,6 +1229,94 @@ class ProofReview {
             else thumb.removeAttribute('aria-current');
         });
         this.fitNavigation();
+        if (this.editor) void this.editor.show(this.viewerIndex, source);
+    }
+
+    private startEdit(): void {
+        if (!this.dialog || this.editor) return;
+        this.editor = new ProofRedaction(() => this.applyEdit());
+        this.zoomed = false;
+        this.editor.element.addEventListener('proof-edit-change', () => {
+            this.dialog?.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
+                const count = this.editor?.pages.get(index)?.areas.length || 0;
+                thumb.classList.toggle('has-edits', count > 0);
+                thumb.setAttribute('aria-label', `Proof page ${index + 1}${count ? `, ${count} hidden ${count === 1 ? 'area' : 'areas'} pending` : ''}`);
+            });
+        });
+        this.dialog.classList.add('is-editing');
+        this.dialog.classList.remove('is-zoomed');
+        this.dialog.querySelector('.proof-review-stage')!.after(this.editor.element);
+        this.dialog.append(this.editor.controls);
+        this.dialog.setAttribute('aria-label', 'Hide details');
+        const close = this.dialog.querySelector<HTMLButtonElement>('.proof-review-close')!;
+        close.textContent = 'Cancel';
+        close.setAttribute('aria-label', 'Cancel hiding details');
+        this.updateViewer();
+        this.editor.element.focus({ preventScroll: true });
+    }
+
+    private endEdit(): void {
+        this.editor?.dispose();
+        this.editor = null;
+        this.dialog?.classList.remove('is-editing');
+        this.dialog?.setAttribute('aria-label', 'Review attached proofs');
+        this.dialog?.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
+            thumb.classList.remove('has-edits');
+            thumb.setAttribute('aria-label', `Proof page ${index + 1}`);
+        });
+        const close = this.dialog?.querySelector<HTMLButtonElement>('.proof-review-close');
+        if (close) {
+            close.innerHTML = '<span class="proof-review-close-label">Close </span><span aria-hidden="true">×</span>';
+            close.setAttribute('aria-label', 'Close proof review');
+        }
+    }
+
+    private cancelEdit(): void {
+        if (this.editor?.busy) return;
+        this.endEdit();
+        this.updateViewer();
+        this.dialog?.querySelector<HTMLButtonElement>('.proof-review-hide')?.focus();
+    }
+
+    private async applyEdit(): Promise<void> {
+        const editor = this.editor;
+        if (!editor || editor.busy || !this.dialog) return;
+        editor.busy = true;
+        editor.render();
+        const buttons = Array.from(this.dialog.querySelectorAll<HTMLButtonElement>('button'));
+        const disabled = buttons.map(button => button.disabled);
+        buttons.forEach(button => button.disabled = true);
+        editor.element.inert = true;
+        let failed = false;
+        try {
+            const replacements = await editor.flatten(this.images);
+            await this.replaceSources(replacements);
+            for (const [source, replacement] of replacements) {
+                for (let i = 0; i < this.images.length; i++) if (this.images[i] === source) this.images[i] = replacement;
+                for (const removed of this.removed) if (removed.image === source) removed.image = replacement;
+                const label = this.labels.get(source);
+                this.labels.delete(source);
+                if (label) this.labels.set(replacement, label);
+                this.shown.delete(source);
+                this.shown.add(replacement);
+                this.arrivals.delete(source);
+            }
+            this.endEdit();
+            this.render();
+            this.buildFilmstrip();
+            this.zoomed = false;
+            this.updateViewer();
+            this.changed();
+            this.dialog.querySelector<HTMLElement>('.proof-review-stage')?.focus();
+        } catch (_) {
+            failed = true;
+            editor.busy = false;
+            editor.element.inert = false;
+        } finally {
+            buttons.forEach((button, index) => button.disabled = disabled[index]!);
+            if (this.editor) this.editor.render();
+            if (failed) editor.error();
+        }
     }
 }
 
@@ -679,17 +1344,26 @@ window.setupProofUploadHTML = function (
     }
     let isProofUploadProcessing = false;
     const queuedProofSelections: { files: File[]; retryButton: HTMLButtonElement | null | undefined }[] = [];
-    const proofOptimizationOptions = {
-        maxSize: 2560,
-        quality: 0.88,
-        targetMaxBytes: 1.5 * 1024 * 1024
-    };
+    const proofSourceImages = new Map<string, string>();
+    // Keep only a fingerprint of replaced bytes. Even a differently named input
+    // that optimizes to the old image resolves to the latest flattened copy.
+    const redactedImages = new Map<string, string>();
+    const imageFingerprint = (source: string): Promise<string> => fingerprintProofSource(new TextEncoder().encode(source).buffer);
+    const resolveProofImage = async (source: string): Promise<string> => redactedImages.get(await imageFingerprint(source)) || source;
     const review = new ProofReview(proofImageContainer, proofPics,
         () => checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer),
-        options?.hasUnsubmittedProofs || (() => proofPics.length > 0));
+        options?.hasUnsubmittedProofs || (() => proofPics.length > 0),
+        async replacements => {
+            // Complete all fallible work before changing any page or cache.
+            const fingerprints = await Promise.all([...replacements].map(async ([source, replacement]) => [await imageFingerprint(source), replacement] as const));
+            for (const [key, source] of proofSourceImages) proofSourceImages.set(key, replacements.get(source) || source);
+            for (const [key, source] of redactedImages) redactedImages.set(key, replacements.get(source) || source);
+            for (const [key, replacement] of fingerprints) redactedImages.set(key, replacement);
+            // The athlete should check evidence again after hiding any part of it.
+            biomarkerChecklistContainer?.querySelectorAll<HTMLInputElement>('.biomarker-checkbox').forEach(box => box.checked = false);
+            if (biomarkerChecklistContainer) updateProofTrackerProgress(biomarkerChecklistContainer);
+        });
     proofReviews.set(proofImageContainer, review);
-    const proofSourceImages = new Map<string, string>();
-    let preferredProofCanvasContentType: Promise<'image/webp' | 'image/jpeg'> | null = null;
 
     ensurePdfJsReady().catch(() => {});
 
@@ -751,21 +1425,6 @@ window.setupProofUploadHTML = function (
         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
         review.setProgress({ label: 'Preparing proof files…', completed: 0, total: supportedFiles.length });
         try {
-            // Helper to read a File or encoded canvas Blob as a data URL.
-            const readDataURL: (file: Blob) => Promise<string> = file => new Promise((res, rej) => {
-                const r = new FileReader();
-                r.onload = () => {
-                    if (typeof r.result === 'string') {
-                        res(r.result);
-                    } else {
-                        rej(new Error('Proof file could not be read as a data URL.'));
-                    }
-                };
-                r.onerror = () => rej(r.error ?? new Error('Proof file could not be read.'));
-                r.onabort = () => rej(new Error('Proof file read was aborted.'));
-                r.readAsDataURL(file);
-            });
-
             const optimizeProofImageOrFallback: (raw: string) => Promise<string> = async raw => {
                 let candidate = raw;
                 try {
@@ -784,103 +1443,15 @@ window.setupProofUploadHTML = function (
                 return candidate;
             };
 
-            const encodeCanvasBlob = (
-                canvas: HTMLCanvasElement,
-                contentType: string,
-                quality: number
-            ): Promise<Blob | null> => new Promise(resolve => canvas.toBlob(resolve, contentType, quality));
-
-            const resizeProofCanvas = (source: HTMLCanvasElement, scale: number): HTMLCanvasElement => {
-                const width = Math.max(1, Math.round(source.width * scale));
-                const height = Math.max(1, Math.round(source.height * scale));
-                if (width === source.width && height === source.height) return source;
-
-                const resized = document.createElement('canvas');
-                resized.width = width;
-                resized.height = height;
-                const context = resized.getContext('2d');
-                if (!context) throw new Error('Canvas context unavailable.');
-                context.drawImage(source, 0, 0, width, height);
-                return resized;
-            };
-
-            const getPreferredProofCanvasContentType = (): Promise<'image/webp' | 'image/jpeg'> => {
-                if (preferredProofCanvasContentType) return preferredProofCanvasContentType;
-
-                preferredProofCanvasContentType = (async () => {
-                    const probe = document.createElement('canvas');
-                    probe.width = 1;
-                    probe.height = 1;
-                    const webpBlob = await encodeCanvasBlob(
-                        probe,
-                        'image/webp',
-                        proofOptimizationOptions.quality);
-                    return webpBlob?.type.toLowerCase() === 'image/webp'
-                        ? 'image/webp'
-                        : 'image/jpeg';
-                })();
-                return preferredProofCanvasContentType;
-            };
-
-            const encodeProofCanvas: (canvas: HTMLCanvasElement) => Promise<string> = async canvas => {
-                const maxDimension = Math.max(canvas.width, canvas.height);
-                let workingCanvas = maxDimension > proofOptimizationOptions.maxSize
-                    ? resizeProofCanvas(canvas, proofOptimizationOptions.maxSize / maxDimension)
-                    : canvas;
-                const contentType = await getPreferredProofCanvasContentType();
-                let lastBlob: Blob | null = null;
-
-                // Try progressively lower quality at each size, then downscale according to
-                // the measured excess. This preserves the same bounds as normal image uploads
-                // without round-tripping a PDF canvas through createImageBitmap.
-                for (let attempt = 0; attempt < 12; attempt++) {
-                    const qualityStep = attempt % 4;
-                    const quality = Math.max(0.43, proofOptimizationOptions.quality - qualityStep * 0.15);
-                    const blob = await encodeCanvasBlob(workingCanvas, contentType, quality);
-                    if (!blob || blob.type.toLowerCase() !== contentType) {
-                        throw new Error('Proof canvas could not be encoded in a bounded image format.');
-                    }
-
-                    lastBlob = blob;
-                    if (blob.size <= proofOptimizationOptions.targetMaxBytes) {
-                        return await readDataURL(blob);
-                    }
-
-                    if (qualityStep === 3) {
-                        const measuredScale = Math.sqrt(proofOptimizationOptions.targetMaxBytes / blob.size) * 0.92;
-                        const nextScale = Math.min(0.8, Math.max(0.45, measuredScale));
-                        workingCanvas = resizeProofCanvas(workingCanvas, nextScale);
-                    }
-                }
-
-                throw new Error(
-                    `Proof canvas remained too large after bounded encoding (${lastBlob?.size ?? 0} bytes).`);
-            };
-
-            const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
-                if (window.crypto?.subtle) {
-                    const digest = await window.crypto.subtle.digest('SHA-256', bytes);
-                    return Array.from(new Uint8Array(digest))
-                        .map(value => value.toString(16).padStart(2, '0'))
-                        .join('');
-                }
-
-                // Content-based fallback for older embedded browsers. This is a duplicate
-                // hint, not a security boundary.
-                let hash = 2166136261;
-                for (const value of new Uint8Array(bytes)) {
-                    hash = Math.imul(hash ^ value, 16777619);
-                }
-                return `${bytes.byteLength}:${(hash >>> 0).toString(16)}`;
-            };
-
-            const isKnownLiveProofSource = (sourceKey: string): boolean => {
+            const useCachedProofSource = (sourceKey: string): boolean => {
                 const existingProof = proofSourceImages.get(sourceKey);
                 if (!existingProof) return false;
-                if (proofPics.includes(existingProof)) return true;
-
-                proofSourceImages.delete(sourceKey);
-                return false;
+                if (proofPics.includes(existingProof)) duplicateProofs++;
+                else if (proofPics.length >= maxProofImages) hitImageLimit = true;
+                else addProofImage(existingProof);
+                // Removal and re-upload must restore the edited copy, never
+                // regenerate the unredacted page from the original file.
+                return true;
             };
 
             let failedFiles = 0;
@@ -917,10 +1488,7 @@ window.setupProofUploadHTML = function (
                                 review.setProgress({ label: `${file.name} · Page ${pageNum} of ${pdfDoc.numPages}`,
                                     completed: fileIndex + (pageNum - 1) / pdfDoc.numPages, total: supportedFiles.length });
                                 const sourceKey = `${sourceFingerprint}:page:${pageNum}`;
-                                if (isKnownLiveProofSource(sourceKey)) {
-                                    duplicateProofs++;
-                                    continue;
-                                }
+                                if (useCachedProofSource(sourceKey)) continue;
                                 if (proofPics.length >= maxProofImages) {
                                     hitImageLimit = true;
                                     break;
@@ -942,7 +1510,7 @@ window.setupProofUploadHTML = function (
                                 let optimizedPage: string;
                                 try {
                                     await page.render({ canvasContext: context, viewport }).promise;
-                                    optimizedPage = await encodeProofCanvas(canvas);
+                                    optimizedPage = await resolveProofImage(await encodeProofCanvas(canvas));
                                 } finally {
                                     canvas.width = canvas.height = 0;
                                 }
@@ -961,16 +1529,13 @@ window.setupProofUploadHTML = function (
                     }
 
                     const sourceKey = `${sourceFingerprint}:image`;
-                    if (isKnownLiveProofSource(sourceKey)) {
-                        duplicateProofs++;
-                        continue;
-                    }
+                    if (useCachedProofSource(sourceKey)) continue;
                     if (proofPics.length >= maxProofImages) {
                         hitImageLimit = true;
                         break;
                     }
                     const raw = await readDataURL(file);
-                    const dataUrl = await optimizeProofImageOrFallback(raw);
+                    const dataUrl = await resolveProofImage(await optimizeProofImageOrFallback(raw));
                     if (dataUrl) {
                         if (!review.labels.has(dataUrl)) review.labels.set(dataUrl, file.name);
                         proofSourceImages.set(sourceKey, dataUrl);
