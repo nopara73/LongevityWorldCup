@@ -183,6 +183,15 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         Assert.NotEqual(transform, await page.Locator(".proof-edit-sheet").GetAttributeAsync("style"));
         await page.Locator(".proof-edit-hide").ClickAsync();
         await stage.FocusAsync();
+        var imageZoom = await page.Locator(".proof-edit-fit").InnerTextAsync();
+        await page.EvaluateAsync("""
+            () => document.addEventListener('keydown', event => {
+                if (event.ctrlKey && event.key === '=') window.__proofZoomDefaultPrevented = event.defaultPrevented;
+            })
+            """);
+        await page.Keyboard.PressAsync("Control+=");
+        Assert.False(await page.EvaluateAsync<bool>("window.__proofZoomDefaultPrevented"));
+        await Assertions.Expect(page.Locator(".proof-edit-fit")).ToHaveTextAsync(imageZoom);
         await page.Keyboard.PressAsync("Enter");
         var area = page.Locator(".proof-edit-sheet rect[data-area]").Last;
         var originalX = await area.GetAttributeAsync("x");

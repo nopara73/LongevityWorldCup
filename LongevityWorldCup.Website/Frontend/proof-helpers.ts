@@ -669,6 +669,9 @@ class ProofRedaction {
 
     private keydown(event: KeyboardEvent): void {
         if (!this.page || this.busy) return;
+        // Keep browser zoom and tab-navigation shortcuts native. Only Undo is
+        // owned by the editor when a platform command modifier is held.
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() !== 'z') return;
         const page = this.page;
         const area = page.areas[page.selected];
         const arrows = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
