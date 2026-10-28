@@ -41,6 +41,7 @@ jobs:
     outputs:
       sdk: ${{ steps.repo_sdk.outputs.version }}
       matrix: ${{ steps.test_plan.outputs.matrix }}
+      build-artifact: ${{ steps.upload_build.outputs.artifact-id }}
 
     steps:
     - uses: actions/checkout@v7
@@ -181,7 +182,7 @@ jobs:
       if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
       uses: actions/download-artifact@v8
       with:
-        name: ci-build
+        pattern: ci-build*
         path: ${{ runner.temp }}/ci-seed-build
         run-id: ${{ inputs.timing_seed_run }}
         github-token: ${{ github.token }}
@@ -196,10 +197,10 @@ jobs:
     - name: Validate complete seed reports and use their measured durations
       if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
       run: |
-        mkdir -p "$RUNNER_TEMP/ci-seed-plan"
-        tar -xzf "$RUNNER_TEMP/ci-seed-build/ci-build.tgz" -C "$RUNNER_TEMP/ci-seed-plan" .artifacts/ci-tests/plan.json
+        python3 .github/scripts/ci_tests.py extract-seed-plan \
+          --builds "$RUNNER_TEMP/ci-seed-build" --output "$RUNNER_TEMP/ci-seed-plan/plan.json"
         python3 .github/scripts/ci_tests.py aggregate \
-          --plan "$RUNNER_TEMP/ci-seed-plan/.artifacts/ci-tests/plan.json" \
+          --plan "$RUNNER_TEMP/ci-seed-plan/plan.json" \
           --results "$RUNNER_TEMP/ci-seed-results" --output "$RUNNER_TEMP/ci-seed-report"
         cp "$RUNNER_TEMP/ci-seed-report/timings.json" "$RUNNER_TEMP/lwc-ci-timings.json"
     - name: Discover and balance the complete suite
@@ -228,8 +229,9 @@ jobs:
           LongevityWorldCup.Website/wwwroot/assets/media-kit/MediaKit.zip \
           .artifacts/ci-tests
     - uses: actions/upload-artifact@v7
+      id: upload_build
       with:
-        name: ci-build
+        name: ci-build-attempt-${{ github.run_attempt }}
         path: ${{ runner.temp }}/ci-build.tgz
         compression-level: 0
         retention-days: 1
@@ -252,7 +254,7 @@ jobs:
         dotnet-version: ${{ needs.prepare.outputs.sdk }}
     - uses: actions/download-artifact@v8
       with:
-        name: ci-build
+        artifact-ids: ${{ needs.prepare.outputs.build-artifact }}
         path: ${{ runner.temp }}
     - name: Unpack the verified build
       run: |
@@ -302,7 +304,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: test-results-${{ matrix.shard }}
+        name: test-results-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
         path: ${{ runner.temp }}/test-results/
         retention-days: 3
         if-no-files-found: error
@@ -317,7 +319,7 @@ jobs:
     - uses: actions/checkout@v7
     - uses: actions/download-artifact@v8
       with:
-        name: ci-build
+        artifact-ids: ${{ needs.prepare.outputs.build-artifact }}
         path: ${{ runner.temp }}
     - name: Read the discovered test plan
       run: tar -xzf "$RUNNER_TEMP/ci-build.tgz" .artifacts/ci-tests/plan.json
@@ -348,7 +350,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: ci-verification
+        name: ci-verification-attempt-${{ github.run_attempt }}
         path: ${{ runner.temp }}/ci-report/
         retention-days: 3
     - name: Save measured durations for the next run
