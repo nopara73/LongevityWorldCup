@@ -5,6 +5,7 @@ namespace LongevityWorldCup.Website.Business.IndexNow;
 public sealed class IndexNowWorker(
     IServiceProvider services,
     IHostEnvironment environment,
+    IHostApplicationLifetime lifetime,
     IOptions<IndexNowOptions> options,
     ILogger<IndexNowWorker> logger) : BackgroundService
 {
@@ -17,6 +18,10 @@ public sealed class IndexNowWorker(
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (lifetime.ApplicationStarted.Register(() => started.TrySetResult()))
+                await started.Task.WaitAsync(stoppingToken);
+
             using var timer = new PeriodicTimer(IndexNowOptions.ScanInterval);
             do
             {
