@@ -13,6 +13,66 @@ public sealed class EditProfileLayoutBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PortraitSave_RejectsEmptyExportWithoutChangingTheDraft(bool encodingFailure)
+    {
+        await using var context = await CreateContextAsync(390, 844);
+        var page = await OpenEditorAsync(context);
+        var before = await page.EvaluateAsync<string>("() => JSON.stringify(athlete)");
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
+        await page.WaitForFunctionAsync("() => window.changeProfileCropper?.ready && !document.getElementById('changeProfileCropButton').disabled");
+        await page.EvaluateAsync("""
+            encodingFailure => {
+                window.changeProfileCropper.toCanvas = async () => {
+                    const canvas = document.createElement('canvas');
+                    if (encodingFailure) canvas.toDataURL = () => 'data:,';
+                    else canvas.width = canvas.height = 0;
+                    return canvas;
+                };
+            }
+            """, encodingFailure);
+        await page.Locator("#changeProfileCropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToContainTextAsync("Profile picture crop failed.");
+        Assert.Equal(before, await page.EvaluateAsync<string>("() => JSON.stringify(athlete)"));
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await Assertions.Expect(page.Locator("#changeProfilePicButton")).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task PortraitSave_ScaledLayoutKeepsTheSelectedPixels()
+    {
+        await using var context = await CreateContextAsync(390, 844);
+        var page = await OpenEditorAsync(context);
+        await page.EvaluateAsync("() => document.getElementById('changeProfileCropperImage').parentElement.style.zoom = '.9'");
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(
+            Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => window.changeProfileCropper?.ready && !document.getElementById('changeProfileCropButton').disabled");
+        var dimensions = await page.EvaluateAsync<int[]>("""
+            async () => {
+                const cropper = window.changeProfileCropper;
+                cropper.setData({ x: 256, y: 256, width: 512, height: 512 });
+                const canvas = await cropper.toCanvas({ width: 64, height: 64 });
+                const expected = document.createElement('canvas');
+                expected.width = expected.height = 64;
+                expected.getContext('2d').drawImage(cropper.element, 256, 256, 512, 512, 0, 0, 64, 64);
+                if (!canvas.width || !canvas.height) return [canvas.width, canvas.height, 255];
+                const actual = canvas.getContext('2d').getImageData(32, 32, 1, 1).data;
+                const target = expected.getContext('2d').getImageData(32, 32, 1, 1).data;
+                return [canvas.width, canvas.height, Math.max(...actual.map((value, index) => Math.abs(value - target[index])))];
+            }
+            """);
+        Assert.Equal(64, dimensions[0]);
+        Assert.Equal(64, dimensions[1]);
+        Assert.InRange(dimensions[2], 0, 5);
+        await page.Locator("#changeProfileCropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        Assert.StartsWith("data:image/", await page.EvaluateAsync<string>("() => athlete.ProfilePic"));
+    }
+
     [Fact]
     public async Task UnreadablePortrait_PreservesTheDraftAndAllowsAnotherImage()
     {

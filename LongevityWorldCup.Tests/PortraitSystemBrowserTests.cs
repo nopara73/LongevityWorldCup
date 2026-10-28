@@ -125,7 +125,7 @@ public sealed class PortraitSystemBrowserTests(
         var halo = await image.EvaluateAsync<string>("image => getComputedStyle(image).filter");
         Assert.Contains("drop-shadow(", halo);
         var developing = await image.EvaluateAsync<string[]>("""
-            async image => {
+            image => {
                 // Interpolation can serialize an unchanged sRGB shadow as oklab.
                 // Compare its rendered sRGB color and complete shadow geometry.
                 const canvas = document.createElement('canvas');
@@ -138,12 +138,12 @@ public sealed class PortraitSystemBrowserTests(
                     return `rgba(${[...context.getImageData(0, 0, 1, 1).data].join(',')})`;
                 });
                 const baseline = normalize(getComputedStyle(image).filter);
-                // Decoding can precede landing. The later homepage ring pulse
-                // must not mask the portrait's own develop frame in this check.
+                // Sample synchronously so a pending homepage landing frame
+                // cannot replace the develop animation between setup and sampling.
+                // getAnimations() flushes the style change without yielding.
                 image.closest('.podium-item').classList.remove('is-landed');
                 image.style.animationPlayState = 'paused';
                 image.dataset.lwcPortraitState = 'developing';
-                await new Promise(requestAnimationFrame);
                 const animation = image.getAnimations().find(a => a.animationName === 'lwc-portrait-develop');
                 if (!animation) throw new Error(`Portrait develop animation did not start: ${getComputedStyle(image).animationName}`);
                 animation.pause();

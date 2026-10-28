@@ -17,7 +17,7 @@
                     <cropper-image scalable translatable></cropper-image>
                     <cropper-shade></cropper-shade>
                     <cropper-handle action="move" plain></cropper-handle>
-                    <cropper-selection class="cropper-crop-box" aspect-ratio="1" movable resizable precise min-inset="0">
+                    <cropper-selection class="cropper-crop-box" aspect-ratio="1" movable resizable precise>
                         <cropper-grid role="presentation" bordered covered></cropper-grid>
                         <cropper-crosshair centered></cropper-crosshair>
                         <cropper-handle class="cropper-face" action="move" theme-color="rgba(255,255,255,.1)"></cropper-handle>
@@ -44,6 +44,9 @@
             });
             this.selection.addEventListener('change', event => {
                 if (!this.ready || this.adjusting) return;
+                // Keep bounds in source/layout coordinates. Cropper's min-inset
+                // compares viewport rectangles with layout sizes; fractional
+                // browser zoom can reject even the initial full-image selection.
                 const bounds = this.imageBounds();
                 const { x, y, width, height } = event.detail;
                 const minWidth = Math.min(options.minCropBoxWidth || 0, bounds.width, bounds.height);
