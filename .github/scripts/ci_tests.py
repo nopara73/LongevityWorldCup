@@ -165,7 +165,13 @@ def latest_attempt(directory, name):
 
 def extract_seed_plan(directory, output):
     # Read only this known member, without extracting untrusted archive paths.
-    archive = latest_attempt(directory, "ci-build") / "ci-build.tgz"
+    # download-artifact flattens a single match, even when selected by pattern.
+    archive = directory / "ci-build.tgz"
+    if archive.is_file():
+        if any(folder.is_dir() for folder in directory.glob("ci-build*")):
+            raise ValueError("Flat and named build artifacts cannot be mixed")
+    else:
+        archive = latest_attempt(directory, "ci-build") / "ci-build.tgz"
     with tarfile.open(archive, "r:gz") as build:
         member = build.getmember(".artifacts/ci-tests/plan.json")
         if not member.isfile():

@@ -165,6 +165,26 @@ class TestRerunArtifacts(unittest.TestCase):
         self.assertEqual("latest", json.loads(output.read_text())["revision"])
         self.assertFalse((self.root.parent / "unexpected").exists())
 
+    def test_timing_seed_reads_a_flattened_single_build_artifact(self):
+        # download-artifact v8 flattens even pattern downloads with one match.
+        with tarfile.open(self.root / "ci-build.tgz", "w:gz") as archive:
+            data = json.dumps(dict(self.plan, revision="single-build")).encode()
+            member = tarfile.TarInfo(".artifacts/ci-tests/plan.json")
+            member.size = len(data)
+            archive.addfile(member, io.BytesIO(data))
+        output = self.root / "seed/plan.json"
+
+        extract_seed_plan(self.root, output)
+
+        self.assertEqual("single-build", json.loads(output.read_text())["revision"])
+
+    def test_flat_seed_cannot_hide_another_named_attempt(self):
+        (self.root / "ci-build.tgz").write_bytes(b"stale flattened archive")
+        (self.root / "ci-build-attempt-2").mkdir()
+
+        with self.assertRaisesRegex(ValueError, "cannot be mixed"):
+            extract_seed_plan(self.root, self.root / "seed/plan.json")
+
 
 if __name__ == "__main__":
     unittest.main()
