@@ -23,7 +23,18 @@ public sealed class AthleteBrowseMotionBrowserTests(
     private const string Recorder =
         """
         (() => {
-            window.__motion = { animations: [], counts: [] };
+            window.__motion = { animations: [], counts: [], visibility: [] };
+            const intersectionObserver = window.IntersectionObserver;
+            window.IntersectionObserver = new Proxy(intersectionObserver, {
+                construct(target, [callback, options]) {
+                    return new target((entries, observer) => {
+                        callback(entries, observer);
+                        entries.forEach(entry => window.__motion.visibility.push({
+                            id: entry.target.id, text: entry.target.textContent, visible: entry.isIntersecting
+                        }));
+                    }, options);
+                }
+            });
             const animate = Element.prototype.animate;
             Element.prototype.animate = function (keyframes, options) {
                 const animation = animate.call(this, keyframes, options);
@@ -437,7 +448,11 @@ public sealed class AthleteBrowseMotionBrowserTests(
             // An old counter can tick between separate host calls. Begin the
             // recording window with the value change in one browser task.
             await page.Locator("#lowestBortzAge").EvaluateAsync(
-                "(f, value) => { window.__motion.animations.length = 0; window.__motion.counts.length = 0; f.textContent = value; }", value);
+                "(f, value) => { window.__motion.animations.length = 0; window.__motion.counts.length = 0; window.__motion.visibility.length = 0; f.textContent = value; }", value);
+            // Visibility is delivered asynchronously. Start the settling window
+            // after this value actually starts counting, including on a busy renderer.
+            await page.WaitForFunctionAsync(
+                "value => window.__motion.visibility.some(c => c.id === 'lowestBortzAge' && c.text === value && c.visible)", value);
             await page.WaitForTimeoutAsync(600);
             Assert.Equal(value, await page.Locator("#lowestBortzAge").InnerTextAsync());
             Assert.False(await page.Locator("#lowestBortzAge").EvaluateAsync<bool>("f => f.hasAttribute('data-lwc-count')"));

@@ -122,7 +122,7 @@ public sealed class ProofGalleryBrowserTests(PlaywrightBrowserFixture browserFix
     private static async Task<IPage> OpenProfileAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard");
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => document.querySelector('#leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
         await page.EvaluateAsync("window.openAthleteModalBySlug('michael-lustgarten',{suppressGuessMyAge:true})");
         await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content:not(.is-loading) #proofsGallery')");

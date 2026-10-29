@@ -498,33 +498,42 @@ public sealed class PlayFlowMotionBrowserTests(
         }));
         var page = await OpenAsync(context, "/select-athlete");
         await SelectAthleteAsync(page, athleteName);
-        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.querySelector('.play-price-settling')");
-
-        var midMove = await page.EvaluateAsync<string[]>("""
+        // Capture the arrival in the browser turn that creates it. Waiting for
+        // a transient class and inspecting it in another protocol call can miss
+        // the animation entirely on a busy runner.
+        await page.EvaluateAsync("""
             () => {
-                const price = document.querySelector('.play-price-settling');
-                const counting = price.getAnimations().some(animation => animation.effect.getKeyframes().some(frame => '--play-price' in frame));
-                const card = window.matchMedia('(min-width: 761px) and (min-height: 600px)').matches
-                    ? document.getElementById('athleteDashboardPanel')
-                    : document.querySelector('.play-dashboard-card');
-                const dealt = card.getAnimations().some(animation => /rotate/.test(animation.effect.getKeyframes()[0].transform || ''));
-                const glint = card.getAnimations({ subtree: true }).some(animation => animation.effect.pseudoElement === '::after');
-                return [price.textContent.trim(), String(counting), String(dealt), String(glint), price.previousElementSibling?.textContent.trim() || ''];
+                const observer = new MutationObserver(() => {
+                    const price = document.querySelector('.play-price-settling');
+                    if (!price) return;
+                    const counting = price.getAnimations().some(animation => animation.effect.getKeyframes().some(frame => '--play-price' in frame));
+                    const card = window.matchMedia('(min-width: 761px) and (min-height: 600px)').matches
+                        ? document.getElementById('athleteDashboardPanel')
+                        : document.querySelector('.play-dashboard-card');
+                    const dealt = card.getAnimations().some(animation => /rotate/.test(animation.effect.getKeyframes()[0].transform || ''));
+                    const glint = card.getAnimations({ subtree: true }).some(animation => animation.effect.pseudoElement === '::after');
+                    window.__dashboardPriceMotion = [price.textContent.trim(), String(counting), String(dealt), String(glint), price.previousElementSibling?.textContent.trim() || ''];
+                    observer.disconnect();
+                });
+                observer.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
             }
             """);
-        Assert.Matches(@"^\$\d+$", midMove[0]);
-        Assert.Equal("True", midMove[1], ignoreCase: true);
-        Assert.Equal("True", midMove[2], ignoreCase: true);
-        Assert.Equal("True", midMove[3], ignoreCase: true);
-        var finalText = midMove[0];
+        await page.Locator("#playConfirmAthleteBtn").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.__dashboardPriceMotion");
         var priceButton = page.Locator("#athleteDashboardActions .flow-action").Filter(new() { Has = page.Locator(".pro-new-price") });
         var accessiblePrice = await priceButton.AriaSnapshotAsync();
 
         await page.WaitForFunctionAsync("() => !document.querySelector('.play-price-settling')");
-        Assert.Equal(finalText, (await page.Locator("#athleteDashboardActions .pro-new-price").TextContentAsync())?.Trim());
         await WaitForMoveToSettleAsync(page);
         await WaitForSettledMotionAsync(page);
+        // Read after completion to cover a runner that resumes too late to
+        // inspect live effects. The captured frame must still prove they ran.
+        var midMove = await page.EvaluateAsync<string[]>("() => window.__dashboardPriceMotion");
+        Assert.Matches(@"^\$\d+$", midMove[0]);
+        Assert.Equal("True", midMove[1], ignoreCase: true);
+        Assert.Equal("True", midMove[2], ignoreCase: true);
+        Assert.Equal("True", midMove[3], ignoreCase: true);
+        Assert.Equal(midMove[0], (await page.Locator("#athleteDashboardActions .pro-new-price").TextContentAsync())?.Trim());
         Assert.Equal(accessiblePrice, await priceButton.AriaSnapshotAsync());
 
         if (width >= 1280)

@@ -331,7 +331,7 @@ public sealed class InitialViewBrowserTests(PlaywrightBrowserFixture browserFixt
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(20));
             await NextPaintAsync(page);
             await Assertions.Expect(page.Locator(".podium")).ToBeHiddenAsync();
-            release.TrySetResult();
+            await ReleaseAthletesAndWaitAsync(page, release);
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             await NextPaintAsync(page);
             Assert.False(await page.EvaluateAsync<bool>("window.paintedDefaultChampions"));
@@ -361,7 +361,7 @@ public sealed class InitialViewBrowserTests(PlaywrightBrowserFixture browserFixt
             await Assertions.Expect(page.Locator("#guessAgeContainer")).ToBeHiddenAsync();
             await page.Locator("#closeAthleteDetailsModal").ClickAsync();
             await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
-            release.TrySetResult();
+            await ReleaseAthletesAndWaitAsync(page, release);
             await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             await NextPaintAsync(page);
             await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
@@ -541,6 +541,18 @@ public sealed class InitialViewBrowserTests(PlaywrightBrowserFixture browserFixt
         await Assertions.Expect(page.Locator("#flag")).ToHaveAttributeAsync("data-keydown-listener", "true");
         await page.EvaluateAsync("() => { currentStage = 5; goToStage(5); }");
         await Assertions.Expect(page.Locator("#uploadProofButton")).ToHaveAttributeAsync("data-listener", "true");
+    }
+
+    private static async Task ReleaseAthletesAndWaitAsync(IPage page, TaskCompletionSource release)
+    {
+        // Releasing the route does not mean its response has reached the page.
+        var response = await page.RunAndWaitForResponseAsync(() =>
+        {
+            release.TrySetResult();
+            return Task.CompletedTask;
+        }, response => response.Url.EndsWith("/api/data/athletes", StringComparison.Ordinal));
+        Assert.True(response.Ok);
+        await response.FinishedAsync();
     }
 
     private static Task NextPaintAsync(IPage page)
