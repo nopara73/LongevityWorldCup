@@ -210,6 +210,20 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest(message);
             }
 
+            async Task<IActionResult> ProfileBadRequestWithStatsAsync(string errorCode, string message)
+            {
+                await TrackSubmitFailedAsync(errorCode).ConfigureAwait(false);
+                var problem = new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Check your profile picture",
+                    Detail = message
+                };
+                problem.Extensions["code"] = errorCode;
+                problem.Extensions["field"] = "profilePic";
+                return BadRequest(problem);
+            }
+
             async Task<IActionResult> StatusCodeWithStatsAsync(int statusCode, string errorCode, string message)
             {
                 await TrackSubmitFailedAsync(errorCode).ConfigureAwait(false);
@@ -350,7 +364,7 @@ namespace LongevityWorldCup.Website.Controllers
 
                 if (string.IsNullOrWhiteSpace(applicantData.ProfilePic))
                 {
-                    return await BadRequestWithStatsAsync("missing_profile_picture", "Profile picture is required.").ConfigureAwait(false);
+                    return await ProfileBadRequestWithStatsAsync("missing_profile_picture", "Profile picture is required.").ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(applicantData.Division))
@@ -604,14 +618,15 @@ namespace LongevityWorldCup.Website.Controllers
 
                 // 1b) Save profile picture
                 var hasSubmittedProfileImage = IsSubmittedImageData(applicantData.ProfilePic);
-                if (!string.IsNullOrWhiteSpace(applicantData.ProfilePic) && !hasSubmittedProfileImage && !isEditSubmissionOnly)
+                if (!string.IsNullOrWhiteSpace(applicantData.ProfilePic) && !hasSubmittedProfileImage
+                    && (!isEditSubmissionOnly || applicantData.ProfilePic.StartsWith("data:", StringComparison.OrdinalIgnoreCase)))
                 {
                     _logger.LogError(
                         "Application submission rejected because profile image was present but was not image data. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
                         submissionId,
                         submissionKind,
                         profilePicLength);
-                    return await BadRequestWithStatsAsync("invalid_profile_image", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
+                    return await ProfileBadRequestWithStatsAsync("invalid_profile_image", "Please choose your profile picture again.").ConfigureAwait(false);
                 }
 
                 if (hasSubmittedProfileImage)
@@ -623,12 +638,12 @@ namespace LongevityWorldCup.Website.Controllers
                             "Application submission rejected because profile image could not be parsed. SubmissionId={SubmissionId} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
                             submissionId,
                             profilePicLength);
-                        return await BadRequestWithStatsAsync("profile_image_parse_failed", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
+                        return await ProfileBadRequestWithStatsAsync("profile_image_parse_failed", "Please choose your profile picture again.").ConfigureAwait(false);
                     }
 
                     var profileImage = OptimizeProfileImage(parsedProfile, submissionId);
                     if (!profileImage.Success)
-                        return await BadRequestWithStatsAsync("profile_image_processing_failed", profileImage.ErrorMessage ?? "The profile image could not be processed.").ConfigureAwait(false);
+                        return await ProfileBadRequestWithStatsAsync("profile_image_processing_failed", profileImage.ErrorMessage ?? "Please choose your profile picture again.").ConfigureAwait(false);
 
                     await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{profileImage.Extension}"), profileImage.Bytes!, ct);
                 }

@@ -122,6 +122,12 @@
             text-align: left;
         }
 
+        #changeProfilePicButtonError {
+            grid-column: 1 / -1;
+            justify-self: end;
+            max-width: 100%;
+        }
+
         #changeProfilePicWrapper {
             grid-area: photo;
             display: flex;
@@ -894,7 +900,7 @@
                         <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
                     </button>
                     <span class="upload-choice-divider" aria-hidden="true">or</span>
-                    <button type="button" id="changeProfilePicButton" class="option-button grey flow-action flow-action--secondary">
+                    <button type="button" id="changeProfilePicButton" class="option-button grey flow-action flow-action--secondary" aria-describedby="changeProfilePicButtonError">
                         <span class="flow-action__label">Change profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
                     </button>
                     <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
@@ -903,6 +909,7 @@
                         <i class="fas fa-undo" aria-hidden="true"></i>
                     </button>
                 </div>
+                <span id="changeProfilePicButtonError" class="error-message" aria-live="polite" hidden></span>
             </div>
             <div class="edit-profile-body">
                 <div id="editOptionsGroup">
@@ -1130,6 +1137,18 @@
 
         let originalAthlete = null;
         let tempAthlete = null;
+        let rejectedProfilePicture = null;
+
+        function recoverEditProfilePicture() {
+            isEditProfileSubmitting = false;
+            rejectedProfilePicture = { value: normalizeEditText(athlete.ProfilePic) };
+            document.getElementById('profilePicInputModal').value = '';
+            document.getElementById('profileCameraInputModal').value = '';
+            setProfileFieldError('changeProfilePicButton', 'Please choose your photo again.');
+            updateSubmitButtonState();
+            const upload = document.getElementById('changeProfilePicButton');
+            void window.focusProfileImageRecovery(upload, document.getElementById('changeProfilePicButtonError'));
+        }
 
         try {
             const selectedAthleteJson = getSessionItem('selectedAthlete');
@@ -1381,6 +1400,12 @@
                 athlete.MediaContact = normalizeMediaContact(mediaContactInput.value);
                 mediaContactInput.value = athlete.MediaContact;
 
+                if (normalizeEditText(athlete.ProfilePic) !== normalizeEditText(originalAthlete.ProfilePic)
+                    && !window.isProfileImageDataUrl(athlete.ProfilePic)) {
+                    recoverEditProfilePicture();
+                    return;
+                }
+
                 const submissionKind = 'edit-request';
                 const applicantData = {
                     name: athlete.Name,
@@ -1412,8 +1437,8 @@
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
-                    .then(attempt => {
-                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
+                    .then(async attempt => {
+                        if (submissionWait) await submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
                         else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishEditProfileSubmission({
@@ -1425,7 +1450,12 @@
                             const response = attempt.response;
                             const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
                             const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
-                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt => {
+                            window.readApplicationError(response).catch(() => ({ message: fallbackError, field: null })).then(problem => {
+                                const txt = problem.message;
+                                if (problem.field === 'profilePic') {
+                                    recoverEditProfilePicture();
+                                    return;
+                                }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: `HTTP ${responseStatus}`,
                                     message: txt
@@ -1913,6 +1943,7 @@
                 } catch {
                     newSrc = raw;
                 }
+                if (!window.isProfileImageDataUrl(newSrc)) throw new Error('Portrait encoding failed.');
                 if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
                 const imgEl = document.querySelector('.edit-profile-visual .illustration');
                 setProfilePictureValue(newSrc);
@@ -1989,7 +2020,11 @@
                 return isChanged;
             });
             const anyChanged = changed.length > 0;
-            submitButton.disabled = isEditProfileSubmitting || !anyChanged;
+            if (rejectedProfilePicture !== null && athlete.ProfilePic !== rejectedProfilePicture.value) {
+                rejectedProfilePicture = null;
+                setProfileFieldError('changeProfilePicButton', '');
+            }
+            submitButton.disabled = isEditProfileSubmitting || !anyChanged || rejectedProfilePicture !== null;
             if (anyChanged) resetProfileDraftSnapshot = null;
             const draftSaved = anyChanged
                 ? setSessionItem('tempAthlete', JSON.stringify(athlete))

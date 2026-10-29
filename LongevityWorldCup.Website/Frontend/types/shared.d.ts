@@ -463,6 +463,9 @@ interface Window {
     APPLICATION_SUBMISSION_TIMEOUT_MS: number;
     APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS: number;
     readApplicationErrorMessage(response: Response | null | undefined): Promise<string>;
+    readApplicationError(response: Response | null | undefined): Promise<{ message: string; field: 'profilePic' | null }>;
+    isProfileImageDataUrl(value: unknown): value is string;
+    focusProfileImageRecovery(control: HTMLElement, feedback: HTMLElement): Promise<void>;
     extractApplicationErrorMessage(text: unknown, fallback?: string): string;
     buildApplicationSubmissionReport(
         applicantData: unknown,
