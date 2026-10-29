@@ -400,6 +400,7 @@ class ProofRedaction {
     private applyButton: HTMLButtonElement;
     private undoButton: HTMLButtonElement;
     private deleteButton: HTMLButtonElement;
+    private moveButton: HTMLButtonElement;
     private fitButton: HTMLButtonElement;
     private apply: () => Promise<void>;
 
@@ -419,37 +420,37 @@ class ProofRedaction {
         this.controls.className = 'proof-edit-controls';
         const tools = document.createElement('div');
         tools.className = 'proof-edit-tools';
-        const modes = document.createElement('div');
-        modes.className = 'proof-edit-modes';
-        for (const [mode, label] of [['hide', 'Hide'], ['move', 'Move']] as const) {
-            const button = this.button(label, `proof-edit-${mode}`, () => {
-                this.finishGesture(true);
-                this.tool = mode;
-                if (mode === 'move' && this.page) this.page.selected = -1;
-                this.render();
-            });
-            button.setAttribute('aria-pressed', String(this.tool === mode));
-            modes.append(button);
-        }
-        this.undoButton = this.button('Undo', 'proof-edit-undo', () => this.undo());
-        this.deleteButton = this.button('Delete', 'proof-edit-delete', () => this.deleteSelection());
-        tools.append(modes, this.deleteButton, this.undoButton);
+        this.undoButton = this.iconButton('Undo', 'proof-edit-undo', 'M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12', () => this.undo());
+        this.moveButton = this.iconButton('Move page', 'proof-edit-move', 'M8 13V6a2 2 0 0 1 4 0v6-8a2 2 0 0 1 4 0v8-6a2 2 0 0 1 4 0v9c0 5-3 7-7 7-3 0-5-2-6-4l-3-5a2 2 0 0 1 3-2l1 2', () => {
+            this.finishGesture(true);
+            this.tool = this.tool === 'hide' ? 'move' : 'hide';
+            if (this.tool === 'move' && this.page) this.page.selected = -1;
+            this.render();
+        });
+        this.moveButton.hidden = true;
+        this.deleteButton = this.iconButton('Remove selected area', 'proof-edit-delete', 'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6m4-6v6', () => {
+            this.deleteSelection();
+            this.element.focus({ preventScroll: true });
+        });
+        this.deleteButton.hidden = true;
+        this.element.append(this.deleteButton);
+        tools.append(this.undoButton, this.moveButton);
         const actions = document.createElement('div');
         actions.className = 'proof-edit-actions';
         const zoom = document.createElement('div');
         zoom.className = 'proof-edit-zoom';
         const out = this.button('−', 'proof-edit-zoom-out', () => this.zoom(1 / 1.4));
         out.setAttribute('aria-label', 'Zoom out');
-        this.fitButton = this.button('Fit', 'proof-edit-fit', () => this.fit());
+        this.fitButton = this.button('Fit page', 'proof-edit-fit', () => this.fit());
         this.fitButton.setAttribute('aria-label', 'Fit proof page');
         const into = this.button('+', 'proof-edit-zoom-in', () => this.zoom(1.4));
         into.setAttribute('aria-label', 'Zoom in');
         zoom.append(out, this.fitButton, into);
         this.applyButton = this.button('Apply', 'proof-edit-apply', () => { void this.apply(); });
-        actions.append(zoom, this.applyButton);
+        actions.append(tools, zoom, this.applyButton);
         this.status.className = 'proof-edit-status';
         this.status.setAttribute('role', 'status');
-        this.controls.append(tools, this.status, actions);
+        this.controls.append(actions, this.status);
         this.element.addEventListener('pointerdown', event => this.pointerDown(event));
         this.element.addEventListener('pointermove', event => this.pointerMove(event));
         this.element.addEventListener('pointerup', event => this.pointerEnd(event, false));
@@ -458,7 +459,7 @@ class ProofRedaction {
         // This surface owns touch drawing/panning. Suppress the compatibility
         // mouse gesture so the next tap can activate a toolbar control directly.
         for (const type of ['touchstart', 'touchmove']) this.element.addEventListener(type, event => {
-            if (this.page && !this.busy) event.preventDefault();
+            if (this.page && !this.busy && !this.deleteButton.contains(event.target as Node)) event.preventDefault();
         }, { passive: false });
         this.element.addEventListener('keydown', event => this.keydown(event));
         this.element.addEventListener('wheel', event => {
@@ -486,6 +487,20 @@ class ProofRedaction {
         return button;
     }
 
+    private iconButton(label: string, name: string, path: string, action: () => void): HTMLButtonElement {
+        const button = this.button(label, name, action);
+        button.setAttribute('aria-label', label);
+        button.title = label;
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('aria-hidden', 'true');
+        const drawing = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        drawing.setAttribute('d', path);
+        icon.append(drawing);
+        button.replaceChildren(icon);
+        return button;
+    }
+
     async show(index: number, source: string): Promise<void> {
         if (index === this.index) return;
         this.finishGesture(true);
@@ -493,6 +508,7 @@ class ProofRedaction {
         this.pinch = null;
         this.index = index;
         this.page = null;
+        this.deleteButton.hidden = true;
         this.sheet.hidden = true;
         this.image.src = source;
         this.status.textContent = 'Loading page…';
@@ -520,6 +536,8 @@ class ProofRedaction {
 
     private fit(): void {
         if (!this.page || this.busy) return;
+        this.finishGesture(true);
+        this.tool = 'hide';
         this.page.scale = Math.max(.01, this.fitScale());
         this.lastFit = this.page.scale;
         this.page.x = (this.element.clientWidth - this.image.naturalWidth * this.page.scale) / 2;
@@ -530,7 +548,10 @@ class ProofRedaction {
     private zoom(factor: number): void {
         if (!this.page) return;
         this.finishGesture(true);
-        this.zoomAt(this.page.scale * factor, this.element.clientWidth / 2, this.element.clientHeight / 2);
+        const area = this.page.areas[this.page.selected];
+        const x = area ? this.page.x + (area.x + area.width / 2) * this.page.scale : this.element.clientWidth / 2;
+        const y = area ? this.page.y + (area.y + area.height / 2) * this.page.scale : this.element.clientHeight / 2;
+        this.zoomAt(this.page.scale * factor, Math.max(0, Math.min(this.element.clientWidth, x)), Math.max(0, Math.min(this.element.clientHeight, y)));
         this.render();
     }
 
@@ -554,7 +575,7 @@ class ProofRedaction {
     }
 
     private pointerDown(event: PointerEvent): void {
-        if (!this.page || this.busy || event.button > 0) return;
+        if (!this.page || this.busy || event.button > 0 || this.deleteButton.contains(event.target as Node)) return;
         if (event.pointerType !== 'touch') event.preventDefault();
         this.element.focus({ preventScroll: true });
         this.element.setPointerCapture(event.pointerId);
@@ -668,7 +689,7 @@ class ProofRedaction {
     }
 
     private keydown(event: KeyboardEvent): void {
-        if (!this.page || this.busy) return;
+        if (!this.page || this.busy || event.target !== this.element) return;
         // Keep browser zoom and tab-navigation shortcuts native. Only Undo is
         // owned by the editor when a platform command modifier is held.
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() !== 'z') return;
@@ -702,7 +723,7 @@ class ProofRedaction {
         else if (event.key === 'Enter') {
             page.undo.push(this.copyAreas());
             const center = this.imagePoint({ x: this.element.clientWidth / 2, y: this.element.clientHeight / 2 });
-            const width = Math.min(this.image.naturalWidth, this.element.clientWidth * .35 / page.scale);
+            const width = Math.min(this.image.naturalWidth, this.element.clientWidth / page.scale) * .35;
             const height = Math.min(this.image.naturalHeight, 44 / page.scale);
             page.selected = page.areas.length;
             page.areas.push({ x: Math.max(0, Math.min(this.image.naturalWidth - width, center.x - width / 2)),
@@ -731,6 +752,8 @@ class ProofRedaction {
         const page = this.page;
         if (!page) return;
         const w = this.image.naturalWidth * page.scale, h = this.image.naturalHeight * page.scale;
+        const canPan = page.scale > this.fitScale() + .001;
+        if (!canPan) this.tool = 'hide';
         page.x = w <= this.element.clientWidth - 32 ? (this.element.clientWidth - w) / 2 : Math.max(this.element.clientWidth - w - 16, Math.min(16, page.x));
         page.y = h <= this.element.clientHeight - 32 ? (this.element.clientHeight - h) / 2 : Math.max(this.element.clientHeight - h - 16, Math.min(16, page.y));
         this.sheet.style.transform = `translate(${page.x}px, ${page.y}px) scale(${page.scale})`;
@@ -762,19 +785,37 @@ class ProofRedaction {
             }
         });
         while (this.overlay.children.length > shapeIndex) this.overlay.lastElementChild?.remove();
-        for (const mode of ['hide', 'move']) this.controls.querySelector(`.proof-edit-${mode}`)!.setAttribute('aria-pressed', String(this.tool === mode));
+        this.moveButton.hidden = !canPan;
+        this.moveButton.setAttribute('aria-pressed', String(this.tool === 'move'));
         this.undoButton.disabled = this.busy || !page.undo.length;
-        this.deleteButton.disabled = this.busy || page.selected < 0;
+        const selected = page.areas[page.selected];
+        this.deleteButton.hidden = this.busy || !selected || !!this.gesture || !!this.pinch || this.tool === 'move';
+        if (!this.deleteButton.hidden && selected) {
+            const width = this.element.clientWidth, height = this.element.clientHeight;
+            const x = page.x + selected.x * page.scale, y = page.y + selected.y * page.scale;
+            const right = x + selected.width * page.scale, bottom = y + selected.height * page.scale;
+            // Keep removal beside the selection, clear of its 44px corner targets.
+            // Try each side before using a corner of the viewport for a very large area.
+            const cx = Math.max(8, Math.min(width - 52, (x + right) / 2 - 22));
+            const cy = Math.max(8, Math.min(height - 52, (y + bottom) / 2 - 22));
+            const candidates: [number, number][] = [[right + 28, cy], [x - 72, cy], [cx, y - 72], [cx, bottom + 28]];
+            const position = candidates.find(([left, top]) => left >= 8 && top >= 8 && left + 44 <= width - 8 && top + 44 <= height - 8)
+                || [width - 52, 8];
+            this.deleteButton.style.left = `${position[0]}px`;
+            this.deleteButton.style.top = `${position[1]}px`;
+            this.deleteButton.hidden = right < 0 || bottom < 0 || x > width || y > height;
+        }
         const count = [...this.pages.values()].reduce((sum, draft) => sum + draft.areas.length, 0);
         this.applyButton.disabled = this.busy || !count;
-        this.applyButton.textContent = this.busy ? 'Applying…' : count ? `Apply (${count})` : 'Apply';
-        this.fitButton.textContent = `${Math.round(page.scale * 100)}%`;
+        this.applyButton.textContent = this.busy ? 'Applying…' : 'Apply';
+        this.applyButton.setAttribute('aria-label', this.busy ? 'Applying hidden areas' : `Apply${count ? ` (${count})` : ''}`);
         this.element.setAttribute('aria-label', `Hide details on proof page${page.selected >= 0 ? `, area ${page.selected + 1} of ${page.areas.length} selected` : ''}`);
         const keyboard = this.element.matches(':focus-visible');
-        this.status.textContent = this.busy ? 'Saving hidden areas…' : page.selected >= 0
-            ? keyboard ? 'Arrows: move · Shift: resize · Delete: remove' : 'Drag corners to adjust · Delete to remove'
+        // Do not reflow the page underneath an active finger or pointer.
+        if (!this.gesture && !this.pinch) this.status.textContent = this.busy ? 'Saving hidden areas…' : page.selected >= 0
+            ? keyboard ? 'Arrows: move · Shift: resize · Delete: remove' : 'Drag to adjust'
             : keyboard ? page.areas.length ? 'Enter: add · Page ↑ / ↓: select · Arrows: pan' : 'Enter: add area · Arrows: pan · + / −: zoom'
-                : this.tool === 'hide' ? 'Drag to hide · Pinch or + to zoom' : 'Drag to move · Pinch or + to zoom';
+                : this.tool === 'hide' ? 'Drag to hide' : 'Drag to move page';
         this.element.dispatchEvent(new Event('proof-edit-change', { bubbles: true }));
     }
 
@@ -1140,6 +1181,7 @@ class ProofReview {
             const viewerResize = new ResizeObserver(() => this.fitNavigation());
             viewerResize.observe(steps);
             viewerResize.observe(dialog);
+            viewerResize.observe(dialog.querySelector<HTMLElement>('.proof-review-toolbar')!);
             void document.fonts.ready.then(() => this.fitNavigation());
         }
         this.buildFilmstrip();

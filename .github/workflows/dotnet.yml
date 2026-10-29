@@ -312,7 +312,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: proof-redaction-review-${{ matrix.shard }}
+        name: proof-redaction-review-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
         path: ${{ runner.temp }}/test-results/proof-redaction/
         retention-days: 30
         if-no-files-found: ignore
