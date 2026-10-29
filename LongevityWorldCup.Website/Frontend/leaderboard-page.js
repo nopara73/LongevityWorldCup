@@ -43,7 +43,7 @@ let athleteResultsReady = false;
 let athleteResultsLoadPromise = null;
 let renderedLeaderboardSelection = '';
 let renderedStandingsComparable = false;
-let athleteDialogReturnFocusElement = null;
+let athleteDialogReturnFocus = null;
 const defaultProfilePic = leaderboardPageAssets.defaultProfilePic;
 
 const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
@@ -2849,10 +2849,30 @@ function activateAthleteModal() {
 
 function rememberAthleteModalOpener(options) {
     const candidate = options?.returnFocusTo instanceof HTMLElement ? options.returnFocusTo : pageDocument.activeElement;
-    if (candidate instanceof HTMLElement && candidate !== pageDocument.body
+    if (candidate instanceof HTMLElement && candidate.isConnected && candidate !== pageDocument.body
         && !modal.contains(candidate) && !candidate.closest('[hidden], [inert]')) {
-        athleteDialogReturnFocusElement = candidate;
+        athleteDialogReturnFocus = captureAthleteModalOpener(candidate);
     }
+}
+
+function captureAthleteModalOpener(element) {
+    if (!(element instanceof HTMLElement)) return null;
+    return {
+        element,
+        source: element.closest('.leaderboard, .flag-team, .podium') || element.parentElement,
+        href: element instanceof HTMLAnchorElement ? element.href : null,
+        selector: element.matches('a.athlete-name') ? 'a.athlete-name[href]'
+            : element.matches('a.athlete-profile-link') ? 'a.athlete-profile-link[href]' : 'a[href]'
+    };
+}
+
+function resolveAthleteModalOpener(opener) {
+    if (opener?.element.isConnected) return opener.element;
+    if (!opener?.href || !opener.source?.isConnected) return null;
+    // Directory hydration replaces server-rendered links while their dialog
+    // remains open. Resolve the same control in its original board/card.
+    return Array.from(opener.source.querySelectorAll(opener.selector))
+        .find(link => link.href === opener.href && !modal.contains(link) && link.getClientRects().length) || null;
 }
 
 function releaseAthleteModal() {
@@ -3518,9 +3538,10 @@ function closeModal(options) {
     currentAthleteModalRequestId++;
     // Resolve the return synchronously, before measuring the closing transition.
     // Motion can choose the visible athlete's row without racing scroll unlock.
-    const closeReturn = { scrollTop: savedBodyScroll, returnFocusTo: athleteDialogReturnFocusElement };
+    const closeReturn = { scrollTop: savedBodyScroll, returnFocusTo: resolveAthleteModalOpener(athleteDialogReturnFocus) };
     modal.dispatchEvent(new CustomEvent('athlete-dialog-closing', { detail: closeReturn }));
     savedBodyScroll = closeReturn.scrollTop;
+    const returnFocus = captureAthleteModalOpener(closeReturn.returnFocusTo) || athleteDialogReturnFocus;
 
     // Keep the card and the page behind it still until their shared fade ends.
     modalContent.inert = true;
@@ -3531,7 +3552,7 @@ function closeModal(options) {
     modal._closeTimer = finishAfterTransition(modal, 'opacity', () => {
         modal._closeTimer = 0;
         if (!modal.classList.contains('fade-out')) return;
-        athleteDialogReturnFocusElement = null;
+        athleteDialogReturnFocus = null;
         modal.style.display = "none";
         modal.classList.remove('fade-out');
         modalContent.inert = false;
@@ -3555,7 +3576,7 @@ function closeModal(options) {
         // focus can return, adding a long pause after the fade has finished.
 
         resetPageTitle();
-        const returnFocusElement = closeReturn.returnFocusTo;
+        const returnFocusElement = resolveAthleteModalOpener(returnFocus);
         const focusTarget = returnFocusElement?.isConnected && !returnFocusElement.closest('[inert], [hidden]')
             && returnFocusElement.getClientRects().length ? returnFocusElement : pageDocument.querySelector('a.header-link');
         focusTarget?.focus({ preventScroll: true });

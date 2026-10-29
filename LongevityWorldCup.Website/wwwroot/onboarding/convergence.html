@@ -2625,13 +2625,15 @@
                             height: 768,
                         });
                         if (version !== profileReadVersion || cropper !== activeCropper) return;
-                        if (!croppedCanvas) {
+                        if (!croppedCanvas || croppedCanvas.width <= 0 || croppedCanvas.height <= 0) {
                             customAlert('Profile picture crop failed. Please try another image.')
                                 .then(() => cropButton.focus());
                             return;
                         }
 
                         const raw = croppedCanvas.toDataURL('image/png');
+                        // Canvas encoding can fail without throwing.
+                        if (!raw.startsWith('data:image/png;base64,')) throw new Error('Portrait encoding failed.');
                         let croppedImageDataURL = raw;
                         try {
                             const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);

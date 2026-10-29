@@ -8,6 +8,119 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/bortz-age", "neutrophil_percentage", "61")]
+    [InlineData("/bortz-age", "rbc", "4.80")]
+    [InlineData("/pheno-age", "creatinine", "72.50")]
+    public async Task NumberField_WheelPreservesRawValueAndScrollsThePage(string path, string id, string value)
+    {
+        await using var context = await ContextAsync();
+        await BlockWritesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1280, 900);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.GotoAsync(path);
+        await FlowActionDockBrowserTests.FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        var input = page.Locator("#" + id);
+        await input.FillAsync(value);
+        await ObserveNumberEditsAsync(page);
+        await SettleNumberFocusAsync(page);
+
+        foreach (var focused in new[] { true, false })
+        {
+            if (focused) await input.FocusAsync();
+            else await input.PressAsync("Tab");
+            await SettleNumberFocusAsync(page);
+            await AssertNumberWheelScrollsAsync(page, input, 120);
+            await AssertNumberWheelScrollsAsync(page, input, -120);
+        }
+    }
+
+    [Fact]
+    public async Task DynamicNumber_WheelKeepsKeyboardValidationAndNestedScrollingNative()
+    {
+        await using var context = await ContextAsync();
+        await BlockWritesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/health");
+        await page.SetContentAsync("""
+            <style>body{margin:0;padding:700px 40px 1400px}input{width:200px;height:44px}</style>
+            <div id="host"></div><div id="nested" style="height:180px;overflow:auto;margin-top:30px">
+                <div id="nested-content" style="height:800px;padding-top:80px;box-sizing:border-box"></div>
+            </div>
+            """);
+        await page.AddStyleTagAsync(new() { Url = new Uri(App.BaseAddress, "/css/form-controls.css").ToString() });
+        await page.AddScriptTagAsync(new() { Url = new Uri(App.BaseAddress, "/js/form-controls.js").ToString() });
+        await ObserveNumberEditsAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                const input = document.createElement('input');
+                Object.assign(input, {id:'late-number',type:'number',min:'0.1',max:'0.5',step:'0.1',value:'0.20'});
+                document.getElementById('host').append(input);
+            }
+            """);
+        var input = page.Locator("#late-number");
+        await input.FocusAsync();
+        await AssertNumberWheelScrollsAsync(page, input, 120);
+        await AssertNumberWheelScrollsAsync(page, input, -120);
+        await input.PressAsync("ArrowUp");
+        await Assertions.Expect(input).ToHaveValueAsync("0.3");
+        await input.PressAsync("ArrowDown");
+        await Assertions.Expect(input).ToHaveValueAsync("0.2");
+        await input.FillAsync("0.25");
+        Assert.True(await input.EvaluateAsync<bool>("el => el.validity.stepMismatch"));
+        await input.FillAsync("0.60");
+        Assert.True(await input.EvaluateAsync<bool>("el => el.validity.rangeOverflow"));
+        await input.FillAsync("0.40");
+        Assert.True(await input.EvaluateAsync<bool>("el => el.validity.valid"));
+
+        // A legitimate scroll container still owns its native wheel gestures.
+        await input.EvaluateAsync("el => document.getElementById('nested-content').prepend(el)");
+        await input.FocusAsync();
+        await input.HoverAsync();
+        var documentTop = await page.EvaluateAsync<double>("scrollY");
+        var nestedTop = await page.Locator("#nested").EvaluateAsync<double>("el => el.scrollTop");
+        await page.WheelAndWaitForInputAsync(0, 60);
+        await page.WaitForFunctionAsync("top => document.getElementById('nested').scrollTop > top", nestedTop);
+        await Assertions.Expect(input).ToHaveValueAsync("0.40");
+        Assert.Equal(documentTop, await page.EvaluateAsync<double>("scrollY"));
+        await Assertions.Expect(input).ToBeFocusedAsync();
+    }
+
+    private static Task BlockWritesAsync(IBrowserContext context) => context.RouteAsync("**/*", route =>
+        route.Request.Method is "GET" or "HEAD" ? route.FallbackAsync() : route.FulfillAsync(new() { Status = 204 }));
+
+    private static Task ObserveNumberEditsAsync(IPage page) => page.EvaluateAsync("""
+        () => {
+            window.numericWheelEdits = 0;
+            for (const type of ['input','change']) document.addEventListener(type, event => {
+                if (event.target instanceof HTMLInputElement && event.target.type === 'number') window.numericWheelEdits++;
+            });
+        }
+        """);
+
+    private static Task SettleNumberFocusAsync(IPage page) => page.EvaluateAsync("""
+        () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+        """);
+
+    private static async Task AssertNumberWheelScrollsAsync(IPage page, ILocator input, int delta)
+    {
+        await input.HoverAsync();
+        var value = await input.InputValueAsync();
+        var top = await page.EvaluateAsync<double>("scrollY");
+        var active = await page.EvaluateAsync<string>("document.activeElement.id");
+        var edits = await page.EvaluateAsync<int>("window.numericWheelEdits");
+        var id = await input.GetAttributeAsync("id");
+        await page.WheelAndWaitForInputAsync(0, delta);
+        await page.WaitForFunctionAsync("""
+            before => document.getElementById(before.id).value !== before.value || (scrollY-before.top)*before.delta > 0
+            """, new { id, value, top, delta });
+        await Assertions.Expect(input).ToHaveValueAsync(value);
+        Assert.True((await page.EvaluateAsync<double>("scrollY") - top) * delta > 0);
+        Assert.Equal(active, await page.EvaluateAsync<string>("document.activeElement.id"));
+        Assert.Equal(edits, await page.EvaluateAsync<int>("window.numericWheelEdits"));
+    }
+
+    [Theory]
     [InlineData(1440)]
     [InlineData(390)]
     public async Task StandaloneDesigner_KeepsPinkSwitchesAndNativeActivation(int width)

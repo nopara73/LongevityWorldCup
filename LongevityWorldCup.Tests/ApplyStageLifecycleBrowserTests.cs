@@ -16,6 +16,90 @@ public sealed class ApplyStageLifecycleBrowserTests(
     private static async Task ReadyAsync(IPage page)
         => await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.getElementById('nextButton')?.disabled === false");
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PortraitSave_FractionalOrScaledLayoutKeepsARealSelection(bool scaled)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("""
+            scaled => {
+                currentStage = 4; goToStage(4);
+                // Native 110/150% browser zoom also produces fractional layout
+                // bounds. Cover the coordinate mismatch deterministically here.
+                const stage = document.querySelector('.convergence-crop-stage');
+                if (scaled) stage.style.zoom = '.9';
+                else stage.style.width = '300.5px';
+            }
+            """, scaled);
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(
+            Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.ready && !document.getElementById('cropButton').disabled");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const cropper = document.getElementById('cropperImage').cropper;
+                const before = cropper.getData();
+                cropper.setData({ x: -100, y: -100, width: 1200, height: 1200 });
+                const after = cropper.getData();
+                return before.width > 0 && before.height > 0
+                    && JSON.stringify(before) === JSON.stringify(after);
+            }
+            """), "A real crop must be initialized, and attempts to crop outside the image must still be rejected.");
+        await page.Locator("#cropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#croppingPart")).ToBeHiddenAsync();
+        var dimensions = await page.EvaluateAsync<int[]>("""
+            async () => { const image = new Image(); image.src = profilePic; await image.decode(); return [image.naturalWidth, image.naturalHeight]; }
+            """);
+        Assert.Equal(new[] { 768, 768 }, dimensions);
+        Assert.False(await page.EvaluateAsync<bool>("() => applicationProfilePending"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PortraitSave_RejectsEmptyExportAndAllowsRetry(bool encodingFailure)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/apply?fake=1");
+        await ReadyAsync(page);
+        await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+        var before = await page.EvaluateAsync<string?>("() => profilePic");
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
+        await page.WaitForFunctionAsync("() => document.getElementById('cropperImage').cropper?.ready && !document.getElementById('cropButton').disabled");
+        await page.EvaluateAsync("""
+            encodingFailure => {
+                const cropper = document.getElementById('cropperImage').cropper;
+                const original = cropper.toCanvas;
+                cropper.toCanvas = async () => {
+                    cropper.toCanvas = original;
+                    const canvas = document.createElement('canvas');
+                    if (encodingFailure) canvas.toDataURL = () => 'data:,';
+                    else canvas.width = canvas.height = 0;
+                    return canvas;
+                };
+            }
+            """, encodingFailure);
+        await page.Locator("#cropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToContainTextAsync("Profile picture crop failed.");
+        Assert.Equal(before, await page.EvaluateAsync<string?>("() => profilePic"));
+        Assert.True(await page.EvaluateAsync<bool>("() => applicationProfilePending"));
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await Assertions.Expect(page.Locator("#cropButton")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#nextButton")).ToBeDisabledAsync();
+        await page.Locator("#cropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#croppingPart")).ToBeHiddenAsync();
+        Assert.StartsWith("data:image/", await page.EvaluateAsync<string>("() => profilePic"));
+    }
+
     [Fact]
     public async Task UnreadablePortrait_PreservesTheDraftAndAllowsAnotherImage()
     {
