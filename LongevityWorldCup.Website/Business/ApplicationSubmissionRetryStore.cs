@@ -87,17 +87,25 @@ public sealed class ApplicationSubmissionRetryStore
             throw;
         }
 
-        var completedSubmission = await GetCompletedSubmissionAsync(submissionId, ct).ConfigureAwait(false);
-        var fingerprintMatches = completedSubmission is not null
-            && string.Equals(completedSubmission.RequestFingerprint, requestFingerprint, StringComparison.Ordinal);
+        try
+        {
+            var completedSubmission = await GetCompletedSubmissionAsync(submissionId, ct).ConfigureAwait(false);
+            var fingerprintMatches = completedSubmission is not null
+                && string.Equals(completedSubmission.RequestFingerprint, requestFingerprint, StringComparison.Ordinal);
 
-        return new Lease(
-            this,
-            submissionId,
-            requestFingerprint,
-            state,
-            fingerprintMatches ? completedSubmission!.Response : null,
-            completedSubmission is not null && !fingerprintMatches);
+            return new Lease(
+                this,
+                submissionId,
+                requestFingerprint,
+                state,
+                fingerprintMatches ? completedSubmission!.Response : null,
+                completedSubmission is not null && !fingerprintMatches);
+        }
+        catch
+        {
+            Release(submissionId, state);
+            throw;
+        }
     }
 
     public async ValueTask<ApplicationSubmissionResponse?> GetCompletedResponseAsync(
