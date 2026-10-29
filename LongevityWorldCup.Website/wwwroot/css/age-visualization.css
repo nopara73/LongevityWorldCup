@@ -60,8 +60,12 @@
     margin-top: 0.25rem;
 }
 .age-radar-fallback {
-    width: 160px;
-    height: 160px;
+    width: 10rem;
+    max-width: 100%;
+    height: auto;
+    min-height: 10rem;
+    aspect-ratio: 1;
+    box-sizing: border-box;
     margin: 0 auto;
     border-radius: 50%;
     display: flex;
@@ -123,15 +127,20 @@
     display: flex;
 }
 .age-clock-switch [role="tablist"] {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+    width: 14rem;
+    max-width: 100%;
+    box-sizing: border-box;
     background: rgba(0,0,0,0.06);
     border-radius: 999px;
     padding: 4px;
     gap: 2px;
 }
 .age-clock-switch [role="tab"] {
+    min-width: 0;
     min-height: 44px;
-    padding: 0.6rem 1.1rem;
+    padding: 0.6rem 0.5rem;
     border: none;
     border-radius: 999px;
     box-sizing: border-box;
@@ -141,6 +150,9 @@
     color: var(--dark-text-color, #1a1a1a);
     background: transparent;
     cursor: pointer;
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: normal;
     transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 .age-clock-switch [role="tab"]:hover {
@@ -156,14 +168,96 @@
     outline: 2px solid var(--primary-color, #00bcd4);
     outline-offset: 2px;
 }
-#detailsModal .age-visualization {
-    width: min(100%, var(--athlete-modal-section-width, 640px));
+.age-visualization[hidden],
+.age-clock-switch [hidden],
+.age-result-picker[hidden],
+.age-result-picker [hidden] { display: none !important; }
+.age-result-picker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    width: min(100%, 360px);
+    margin: -.25rem auto .5rem;
+    font-size: var(--lwc-type-sm, .875rem);
+    font-variant-numeric: tabular-nums;
+}
+.age-result-choice { position: relative; flex: 1; min-width: 0; }
+.age-result-choice select {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font: inherit;
+    color-scheme: dark;
+}
+.age-result-current {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: .15rem .6rem;
+    min-height: 44px;
     box-sizing: border-box;
-    padding: .95rem 1rem 1.05rem;
-    background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
-    border-color: var(--athlete-modal-border, rgba(255,255,255,.16));
-    border-radius: var(--lwc-radius-lg, 12px);
-    box-shadow: 0 16px 42px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.06);
+    padding: .65rem 1.8rem .65rem .75rem;
+    border: 1px solid var(--athlete-modal-border, rgba(255,255,255,.16));
+    border-radius: var(--lwc-radius-sm, 8px);
+    color: var(--athlete-modal-text, #fff);
+    background: var(--athlete-modal-surface, #17212b);
+    pointer-events: none;
+}
+.age-result-current time { white-space: nowrap; }
+.age-result-picker svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.age-result-chevron {
+    position: absolute;
+    right: .45rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--athlete-modal-muted, #b4bdc4);
+}
+.age-result-step {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--lwc-radius-sm, 8px);
+    background: transparent;
+    color: var(--athlete-modal-text, #fff);
+    cursor: pointer;
+}
+.age-result-step:disabled { opacity: .25; cursor: default; }
+.age-result-choice:has(select:hover) .age-result-current,
+.age-result-choice:focus-within .age-result-current,
+.age-result-step:not(:disabled):hover,
+.age-result-step:focus-visible { background: var(--athlete-modal-card-hover, #26343d); }
+.age-result-choice:focus-within .age-result-current { border-color: var(--athlete-modal-accent, #7bdde3); }
+.age-result-step:focus-visible { outline: none; box-shadow: inset 0 -2px var(--athlete-modal-accent, #7bdde3); }
+.age-result-picker[data-multiple="false"] .age-result-current { padding-inline: .75rem; border-color: transparent; background: none; }
+@media (max-width: 480px) {
+    .age-result-step:not([hidden]) { display: none; }
+}
+/* A step with nowhere to go is a faded arrow, not a grey block. */
+#detailsModal .age-result-picker .age-result-step:disabled {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+/* Width, frame and spacing come from the dialog's shared card rules. */
+#detailsModal .age-visualization {
+    padding: 0 1rem 1.05rem;
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
 }
 #detailsModal .age-radar-wrapper {
@@ -173,7 +267,7 @@
 #detailsModal .age-radar-fallback {
     background: linear-gradient(180deg, rgba(246,244,237,.1), rgba(246,244,237,.055));
     border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 26px rgba(0,0,0,.22);
+    box-shadow: none;
 }
 #detailsModal .age-radar-summary {
     gap: 0 var(--lwc-space-3, .75rem);
@@ -225,36 +319,63 @@
     background: linear-gradient(180deg, rgba(246,244,237,.11), rgba(246,244,237,.055));
     border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
 }
+/* The radar card opens with the same header band as Results over time, Proofs
+   and Highlights: the aging clocks are its title tabs, not a floating switch. */
+#detailsModal .age-clock-switch.visible {
+    justify-content: flex-start;
+    align-items: stretch;
+    box-sizing: border-box;
+    min-height: var(--athlete-doc-band-height, 3.5rem);
+    margin: 0 -1rem 1rem;
+    padding: 6px 1rem;
+    border-bottom: 1px solid var(--athlete-modal-border);
+    border-radius: var(--lwc-radius-lg, 12px) var(--lwc-radius-lg, 12px) 0 0;
+    background: rgba(246,244,237,.06);
+}
 #detailsModal .age-clock-switch [role="tablist"] {
-    background: var(--athlete-modal-surface);
-    border: 1px solid var(--athlete-modal-border);
-    border-radius: var(--lwc-radius-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.5rem;
+    width: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
     box-shadow: none;
 }
 #detailsModal .age-clock-switch [role="tab"] {
-    color: var(--athlete-modal-cream, rgba(246,244,237,.92));
-    border: 1px solid transparent;
-    border-radius: var(--lwc-radius-sm);
-    font-size: var(--lwc-type-sm);
-    font-weight: 700;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: var(--athlete-modal-muted, rgba(255,255,255,.68));
+    font-size: .85rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    line-height: 1.15;
+    text-transform: uppercase;
 }
 #detailsModal .age-clock-switch [role="tab"]:hover,
 #detailsModal .age-clock-switch [role="tab"]:focus-visible {
-    background: rgba(246,244,237,.12);
+    background: none;
     color: #fff;
 }
 #detailsModal .age-clock-switch [role="tab"][aria-selected="true"] {
-    background: var(--athlete-modal-card-hover);
-    color: var(--athlete-modal-accent, #7bdde3);
-    border-color: transparent;
+    background: none;
+    color: rgba(246,244,237,.9);
+    box-shadow: none;
+}
+/* With both clocks the chosen one carries the accent underline; a lone clock is just the title. */
+#detailsModal .age-clock-switch [role="tablist"]:not(:has([role="tab"][hidden])) [role="tab"][aria-selected="true"] {
     box-shadow: inset 0 -2px 0 var(--athlete-modal-accent, #7bdde3);
 }
 @media (max-width: 768px) {
+    #detailsModal .age-clock-switch.visible {
+        margin-inline: calc(-1 * min(1rem, 16px));
+        padding-inline: min(1rem, 16px);
+    }
     #detailsModal .age-visualization {
-        width: calc(100% - 1.5rem) !important;
-        max-width: calc(100% - 1.5rem) !important;
-        margin-left: auto;
-        margin-right: auto;
+        padding-inline: min(1rem, 16px);
     }
     #detailsModal .age-radar-wrapper {
         width: min(100%, 280px);
@@ -263,4 +384,78 @@
         max-width: 100%;
         box-sizing: border-box;
     }
+}
+
+/* The radar fills its well: a landscape canvas gives the side labels room, so
+   the web itself grows instead of floating in a square of empty space. */
+#detailsModal .age-radar-wrapper {
+    width: min(100%, 36rem);
+    aspect-ratio: 16 / 10;
+    /* Wrapped axis labels and all tooltip contributors need a reading area at browser zoom. */
+    min-height: 180px;
+}
+@media (max-width: 768px) {
+    /* Phones let the web use the card's side padding; the labels sit in it. */
+    #detailsModal .age-radar-wrapper {
+        width: calc(100% + 2 * min(1rem, 16px));
+        margin-inline: calc(-1 * min(1rem, 16px));
+        aspect-ratio: 6 / 5;
+    }
+}
+@media (max-width: 360px) {
+    #detailsModal .age-radar-wrapper {
+        aspect-ratio: 1;
+    }
+}
+
+/* A landscape phone needs room for the result controls below the chart. */
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    #detailsModal .age-radar-wrapper {
+        width: min(100%, 448px, 112dvh);
+        margin-inline: auto;
+        aspect-ratio: 16 / 10;
+    }
+}
+
+/* The result picker is one segmented control: earlier, the date, later. */
+#detailsModal .age-result-picker{ margin-bottom:.75rem; }
+#detailsModal .age-result-picker[data-multiple="true"]{ gap:0; }
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-step,
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-step:disabled{
+    border:1px solid var(--athlete-modal-border, rgba(255,255,255,.16));
+    background:var(--athlete-modal-surface, #17212b);
+    opacity:1;
+}
+#detailsModal .age-result-picker[data-multiple="true"] #ageResultEarlier{ border-right:0; border-radius:var(--lwc-radius-md, 8px) 0 0 var(--lwc-radius-md, 8px); }
+#detailsModal .age-result-picker[data-multiple="true"] #ageResultLater{ border-left:0; border-radius:0 var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) 0; }
+#detailsModal .age-result-picker .age-result-step:disabled svg{ opacity:.3; }
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-current{ border-radius:0; }
+#detailsModal .age-result-current{
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.01em;
+}
+#detailsModal .age-result-current time{ min-width:0; white-space:normal; }
+#detailsModal .age-result-picker[data-multiple="true"] .age-result-step:not(:disabled):hover{ background:var(--athlete-modal-card-hover, #26343d); }
+@media (max-width: 480px){
+    #detailsModal .age-result-picker[data-multiple="true"] .age-result-current{ border-radius:var(--lwc-radius-md, 8px); }
+}
+
+/* The summary is the radar's figure: one number, its label, and the clock age under a hairline. */
+#detailsModal .age-radar-summary{
+    width:fit-content;
+    min-width:min(100%, 17rem);
+    max-width:100%;
+    box-sizing:border-box;
+    margin-top:.75rem;
+    padding:.75rem 1.25rem;
+    border-radius:var(--lwc-radius-md, 8px);
+    column-gap:.6rem;
+}
+#detailsModal .age-radar-summary .age-diff{ font-variant-numeric:tabular-nums; }
+#detailsModal .age-radar-summary .age-bio-age{
+    margin-top:.5rem;
+    padding-top:.45rem;
+    border-top:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    font-variant-numeric:tabular-nums;
 }

@@ -1,4 +1,5 @@
 using LongevityWorldCup.Website;
+using System.Net.Http.Json;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,67 @@ namespace LongevityWorldCup.Tests;
 [Collection(HttpTestCollections.ReadOnly)]
 public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFactory)
 {
+    [Fact]
+    public async Task ShareSheetMetadata_UsesTheCanonicalProfilesCurrentCardWithoutCaching()
+    {
+        var images = sharedFactory.Services.GetRequiredService<AthleteOgImageService>();
+        Assert.True(images.TryGetCurrentPayload("ron-lugbill", out var payload));
+        using var client = sharedFactory.CreateClient();
+        using var response = await client.GetAsync("/og/athlete/ron-lugbill/preview?ctx=pheno");
+        response.EnsureSuccessStatusCode();
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var json = await response.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
+        Assert.Equal(images.BuildVersionedImageUrl("", payload), json!["imageUrl"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("athlete", "ron-lugbill")]
+    [InlineData("league", "ultimate")]
+    [InlineData("page", "home")]
+    [InlineData("page", "pheno-age")]
+    [InlineData("page", "bortz-age")]
+    [InlineData("page", "view-pheno")]
+    public async Task Cards_OnlyCacheAnExactCurrentSignatureAsImmutable(string kind, string slug)
+    {
+        string signature;
+        if (kind == "athlete")
+        {
+            Assert.True(sharedFactory.Services.GetRequiredService<AthleteOgImageService>().TryGetCurrentPayload(slug, out var payload));
+            signature = payload.Signature;
+        }
+        else if (kind == "league")
+        {
+            Assert.True(sharedFactory.Services.GetRequiredService<LeagueOgImageService>().TryGetCurrentPayload(slug, out var payload));
+            signature = payload.Signature;
+        }
+        else
+        {
+            Assert.True(sharedFactory.Services.GetRequiredService<PageOgImageService>().TryGetCurrentPayload(slug, out var payload));
+            signature = payload.Signature;
+        }
+        using var client = sharedFactory.CreateClient();
+        foreach (var suffix in new[] { "", "?v=old-or-invented", "?v=" + signature })
+        {
+            using var response = await client.GetAsync($"/og/{kind}/{slug}.png{suffix}");
+            response.EnsureSuccessStatusCode();
+            Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+            using var image = SixLabors.ImageSharp.Image.Load(await response.Content.ReadAsByteArrayAsync());
+            Assert.Equal(1200, image.Width);
+            Assert.Equal(630, image.Height);
+            if (suffix == "?v=" + signature)
+            {
+                Assert.Equal(TimeSpan.FromDays(365), response.Headers.CacheControl?.MaxAge);
+                Assert.Contains("immutable", response.Headers.CacheControl!.ToString());
+            }
+            else
+            {
+                Assert.Equal(TimeSpan.Zero, response.Headers.CacheControl?.MaxAge);
+                Assert.True(response.Headers.CacheControl?.MustRevalidate);
+                Assert.DoesNotContain("immutable", response.Headers.CacheControl!.ToString());
+            }
+        }
+    }
+
     [Theory]
     [InlineData("/contribute")]
     [InlineData("/contribute?utm_content=donation-3d8a116d3fb8464ebf2e0173acc59acb")]

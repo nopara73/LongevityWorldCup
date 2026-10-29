@@ -89,6 +89,17 @@ public sealed class FlowActionDockBrowserTests(
         Assert.True(firstPaint.WordmarkTop >= 0, $"The first-paint wordmark starts above the viewport: {firstPaint.WordmarkTop}.");
         Assert.True(firstPaint.WordmarkBottom < firstPaint.ActionTop, $"The first-paint wordmark overlaps actions: {firstPaint.WordmarkBottom} >= {firstPaint.ActionTop}.");
         Assert.True(firstPaint.ActionBottom <= firstPaint.ViewportHeight + 1, $"The first-paint actions overflow the viewport: {firstPaint.ActionBottom} > {firstPaint.ViewportHeight}.");
+        // Hold the real transient dock state. Sampling two frames can otherwise
+        // miss the fade that occasionally made this assertion fail in CI.
+        var enteringOpacity = await page.Locator(".play-menu-actions").EvaluateAsync<double>(
+            """
+            actions => {
+                actions.style.transition = 'none';
+                actions.classList.add('flow-action-stack--dock-entering');
+                return parseFloat(getComputedStyle(actions).opacity);
+            }
+            """);
+        Assert.True(enteringOpacity >= 0.8, $"The dock-entry state hides the initial actions: opacity {enteringOpacity}.");
         Assert.Empty(errors);
     }
 
@@ -180,7 +191,7 @@ public sealed class FlowActionDockBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await page.Locator("#blood-draw-date").FillAsync(DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
 
         var continueButton = page.Locator("#lwcToStep2Btn");
         await continueButton.ScrollIntoViewIfNeededAsync();
@@ -196,8 +207,9 @@ public sealed class FlowActionDockBrowserTests(
 
     [Theory]
     [InlineData(390, 844)]
+    [InlineData(375, 667)]
     [InlineData(844, 390)]
-    public async Task PlayStartBackNavigation_KeepsActionsBottomDockedDuringPanelTransition(
+    public async Task PlayStartBackNavigation_KeepsActionsReachableDuringPanelTransition(
         int viewportWidth,
         int viewportHeight)
     {
@@ -230,7 +242,7 @@ public sealed class FlowActionDockBrowserTests(
                     const actions = document.querySelector('.play-menu-actions');
                     return panel && !panel.hidden
                         && !document.documentElement.classList.contains('play-panel-transitioning')
-                        && actions?.classList.contains('flow-action-stack--docked');
+                        && actions && (window.innerWidth > 760 || actions.classList.contains('flow-action-stack--docked'));
                 }
                 """);
 
@@ -255,11 +267,15 @@ public sealed class FlowActionDockBrowserTests(
                 """);
 
         var scenario = $"{viewportWidth}x{viewportHeight}";
-        Assert.True(state.ActionDocked, $"{scenario}: back to /play should keep the start actions in the bottom dock immediately.");
-        Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
+        Assert.Equal(viewportWidth <= 760, state.ActionDocked);
+        if (state.ActionDocked) Assert.InRange(Math.Abs(state.ActionBottom - state.ViewportHeight), 0, 1.1);
+        else Assert.True(state.ActionBottom <= state.ViewportHeight + 1, $"{scenario}: inline actions extend below the viewport.");
         Assert.True(state.ActionTop >= 0, $"{scenario}: the returned play actions start above the viewport: {state.ActionTop}.");
-        Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
-        Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        if (state.ActionDocked)
+        {
+            Assert.True(state.ActionLeft <= 1, $"{scenario}: the returned play dock is inset from the left edge during transition: {state.ActionLeft}.");
+            Assert.True(state.ActionRight >= state.ViewportWidth - 1, $"{scenario}: the returned play dock does not reach the right edge during transition: {state.ActionRight} < {state.ViewportWidth}.");
+        }
         Assert.Equal("none", state.PanelTransform);
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
@@ -737,14 +753,14 @@ public sealed class FlowActionDockBrowserTests(
         Assert.Equal("rgb(255, 255, 255)", playStartState.WordmarkColor);
         Assert.Equal("none", playStartState.LogoDisplay);
         Assert.Equal("block", playStartState.WatermarkDisplay);
-        Assert.True(playStartState.WatermarkWidth >= playStartState.ViewportWidth * 0.75, $"Watermark should stay visually dominant: {playStartState.WatermarkWidth}px");
-        Assert.True(playStartState.WatermarkWidth <= playStartState.ViewportWidth * 0.9, $"Watermark should fit the viewport width instead of cropping: {playStartState.WatermarkWidth}px");
+        Assert.True(playStartState.WatermarkWidth >= playStartState.ViewportWidth * 0.45, $"The crest phoenix should stay visually dominant: {playStartState.WatermarkWidth}px");
+        Assert.True(playStartState.WatermarkWidth <= playStartState.ViewportWidth * 0.75, $"The crest phoenix should sit inside its ring: {playStartState.WatermarkWidth}px");
         Assert.True(playStartState.WatermarkHeight <= playStartState.ViewportHeight * 0.42, $"Watermark should sit between the wordmark and buttons instead of filling the page: {playStartState.WatermarkHeight}px");
         AssertPlayStartLogoBetweenWordmarkAndActions(playStartState, 40);
-        Assert.Equal("0.17", playStartState.WatermarkOpacity);
+        Assert.Equal("0.3", playStartState.WatermarkOpacity);
         Assert.Equal("none", playStartState.WatermarkFilter);
         Assert.Equal("normal", playStartState.WatermarkMixBlendMode);
-        Assert.Equal("fixed", playStartState.WatermarkPosition);
+        Assert.Equal("relative", playStartState.WatermarkPosition);
         Assert.Equal("none", playStartState.WatermarkPointerEvents);
         Assert.Contains("/assets/favicon-dark-512x512.png?v=", playStartState.WatermarkSource);
         Assert.Equal("none", playStartState.StickyHeaderDisplay);
@@ -765,7 +781,7 @@ public sealed class FlowActionDockBrowserTests(
         Assert.Equal("none", playStartState.HeaderBoxShadow);
         Assert.InRange(Math.Abs(playStartState.MainTop - playStartState.HeaderBottom), 0, 1);
         Assert.Equal("none", playStartState.HeroBackgroundImage);
-        Assert.Contains("18, 18, 18", playStartState.ActionStackBackground);
+        Assert.Contains("16, 24, 32", playStartState.ActionStackBackground);
         Assert.DoesNotContain("238, 238, 238", playStartState.ActionStackBackground);
         Assert.Equal("0px", playStartState.ActionStackBorderTopWidth);
 
@@ -803,7 +819,7 @@ public sealed class FlowActionDockBrowserTests(
             }
             """);
 
-        Assert.True(desktopPlayStartState.WatermarkWidth >= 200, $"Desktop watermark should remain visible: {desktopPlayStartState.WatermarkWidth}px");
+        Assert.True(desktopPlayStartState.WatermarkWidth >= 150, $"Desktop crest phoenix should remain visible: {desktopPlayStartState.WatermarkWidth}px");
         Assert.True(desktopPlayStartState.WatermarkHeight <= desktopPlayStartState.ViewportHeight * 0.32, $"Desktop watermark should not crowd the action buttons: {desktopPlayStartState.WatermarkHeight}px");
         Assert.True(desktopPlayStartState.ScrollWidth <= desktopPlayStartState.ViewportWidth + 1, $"Play hero creates horizontal overflow on desktop: {desktopPlayStartState.ScrollWidth} > {desktopPlayStartState.ViewportWidth}");
         AssertPlayStartLogoBetweenWordmarkAndActions(desktopPlayStartState, 40);
@@ -1120,7 +1136,15 @@ public sealed class FlowActionDockBrowserTests(
 
     internal static async Task ExpectActionStackInViewportAsync(IPage page, string selector)
     {
-        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        // The controller exists while the source task is still loading, when
+        // docking is deliberately disabled. Measure its ready view instead.
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock && !document.documentElement.hasAttribute('data-initial-view')");
+        await page.WaitForFunctionAsync("""
+            selector => {
+                const stack = document.querySelector(selector);
+                return stack && !stack.classList.contains('flow-action-stack--dock-entering');
+            }
+            """, selector);
         var rect = await ReadElementRectAsync(page, selector);
 
         Assert.True(rect.Left >= -1, $"{selector} overflows left: {rect.Left}");
@@ -1205,6 +1229,13 @@ public sealed class FlowActionDockBrowserTests(
             "element => element.classList.contains('flow-action-stack--docked')");
     }
 
+    internal static async Task FillBloodDrawDateAsync(IPage page, string value)
+    {
+        var input = page.Locator("#blood-draw-date");
+        await input.FillAsync(value);
+        await input.PressAsync("Escape");
+    }
+
     internal static async Task FillBioageStepOneAsync(IPage page, string bloodDrawDate)
     {
         await page.Locator("#dob-year").SelectOptionAsync("1980");
@@ -1212,7 +1243,7 @@ public sealed class FlowActionDockBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await page.Locator("#blood-draw-date").FillAsync(bloodDrawDate);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, bloodDrawDate);
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");

@@ -362,6 +362,7 @@
     };
     let loadGeneration = 0;
     let trafficChartObserver: ResizeObserver | null = null;
+    let disposeTrafficCrosshair: (() => void) | undefined;
     let selectedTrafficDay: string | null = null;
 
     function calculatorFunnel(selectionLabel: string): FunnelDefinition[] {
@@ -681,6 +682,7 @@
 
     function setDashboardLoading(loading: boolean): void {
         (el("statsExport") as HTMLButtonElement).disabled = loading;
+        document.querySelector(".stats-page")?.setAttribute("aria-busy", String(loading));
     }
 
     function needsDiagnosticEventReload(): boolean {
@@ -733,11 +735,12 @@
             return;
         }
         const totals = report.totals;
-        const rate = (value: number | null): string => value === null ? "—" : new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 1 }).format(value);
+        const rate = (value: number | null): string => value === null || !Number.isFinite(value) || value < 0 || value > 1
+            ? "—" : new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 1 }).format(value);
         const stages: [string, number][] = [["Visits", totals.visits], ["Calculator use", totals.calculatorUses],
             ["Results", totals.calculatorResults], ["Application starts", totals.applicationStarts], ["Applications", totals.applications]];
         const rows = (items: AiMetrics[], provider: boolean): string => `
-            <div class="ai-table-scroll"><table class="stats-table">
+            <div class="ai-table-scroll" tabindex="0" role="region" aria-label="${provider ? "Provider" : "Landing page"}"><table class="stats-table">
                 <thead><tr><th>${provider ? "Provider" : "Landing page"}</th><th>Visits</th><th>Results</th><th>Starts</th><th>Apps</th><th>Apps / visits</th></tr></thead>
                 <tbody>${items.map(row => `<tr><td>${provider
                     ? `<button class="stats-button small" type="button" data-ai-source="${escAttr(row.key)}">${esc(row.label)}</button>`
@@ -769,6 +772,8 @@
 
     function renderTrafficOverview(): void {
         const host = el("trafficOverview");
+        disposeTrafficCrosshair?.();
+        disposeTrafficCrosshair = undefined;
         trafficChartObserver?.disconnect();
         trafficChartObserver = null;
         el("statsWindow").textContent = formatTrafficWindow();
@@ -837,7 +842,8 @@
                 delta = `${change < 0 ? "↓" : change > 0 ? "↑" : ""} ${percent} vs previous ${/\d/.test(period) ? period : "period"}`;
             } else delta = "No activity in the previous period";
         }
-        return `<div class="traffic-metric"><span>${esc(label)}</span><strong>${esc(formatNumber(current))}</strong><em>${esc(delta)}</em></div>`;
+        const formatted = formatNumber(current);
+        return `<div class="traffic-metric" data-wide-value="${formatted.length > 8}"><span>${esc(label)}</span><strong>${esc(formatted)}</strong><em>${esc(delta)}</em></div>`;
     }
 
     function trafficOutcome(label: string, value: number, detail: string): string {
@@ -878,9 +884,9 @@
     }
 
     function trafficRankedList(title: string, unit: string, rows: { label: string; value: number }[], key: string): string {
-        const maxValue = Math.max(1, ...rows.map(row => row.value));
+        const maxValue = Math.max(1, ...rows.map(row => numberValue(row.value)));
         const list = (items: typeof rows): string => `<div class="traffic-ranked-list">${items.map(row => `
-            <div class="traffic-ranked-row"><span>${esc(row.label)}</span><span class="traffic-meter" aria-hidden="true"><i style="width:${Math.max(0, row.value / maxValue * 100)}%"></i></span><span>${formatNumber(row.value)}</span></div>`).join("")}</div>`;
+            <div class="traffic-ranked-row"><span>${esc(row.label)}</span><span class="traffic-meter" aria-hidden="true"><i style="width:${barWidth(row.value, maxValue)}%"></i></span><span>${formatNumber(row.value)}</span></div>`).join("")}</div>`;
         return `<section class="traffic-ranked-panel"><div class="traffic-list-heading"><h2>${esc(title)}</h2><span class="traffic-caption">${esc(unit)}</span></div>
             ${rows.length ? list(rows.slice(0, 4)) : empty("No traffic for the active filters.")}
             ${rows.length > 4 ? `<details class="traffic-more" data-traffic-disclosure="${escAttr(key)}"><summary>${formatNumber(rows.length - 4)} more ${esc(key)}</summary>${list(rows.slice(4))}</details>` : ""}
@@ -957,6 +963,7 @@
         };
         select.addEventListener("change", () => selectDay(select.value));
         svg.addEventListener("click", event => {
+            if (window.LwcCharts) return;
             const bounds = svg.getBoundingClientRect();
             const x = event.clientX - bounds.left;
             if (x < 44 || x > bounds.width - 12) return;
@@ -970,6 +977,22 @@
         trafficChartObserver = new ResizeObserver(draw);
         trafficChartObserver.observe(svg.parentElement!);
         draw();
+        // The shared crosshair reads the same day the bar click would pick.
+        disposeTrafficCrosshair = window.LwcCharts?.crosshair(svg, {
+            points: () => Array.from(svg.querySelectorAll<SVGRectElement>("rect[data-day]")).map(bar => {
+                const day = bar.dataset["day"] || "";
+                const point = points.find(item => item.day === day);
+                const x = bar.x.baseVal.value + bar.width.baseVal.value / 2;
+                return {
+                    key: day,
+                    x,
+                    y: bar.y.baseVal.value,
+                    title: formatTrafficDay(day) + (isPartialTrafficDay(day) ? " · partial day" : ""),
+                    lines: point ? [`${formatNumber(point.sessions)} sessions`, `${formatNumber(point.pageViews)} page views`] : []
+                };
+            }),
+            onPick: selectDay
+        });
     }
 
     function drawTrafficChart(svg: SVGSVGElement, points: TrafficDailyPoint[]): void {
@@ -1000,7 +1023,7 @@
             ${points.map((point, index) => {
                 const x = left + slot * (index + 0.5);
                 const showLabel = index === points.length - 1 || index % labelEvery === 0 && (index === 0 || index < points.length - labelEvery / 2);
-                return `<rect data-day="${escAttr(point.day)}" x="${x - barWidth / 2}" y="${y(point.sessions)}" width="${barWidth}" height="${bottom - y(point.sessions)}" rx="2" class="traffic-session-bar${isPartialTrafficDay(point.day) ? " partial" : ""}"><title>${esc(`${formatDay(point.day)}: ${formatNumber(point.sessions)} sessions${isPartialTrafficDay(point.day) ? ", partial day" : ""}`)}</title></rect>
+                return `<rect data-day="${escAttr(point.day)}" x="${x - barWidth / 2}" y="${y(point.sessions)}" width="${barWidth}" height="${bottom - y(point.sessions)}" rx="2" style="--lwc-bar-index:${index}" class="traffic-session-bar${isPartialTrafficDay(point.day) ? " partial" : ""}"><title>${esc(`${formatDay(point.day)}: ${formatNumber(point.sessions)} sessions${isPartialTrafficDay(point.day) ? ", partial day" : ""}`)}</title></rect>
                     ${slot >= 35 ? `<text x="${x}" y="${y(point.sessions) - 7}" text-anchor="middle" class="traffic-bar-value">${formatNumber(point.sessions)}</text>` : ""}
                     ${showLabel ? `<text class="traffic-date-label" x="${index === 0 ? left : index === points.length - 1 ? width - right : x}" y="${height - 9}" text-anchor="${index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}">${esc(formatTrafficDay(point.day))}</text>` : ""}`;
             }).join("")}`;
@@ -1008,6 +1031,12 @@
         const lastLabel = labels[labels.length - 1];
         if (!lastLabel) return;
         const lastLeft = lastLabel.getBoundingClientRect().left;
+        // At browser zoom the two endpoint dates can be wider than the plot.
+        // Use the free space below the y-axis before removing any middle ticks.
+        const firstLabel = labels[0];
+        if (firstLabel && firstLabel !== lastLabel && firstLabel.getBoundingClientRect().right + 8 > lastLeft) {
+            firstLabel.setAttribute("x", "0");
+        }
         let previousRight = -Infinity;
         labels.forEach((label, index) => {
             const bounds = label.getBoundingClientRect();
@@ -1615,7 +1644,6 @@
     }
 
     function renderPrimaryPanel(): void {
-        const selected = state.tab === challengeDiagnosticsTab ? "challenge" : state.selectedFlow;
         const title = state.tab === challengeDiagnosticsTab
             ? "Challenge Activation Funnel"
             : state.tab === sourceQualityTab
@@ -1631,7 +1659,11 @@
         el("primaryMeta").textContent = `${uniqueSessions(scopedEvents())} sessions / ${scopedEvents().length} events`;
         renderFlowSelectors();
 
-        const defs = state.tab === challengeDiagnosticsTab
+        renderFunnel(primaryFunnelDefinitions(), scopedEvents());
+    }
+
+    function primaryFunnelDefinitions(): FunnelDefinition[] {
+        return state.tab === challengeDiagnosticsTab
             ? funnelDefs.challenge
             : state.tab === sourceQualityTab
                 ? sourceFunnelDefs()
@@ -1641,8 +1673,7 @@
                         ? funnelDefs.application.slice(10)
                         : state.tab === publicEventsDiagnosticsTab
                             ? eventsFunnelDefs()
-                            : funnelDefinitionsFor(selected);
-        renderFunnel(defs, scopedEvents());
+                            : funnelDefinitionsFor(state.selectedFlow);
     }
 
     function renderFlowSelectors(): void {
@@ -1651,8 +1682,10 @@
         if (state.tab !== onboardingDiagnosticsTab) return;
         ["pheno", "bortz", "application"].forEach(flow => {
             const events = defaultEvents().filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
-            const started = uniqueSessionsFor(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
+            const starts = sessionsForNames(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
+            const started = starts.size;
             const completed = uniqueSessionsFor(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]);
+            const converted = intersectionSize(starts, sessionsForNames(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]));
             const failed = uniqueSessions(frictionEvents(events));
             const button = document.createElement("button");
             button.type = "button";
@@ -1661,14 +1694,16 @@
                 <strong>${flowLabel(flow)}</strong>
                 <span class="flow-card-grid">
                     <span>started ${started}</span><span>done ${completed}</span>
-                    <span>conv ${percent(completed, started)}</span><span>fail ${failed}</span>
+                    <span>conv ${percent(converted, started)}</span><span>fail ${failed}</span>
                 </span>
             `;
             button.addEventListener("click", () => {
-                state.selectedFlow = flow;
-                state.selectedEventName = null;
-                state.selectedSession = null;
-                renderAll();
+                preserveDiagnosticFocus(() => {
+                    state.selectedFlow = flow;
+                    state.selectedEventName = null;
+                    state.selectedSession = null;
+                    renderAll();
+                });
             });
             host.appendChild(button);
         });
@@ -1683,26 +1718,29 @@
         }
         const firstDefinition = defs[0];
         if (!firstDefinition) return;
-        const first = Math.max(1, uniqueSessionsFor(events, [firstDefinition[0]]));
+        const first = sessionsForNames(events, [firstDefinition[0]]);
         let previous = first;
         defs.forEach(([name, label]) => {
-            const count = uniqueSessionsFor(events, [name]);
-            const fromPrev = percent(count, previous);
-            const fromFirst = percent(count, first);
-            const drop = Math.max(0, previous - count);
+            const reached = sessionsForNames(events, [name]);
+            const count = reached.size;
+            // Reach counts include returning sessions. Conversion and drop-off
+            // compare the same sessions at adjacent steps, including empty steps.
+            const converted = intersectionSize(previous, reached);
+            const fromPrev = percent(converted, previous.size);
+            const drop = previous.size - converted;
             const row = document.createElement("button");
             row.type = "button";
             row.className = `funnel-row${state.selectedEventName === name ? " active" : ""}`;
             row.innerHTML = `
                 <span class="funnel-name">${esc(label)}</span>
-                <span class="funnel-bar"><span class="funnel-fill" style="width:${Math.min(100, Math.round((count / first) * 100))}%"></span></span>
+                <span class="funnel-bar"><span class="funnel-fill" style="width:${barWidth(count, first.size)}%"></span></span>
                 <span class="funnel-number">${count}</span>
                 <span class="funnel-rate">${fromPrev}</span>
-                <span class="funnel-drop${drop > Math.max(2, previous * 0.35) ? " high" : ""}">drop ${drop}</span>
+                <span class="funnel-drop${drop > Math.max(2, previous.size * 0.35) ? " high" : ""}">drop ${drop}</span>
             `;
             row.addEventListener("click", () => selectDrilldown(name, label));
             host.appendChild(row);
-            if (count > 0) previous = count;
+            previous = reached;
         });
     }
 
@@ -1857,8 +1895,10 @@
             row.addEventListener("click", () => {
                 const selectedSession = row.dataset.session;
                 if (!selectedSession) return;
-                state.selectedSession = selectedSession;
-                renderDrilldown(events);
+                preserveDiagnosticFocus(() => {
+                    state.selectedSession = selectedSession;
+                    renderDrilldown(events);
+                });
             });
         });
     }
@@ -1944,14 +1984,30 @@
     }
 
     function selectDrilldown(eventName: string | null, label: string): void {
-        state.selectedEventName = eventName;
-        state.selectedSession = null;
-        state.selectedLabel = label || eventName || "all events";
-        renderOutcomeStrip();
-        renderFriction();
-        renderFunnel(state.tab === challengeDiagnosticsTab ? funnelDefs.challenge : funnelDefinitionsFor(state.selectedFlow), scopedEvents());
-        renderDrilldown();
-        updateUrl();
+        preserveDiagnosticFocus(() => {
+            state.selectedEventName = eventName;
+            state.selectedSession = null;
+            state.selectedLabel = label || eventName || "all events";
+            renderOutcomeStrip();
+            renderFriction();
+            renderFunnel(primaryFunnelDefinitions(), scopedEvents());
+            renderDrilldown();
+            updateUrl();
+        });
+    }
+
+    function preserveDiagnosticFocus(render: () => void): void {
+        const active = document.activeElement;
+        const host = active instanceof HTMLButtonElement
+            ? active.closest("#primaryFunnel, #outcomeStrip, #frictionRadar, #flowSelectors, #eventSamples")
+            : null;
+        const index = host ? Array.from(host.querySelectorAll("button")).indexOf(active as HTMLButtonElement) : -1;
+        render();
+        // Selection renders replace these lists synchronously without changing
+        // their order. Keep keyboard users on the button they just activated.
+        if (host && index >= 0 && !active?.isConnected) {
+            host.querySelectorAll("button")[index]?.focus({ preventScroll: true });
+        }
     }
 
     function isIgnoredClientError(e: DashboardEvent | null | undefined): boolean {
@@ -2472,10 +2528,10 @@
     }
 
     function barWidth(value: unknown, total: unknown): number {
-        const numericValue = Number(value) || 0;
-        const numericTotal = Math.max(1, Number(total) || 1);
-        if (numericValue <= 0) return 0;
-        return Math.max(4, Math.round((numericValue / numericTotal) * 100));
+        const numericValue = numberValue(value);
+        const numericTotal = numberValue(total);
+        if (numericValue <= 0 || numericTotal <= 0) return 0;
+        return Math.min(100, Math.max(0, numericValue / numericTotal * 100));
     }
 
     function barSegment(value: unknown, total: unknown, className: string, label: string): string {
@@ -2798,10 +2854,10 @@
 
     function table(headers: readonly string[], rows: readonly (readonly unknown[])[]): string {
         return `
-            <table class="compact-table">
+            <div class="table-scroll" tabindex="0" role="region" aria-label="${escAttr(headers.join(", "))}"><table class="compact-table">
                 <thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
                 <tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${esc(String(cell ?? ""))}</td>`).join("")}</tr>`).join("")}</tbody>
-            </table>
+            </table></div>
         `;
     }
 

@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="DataCorrections/BiomarkerAudit20261018.json" />
     <TypeScriptSource Include="Frontend\*.ts" />
     <ClassicScriptSource Include="Frontend\*.js" />
     <NestedFrontendRuntimeSource Include="Frontend\**\*.ts;Frontend\**\*.js"
@@ -37,15 +38,32 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.18.1" />
+    <PackageReference Include="MailKit" Version="4.18.2" />
     <PackageReference Include="NBitcoin.Secp256k1" Version="4.0.4" />
-    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.12" />
-    <PackageReference Include="Quartz" Version="4.4.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />
+    <PackageReference Include="Quartz" Version="4.6.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.2.0" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
+    <!-- Override MimeKit's vulnerable transitive minimum until it adopts the security patch. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\assets\media-kit\MediaKit.zip" />
+    <Content Include="wwwroot\assets\media-kit\MediaKit.zip"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Remove="wwwroot\css\documentation-reading.css" />
+    <Content Include="wwwroot\css\documentation-reading.css"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="StageMediaKit" BeforeTargets="BeforeBuild">
+    <Copy SourceFiles="$(RepositoryRoot)/LongevityWorldCup.Documentation/MediaKit.zip"
+          DestinationFiles="$(MSBuildProjectDirectory)/wwwroot/assets/media-kit/MediaKit.zip"
+          SkipUnchangedFiles="true" />
+  </Target>
 
   <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
     <Exec Command="dotnet build &quot;$(DocumentationPageGeneratorProject)&quot; --configuration &quot;$(Configuration)&quot;" />
@@ -59,7 +77,7 @@
   <Target Name="GenerateIndexNowContentManifest" BeforeTargets="BeforeBuild">
     <ItemGroup>
       <IndexNowDependency Include="Middleware/HtmlInjectionMiddleware.cs;Middleware/RouteCanonicalization.cs;Business/PageStructuredData.cs;Frontend/homepage.js;Frontend/site-header.js;Frontend/site-footer.js" Group="html" />
-      <IndexNowDependency Include="Business/Leaderboard*.cs;Business/PublicLeaderboard*.cs;Business/CompetitionRanking.cs;Controllers/AiController.cs;Tools/PhenoStatsCalculator.cs;Tools/*HtmlRenderer.cs;Frontend/badges.ts;Frontend/flags.ts;Frontend/age-visualization.ts;Frontend/leaderboard-page.js;Frontend/guess-my-age.js;Frontend/leaderboard-embed-listener.js" Group="ranking" />
+      <IndexNowDependency Include="Business/Leaderboard*.cs;Business/PublicLeaderboard*.cs;Business/CompetitionRanking.cs;Controllers/AiController.cs;Tools/PhenoStatsCalculator.cs;Tools/*HtmlRenderer.cs;Frontend/badges.ts;Frontend/flags.ts;Frontend/age-visualization.ts;Frontend/leaderboard-page.js;Frontend/leaderboard-ordering.js;Frontend/guess-my-age.js;Frontend/leaderboard-embed-listener.js" Group="ranking" />
       <IndexNowDependency Include="Tools/EventHelpers.cs;Tools/CustomEventMarkup.cs;Frontend/custom-event-markup.ts;Frontend/events-page.js" Group="events" />
       <IndexNowDependency Include="Business/LongevitymaxxingChallengeService*.cs;Frontend/longevitymaxxing.ts" Group="challenge" />
       <IndexNowDependency Include="Tools/PhenoAgeHelper.cs;Frontend/pheno-age.ts" Group="pheno" />

@@ -44,9 +44,9 @@
     }
 
     function normalizeFlagKey(flag: unknown): string {
-        return normalizeText(flag)
+        return String(flag || "").normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase()
             .replace(/[._-]+/g, " ")
-            .replace(/[^a-z0-9\s]/g, " ")
+            .replace(/[^\p{L}\p{Nd}\s]/gu, " ")
             .replace(/\s+/g, " ")
             .trim();
     }
@@ -62,8 +62,8 @@
     }
 
     function getFlagRouteSlug(flag: unknown): string {
-        return normalizeText(getCanonicalFlagName(flag))
-            .replace(/[^a-z0-9]+/g, "-")
+        return getCanonicalFlagName(flag).normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase()
+            .replace(/[^\p{L}\p{Nd}]+/gu, "-")
             .replace(/^-+|-+$/g, "");
     }
 
@@ -157,7 +157,7 @@
     function matchesFlagOption(option: FlagOption, query: unknown): boolean {
         const normalizedQuery = normalizeFlagKey(query);
         if (!normalizedQuery) return true;
-        return new RegExp(`\\b${escapeRegExp(normalizedQuery)}`).test(normalizeFlagKey(option.name));
+        return new RegExp(`(?:^|\\s)${escapeRegExp(normalizedQuery)}`).test(normalizeFlagKey(option.name));
     }
 
     function renderHighlightedFlagName(name: unknown, query: unknown): string {
@@ -165,9 +165,10 @@
         const trimmedQuery = String(query || "").trim();
         if (!trimmedQuery) return escapeHtml(text);
 
-        const pattern = new RegExp(`\\b${escapeRegExp(trimmedQuery.toLowerCase())}`);
-        const match = text.toLowerCase().search(pattern);
-        if (match < 0) return escapeHtml(text);
+        const pattern = new RegExp(`(^|[^\\p{L}\\p{Nd}])${escapeRegExp(trimmedQuery.toLowerCase())}`, "u");
+        const found = pattern.exec(text.toLowerCase());
+        if (!found) return escapeHtml(text);
+        const match = found.index + (found[1] || "").length;
 
         return `${escapeHtml(text.slice(0, match))}<strong>${escapeHtml(text.slice(match, match + trimmedQuery.length))}</strong>${escapeHtml(text.slice(match + trimmedQuery.length))}`;
     }
@@ -182,7 +183,8 @@
         let list: HTMLDivElement | null = null;
         let currentFocus = -1;
         let wantsSuggestions = false;
-        const geometryObserver = new ResizeObserver(positionList);
+        let clearanceFrame = 0;
+        const geometryObserver = new ResizeObserver(resizeList);
         input.setAttribute("role", "combobox");
         input.setAttribute("aria-autocomplete", "list");
         input.setAttribute("aria-controls", listId);
@@ -190,6 +192,8 @@
 
         function close(): void {
             geometryObserver.disconnect();
+            if (clearanceFrame) window.cancelAnimationFrame(clearanceFrame);
+            clearanceFrame = 0;
             list?.remove();
             list = null;
             currentFocus = -1;
@@ -202,6 +206,21 @@
             close();
         }
 
+        function scheduleInlineClearance(): void {
+            if (!options.inline || !list || clearanceFrame) return;
+            clearanceFrame = window.requestAnimationFrame(() => {
+                clearanceFrame = 0;
+                if (list && document.activeElement === input) {
+                    window.LwcFlowActionDock?.ensureClear?.(list);
+                }
+            });
+        }
+
+        function resizeList(): void {
+            positionList();
+            scheduleInlineClearance();
+        }
+
         function positionList(): void {
             const parent = input.parentElement;
             if (!list || !parent) return;
@@ -209,6 +228,16 @@
             const parentBox = parent.getBoundingClientRect();
             const viewport = window.visualViewport;
             const gap = 8;
+            if (options.inline) {
+                // Long forms can reserve space below the field instead of covering
+                // earlier inputs with an upward-opening popup.
+                list.style.maxHeight = "";
+                const preferredHeight = list.getBoundingClientRect().height;
+                list.style.maxHeight = Math.min(preferredHeight,
+                    Math.max(48, (viewport?.height ?? window.innerHeight) * 0.42)) + "px";
+                if (currentFocus >= 0) setActive(currentFocus);
+                return;
+            }
             const visibleTop = (viewport?.offsetTop ?? 0) + gap;
             let visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) - gap;
             const dock = document.querySelector(".flow-action-stack--docked")?.getBoundingClientRect();
@@ -263,6 +292,7 @@
             list = document.createElement("div");
             list.id = listId;
             list.className = "autocomplete-items lwc-flag-suggestions";
+            if (options.inline) list.classList.add("lwc-flag-suggestions--inline");
             list.setAttribute("role", "listbox");
             list.setAttribute("aria-label", "Flag suggestions");
             matches.forEach((option, index) => {
@@ -285,6 +315,7 @@
             input.parentElement.appendChild(list);
             input.setAttribute("aria-expanded", "true");
             positionList();
+            scheduleInlineClearance();
             // Docking and font/layout changes can move the available space without a viewport event.
             geometryObserver.observe(input, { box: "border-box" });
             geometryObserver.observe(input.parentElement, { box: "border-box" });
@@ -325,9 +356,9 @@
         document.addEventListener("click", event => {
             if (event.target !== input && (!(event.target instanceof Node) || !list?.contains(event.target))) dismiss();
         });
-        window.addEventListener("resize", positionList);
+        window.addEventListener("resize", resizeList);
         window.addEventListener("scroll", event => { if (event.target !== list) positionList(); }, true);
-        window.visualViewport?.addEventListener("resize", positionList);
+        window.visualViewport?.addEventListener("resize", resizeList);
         window.visualViewport?.addEventListener("scroll", positionList);
         return { refresh() { if (wantsSuggestions && document.activeElement === input) render(); } };
     }

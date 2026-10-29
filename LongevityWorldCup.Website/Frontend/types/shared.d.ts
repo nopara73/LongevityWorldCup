@@ -81,6 +81,7 @@ interface FlagAutocompleteOptions {
     getOptions(): readonly FlagOption[];
     limit?: number;
     hideExactMatch?: boolean;
+    inline?: boolean;
 }
 
 interface CustomEventMarkupOptions {
@@ -255,6 +256,18 @@ interface AgeVisualizationAthlete {
     readonly lowestBortzAge?: number;
 }
 
+interface AgeVisualizationReading {
+    readonly date: string;
+    readonly bio: number;
+    readonly chrono: number;
+    readonly values: readonly number[];
+}
+
+interface AgeVisualizationHistory {
+    readonly pheno: readonly AgeVisualizationReading[];
+    readonly bortz: readonly AgeVisualizationReading[];
+}
+
 interface RadarData {
     readonly labels: string[];
     readonly values: number[];
@@ -262,6 +275,8 @@ interface RadarData {
 }
 
 interface RadarChartInstance {
+    readonly width: number;
+    readonly height: number;
     data: {
         labels: string[];
         datasets: Array<{ data: number[] }>;
@@ -381,6 +396,10 @@ interface GuessMyAgeStoredEntry {
 }
 
 interface LwcGuessStateApi {
+    shouldSkipAll(): boolean;
+    skipAll(): void;
+    hasSeenPrompt(): boolean;
+    markPromptSeen(): void;
     getAthleteSlug(athleteOrSlug: unknown): string;
     getProfileImageId(athleteOrSlug: unknown): string;
     get(athleteOrSlug: unknown): GuessMyAgeState | null;
@@ -469,7 +488,9 @@ interface Window {
         bioAge: number,
         chronoAge: number,
         athleteData: AgeVisualizationAthlete | null | undefined,
-        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined
+        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined,
+        history?: AgeVisualizationHistory,
+        loadChart?: () => Promise<unknown>
     ): void;
     generateAgeVisualizationInternal?(
         visualizationContainer: HTMLElement,
@@ -493,6 +514,14 @@ interface Window {
     pickClickUrl?(badge: ServerBadge, athlete?: BadgeAthlete | null): string | null;
     getBadgeFamilyClass?(badge: ServerBadge): string;
     styleWithBadgeVars?(style: string): string;
+    __lwcBadgeTipBound?: boolean;
+    __lwcBadgeLightBound?: boolean;
+    getBadgeRarity?(badge: ServerBadge): 'legendary' | 'rare' | '';
+    LwcBadges?: {
+        celebrate(scope: Element | null | undefined): void;
+        rarity(badge: ServerBadge): 'legendary' | 'rare' | '';
+        stashOverflow(owner: HTMLElement, html: string): void;
+    };
     setBadges(athlete: BadgeAthlete, athleteCell: HTMLElement | null | undefined): void;
     computeBadges: (...args: unknown[]) => unknown;
     openAthleteModalBySlug?(

@@ -50,5 +50,21 @@
   "Flag": "United Arab Emirates",
   "Why": "Living long & healthy, serving others",
   "PersonalLink": "https://www.youtube.com/@iaminkaland",
-  "PodcastLink": "https://www.youtube.com/watch?v=KP880OKbYrw"
+  "PodcastLink": "https://www.youtube.com/watch?v=KP880OKbYrw",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/iaminkaland",
+      "EvidenceUrls": [
+        "https://www.youtube.com/@iaminkaland"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@iaminkaland",
+      "EvidenceUrls": [
+        "https://www.instagram.com/iaminkaland/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

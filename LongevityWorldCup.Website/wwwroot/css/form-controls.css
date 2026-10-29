@@ -1,0 +1,875 @@
+/*
+ * Longevity World Cup form controls
+ *
+ * One tactile family for every field the site asks people to touch: text
+ * fields, selects, dates, numbers, checkboxes, radios, switches, segmented
+ * choices, sliders and file buttons. Each control has the same four beats:
+ *
+ *   rest   - a visible boundary in --lwc-border-strong;
+ *   hover  - the boundary leans toward the accent;
+ *   focus  - a teal ring grows in from outside and settles on the edge;
+ *   chosen - the accent fills the control with a quick, springy mark.
+ *
+ * Colours are the existing --lwc-* tokens only. Base rules sit in :where() so
+ * any page that styles its own control still wins; only the transition and
+ * focus beats outrank aesthetic-system.css, because they are the system.
+ * Every movement is inside prefers-reduced-motion: no-preference.
+ * form-controls.ts adds what CSS cannot: label focus, sliding segment
+ * highlights, number steppers, file drop state and smooth error slots.
+ */
+
+:root {
+    --lwc-control-ring: rgba(25, 195, 209, 0.28);
+    --lwc-control-ring-width: 3px;
+    --lwc-control-hover: color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border-strong));
+    --lwc-control-tone: var(--lwc-accent);
+    --lwc-control-on-tone: var(--lwc-on-accent);
+    --lwc-control-box: 1.25rem;
+    --lwc-control-grow: 220ms;
+    --lwc-control-ease-settle: cubic-bezier(0.34, 1.4, 0.64, 1);
+    --lwc-control-icon-check: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12.5l4.5 4.5L19 7.5'/></svg>");
+    --lwc-control-icon-dash: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round'><path d='M6 12h12'/></svg>");
+    --lwc-control-icon-chevron: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+    --lwc-control-icon-calendar: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3.5' y='5' width='17' height='15.5' rx='2.5'/><path d='M3.5 10h17M8 3v4M16 3v4'/></svg>");
+    --lwc-control-icon-minus: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'><path d='M6 12h12'/></svg>");
+    --lwc-control-icon-plus: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'><path d='M6 12h12M12 6v12'/></svg>");
+}
+
+/* ------------------------------------------------------------------------- */
+/* 1) Text fields: hover leans, focus ring grows in and settles.             */
+/* ------------------------------------------------------------------------- */
+
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"]), select, textarea) {
+    caret-color: var(--lwc-accent);
+    accent-color: var(--lwc-accent);
+}
+
+/* The ring is always present at zero width, outside the edge, so focus can
+   grow it rather than switching it on. Same specificity pattern as the
+   shared field rules, one element deeper so it wins over their transition. */
+html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])),
+html select,
+html textarea {
+    outline: 0 solid transparent;
+    outline-offset: 6px;
+}
+
+html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])):focus,
+html select:focus,
+html textarea:focus {
+    outline: var(--lwc-control-ring-width) solid var(--lwc-control-ring);
+    outline-offset: 1px;
+}
+
+@media (hover: hover) {
+    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])):hover:not(:focus):not(:disabled):not(:read-only):not([aria-invalid="true"]),
+    html select:hover:not(:focus):not(:disabled):not([aria-invalid="true"]),
+    html textarea:hover:not(:focus):not(:disabled):not(:read-only):not([aria-invalid="true"]) {
+        border-color: var(--lwc-control-hover);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])),
+    html select,
+    html textarea {
+        transition:
+            border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+            background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+            box-shadow var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+            color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+            outline-color var(--lwc-control-grow) var(--lwc-ease-enter, ease-out),
+            outline-width var(--lwc-control-grow) var(--lwc-control-ease-settle),
+            outline-offset var(--lwc-control-grow) var(--lwc-control-ease-settle),
+            translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+    }
+
+    /* Leaving a field lets the ring fade quickly instead of shrinking back. */
+    html input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):where(:not([type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"])):not(:focus),
+    html select:not(:focus),
+    html textarea:not(:focus) {
+        transition-duration:
+            var(--lwc-motion-fast, 140ms), var(--lwc-motion-fast, 140ms), var(--lwc-motion-fast, 140ms),
+            var(--lwc-motion-fast, 140ms), 120ms, 0s, 0s, var(--lwc-motion-fast, 140ms);
+        transition-delay: 0s, 0s, 0s, 0s, 0s, 120ms, 120ms, 0s;
+    }
+}
+
+/* Numbers keep native keyboard steps; wheel gestures scroll their container. */
+:where(input[type="number"]) {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Appearance alone leaves the native wheel-stepping widget laid out. */
+:where(input[type="number"])::-webkit-inner-spin-button {
+    display: none;
+}
+
+:where(input[type="number"][data-lwc-stepper]) {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+:where(input[type="number"][data-lwc-stepper])::-webkit-inner-spin-button,
+:where(input[type="number"][data-lwc-stepper])::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Search clear button uses the shared ink instead of the platform blue. */
+:where(input[type="search"])::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    background: currentColor;
+    color: var(--lwc-muted);
+    -webkit-mask: var(--lwc-control-icon-plus) center / 100% no-repeat;
+    mask: var(--lwc-control-icon-plus) center / 100% no-repeat;
+    rotate: 45deg;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 2) Labels settle toward the field they name.                              */
+/*    form-controls.ts sets data-lwc-label on a field's labels.              */
+/* ------------------------------------------------------------------------- */
+
+:where(label, .lmx-label, legend)[data-lwc-label] {
+    transition: color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), translate var(--lwc-motion-base, 200ms) var(--lwc-control-ease-settle);
+}
+
+html body :is(label, .lmx-label, legend)[data-lwc-label~="focus"] {
+    color: var(--lwc-accent);
+}
+
+html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
+    color: var(--lwc-danger);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Block labels (above the field) drop toward it; inline labels stay put. */
+    html body :is(label, .lmx-label, legend)[data-lwc-label~="block"][data-lwc-label~="focus"] {
+        translate: 0 1px;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 3) Selects open as an animated popover where the browser allows it.       */
+/*    Older browsers keep the native list with the same field styling.       */
+/* ------------------------------------------------------------------------- */
+
+@supports (appearance: base-select) {
+    /* Important: pages historically set appearance:none plus a painted
+       chevron; the shared picker replaces both on every single select. */
+    html select:not([multiple]):not([size]),
+    html select:not([multiple]):not([size])::picker(select) {
+        appearance: base-select !important;
+    }
+
+    html select:not([multiple]):not([size]) {
+        align-items: center;
+        gap: var(--lwc-space-2);
+        background-image: none !important;
+        cursor: pointer;
+        text-align: start;
+        /* Like the native control: one line, clipped, never broken mid-word. */
+        white-space: nowrap;
+        overflow: hidden;
+        overflow-wrap: normal;
+        text-overflow: ellipsis;
+    }
+
+    html select:not([multiple]):not([size])::picker-icon {
+        content: "";
+        flex: none;
+        width: 0.875rem;
+        height: 0.875rem;
+        margin-inline-start: auto;
+        background: currentColor;
+        color: var(--lwc-muted);
+        -webkit-mask: var(--lwc-control-icon-chevron) center / 100% no-repeat;
+        mask: var(--lwc-control-icon-chevron) center / 100% no-repeat;
+    }
+
+    html select:not([multiple]):not([size]):open {
+        border-color: var(--lwc-accent);
+    }
+
+    html select:not([multiple]):not([size]):open::picker-icon {
+        rotate: 180deg;
+        color: var(--lwc-accent);
+    }
+
+    html select:not([multiple]):not([size])::picker(select) {
+        box-sizing: border-box;
+        min-inline-size: anchor-size(self-inline);
+        /* Keep the browser's available-space height and both-axis placement
+           fallbacks, so a zoomed picker can shrink to fit above its control. */
+        max-inline-size: calc(100dvw - 16px);
+        margin-block: 6px;
+        padding: var(--lwc-space-1);
+        border: 1px solid var(--lwc-border);
+        border-radius: var(--lwc-radius-md);
+        background: var(--lwc-surface);
+        color: var(--lwc-ink);
+        box-shadow: var(--lwc-shadow-md);
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+
+    html select:not([multiple]):not([size]) option {
+        display: flex;
+        align-items: center;
+        gap: var(--lwc-space-2);
+        min-block-size: 40px;
+        padding: var(--lwc-space-2) var(--lwc-space-3);
+        border-radius: var(--lwc-radius-sm);
+        background: transparent;
+        color: var(--lwc-ink);
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    html select:not([multiple]):not([size]) option:is(:hover, :focus-visible):not(:disabled) {
+        background: var(--lwc-surface-muted);
+        outline: none;
+    }
+
+    html select:not([multiple]):not([size]) option:focus-visible {
+        box-shadow: inset 0 0 0 2px var(--lwc-control-ring);
+    }
+
+    html select:not([multiple]):not([size]) option:checked {
+        background: var(--lwc-accent-soft);
+        color: var(--lwc-accent-hover);
+        font-weight: 700;
+    }
+
+    html select:not([multiple]):not([size]) option::checkmark {
+        content: "";
+        order: 1;
+        flex: none;
+        width: 0.875rem;
+        height: 0.875rem;
+        margin-inline-start: auto;
+        background: currentColor;
+        -webkit-mask: var(--lwc-control-icon-check) center / 100% no-repeat;
+        mask: var(--lwc-control-icon-check) center / 100% no-repeat;
+    }
+
+    html select:not([multiple]):not([size]) option:disabled {
+        color: var(--lwc-subtle);
+        cursor: not-allowed;
+    }
+
+    html select:not([multiple]):not([size]) optgroup {
+        padding-block-start: var(--lwc-space-1);
+    }
+
+    html select:not([multiple]):not([size]) optgroup legend {
+        padding: var(--lwc-space-2) var(--lwc-space-3) var(--lwc-space-1);
+        color: var(--lwc-muted);
+        font-size: var(--lwc-type-xs);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        html select:not([multiple]):not([size])::picker-icon {
+            transition: rotate var(--lwc-motion-base, 200ms) var(--lwc-control-ease-settle), color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+        }
+
+        /* Open: the list drops from the field and unfolds; close is quicker. */
+        html select:not([multiple]):not([size])::picker(select) {
+            transform-origin: top center;
+            opacity: 0;
+            translate: 0 -6px;
+            scale: 1 0.96;
+            transition:
+                opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in),
+                translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in),
+                scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in),
+                display var(--lwc-motion-fast, 140ms) allow-discrete,
+                overlay var(--lwc-motion-fast, 140ms) allow-discrete;
+        }
+
+        html select:not([multiple]):not([size]):open::picker(select) {
+            opacity: 1;
+            translate: 0 0;
+            scale: 1 1;
+            transition-duration: var(--lwc-motion-base, 200ms);
+            transition-timing-function: var(--lwc-ease-enter, ease-out);
+        }
+
+        @starting-style {
+            html select:not([multiple]):not([size]):open::picker(select) {
+                opacity: 0;
+                translate: 0 -6px;
+                scale: 1 0.96;
+            }
+        }
+
+        html select:not([multiple]):not([size]) option {
+            transition: background-color var(--lwc-motion-press, 90ms) var(--lwc-ease-standard, ease), color var(--lwc-motion-press, 90ms) var(--lwc-ease-standard, ease);
+        }
+
+        html select:not([multiple]):not([size]) option:checked::checkmark {
+            animation: lwc-control-mark-in var(--lwc-motion-base, 200ms) var(--lwc-control-ease-settle) backwards;
+        }
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 4) Dates: the native picker stays, with the site's segments and icon.     */
+/* ------------------------------------------------------------------------- */
+
+:where(input[type="date"], input[type="datetime-local"], input[type="month"], input[type="time"]) {
+    font-variant-numeric: tabular-nums;
+    cursor: text;
+}
+
+:where(input[type="date"], input[type="datetime-local"], input[type="month"])::-webkit-calendar-picker-indicator {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-inline-start: var(--lwc-space-2);
+    padding: 0;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-muted);
+    -webkit-mask: var(--lwc-control-icon-calendar) center / 1.1rem no-repeat;
+    mask: var(--lwc-control-icon-calendar) center / 1.1rem no-repeat;
+    cursor: pointer;
+    opacity: 1;
+}
+
+:where(input[type="date"], input[type="datetime-local"], input[type="month"]):is(:hover, :focus)::-webkit-calendar-picker-indicator {
+    background: var(--lwc-accent);
+}
+
+/* An empty date reads as a hint, like a placeholder. */
+:where(input[type="date"], input[type="datetime-local"], input[type="month"]):required:invalid::-webkit-datetime-edit {
+    color: var(--lwc-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :where(input[type="date"], input[type="datetime-local"], input[type="month"])::-webkit-calendar-picker-indicator {
+        transition: background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), scale var(--lwc-motion-press, 90ms) var(--lwc-ease-standard, ease);
+    }
+
+    :where(input[type="date"], input[type="datetime-local"], input[type="month"])::-webkit-calendar-picker-indicator:active {
+        scale: 0.86;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 5) Checkboxes, radios and switches.                                       */
+/* ------------------------------------------------------------------------- */
+
+:where(input[type="checkbox"], input[type="radio"]) {
+    appearance: none;
+    position: relative;
+    display: inline-grid;
+    place-content: center;
+    flex: none;
+    box-sizing: border-box;
+    width: var(--lwc-control-box);
+    height: var(--lwc-control-box);
+    margin: 0;
+    border: 2px solid var(--lwc-border-strong);
+    border-radius: 6px;
+    background: var(--lwc-surface);
+    color: var(--lwc-control-on-tone);
+    vertical-align: -0.28em;
+    cursor: pointer;
+    outline: 0 solid transparent;
+    outline-offset: 6px;
+}
+
+:where(input[type="radio"]) {
+    border-radius: 50%;
+}
+
+/* The mark: a stroke for checkboxes, a dot for radios. */
+:where(input[type="checkbox"], input[type="radio"])::before {
+    content: "";
+    grid-area: 1 / 1;
+    width: 0.875rem;
+    height: 0.875rem;
+    background: currentColor;
+    -webkit-mask: var(--lwc-control-icon-check) center / 100% no-repeat;
+    mask: var(--lwc-control-icon-check) center / 100% no-repeat;
+    scale: 0.4;
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+}
+
+:where(input[type="checkbox"]):indeterminate::before {
+    -webkit-mask-image: var(--lwc-control-icon-dash);
+    mask-image: var(--lwc-control-icon-dash);
+}
+
+:where(input[type="radio"])::before {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    -webkit-mask: none;
+    mask: none;
+    clip-path: none;
+}
+
+:where(input[type="checkbox"], input[type="radio"]):is(:checked, :indeterminate) {
+    border-color: var(--lwc-control-tone);
+    background: var(--lwc-control-tone);
+}
+
+:where(input[type="checkbox"], input[type="radio"]):is(:checked, :indeterminate)::before {
+    scale: 1;
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+}
+
+@media (hover: hover) {
+    :where(input[type="checkbox"], input[type="radio"]):hover:not(:disabled, :checked, :indeterminate) {
+        border-color: var(--lwc-control-hover);
+        background: color-mix(in srgb, var(--lwc-control-tone) 8%, var(--lwc-surface));
+    }
+
+    /* Hovering the whole row reads as hovering its box. */
+    :where(label):hover > :where(input[type="checkbox"], input[type="radio"]):not(:disabled, :checked, :indeterminate) {
+        border-color: var(--lwc-control-hover);
+    }
+}
+
+:where(input[type="checkbox"], input[type="radio"]):focus-visible {
+    outline: var(--lwc-control-ring-width) solid var(--lwc-control-ring);
+    outline-offset: 2px;
+}
+
+:where(input[type="checkbox"], input[type="radio"]):disabled {
+    border-color: var(--lwc-border);
+    background: var(--lwc-surface-muted);
+    color: var(--lwc-muted);
+    cursor: not-allowed;
+}
+
+:where(input[type="checkbox"], input[type="radio"]):disabled:is(:checked, :indeterminate) {
+    background: var(--lwc-border);
+}
+
+:where(input[type="checkbox"], input[type="radio"])[aria-invalid="true"] {
+    border-color: var(--lwc-danger);
+}
+
+/* Switch: role="switch" on a checkbox. The knob slides; the track fills. */
+:where(input[type="checkbox"][role="switch"]) {
+    width: 2.5rem;
+    height: 1.5rem;
+    place-content: center start;
+    padding: 2px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface-muted);
+}
+
+:where(input[type="checkbox"][role="switch"])::before {
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-border-strong);
+    -webkit-mask: none;
+    mask: none;
+    clip-path: none;
+    scale: 1;
+    opacity: 1;
+    translate: 0 0;
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+:where(input[type="checkbox"][role="switch"]):checked::before {
+    background: var(--lwc-control-on-tone);
+    translate: 1rem 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :where(input[type="checkbox"], input[type="radio"]) {
+        transition:
+            background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+            border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+            outline-color var(--lwc-control-grow) var(--lwc-ease-enter, ease-out),
+            outline-offset var(--lwc-control-grow) var(--lwc-control-ease-settle),
+            scale var(--lwc-motion-press, 90ms) var(--lwc-ease-standard, ease);
+    }
+
+    :where(input[type="checkbox"], input[type="radio"])::before {
+        transition:
+            scale var(--lwc-motion-base, 200ms) var(--lwc-control-ease-settle),
+            opacity var(--lwc-motion-press, 90ms) var(--lwc-ease-standard, ease),
+            clip-path var(--lwc-motion-base, 200ms) var(--lwc-ease-enter, ease-out) 40ms,
+            translate var(--lwc-motion-base, 200ms) var(--lwc-control-ease-settle),
+            width var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+            background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+    }
+
+    /* Unchecking is a quick fade, never a reverse draw. */
+    :where(input[type="checkbox"], input[type="radio"]):not(:checked, :indeterminate)::before {
+        transition-duration: var(--lwc-motion-press, 90ms);
+        transition-delay: 0s;
+    }
+
+    /* Press: the box gives under the finger. */
+    :where(input[type="checkbox"], input[type="radio"]):active:not(:disabled) {
+        scale: 0.88;
+    }
+
+    :where(label):active > :where(input[type="checkbox"], input[type="radio"]):not(:disabled) {
+        scale: 0.88;
+    }
+
+    /* The switch knob stretches toward where it is going while held. */
+    :where(input[type="checkbox"][role="switch"]):active:not(:disabled) {
+        scale: 1;
+    }
+
+    :where(input[type="checkbox"][role="switch"]):active:not(:disabled)::before {
+        width: 1.25rem;
+    }
+
+    :where(input[type="checkbox"][role="switch"]):checked:active:not(:disabled)::before {
+        translate: 0.75rem 0;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 6) Segmented choices: one highlight slides between the options.           */
+/*    form-controls.ts adds .lwc-segment-glide to known groups and copies    */
+/*    the chosen option's own surface onto it, so each page keeps its look.  */
+/* ------------------------------------------------------------------------- */
+
+[data-lwc-segmented] {
+    position: relative;
+    isolation: isolate;
+}
+
+.lwc-segment-glide {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    width: var(--lwc-glide-w, 0);
+    height: var(--lwc-glide-h, 0);
+    border-radius: var(--lwc-glide-radius, var(--lwc-radius-md));
+    background: var(--lwc-glide-bg, var(--lwc-surface));
+    box-shadow: var(--lwc-glide-shadow, none);
+    translate: var(--lwc-glide-x, 0) var(--lwc-glide-y, 0);
+    pointer-events: none;
+}
+
+.lwc-segment-glide:not([data-ready]) {
+    opacity: 0;
+}
+
+/* While the glide carries the surface, the chosen option itself goes clear. */
+[data-lwc-segmented] > [data-lwc-segment-on],
+[data-lwc-segmented] > [data-lwc-segment-on]:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-motion="on"] .lwc-segment-glide[data-ready] {
+        transition:
+            translate var(--lwc-motion-move, 260ms) var(--lwc-control-ease-settle),
+            width var(--lwc-motion-move, 260ms) var(--lwc-control-ease-settle),
+            height var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
+            opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+    }
+
+    [data-lwc-segmented] > * {
+        transition: color var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease);
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 7) Number steppers: [data-lwc-stepper] wraps a number field in − / +.     */
+/* ------------------------------------------------------------------------- */
+
+.lwc-stepper {
+    display: inline-flex;
+    align-items: stretch;
+    max-width: 100%;
+    border: 1px solid var(--lwc-border-strong);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+    outline: 0 solid transparent;
+    outline-offset: 6px;
+}
+
+.lwc-stepper:focus-within {
+    border-color: var(--lwc-accent);
+    outline: var(--lwc-control-ring-width) solid var(--lwc-control-ring);
+    outline-offset: 1px;
+}
+
+/* The wrapper owns the boundary and the ring; the field inside is bare. */
+html .lwc-stepper input[type="number"] {
+    flex: 1 1 4ch;
+    min-width: 0;
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    text-align: center;
+}
+
+.lwc-stepper-button {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--lwc-accent);
+    cursor: pointer;
+}
+
+.lwc-stepper-button:first-child {
+    border-inline-end: 1px solid var(--lwc-border);
+    border-start-start-radius: inherit;
+    border-end-start-radius: inherit;
+}
+
+.lwc-stepper-button:last-child {
+    border-inline-start: 1px solid var(--lwc-border);
+    border-start-end-radius: inherit;
+    border-end-end-radius: inherit;
+}
+
+.lwc-stepper-button::before {
+    content: "";
+    width: 1rem;
+    height: 1rem;
+    background: currentColor;
+    -webkit-mask: var(--lwc-control-icon-minus) center / 100% no-repeat;
+    mask: var(--lwc-control-icon-minus) center / 100% no-repeat;
+}
+
+.lwc-stepper-button[data-step="up"]::before {
+    -webkit-mask-image: var(--lwc-control-icon-plus);
+    mask-image: var(--lwc-control-icon-plus);
+}
+
+.lwc-stepper-button:hover:not(:disabled) {
+    background: var(--lwc-surface-muted);
+}
+
+.lwc-stepper-button:disabled {
+    background: transparent;
+    color: var(--lwc-subtle);
+}
+
+.lwc-stepper:has(input:disabled) {
+    background: var(--lwc-surface-muted);
+    border-color: var(--lwc-border);
+}
+
+/* ------------------------------------------------------------------------- */
+/* 8) Sliders: an accent fill up to the thumb; the thumb grows while held.   */
+/*    Pages that style their own range (Guess My Age) keep it.               */
+/* ------------------------------------------------------------------------- */
+
+:where(input[type="range"]:not(#gmaRange)) {
+    --lwc-range-fill: 50%;
+    appearance: none;
+    height: 1.5rem;
+    background: transparent;
+    accent-color: var(--lwc-accent);
+    cursor: pointer;
+}
+
+:where(input[type="range"]:not(#gmaRange))::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: var(--lwc-radius-pill);
+    background: linear-gradient(to right, var(--lwc-accent) var(--lwc-range-fill), var(--lwc-border) var(--lwc-range-fill));
+}
+
+:where(input[type="range"]:not(#gmaRange))::-moz-range-track {
+    height: 6px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-border);
+}
+
+:where(input[type="range"]:not(#gmaRange))::-moz-range-progress {
+    height: 6px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-accent);
+}
+
+:where(input[type="range"]:not(#gmaRange))::-webkit-slider-thumb {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: calc((6px - 1.25rem) / 2);
+    border: 3px solid var(--lwc-accent);
+    border-radius: 50%;
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+:where(input[type="range"]:not(#gmaRange))::-moz-range-thumb {
+    width: 1.25rem;
+    height: 1.25rem;
+    box-sizing: border-box;
+    border: 3px solid var(--lwc-accent);
+    border-radius: 50%;
+    background: var(--lwc-surface);
+}
+
+:where(input[type="range"]:not(#gmaRange)):focus-visible {
+    outline: none;
+}
+
+:where(input[type="range"]:not(#gmaRange)):focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 var(--lwc-control-ring-width) var(--lwc-control-ring);
+}
+
+:where(input[type="range"]:not(#gmaRange)):focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 var(--lwc-control-ring-width) var(--lwc-control-ring);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :where(input[type="range"]:not(#gmaRange))::-webkit-slider-thumb {
+        transition: scale var(--lwc-motion-fast, 140ms) var(--lwc-control-ease-settle), box-shadow var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+    }
+
+    :where(input[type="range"]:not(#gmaRange)):active::-webkit-slider-thumb {
+        scale: 1.2;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 9) File pickers: a bordered secondary button, and drop zones that lift.   */
+/* ------------------------------------------------------------------------- */
+
+:where(input[type="file"]) {
+    max-width: 100%;
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+}
+
+:where(input[type="file"])::file-selector-button {
+    min-height: 44px;
+    margin-inline-end: var(--lwc-space-3);
+    padding: var(--lwc-space-2) var(--lwc-space-4);
+    border: 1px solid var(--lwc-border-strong);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+    color: var(--lwc-ink);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+:where(input[type="file"]):hover::file-selector-button {
+    border-color: var(--lwc-accent);
+    color: var(--lwc-accent-hover);
+}
+
+/* form-controls.ts marks the zone a file is being dragged over. */
+[data-lwc-dropzone] {
+    transition:
+        border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        box-shadow var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+}
+
+[data-lwc-dropzone="over"] {
+    border-color: var(--lwc-accent) !important;
+    background-color: var(--lwc-accent-soft) !important;
+    box-shadow: 0 0 0 var(--lwc-control-ring-width) var(--lwc-control-ring);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :where(input[type="file"])::file-selector-button {
+        transition: border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), scale var(--lwc-motion-press, 90ms) var(--lwc-ease-standard, ease);
+    }
+
+    :where(input[type="file"])::file-selector-button:active {
+        scale: 0.97;
+    }
+
+    [data-lwc-dropzone] {
+        transition-property: border-color, background-color, box-shadow, scale;
+    }
+
+    [data-lwc-dropzone="over"] {
+        scale: 1.01;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* 10) Validation: the field turns, the words arrive; nothing jumps.         */
+/* ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    /* form-controls.ts eases each error slot's height; the words fade up. */
+    :is(.error-message, .profile-field-error, .validation-message):not(:empty) {
+        animation: lwc-control-message-in var(--lwc-motion-base, 200ms) var(--lwc-ease-enter, ease-out) backwards;
+    }
+
+    :is(.error-message, .profile-field-error, .validation-message):not(:empty)::before {
+        animation: lwc-control-mark-in var(--lwc-motion-move, 260ms) var(--lwc-control-ease-settle) 40ms backwards;
+    }
+}
+
+@keyframes lwc-control-message-in {
+    from {
+        opacity: 0;
+        translate: 0 -4px;
+    }
+}
+
+@keyframes lwc-control-mark-in {
+    from {
+        opacity: 0;
+        scale: 0.4;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Page tones: controls that historically used a different accent-color.     */
+/* ------------------------------------------------------------------------- */
+
+#biomarker-checklist .biomarker-checkbox {
+    --lwc-control-tone: var(--lwc-success);
+}
+
+@media (forced-colors: active) {
+    :where(input[type="checkbox"], input[type="radio"]) {
+        appearance: auto;
+    }
+
+    :where(input[type="checkbox"], input[type="radio"])::before,
+    .lwc-segment-glide {
+        display: none;
+    }
+
+    [data-lwc-segmented] > [data-lwc-segment-on] {
+        background: Highlight !important;
+        color: HighlightText !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-lwc-label], [data-lwc-dropzone], .lwc-segment-glide {
+        transition: none;
+    }
+}

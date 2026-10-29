@@ -24,5 +24,28 @@
   "Division": "Men's",
   "Flag": "Norway",
   "Why": "Getting my health back after abusing drugs for several years.",
-  "PersonalLink": "https://henriksb.com"
+  "PersonalLink": "https://henriksb.com",
+  "SocialProfiles": {
+    "GitHub": {
+      "Url": "https://github.com/henriksb",
+      "EvidenceUrls": [
+        "https://henriksb.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/henrik-selje-bygnes",
+      "EvidenceUrls": [
+        "https://henriksb.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Reddit": {
+      "Url": "https://www.reddit.com/user/henrik__sb",
+      "EvidenceUrls": [
+        "https://henriksb.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

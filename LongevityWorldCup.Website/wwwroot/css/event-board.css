@@ -44,7 +44,6 @@
 @media (prefers-reduced-motion:reduce){
     .fade-in-board{animation:none!important}
     .row-appear,.row-appear.is-visible{opacity:1;transform:none;transition:none!important}
-    .skeleton-shimmer{animation:none!important;background:rgba(0,0,0,.08)}
 }
 
 .events-board{
@@ -63,18 +62,17 @@
     margin:0 auto
 }
 
-@keyframes skeletonShimmer{
-    0%{ background-position:200% 0; }
-    100%{ background-position:-200% 0; }
-}
-
-.skeleton-shimmer{
-    background:linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(255,255,255,.72) 50%, rgba(0,0,0,.06) 75%);
-    background-size:200% 100%;
-    animation:skeletonShimmer 1.4s ease-in-out infinite;
-}
-
 .events-skeleton-row td{ cursor:default; }
+/* A cold Back reserves the prior feed height for native scroll restoration.
+   Keep the existing loading sketch with the reader throughout that extent. */
+.events-board[data-history-loading] {
+    overflow: clip;
+    overflow-anchor: none;
+}
+.events-board[data-history-loading][aria-busy="true"] > table {
+    position: sticky;
+    top: var(--site-visible-sticky-height, 0px);
+}
 
 .events-status{
     position:absolute;
@@ -273,15 +271,14 @@
 .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
 .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
 .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
-.events-board.athlete-scroll td.event-message .event-message-cell .more-link,
-.events-board.athlete-scroll td.event-message .event-message-cell .donation-amount{
+.events-board.athlete-scroll td.event-message .event-message-cell .more-link{
     white-space:nowrap;
 }
 
 .events-board.athlete-scroll tbody tr.custom-event-details{display:none}
 .events-board.athlete-scroll tbody tr.custom-event-row.is-open + tr.custom-event-details{display:table}
 
-.header-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.header-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem}
 .header-bar span{line-height:1.15}
 .view-all{
     display:inline-flex;
@@ -443,20 +440,22 @@
     overflow:visible;
     white-space:normal;
     row-gap:.15rem;
+    overflow-wrap:break-word;
+    word-break:normal;
 }
 .events-board td.event-message .event-message-cell *{
     white-space:normal;
 }
 
-.event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
-.events-board td.event-message .event-message-cell a{overflow-wrap:anywhere;word-break:break-word}
+.event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:break-word;word-break:normal}
+.events-board td.event-message .event-message-cell a{overflow-wrap:break-word;word-break:normal}
 .event-message a:hover,
 .event-message a:focus{color:var(--secondary-color,#087685);text-decoration-color:var(--secondary-color,#087685)}
 .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
 .event-message .event-inline-text{min-width:0;white-space:normal}
-.events-board .event-measurement,
-.events-board .event-measurement *{white-space:nowrap!important}
-.name-and-rank{display:inline;vertical-align:baseline;white-space:normal;overflow-wrap:anywhere}
+.events-board .event-measurement{white-space:normal!important}
+.events-board .event-measurement strong{white-space:nowrap!important}
+.name-and-rank{display:inline;vertical-align:baseline;white-space:normal;overflow-wrap:break-word;min-width:0;max-width:100%}
 .name-and-rank .rank-badge{padding-left:.15rem}
 .event-message .rank-badge{display:inline-flex;align-items:baseline;gap:.15rem;white-space:nowrap}
 .event-message .rank-icon{margin-left:.2rem}
@@ -508,8 +507,7 @@
 .events-board td.event-message .event-message-cell .rank-badge,
 .events-board td.event-message .event-message-cell .badge-class,
 .events-board td.event-message .event-message-cell .badge-chip,
-.events-board td.event-message .event-message-cell .more-link,
-.events-board td.event-message .event-message-cell .donation-amount{
+.events-board td.event-message .event-message-cell .more-link{
     white-space:nowrap;
 }
 
@@ -533,7 +531,7 @@
 }
 .milestone-people-avatar i{color:#fff!important;display:block;font-size:.95rem;line-height:1}
 .milestone-count{color:var(--secondary-color,#087685);font-weight:700}
-.count-accent{color:var(--secondary-color,#087685);font-weight:700}
+.count-accent,.event-rank-accent{color:var(--secondary-color,#087685);font-weight:700}
 
 .badge-list{display:flex;flex-wrap:wrap;gap:.35rem}
 .badge-chip{
@@ -558,17 +556,17 @@
     max-width:var(--badge-size);
     max-height:var(--badge-size);
     flex:0 0 var(--badge-size);
-    border:1px solid rgba(0,0,0,.48)!important;
+    border:1px solid var(--badge-rim,rgba(0,0,0,.48))!important;
     border-radius:999px;
     line-height:1;
     color:#fff!important;
-    box-shadow:0 1px 2px rgba(0,0,0,.22);
+    box-shadow:var(--badge-ring,none),0 1px 2px rgba(0,0,0,.22);
     margin-inline:var(--badge-inline-gap);
     margin-block:1px;
     vertical-align:middle
 }
 .events-board .badge-class.badge-family-rank{border-radius:999px}
-.events-board .badge-class.badge-family-domain{border:0!important;border-radius:0;clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);background:#111!important;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.16))}
+.events-board .badge-class.badge-family-domain{border:0!important;border-radius:0;clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%);background:var(--badge-rim,#111)!important;box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.16))}
 .events-board .badge-class.badge-family-domain::before{content:"";position:absolute;inset:1px;z-index:0;background:var(--badge-bg,linear-gradient(135deg,#555,#222));clip-path:polygon(24% 5%,76% 5%,100% 50%,76% 95%,24% 95%,0 50%)}
 .events-board .badge-class.badge-family-pace{border-radius:8px}
 .events-board .badge-class.badge-family-utility{border-radius:6px}
@@ -763,24 +761,27 @@
 }
 
 .custom-event-content{
+    display:grid;
+    grid-template-rows:0fr;
     padding:0;
     line-height:1.45;
-    max-height:0;
     opacity:0;
-    overflow:hidden;
-    will-change:max-height,opacity,padding;
+    visibility:hidden;
     transition:
-            max-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+            grid-template-rows var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
             padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
-            opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+            visibility 0s var(--lwc-duration-normal, 220ms);
 }
+.custom-event-body{min-height:0;overflow:hidden}
 
 .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-content{
     padding:10px 0;
-    max-height:1400px;
+    grid-template-rows:1fr;
     opacity:1;
+    visibility:visible;
     transition:
-            max-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+            grid-template-rows var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
             padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
             opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
@@ -845,8 +846,7 @@
     .events-board:not(.athlete-scroll) td.event-message .event-message-cell .rank-badge,
     .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-class,
     .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-chip,
-    .events-board:not(.athlete-scroll) td.event-message .event-message-cell .more-link,
-    .events-board:not(.athlete-scroll) td.event-message .event-message-cell .donation-amount{
+    .events-board:not(.athlete-scroll) td.event-message .event-message-cell .more-link{
         white-space:nowrap;
     }
     .events-board:not(.athlete-scroll) .badge-with-from.show-from{
@@ -876,10 +876,14 @@
     .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
     .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
     .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
-    .events-board.athlete-scroll td.event-message .event-message-cell .more-link,
-    .events-board.athlete-scroll td.event-message .event-message-cell .donation-amount{
+    .events-board.athlete-scroll td.event-message .event-message-cell .more-link{
         white-space:nowrap;
     }
+}
+
+/* Ranks are atomic in every layout, including non-link labels in embeds. */
+.events-board td.event-message .event-message-cell .placement-link{
+    white-space:nowrap;
 }
 
 @media (max-width:360px){
@@ -1009,5 +1013,400 @@
         --events-header-bg: #18353c;
         --events-header-ink: #a9edf0;
         --events-header-action: #5bd5dd;
+    }
+}
+
+/* "3 days ago 🚀" ends as one unit; the rocket never wraps onto a line of its own. */
+.event-rocket-tail {
+    white-space: nowrap !important;
+}
+
+/* Event anatomy: the portrait carries a mark for the kind of moment, names
+   read as names rather than a row of underlines, and badges sit on the line. */
+.event-avatar-frame {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    line-height: 0;
+}
+
+.event-kind {
+    --event-kind-size: 16px;
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: var(--event-kind-size);
+    height: var(--event-kind-size);
+    border-radius: 50%;
+    background: var(--secondary-color, #087685);
+    color: var(--card-bg, #fff);
+    box-shadow: 0 0 0 2px var(--card-bg, #fff);
+    font-size: calc(var(--event-kind-size) * .55);
+    line-height: 1;
+    pointer-events: none;
+}
+
+.event-kind i {
+    display: block;
+    line-height: 1;
+}
+
+.event-kind[data-kind="younger"],
+.event-kind[data-kind="improvement"] {
+    background: #4caf50;
+    color: #101820;
+}
+
+.event-kind[data-lost="true"] {
+    background: var(--events-muted);
+    color: var(--card-bg, #fff);
+}
+
+/* Compact feeds keep 24px portraits, too small to carry a mark. */
+.events-board:not(.event-board-page .events-board) .event-kind {
+    display: none;
+}
+
+.event-message .name-and-rank > a {
+    color: var(--primary-color);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.event-message .name-and-rank > a:hover,
+.event-message .name-and-rank > a:focus-visible {
+    color: var(--secondary-color, #087685);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: .18em;
+}
+
+.event-message .name-and-rank > .athlete-name-text {
+    font-weight: 700;
+}
+
+.event-message .name-and-rank .placement-link,
+.events-board td.event-message .event-message-cell .name-and-rank .placement-link {
+    color: var(--events-muted);
+    font-size: .875em;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.event-message .name-and-rank a.placement-link:hover,
+.event-message .name-and-rank a.placement-link:focus-visible,
+.events-board td.event-message .event-message-cell .name-and-rank a.placement-link:hover,
+.events-board td.event-message .event-message-cell .name-and-rank a.placement-link:focus-visible {
+    color: var(--secondary-color, #087685);
+    text-decoration: underline;
+}
+
+/* A badge is a word in the sentence: centred on the text, never floating above it. */
+.events-board td.event-message .event-message-cell .badge-class,
+.events-board td.event-message .event-message-cell .badge-with-from {
+    vertical-align: middle;
+}
+
+.events-board td.event-message .event-message-cell .badge-class {
+    position: relative;
+    margin-block: 0;
+}
+
+/* ---- Living feed -------------------------------------------------------
+   Rows remain readable as soon as they mount. Existing rows keep their place
+   during refreshes, names preview their athlete and the portrait carries over
+   into the profile. */
+:root {
+    --feed-ease: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    --feed-ease-exit: var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1));
+    --feed-ease-pop: var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    --feed-fast: var(--lwc-motion-fast, 140ms);
+    --feed-move: var(--lwc-motion-move, 260ms);
+}
+
+.events-board .row-appear,
+.events-board .row-appear.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+}
+
+/* Rows that leave fade out over their old place while the rest close up. */
+.events-exit-ghost {
+    position: absolute;
+    z-index: 4;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    pointer-events: none;
+}
+
+.events-exit-ghost .events-board {
+    display: block;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.events-exit-ghost table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.events-exit-ghost tr {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* "joined 3 days ago" rolls to its next value as the days pass. */
+.event-rel:has(> .event-rel-in) {
+    display: inline-grid;
+    overflow: hidden;
+    vertical-align: bottom;
+}
+
+.event-rel > .event-rel-in,
+.event-rel > .event-rel-out {
+    grid-area: 1 / 1;
+    white-space: nowrap;
+}
+
+.event-rel > .event-rel-out {
+    animation: lwc-feed-roll-out 420ms var(--feed-ease) both;
+}
+
+.event-rel > .event-rel-in {
+    animation: lwc-feed-roll-in 420ms var(--feed-ease) both;
+}
+
+@keyframes lwc-feed-roll-out {
+    to { opacity: 0; transform: translateY(-90%); }
+}
+
+@keyframes lwc-feed-roll-in {
+    from { opacity: 0; transform: translateY(90%); }
+}
+
+/* Name preview: a small profile card in the header band's language. */
+.event-athlete-preview {
+    position: fixed;
+    z-index: 1200;
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+    width: min(264px, calc(100vw - 16px));
+    box-sizing: border-box;
+    padding: 0 16px 14px;
+    overflow: auto;
+    border: 1px solid var(--lwc-border, var(--events-border));
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--card-bg, var(--lwc-surface, #fff));
+    color: var(--events-text);
+    box-shadow: 0 18px 40px -12px rgba(15, 23, 42, .32), 0 2px 6px rgba(15, 23, 42, .08);
+    cursor: pointer;
+    transform-origin: var(--preview-origin-x, 50%) top;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.event-athlete-preview[data-side="above"] {
+    transform-origin: var(--preview-origin-x, 50%) bottom;
+}
+
+.event-athlete-preview[hidden] {
+    display: none;
+}
+
+.event-athlete-preview.is-entering {
+    animation: lwc-preview-in 200ms var(--feed-ease) both;
+}
+
+.event-athlete-preview.is-leaving {
+    animation: lwc-preview-out 120ms var(--feed-ease-exit) both;
+    pointer-events: none;
+}
+
+.event-athlete-preview[data-side="above"].is-entering {
+    animation-name: lwc-preview-in-above;
+}
+
+@keyframes lwc-preview-in {
+    from { opacity: 0; transform: translateY(-6px) scale(.94); }
+}
+
+@keyframes lwc-preview-in-above {
+    from { opacity: 0; transform: translateY(6px) scale(.94); }
+}
+
+@keyframes lwc-preview-out {
+    to { opacity: 0; transform: scale(.97); }
+}
+
+.event-athlete-preview-band {
+    justify-self: stretch;
+    height: 44px;
+    margin: 0 -16px;
+    border-bottom: 1px solid var(--events-border);
+    background: var(--events-header-bg);
+}
+
+.event-athlete-preview-portrait {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-top: -34px;
+    margin-bottom: 4px;
+    border: 3px solid var(--card-bg, var(--lwc-surface, #fff));
+    border-radius: 50%;
+    background: var(--events-header-bg);
+    box-shadow: 0 4px 12px -4px rgba(15, 23, 42, .35);
+    overflow: hidden;
+}
+
+.event-athlete-preview-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.event-athlete-preview-portrait .avatar-fallback {
+    width: 100%;
+    height: 100%;
+    font-size: 1.1rem;
+}
+
+.event-athlete-preview.is-entering .event-athlete-preview-portrait {
+    animation: lwc-preview-portrait 320ms var(--feed-ease-pop) 40ms both;
+}
+
+@keyframes lwc-preview-portrait {
+    from { transform: scale(.7); }
+}
+
+.event-athlete-preview-name {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--events-header-action);
+}
+
+.event-athlete-preview-rank {
+    margin-left: 2px;
+    color: var(--events-muted);
+    font-size: .875em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.event-athlete-preview-rank .rank-icon {
+    margin-right: 3px;
+    font-size: .9em;
+}
+
+.event-athlete-preview-meta {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    color: var(--events-muted);
+    font-size: var(--lwc-type-sm, .875rem);
+    line-height: 1.35;
+}
+
+.event-athlete-preview-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--badge-gap);
+    margin-top: 8px;
+}
+
+.event-athlete-preview.is-entering .event-athlete-preview-badges > * {
+    animation: lwc-preview-badge 260ms var(--feed-ease-pop) both;
+}
+
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(2) { animation-delay: 30ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(3) { animation-delay: 60ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(4) { animation-delay: 90ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(5) { animation-delay: 120ms; }
+.event-athlete-preview.is-entering .event-athlete-preview-badges > :nth-child(6) { animation-delay: 150ms; }
+
+@keyframes lwc-preview-badge {
+    from { opacity: 0; transform: translateY(4px) scale(.8); }
+}
+
+.event-athlete-preview:hover .event-athlete-preview-name {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* The name being previewed stays marked while its card is open. */
+.events-board a[aria-controls="eventAthletePreview"] {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+/* Opening a profile: the row answers the press and the portrait flies over. */
+.events-board tr.main-row.is-launching {
+    animation: lwc-feed-launch 650ms var(--feed-ease);
+}
+
+@keyframes lwc-feed-launch {
+    0% { background-color: var(--events-hover-bg); }
+    30% { background-color: var(--details-bg); }
+}
+
+.events-board img.avatar.is-lifted {
+    opacity: 0;
+}
+
+.event-portrait-flight {
+    position: fixed;
+    z-index: 2147483000;
+    margin: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    pointer-events: none;
+    box-shadow: 0 16px 36px -10px rgba(15, 23, 42, .45);
+    transform-origin: center;
+    will-change: transform, opacity;
+}
+
+/* Long-pressing a name previews it instead of opening the system menu. */
+@media (hover: none) {
+    .events-board a[href*="/athlete/"] {
+        -webkit-touch-callout: none;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .event-athlete-preview {
+        box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .events-board .row-appear,
+    .events-board .row-appear.is-visible {
+        opacity: 1;
+        transform: none;
+        transition: none !important;
+    }
+
+    .events-board tr.main-row.is-arriving,
+    .events-board tr.main-row.is-arriving .event-avatar-frame::after,
+    .events-board tr.main-row.is-launching,
+    .event-rel > *,
+    .event-athlete-preview,
+    .event-athlete-preview * {
+        animation: none !important;
     }
 }

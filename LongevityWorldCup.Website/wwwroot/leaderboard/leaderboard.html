@@ -4,19 +4,39 @@
     <title>Leaderboard | Longevity World Cup</title>
     <link rel="alternate" type="text/markdown" title="Machine-readable leaderboard facts" href="/ai/leaderboard.md" />
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_LEADERBOARD_FEEL_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
+    <script>
+        // A native handoff must capture the parsed board, not an empty body.
+        // Ordinary loads keep their progressive server-rendered content.
+        if (document.activeViewTransition && window.navigation?.activation?.from?.url
+            && window.navigation.activation.navigationType !== 'traverse') {
+            const source = new URL(window.navigation.activation.from.url);
+            if (source.origin === location.origin && source.pathname === '/' && !source.search && !source.hash
+                && !location.search && !location.hash) {
+                const boardReady = document.createElement('link');
+                boardReady.rel = 'expect';
+                boardReady.setAttribute('blocking', 'render');
+                boardReady.href = '#leaderboardBackAction';
+                document.head.appendChild(boardReady);
+            }
+        }
+    </script>
 </head>
 <body>
     <!--HEADER-->
     <main data-leaderboard-page="full">
         <h1 id="leaderboardTitle">Longevity leaderboard</h1>
         <!--LEADERBOARD-CONTENT-->
-        <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
+        <div id="leaderboardBackAction" class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
             <button class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i>&nbsp;Back
             </button>
         </div>
     </main>
     <!--FOOTER-->
+    <script src="{{ASSET_LEADERBOARD_FEEL_JS}}"></script>
+    <script src="{{ASSET_LEADERBOARD_PODIUM_JS}}"></script>
 </body>
 </html>
 
@@ -27,10 +47,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(() => {
-            const leaderboardTitle = document.getElementById('leaderboardTitle');
-            leaderboardTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 500);
         LoadLeaderboard(false, Infinity);
     });
 </script>

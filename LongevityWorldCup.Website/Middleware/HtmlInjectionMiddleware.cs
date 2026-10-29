@@ -83,8 +83,7 @@ namespace LongevityWorldCup.Website.Middleware
                 ["/select-athlete"] = "Athlete Selection | Longevity World Cup",
                 ["/dashboard"] = "Athlete Dashboard | Longevity World Cup",
                 ["/edit-profile"] = "Edit Profile | Longevity World Cup",
-                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup",
-                ["/mortality-age"] = "Mortality Age Calculator | Longevity World Cup"
+                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup"
             };
 
         public async Task Invoke(HttpContext context)
@@ -119,13 +118,21 @@ namespace LongevityWorldCup.Website.Middleware
                     var progressBar = await ReadPartialAsync("main-progress-bar.html", bodyContent.Contains("<!--MAIN-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var subProgressBar = await ReadPartialAsync("sub-progress-bar.html", bodyContent.Contains("<!--SUB-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var needsAthleteDialogRuntime = !containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path);
-                    var leaderboardContent = await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime);
+                    var leaderboardContent = CompactStaticTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
                     var guessMyAge = await ReadPartialAsync("guess-my-age.html",
                         bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
                     var eventBoardContent = await ReadPartialAsync("event-board-content.html", bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
                     var ageVisualization = await ReadPartialAsync("age-visualization.html",
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
+                    var leaderboardPath = GetRequestCanonicalPath(context);
+                    if ((leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)) &&
+                        string.Equals(context.Request.Query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var selection = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date)
+                            .Select(leaderboardPath, context.Request.Query);
+                        seo = seo with { PageTitle = $"{selection.RailTitle} | Longevity World Cup" };
+                    }
 
                     if (usesSharedHead)
                     {
@@ -167,12 +174,6 @@ namespace LongevityWorldCup.Website.Middleware
                         }
                     }
 
-                    if (ShouldUseHungarianChrome(context))
-                    {
-                        header = LocalizeHungarianHeader(header);
-                        footer = LocalizeHungarianFooter(footer);
-                    }
-
                     if (IsHomepageRequest(context))
                     {
                         header = RemoveHeaderTagline(header);
@@ -199,7 +200,11 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
+                        bodyContent = InjectPortraitSystem(bodyContent);
+                        bodyContent = InjectTouchLayer(bodyContent);
+                        bodyContent = InjectPointerLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
+                        bodyContent = InjectDepthSystem(bodyContent);
                     }
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -298,8 +303,6 @@ namespace LongevityWorldCup.Website.Middleware
                 "/misc-pages/about.html" or
                 "/history" or
                 "/misc-pages/history.html" or
-                "/helstab-kihivas" or
-                "/helstab-kihivas/helstab-kihivas.html" or
                 "/pheno-age" or
                 "/onboarding/pheno-age.html" or
                 "/bortz-age" or
@@ -307,6 +310,14 @@ namespace LongevityWorldCup.Website.Middleware
                 _ => false
             };
         }
+
+        private static string CompactStaticTableMarkup(string html) => Regex.Replace(
+            html,
+            @"<table(?: class=""athlete-info-table""[^>]*)?>.*?</table>",
+            // Compact only static leaderboard/profile table tag indentation,
+            // before athlete content is injected. Keep all inter-element line breaks.
+            table => Regex.Replace(table.Value, @"(?m)^[ \t]+(?=<)", string.Empty),
+            RegexOptions.Singleline);
 
         private static bool TryBuildAthleteDialogRuntime(string leaderboardContent, out string runtime)
         {
@@ -424,9 +435,24 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 // ranking and query are already known before any script runs.
                 if (selection is not null)
                 {
+                    html = LeaderboardOrderingHtmlRenderer.Apply(html, selection, asOf);
+                    if (selection.ByFlag)
+                    {
+                        html = html.Replace("id=\"group-flags\"", "id=\"group-flags\" checked", StringComparison.Ordinal);
+                        html = html.Replace("class=\"leaderboard\"", "class=\"leaderboard leaderboard--flags\"", StringComparison.Ordinal);
+                        html = html.Replace("id=\"flag-filter-section\"", "id=\"flag-filter-section\" hidden", StringComparison.Ordinal)
+                            .Replace("placeholder=\"Search athletes\"", "placeholder=\"Search flags or athletes\"", StringComparison.Ordinal)
+                            .Replace("aria-label=\"Search athletes\"", "aria-label=\"Search flags or athletes\"", StringComparison.Ordinal)
+                            .Replace(">Search athletes</label>", ">Search flags or athletes</label>", StringComparison.Ordinal);
+                        html = html.Replace("<!--FLAG-LEADERBOARD-->", "<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", StringComparison.Ordinal);
+                        html = PublicProfileHtmlRenderer.SetContent(html, "rankingExplanation", FlagLeaderboard.Explanation(selection.View))
+                            .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
+                    }
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
                     html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
-                        match => match.Groups[1].Value + System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
+                        match => match.Groups[1].Value.TrimEnd('>') +
+                            $" title=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\">" +
+                            System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
                     html = html.Replace("value=\"ultimate\" checked", "value=\"ultimate\"", StringComparison.Ordinal)
                         .Replace($"value=\"{selection.View}\" aria-label=", $"value=\"{selection.View}\" checked aria-label=", StringComparison.Ordinal)
                         .Replace($"name=\"agingClockView\" value=\"{selection.View}\"", $"name=\"agingClockView\" value=\"{selection.View}\" checked", StringComparison.Ordinal)
@@ -435,6 +461,12 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 if (selection is not null && ShouldRenderLeaderboardRows(context))
                 {
                     var table = selection.Snapshot;
+                    if (selection.ByFlag)
+                    {
+                        var teams = selection.FlagTeams;
+                        var isPreview = path is "/" or "/contribute" || IsAthleteRoute(path);
+                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(isPreview ? teams.Take(10) : teams, selection.View == "ultimate"), StringComparison.Ordinal);
+                    }
                     if (path is "/" or "/contribute" || IsAthleteRoute(path))
                     {
                         var visible = table.Rows.Take(10).ToList();
@@ -445,7 +477,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                         html = html.Replace("class=\"podium\" aria-busy=\"true\" style=\"display:none;\"", $"class=\"podium\" data-server-rendered=\"true\" aria-busy=\"false\" style=\"display:{podiumDisplay};\"", StringComparison.Ordinal);
                         table = new LeaderboardSnapshot(selection.IsDefault ? visible.Skip(3).ToList() : visible);
                     }
-                    html = ReplaceLeaderboardRows(html, LeaderboardHtmlRenderer.RenderRows(table, selection.MetricLabel, selection.View == "ultimate"));
+                    html = ReplaceLeaderboardRows(html, LeaderboardHtmlRenderer.RenderRows(table, selection.MetricLabel, selection.View == "ultimate", selection.DisplayOrdering));
                     // Keep the existing "loaded" signal reserved for the fully
                     // initialized controls, even though the rows are readable now.
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardStatus", "Leaderboard available.");
@@ -497,7 +529,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             var rowsStart = start + LeaderboardRowsStartMarker.Length;
             var replacedRows = html
                 .Remove(rowsStart, end - rowsStart)
-                .Insert(rowsStart, $"{Environment.NewLine}{rowsHtml}                ");
+                .Insert(rowsStart, rowsHtml);
 
             return replacedRows.Replace(
                 LeaderboardSkeletonTbodyOpenTag,
@@ -539,38 +571,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                && !context.Request.Query.ContainsKey("athlete")
                && !context.Request.Query.ContainsKey("filters")
                && !context.Request.Query.ContainsKey("search")
-               && !context.Request.Query.ContainsKey("view");
-
-        private static bool ShouldUseHungarianChrome(HttpContext context)
-            => IsHungarianPage(GetRequestCanonicalPath(context));
-
-        private static bool IsHungarianPage(string canonicalPath)
-            => string.Equals(canonicalPath, "/helstab-kihivas", StringComparison.OrdinalIgnoreCase);
-
-        private static string LocalizeHungarianHeader(string html)
-        {
-            html = html
-                .Replace(
-                    "<div class=\"bannertext\">Longevity World&nbsp;Cup</div>",
-                    "<div class=\"bannertext\">Hosszúéletesítési<br>Világbajnokság</div>")
-                .Replace(
-                    "<span class=\"site-sticky-header-title\">Longevity World&nbsp;Cup</span>",
-                    "<span class=\"site-sticky-header-title\">Hosszúéletesítési Világbajnokság</span>")
-                .Replace(
-                    "Longevity World Cup logo, a phoenix symbolizing a new life",
-                    "Hosszúéletesítési Világbajnokság logó, újjászületést jelképező főnix")
-                .Replace(">Alert<", ">Figyelmeztetés<")
-                .Replace(">Loading<", ">Betöltés<");
-
-            html = RemoveHeaderTagline(html);
-            html = Regex.Replace(
-                html,
-                @"\s*<button onclick=""window\.location\.href='/play'"" class=""join-game(?: scrolled-button)?""[^>]*>.*?</button>",
-                string.Empty,
-                RegexOptions.Singleline);
-
-            return html;
-        }
+               && !context.Request.Query.ContainsKey("view")
+               && !context.Request.Query.ContainsKey("group");
 
         private static string RemoveHeaderTagline(string html)
             => Regex.Replace(
@@ -578,33 +580,6 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 @"\s*<span class=""tagline"">\s*longevity leaderboards\s*</span>",
                 string.Empty,
                 RegexOptions.IgnoreCase);
-
-        private static string LocalizeHungarianFooter(string html)
-        {
-            return html
-                .Replace(">Explore<", ">Felfedezés<")
-                .Replace(">Follow<", ">Kövess minket<")
-                .Replace("Shop Longevity World Cup merchandise", "Hosszúéletesítési Világbajnokság bolt")
-                .Replace("Visit Longevity World&nbsp;Cup GitHub repository", "Hosszúéletesítési Világbajnokság GitHub tároló")
-                .Replace("Read the history of Longevity as a Sport", "A hosszúélet mint sport története")
-                .Replace("Review the ruleset for Longevity World&nbsp;Cup", "A Hosszúéletesítési Világbajnokság szabályai")
-                .Replace("Contact Longevity World&nbsp;Cup via email", "Kapcsolat a Hosszúéletesítési Világbajnoksággal emailben")
-                .Replace("Listen to Immortal Combat podcast on YouTube", "Immortal Combat podcast a YouTube-on")
-                .Replace("Follow Longevity World Cup on X", "Hosszúéletesítési Világbajnokság az X-en")
-                .Replace("Join the Longevity World Cup subreddit", "Hosszúéletesítési Világbajnokság subreddit")
-                .Replace("Follow Longevity World Cup on Nostr", "Hosszúéletesítési Világbajnokság a Nostron")
-                .Replace("Follow Longevity World Cup on Threads", "Hosszúéletesítési Világbajnokság a Threadsen")
-                .Replace("Visit Longevity World Cup on YouTube", "Hosszúéletesítési Világbajnokság a YouTube-on")
-                .Replace("Follow the Longevity World Cup on Instagram", "Hosszúéletesítési Világbajnokság az Instagramon")
-                .Replace("</i> Merch", "</i> Bolt")
-                .Replace("</i> History", "</i> Történet")
-                .Replace("</i> Ruleset", "</i> Szabályok")
-                .Replace("</i> Contact", "</i> Kapcsolat")
-                .Replace(">Merch<", ">Bolt<")
-                .Replace(">History<", ">Történet<")
-                .Replace(">Ruleset<", ">Szabályok<")
-                .Replace(">Contact<", ">Kapcsolat<");
-        }
 
         private static string ResolveWebRootPath(IWebHostEnvironment environment)
         {
@@ -623,8 +598,84 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            var stylesheet = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
+            // Shared interaction and type styles precede the palette, dark
+            // lighting and the final depth scale. Component states retain priority.
+            var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/empty-state.js")}\" defer></script>{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/form-controls.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/form-controls.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/share-sheet.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/share-sheet.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/charts.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/type-system.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
+        }
+
+        // The touch layer goes in ahead of motion and the aesthetic system, which keep the final say.
+        private string InjectTouchLayer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Pointer behavior follows touch; the surface systems retain their
+        // page-specific focus and control treatments later in the cascade.
+        private string InjectPointerLayer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/pointer.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Surface and depth tokens follow the palette; components retain their
+        // semantic colours, focus indicators and transition ownership.
+        private string InjectDepthSystem(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Athlete portraits share one frame, loading, fallback and motion treatment on every page.
+        private string InjectPortraitSystem(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)
@@ -663,17 +714,14 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return string.Empty;
             }
 
+            // Keep the generated bootstrap compact: shared imports appear in
+            // every document, including the embedded athlete-dialog runtime.
             var imports = string.Join(
-                "," + Environment.NewLine,
-                modulePaths.Select(path => $"        import(`{_assetVersionProvider.AppendVersion(path)}`)"));
+                ",",
+                modulePaths.Select(path => $"import(`{_assetVersionProvider.AppendVersion(path)}`)"));
             var scriptAttributes = startDuringParsing ? string.Empty : " type=\"module\"";
-            return
-$@"<script{scriptAttributes}>
-    window.{readinessProperty} = Promise.all([
-{imports}
-    ]);
-    window.{readinessProperty}.catch(() => {{}});
-</script>";
+            return $"<script{scriptAttributes}>window.{readinessProperty} = Promise.all([{imports}]);"
+                + $"window.{readinessProperty}.catch(() => {{}});</script>";
         }
 
         private static HeadAssetConfig GetHeadAssetConfig(string path)
@@ -793,10 +841,6 @@ $@"<script{scriptAttributes}>
                         "/js/pro-discounts.js"
                     ],
                     BlockingScriptPaths: ["/js/flow-action-dock.js", "/js/bioage-flow.js"]),
-                "/onboarding/mortality-age.html" => new HeadAssetConfig(
-                    IncludeValidator: false,
-                    ModulePaths: ["/js/misc.js"],
-                    BlockingScriptPaths: ["/js/flow-action-dock.js", "/js/bioage-flow.js"]),
                 "/onboarding/convergence.html" => new HeadAssetConfig(
                     IncludeValidator: true,
                     ModulePaths:
@@ -882,7 +926,8 @@ $@"<script{scriptAttributes}>
             {
                 var title = $"{calculator.Name} | Longevity World Cup";
                 return new SeoMeta(canonicalPath, calculator.Description, "index, follow",
-                    canonicalUrl, title, title, noCardDescription, defaultOgImage);
+                    canonicalUrl, title, title, noCardDescription,
+                    BuildPageOgImageUrl(canonicalPath.TrimStart('/'), defaultOgImage));
             }
 
             return canonicalPath switch
@@ -928,16 +973,6 @@ $@"<script{scriptAttributes}>
                     "Longevitymaxxing Challenge",
                     noCardDescription,
                     BuildPageOgImageUrl("longevitymaxxing", defaultOgImage)
-                ),
-                "/helstab-kihivas" => new SeoMeta(
-                    canonicalPath,
-                    "Helstáb Kihívás: 14 napos magyar hosszúéletesítésmaxolás napi négy kérdéssel, közös ranglistával és demó jelentkezési-fizetési felülettel.",
-                    "index, follow",
-                    canonicalUrl,
-                    "Helstáb Kihívás | Hosszúéletesítési Világbajnokság",
-                    "Helstáb Kihívás",
-                    noCardDescription,
-                    BuildPageOgImageUrl("helstab-kihivas", defaultOgImage)
                 ),
                 "/events" => new SeoMeta(
                     canonicalPath,
@@ -1596,7 +1631,7 @@ $@"<script{scriptAttributes}>
                 ["url"] = seo.CanonicalUrl,
                 ["name"] = seo.PageTitle,
                 ["description"] = seo.Description,
-                ["inLanguage"] = IsHungarianPage(seo.CanonicalPath) ? "hu" : "en",
+                ["inLanguage"] = "en",
                 ["isPartOf"] = new Dictionary<string, object>
                 {
                     ["@id"] = $"{SiteBaseUrl}/#website"
@@ -1802,7 +1837,6 @@ $@"<script{scriptAttributes}>
             {
                 "/leaderboard" => "Leaderboard",
                 "/longevitymaxxing" => "Longevitymaxxing Challenge",
-                "/helstab-kihivas" => "Helstáb Kihívás",
                 "/events" => "Events",
                 "/media" => "Media",
                 "/about" => "About",

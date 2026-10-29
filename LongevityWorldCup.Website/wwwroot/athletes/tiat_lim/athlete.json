@@ -60,5 +60,41 @@
   "Division": "Men's",
   "Flag": "Singapore",
   "Why": "Advance MANkind by Disrupting Aging (AMANDA™)",
-  "PersonalLink": "https://www.deaging.guru"
+  "PersonalLink": "https://www.deaging.guru",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/TiatLim",
+      "EvidenceUrls": [
+        "https://x.com/TiatLim",
+        "https://www.deaging.guru",
+        "https://www.instagram.com/deaging.guru/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/deaging.guru/",
+      "EvidenceUrls": [
+        "https://www.instagram.com/deaging.guru/",
+        "https://www.deaging.guru"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@deaging.guru",
+      "EvidenceUrls": [
+        "https://www.instagram.com/deaging.guru/",
+        "https://www.threads.com/@deaging.guru",
+        "https://www.threads.com/@longevityworldcup"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Mastodon": {
+      "Url": "https://mastodon.social/@deaging",
+      "EvidenceUrls": [
+        "https://mastodon.social/@deaging"
+      ],
+      "VerifiedOn": "2026-10-23",
+      "VerificationNote": "Athlete/account identity confirmed by the Longevity World Cup operator on 2026-10-23."
+    }
+  }
 }

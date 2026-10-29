@@ -4,23 +4,32 @@
     <title>Longevity World Cup - Edit Profile</title>
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_PLAY_FLOW_MOTION_CSS}}">
     <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
     <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
             display: none !important;
         }
 
+        /* ===== The editing card =====
+           The editor is the /apply card the athlete once filled in: the
+           reveal banner with their portrait on its lower edge, their name as
+           the card's title, the fields, then the journey's muted foot band.
+           A changed portrait or field wears the accent until it is restored. */
         .edit-profile-main {
-            max-width: 760px;
+            --edit-page-pad: var(--space-5, 1.5rem);
+            --edit-card-pad: clamp(16px, 4vw, 28px);
+            --edit-card-radius: var(--lwc-radius-lg, 12px);
+            --edit-portrait-size: 112px;
+            --edit-portrait-overhang: 48px;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: none;
             margin: 0 auto;
-            padding: 2.5rem 1rem 3.25rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: clamp(0.75rem, 3dvh, 2rem) var(--edit-page-pad) 2rem;
         }
 
         .edit-profile-main [data-aos]:not(.aos-animate) {
@@ -28,26 +37,364 @@
             transform: none;
         }
 
-        .edit-profile-title {
-            margin: 0 0 1.25rem;
-            text-align: center;
-            font-size: 2.25rem;
-            line-height: 1.08;
-            letter-spacing: 0;
+        .edit-profile-card {
+            container: edit-profile-card / inline-size;
+            box-sizing: border-box;
+            width: min(100%, 640px);
+            margin: 0 auto;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
+            border-radius: var(--edit-card-radius);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
         }
 
+        /* Banner: the same reveal scene as the apply flow's picture stage. */
         .edit-profile-visual {
-            width: min(100%, 408px);
-            margin: 0 auto 1.45rem;
-            text-align: center;
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2172 / 724;
+            margin: 0;
+            border-radius: calc(var(--edit-card-radius) - 1px) calc(var(--edit-card-radius) - 1px) 0 0;
+            background-color: var(--lwc-surface-muted, #eef2f5);
+            background-image: url("/assets/content-images/apply-reveal.jpg");
+            background-image: image-set(url("/assets/content-images/apply-reveal.webp") type("image/webp"), url("/assets/content-images/apply-reveal.jpg") type("image/jpeg"));
+            background-position: center 35%;
+            background-repeat: no-repeat;
+            background-size: cover;
+            line-height: 0;
+        }
+
+        /* The portrait sits on the banner's lower edge, like a profile header. */
+        .edit-profile-visual > picture {
+            position: absolute;
+            left: var(--edit-card-pad);
+            bottom: calc(-1 * var(--edit-portrait-overhang));
+            z-index: 1;
+            display: block;
+            width: var(--edit-portrait-size);
+            height: var(--edit-portrait-size);
+            overflow: hidden;
+            border: 4px solid var(--lwc-surface, #fff);
+            border-radius: 50%;
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .edit-profile-visual .illustration {
-            width: min(100%, 408px);
-            aspect-ratio: 1;
-            object-fit: contain;
-            margin-bottom: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            object-fit: cover;
+            object-position: center;
             box-sizing: border-box;
+        }
+
+        .edit-profile-card:has(#restoreProfilePicButton:not([style*="none"])) .edit-profile-visual > picture {
+            border-color: var(--lwc-accent, #087685);
+        }
+
+        /* Head: the picture's actions share the portrait's overhang; the name follows. */
+        .edit-profile-head {
+            display: grid;
+            grid-template-columns: var(--edit-portrait-size) minmax(0, 1fr) auto;
+            grid-template-areas: ". title photo";
+            align-items: center;
+            column-gap: 1rem;
+            padding: 0 var(--edit-card-pad) var(--edit-card-pad);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+        }
+
+        .edit-profile-head > .edit-profile-title {
+            grid-area: title;
+            margin: 0.75rem 0 0;
+            color: var(--lwc-ink, #17212b);
+            font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2rem);
+            line-height: 1.12;
+            letter-spacing: 0;
+            overflow-wrap: break-word;
+            text-align: left;
+        }
+
+        #changeProfilePicWrapper {
+            grid-area: photo;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            min-height: var(--edit-portrait-overhang);
+            margin: 0;
+            padding-top: 0.75rem;
+            box-sizing: border-box;
+        }
+
+        #changeProfilePicWrapper > .option-button:not(.icon-only) {
+            flex: 0 1 auto;
+            width: auto;
+            min-width: 0;
+            max-width: none;
+            min-height: 44px;
+            margin: 0;
+            padding-block: 0.5rem;
+            padding-inline: min(1.1rem, 18px) min(2.75rem, 44px);
+            font-size: 1rem;
+        }
+
+        #changeProfilePicWrapper > .flow-action > i {
+            right: min(1.1rem, 16px);
+            width: min(1.25rem, 20px);
+            font-size: min(1em, 20px);
+        }
+
+        #takeProfileSelfieButton {
+            display: none;
+        }
+
+        .upload-choice-divider {
+            display: none;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            color: var(--lwc-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        /* Narrow cards and touch screens: the name takes the overhang's side,
+           and the picture's sources fill the row under it. */
+        @container edit-profile-card (max-width: 34rem) {
+            .edit-profile-head {
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas:
+                    "title"
+                    "photo";
+                padding-top: var(--edit-portrait-overhang);
+            }
+
+            .edit-profile-head > .edit-profile-title {
+                margin-top: 0.85rem;
+            }
+
+            #changeProfilePicWrapper {
+                justify-content: stretch;
+                min-height: 0;
+                padding-top: 1rem;
+            }
+
+            #changeProfilePicWrapper > .option-button:not(.icon-only) {
+                flex: 1 1 11rem;
+                align-self: stretch;
+                min-height: 48px;
+            }
+
+            #changeProfilePicWrapper > #takeProfileSelfieButton,
+            #changeProfilePicWrapper > .upload-choice-divider {
+                flex-basis: 100%;
+            }
+
+            .upload-choice-divider::before,
+            .upload-choice-divider::after {
+                content: "";
+                height: 1px;
+                flex: 1 1 auto;
+                background: var(--lwc-border);
+            }
+        }
+
+        @media (pointer: coarse) {
+            .upload-choice-divider {
+                display: flex;
+            }
+
+            #takeProfileSelfieButton {
+                display: inline-flex;
+            }
+
+            .edit-profile-head {
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas:
+                    "title"
+                    "photo";
+                padding-top: var(--edit-portrait-overhang);
+            }
+
+            .edit-profile-head > .edit-profile-title {
+                margin-top: 0.85rem;
+            }
+
+            #changeProfilePicWrapper {
+                justify-content: stretch;
+                min-height: 0;
+                padding-top: 1rem;
+            }
+
+            #changeProfilePicWrapper > .option-button:not(.icon-only) {
+                flex: 1 1 11rem;
+                align-self: stretch;
+                min-height: 48px;
+            }
+        }
+
+        /* Restore controls: quiet circles that return a value to its original. */
+        .edit-profile-main .option-button.icon-only {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            min-width: 0;
+            min-height: 0;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            border: 1px solid var(--lwc-border);
+            border-radius: 50%;
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-muted);
+            box-shadow: none;
+            font-size: 0.95rem;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        }
+
+        .edit-profile-main .option-button.icon-only:hover {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+            color: var(--lwc-accent);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .edit-profile-main .option-button.icon-only:focus-visible {
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: 2px;
+        }
+
+        .edit-profile-main .option-button.icon-only i {
+            display: none;
+        }
+
+        .edit-profile-main .option-button.icon-only::before {
+            content: "\21BA";
+            color: inherit;
+            font-size: 1.08rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        /* Body: the fields, then the foot band. */
+        .edit-profile-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            padding: var(--edit-card-pad);
+        }
+
+        /* Fields: an even grid that pairs short fields and gives the motivation
+           the full width. Enlarged text falls back to one column on its own. */
+        #editOptionsGroup {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr));
+            gap: 1rem 1.1rem;
+            align-items: start;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: none;
+            box-shadow: none;
+            box-sizing: border-box;
+        }
+
+        #editOptionsGroup > .inline-option-group {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0.8rem 0.5rem;
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+        }
+
+        #editOptionsGroup > .inline-option-group:has(#whyDisplayInput) {
+            grid-column: 1 / -1;
+        }
+
+        #editOptionsGroup > .inline-option-group > .field-label {
+            grid-column: 1;
+            grid-row: 1;
+            width: auto;
+            min-height: 1.5rem;
+            display: flex;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 0 0.3em;
+            margin: 0;
+        }
+
+        #editOptionsGroup > .inline-option-group > :is(input, select, textarea) {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            min-width: 0;
+        }
+
+        /* A field's restore sits on its label line, so a changed field keeps
+           its full width and stays aligned with its neighbours. */
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only {
+            grid-column: 2;
+            grid-row: 1;
+            align-self: end;
+            width: 44px;
+            height: 44px;
+            margin-block: -10px;
+            border: 0;
+            border-radius: 4px;
+            background: transparent;
+            font-size: 0.8rem;
+        }
+
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only::before {
+            display: grid;
+            place-items: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 1px solid var(--lwc-border);
+            border-radius: 50%;
+            background: var(--lwc-surface-muted);
+            font-size: 0.95rem;
+        }
+
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only:hover::before {
+            border-color: var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+        }
+
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only {
+            position: relative;
+        }
+
+        #editOptionsGroup > .inline-option-group > .profile-field-error {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            margin: 0;
         }
 
         .autocomplete-items {
@@ -109,19 +456,6 @@
                     overflow-wrap: anywhere;
                 }
 
-        .niceInputFieldDisplayWrapper {
-            position: relative;
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0 auto;
-        }
-
-        @supports selector(:has(*)) {
-            .niceInputFieldDisplayWrapper:has(.autocomplete-items) {
-                margin-bottom: 0;
-            }
-        }
-
         #divisionDisplayInput, #flagDisplayInput, #mediaContactInput, #personalLinkInput, #whyDisplayInput {
             width: 100%;
             min-height: 44px;
@@ -137,99 +471,390 @@
             box-sizing: border-box;
         }
 
-            #divisionDisplayInput:focus, #flagDisplayInput:focus, #mediaContactInput:focus, #personalLinkInput:focus, #whyDisplayInput:focus {
-                outline: none;
-                border-color: var(--primary-color, #00bcd4);
-                box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
-            }
+        #whyDisplayInput {
+            resize: vertical;
+        }
 
         #divisionDisplaySelect {
             width: 100%;
             min-height: 44px;
-            padding: 0.65rem 2.25rem 0.65rem 0.85rem;
+            padding: 0.65rem min(2.25rem, 36px) 0.65rem min(0.85rem, 13.6px);
             border: 1px solid var(--lwc-border-strong, #71808d);
             border-radius: 8px;
             font-size: 1rem;
             font-family: inherit;
-            line-height: 1.35;
+            line-height: 1.5;
             transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             background-color: var(--lwc-surface, #fff);
             color: var(--lwc-ink, #17212b);
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
             background-repeat: no-repeat;
-            background-position: right 0.85rem center;
+            background-position: right min(0.85rem, 13.6px) center;
             background-size: 12px 12px;
             appearance: none;
             box-sizing: border-box;
         }
 
-            #divisionDisplaySelect:focus {
-                outline: none;
-                border-color: var(--primary-color, #00bcd4);
-                box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+        .edit-profile-main :is(input, select, textarea):focus {
+            border-color: var(--lwc-accent);
+            box-shadow: 0 0 0 3px var(--lwc-accent-soft);
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: 1px;
+        }
+
+        .edit-profile-main .field-requirement {
+            font-size: var(--lwc-type-sm);
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .edit-profile-main #editOptionsGroup [aria-invalid="true"] {
+            border-color: var(--lwc-danger);
+        }
+
+        .edit-profile-main #editOptionsGroup [aria-invalid="true"]:focus {
+            outline-color: var(--lwc-danger);
+            box-shadow: 0 0 0 3px var(--lwc-danger-soft);
+        }
+
+        /* A changed field keeps the accent edge, the note rail of the apply
+           flow, until it is submitted or restored. */
+        #editOptionsGroup > .inline-option-group:has(> .option-button.icon-only:not([style*="none"])) > :is(input, select, textarea):not([aria-invalid="true"]) {
+            border-color: var(--lwc-accent, #087685);
+            box-shadow: inset 3px 0 0 var(--lwc-accent, #087685);
+        }
+
+        #editOptionsGroup > .inline-option-group:has(> .option-button.icon-only:not([style*="none"])) > :is(input, select, textarea):not([aria-invalid="true"]):focus {
+            box-shadow: inset 3px 0 0 var(--lwc-accent, #087685), 0 0 0 3px var(--lwc-accent-soft);
+        }
+
+        #editOptionsGroup > .inline-option-group > .option-button.icon-only:not([style*="none"])::before {
+            border-color: var(--lwc-accent, #087685);
+            color: var(--lwc-accent, #087685);
+        }
+
+        /* Foot: Reset all / Undo above the journey's muted band, which runs
+           from edge to edge and closes the card with Back and Submit. */
+        .edit-profile-foot {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+        }
+
+        .edit-profile-foot > .flow-action-dock-placeholder {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+        }
+
+        html.flow-action-dock-active .edit-profile-foot > .flow-action-dock-placeholder {
+            height: 1px !important;
+            margin: 0 0 calc(-1 * var(--edit-card-pad)) !important;
+        }
+
+        html.flow-action-dock-active .edit-profile-main {
+            padding-bottom: calc(var(--flow-action-dock-height, 0px) + 1rem);
+        }
+
+        .profile-draft {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0 0.25rem;
+            margin: 0;
+        }
+
+        .profile-draft-status {
+            flex-basis: 100%;
+            margin: var(--lwc-space-1) 0;
+            font-size: var(--lwc-type-sm);
+        }
+
+        .profile-draft button {
+            min-height: 44px;
+            margin-left: -0.5rem;
+            padding: var(--lwc-space-2);
+            border: 0;
+            border-radius: var(--lwc-radius-sm);
+            background: transparent;
+            color: var(--lwc-muted);
+            font: inherit;
+            font-size: var(--lwc-type-sm);
+            text-decoration: underline;
+            text-underline-offset: 0.2em;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .profile-draft button:hover { color: var(--lwc-ink); }
+        .profile-draft button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
+        .profile-draft[hidden], .profile-draft [hidden] { display: none; }
+
+        .edit-profile-actions:not(.flow-action-stack--docked) {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 0.75rem;
+            width: calc(100% + 2 * var(--edit-card-pad));
+            min-width: 0;
+            max-width: none;
+            margin: 0 calc(-1 * var(--edit-card-pad)) calc(-1 * var(--edit-card-pad));
+            padding: 0.55rem var(--edit-card-pad);
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: 0 0 calc(var(--edit-card-radius) - 1px) calc(var(--edit-card-radius) - 1px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-sizing: border-box;
+        }
+
+        :is(body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding-inline: calc(max(1rem, env(safe-area-inset-left, 0px)) + 1px + clamp(16px, 4vw, 28px));
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        :is(.edit-profile-actions:not(.flow-action-stack--docked), body > .edit-profile-actions.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) > .flow-action {
+            flex: 1 1 min-content;
+            width: auto;
+            min-width: 0;
+            max-width: none;
+            min-height: 3rem;
+            margin: 0;
+            padding-block: 0.55rem;
+            /* Capped so enlarged text keeps its room beside the icon. */
+            padding-inline: min(1.25rem, 20px) min(2.85rem, 46px);
+            font-size: 1.05rem;
+            order: 2;
+        }
+
+        :is(.edit-profile-actions:not(.flow-action-stack--docked), body > .edit-profile-actions.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) > .flow-action:not(.back-button) > i {
+            right: min(1.2rem, 19px);
+            width: min(1.25rem, 22px);
+            font-size: min(1.1rem, 22px);
+        }
+
+        :is(.edit-profile-actions:not(.flow-action-stack--docked), body > .edit-profile-actions.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) > .back-button.flow-action--icon-left {
+            flex: 0 0 auto !important;
+            order: 1;
+            width: 8.5rem !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            align-self: stretch;
+            justify-content: center;
+            gap: 0.5em;
+            padding-inline: 1.35rem !important;
+            background: var(--lwc-surface, #fff);
+        }
+
+        :is(.edit-profile-actions:not(.flow-action-stack--docked), body > .edit-profile-actions.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) > .back-button.flow-action--icon-left:hover {
+            border-color: var(--lwc-border-strong, #71808d);
+        }
+
+        :is(.edit-profile-actions:not(.flow-action-stack--docked), body > .edit-profile-actions.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) > .back-button.flow-action--icon-left > i {
+            position: static;
+            width: auto;
+            transform: none;
+            flex: none;
+        }
+
+        /* Wide windows pin the docked band to the card's 640px column. */
+        @media (width > 760px) {
+            :is(body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) {
+                left: calc(50% - 320px) !important;
+                right: auto !important;
+                width: 640px !important;
+                padding: 0.55rem 28px calc(0.55rem + env(safe-area-inset-bottom));
+                border: 1px solid var(--lwc-border, #d7e0e6);
+                border-bottom: 0;
+                border-radius: var(--edit-card-radius, 12px) var(--edit-card-radius, 12px) 0 0;
+                box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.08);
+            }
+        }
+
+        /* Laptop-height windows keep the banner, every field and the band
+           in the first screen. */
+        @media (min-width: 761px) and (max-height: 920px) {
+            .edit-profile-main {
+                --edit-card-pad: 18px;
+                padding-top: clamp(0.5rem, 2dvh, 1.25rem);
+                padding-bottom: 0.75rem;
             }
 
+            .edit-profile-visual {
+                aspect-ratio: 4 / 1;
+            }
+
+            .edit-profile-head > .edit-profile-title {
+                margin-top: 0.5rem;
+                font-size: 1.6rem;
+            }
+
+            .edit-profile-body {
+                gap: 0.85rem;
+            }
+
+            #editOptionsGroup {
+                row-gap: 0.65rem;
+            }
+
+            :is(body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) {
+                padding-inline: 18px;
+            }
+        }
+
+        /* Phones: the card within the page gutter; the band's actions line up
+           with the fields. */
+        @media (max-width: 640px) {
+            .edit-profile-main {
+                --edit-page-pad: max(1rem, env(safe-area-inset-left, 0px));
+                padding-top: 0.75rem;
+            }
+        }
+
+        @media (max-width: 760px) {
+            :is(body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) {
+                padding-inline: calc(max(1rem, env(safe-area-inset-left, 0px)) + 1px + clamp(16px, 4vw, 28px));
+            }
+
+            /* Submit takes its own row once Back would squeeze its words. */
+            :is(.edit-profile-actions:not(.flow-action-stack--docked), body > .edit-profile-actions.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) > .flow-action {
+                flex: 1 1 8rem;
+                min-height: 48px;
+                font-size: 1rem;
+            }
+
+            :is(.edit-profile-actions:not(.flow-action-stack--docked), body > .edit-profile-actions.flow-action-stack--docked, body > .edit-profile-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action) > .back-button.flow-action--icon-left {
+                width: 6.5rem !important;
+                padding-inline: 1rem !important;
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .edit-profile-main {
+                padding-top: 0.6rem;
+            }
+
+            .edit-profile-visual {
+                aspect-ratio: 5 / 1;
+            }
+        }
+
+        /* ===== Cropper: a small card in the same language ===== */
         #changeProfileCropperModal {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: var(--lwc-surface, white);
-            color: var(--lwc-ink, #17212b);
             z-index: 10000;
             box-sizing: border-box;
-            padding: 1.25rem;
-            width: min(calc(100vw - 2rem), 430px);
-            max-width: 430px;
+            width: min(calc(100vw - 2rem), 480px);
             max-height: calc(100dvh - 1.5rem);
+            padding: 0;
             overflow: auto;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: var(--lwc-radius-lg);
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface);
+            color: var(--lwc-ink, #17212b);
             box-shadow: var(--lwc-shadow-md);
-            display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.95rem;
+            align-items: stretch;
+            gap: 0;
             overscroll-behavior: contain;
         }
 
         .cropper-dialog-title {
             margin: 0;
-            font-size: 1.2rem;
-            line-height: 1.25;
+            padding: 1rem 1.35rem;
+            border-bottom: 1px solid var(--lwc-border);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            line-height: 1.3;
             text-align: center;
+            text-transform: uppercase;
         }
 
-            #changeProfileCropperModal button {
-                margin-top: 0;
-                width: auto;
+        .profile-crop-stage {
+            flex: 0 0 auto;
+            width: 100%;
+            height: min(56dvh, 420px);
+            overflow: hidden;
+            background: var(--lwc-surface-muted);
+        }
+
+        #changeProfileCropperImage {
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-sizing: border-box;
+            border: 0;
+            border-radius: 0;
+            background: var(--lwc-surface-muted);
+        }
+
+        #changeProfileCropperModal .cropper-container {
+            max-width: 100%;
+        }
+
+        #changeProfileCropperModal .options-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+            gap: 0.65rem;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 1rem 1.35rem 1.2rem;
+            border-top: 1px solid var(--lwc-border);
+            box-sizing: border-box;
+        }
+
+        #changeProfileCropperModal .option-button {
+            width: 100%;
+            max-width: none;
+            min-height: 52px;
+            margin: 0;
+            padding-inline: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            #changeProfileCropperModal {
+                width: calc(100vw - 1.5rem);
+                max-height: calc(100dvh - 1rem);
             }
 
             #changeProfileCropperModal .options-container {
-                width: 100%;
-                max-width: none;
-                display: flex;
-                flex-direction: column;
-                gap: 0.75rem;
-                margin: 0;
+                padding: 0.85rem 1rem 1rem;
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            #changeProfileCropperModal {
+                max-height: calc(100dvh - 0.75rem);
             }
 
-            #changeProfileCropperModal .option-button {
-                width: 100%;
-                max-width: none;
+            .cropper-dialog-title {
+                padding-block: 0.6rem;
             }
 
-        #changeProfileCropperImage {
-            width: 100%;
-            aspect-ratio: 4 / 3;
-            max-height: min(54vh, 360px);
-            object-fit: contain;
-            box-sizing: border-box;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, #f8fafc);
+            .profile-crop-stage {
+                height: min(46dvh, 220px);
+            }
+
+            #changeProfileCropperModal .options-container {
+                padding-block: 0.6rem;
+            }
         }
 
         /* dark backdrop & lock scroll when modal is open */
@@ -249,527 +874,129 @@
         .no-scroll {
             overflow: hidden;
         }
-
-        .options-container.inline-option-group {
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            gap: 0.65rem;
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0 auto;
-        }
-
-        @supports selector(:has(*)) {
-            .options-container.inline-option-group.niceInputFieldDisplayWrapper:has(.autocomplete-items) {
-                margin-bottom: 0;
-            }
-        }
-
-        .option-button.icon-only {
-            flex: 0 0 44px;
-            width: 44px;
-            height: 44px;
-            min-width: 44px;
-            min-height: 44px;
-            max-width: none;
-            padding: 0;
-            margin: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--lwc-border, rgba(96, 125, 139, 0.22));
-            border-radius: 50%;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.96));
-            color: var(--lwc-muted, #4f6573);
-            font-size: 0.95rem;
-            box-shadow: none;
-        }
-
-        .option-button.icon-only:hover {
-            background: var(--lwc-surface, #fff);
-            color: var(--lwc-ink, #273d4a);
-            transform: none;
-            box-shadow: none;
-        }
-
-        .option-button.icon-only i {
-            display: none;
-            margin: 0;
-            color: inherit;
-            line-height: 1;
-        }
-
-        .option-button.icon-only::before {
-            content: "\21BA";
-            color: inherit;
-            font-size: 1.08rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        #editOptionsGroup {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            gap: 0.65rem;
-            margin: 0 auto;
-        }
-
-        #changeProfilePicButton {
-            width: 100%;
-            flex: 1 1 0;
-        }
-
-        #changeProfilePicWrapper {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .upload-choice-divider {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 0.65rem;
-            min-height: 1.25rem;
-            color: var(--lwc-muted, #526373);
-            font-size: 0.85rem;
-            font-weight: 700;
-            line-height: 1;
-            text-transform: uppercase;
-        }
-
-        .upload-choice-divider::before,
-        .upload-choice-divider::after {
-            content: "";
-            height: 1px;
-            flex: 1 1 auto;
-            background: var(--lwc-border, rgba(100, 116, 139, 0.22));
-        }
-
-        #changeProfilePicWrapper .option-button {
-            width: 100%;
-            max-width: none;
-        }
-
-        #changeProfilePicWrapper .option-button i {
-            margin-right: 0.45rem;
-        }
-
-        #takeProfileSelfieButton {
-            display: none;
-        }
-
-        #restoreProfilePicButton {
-            align-self: center;
-        }
-
-        .edit-profile-actions {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1rem auto 0;
-        }
-
-        .edit-profile-actions .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        .edit-profile-actions .back-button {
-            margin-left: 0;
-        }
-
-        @media (max-width: 600px) {
-            .edit-profile-main {
-                padding: 2rem 1.35rem 2.75rem;
-            }
-
-            .edit-profile-title {
-                margin-bottom: 1rem;
-                font-size: 2rem;
-            }
-
-            .edit-profile-visual {
-                margin-bottom: 1.25rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, clamp(184px, 50vw, 240px));
-            }
-
-            #changeProfileCropperModal {
-                width: calc(100vw - 1.5rem);
-                max-height: calc(100dvh - 1rem);
-                padding: 1rem;
-            }
-
-            #changeProfileCropperImage {
-                max-height: min(48vh, 320px);
-            }
-
-        }
-
-        @media (min-width: 601px) and (max-width: 932px) {
-            .edit-profile-title {
-                font-size: 2.15rem;
-                line-height: 1.08;
-            }
-        }
-
-        @media (min-width: 720px) and (max-width: 959px), (min-width: 960px) and (max-height: 780px) {
-            .edit-profile-main {
-                display: grid;
-                row-gap: 0.85rem;
-                align-items: start;
-                justify-content: center;
-            }
-
-            .edit-profile-title {
-                grid-column: 1 / -1;
-            }
-
-            .edit-profile-visual {
-                grid-column: 1;
-                grid-row: 2;
-                margin: 0;
-            }
-
-            #editOptionsGroup {
-                grid-column: 2;
-                grid-row: 2;
-                align-items: stretch;
-                align-self: start;
-                max-width: 408px;
-            }
-
-            #changeProfilePicWrapper,
-            .options-container.inline-option-group {
-                width: 100%;
-            }
-
-            .edit-profile-actions {
-                grid-column: 1 / -1;
-            }
-        }
-
-        @media (min-width: 720px) and (max-width: 959px) {
-            .edit-profile-main {
-                max-width: 720px;
-                grid-template-columns: minmax(200px, 240px) minmax(0, 408px);
-                column-gap: 1.15rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 240px);
-            }
-
-            #editOptionsGroup {
-                gap: 0.6rem;
-            }
-        }
-
-        @media (min-width: 960px) and (max-height: 780px) {
-            .edit-profile-main {
-                max-width: 920px;
-                padding-top: 1.45rem;
-                grid-template-columns: minmax(220px, 260px) minmax(0, 408px);
-                column-gap: 1.35rem;
-            }
-
-            .edit-profile-title {
-                margin-bottom: 0.9rem;
-                font-size: 2.15rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 220px);
-            }
-
-            #editOptionsGroup {
-                gap: var(--lwc-space-2);
-            }
-
-            #flagDisplayInput,
-            #personalLinkInput,
-            #mediaContactInput,
-            #whyDisplayInput {
-                padding-block: var(--lwc-space-2);
-            }
-        }
-
-        @media (min-width: 960px) and (max-height: 720px) {
-            .edit-profile-main {
-                padding-top: 1.15rem;
-            }
-
-            .edit-profile-title {
-                margin-bottom: 0.7rem;
-                font-size: 2rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 210px);
-            }
-        }
-
-        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-            .edit-profile-main {
-                padding: 0.6rem 1rem 1.25rem;
-            }
-
-            .edit-profile-title {
-                margin-bottom: 0.45rem;
-                font-size: 1.8rem;
-                line-height: 1.05;
-            }
-
-            .edit-profile-visual {
-                margin-bottom: 0.65rem;
-            }
-
-            .edit-profile-visual .illustration {
-                width: min(100%, 240px, 26dvh);
-                max-width: min(100%, 240px);
-                max-height: 26dvh;
-                object-fit: contain;
-            }
-
-            #editOptionsGroup {
-                gap: 0.5rem;
-            }
-
-            .options-container.inline-option-group,
-            .edit-profile-actions {
-                gap: 0.5rem;
-            }
-
-            .edit-profile-actions {
-                margin-top: 0.65rem;
-            }
-
-            #changeProfileCropperModal {
-                width: min(calc(100vw - 1rem), 430px);
-                max-height: calc(100dvh - 0.75rem);
-                padding: 0.8rem;
-                gap: 0.55rem;
-            }
-
-            #changeProfileCropperImage {
-                max-height: min(42vh, 220px);
-            }
-        }
-
-        @media (pointer: coarse) {
-            .upload-choice-divider {
-                display: flex;
-            }
-
-            #takeProfileSelfieButton {
-                display: inline-flex;
-            }
-        }
-        .edit-profile-main :is(input,select,textarea):focus {
-            border-color: var(--lwc-accent);
-            box-shadow: 0 0 0 3px var(--lwc-accent-soft);
-            outline: 2px solid var(--lwc-accent);
-            outline-offset: 1px;
-        }
-        .edit-profile-main .field-requirement {
-            font-size: var(--lwc-type-sm);
-            line-height: 1.5;
-        }
-        #whyDisplayInput {
-            resize: vertical;
-        }
-        .edit-profile-main .option-button.icon-only {
-            background: var(--lwc-surface-muted);
-            color: var(--lwc-muted);
-            border-color: var(--lwc-border);
-        }
-        .edit-profile-main .option-button.icon-only:hover {
-            background: var(--lwc-accent-soft);
-            color: var(--lwc-accent);
-        }
-        .edit-profile-main .inline-option-group > :is(input, select, textarea) {
-            flex: 1 1 0;
-            min-width: 0;
-        }
-        .profile-field-error {
-            flex: 0 0 100%;
-            margin: calc(-1 * var(--lwc-space-1)) 0 0;
-            color: var(--lwc-danger);
-            font-size: var(--lwc-type-sm);
-            line-height: 1.5;
-            text-align: left;
-            overflow-wrap: anywhere;
-        }
-        .profile-field-error[hidden] { display: none; }
-        .edit-profile-main #editOptionsGroup [aria-invalid="true"] {
-            border-color: var(--lwc-danger);
-        }
-        .edit-profile-main #editOptionsGroup [aria-invalid="true"]:focus {
-            outline-color: var(--lwc-danger);
-            box-shadow: 0 0 0 3px var(--lwc-danger-soft);
-        }
-        .profile-draft {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-            grid-column: 1 / -1;
-            width: 100%;
-            max-width: 408px;
-            margin: 0 auto;
-        }
-        .profile-draft-status {
-            flex-basis: 100%;
-            margin: var(--lwc-space-1) 0;
-            color: var(--lwc-danger);
-            font-size: var(--lwc-type-sm);
-            line-height: 1.5;
-            text-align: left;
-        }
-        .profile-draft button {
-            min-height: 44px;
-            padding: var(--lwc-space-2);
-            border: 0;
-            border-radius: var(--lwc-radius-sm);
-            background: transparent;
-            color: var(--lwc-muted);
-            font: inherit;
-            font-size: var(--lwc-type-sm);
-            text-decoration: underline;
-            text-underline-offset: 0.2em;
-            cursor: pointer;
-        }
-        .profile-draft button:hover { color: var(--lwc-ink); }
-        .profile-draft button:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
-        .profile-draft[hidden], .profile-draft [hidden] { display: none; }
     </style>
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="edit-profile-main initial-view-main">
-        <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Edit athlete profile</h1>
-        <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
-                <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
-                <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration" width="1024" height="1024" loading="lazy" decoding="async">
-            </picture>
-        </div>
-        <div id="editOptionsGroup" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <div id="changeProfilePicWrapper" class="options-container flow-action-stack flow-action-stack--flush">
-                <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
-                    <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
-                </button>
-                <span class="upload-choice-divider" aria-hidden="true">or</span>
-                <button type="button" id="changeProfilePicButton" class="option-button grey flow-action flow-action--secondary">
-                    <span class="flow-action__label">Change profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
-                </button>
-                <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
-                <input type="file" id="profileCameraInputModal" accept="image/*,.heic,.heif" capture="user" style="display: none;">
-                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture" aria-label="Restore profile picture">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
+        <div class="edit-profile-card" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            <div class="edit-profile-visual">
+                <picture>
+                    <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
+                    <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
+                    <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration" width="1024" height="1024" loading="lazy" decoding="async">
+                </picture>
             </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="divisionDisplaySelect" class="field-label">Division</label>
-                <select id="divisionDisplaySelect"></select>
-                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division" aria-label="Restore division">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
+            <div class="edit-profile-head">
+                <h1 id="character-title" class="edit-profile-title">Edit athlete profile</h1>
+                <div id="changeProfilePicWrapper" class="options-container flow-action-stack flow-action-stack--flush">
+                    <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
+                        <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
+                    </button>
+                    <span class="upload-choice-divider" aria-hidden="true">or</span>
+                    <button type="button" id="changeProfilePicButton" class="option-button grey flow-action flow-action--secondary">
+                        <span class="flow-action__label">Change profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
+                    </button>
+                    <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
+                    <input type="file" id="profileCameraInputModal" accept="image/*,.heic,.heif" capture="user" style="display: none;">
+                    <button id="restoreProfilePicButton" class="option-button grey icon-only" style="display:none" title="Restore profile picture" aria-label="Restore profile picture">
+                        <i class="fas fa-undo" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="flagDisplayInput" class="field-label">Flag <span class="field-requirement">(required)</span></label>
-                <input type="text"
-                       id="flagDisplayInput"
-                       aria-describedby="flagDisplayInputError"
-                       name="flagDisplay"
-                       required
-                       aria-required="true"
-                       minlength="3"
-                       maxlength="100"
-                       autocomplete="off"
-                       autocapitalize="none"
-                       spellcheck="false"
-                       placeholder="Type or select a flag…">
-                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="flagDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
-            </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="personalLinkInput" class="field-label">Personal link <span class="field-requirement">(optional)</span></label>
-                <input type="text"
-                       id="personalLinkInput"
-                       aria-describedby="personalLinkInputError"
-                       name="personalLink"
-                       inputmode="url"
-                       autocomplete="url"
-                       autocapitalize="none"
-                       spellcheck="false"
-                       placeholder="yourwebsite.com">
-                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link" aria-label="Restore personal link">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="personalLinkInputError" class="profile-field-error" aria-live="polite" hidden></p>
-            </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(required)</span></label>
-                <input type="text"
-                       id="mediaContactInput"
-                       aria-describedby="mediaContactInputError"
-                       name="mediaContact"
-                       required
-                       aria-required="true"
-                       inputmode="email"
-                       autocomplete="off"
-                       autocapitalize="none"
-                       spellcheck="false"
-                       placeholder="media@example.com or @handle">
-                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="mediaContactInputError" class="profile-field-error" aria-live="polite" hidden></p>
-            </div>
-            <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(required)</span></label>
-                <textarea id="whyDisplayInput"
-                          aria-describedby="whyDisplayInputError"
-                          name="whyDisplay"
-                          rows="3"
-                          required
-                          aria-required="true"
-                          placeholder="What drives you?"></textarea>
+            <div class="edit-profile-body">
+                <div id="editOptionsGroup">
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="divisionDisplaySelect" class="field-label">Division</label>
+                        <select id="divisionDisplaySelect"></select>
+                        <button id="restoreDivisionBtn" class="option-button grey icon-only" style="display:none" title="Restore division" aria-label="Restore division">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="flagDisplayInput" class="field-label">Flag <span class="field-requirement">(required)</span></label>
+                        <input type="text"
+                               id="flagDisplayInput"
+                               aria-describedby="flagDisplayInputError"
+                               name="flagDisplay"
+                               required
+                               aria-required="true"
+                               minlength="3"
+                               maxlength="100"
+                               autocomplete="off"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               placeholder="Type or select a flag…">
+                        <button id="restoreFlagBtn" class="option-button grey icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="flagDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="personalLinkInput" class="field-label">Personal link <span class="field-requirement">(optional)</span></label>
+                        <input type="text"
+                               id="personalLinkInput"
+                               aria-describedby="personalLinkInputError"
+                               name="personalLink"
+                               inputmode="url"
+                               autocomplete="url"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               placeholder="yourwebsite.com">
+                        <button id="restorePersonalLinkBtn" class="option-button grey icon-only" style="display:none" title="Restore personal link" aria-label="Restore personal link">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="personalLinkInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(required)</span></label>
+                        <input type="text"
+                               id="mediaContactInput"
+                               aria-describedby="mediaContactInputError"
+                               name="mediaContact"
+                               required
+                               aria-required="true"
+                               inputmode="email"
+                               autocomplete="off"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               placeholder="media@example.com or @handle">
+                        <button id="restoreMediaContactBtn" class="option-button grey icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="mediaContactInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                    <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                        <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(required)</span></label>
+                        <textarea id="whyDisplayInput"
+                                  aria-describedby="whyDisplayInputError"
+                                  name="whyDisplay"
+                                  rows="3"
+                                  required
+                                  aria-required="true"
+                                  placeholder="What drives you?"></textarea>
 
-                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
-                    <i class="fas fa-undo" aria-hidden="true"></i>
-                </button>
-                <p id="whyDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                        <button id="restoreWhyDisplayBtn" class="option-button grey icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
+                            <i class="fas fa-undo" aria-hidden="true"></i>
+                        </button>
+                        <p id="whyDisplayInputError" class="profile-field-error" aria-live="polite" hidden></p>
+                    </div>
+                </div>
+                <div class="edit-profile-foot">
+                    <div id="profileDraftSummary" class="profile-draft" hidden>
+                        <button type="button" id="resetProfileDraftButton">Reset all</button>
+                        <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
+                        <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
+                    </div>
+                    <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="overflow" data-flow-dock-inline-back-first>
+                        <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
+                        </button>
+                        <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
+                    </div>
+                </div>
             </div>
         </div>
-        <div id="profileDraftSummary" class="profile-draft" hidden>
-            <button type="button" id="resetProfileDraftButton">Reset all</button>
-            <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
-            <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
-        </div>
-        <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
-            <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
-                <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
-            </button>
-        </div>
-
     </main>
     <div id="modalOverlay" aria-hidden="true" hidden></div>
     <div id="changeProfileCropperModal"
@@ -779,7 +1006,9 @@
          tabindex="-1"
          hidden>
         <h2 id="changeProfileCropperTitle" class="cropper-dialog-title">Crop profile picture</h2>
-        <img id="changeProfileCropperImage" src="" alt="Profile picture crop preview">
+        <div class="profile-crop-stage">
+            <img id="changeProfileCropperImage" src="" alt="Profile picture crop preview">
+        </div>
         <div class="options-container flow-action-stack flow-action-stack--flush">
             <button type="button" id="changeProfileCropButton" class="option-button green flow-action">
                 <span class="flow-action__label">Crop and save</span>
@@ -992,11 +1221,17 @@
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
             const athleteImage = document.createElement('img');
-            athleteImage.src = athlete.ProfilePic;
+            const portraitPlaceholder = document.querySelector('meta[name="lwc-athlete-placeholder"]').content;
+            athleteImage.addEventListener('error', () => {
+                if (athleteImage.getAttribute('src') !== portraitPlaceholder) athleteImage.src = portraitPlaceholder;
+            });
+            athleteImage.dataset.profilePicValue = athlete.ProfilePic || '';
+            athleteImage.src = portraitPlaceholder;
             athleteImage.alt = `${athleteDisplayName} headshot`;
             athleteImage.className = 'illustration';
-            athleteImage.loading = 'lazy';
-            document.querySelector('picture').replaceChildren(athleteImage);
+            athleteImage.loading = 'eager';
+            document.querySelector('.edit-profile-visual picture').replaceChildren(athleteImage);
+            setProfilePictureValue(athlete.ProfilePic);
             if (athlete.ProfilePic !== originalAthlete.ProfilePic) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -1168,17 +1403,18 @@
                     accountEmail: applicantData.accountEmail
                 });
 
+                const submissionWait = window.LwcWait?.start(submitButton, { message: 'Submitting...' });
                 isEditProfileSubmitting = true;
                 updateSubmitButtonState();
                 submitButton.disabled = true;
-                submitButton.textContent = 'Submitting...';
-                showLoading();
+                if (!submissionWait) { submitButton.textContent = 'Submitting...'; showLoading(); }
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(attempt => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
+                        else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishEditProfileSubmission({
                                 submissionId: submissionId,
@@ -1205,7 +1441,8 @@
                         }
                     })
                     .catch(error => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait('error');
+                        else hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
                         const alertMessage = `Your connection was interrupted. Your change request may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;
                         void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
@@ -1288,16 +1525,49 @@
             restoreWhyDisplayBtn.addEventListener('click', restoreWhyDisplayToOriginal);
             restoreMediaContactBtn.addEventListener('click', restoreMediaContactToOriginal);
             initializeProfileDraftControls();
+            document.querySelectorAll('#editOptionsGroup input, #editOptionsGroup select, #editOptionsGroup textarea')
+                .forEach(input => input.addEventListener('focus', () => keepEditedControlClearOfDock(input)));
             profileEditorReady = true;
             updateSubmitButtonState();
             if (isValidSelectedAthlete(originalAthlete)) window.LwcInitialView.complete();
         }));
 
+        function setProfilePictureValue(value) {
+            const image = document.querySelector('.edit-profile-visual .illustration');
+            const placeholder = document.querySelector('meta[name="lwc-athlete-placeholder"]').content;
+            const source = value || placeholder;
+            image.dataset.profilePicValue = value || '';
+            const request = String((Number(image.dataset.profilePicRequest) || 0) + 1);
+            image.dataset.profilePicRequest = request;
+            if (image.getAttribute('src') === source && image.complete && image.naturalWidth) return;
+            if (image.getAttribute('src') !== placeholder) image.src = placeholder;
+            if (source === placeholder) return;
+            if (source.startsWith('data:')) {
+                image.src = source;
+                return;
+            }
+            // Keep the versioned fallback when a stored URL names that same asset.
+            try {
+                const requestedUrl = new URL(source, location.href);
+                const placeholderUrl = new URL(placeholder, location.href);
+                if (requestedUrl.origin === placeholderUrl.origin && requestedUrl.pathname === placeholderUrl.pathname) return;
+            } catch (_) { }
+            // Keep a decoded placeholder while the requested photo arrives.
+            // A late load must not overwrite a crop, restore, reset or undo.
+            const preview = new Image();
+            preview.src = source;
+            preview.decode().then(() => {
+                if (image.isConnected && image.dataset.profilePicRequest === request
+                    && image.getAttribute('src') === placeholder) image.src = source;
+            }).catch(() => {});
+        }
+
         function restoreProfilePicToOriginal() {
-            const imgEl = document.querySelector('.illustration');
-            imgEl.src = originalAthlete.ProfilePic;
+            setProfilePictureValue(originalAthlete.ProfilePic);
             athlete.ProfilePic = originalAthlete.ProfilePic;
-            document.getElementById('restoreProfilePicButton').style.display = 'none';
+            const restoreButton = document.getElementById('restoreProfilePicButton');
+            if (document.activeElement === restoreButton) changeProfileBtn.focus({ preventScroll: true });
+            restoreButton.style.display = 'none';
             // go back to “nothing changed,” so disable submit again
             updateSubmitButtonState();
         }
@@ -1308,6 +1578,7 @@
 
             divisionSelect.value = originalAthlete.Division;
             athlete.Division = originalAthlete.Division;
+            if (document.activeElement === restoreDivisionBtn) divisionSelect.focus({ preventScroll: true });
             restoreDivisionBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -1362,6 +1633,40 @@
         const profileCameraInput = document.getElementById('profileCameraInputModal');
         const cropperModal = document.getElementById('changeProfileCropperModal');
         const cropperImage = document.getElementById('changeProfileCropperImage');
+        const cropperStage = cropperImage.parentElement;
+        let cropperLayoutFrame = 0;
+        let profilePictureReadVersion = 0;
+
+        function refreshProfileCropperLayout() {
+            if (cropperModal.hidden || cropperLayoutFrame) return;
+            cropperLayoutFrame = requestAnimationFrame(() => {
+                cropperLayoutFrame = 0;
+                if (cropperModal.hidden) return;
+                const cropper = window.changeProfileCropper;
+                const container = cropper?.getContainerData?.();
+                if (container?.width && (Math.abs(container.width - cropperStage.clientWidth) > 1
+                    || Math.abs(container.height - cropperStage.clientHeight) > 1)) {
+                    const selection = cropper.getData();
+                    cropper.resize();
+                    cropper.setData(selection);
+                }
+
+                const focused = document.activeElement;
+                if (!focused || focused === cropperModal || !cropperModal.contains(focused)) return;
+                const bounds = focused.getBoundingClientRect();
+                const modalBounds = cropperModal.getBoundingClientRect();
+                if (bounds.bottom > modalBounds.bottom - 8) {
+                    cropperModal.scrollTop += Math.ceil(bounds.bottom - modalBounds.bottom + 8);
+                } else if (bounds.top < modalBounds.top + 8) {
+                    cropperModal.scrollTop -= Math.ceil(modalBounds.top + 8 - bounds.top);
+                }
+            });
+        }
+
+        const cropperLayoutObserver = new ResizeObserver(refreshProfileCropperLayout);
+        cropperLayoutObserver.observe(cropperModal);
+        cropperLayoutObserver.observe(cropperStage);
+        cropperModal.addEventListener('focusin', refreshProfileCropperLayout);
         const modalOverlay = document.getElementById('modalOverlay');
         const cropBtn = document.getElementById('changeProfileCropButton');
         const cancelBtn = document.getElementById('changeProfileCancelButton');
@@ -1372,6 +1677,8 @@
         function restoreProfileCropperFocus() {
             if (profileCropperReturnFocus?.isConnected && !profileCropperReturnFocus.disabled) {
                 profileCropperReturnFocus.focus({ preventScroll: true });
+                profileCropperReturnFocus.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                window.LwcFlowActionDock?.ensureClear?.(profileCropperReturnFocus, { margin: 16 });
             }
         }
 
@@ -1426,11 +1733,15 @@
             setProfileCropperBackgroundInert(true);
 
             requestAnimationFrame(() => {
-                if (!cropperModal.hidden) cropBtn.focus({ preventScroll: true });
+                if (!cropperModal.hidden && !cropperModal.contains(document.activeElement)) {
+                    (cropBtn.disabled ? cropperModal : cropBtn).focus({ preventScroll: true });
+                }
             });
         }
 
         function closeChangeProfileCropperDialog({ destroyCropper = true, restoreFocus = true } = {}) {
+            ++profilePictureReadVersion;
+            cropperImage.onerror = null;
             if (destroyCropper && window.changeProfileCropper) {
                 try { window.changeProfileCropper.destroy(); } catch (_) { }
             }
@@ -1519,36 +1830,49 @@
                 return;
             }
 
+            if (isChangeProfileCropProcessing) return;
+            const version = ++profilePictureReadVersion;
+            const failProfilePicture = () => {
+                if (version !== profilePictureReadVersion) return;
+                closeChangeProfileCropperDialog({ restoreFocus: false });
+                const failedVersion = profilePictureReadVersion;
+                customAlert('Profile picture upload failed. Please try another image.')
+                    .then(() => { if (failedVersion === profilePictureReadVersion) restoreProfileCropperFocus(); });
+            };
             const reader = new FileReader();
             reader.onload = (evt) => {
+                if (version !== profilePictureReadVersion) return;
                 try {
                     if (window.changeProfileCropper) {
                         window.changeProfileCropper.destroy();
                         window.changeProfileCropper = null;
                     }
+                    // Cropper's ready callback never runs when image decoding fails.
+                    cropperImage.onerror = failProfilePicture;
                     cropperImage.src = evt.target.result;
+                    cropBtn.disabled = true;
                     openChangeProfileCropperDialog();
 
                     // expose globally so crop/cancel buttons can access it
-                    window.changeProfileCropper = new Cropper(cropperImage, {
-                        aspectRatio: 1,
-                        viewMode: 1,
-                        autoCropArea: 1,
+                    window.changeProfileCropper = new LwcPortraitCropper(cropperImage, {
+                        error: failProfilePicture,
+                        // The stage observer handles viewport and text reflow,
+                        // preserving image coordinates across aspect changes.
+                        ready() {
+                            requestAnimationFrame(() => {
+                                if (version !== profilePictureReadVersion || cropperModal.hidden) return;
+                                cropperImage.onerror = null;
+                                cropBtn.disabled = false;
+                                refreshProfileCropperLayout();
+                                if (document.activeElement === cropperModal) cropBtn.focus({ preventScroll: true });
+                            });
+                        },
                     });
                 } catch (_) {
-                    if (window.changeProfileCropper) {
-                        try { window.changeProfileCropper.destroy(); } catch (_) { }
-                        window.changeProfileCropper = null;
-                    }
-                    closeChangeProfileCropperDialog({ destroyCropper: false, restoreFocus: false });
-                    customAlert('Profile picture upload failed. Please try another image.')
-                        .then(restoreProfileCropperFocus);
+                    failProfilePicture();
                 }
             };
-            reader.onerror = () => {
-                customAlert('Profile picture upload failed. Please try another image.')
-                    .then(restoreProfileCropperFocus);
-            };
+            reader.onerror = failProfilePicture;
             reader.onabort = reader.onerror;
             reader.readAsDataURL(file);
         }
@@ -1559,24 +1883,29 @@
         // Crop & Cancel handlers for change-profile
         cropBtn.addEventListener('click', async function () {
             const activeCropper = window.changeProfileCropper;
-            if (isChangeProfileCropProcessing || !activeCropper) return;
+            if (isChangeProfileCropProcessing || !activeCropper?.ready) return;
+            const version = profilePictureReadVersion;
 
             isChangeProfileCropProcessing = true;
             cropperModal.setAttribute('aria-busy', 'true');
             cropBtn.disabled = true;
             cancelBtn.disabled = true;
             try {
-                const canvas = activeCropper.getCroppedCanvas({
+                activeCropper.disable();
+                const canvas = await activeCropper.toCanvas({
                     width: 1024,
                     height: 1024,
                 });
-                if (!canvas) {
+                if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
+                if (!canvas || canvas.width <= 0 || canvas.height <= 0) {
                     closeChangeProfileCropperDialog({ restoreFocus: false });
                     customAlert('Profile picture crop failed. Please try another image.')
                         .then(restoreProfileCropperFocus);
                     return;
                 }
                 const raw = canvas.toDataURL('image/png');
+                // Canvas encoding can fail without throwing.
+                if (!raw.startsWith('data:image/png;base64,')) throw new Error('Portrait encoding failed.');
                 let newSrc = raw;
                 try {
                     const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
@@ -1584,8 +1913,9 @@
                 } catch {
                     newSrc = raw;
                 }
-                const imgEl = document.querySelector('.illustration');
-                imgEl.src = newSrc;
+                if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
+                const imgEl = document.querySelector('.edit-profile-visual .illustration');
+                setProfilePictureValue(newSrc);
                 imgEl.alt = getAthleteDisplayName() + ' headshot';
                 athlete.ProfilePic = newSrc;
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
@@ -1594,6 +1924,7 @@
                 updateSubmitButtonState(changeProfileBtn);
                 closeChangeProfileCropperDialog();
             } catch (_) {
+                if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
                 closeChangeProfileCropperDialog({ restoreFocus: false });
                 customAlert('Profile picture crop failed. Please try another image.')
                     .then(restoreProfileCropperFocus);
@@ -1613,20 +1944,38 @@
             if (!control || !control.isConnected) return;
 
             requestAnimationFrame(() => {
+                window.LwcFlowActionDock?.refreshNow?.();
                 const row = control.closest('.inline-option-group, .flow-action-stack') || control;
+                const rect = row.getBoundingClientRect();
+                const viewport = window.visualViewport;
+                const dockHeight = parseFloat(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--flow-action-dock-height')) || 0;
+                const availableHeight = (viewport?.height || innerHeight) - dockHeight - 32;
                 let followingVisibleSiblingCount = 0;
                 if (row.classList.contains('inline-option-group')) {
-                    if (row.contains(personalLinkInput)) {
-                        followingVisibleSiblingCount = 2;
-                    } else if (!row.contains(whyDisplayInput)) {
-                        followingVisibleSiblingCount = 1;
+                    // Keep following fields clear only while their rendered
+                    // union fits. Grid neighbours share space; a tall motivation
+                    // must not push the edited field above the viewport.
+                    for (let sibling = row.nextElementSibling; sibling; sibling = sibling.nextElementSibling) {
+                        const bounds = sibling.getBoundingClientRect();
+                        if (!bounds.width || !bounds.height) continue;
+                        if (Math.max(rect.bottom, bounds.bottom) - rect.top > availableHeight) break;
+                        followingVisibleSiblingCount++;
                     }
                 }
 
-                window.LwcFlowActionDock?.ensureClear?.(row, {
+                window.LwcFlowActionDock?.ensureClear?.(rect.height <= availableHeight ? row : control, {
                     followingVisibleSiblingCount,
                     margin: 16
                 });
+                // Native focus can reveal the caret while leaving the top of
+                // a long textarea above the screen. Reveal the whole control
+                // when it fits, without taking space away from its text.
+                const controlBounds = control.getBoundingClientRect();
+                const topLimit = (viewport?.offsetTop || 0) + 16;
+                if (controlBounds.height <= availableHeight && controlBounds.top < topLimit) {
+                    window.scrollBy({ top: Math.floor(controlBounds.top - topLimit), behavior: 'instant' });
+                }
             });
         }
 
@@ -1676,14 +2025,14 @@
         }
 
         function readProfileField(field) {
-            return field.key === 'ProfilePic' ? document.querySelector('.illustration').getAttribute('src')
+            return field.key === 'ProfilePic' ? document.querySelector('.edit-profile-visual .illustration').dataset.profilePicValue
                 : document.getElementById(field.id).value;
         }
 
         function applyProfileDraftValues(values) {
             profileFieldValidation.forEach(controller => controller.reset());
             getProfileEditFields().forEach(field => {
-                if (field.key === 'ProfilePic') document.querySelector('.illustration').src = values[field.key].value;
+                if (field.key === 'ProfilePic') setProfilePictureValue(values[field.key].value);
                 else document.getElementById(field.id).value = values[field.key].value;
                 if (document.getElementById(field.id + 'Error')) setProfileFieldError(field.id, values[field.key].error || '');
             });
@@ -1791,6 +2140,7 @@
             return setProfileFieldError('whyDisplayInput', v ? '' : 'Enter your motivation.');
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@2.3.1/dist/cropper.min.js" integrity="sha384-q877KRoDGCc9TE0/aHg20sWS2aLAr60y01aKWeVzpJhbJh90PH+lt1GmABR1GOdz" crossorigin="anonymous" defer></script>
+    <script src="{{ASSET_PORTRAIT_CROPPER_JS}}" defer></script>
 </body>
 </html>

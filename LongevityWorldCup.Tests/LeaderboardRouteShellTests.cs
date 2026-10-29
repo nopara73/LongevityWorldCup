@@ -49,7 +49,8 @@ public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedF
         var html = await client.GetStringAsync(path);
         Assert.Contains("data-server-rendered-loading=\"true\"", html);
         Assert.Contains("<h2 id=\"athleteName\">Loading...</h2>", html);
-        Assert.Contains("<span id=\"chronologicalAge\"></span>", html);
+        foreach (var id in new[] { "chronologicalAge", "lowestPhenoAge", "lowestBortzAge", "paceOfAging", "bortzPaceOfAging" })
+            Assert.Matches($"<span\\b[^>]*\\bid=\"{id}\"[^>]*>\\s*</span>", html);
         Assert.DoesNotContain("data-server-rendered-profile=", html);
     }
 }

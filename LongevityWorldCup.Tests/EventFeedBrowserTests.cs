@@ -8,6 +8,89 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InitialHeadingScroll_DoesNotInterruptHoverOrFocus(bool focus)
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        await context.AddInitScriptAsync("""
+            window.headingScrolls = 0;
+            const originalScrollIntoView = Element.prototype.scrollIntoView;
+            Element.prototype.scrollIntoView = function (...args) {
+                if (this.matches('.event-board-heading')) headingScrolls++;
+                return originalScrollIntoView.apply(this, args);
+            };
+            """);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(844, 390);
+        var start = new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc);
+        await page.Clock.InstallAsync(new() { Time = start.ToString("O") });
+        await page.Clock.PauseAtAsync(start.AddSeconds(1));
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var link = page.Locator(".event-feed-link");
+        if (focus) await link.FocusAsync();
+        else
+        {
+            var box = (await link.BoundingBoxAsync())!;
+            await page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
+        }
+        await page.Clock.RunForAsync(600);
+        Assert.Equal(0, await page.EvaluateAsync<int>("headingScrolls"));
+    }
+
+    [Theory]
+    [InlineData(360)]
+    [InlineData(1280)]
+    public async Task InitialHeadingScroll_RespectsReducedMotion(int width)
+    {
+        // This is the no-input opening state. Keep its cancellable timer apart
+        // from concurrent browser interactions and advance it after layout is ready.
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(browser, App, ReducedMotion.Reduce);
+        await context.AddInitScriptAsync("""
+            (() => {
+                const scrollIntoView = Element.prototype.scrollIntoView;
+                Element.prototype.scrollIntoView = function (options) {
+                    const result = scrollIntoView.call(this, options);
+                    if (this.matches('.event-board-heading')) {
+                        window.__initialHeadingScroll = {
+                            behavior: options?.behavior,
+                            offset: Math.abs(this.getBoundingClientRect().top
+                                - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop))
+                        };
+                    }
+                    return result;
+                };
+            })();
+            """);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, 850);
+        // Establish an idle pointer before the page installs its interaction
+        // cancellation listeners, then control the opening delay explicitly.
+        // Hover/focus cancellation is covered by the separate test above.
+        await page.Mouse.MoveAsync(-1, -1);
+        var start = new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc);
+        await page.Clock.InstallAsync(new() { Time = start.ToString("O") });
+        await page.Clock.PauseAtAsync(start.AddSeconds(1));
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("() => document.fonts.ready");
+        await page.Clock.RunForAsync(600);
+
+        // Observe the real callback rather than sampling exactly at its timer boundary.
+        // Capture alignment synchronously so an unintended smooth scroll cannot settle first.
+        Assert.True(await page.EvaluateAsync<bool>("window.__initialHeadingScroll !== undefined"),
+            "The opening callback must run after its 500ms delay when there is no user input.");
+        Assert.Equal("instant", await page.EvaluateAsync<string>("window.__initialHeadingScroll.behavior"));
+        Assert.InRange(await page.EvaluateAsync<double>("window.__initialHeadingScroll.offset"), 0, 1);
+
+        var offset = await page.Locator(".event-board-heading").EvaluateAsync<double>(
+            "heading => Math.abs(heading.getBoundingClientRect().top - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop))");
+        Assert.InRange(offset, 0, 1);
+    }
+
+    [Theory]
     [InlineData(320, 850, 100)]
     [InlineData(320, 850, 200)]
     [InlineData(390, 850, 200)]
@@ -24,7 +107,7 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
         }));
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(width, height);
-        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.Load });
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator("#webPushToggle").WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
@@ -84,7 +167,7 @@ public sealed class EventFeedBrowserTests(PlaywrightBrowserFixture browserFixtur
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+        await page.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         var rss = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Subscribe to Highlights via RSS" });
         await rss.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
         await page.Locator("#events-root[aria-busy='false']").WaitForAsync();

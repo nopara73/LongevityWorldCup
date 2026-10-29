@@ -46,7 +46,9 @@ public sealed class AthleteDialogLinkBrowserTests(
         if (path == "/")
         {
             await page.WaitForSelectorAsync(".podium-podcast-link");
-            var links = await page.Locator(".podium-personal-link, .podium-podcast-link, .leaderboard .badge-section a").AllAsync();
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            await Assertions.Expect(page.Locator(".leaderboard .badge-section :is(.badge-personal, .badge-podcast)")).ToHaveCountAsync(0);
+            var links = await page.Locator(".podium-personal-link, .podium-podcast-link, .leaderboard .athlete-name-links a").AllAsync();
             Assert.NotEmpty(links);
             foreach (var rendered in links)
                 Assert.Equal(expectedHref, await rendered.GetAttributeAsync("href"));
@@ -54,6 +56,49 @@ public sealed class AthleteDialogLinkBrowserTests(
         await page.EvaluateAsync("slug => window.openAthleteModalBySlug(slug)", MichaelSlug);
         await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
         Assert.Equal(expectedHref, await page.Locator("#personalLink").GetAttributeAsync("href"));
+    }
+
+    [Fact]
+    public async Task NameLinks_StaySearchableWithoutUsingAchievementSlots()
+    {
+        await using var context = await NewContextAsync(Browser, App, width: 1440, height: 900);
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            var michael = athletes.OfType<JsonObject>().Single(athlete =>
+                athlete["AthleteSlug"]!.GetValue<string>() == "michael_lustgarten");
+            michael["PersonalLink"] = "https://example.com/personal";
+            michael["PodcastLink"] = "https://example.com/podcast";
+            michael["Badges"] = new JsonArray(new[]
+            {
+                "Podcast", "First applicants", "Pregnancy", "Host", "Perfect application", "≥2 submissions"
+            }.Select(label => (JsonNode)new JsonObject { ["BadgeLabel"] = label }).ToArray());
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var row = page.Locator(".leaderboard tbody tr[data-athlete-name]")
+            .Filter(new() { Has = page.Locator(".athlete-name", new() { HasText = "Michael Lustgarten" }) });
+        await Assertions.Expect(row.Locator(".athlete-identity .athlete-name-links a")).ToHaveCountAsync(2);
+        await Assertions.Expect(row.Locator(".badge-section > .badge-class")).ToHaveCountAsync(4);
+        await Assertions.Expect(row.Locator(".badge-overflow-count")).ToHaveTextAsync("+2");
+        await Assertions.Expect(row.Locator(".badge-section :is(.badge-personal, .badge-podcast)")).ToHaveCountAsync(0);
+        foreach (var link in await row.Locator(".athlete-name-links a").AllAsync())
+        {
+            Assert.Equal("_blank", await link.GetAttributeAsync("target"));
+            Assert.Contains("noopener", await link.GetAttributeAsync("rel"));
+            await link.FocusAsync();
+            Assert.True(await link.EvaluateAsync<bool>("link => document.activeElement === link"));
+            Assert.Null(await link.GetAttributeAsync("aria-describedby"));
+            await Assertions.Expect(page.Locator(".badge-tip")).ToHaveAttributeAsync("aria-hidden", "true");
+        }
+        await page.Locator("#athleteSearch").FillAsync("podcast");
+        await Assertions.Expect(row).ToBeVisibleAsync();
+        await page.Locator(".clear-icon").ClickAsync();
+        await row.Locator(".athlete-name").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
+        await Assertions.Expect(page.Locator("#modalBadgeStrip .badge-podcast")).ToHaveCountAsync(1);
     }
 
     [Theory]
@@ -72,19 +117,10 @@ public sealed class AthleteDialogLinkBrowserTests(
     {
         await using var context = await NewContextAsync(Browser, App, width: 1100, height: 760);
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
-        await context.RouteAsync("**/api/data/athletes", async route =>
+        await RouteAthleteFixtureAsync(context, athletes =>
         {
-            var response = await route.FetchAsync();
-            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
             foreach (var athlete in athletes.OfType<JsonObject>())
                 athlete["MediaContact"] = contact;
-
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = response.Status,
-                ContentType = "application/json",
-                Body = athletes.ToJsonString()
-            });
         });
 
         var page = await context.NewPageAsync();
@@ -124,7 +160,6 @@ public sealed class AthleteDialogLinkBrowserTests(
     [InlineData("/history")]
     [InlineData("/events")]
     [InlineData("/longevitymaxxing")]
-    [InlineData("/helstab-kihivas")]
     [InlineData("/pheno-age")]
     [InlineData("/bortz-age")]
     public async Task PublicAthleteLinkSurfaces_InstallOneScopedDialogRuntime(string path)
@@ -191,8 +226,10 @@ public sealed class AthleteDialogLinkBrowserTests(
         }
     }
 
-    [Fact]
-    public async Task AboutAthleteLink_QueuesUntilHydratedAndCloseRestoresTheCallingPage()
+    [Theory]
+    [InlineData("misc")]
+    [InlineData("flags")]
+    public async Task AboutAthleteLink_QueuesUntilHydratedAndCloseRestoresTheCallingPage(string delayedModule)
     {
         var app = App;
         var browser = Browser;
@@ -209,12 +246,12 @@ public sealed class AthleteDialogLinkBrowserTests(
             });
             """);
 
-        var miscModuleRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseMiscModuleResponse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await context.RouteAsync("**/js/misc.js*", async route =>
+        var dialogModuleRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseDialogModuleResponse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync($"**/js/{delayedModule}.js*", async route =>
         {
-            miscModuleRequestReceived.TrySetResult();
-            await releaseMiscModuleResponse.Task;
+            dialogModuleRequestReceived.TrySetResult();
+            await releaseDialogModuleResponse.Task;
             await route.ContinueAsync();
         });
         var athleteRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -275,7 +312,7 @@ public sealed class AthleteDialogLinkBrowserTests(
                 "element => document.activeElement === element"));
 
             await athleteLink.ClickAsync();
-            await miscModuleRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await dialogModuleRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
             // A click made before either the modules or athlete index are ready
             // must remain in this document. Falling through to the anchor would
@@ -285,7 +322,7 @@ public sealed class AthleteDialogLinkBrowserTests(
             Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
                 "element => element.classList.contains('is-loading')"));
 
-            releaseMiscModuleResponse.TrySetResult();
+            releaseDialogModuleResponse.TrySetResult();
             await athleteRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
             releaseAthleteResponse.TrySetResult();
             await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
@@ -330,13 +367,15 @@ public sealed class AthleteDialogLinkBrowserTests(
         }
         finally
         {
-            releaseMiscModuleResponse.TrySetResult();
+            releaseDialogModuleResponse.TrySetResult();
             releaseAthleteResponse.TrySetResult();
         }
     }
 
-    [Fact]
-    public async Task DelegatedHandler_OpensDynamicAndOfficialLinksButLeavesModifiedClicksNative()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DelegatedHandler_OpensDynamicAndOfficialLinksButLeavesModifiedClicksNative(bool explicitNewTab)
     {
         var app = App;
         var browser = Browser;
@@ -381,7 +420,12 @@ public sealed class AthleteDialogLinkBrowserTests(
         var historyLink = page.Locator(
             "main.documentation-page a[href='https://www.longevityworldcup.com/athlete/michael-lustgarten']").First;
         await historyLink.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-        Assert.Equal("_blank", await historyLink.GetAttributeAsync("target"));
+        Assert.Null(await historyLink.GetAttributeAsync("target"));
+        if (explicitNewTab)
+        {
+            await historyLink.EvaluateAsync("link => { link.target = '_blank'; link.rel = 'noopener noreferrer'; }");
+        }
+        Assert.Equal(explicitNewTab ? "_blank" : null, await historyLink.GetAttributeAsync("target"));
 
         var nativeActivations = await historyLink.EvaluateAsync<NativeActivationDiagnostics[]>(
             """
@@ -810,6 +854,9 @@ public sealed class AthleteDialogLinkBrowserTests(
                     && Number.parseFloat(frame.style.height) > 1;
             }
             """);
+        // This fixture stubs the chart dependency. Compare the rendered fallback
+        // on both routes, after the deferred chart load has resolved.
+        await Assertions.Expect(page.Locator("#ageRadarFallback")).ToBeVisibleAsync();
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
         await page.EvaluateAsync(
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");

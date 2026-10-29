@@ -52,7 +52,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
     [InlineData("/pheno-age")]
     [InlineData("/ruleset")]
     [InlineData("/privacy")]
-    public async Task SharedPages_LoadVersionedAestheticSystemLastInHead(string path)
+    public async Task SharedPages_LoadVersionedSurfaceSystemsInOrder(string path)
     {
         var factory = sharedFactory;
         using var client = factory.CreateClient();
@@ -61,9 +61,27 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         var stylesheetIndex = html.IndexOf("/css/aesthetic-system.css?v=", StringComparison.Ordinal);
         var closingHeadIndex = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
 
+        var motionIndex = html.IndexOf("/css/motion.css?v=", StringComparison.Ordinal);
+        var controlsScriptIndex = html.IndexOf("/js/form-controls.js?v=", StringComparison.Ordinal);
+        var controlsStyleIndex = html.IndexOf("/css/form-controls.css?v=", StringComparison.Ordinal);
+        var pointerScriptIndex = html.IndexOf("/js/pointer.js?v=", StringComparison.Ordinal);
+        var pointerStyleIndex = html.IndexOf("/css/pointer.css?v=", StringComparison.Ordinal);
+        Assert.True(pointerScriptIndex >= 0 && pointerStyleIndex > pointerScriptIndex && pointerStyleIndex < stylesheetIndex);
+        Assert.Equal(1, html.Split("/js/pointer.js?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/css/pointer.css?v=", StringSplitOptions.None).Length - 1);
+        Assert.True(motionIndex >= 0 && controlsScriptIndex > motionIndex);
+        Assert.True(controlsStyleIndex > controlsScriptIndex && controlsStyleIndex < stylesheetIndex);
+        Assert.Equal(1, html.Split("/js/form-controls.js?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/css/form-controls.css?v=", StringSplitOptions.None).Length - 1);
+
         Assert.True(stylesheetIndex >= 0);
         Assert.True(closingHeadIndex > stylesheetIndex);
-        var stylesheetTagEnd = html.IndexOf('>', stylesheetIndex);
+        var depthIndex = html.IndexOf("/css/depth-system.css?v=", StringComparison.Ordinal);
+        var depthScriptIndex = html.IndexOf("/js/depth-system.js?v=", StringComparison.Ordinal);
+        Assert.True(depthIndex > stylesheetIndex && depthScriptIndex > depthIndex && depthScriptIndex < closingHeadIndex);
+        Assert.Equal(1, html.Split("/css/depth-system.css?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/js/depth-system.js?v=", StringSplitOptions.None).Length - 1);
+        var stylesheetTagEnd = html.IndexOf('>', depthIndex);
         Assert.True(stylesheetTagEnd > stylesheetIndex);
         var trailingHead = html[(stylesheetTagEnd + 1)..closingHeadIndex];
         Assert.DoesNotContain("<style", trailingHead, StringComparison.OrdinalIgnoreCase);
@@ -138,7 +156,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
 
         var html = await client.GetStringAsync(path);
 
-        Assert.Contains("/css/error-system.css?v=20260905-1", html);
+        Assert.Contains("/css/error-system.css?v=20261024-1", html);
         Assert.Contains("<figure class=\"visual\">", html);
         Assert.Contains("src=\"/error/herold.png\"", html);
         Assert.Contains("alt=\"Herold waiting through a temporary outage\" width=\"1024\" height=\"1536\"", html);
@@ -154,5 +172,27 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         var html = await client.GetStringAsync("/internal/custom-event-designer.html");
 
         Assert.DoesNotContain("/css/aesthetic-system.css", html);
+    }
+
+    [Theory]
+    [InlineData("/error/404.html")]
+    [InlineData("/unsubscribe")]
+    [InlineData("/media")]
+    [InlineData("/review")]
+    public async Task StandaloneMotion_UsesTheCanonicalVersionedStylesheet(string path)
+    {
+        using var client = sharedFactory.CreateClient();
+        var response = await client.GetAsync(path);
+        Assert.Equal(path == "/error/404.html" ? System.Net.HttpStatusCode.NotFound : System.Net.HttpStatusCode.OK,
+            response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("{{ASSET_STANDALONE_FEEL_CSS}}", html);
+        var asset = System.Text.RegularExpressions.Regex.Match(html,
+            "href=\"(/css/standalone-feel\\.css\\?v=[A-Za-z0-9_-]+)\"");
+        Assert.True(asset.Success, "The rendered page must use the canonical asset fingerprint.");
+        Assert.DoesNotContain("20261024-1", asset.Value);
+        using var stylesheet = await client.GetAsync(asset.Groups[1].Value);
+        stylesheet.EnsureSuccessStatusCode();
+        Assert.Contains(".nf-score", await stylesheet.Content.ReadAsStringAsync());
     }
 }

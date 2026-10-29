@@ -322,18 +322,11 @@ public sealed class FlowActionDockFormBrowserTests(
 
         await ExpectActionStackInViewportAsync(page, ".play-menu-actions");
 
-        var inlineTail = await page.EvaluateAsync<double>(
-            """
-            () => {
-                const main = document.querySelector('.play-hub-main');
-                const actions = document.querySelector('.play-menu-actions');
-                if (!main || !actions) return Number.POSITIVE_INFINITY;
-                return main.getBoundingClientRect().bottom - actions.getBoundingClientRect().bottom;
-            }
-            """);
+        var scrollTail = await page.EvaluateAsync<double>(
+            "() => document.documentElement.scrollHeight - window.innerHeight");
 
-        Assert.True(inlineTail <= 16,
-            $"Inline /play actions leave {inlineTail}px of trailing page background after the menu.");
+        Assert.True(scrollTail <= 1,
+            $"The /play title screen scrolls {scrollTail}px past its inline menu.");
         Assert.Empty(errors);
     }
 
@@ -471,10 +464,10 @@ public sealed class FlowActionDockFormBrowserTests(
     [InlineData(390, 844, false)]
     [InlineData(1280, 720, true)]
     [InlineData(1366, 768, true)]
-    public async Task EditProfile_UnchangedAthleteWithStaleDraft_KeepsOnlyBackActionWithoutCoveringVisibleFields(
+    public async Task EditProfile_UnchangedAthleteWithStaleDraft_KeepsOnlyBackActionAndReachableFields(
         int viewportWidth,
         int viewportHeight,
-        bool expectDesktopCenteredBack)
+        bool expectDesktopBackAligned)
     {
         var app = App;
         var browser = Browser;
@@ -580,7 +573,6 @@ public sealed class FlowActionDockFormBrowserTests(
         Assert.True(state.SubmitDisabled, "Unchanged edit profile should not present Submit as an available primary action.");
         Assert.False(state.SubmitVisible, "Disabled Submit should not appear as a fake primary action in the unchanged edit-profile dock.");
         Assert.True(state.BackVisible, "Back should remain visible while unchanged edit-profile actions are available.");
-        Assert.Equal(0, state.CoveredVisibleFieldCount);
         Assert.True(state.ActionBottom <= state.ViewportHeight + 1,
             $"Unchanged edit-profile Back action should stay inside the viewport: {state.ActionBottom} > {state.ViewportHeight}.");
         if (state.ActionsDocked)
@@ -590,21 +582,45 @@ public sealed class FlowActionDockFormBrowserTests(
                 $"Unchanged edit-profile dock placeholder should not reserve hidden Submit space: {state.PlaceholderHeight}px placeholder vs {state.ActionHeight}px dock.");
         }
 
-        if (expectDesktopCenteredBack && state.ActionsDocked)
+        if (expectDesktopBackAligned && state.ActionsDocked)
         {
-            Assert.True(state.BackCenterDelta <= 3,
-                $"Lone desktop Back action should be centered in the dock; center was off by {state.BackCenterDelta}px.");
+            var alignment = await page.EvaluateAsync<double>("""
+                () => Math.abs(document.querySelector('.edit-profile-actions .back-button').getBoundingClientRect().left
+                    - document.getElementById('divisionDisplaySelect').getBoundingClientRect().left)
+                """);
+            Assert.True(alignment <= 1,
+                $"Back should keep its place at the left edge of the apply-style band; alignment was off by {alignment}px.");
             Assert.True(state.BackWidth <= 190,
                 $"Lone desktop Back action should stay compact; width was {state.BackWidth}px.");
         }
         Assert.Equal("", state.TempAthlete);
+        await ExpectProfileFieldsClearWhenFocusedAsync(page);
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
+    }
+
+    private static async Task ExpectProfileFieldsClearWhenFocusedAsync(IPage page)
+    {
+        // Short screens may scroll and dock instead of shrinking the portrait
+        // or textarea. Every field must become fully usable when reached.
+        foreach (var id in new[] { "divisionDisplaySelect", "flagDisplayInput", "personalLinkInput", "mediaContactInput", "whyDisplayInput" })
+        {
+            await page.Locator("#" + id).FocusAsync();
+            await page.WaitForFunctionAsync("""
+                id => {
+                    const field = document.getElementById(id);
+                    const r = field.getBoundingClientRect();
+                    const dock = document.querySelector('.edit-profile-actions.flow-action-stack--docked')?.getBoundingClientRect();
+                    return document.activeElement === field && r.top >= 0
+                        && r.bottom <= (dock?.top ?? innerHeight) - 8;
+                }
+                """, id);
+        }
     }
 
     [Theory]
     [InlineData(768, 1024)]
     [InlineData(1366, 768)]
-    public async Task EditProfile_UnchangedProfile_DoesNotLetFieldsEnterActionBand(
+    public async Task EditProfile_UnchangedProfile_KeepsEveryFocusedFieldClearOfTheActionBand(
         int viewportWidth,
         int viewportHeight)
     {
@@ -651,39 +667,18 @@ public sealed class FlowActionDockFormBrowserTests(
         await WaitForManagedActionStacksSettledAsync(page);
         await ExpectActionStackInViewportAsync(page, ".edit-profile-actions");
 
-        var coveredRows = await page.EvaluateAsync<string[]>(
-            """
-            () => {
-                const actions = document.querySelector('.edit-profile-actions');
-                const actionRect = actions.getBoundingClientRect();
-                const unsafeTop = actionRect.top;
-                return Array.from(document.querySelectorAll('#editOptionsGroup .inline-option-group'))
-                    .filter(row => {
-                        const rowRect = row.getBoundingClientRect();
-                        const rowStyle = getComputedStyle(row);
-                        const visible = rowStyle.display !== 'none'
-                            && rowStyle.visibility !== 'hidden'
-                            && rowRect.width > 0
-                            && rowRect.height > 0;
-                        return visible
-                            && rowRect.top < window.innerHeight
-                            && rowRect.bottom > unsafeTop + 1;
-                    })
-                    .map(row => row.querySelector('input, select, textarea')?.id || '');
-            }
-            """);
-
-        Assert.True(coveredRows.Length == 0,
-            $"{scenario}: fields entered the action band: {string.Join(", ", coveredRows)}.");
+        await ExpectProfileFieldsClearWhenFocusedAsync(page);
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }
 
     [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1366, 768)]
+    [InlineData(390, 844, true)]
+    // Short desktops can dock the commands while preserving readable fields.
+    [InlineData(1366, 768, true)]
     public async Task EditProfile_ChangedAthleteDocksSubmitActionsAfterEditing(
         int viewportWidth,
-        int viewportHeight)
+        int viewportHeight,
+        bool expectDocked)
     {
         var app = App;
         var browser = Browser;
@@ -711,15 +706,17 @@ public sealed class FlowActionDockFormBrowserTests(
         await page.Locator("#personalLinkInput").EvaluateAsync("input => input.blur()");
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
 
-        await ExpectActionStackDockedInViewportAsync(page, ".edit-profile-actions");
+        if (expectDocked) await ExpectActionStackDockedInViewportAsync(page, ".edit-profile-actions");
+        else await ExpectActionStackInViewportAsync(page, ".edit-profile-actions");
         await page.WaitForFunctionAsync(
             """
-            () => {
+            expectDocked => {
                 const actions = document.querySelector('.edit-profile-actions');
                 const personalLink = document.querySelector('#personalLinkInput')?.closest('.inline-option-group');
                 const mediaContact = document.querySelector('#mediaContactInput')?.closest('.inline-option-group');
                 const why = document.querySelector('#whyDisplayInput')?.closest('.inline-option-group');
-                if (!actions || !personalLink || !mediaContact || !why || !actions.classList.contains('flow-action-stack--docked')) return false;
+                if (!actions || !personalLink || !mediaContact || !why
+                    || actions.classList.contains('flow-action-stack--docked') !== expectDocked) return false;
 
                 const actionRect = actions.getBoundingClientRect();
                 const personalLinkRect = personalLink.getBoundingClientRect();
@@ -729,7 +726,7 @@ public sealed class FlowActionDockFormBrowserTests(
                     && mediaContactRect.bottom <= actionRect.top
                     && whyRect.bottom <= actionRect.top;
             }
-            """);
+            """, expectDocked);
 
         var state = await page.EvaluateAsync<EditProfileInitialState>(
             """
@@ -755,7 +752,9 @@ public sealed class FlowActionDockFormBrowserTests(
             """);
 
         Assert.False(state.SubmitDisabled, "A real edit should present Submit as an available primary action.");
-        Assert.True(state.ActionsDocked, "Changed edit profile actions should dock once text entry has finished.");
+        Assert.True(state.ActionsDocked == expectDocked, expectDocked
+            ? "Changed edit profile actions should dock once text entry has finished."
+            : "Desktop edit profile actions should stay in the card's foot.");
         Assert.NotEmpty(state.TempAthlete);
         Assert.True(state.ActionBottom <= state.ViewportHeight + 1,
             $"Docked edit profile actions overflow the viewport: {state.ActionBottom} > {state.ViewportHeight}.");
@@ -875,8 +874,9 @@ public sealed class FlowActionDockFormBrowserTests(
     }
 
     [Theory]
-    [InlineData(768, 1024, 38, 220)]
-    [InlineData(1280, 720, 36, 200)]
+    [InlineData(768, 1024, 38, 112)]
+    // The apply-family avatar keeps the same size even on short desktops.
+    [InlineData(1280, 720, 36, 112)]
     public async Task EditProfile_FirstViewportUsesFormScaleTitleAndShowsPictureAction(
         int viewportWidth,
         int viewportHeight,
@@ -931,7 +931,7 @@ public sealed class FlowActionDockFormBrowserTests(
                 const title = document.querySelector('#character-title');
                 const image = document.querySelector('.edit-profile-visual img');
                 const pictureButton = document.querySelector('#changeProfilePicButton');
-                const options = document.querySelector('#editOptionsGroup');
+                const card = document.querySelector('.edit-profile-card');
                 const rectOf = element => {
                     const rect = element.getBoundingClientRect();
                     return {
@@ -947,9 +947,9 @@ public sealed class FlowActionDockFormBrowserTests(
                 return {
                     TitleFontSize: parseFloat(getComputedStyle(title).fontSize),
                     Title: rectOf(title),
-                    Picture: rectOf(image),
+                    Picture: rectOf(image.closest('picture')),
                     PictureButton: rectOf(pictureButton),
-                    OptionsAos: options?.getAttribute('data-aos') || '',
+                    OptionsAos: card?.getAttribute('data-aos') || '',
                     ViewportHeight: window.innerHeight
                 };
             }

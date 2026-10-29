@@ -16,15 +16,7 @@ public sealed class PageOgImageService
 {
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 630;
-    private const float ContentX = 78f;
-    private const float AccentY = 192f;
-    private const float TitleY = 258f;
-    private const float TitleWidth = 760f;
-
-    private static readonly Color BackgroundTop = Color.ParseHex("#030708");
-    private static readonly Color BackgroundBottom = Color.ParseHex("#111515");
-    private static readonly Color TitleColor = Color.White;
-    private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 180));
+    private const float TitleWidth = 820f;
 
     private static readonly IReadOnlyDictionary<string, PageOgDefinition> Definitions =
         new Dictionary<string, PageOgDefinition>(StringComparer.OrdinalIgnoreCase)
@@ -85,13 +77,20 @@ public sealed class PageOgImageService
                 "Start longevitymaxxing today",
                 "78DA3B",
                 ["Daily check-ins", "Join anytime", "No finish line"]),
-            ["helstab-kihivas"] = new(
-                "helstab-kihivas",
-                "Helstáb Kihívás",
-                "Magyar hosszúéletesítésmaxolás",
-                "14 nap, napi négy kérdés, közös ranglista, Martin Helstábbal.",
-                "00BCD4",
-                ["14 nap", "10 000 Ft", "Magyar közösség"]),
+            ["pheno-age"] = new(
+                "pheno-age",
+                "Pheno Age",
+                "Pheno Age Calculator",
+                "Calculate Pheno Age from nine blood biomarkers and your age using the Longevity World Cup calculator.",
+                "78DA3B",
+                ["Pheno Age", "Amateur track", "Public leaderboard"]),
+            ["bortz-age"] = new(
+                "bortz-age",
+                "Bortz Age",
+                "Bortz Age Calculator",
+                "Calculate Bortz Age from blood biomarkers and your age using the Longevity World Cup calculator.",
+                "FFB020",
+                ["Bortz Age", "Pro track", "Pheno Age + Bortz Age"]),
             ["view-bortz"] = new(
                 "view-bortz",
                 "Pro clock view",
@@ -132,22 +131,16 @@ public sealed class PageOgImageService
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<PageOgImageService> _log;
     private readonly string _logoPath;
-    private readonly string _boldFontPath;
-    private readonly string _regularFontPath;
+    private readonly ShareCardCanvas.Fonts _fonts;
     private readonly string _outputDir;
-    private readonly FontCollection _fonts = new();
     private readonly SemaphoreSlim _renderLock = new(1, 1);
-    private FontFamily _boldFamily;
-    private FontFamily _regularFamily;
-    private bool _fontsLoaded;
 
     public PageOgImageService(IWebHostEnvironment env, ILogger<PageOgImageService> log)
     {
         _env = env;
         _log = log;
         _logoPath = IOPath.Combine(_env.WebRootPath, "assets", "HdLogo.png");
-        _boldFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Bold.ttf");
-        _regularFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Regular.ttf");
+        _fonts = ShareCardCanvas.GetFonts(_env.WebRootPath);
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "og", "page");
     }
 
@@ -169,9 +162,7 @@ public sealed class PageOgImageService
         IReadOnlyList<string> Stats);
 
     public bool IsConfigured =>
-        File.Exists(_logoPath) &&
-        File.Exists(_boldFontPath) &&
-        File.Exists(_regularFontPath);
+        File.Exists(_logoPath) && _fonts.Exist;
 
     public bool TryGetCurrentPayload(string rawSlug, out PageOgPayload payload)
     {
@@ -252,40 +243,29 @@ public sealed class PageOgImageService
             await original.SaveAsPngAsync(outputPath, ct);
             return;
         }
-        using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
-        DrawBackground(image, Color.ParseHex("#" + payload.AccentHex));
-
-        var (boldFamily, regularFamily) = GetFontFamilies();
         var accent = Color.ParseHex("#" + payload.AccentHex);
-
-        await DrawLogoMarksAsync(image, ct);
-        DrawHeaderText(image, boldFamily);
-        DrawTextContent(image, payload, boldFamily, regularFamily, accent);
+        using var image = new Image<Rgba32>(ShareCardCanvas.Width, ShareCardCanvas.Height);
+        ShareCardCanvas.DrawBackground(image, accent);
+        await DrawEmblemAsync(image, ct);
+        await ShareCardCanvas.DrawMastheadAsync(image, _logoPath, _fonts, caption: null, accent, _log, ct, watermark: false);
+        DrawTextContent(image, payload, accent);
+        ShareCardCanvas.DrawAccentBar(image, accent);
 
         await image.SaveAsPngAsync(outputPath, ct);
     }
 
-    private async Task DrawLogoMarksAsync(Image<Rgba32> image, CancellationToken ct)
+    // The site's emblem, cropped tight, rises from the lower right as the card's one picture.
+    private async Task DrawEmblemAsync(Image<Rgba32> image, CancellationToken ct)
     {
         try
         {
             using var logo = await LoadLogoMarkAsync(ct);
-            using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
+            using var emblem = logo.Clone(ctx => ctx.Resize(new ResizeOptions
             {
-                Size = new Size(50, 50),
+                Size = new Size(560, 560),
                 Mode = ResizeMode.Max
             }));
-            using var backgroundLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
-            {
-                Size = new Size(820, 820),
-                Mode = ResizeMode.Max
-            }));
-
-            image.Mutate(ctx =>
-            {
-                ctx.DrawImage(backgroundLogo, new Point(610, -24), 0.20f);
-                ctx.DrawImage(smallLogo, new Point((int)ContentX, 52), 0.98f);
-            });
+            image.Mutate(ctx => ctx.DrawImage(emblem, new Point(ShareCardCanvas.Width - emblem.Width + 40, (int)ShareCardCanvas.BodyTop + 20), 0.14f));
         }
         catch (Exception ex)
         {
@@ -334,37 +314,27 @@ public sealed class PageOgImageService
             : new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
     }
 
-    private static void DrawHeaderText(Image<Rgba32> image, FontFamily boldFamily)
+    private void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, Color accent)
     {
-        var brandFont = boldFamily.CreateFont(20, FontStyle.Bold);
-        image.Mutate(ctx =>
-        {
-            ctx.DrawText(new RichTextOptions(brandFont)
-            {
-                Origin = new PointF(ContentX + 62f, 54f),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, "LONGEVITY\nWORLD CUP", Color.White);
-        });
-    }
-
-    private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, FontFamily regularFamily, Color accent)
-    {
-        var titleFont = ImageTextLayout.FitFontToWidth(boldFamily, payload.Title, 74f, 50f, TitleWidth);
-        var subtitleFont = regularFamily.CreateFont(32, FontStyle.Regular);
+        var (lines, titleFont) = ShareCardCanvas.FitHeadline(_fonts, payload.Title, 88f, 72f, TitleWidth, 2, 60f);
+        var lineHeight = titleFont.Size * 1.1f;
+        var hasDescription = string.Equals(payload.Slug, "longevitymaxxing", StringComparison.OrdinalIgnoreCase);
+        var descriptionFont = _fonts.Regular.CreateFont(36f, FontStyle.Regular);
+        const float ruleGap = 34f;
+        const float descriptionGap = 26f;
+        var blockHeight = 6f + ruleGap + (lines.Count * lineHeight) + (hasDescription ? descriptionGap + 44f : 0f);
+        var top = ((ShareCardCanvas.BodyTop + ShareCardCanvas.BodyBottom) / 2f) - (blockHeight / 2f);
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
-                new RectangularPolygon(ContentX, AccentY, 126f, 5f));
-
-            ImageTextLayout.DrawWrappedText(ctx, payload.Title, titleFont, ShadowColor, new PointF(ContentX, TitleY + 3f), TitleWidth, 2, 78f);
-            ImageTextLayout.DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, TitleY), TitleWidth, 2, 78f);
-            if (string.Equals(payload.Slug, "longevitymaxxing", StringComparison.OrdinalIgnoreCase))
+            ctx.Fill(ShareCardCanvas.WithAlpha(accent, 235), new RectangularPolygon(ShareCardCanvas.Margin, top, 120f, 6f));
+            var titleY = top + 6f + ruleGap;
+            ShareCardCanvas.DrawLines(ctx, _fonts, lines, titleFont, ShareCardCanvas.Ink, ShareCardCanvas.Margin, titleY, lineHeight);
+            if (hasDescription)
             {
-                ctx.DrawText(new RichTextOptions(subtitleFont)
+                ctx.DrawText(new RichTextOptions(descriptionFont)
                 {
-                    Origin = new PointF(ContentX, TitleY + 174f),
+                    Origin = new PointF(ShareCardCanvas.Margin, titleY + (lines.Count * lineHeight) + descriptionGap),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
                 }, payload.Description, accent);
@@ -372,64 +342,12 @@ public sealed class PageOgImageService
         });
     }
 
-    private static void DrawBackground(Image<Rgba32> image, Color accentColor)
-    {
-        var top = BackgroundTop.ToPixel<Rgba32>();
-        var bottom = BackgroundBottom.ToPixel<Rgba32>();
-        var accent = accentColor.ToPixel<Rgba32>();
-
-        image.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                var vertical = y / (float)(accessor.Height - 1);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var horizontal = x / (float)(row.Length - 1);
-                    var baseR = Lerp(top.R, bottom.R, vertical);
-                    var baseG = Lerp(top.G, bottom.G, vertical);
-                    var baseB = Lerp(top.B, bottom.B, vertical);
-
-                    var edgeLight = MathF.Max(0f, 1f - MathF.Sqrt(MathF.Pow((horizontal - 0.78f) / 0.52f, 2f) + MathF.Pow((vertical - 0.24f) / 0.64f, 2f)));
-                    var laneLight = MathF.Max(0f, 1f - MathF.Abs((horizontal + vertical * 0.36f) - 0.26f) / 0.08f) * 0.10f;
-                    var accentLight = MathF.Min(0.16f, edgeLight * 0.12f + laneLight);
-
-                    row[x] = new Rgba32(
-                        (byte)Math.Clamp(baseR + (accent.R * accentLight), 0, 255),
-                        (byte)Math.Clamp(baseG + (accent.G * accentLight), 0, 255),
-                        (byte)Math.Clamp(baseB + (accent.B * accentLight), 0, 255),
-                        255);
-                }
-            }
-        });
-
-        image.Mutate(ctx =>
-        {
-            ctx.Fill(new Rgba32(0, 0, 0, 92), new RectangularPolygon(0, 0, 455f, CanvasHeight));
-            ctx.Fill(new Rgba32(255, 255, 255, 12), new RectangularPolygon(455f, 0, 1f, CanvasHeight));
-        });
-    }
-
-    private (FontFamily Bold, FontFamily Regular) GetFontFamilies()
-    {
-        if (_fontsLoaded)
-            return (_boldFamily, _regularFamily);
-
-        _boldFamily = _fonts.Add(_boldFontPath);
-        _regularFamily = _fonts.Add(_regularFontPath);
-        _fontsLoaded = true;
-        return (_boldFamily, _regularFamily);
-    }
-
     private string ComputeSignature(PageOgDefinition definition)
     {
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
-        var boldFontTicks = File.Exists(_boldFontPath) ? File.GetLastWriteTimeUtc(_boldFontPath).Ticks : 0L;
-        var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v9",
+            "page-og-v13",
             definition.Slug,
             definition.Kicker,
             definition.Title,
@@ -437,8 +355,7 @@ public sealed class PageOgImageService
             definition.AccentHex,
             string.Join(",", definition.Stats),
             logoTicks.ToString(CultureInfo.InvariantCulture),
-            boldFontTicks.ToString(CultureInfo.InvariantCulture),
-            regularFontTicks.ToString(CultureInfo.InvariantCulture));
+            _fonts.Ticks);
 
         if (CustomEventArtwork.ForUrl("https://longevityworldcup.com/" + definition.Slug) is { } artwork)
         {
@@ -480,10 +397,5 @@ public sealed class PageOgImageService
     private static string NormalizeSlug(string slug)
     {
         return slug.Trim().ToLowerInvariant();
-    }
-
-    private static int Lerp(byte a, byte b, float t)
-    {
-        return (int)MathF.Round(a + ((b - a) * t));
     }
 }

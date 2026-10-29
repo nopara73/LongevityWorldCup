@@ -11,6 +11,83 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440, 900, 100, false)]
+    [InlineData(390, 844, 100, true)]
+    [InlineData(320, 640, 200, false)]
+    [InlineData(195, 422, 100, true)]
+    public async Task Review_LongFileNamesRemainReadableWithoutClippingTheTitle(int width, int height, int textPercent, bool dark)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await PrepareAsync(context, false);
+        var files = await CreatePagesAsync(1);
+        files[0].Name = "Comprehensive metabolic panel and complete blood count — laboratory results September 2026.png";
+        await UploadAsync(page, files);
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        var title = page.Locator(".proof-review-toolbar h2");
+        await Assertions.Expect(title).ToHaveTextAsync(files[0].Name);
+        Assert.True(await title.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1"),
+            "The full proof filename must remain readable instead of being line-clamped.");
+        await page.Locator(".proof-review-close").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Removal_UpdatesDataAndValidationBeforeAnimationOrImmediateSubmit(bool onboarding, bool reduced)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(2));
+        // A single browser task deliberately gives the exit animation no time to
+        // finish. Exercise the real submission entry point with its write mocked.
+        Assert.True(await page.EvaluateAsync<bool>("""
+            onboarding => {
+                const expected = proofPics.slice(1);
+                let submitted;
+                window.submitApplicationWithRecovery = data => {
+                    submitted = JSON.parse(JSON.stringify(data));
+                    return new Promise(() => {});
+                };
+                const button = document.querySelector(onboarding ? '#nextButton' : '#submitButton');
+                document.querySelector('.proof-page-remove').click();
+                if (JSON.stringify(proofPics) !== JSON.stringify(expected) || button.disabled) return false;
+                if (!onboarding) {
+                    button.click();
+                    if (!submitted || JSON.stringify(submitted.proofPics) !== JSON.stringify(expected)) return false;
+                }
+                // Undo during the visual exit, then remove all pages in the same
+                // task. No delayed callback may remove the restored page again.
+                document.querySelector('.proof-undo').click();
+                window.__restoredProofs = [...proofPics];
+                for (const animation of document.getAnimations()) animation.cancel();
+                return JSON.stringify(proofPics) === JSON.stringify(window.__restoredProofs);
+            }
+            """, onboarding));
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            onboarding => {
+                if (JSON.stringify(proofPics) !== JSON.stringify(window.__restoredProofs)) return false;
+                while (document.querySelector('.proof-page-remove')) document.querySelector('.proof-page-remove').click();
+                const action = document.querySelector(onboarding ? '#nextButton' : '#submitButton');
+                return proofPics.length === 0 && action.disabled
+                    && window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+            }
+            """, onboarding));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task ReloadWithProofs_CanBeCancelledWithoutLosingThePages(bool onboarding)
@@ -95,7 +172,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
             """);
         if (onboarding)
         {
-            foreach (var heading in new[] { "5. Final details", "Application" })
+            foreach (var heading in new[] { "Final details", "Application" })
             {
                 await page.Locator("#nextButton").ClickAsync();
                 await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
@@ -128,16 +205,22 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.InRange(Math.Abs(firstCard.Y - secondCard.Y), 0, 1);
         Assert.True(secondCard.X >= firstCard.X + firstCard.Width);
         await page.Locator(".proof-page-remove").Nth(1).ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-remove").Nth(1)).ToBeFocusedAsync();
+        Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
         await page.Locator(".proof-page-remove").First.ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-remove").First).ToBeFocusedAsync();
         Assert.Equal(original.Skip(2), await ReadSourcesAsync(page));
         await page.GetByRole(AriaRole.Button, new() { Name = "Undo removal", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
         await page.GetByRole(AriaRole.Button, new() { Name = "Undo removal", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-page-preview").Nth(1)).ToBeFocusedAsync();
         Assert.Equal(original, await ReadSourcesAsync(page));
         Assert.Equal(original, await page.EvaluateAsync<string[]>("proofPics"));
         Assert.Equal(0, await page.Locator(".proof-review-feedback").CountAsync());
 
         while (await page.Locator(".proof-page-remove").CountAsync() > 0)
             await page.Locator(".proof-page-remove").First.ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-undo")).ToBeFocusedAsync();
         Assert.True(await page.Locator(onboarding ? "#nextButton" : "#submitButton").IsDisabledAsync());
         Assert.True(await page.Locator(".proof-undo").IsVisibleAsync());
         await page.Locator(".proof-undo").ClickAsync();
@@ -193,16 +276,125 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
 
-    [Fact]
-    public async Task ReuploadAfterRemoval_ThenUndoNeverAddsTheSamePageTwice()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task KeyboardActivation_ReviewsRemovesAndRestoresWithoutAdvancingTheForm(bool onboarding)
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        var page = await PrepareAsync(context, false);
+        var page = await PrepareAsync(context, onboarding);
+        while (await page.Locator(".proof-page-remove").CountAsync() > 0)
+            await page.Locator(".proof-page-remove").First.ClickAsync();
+        await UploadAsync(page, await CreatePagesAsync(2));
+        var original = await ReadSourcesAsync(page);
+        await page.Locator(".proof-page-preview").First.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(page.Locator(".proof-page-remove").First).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".proof-page-card")).ToHaveCountAsync(1);
+        Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
+        await page.Locator(".proof-undo").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Equal(original, await ReadSourcesAsync(page));
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        if (onboarding)
+            Assert.Equal("5", await page.Locator("body").GetAttributeAsync("data-convergence-stage"));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task QueuedCloseEvent_PreservesNewFocusAndAReopenedReview(bool onboarding, bool reopen)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(1));
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        await page.EvaluateAsync("""
+            reopen => {
+                const dialog = document.querySelector('.proof-review-dialog');
+                window.__proofCloseObserved = false;
+                dialog.addEventListener('close', () => window.__proofCloseObserved = true, { once: true });
+                dialog.close();
+                if (reopen) document.querySelector('.proof-page-preview').click();
+                else document.querySelector('.proof-page-remove').focus();
+            }
+            """, reopen);
+        await page.WaitForFunctionAsync("() => window.__proofCloseObserved === true");
+        if (reopen)
+        {
+            await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+            Assert.True(await page.EvaluateAsync<bool>("() => document.body.classList.contains('proof-review-open') && document.querySelector('.proof-review-dialog').contains(document.activeElement)"));
+        }
+        else await Assertions.Expect(page.Locator(".proof-page-remove").First).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RemoveTarget_TransparentCornersCatchTouchWithoutOpeningReview(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(2));
+        var original = await ReadSourcesAsync(page);
+        var remove = page.Locator(".proof-page-remove").Nth(1);
+        await remove.ScrollIntoViewIfNeededAsync();
+        Assert.True(await remove.EvaluateAsync<bool>(
+            """
+            button => {
+                const rect = button.getBoundingClientRect();
+                return [[2, 2], [rect.width - 2, 2], [2, rect.height - 2], [rect.width - 2, rect.height - 2]]
+                    .every(([x, y]) => document.elementFromPoint(rect.left + x, rect.top + y)?.closest('button') === button);
+            }
+            """), "The complete 44px remove target must catch taps, including corners outside its round visible mark.");
+        var target = (await remove.BoundingBoxAsync())!;
+        await page.Touchscreen.TapAsync(target.X + 2, target.Y + 2);
+        await Assertions.Expect(page.Locator(".proof-page-card")).ToHaveCountAsync(original.Length - 1);
+        Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
+        await page.Locator(".proof-undo").TapAsync();
+        Assert.Equal(original, await ReadSourcesAsync(page));
+        await page.Locator(".proof-page-preview").Nth(1).TapAsync();
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
+        Assert.Equal(original[1], await page.Locator(".proof-review-dialog img").GetAttributeAsync("src"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReuploadAfterRemoval_ThenUndoNeverAddsTheSamePageTwice(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, onboarding);
         var files = await CreatePagesAsync(2);
+        while (await page.Locator(".proof-page-remove").CountAsync() > 0)
+            await page.Locator(".proof-page-remove").First.ClickAsync();
         await UploadAsync(page, files);
-        await page.Locator(".proof-page-remove").First.ClickAsync();
-        await UploadAsync(page, [files[0]]);
-        await page.Locator(".proof-undo").ClickAsync();
+        for (var cycle = 0; cycle < 3; cycle++)
+        {
+            var before = await ReadSourcesAsync(page);
+            await page.Locator(".proof-page-remove").First.ClickAsync();
+            await UploadAsync(page, [files[cycle % 2]]);
+            await page.Locator(".proof-undo").ClickAsync();
+            var after = await ReadSourcesAsync(page);
+            Assert.Equal(2, after.Length);
+            Assert.Equal(before.Reverse(), after);
+            Assert.Equal(after, await page.EvaluateAsync<string[]>("proofPics"));
+            Assert.Equal(0, await page.Locator(".proof-review-dialog[open]").CountAsync());
+        }
         var sources = await ReadSourcesAsync(page);
         Assert.Equal(2, sources.Length);
         Assert.Equal(2, sources.Distinct().Count());
@@ -211,7 +403,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Contains("Duplicate proof images were skipped.", await page.Locator(".proof-upload-notice").InnerTextAsync());
         await UploadAsync(page, [(await CreatePagesAsync(3))[2]]);
         Assert.Equal(3, (await ReadSourcesAsync(page)).Length);
-        Assert.Equal(0, await page.Locator(".proof-review-feedback").CountAsync());
+        Assert.Equal(onboarding ? 1 : 0, await page.Locator(".proof-review-feedback").CountAsync());
     }
 
     [Fact]
@@ -260,7 +452,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
             """);
         await page.Locator("#proofPicInput").SetInputFilesAsync((await CreatePagesAsync(1))[0]);
         await page.WaitForFunctionAsync("() => typeof window.__releaseProofPreparation === 'function'");
-        foreach (var heading in new[] { "4/a. Almost there", "3. The price of glory", "2. Finding your why" })
+        foreach (var heading in new[] { "Almost there", "The price of glory", "Finding your why" })
         {
             await page.Locator("#backButton").ClickAsync();
             await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
@@ -272,7 +464,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.WaitForFunctionAsync("() => !document.querySelector('#proofPicInput').disabled");
         Assert.True(await page.Locator("#nextButton").IsDisabledAsync());
         await page.Locator("#why").FillAsync("To live a longer and healthier life with the people I love.");
-        foreach (var heading in new[] { "3. The price of glory", "4/a. Almost there", "4/b. Don't trust, verify" })
+        foreach (var heading in new[] { "The price of glory", "Almost there", "Don't trust, verify" })
         {
             await page.Locator("#nextButton").ClickAsync();
             await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
@@ -337,6 +529,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, files);
         Assert.Equal(37, (await ReadSourcesAsync(page)).Length);
         Assert.Contains("Only the first 37", await page.Locator(".proof-upload-notice").InnerTextAsync());
+        await UploadAsync(page, [files[0]]);
+        await Assertions.Expect(page.Locator(".proof-upload-notice")).ToHaveTextAsync("Duplicate proof images were skipped.");
+        Assert.Equal(37, (await ReadSourcesAsync(page)).Length);
         await page.Locator(".proof-page-remove").First.ClickAsync();
         await UploadAsync(page, [files[37]]);
         Assert.Equal(37, (await ReadSourcesAsync(page)).Length);
@@ -360,9 +555,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.Locator(".biomarker-checkbox").First.CheckAsync();
         await page.Locator(".proof-page-remove").Last.ClickAsync();
         await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "5. Final details", Exact = true }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Final details", Exact = true }).WaitForAsync();
         await page.Locator("#backButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "4/b. Don't trust, verify", Exact = true }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Don't trust, verify", Exact = true }).WaitForAsync();
         Assert.True(await page.Locator(".biomarker-checkbox").First.IsCheckedAsync());
         await page.Locator(".proof-undo").ClickAsync();
         Assert.Equal(original, await ReadSourcesAsync(page));
@@ -381,8 +576,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.GotoAsync(onboarding ? "/apply?fake=1" : "/play/proof-upload.html", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         if (onboarding)
         {
-            foreach (var heading in new[] { "2. Finding your why", "3. The price of glory", "4/a. Almost there", "4/b. Don't trust, verify" })
+            foreach (var heading in new[] { "Finding your why", "The price of glory", "Almost there", "Don't trust, verify" })
             {
+                await WaitForFiniteAnimationsAsync(page);
                 await page.Locator("#nextButton").ClickAsync();
                 await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
             }

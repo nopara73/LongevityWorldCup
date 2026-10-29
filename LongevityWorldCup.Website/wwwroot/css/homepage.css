@@ -381,17 +381,6 @@ button:hover {
     margin: 0;
 }
 
-#newsletterStatus:not(:empty) {
-    padding: var(--lwc-space-3) var(--lwc-space-4);
-    border-inline-start: 3px solid var(--lwc-success);
-    border-radius: var(--lwc-radius-sm);
-    background: var(--lwc-surface-muted);
-}
-
-#newsletterStatus.is-error {
-    border-inline-start-color: var(--lwc-danger);
-}
-
 /* The newsletter intro, form and status share one panel, like the Contribute panel above it. */
 .newsletter-section {
     container: newsletter-section / inline-size;
@@ -453,6 +442,29 @@ button:hover {
 }
 
 /* Styles for the copy button */
+#bitcoinAddressFallback {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
+    font-family: monospace;
+}
+
+.btc-address:has(#bitcoinAddressFallback:not([hidden])) {
+    flex-wrap: wrap;
+    padding-top: var(--lwc-space-2, 0.5rem);
+    padding-bottom: var(--lwc-space-2, 0.5rem);
+}
+
+#bitcoinCopyStatus:has(#bitcoinCopyHelp:not([hidden])) {
+    order: -1;
+    flex-basis: 100%;
+    white-space: normal;
+}
+
+#bitcoinCopyHelp {
+    word-break: normal;
+}
+
 .copy-btn {
     background: none;
     border: none;
@@ -906,13 +918,15 @@ button:hover {
         table-layout: fixed;
     }
 
-    #events-root-index .events-board col.events-col-date {
-        width: 76px;
+    #events-root-index .events-board col.events-col-date,
+    #events-root-index .events-board td.col-date {
+        width: max(76px, 4.75rem);
     }
 
     #events-root-index .events-board td.col-date {
-        width: 76px;
         padding-left: 8px;
+        white-space: normal;
+        overflow-wrap: break-word;
     }
 
     #events-root-index .events-board td.event-message {
@@ -939,7 +953,7 @@ button:hover {
         white-space: normal;
     }
 
-    #events-root-index .events-board td.event-message .event-message-cell .name-and-rank,
+    #events-root-index .events-board td.event-message .event-message-cell .placement-link,
     #events-root-index .events-board td.event-message .event-message-cell .rank-badge,
     #events-root-index .events-board td.event-message .event-message-cell .badge-class,
     #events-root-index .events-board td.event-message .event-message-cell .badge-chip,
@@ -1317,8 +1331,9 @@ button:hover {
         padding-right: 14px;
     }
 
-    #events-root-index .events-board col.events-col-date {
-        width: 58px;
+    #events-root-index .events-board col.events-col-date,
+    #events-root-index .events-board td.col-date {
+        width: max(58px, 3.625rem);
     }
 
     .lwc-countdown-body {
@@ -1345,16 +1360,42 @@ button:hover {
         gap: 0.44rem;
     }
 
+    /* A swipeable strip: the next product peeks in from the edge, so the
+       carousel shows it can be swiped instead of relying on the dots alone. */
     .lwc-merch-mobile-track {
-        aspect-ratio: 1 / 0.82;
-        min-height: 12rem;
+        display: flex;
+        gap: 0.6rem;
+        aspect-ratio: auto;
+        min-height: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        border-radius: 0;
+    }
+
+    .lwc-merch-mobile-track::-webkit-scrollbar {
+        display: none;
     }
 
     .lwc-merch-mobile-slide {
+        position: relative;
+        inset: auto;
+        flex: 0 0 82%;
+        min-width: 0;
+        min-height: calc(min(8rem, 40vw) + var(--lwc-merch-caption-space, 0px));
+        aspect-ratio: 1 / 0.98;
         display: grid;
         grid-template-rows: minmax(0, 1fr) auto;
         gap: 0.38rem;
         padding: 0.32rem;
+        box-shadow: none;
+        opacity: 1;
+        pointer-events: auto;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        transition: none;
     }
 
     .lwc-merch-mobile-slide .lwc-merch-thumb {
@@ -1556,7 +1597,7 @@ main > .main-container .leaderboard {
     display: block;
     margin-top: 0.18rem;
     margin-left: 0;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 /* Link Styling Below Table */
@@ -1964,4 +2005,666 @@ main > .main-container .leaderboard {
     .archive-mobile-card-winner {
         border-inline-start: 2px solid var(--archive-metal);
     }
+}
+
+/* ===== Landing page system =====
+   The homepage reads as one column of cards on one rhythm: the podium stands
+   on its own stage, the controls, standings and "View all athletes" are one
+   board, and every section after them keeps the same gap. Scoped to the
+   homepage and written at document specificity, because the shared
+   leaderboard and visual-system stylesheets load after this one. */
+html body main.homepage-main {
+    --home-gap: var(--lwc-space-5);
+    --home-card-inset: 20px;
+}
+
+html body main.homepage-main .game-description {
+    margin-bottom: var(--lwc-space-4);
+}
+
+/* The stage: one card, the three athletes on it and their prize steps as its floor. */
+html body main.homepage-main .podium {
+    margin: 0 0 var(--home-gap);
+    padding: var(--lwc-space-6) 0 0;
+    overflow: hidden;
+    /* An inset outline, not a border: the podium's container query keeps the
+       full stage width, and the edge still draws over the prize steps. */
+    outline: 1px solid var(--lwc-border);
+    outline-offset: -1px;
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+html body main.homepage-main .podium-item {
+    max-width: none;
+}
+
+html body main.homepage-main .podium-rank {
+    box-shadow: 0 0 0 3px var(--lwc-surface);
+}
+
+/* Steps meet the card's edges, so only the champion's step keeps its corners. */
+html body main.homepage-main .podium-item.second .podium-item-lower,
+html body main.homepage-main .podium-item.third .podium-item-lower {
+    border-radius: 0;
+}
+
+/* The board: controls, standings and the way to the full list share one card. */
+html body main.homepage-main .leaderboard-controls {
+    margin: 0;
+    border-bottom: 0;
+    border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+    box-shadow: none;
+}
+
+html body main.homepage-main .leaderboard-controls-status {
+    border-radius: 0;
+}
+
+html body main.homepage-main #athleteLeaderboard {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+html body main.homepage-main .full-rankings-action {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 var(--home-gap);
+    padding: var(--lwc-space-3) var(--home-card-inset);
+    border: 1px solid var(--lwc-border);
+    border-top: 0;
+    border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+    background: var(--lwc-surface-muted);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+@media (max-width: 360px) {
+    html body main.homepage-main .full-rankings-action {
+        margin-inline: -0.5rem;
+    }
+}
+
+html body main.homepage-main .rankings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: min(100%, 18rem);
+    padding: 0.7rem 1.5rem;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    box-sizing: border-box;
+}
+
+/* Every section after the board sits on the same gap. */
+html body main.homepage-main .lwc-highlights-countdown-wrapper {
+    margin: 0 0 var(--home-gap);
+    gap: var(--home-gap);
+}
+
+html body main.homepage-main[data-homepage-visit-layout="repeat"] .lwc-highlights-countdown-wrapper {
+    margin-top: 0;
+}
+
+html body main.homepage-main > .section-container,
+html body main.homepage-main .homepage-panel-pair {
+    margin: 0 0 var(--home-gap);
+}
+
+html body main.homepage-main .homepage-panel-pair {
+    gap: var(--home-gap);
+}
+
+html body main.homepage-main > :last-child {
+    margin-bottom: var(--lwc-space-6);
+}
+
+html body main.homepage-main #lwc-countdown-box {
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-lg);
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+/* Swag reads like the other cards: copy on the card's inset, products as
+   bordered tiles rather than floating shadows. */
+html body main.homepage-main .lwc-merch-body {
+    gap: var(--lwc-space-4);
+    padding: var(--home-card-inset);
+}
+
+html body main.homepage-main .lwc-merch-copy {
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.5;
+    text-align: left;
+}
+
+html body main.homepage-main .lwc-merch-grid {
+    gap: var(--lwc-space-3);
+}
+
+html body main.homepage-main :is(.lwc-merch-item, .lwc-merch-mobile-slide) {
+    gap: var(--lwc-space-2);
+    padding: 0 0 var(--lwc-space-3);
+    overflow: hidden;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+    box-shadow: none;
+}
+
+html body main.homepage-main .lwc-merch-item:hover,
+html body main.homepage-main .lwc-merch-item:focus-visible {
+    transform: none;
+    border-color: var(--lwc-accent);
+    box-shadow: none;
+}
+
+html body main.homepage-main :is(.lwc-merch-item, .lwc-merch-mobile-slide) .lwc-merch-thumb {
+    border-radius: 0;
+}
+
+html body main.homepage-main .lwc-merch-item-copy {
+    gap: 0.15rem;
+    padding: 0 var(--lwc-space-2);
+}
+
+html body main.homepage-main .lwc-merch-item-title {
+    font-size: var(--lwc-type-sm);
+    line-height: 1.25;
+}
+
+html body main.homepage-main .lwc-merch-item-price {
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    html body main.homepage-main {
+        --home-gap: var(--lwc-space-4);
+        --home-card-inset: 14px;
+    }
+
+    /* On phones the stage keeps one card: the champion's row, then second and
+       third side by side, each closing on its own prize step. */
+    html body main.homepage-main .podium {
+        gap: 0;
+        padding: 0;
+    }
+
+    html body main.homepage-main .podium-item {
+        width: 50%;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    html body main.homepage-main .podium-item.first {
+        width: 100%;
+        max-width: none;
+        border-bottom: 1px solid var(--lwc-border);
+    }
+
+    html body main.homepage-main .podium-item.second {
+        border-right: 1px solid var(--lwc-border);
+    }
+
+    html body main.homepage-main .leaderboard-controls {
+        margin-top: 0;
+    }
+
+    html body main.homepage-main .lwc-merch-body {
+        padding: var(--home-card-inset);
+    }
+}
+
+/* A soft light falls on the champion's step; the medal rings take the stage colour. */
+@media (min-width: 769px) and (min-height: 481px), (min-width: 933px) {
+    html body main.homepage-main .podium {
+        background:
+            radial-gradient(ellipse 42% 78% at 50% 0, var(--lwc-surface-accent), transparent 100%),
+            var(--lwc-surface);
+    }
+
+    @container podium (max-width: 32em) {
+        html body main.homepage-main .podium-item {
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        html body main.homepage-main .podium-item:not(:last-child) {
+            border-bottom: 1px solid var(--lwc-border);
+        }
+    }
+}
+
+@media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    /* The champion's row centres on the stage instead of hugging its left
+       edge; the medal shares the portrait's cell so it follows the portrait. */
+    html body main.homepage-main .podium-item.first {
+        grid-template-columns: minmax(var(--lwc-space-4), 1fr) var(--podium-portrait-size) var(--lwc-space-4) minmax(0, max-content) minmax(var(--lwc-space-4), 1fr);
+        grid-template-areas:
+            ". portrait . name ."
+            ". portrait . score ."
+            ". portrait . links ."
+            "prize prize prize prize prize";
+        column-gap: 0;
+        padding-inline: 0;
+    }
+
+    html body main.homepage-main .podium-item.first > .podium-item-lower {
+        margin-inline: 0;
+    }
+
+    html body main.homepage-main .podium-item.first > .podium-rank {
+        position: relative;
+        top: auto;
+        left: auto;
+        grid-area: portrait;
+        align-self: start;
+        justify-self: center;
+        margin: calc(var(--podium-portrait-size) - 16px) 0 0;
+    }
+}
+
+/* Enlarged text: every placing takes the stage's full width, one under another. */
+@container podium (max-width: 16em) {
+    html body main.homepage-main .podium-item {
+        width: 100%;
+    }
+
+    html body main.homepage-main .podium-item:not(:last-child) {
+        border-right: 0;
+        border-bottom: 1px solid var(--lwc-border);
+    }
+
+    html body main.homepage-main .podium-item.first {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "portrait" "name" "score" "links" "prize";
+        padding-inline: var(--lwc-space-3);
+    }
+
+    html body main.homepage-main .podium-item.first > .podium-item-lower {
+        margin-inline: calc(-1 * var(--lwc-space-3));
+    }
+}
+
+/* ===== Home page story =====
+   Below the board the page reads as three acts rather than one even stack:
+   what is happening now (Highlights and Swag), what the sport is (Hall of
+   fame and the FAQ, joined as one reading block), and how to take part
+   (Contribute and the newsletter, one finale card on its own band that runs
+   into the footer). Acts are separated by a wider breath than the cards
+   within them; every card closes on the same muted foot strip as the board's
+   "View all athletes". */
+html body main.homepage-main {
+    --home-act-gap: calc(var(--home-gap) * 2);
+}
+
+html body main.homepage-main:not([data-homepage-visit-layout="repeat"]) .lwc-highlights-countdown-wrapper {
+    margin-bottom: var(--home-act-gap);
+}
+
+html body main.homepage-main[data-homepage-visit-layout="repeat"] .full-rankings-action {
+    margin-bottom: var(--home-act-gap);
+}
+
+/* Act two: Hall of fame and the FAQ are one block, joined at a shared seam. */
+html body main.homepage-main > #hall-of-fame {
+    margin-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    box-shadow: none;
+}
+
+html body main.homepage-main > #faq {
+    margin-bottom: var(--home-act-gap);
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+/* Card feet: one muted strip, like the board's foot. */
+html body main.homepage-main .section-container .homepage-section-footer {
+    background: var(--lwc-surface-muted);
+}
+
+/* The FAQ's questions sit as tiles on the card instead of thin ruled columns. */
+html body main.homepage-main .homepage-faq-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--lwc-space-4);
+    padding: var(--home-card-inset);
+}
+
+html body main.homepage-main .homepage-faq-item:nth-child(n) {
+    padding: var(--lwc-space-4) var(--lwc-space-5);
+    border: 1px solid var(--lwc-border);
+    border-inline-start: 3px solid var(--lwc-accent);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+}
+
+html body main.homepage-main .homepage-faq-item h3 {
+    margin-bottom: var(--lwc-space-2);
+    font-size: 1.05rem;
+}
+
+/* Act three: the finale. Contribute and the newsletter share one card split
+   by a rule, on a full-bleed band that meets the footer without a gap. */
+html body main.homepage-main > .homepage-panel-pair:last-child {
+    gap: 0;
+    margin: 0;
+    padding: var(--home-act-gap) 0;
+    background: var(--lwc-surface-accent);
+    /* Full bleed without widening the page: shadows paint the band and its
+       top hairline beyond the column, and the clip keeps them to this row. */
+    box-shadow:
+        0 0 0 100vmax var(--lwc-surface-accent),
+        0 -1px 0 100vmax var(--lwc-border);
+    clip-path: inset(-1px -100vmax 0);
+}
+
+html body main.homepage-main .homepage-panel-pair > .section-container {
+    box-shadow: var(--lwc-shadow-sm);
+}
+
+html body main.homepage-main .homepage-panel-pair > #contribute {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+}
+
+html body main.homepage-main .homepage-panel-pair > #newsletter {
+    border-inline-start: 0;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+}
+
+/* The newsletter reads from the top like Contribute beside it, not floating mid-card. */
+html body main.homepage-main .newsletter-panel {
+    align-content: start;
+}
+
+html body main.homepage-main:has(> .homepage-panel-pair:last-child) {
+    margin-bottom: 0;
+}
+
+/* The finale band meets the footer's crest without the usual page gap. */
+html body:has(> main.homepage-main > .homepage-panel-pair:last-child) > .footer {
+    margin-top: 0;
+}
+
+@media (max-width: 991px) {
+    html body main.homepage-main #events-root-index .event-message-cell {
+        text-wrap: pretty;
+    }
+
+    html body main.homepage-main .homepage-panel-pair > #contribute {
+        border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+    }
+
+    html body main.homepage-main .homepage-panel-pair > #newsletter {
+        border-inline-start: 1px solid var(--lwc-border);
+        border-top: 0;
+        border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+    }
+}
+
+@media (max-width: 600px) {
+    html body main.homepage-main .homepage-faq-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--lwc-space-3);
+    }
+
+    html body main.homepage-main .homepage-faq-item:nth-child(n) {
+        padding: var(--lwc-space-3) var(--lwc-space-4);
+        border-top: 1px solid var(--lwc-border);
+    }
+}
+
+/* ===== Living scoreboard =====
+   The home page behaves like a scoreboard from its first second. Figures
+   count up and land, the preview rows fade in rank order (homepage.js),
+   the page keeps a thin progress rail while the story below the board
+   reveals itself on scroll, and calls to action answer the pointer. Motion
+   uses the shared tokens; reduced motion keeps every state, only still. */
+
+/* Figures never shift their neighbours while they tick. */
+html body main.homepage-main .podium-score .age-reduction,
+html body main.homepage-main #athleteLeaderboard .age-reduction-td .age-reduction,
+html body main.homepage-main .archive-table .age-reduction,
+html body main.homepage-main .btc-status-value {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Pop the existing score box without changing its display or line breaks. */
+    html body main.homepage-main .podium-item.is-landed .podium-score .age-reduction {
+        animation: home-figure-land var(--lwc-motion-slow) var(--lwc-ease-pop) both;
+    }
+
+    html body main.homepage-main .podium-item.first.is-landed .podium-portrait {
+        animation: home-champion-ring 900ms var(--lwc-ease-enter) both;
+    }
+
+    html body main.homepage-main #athleteLeaderboard tr.is-landed .age-reduction-td .age-reduction {
+        animation: home-figure-land var(--lwc-motion-base) var(--lwc-ease-pop) both;
+    }
+
+    /* Preserve the actual score for reading, copying and assistive technology.
+       Only the decorative overlay counts; its width cannot move neighbours. */
+    html body main.homepage-main [data-home-count] {
+        position: relative;
+        color: transparent !important;
+    }
+
+    html body main.homepage-main [data-home-count]::after {
+        content: attr(data-home-count) / "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        min-width: 100%;
+        color: var(--home-count-color);
+        white-space: nowrap;
+        pointer-events: none;
+    }
+
+    @keyframes home-figure-land {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes home-champion-ring {
+        0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-gold, #f3c623) 70%, transparent); }
+        100% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--lwc-gold, #f3c623) 0%, transparent); }
+    }
+
+    /* ---- Calls to action answer hover and press ---- */
+    html body main.homepage-main .rankings-btn {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        transition:
+            background-color var(--lwc-motion-fast) var(--lwc-ease-standard),
+            box-shadow var(--lwc-motion-base) var(--lwc-ease-standard),
+            translate var(--lwc-motion-base) var(--lwc-ease-standard),
+            scale var(--lwc-motion-press) var(--lwc-ease-standard);
+    }
+
+    /* A light sweep crosses the button once per hover. */
+    html body main.homepage-main .rankings-btn::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.26) 50%, transparent 70%);
+        translate: -110% 0;
+        pointer-events: none;
+    }
+
+    html body main.homepage-main .full-rankings-action {
+        transition: background-color var(--lwc-motion-base) var(--lwc-ease-standard);
+    }
+
+    @media (hover: hover) {
+        html body main.homepage-main .rankings-btn:hover {
+            translate: 0 -2px;
+            box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--lwc-accent) 80%, transparent);
+        }
+
+        html body main.homepage-main .rankings-btn:hover::after {
+            translate: 110% 0;
+            transition: translate 700ms var(--lwc-ease-standard);
+        }
+
+        /* Hovering the way out lifts the board's foot with it. */
+        html body main.homepage-main .full-rankings-action:has(.rankings-btn:hover) {
+            background: color-mix(in srgb, var(--lwc-accent) 7%, var(--lwc-surface-muted));
+        }
+
+        html body main.homepage-main .podium-item:not(.podium-skeleton-item) .podium-portrait {
+            transition: translate var(--lwc-motion-base) var(--lwc-ease-standard), box-shadow var(--lwc-motion-base) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .podium-item:not(.podium-skeleton-item):hover .podium-portrait {
+            translate: 0 -4px;
+            box-shadow: 0 14px 24px -14px rgb(0 0 0 / 0.45);
+        }
+
+        html body main.homepage-main .homepage-faq-item:nth-child(n) {
+            transition: translate var(--lwc-motion-base) var(--lwc-ease-standard), box-shadow var(--lwc-motion-base) var(--lwc-ease-standard), border-color var(--lwc-motion-fast) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .homepage-faq-item:nth-child(n):hover {
+            translate: 0 -2px;
+            border-color: color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border));
+            box-shadow: inset 4px 0 0 var(--lwc-accent), var(--lwc-shadow-sm);
+        }
+
+        html body main.homepage-main .homepage-section-footer a .fa-arrow-right {
+            transition: translate var(--lwc-motion-base) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .homepage-section-footer a:hover .fa-arrow-right {
+            translate: 4px 0;
+        }
+
+        html body main.homepage-main .lwc-merch-item .lwc-merch-thumb {
+            transition: scale var(--lwc-motion-move) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .lwc-merch-item:hover .lwc-merch-thumb {
+            scale: 1.04;
+        }
+
+        html body main.homepage-main .archive-table tbody td {
+            transition: background-color var(--lwc-motion-fast) var(--lwc-ease-standard);
+        }
+
+        html body main.homepage-main .archive-table tbody td:hover {
+            background-color: color-mix(in srgb, var(--lwc-accent) 8%, transparent);
+        }
+
+        html body main.homepage-main .enhanced-subscribe-btn:not(:disabled):hover {
+            translate: 0 -2px;
+            box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--lwc-accent) 80%, transparent);
+        }
+
+        html body main.homepage-main .enhanced-subscribe-btn:not(:disabled):hover .fa-paper-plane {
+            translate: 3px -2px;
+            rotate: -10deg;
+        }
+    }
+
+    html body main.homepage-main .enhanced-subscribe-btn {
+        transition:
+            background-color var(--lwc-motion-fast) var(--lwc-ease-standard),
+            box-shadow var(--lwc-motion-base) var(--lwc-ease-standard),
+            translate var(--lwc-motion-base) var(--lwc-ease-standard),
+            scale var(--lwc-motion-press) var(--lwc-ease-standard);
+    }
+
+    html body main.homepage-main .enhanced-subscribe-btn .fa-paper-plane {
+        transition: translate var(--lwc-motion-base) var(--lwc-ease-pop), rotate var(--lwc-motion-base) var(--lwc-ease-pop);
+    }
+
+    /* Press: the button gives way and its shadow collapses under the finger. */
+    html body main.homepage-main :is(.rankings-btn, .enhanced-subscribe-btn):not(:disabled):active {
+        translate: 0 0;
+        scale: var(--lwc-motion-press-scale);
+        box-shadow: none;
+        transition-duration: var(--lwc-motion-press);
+    }
+
+    html body main.homepage-main .enhanced-subscribe-btn:not(:disabled):active .fa-paper-plane {
+        translate: 2px -5px;
+        rotate: -16deg;
+    }
+}
+
+/* ---- Scroll-driven storytelling ---- */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+        /* A thin rail under the header reports how far down the story you are. */
+        html body main.homepage-main.home-scoreboard-live::after {
+            content: "";
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 1001;
+            height: 3px;
+            background: linear-gradient(90deg, var(--lwc-accent), var(--lwc-accent-hover));
+            transform-origin: 0 50%;
+            pointer-events: none;
+            animation: home-story-progress linear both;
+            animation-timeline: scroll(root block);
+        }
+
+        /* Draw accents without moving the sections and their click targets. */
+        html body main.homepage-main.home-scoreboard-live .section-container > h2 {
+            position: relative;
+        }
+
+        html body main.homepage-main.home-scoreboard-live .section-container > h2::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 -1px;
+            height: 2px;
+            background: var(--lwc-accent);
+            transform-origin: 0 50%;
+            animation: home-title-draw linear both;
+            animation-timeline: view();
+            animation-range: entry 20% cover 35%;
+        }
+
+        /* The prize pool fills as it comes into view. */
+        html body main.homepage-main.home-scoreboard-live .btc-status-fill {
+            transform-origin: 0 50%;
+            animation: home-pool-fill linear both;
+            animation-timeline: view();
+            animation-range: entry 30% cover 45%;
+        }
+    }
+
+    @keyframes home-story-progress {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+    }
+
+    @keyframes home-title-draw {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+    }
+
+    @keyframes home-pool-fill {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+    }
+}
+html.homepage-restoring {
+    overflow-anchor: none;
 }

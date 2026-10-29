@@ -10,12 +10,13 @@ updates:
       timezone: "Europe/Budapest"
     open-pull-requests-limit: 5
     ignore:
+      # License-key enforcement was also backported to these minor releases.
       - dependency-name: "SixLabors.ImageSharp"
-        update-types:
-          - "version-update:semver-major"
+        versions:
+          - ">= 3.2.0"
       - dependency-name: "SixLabors.ImageSharp.Drawing"
-        update-types:
-          - "version-update:semver-major"
+        versions:
+          - ">= 2.2.0"
     groups:
       nuget-minor-patch:
         patterns:

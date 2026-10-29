@@ -43,7 +43,7 @@ public sealed class WebPushBrowserTests
             PushManager.prototype.subscribe = async () => { localStorage.setItem('testPushSubscribed', '1'); return documentSubscription; };
             """.Replace("SUBSCRIPTION", subscription));
         var page = await context.NewPageAsync();
-        await page.GotoAsync(app.BaseAddress + "events");
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var bell = page.Locator("#webPushToggle");
         await Assertions.Expect(bell).ToBeVisibleAsync();
         Assert.Equal("default", await page.EvaluateAsync<string>("Notification.permission"));
@@ -52,7 +52,7 @@ public sealed class WebPushBrowserTests
         var bounds = await bell.BoundingBoxAsync();
         Assert.True(bounds!.Width >= 44 && bounds.Height >= 44);
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > window.innerWidth"));
-        Assert.Equal(["X", "Nostr", "Reddit", "Threads", "YouTube", "Mastodon", "Instagram"], await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
         var footerShortcut = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Get browser notifications on Highlights", Exact = true });
         Assert.Null(await footerShortcut.GetAttributeAsync("aria-current"));
         await footerShortcut.ClickAsync();
@@ -88,28 +88,53 @@ public sealed class WebPushBrowserTests
         await context.AddInitScriptAsync("""
             window.testUnsubscribeCount = 0;
             window.testSubscribeStarted = false;
+            window.testSubscription = null;
+            // Deliver this document's own preference broadcasts after the
+            // timeout has rendered, reproducing delayed message dispatch.
+            const NativeBroadcastChannel = window.BroadcastChannel;
+            const pushChannels = [];
+            const pendingPushMessages = [];
+            window.BroadcastChannel = class extends NativeBroadcastChannel {
+                constructor(name) {
+                    super(name);
+                    if (name === 'lwc-web-push') pushChannels.push(this);
+                }
+                postMessage(message) {
+                    if (this.name !== 'lwc-web-push') return super.postMessage(message);
+                    pendingPushMessages.push(() => pushChannels.filter(channel => channel !== this)
+                        .forEach(channel => channel.dispatchEvent(new MessageEvent('message', { data: message }))));
+                }
+            };
+            window.flushOwnPushChanges = () => pendingPushMessages.splice(0).forEach(deliver => deliver());
+            window.sendExternalPushChange = () => {
+                const sender = new NativeBroadcastChannel('lwc-web-push');
+                sender.postMessage('changed');
+                sender.close();
+            };
             Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
             Notification.requestPermission = async () => 'granted';
             const documentSubscription = {
                 toJSON: () => (SUBSCRIPTION),
-                unsubscribe: async () => { window.testUnsubscribeCount++; return true; }
+                unsubscribe: async () => { window.testUnsubscribeCount++; window.testSubscription = null; return true; }
             };
-            PushManager.prototype.getSubscription = async () => null;
+            PushManager.prototype.getSubscription = async () => window.testSubscription;
             PushManager.prototype.subscribe = () => {
                 window.testSubscribeStarted = true;
-                return new Promise(resolve => setTimeout(() => resolve(documentSubscription), DELAY));
+                return new Promise(resolve => setTimeout(() => { window.testSubscription = documentSubscription; resolve(documentSubscription); }, DELAY));
             };
             """.Replace("SUBSCRIPTION", subscription).Replace("DELAY", delay.ToString()));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
-        await page.GotoAsync(app.BaseAddress + "events");
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var bell = page.Locator("#webPushToggle");
         await Assertions.Expect(bell).ToBeVisibleAsync();
         await bell.ClickAsync();
         await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
         await Assertions.Expect(bell).ToBeDisabledAsync();
         await Assertions.Expect(bell.Locator(".fa-spinner.fa-spin")).ToBeVisibleAsync();
-        await page.Clock.FastForwardAsync(delay);
+        // Observe the deadline before releasing a late provider result; jumping
+        // over both timers at once can coalesce them in the browser's fake clock.
+        await page.Clock.FastForwardAsync(enabled ? delay : 120001);
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", enabled ? "true" : "false");
         await Assertions.Expect(bell).ToBeEnabledAsync();
         if (enabled)
@@ -121,8 +146,71 @@ public sealed class WebPushBrowserTests
         else
         {
             await Assertions.Expect(page.Locator("#webPushStatus")).ToHaveTextAsync("Notifications could not connect. Try again.");
+            await page.EvaluateAsync("() => window.flushOwnPushChanges()");
+            await Assertions.Expect(bell).ToBeEnabledAsync();
+            await Assertions.Expect(page.Locator("#webPushStatus")).ToHaveTextAsync("Notifications could not connect. Try again.");
+            await page.Clock.FastForwardAsync(delay - 120001);
         }
         await page.WaitForFunctionAsync("() => window.testUnsubscribeCount === 1");
+        if (!enabled)
+        {
+            // A different sender must still refresh this document's preference.
+            await page.EvaluateAsync("() => window.sendExternalPushChange()");
+            await Assertions.Expect(page.Locator("#webPushStatus")).ToBeEmptyAsync();
+            await Assertions.Expect(bell).ToBeEnabledAsync();
+            await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "false");
+        }
+    }
+
+    [Fact]
+    public async Task Bell_EarlyPressIsNotMovedByTheDeferredOpeningScroll()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        Configure(app);
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        await using var context = await browser.NewContextAsync(new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 720 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var subscription = JsonSerializer.Serialize(WebPushTests.Subscription(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        await context.AddInitScriptAsync(
+            """
+            window.testSubscribeStarted = false;
+            Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
+            Notification.requestPermission = async () => 'granted';
+            const documentSubscription = {
+                toJSON: () => (SUBSCRIPTION),
+                unsubscribe: async () => true
+            };
+            PushManager.prototype.getSubscription = async () => null;
+            PushManager.prototype.subscribe = async () => {
+                window.testSubscribeStarted = true;
+                return documentSubscription;
+            };
+            """.Replace("SUBSCRIPTION", subscription));
+        var page = await context.NewPageAsync();
+        var clockTime = new DateTime(2026, 10, 19, 8, 0, 0, DateTimeKind.Utc);
+        await page.Clock.InstallAsync(new() { Time = clockTime.ToString("O") });
+        await page.Clock.PauseAtAsync(clockTime.AddMinutes(1));
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var bell = page.Locator("#webPushToggle");
+        await Assertions.Expect(bell).ToBeVisibleAsync();
+        await page.EvaluateAsync("() => document.fonts.ready");
+        var before = Assert.IsType<LocatorBoundingBoxResult>(await bell.BoundingBoxAsync());
+        await page.Mouse.MoveAsync(before.X + before.Width / 2, before.Y + before.Height / 2);
+        await page.Mouse.DownAsync();
+        // Cross the opening-scroll deadline while the native press is held.
+        await page.Clock.FastForwardAsync(600);
+        var after = Assert.IsType<LocatorBoundingBoxResult>(await bell.BoundingBoxAsync());
+        await page.Mouse.UpAsync();
+
+        Assert.InRange(Math.Abs(before.Y - after.Y), 0, 0.5);
+        await page.Clock.ResumeAsync();
+        await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
+        await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "true");
     }
 
     [Fact]
@@ -134,7 +222,7 @@ public sealed class WebPushBrowserTests
         await using var context = await browser.NewContextAsync(new() { ViewportSize = new() { Width = 360, Height = 850 } });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync(app.BaseAddress + "internal/custom-event-designer.html");
+        await page.GotoAsync(app.BaseAddress + "internal/custom-event-designer.html", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var checkbox = page.Locator("#sendWebPush");
         await Assertions.Expect(checkbox).Not.ToBeCheckedAsync();
         await page.Locator("#titleInput").FillAsync("[bold](A sport for time) 🏆");
@@ -155,7 +243,7 @@ public sealed class WebPushBrowserTests
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
         var page = await browser.NewPageAsync(new() { BypassCSP = true });
-        await page.GotoAsync(app.BaseAddress + "events");
+        await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         using var client = app.CreateClient();
         var source = await client.GetStringAsync("/js/web-push-worker.js");
         var result = await page.EvaluateAsync<JsonElement>("""
@@ -171,7 +259,7 @@ public sealed class WebPushBrowserTests
                         openWindow: async url => opened.push(url)
                     }
                 };
-                new Function('self', source)(scope);
+                new Function('self', 'importScripts', 'LwcWebPush', source)(scope, () => {}, { state: async () => ({ enabled: true }) });
                 const push = () => handlers.push({ data: { json: () => ({ id: 'same-event', title: 'A sport for time', body: 'Hello', url: 'https://unrelated.example/' }) }, waitUntil: p => waits.push(p) });
                 push(); push(); await Promise.all(waits);
                 handlers.notificationclick({ notification: { close() {}, data: { url: 'https://unrelated.example/' } }, waitUntil: p => waits.push(p) });

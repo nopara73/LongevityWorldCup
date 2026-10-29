@@ -23,5 +23,14 @@
   "Division": "Men's",
   "Flag": "Canada",
   "Why": "I want to feel great, live long, and be fully present for the people I love. That’s what keeps me going.",
-  "PersonalLink": "https://www.troyhale.ca"
+  "PersonalLink": "https://www.troyhale.ca",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/TheTroyHale",
+      "EvidenceUrls": [
+        "https://www.troyhale.ca"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

@@ -1,0 +1,205 @@
+[
+  {
+    "AthleteSlug": "david",
+    "PreviousSignature": "5bf10940985411c05590774b6218c49ef33d7316e94e9e1622d9cacace650853",
+    "CorrectedSignature": "0e1f0cf961ec38c963cb10b2b6cd324172c971653edea817dc017a463636a889",
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2025-11-17",
+        "Field": "LymPc",
+        "Before": 1.09
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "anton_eich",
+    "PreviousSignature": "36e6011ff26abd9f84507158e4c7a224563e1c04e6ada58b8aba46d43088c652",
+    "CorrectedSignature": "5700c999641ad9126867a8cef4abefe18ba19bdb772aa1931a300a253ff7bdd9",
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2025-02-12",
+        "Field": "LymPc",
+        "Before": 15
+      },
+      {
+        "ResultDate": "2025-03-13",
+        "Field": "LymPc",
+        "Before": 39.3
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "roman",
+    "PreviousSignature": "185ecad8b9f14254d5194113754273a38d3b786c18d7b809365c1eddf70cf8ea",
+    "CorrectedSignature": "7a6713ef4b660b4987af999fad0a61a6bccadd9d09dbe6c145f49413300b6edd",
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2025-02-03",
+        "Field": "AlpUL",
+        "Before": 97
+      },
+      {
+        "ResultDate": "2025-10-27",
+        "Field": "AlpUL",
+        "Before": 1
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "scomer",
+    "PreviousSignature": "5948ffa4bace5f0a0b63066701de32e33c5ddad94662fbd236fe8a95eb750597",
+    "CorrectedSignature": "3c13a613a24764c8939bca4a848733ef521fb75d21b3c7250c27082957dfe9be",
+    "Dates": [
+      {
+        "Before": "2025-09-25",
+        "After": "2025-07-15"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-07-15",
+        "Field": "GluMmolL",
+        "Before": 0.48290408525754885
+      },
+      {
+        "ResultDate": "2025-07-15",
+        "Field": "Date",
+        "Before": "2025-09-25"
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "devarajan_narayanan",
+    "PreviousSignature": "546387a163485159c91a73d8dade25fcec0f275596c7b4856333061ffce4d80e",
+    "CorrectedSignature": "366702c139e6fa6380cfa3e8bb3514391bd7c919df1c7d8ae76d1e5d86cddd2f",
+    "Dates": [],
+    "Fields": [
+      {
+        "ResultDate": "2026-04-06",
+        "Field": "UreaMmolL",
+        "Before": 3.82
+      },
+      {
+        "ResultDate": "2026-04-06",
+        "Field": "MonocytePc",
+        "Before": 3.33
+      },
+      {
+        "ResultDate": "2026-04-06",
+        "Field": "NeutrophilPc",
+        "Before": 60.44
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "june_hou",
+    "PreviousSignature": "9e066acc5c65f6d06c43310bc81a9c5c192ff48a93ec4ad42a4e289871cfb01c",
+    "CorrectedSignature": "c28fb5c2265b395f597349db090648ee725ba364fd6ba602c1ac737c08059011",
+    "Dates": [
+      {
+        "Before": "2025-04-19",
+        "After": "2025-04-05"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-04-05",
+        "Field": "Date",
+        "Before": "2025-04-19"
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "ilhui",
+    "PreviousSignature": "d5d8befecbd222cb78a66d2452fb688eb81c27b0d13adfe521a714cf7ab6cb1a",
+    "CorrectedSignature": "b2de590607f5615f204c2476f904889fd33d500d248d1fade71f96694829913a",
+    "Dates": [
+      {
+        "Before": "2025-11-14",
+        "After": "2025-11-11"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-11-11",
+        "Field": "Date",
+        "Before": "2025-11-14"
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "jozzy",
+    "PreviousSignature": "721b1d24e249b995d96f3993c5d89abc62bc2d3027074c4971199973e758d227",
+    "CorrectedSignature": "c05af9b166d65c38998834af1655d1ccf832e01ab2890907dd49408b609f66be",
+    "Dates": [
+      {
+        "Before": "2025-11-23",
+        "After": "2025-11-12"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-11-12",
+        "Field": "Date",
+        "Before": "2025-11-23"
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "fred",
+    "PreviousSignature": "e612c193887a53a05b610cc7d609b20942a7a72202a872762ef03dfcf961a1c5",
+    "CorrectedSignature": "a03054dfe0fcf153071ac76b2f66832163a4c7c54ef012a2d8d8d7586d6557f6",
+    "Dates": [
+      {
+        "Before": "2025-07-28",
+        "After": "2025-07-31"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-07-31",
+        "Field": "Date",
+        "Before": "2025-07-28"
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "deelicious",
+    "PreviousSignature": "3e389baa81fcf4c9b1d3d8d4571f12068a0ac048afee4d7b92796900e1283488",
+    "CorrectedSignature": "3cbd31925829e6a20d0f626af5e16ed3030728d1b8150077e8b227b8637458d5",
+    "Dates": [
+      {
+        "Before": "2025-08-08",
+        "After": "2025-08-09"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-08-09",
+        "Field": "Date",
+        "Before": "2025-08-08"
+      }
+    ]
+  },
+  {
+    "AthleteSlug": "yan_lin",
+    "PreviousSignature": "b74ed377d1cbbc668fd3d48a0ed8ddca4de9ff008ab810d7bb681010c618a1d1",
+    "CorrectedSignature": "a56e3bdf356f4c6e3d52d9e8d5bd8363d7ec70301863bbb9f10b223d668ad775",
+    "Dates": [
+      {
+        "Before": "2025-03-16",
+        "After": "2025-02-22"
+      }
+    ],
+    "Fields": [
+      {
+        "ResultDate": "2025-02-22",
+        "Field": "Date",
+        "Before": "2025-03-16"
+      }
+    ]
+  }
+]

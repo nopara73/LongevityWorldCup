@@ -98,5 +98,15 @@
   "Flag": "Brazil",
   "Why": "Living well at least during my first century :)",
   "DisplayName": null,
-  "PodcastLink": "https://www.youtube.com/watch?v=AMsDDM76wXg"
+  "PodcastLink": "https://www.youtube.com/watch?v=AMsDDM76wXg",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/RicLazzaro",
+      "EvidenceUrls": [
+        "https://x.com/RicLazzaro",
+        "https://www.instagram.com/ricardodilazzaro/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

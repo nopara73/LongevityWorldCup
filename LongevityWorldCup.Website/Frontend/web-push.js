@@ -5,109 +5,112 @@
     if (!button || !window.isSecureContext || !('serviceWorker' in navigator)
         || !('PushManager' in window) || !('Notification' in window) || window.top !== window.self) return;
     const workerUrl = script?.dataset.workerUrl;
+    const push = window.LwcWebPush;
+    if (!workerUrl || !push) return;
     let publicKey = null;
-    let subscription = null;
+    let worker = null;
+    let preference = { enabled: null, current: null, pending: [], synced: '' };
     let busy = false;
+    let failure = '';
+    let retryTimer;
 
-    function render(message = '') {
+    function render(message) {
         const blocked = Notification.permission === 'denied';
-        button.setAttribute('aria-pressed', subscription ? 'true' : 'false');
+        const enabled = !blocked && Notification.permission === 'granted' && preference.enabled
+            && preference.current && preference.synced === push.identity(preference.current) && !failure;
+        const recovery = !!failure || preference.pending.length > 0 || (preference.enabled && !enabled);
+        button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
         const label = busy ? 'Updating announcement notifications'
             : blocked ? 'Notifications blocked — allow them in browser settings'
-            : subscription ? 'Turn off announcement notifications' : 'Get announcement notifications';
+            : preference.enabled ? (recovery ? 'Turn off announcement notifications — sync pending' : 'Turn off announcement notifications')
+            : recovery ? 'Retry notification preferences' : 'Get announcement notifications';
         button.setAttribute('aria-label', label);
         button.title = label;
         button.disabled = busy || blocked;
         button.setAttribute('aria-busy', busy ? 'true' : 'false');
-        button.querySelector('i').className = busy ? 'fas fa-spinner fa-spin' : blocked ? 'fas fa-bell-slash' : 'fas fa-bell';
-        if (status) status.textContent = message;
-    }
-
-    async function save(action, value) {
-        const response = await fetch('/api/web-push/' + action, {
-            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-LWC-Push': '1' },
-            body: JSON.stringify(value.toJSON()), signal: AbortSignal.timeout(10000)
-        });
-        if (!response.ok) throw new Error('Notification preference was not saved. Try again.');
-    }
-
-    function keyBytes(value) {
-        const raw = atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4));
-        return Uint8Array.from(raw, c => c.charCodeAt(0));
+        button.querySelector('i').className = busy ? 'fas fa-spinner fa-spin'
+            : blocked ? 'fas fa-bell-slash' : recovery ? 'fas fa-exclamation-circle' : 'fas fa-bell';
+        if (status) status.textContent = failure && preference.enabled
+            ? 'Notifications need syncing. Retrying automatically.'
+            : failure || message || (recovery ? 'Notification preferences need syncing.' : '');
     }
 
     async function registration() {
-        const worker = await navigator.serviceWorker.register(workerUrl, { scope: '/', updateViaCache: 'none' });
-        if (!worker.active) {
-            await Promise.race([
-                navigator.serviceWorker.ready,
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Notifications could not start. Try again.')), 10000))
-            ]);
+        const value = await push.deadline(navigator.serviceWorker.register(workerUrl, { scope: '/', updateViaCache: 'none' }),
+            10000, 'Notifications could not start. Try again.');
+        if (!value.active) await push.deadline(navigator.serviceWorker.ready, 10000, 'Notifications could not start. Try again.');
+        worker = value;
+        return value;
+    }
+
+    async function finish(error, message) {
+        failure = error ? (error instanceof Error ? error.message : 'Notifications could not be updated. Try again.') : '';
+        try { preference = await push.state(); } catch { failure ||= 'Notification preferences are unavailable. Try again.'; }
+        busy = false;
+        render(message);
+        clearTimeout(retryTimer);
+        // Also recover on reload, reconnect and returning to the page. This bounded
+        // foreground retry works in browsers without Background Sync.
+        if (failure) retryTimer = setTimeout(() => refresh(), 60000);
+    }
+
+    async function refresh() {
+        if (busy || document.visibilityState === 'hidden') return;
+        busy = true;
+        render();
+        try {
+            preference = await push.state();
+            const existing = await push.deadline(navigator.serviceWorker.getRegistration('/'), 10000, 'Notifications could not start. Try again.');
+            if (existing?.active && new URL(existing.active.scriptURL).pathname === '/js/web-push-worker.js') {
+                await registration();
+                preference = await push.sync(worker);
+            }
+            publicKey = (await push.request('configuration')).publicKey;
+            if (workerUrl && (publicKey || preference.enabled || preference.pending.length)) button.hidden = false;
+            await finish(null);
+        } catch (error) {
+            if (workerUrl) button.hidden = false;
+            await finish(error);
         }
-        return worker;
     }
 
     button.addEventListener('click', async () => {
         if (busy) return;
+        const restoreFocus = document.activeElement === button;
         busy = true;
-        // Request permission directly within the click: Safari requires a user gesture.
+        let message;
         try {
-            const permission = subscription ? Promise.resolve('granted') : Notification.requestPermission();
+            // Safari requires the permission request directly in the explicit click.
+            const permission = !preference.enabled && !failure && publicKey && Notification.permission === 'default'
+                ? Notification.requestPermission() : Promise.resolve(Notification.permission);
             render();
-            if (subscription) {
-                const previous = subscription;
-                await previous.unsubscribe();
-                subscription = null;
-                await save('unsubscribe', previous);
-                render('Announcement notifications off.');
+            if (preference.enabled) {
+                await push.disable(worker || registration());
+                message = 'Announcement notifications off.';
+            } else if (failure || preference.pending.length) {
+                publicKey = (await push.request('configuration')).publicKey;
+                await push.sync(worker || await registration());
             } else if (await permission === 'granted') {
-                const worker = await registration();
-                const pending = worker.pushManager.getSubscription().then(existing => existing
-                    || worker.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }));
-                let candidate;
-                try {
-                    candidate = await Promise.race([
-                        pending,
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Notifications could not connect. Try again.')), 120000))
-                    ]);
-                } catch (error) {
-                    pending.then(late => late.unsubscribe()).catch(() => {});
-                    throw error;
-                }
-                try { await save('subscribe', candidate); }
-                catch (error) { await candidate.unsubscribe(); throw error; }
-                subscription = candidate;
-                render('Announcement notifications on.');
+                await push.enable(worker || await registration(), publicKey);
+                message = 'Announcement notifications on.';
             } else {
-                render('Announcement notifications were not enabled.');
+                message = 'Announcement notifications were not enabled.';
             }
-        } catch (error) {
-            render(error instanceof DOMException ? 'Notifications are unavailable in this browser window.'
-                : error instanceof Error ? error.message : 'Notifications could not be updated. Try again.');
-        } finally {
-            busy = false;
-            const message = status?.textContent || '';
-            render(message);
+            await finish(null, message);
+        } catch (error) { await finish(error); }
+        finally {
+            if (restoreFocus && !button.disabled && document.activeElement === document.body) button.focus({ preventScroll: true });
         }
     });
 
-    (async () => {
-        try {
-            const response = await fetch('/api/web-push/configuration', { signal: AbortSignal.timeout(10000) });
-            if (!response.ok) return;
-            publicKey = (await response.json()).publicKey;
-            if (!publicKey || !workerUrl) return;
-            const existing = await navigator.serviceWorker.getRegistration('/');
-            if (existing?.active && new URL(existing.active.scriptURL).pathname === '/js/web-push-worker.js') {
-                const worker = await registration();
-                subscription = await worker.pushManager.getSubscription();
-                if (subscription && Notification.permission === 'granted') {
-                    try { await save('subscribe', subscription); }
-                    catch { if (status) status.textContent = 'Notification preferences could not sync. Try again.'; }
-                }
-            }
-            button.hidden = false;
-            render();
-        } catch { /* The event board remains usable while push is unavailable. */ }
-    })();
+    window.addEventListener('online', refresh);
+    push.onChange(refresh);
+    window.addEventListener('pageshow', refresh);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+    try {
+        navigator.permissions?.query({ name: 'notifications' }).then(permission => {
+            permission.addEventListener('change', refresh);
+        }).catch(() => {});
+    } catch { /* Some push-capable browsers do not support this permission descriptor. */ }
+    refresh();
 })();

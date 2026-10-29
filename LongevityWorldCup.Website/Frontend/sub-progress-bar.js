@@ -12,10 +12,12 @@ function updateSubProgress(currentSubStage) {
         } else {
             s.className = 'stage';
         }
+        if (index === currentSubStage - 1) s.setAttribute('aria-current', 'step');
+        else s.removeAttribute('aria-current');
     });
 
     // Update sub-progress bar fill
-    const subProgressPercentage = ((currentSubStage - 1) / (subStages.length - 1)) * 100;
+    const subProgressPercentage = Math.min(100, ((currentSubStage - 1) / (subStages.length - 1)) * 100);
     subProgressFill.style.width = `${subProgressPercentage}%`;
 
     const subProgressContainerItem = document.getElementById('subProgressContainerItem');

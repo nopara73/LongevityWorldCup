@@ -5,6 +5,19 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeServiceTests
 {
     [Fact]
+    public async Task ZeroPointRestingParticipantsKeepTheSameCompetitionRankAsAnActiveNewcomer()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync("resting@example.com", "Resting Person");
+        var now = DateTimeOffset.Parse("2026-06-30T12:00:00Z");
+        await fixture.ConfirmParticipantAsync("new@example.com", "New Person", nowUtc: now.AddDays(-1));
+        var rows = fixture.Service.GetPublicState(now).Leaderboard;
+        Assert.True(rows.Single(row => row.DisplayName == "Resting Person").ChallengeInactive);
+        Assert.False(rows.Single(row => row.DisplayName == "New Person").ChallengeInactive);
+        Assert.All(rows, row => { Assert.Equal(0, row.TotalPoints); Assert.Equal(1, row.Rank); });
+    }
+
+    [Fact]
     public async Task EqualPointsShareCompetitionRanksRegardlessOfConsistencyOrOpenCheckIns()
     {
         using var fixture = TestChallengeFixture.Create();

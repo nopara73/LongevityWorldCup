@@ -17,6 +17,7 @@ public sealed class HomepageArrivalBrowserTests(
     {
         await using var context = await NewContextAsync(width);
         await context.AddInitScriptAsync($"localStorage.setItem('lwcHomepageVisitCount:v1', '{visits}');");
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             window.arrivalStarts = [];
             window.hiddenPodiumFrames = 0;
@@ -28,6 +29,7 @@ public sealed class HomepageArrivalBrowserTests(
                     const timing = animation.effect.getTiming();
                     window.arrivalStarts.push({
                         podium: this.classList.contains('podium-item'),
+                        highlights: this.id === 'events-root-index',
                         startTime: animation.startTime,
                         end: timing.duration + timing.delay,
                         opacity: Number(getComputedStyle(this).opacity)
@@ -52,6 +54,16 @@ public sealed class HomepageArrivalBrowserTests(
             await releaseAthletes.Task;
             await route.ContinueAsync();
         });
+        if (width == 390 && visits == 3)
+        {
+            // A parser script after the podium can outlive the entrance clock.
+            // The frame hold must survive other consumers such as icon sizing.
+            await context.RouteAsync("**/js/custom-event-markup.js*", async route =>
+            {
+                await Task.Delay(1200);
+                await route.ContinueAsync();
+            });
+        }
         var page = await context.NewPageAsync();
         try
         {
@@ -60,7 +72,8 @@ public sealed class HomepageArrivalBrowserTests(
             await Assertions.Expect(page.Locator("header .join-game:not(.scrolled-button)")).ToBeVisibleAsync();
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
             Assert.Equal(3, await page.EvaluateAsync<int>("arrivalStarts.filter(a => a.podium).length"));
-            Assert.Equal(8, await page.EvaluateAsync<int>("arrivalStarts.length"));
+            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalStarts.length"));
+            Assert.False(await page.EvaluateAsync<bool>("arrivalStarts.some(a => a.highlights)"));
             Assert.True(await page.EvaluateAsync<bool>("arrivalStarts.every(a => a.opacity >= 0.2 && a.end <= 1000)"));
             var startTimes = await page.EvaluateAsync<double[]>("arrivalStarts.map(a => a.startTime)");
             // Browser timestamp conversion can round fractional milliseconds.
@@ -83,6 +96,72 @@ public sealed class HomepageArrivalBrowserTests(
         await page.Locator(".podium").ScrollIntoViewIfNeededAsync();
         Assert.Equal(startCount, await page.EvaluateAsync<int>("arrivalStarts.length"));
         await CaptureAsync(page, $"{width}-{visits}-hydrated");
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task LateParsedContent_RemainsVisibleWithoutRestartingTheEntrance(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        await HoldOpeningFrameAsync(context);
+        await context.AddInitScriptAsync("""
+            window.arrivalTargets = [];
+            const animate = Element.prototype.animate;
+            Element.prototype.animate = function(...args) {
+                const animation = animate.apply(this, args);
+                queueMicrotask(() => {
+                    if (animation.id === 'homepage-arrival')
+                        window.arrivalTargets.push(this.id || this.className);
+                });
+                return animation;
+            };
+            """);
+        var parserBlocked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePage = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/custom-event-markup.js*", async route =>
+        {
+            parserBlocked.TrySetResult();
+            await releasePage.Task;
+            await route.ContinueAsync();
+        });
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await releasePage.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            // The preload scanner can request a script before the parser gets
+            // there. Wait for the Highlights root immediately before that script;
+            // it stays steady, leaving six entrance targets before the countdown.
+            await Assertions.Expect(page.Locator("#events-root-index")).ToBeAttachedAsync();
+            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+            await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
+            await page.EvaluateAsync("window.releaseOpeningFrame()");
+            await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
+            Assert.Equal(new[] { "main-logo-image", "bannertext", "podium-item first", "podium-item second",
+                "podium-item third", "athleteLeaderboard" },
+                await page.EvaluateAsync<string[]>("arrivalTargets"));
+            Assert.DoesNotContain("events-root-index", await page.EvaluateAsync<string[]>("arrivalTargets"));
+            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+        }
+        finally
+        {
+            releasePage.TrySetResult();
+        }
+
+        await page.WaitForDocumentContentLoadedAsync();
+        await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
+        Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
+        Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
+        Assert.DoesNotContain("lwc-countdown-box", await page.EvaluateAsync<string[]>("arrivalTargets"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("document.getAnimations().filter(a => a.id === 'homepage-arrival').length"));
+        await CaptureAsync(page, $"{width}-late-parsed");
     }
 
     [Theory]
@@ -115,6 +194,9 @@ public sealed class HomepageArrivalBrowserTests(
     public async Task EarlyInteraction_ImmediatelyFinishesArrival(string interaction)
     {
         await using var context = await NewContextAsync(1440);
+        // Exercise interaction on the first animation frame after the parser
+        // has attached the focusable athlete name inside the podium card.
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             const animate = Element.prototype.animate;
             Element.prototype.animate = function(...args) {
@@ -143,6 +225,9 @@ public sealed class HomepageArrivalBrowserTests(
     public async Task ReplacingAnArrivingCard_PreservesTheOriginalAnimationDeadline()
     {
         await using var context = await NewContextAsync(1440);
+        // This exercises replacement during an active entrance. Keep parsing
+        // from consuming that entrance before the podium card is attached.
+        await HoldOpeningFrameAsync(context);
         await context.AddInitScriptAsync("""
             window.podiumStartTimes = [];
             const animate = Element.prototype.animate;
@@ -179,6 +264,43 @@ public sealed class HomepageArrivalBrowserTests(
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         return context;
     }
+
+    private static Task HoldOpeningFrameAsync(IBrowserContext context) => context.AddInitScriptAsync("""
+        // Make static-content availability explicit. Parser-blocking scripts may
+        // otherwise consume the bounded entrance before its final target exists.
+        // The late-parser test releases this frame while the final target is absent.
+        const requestFrame = window.requestAnimationFrame.bind(window);
+        const cancelFrame = window.cancelAnimationFrame.bind(window);
+        const heldFrames = new Map();
+        let nextHeldHandle = -1;
+        let openingReleased = false;
+        window.requestAnimationFrame = callback => {
+            if (openingReleased || !document.documentElement.classList.contains('homepage-arriving'))
+                return requestFrame(callback);
+            const handle = nextHeldHandle--;
+            heldFrames.set(handle, { callback, nativeHandle: null });
+            return handle;
+        };
+        window.cancelAnimationFrame = handle => {
+            const frame = heldFrames.get(handle);
+            if (!frame) return cancelFrame(handle);
+            if (frame.nativeHandle !== null) cancelFrame(frame.nativeHandle);
+            heldFrames.delete(handle);
+        };
+        window.releaseOpeningFrame = () => {
+            if (openingReleased) return;
+            openingReleased = true;
+            heldFrames.forEach((frame, handle) => {
+                frame.nativeHandle = requestFrame(time => {
+                    if (!heldFrames.delete(handle)) return;
+                    frame.callback(time);
+                });
+            });
+        };
+        if (document.readyState === 'loading')
+            document.addEventListener('DOMContentLoaded', window.releaseOpeningFrame, { once: true });
+        else window.releaseOpeningFrame();
+        """);
 
     private static async Task CaptureAsync(IPage page, string name)
     {

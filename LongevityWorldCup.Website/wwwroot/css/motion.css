@@ -1,0 +1,366 @@
+/*
+ * Longevity World Cup interaction motion
+ *
+ * One vocabulary for how the interface responds: overlays and menus open and
+ * close on the same curve, presses give way under the finger, accordions grow
+ * instead of jumping, and toasts leave the way they arrived.
+ *
+ * Rules:
+ * - Durations stay between 90ms (press) and 280ms (largest surface). Enter
+ *   decelerates, exit accelerates and is shorter, so closing never waits.
+ * - Only opacity, transforms and the box being opened move. Nothing shifts the
+ *   layout around it, and closed surfaces stop taking pointer input at once.
+ * - Open/close motion waits for the visitor's first press (motion.ts sets
+ *   data-lwc-motion="on"), so loading and restored states never animate.
+ * - prefers-reduced-motion keeps every rule here switched off; the shared
+ *   reduced-motion block in aesthetic-system.css also clamps the rest.
+ */
+
+:root {
+    --lwc-motion-press: 90ms;
+    --lwc-motion-fast: 140ms;
+    --lwc-motion-base: 200ms;
+    --lwc-motion-move: 260ms;
+    --lwc-motion-slow: 280ms;
+    --lwc-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --lwc-ease-enter: cubic-bezier(0, 0, 0, 1);
+    --lwc-ease-exit: cubic-bezier(0.3, 0, 1, 1);
+    --lwc-ease-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+    --lwc-motion-lift: 6px;
+    --lwc-motion-scale: 0.96;
+    --lwc-motion-press-scale: 0.97;
+}
+
+/* A discrete display transition keeps a hidden surface rendered. Exclude its
+ * whole subtree from focus, pointer input and accessibility synchronously with
+ * the state change. Browsers without CSS inertness close immediately instead.
+ * This also covers native details, whose toggle event is dispatched too late
+ * for imperative focus/scroll callers in the same task. */
+@supports (interactivity: inert) {
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
+    details:not([open])::details-content {
+        interactivity: inert;
+        pointer-events: none;
+    }
+}
+
+/* 1) State feedback: every control eases between rest, hover, press and focus. */
+:where(button, a, input, select, textarea, summary, label, [role="button"], [role="tab"], .view-badge, .leaderboard table tbody tr, .leaderboard table tbody td) {
+    transition-property: background-color, border-color, color, box-shadow, opacity, transform, scale, translate, outline-color;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    button,
+    a,
+    input,
+    select,
+    textarea,
+    .view-badge,
+    .leaderboard table tbody tr {
+        transition-duration: var(--lwc-motion-fast);
+        transition-timing-function: var(--lwc-ease-standard);
+    }
+
+    :where(summary, label, [role="button"], [role="tab"], .leaderboard table tbody td) {
+        transition-duration: var(--lwc-motion-fast);
+        transition-timing-function: var(--lwc-ease-standard);
+    }
+
+    /* Press: the control gives way quickly and springs back on release. */
+    :where(button, [role="button"], [role="tab"], summary, a.join-game, a.option-button, a.flow-action, a.lmx-button, .view-badge, .podium-item, input[type="submit"], input[type="button"]):not(:disabled, [aria-disabled="true"]):active {
+        scale: var(--lwc-motion-press-scale);
+        transition-duration: var(--lwc-motion-press);
+    }
+
+    /* Rows tint under the pointer and darken while pressed, before the profile opens. */
+    .leaderboard table tbody tr:not(.no-results, .tier-separator, .leaderboard-skeleton-row):active > td {
+        background-color: color-mix(in srgb, var(--lwc-accent) 9%, transparent);
+        transition-duration: var(--lwc-motion-press);
+    }
+}
+
+/* 2) Overlays: backdrop fades, panel rises; closing reverses faster. */
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer) {
+        transition:
+            opacity var(--lwc-motion-base) var(--lwc-ease-enter),
+            display var(--lwc-motion-base) allow-discrete,
+            overlay var(--lwc-motion-base) allow-discrete;
+    }
+
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer)[hidden] {
+        opacity: 0;
+        pointer-events: none;
+        transition-duration: var(--lwc-motion-fast);
+        transition-timing-function: var(--lwc-ease-exit);
+    }
+
+    @starting-style {
+        :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer):not([hidden]) {
+            opacity: 0;
+        }
+    }
+
+    /* The alert and loading panels already rise in; they now sink away too. */
+    :root[data-lwc-motion="on"] :is(.custom-alert-panel, .loading-dialog-panel) {
+        transition:
+            scale var(--lwc-motion-fast) var(--lwc-ease-exit),
+            translate var(--lwc-motion-fast) var(--lwc-ease-exit);
+    }
+
+    :root[data-lwc-motion="on"] :is(#custom-alert[hidden] .custom-alert-panel, #loading-dialog[hidden] .loading-dialog-panel) {
+        scale: var(--lwc-motion-scale);
+        translate: 0 var(--lwc-motion-lift);
+    }
+
+    /* The athlete profile: its backdrop now fades in as well as out. */
+    :root[data-lwc-motion="on"] #detailsModal {
+        transition: opacity var(--lwc-motion-base) var(--lwc-ease-enter);
+    }
+
+    :root[data-lwc-motion="on"] #detailsModal.fade-out {
+        transition: opacity var(--lwc-motion-base) var(--lwc-ease-exit);
+    }
+
+    @starting-style {
+        :root[data-lwc-motion="on"] #detailsModal {
+            opacity: 0;
+        }
+    }
+}
+
+/* Phones: the alert is a bottom sheet, so it slides back down. */
+@media (prefers-reduced-motion: no-preference) and (max-width: 600px) {
+    :root[data-lwc-motion="on"] #custom-alert[hidden] .custom-alert-panel {
+        scale: none;
+        translate: 0 100%;
+    }
+}
+
+/* 3) Menus and popovers grow from their trigger and fold back into it. */
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-motion="on"] :is(.leaderboard-order-panel, #detailsModal .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover) {
+        transition:
+            opacity var(--lwc-motion-base) var(--lwc-ease-enter),
+            scale var(--lwc-motion-base) var(--lwc-ease-enter);
+    }
+
+    /* Only overlays can retain display during exit. In-flow suggestions must
+     * release their space before the next action receives a pointer press. */
+    :root[data-lwc-motion="on"] :is(.leaderboard-order-panel, #detailsModal .athlete-share-menu) {
+        transition:
+            opacity var(--lwc-motion-base) var(--lwc-ease-enter),
+            scale var(--lwc-motion-base) var(--lwc-ease-enter),
+            display var(--lwc-motion-base) allow-discrete;
+    }
+
+    :root[data-lwc-motion="on"] :is(.leaderboard-order-panel, #detailsModal .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover)[hidden] {
+        opacity: 0;
+        scale: var(--lwc-motion-scale);
+        pointer-events: none;
+        transition-duration: var(--lwc-motion-fast);
+        transition-timing-function: var(--lwc-ease-exit);
+    }
+
+    @starting-style {
+        :root[data-lwc-motion="on"] :is(.leaderboard-order-panel, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover):not([hidden]) {
+            opacity: 0;
+            scale: var(--lwc-motion-scale);
+        }
+    }
+
+    :root[data-lwc-motion="on"] .leaderboard-order-panel {
+        transform-origin: top right;
+    }
+
+    /* Suggestion lists are rebuilt per keystroke; only a newly opened list fades in. */
+    @starting-style {
+        :root[data-lwc-motion="on"] .autocomplete-items:not(:empty) {
+            opacity: 0;
+            translate: 0 calc(var(--lwc-motion-lift) * -1);
+        }
+    }
+
+    :root[data-lwc-motion="on"] .autocomplete-items {
+        transition:
+            opacity var(--lwc-motion-fast) var(--lwc-ease-enter),
+            translate var(--lwc-motion-fast) var(--lwc-ease-enter);
+    }
+}
+
+/* 4) Toasts leave the way they came: a short lift and fade. */
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-motion="on"] #copiedText {
+        transition:
+            opacity var(--lwc-motion-fast) var(--lwc-ease-exit),
+            translate var(--lwc-motion-fast) var(--lwc-ease-exit),
+            display var(--lwc-motion-fast) allow-discrete;
+    }
+
+    /* The entrance must not hold opacity once it has played, or the exit could not run. */
+    :root[data-lwc-motion="on"] #copiedText {
+        animation-fill-mode: backwards;
+    }
+
+    :root[data-lwc-motion="on"] #copiedText[hidden] {
+        opacity: 0;
+        translate: 0 -3px;
+    }
+}
+
+/* 5) Accordions grow open and fold shut instead of jumping. Gate the duration
+ * on details itself: an ancestor-state selector on ::details-content causes
+ * document-wide pseudo-element style invalidation on the first press. */
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-motion="on"] details {
+        interpolate-size: allow-keywords;
+        --lwc-details-duration: var(--lwc-motion-base);
+    }
+
+    details::details-content {
+        block-size: 0;
+        overflow: clip;
+        overflow-clip-margin: 8px;
+        transition:
+            block-size var(--lwc-details-duration, 0ms) var(--lwc-ease-standard),
+            content-visibility var(--lwc-details-duration, 0ms) allow-discrete;
+    }
+
+    details[open]::details-content {
+        block-size: auto;
+        /* Reveal descendants immediately so focus, scrolling and measurements
+           work in the same task that opens an archive. Only closing needs to
+           retain content visibility until its size transition finishes. */
+        transition-property: block-size;
+    }
+
+    /* A chevron or plus drawn on the summary turns with the panel. */
+    :root[data-lwc-motion="on"] summary::after,
+    :root[data-lwc-motion="on"] summary::before {
+        transition: transform var(--lwc-motion-base) var(--lwc-ease-standard), rotate var(--lwc-motion-base) var(--lwc-ease-standard);
+    }
+}
+
+/* 6) Tab panels: the newly shown panel settles in (motion.ts adds the glide). */
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-motion="on"] [role="tab"] {
+        transition-duration: var(--lwc-motion-base);
+    }
+}
+
+@supports not (interactivity: inert) {
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
+    details:not([open])::details-content {
+        transition: none;
+    }
+}
+
+/* 7) In-page waits. The moving line means activity, never measured progress.
+ * Component-owned content, focus rings and entrances keep their own styles. */
+:root {
+    --lwc-wait-delay: 140ms;
+    --lwc-wait-settle: 520ms;
+    --lwc-wait-sync-delay: 360ms;
+    --lwc-wait-travel: 1150ms;
+    --lwc-wait-line: var(--lwc-accent-bright, #19c3d1);
+    --lwc-wait-success: var(--lwc-success, #1f7a38);
+    --lwc-wait-danger: var(--lwc-danger, #b4233b);
+}
+
+:root [data-lwc-wait] { cursor: progress !important; }
+:root :is([data-lwc-wait], [data-lwc-wait-end]) { isolation: isolate; }
+
+/* Preserve native disabled semantics and the pressed control's appearance. */
+:root :is([data-lwc-wait], [data-lwc-wait-end]):is(:disabled, [aria-disabled="true"]) {
+    background-color: var(--lwc-wait-bg) !important;
+    background-image: var(--lwc-wait-image) !important;
+    color: var(--lwc-wait-fg) !important;
+    border-color: var(--lwc-wait-border) !important;
+    box-shadow: var(--lwc-wait-shadow) !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.lwc-wait-fill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    /* Keep the approved label/background contrast throughout the wait. */
+    background:
+        linear-gradient(90deg, transparent, currentColor, transparent) 0 bottom / 38% 2px no-repeat,
+        linear-gradient(100deg, transparent 35%, color-mix(in srgb, currentColor 12%, transparent) 50%, transparent 65%) 0 bottom / 250% 4px no-repeat;
+    animation: lwc-wait-sheen var(--lwc-wait-travel) linear infinite;
+}
+@keyframes lwc-wait-sheen {
+    from { background-position: -60% bottom, 130% bottom; }
+    to { background-position: 160% bottom, -30% bottom; }
+}
+[data-lwc-wait-end] > .lwc-wait-fill {
+    animation: lwc-wait-fade var(--lwc-wait-settle) ease-out forwards;
+}
+[data-lwc-wait-end="success"] { --lwc-wait-ring-color: var(--lwc-wait-success); }
+[data-lwc-wait-end="error"] { --lwc-wait-ring-color: var(--lwc-wait-danger); }
+.lwc-wait-ring {
+    position: absolute;
+    inset: 1px;
+    border: 2px solid var(--lwc-wait-ring-color);
+    border-radius: inherit;
+    pointer-events: none;
+    animation: lwc-wait-ring var(--lwc-wait-settle) ease-out both;
+}
+@keyframes lwc-wait-ring {
+    0% { opacity: 0; }
+    25% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@keyframes lwc-wait-fade { to { opacity: 0; } }
+
+/* The label remains readable; this separate live node announces the operation. */
+.lwc-wait-status {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    border: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* Refreshes keep every child's visibility and full contrast. */
+.lwc-wait-line, #lwc-sync {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    z-index: 4;
+    block-size: 2px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--lwc-wait-line), transparent) -60% 0 / 38% 100% no-repeat;
+    animation: lwc-wait-line-travel var(--lwc-wait-travel) ease-in-out infinite;
+}
+@keyframes lwc-wait-line-travel {
+    from { background-position: -60% 0; }
+    to { background-position: 160% 0; }
+}
+.lwc-wait-line[data-lwc-wait-end],
+:root:is([data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync {
+    background: var(--lwc-wait-line);
+    animation: lwc-wait-fade var(--lwc-wait-settle) ease-out forwards;
+}
+:root[data-lwc-sync="error"] #lwc-sync { --lwc-wait-line: var(--lwc-wait-danger); }
+#lwc-sync { position: fixed; z-index: 10001; block-size: 3px; display: none; }
+:root:is([data-lwc-sync="on"], [data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+    :root .lwc-wait-fill,
+    :root .lwc-wait-ring,
+    :root .lwc-wait-line,
+    :root .lwc-wait-line[data-lwc-wait-end],
+    :root #lwc-sync,
+    :root:is([data-lwc-sync="done"], [data-lwc-sync="error"]) #lwc-sync {
+        animation: none;
+    }
+    .lwc-wait-fill { background: linear-gradient(currentColor, currentColor) left bottom / 100% 2px no-repeat; }
+    .lwc-wait-line, #lwc-sync { background: var(--lwc-wait-line); }
+}

@@ -18,38 +18,25 @@ public sealed class AthleteOgImageService
     private const int CanvasWidth = 1200;
     private const int CanvasHeight = 630;
 
-    private const int PortraitX = 112;
-    private const int PortraitY = 176;
-    private const int PortraitSize = 292;
-    private const float TitleX = 472f;
-    private const float TitleY = 178f;
-    private const float TitleMaxWidth = 624f;
-    private const float MetricRowX = 472f;
-    private const float MetricRowWidth = 586f;
-    private const float MetricRowHeight = 82f;
-    private const float RankRowY = 318f;
-    private const float ReductionRowY = 422f;
-    private const float HeaderX = 72f;
-    private static readonly Color BackgroundTop = Color.ParseHex("#05080B");
-    private static readonly Color BackgroundBottom = Color.ParseHex("#15181B");
+    private const float PortraitRadius = 150f;
+    private const float PortraitRing = 7f;
+    private const float PortraitCenterX = ShareCardCanvas.Margin + PortraitRing + 10f + PortraitRadius;
+    private const float BodyCenterY = (ShareCardCanvas.BodyTop + ShareCardCanvas.BodyBottom) / 2f;
+    private const float ColumnX = 452f;
+    private const float ColumnWidth = ShareCardCanvas.Width - ShareCardCanvas.Margin - ColumnX;
+    private const float TileGap = 20f;
+    private const float TileHeight = 158f;
+    private const float NameGap = 30f;
     private static readonly Color RankColor = Color.ParseHex("#FF4081");
     private static readonly Color ReductionColor = Color.ParseHex("#78DA3B");
-    private static readonly Color NameColor = Color.White;
-    private static readonly Color MutedTextColor = new(new Rgba32(214, 222, 232, 220));
-    private static readonly Color MetricRowFillColor = new(new Rgba32(18, 29, 28, 218));
-    private static readonly Color MetricRowStrokeColor = new(new Rgba32(255, 255, 255, 90));
-    private static readonly Color TextShadowColor = new(new Rgba32(0, 0, 0, 185));
 
     private readonly IWebHostEnvironment _env;
     private readonly AthleteDataService _athletes;
     private readonly ILogger<AthleteOgImageService> _log;
     private readonly string _logoPath;
-    private readonly string _fontPath;
+    private readonly ShareCardCanvas.Fonts _fonts;
     private readonly string _outputDir;
-    private readonly FontCollection _fonts = new();
     private readonly SemaphoreSlim _renderLock = new(1, 1);
-    private FontFamily _fontFamily;
-    private bool _fontLoaded;
 
     public AthleteOgImageService(IWebHostEnvironment env, AthleteDataService athletes, ILogger<AthleteOgImageService> log)
     {
@@ -57,7 +44,7 @@ public sealed class AthleteOgImageService
         _athletes = athletes;
         _log = log;
         _logoPath = IOPath.Combine(_env.WebRootPath, "assets", "HdLogo.png");
-        _fontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Bold.ttf");
+        _fonts = ShareCardCanvas.GetFonts(_env.WebRootPath);
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "og", "athlete");
     }
 
@@ -76,7 +63,7 @@ public sealed class AthleteOgImageService
         string? ProfilePicUrl,
         string Signature);
 
-    public bool IsConfigured => File.Exists(_logoPath) && File.Exists(_fontPath);
+    public bool IsConfigured => File.Exists(_logoPath) && _fonts.Exist;
 
     public bool TryGetCurrentPayload(string rawSlug, out AthleteOgPayload payload)
     {
@@ -210,202 +197,94 @@ public sealed class AthleteOgImageService
 
     private async Task RenderImageAsync(AthleteOgPayload payload, string outputPath, CancellationToken ct)
     {
-        using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
-        DrawBackground(image, RankColor);
-
-        var fontFamily = GetFontFamily();
-        await DrawBrandAsync(image, fontFamily);
-        var profilePath = ResolveProfilePath(payload.ProfilePicUrl);
-        if (!string.IsNullOrWhiteSpace(profilePath) && File.Exists(profilePath))
-        {
-            await DrawProfilePhotoAsync(image, profilePath, payload.InternalSlug, ct);
-        }
-
-        var name = FitTextToWidth(fontFamily, payload.Name, 66f, 38f, TitleMaxWidth);
-        var valueFont = fontFamily.CreateFont(42f, FontStyle.Bold);
-        var labelFont = fontFamily.CreateFont(28f, FontStyle.Bold);
-
-        var rankText = $"#{payload.Rank}";
-
-        image.Mutate(ctx =>
-        {
-            DrawTextShadow(
-                ctx,
-                name.Text,
-                name.Font,
-                new PointF(TitleX, TitleY),
-                HorizontalAlignment.Left);
-
-            ctx.DrawText(
-                new RichTextOptions(name.Font)
-                {
-                    Origin = new PointF(TitleX, TitleY),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                },
-                name.Text,
-                NameColor);
-
-            DrawScoreboardMetricRow(ctx, rankText, payload.RankLabel, valueFont, labelFont, RankColor, MetricRowX, RankRowY, MetricRowWidth, MetricRowHeight);
-            DrawScoreboardMetricRow(ctx, payload.MetricValue, payload.MetricLabel, valueFont, labelFont, ReductionColor, MetricRowX, ReductionRowY, MetricRowWidth, MetricRowHeight);
-        });
+        using var image = new Image<Rgba32>(ShareCardCanvas.Width, ShareCardCanvas.Height);
+        ShareCardCanvas.DrawBackground(image, RankColor);
+        await ShareCardCanvas.DrawMastheadAsync(image, _logoPath, _fonts, payload.LeagueName, RankColor, _log, ct);
+        await DrawPortraitAsync(image, payload, ct);
+        DrawScoreboard(image, payload);
+        ShareCardCanvas.DrawAccentBar(image, RankColor, ReductionColor);
 
         await image.SaveAsPngAsync(outputPath, ct);
     }
 
-    private async Task DrawProfilePhotoAsync(Image<Rgba32> image, string profilePath, string slug, CancellationToken ct)
+    private async Task DrawPortraitAsync(Image<Rgba32> image, AthleteOgPayload payload, CancellationToken ct)
     {
-        try
-        {
-            await using var profileStream = File.OpenRead(profilePath);
-            using var profile = await ImageInput.LoadAsync<Rgba32>(profileStream, ct);
-            profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
-            {
-                Size = new Size(PortraitSize, PortraitSize),
-                Mode = ResizeMode.Crop,
-                Position = AnchorPositionMode.Center
-            }));
-            ImageMasks.MakeCircular(profile);
+        image.Mutate(ctx => ShareCardCanvas.DrawPortraitRing(ctx, PortraitCenterX, BodyCenterY, PortraitRadius, RankColor, PortraitRing));
 
-            image.Mutate(ctx =>
-            {
-                var centerX = PortraitX + (PortraitSize / 2f);
-                var centerY = PortraitY + (PortraitSize / 2f);
-                ctx.Fill(new Rgba32(0, 0, 0, 150), new EllipsePolygon(centerX + 8f, centerY + 10f, (PortraitSize / 2f) + 8f));
-                ctx.Fill(new Rgba32(255, 255, 255, 16), new EllipsePolygon(centerX, centerY, (PortraitSize / 2f) + 13f));
-                ctx.Draw(ToRgba(RankColor, 235), 6f, new EllipsePolygon(centerX, centerY, (PortraitSize / 2f) + 3f));
-                ctx.DrawImage(profile, new Point(PortraitX, PortraitY), 1f);
-                ctx.Draw(new Rgba32(255, 255, 255, 66), 1.5f, new EllipsePolygon(centerX, centerY, (PortraitSize / 2f) - 1f));
-            });
-        }
-        catch (Exception ex)
+        var profilePath = ResolveProfilePath(payload.ProfilePicUrl);
+        if (!string.IsNullOrWhiteSpace(profilePath) && File.Exists(profilePath))
         {
-            _log.LogWarning(ex, "Failed to render athlete profile image for {Slug}", slug);
+            try
+            {
+                var size = (int)(PortraitRadius * 2f);
+                await using var profileStream = File.OpenRead(profilePath);
+                using var profile = await ImageInput.LoadAsync<Rgba32>(profileStream, ct);
+                profile.Mutate(ctx => ctx.AutoOrient().Resize(new ResizeOptions
+                {
+                    Size = new Size(size, size),
+                    Mode = ResizeMode.Crop,
+                    Position = AnchorPositionMode.Center
+                }));
+                ImageMasks.MakeCircular(profile);
+                image.Mutate(ctx =>
+                {
+                    ctx.DrawImage(profile, new Point((int)(PortraitCenterX - PortraitRadius), (int)(BodyCenterY - PortraitRadius)), 1f);
+                    ctx.Draw(new Rgba32(255, 255, 255, 60), 1.5f, new EllipsePolygon(PortraitCenterX, BodyCenterY, PortraitRadius - 1f));
+                });
+                return;
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Failed to render athlete profile image for {Slug}", payload.InternalSlug);
+            }
         }
+
+        image.Mutate(ctx => ShareCardCanvas.DrawMonogramDisc(ctx, _fonts, payload.Name, PortraitCenterX, BodyCenterY, PortraitRadius, RankColor));
     }
 
-    private async Task DrawBrandAsync(Image<Rgba32> image, FontFamily boldFamily)
+    private void DrawScoreboard(Image<Rgba32> image, AthleteOgPayload payload)
     {
-        var brandFont = boldFamily.CreateFont(22f, FontStyle.Bold);
-
-        try
-        {
-            using var logo = await ImageLogo.LoadMarkAsync(_logoPath);
-            using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
-            {
-                Size = new Size(54, 54),
-                Mode = ResizeMode.Max
-            }));
-            using var backgroundLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
-            {
-                Size = new Size(455, 455),
-                Mode = ResizeMode.Max
-            }));
-
-            image.Mutate(ctx =>
-            {
-                ctx.DrawImage(backgroundLogo, new Point(810, 42), 0.065f);
-                ctx.DrawImage(smallLogo, new Point((int)HeaderX, 38), 0.96f);
-            });
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "Failed to draw athlete OG logo.");
-        }
+        var (nameLines, nameFont) = ShareCardCanvas.FitHeadline(_fonts, payload.Name, 70f, 54f, ColumnWidth, 2, 46f);
+        var lineHeight = nameFont.Size * 1.12f;
+        var blockHeight = (nameLines.Count * lineHeight) + NameGap + TileHeight;
+        var top = BodyCenterY - (blockHeight / 2f);
+        var tileY = top + (nameLines.Count * lineHeight) + NameGap;
+        var tileWidth = (ColumnWidth - TileGap) / 2f;
 
         image.Mutate(ctx =>
         {
-            ctx.DrawText(new RichTextOptions(brandFont)
-            {
-                Origin = new PointF(HeaderX + 68f, 41f),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, "LONGEVITY\nWORLD CUP", NameColor);
+            ShareCardCanvas.DrawLines(ctx, _fonts, nameLines, nameFont, ShareCardCanvas.Ink, ColumnX, top, lineHeight);
+            DrawMetricTile(ctx, $"#{payload.Rank.ToString(CultureInfo.InvariantCulture)}", payload.RankLabel, RankColor, ColumnX, tileY, tileWidth);
+            DrawMetricTile(ctx, payload.MetricValue, payload.MetricLabel, ReductionColor, ColumnX + tileWidth + TileGap, tileY, tileWidth);
         });
     }
 
-    private static void DrawScoreboardMetricRow(
-        IImageProcessingContext ctx,
-        string value,
-        string label,
-        Font valueFont,
-        Font labelFont,
-        Color accent,
-        float x,
-        float y,
-        float width,
-        float height)
+    private void DrawMetricTile(IImageProcessingContext ctx, string value, string label, Color accent, float x, float y, float width)
     {
-        ctx.Fill(MetricRowFillColor, new RectangularPolygon(x, y, width, height));
-        ctx.Draw(MetricRowStrokeColor, 1f, new RectangularPolygon(x, y, width, height));
-        ctx.Fill(ToRgba(accent, 235), new RectangularPolygon(x, y, 10f, height));
+        const float inset = 28f;
+        ShareCardCanvas.DrawPanel(ctx, x, y, width, TileHeight);
+        ctx.Fill(ShareCardCanvas.WithAlpha(accent, 235), new RectangularPolygon(x + inset, y + 24f, 40f, 5f));
 
-        var valueFontToUse = value.Length > 4
-            ? ImageTextLayout.FitFontToWidth(valueFont.Family, value, valueFont.Size, 24f, 142f)
-            : valueFont;
+        var labelText = label.ToUpperInvariant();
+        var labelFont = _fonts.Bold.CreateFont(17f, FontStyle.Bold);
+        while (ShareCardCanvas.MeasureTracked(_fonts, labelText, labelFont, 1.8f) > width - (inset * 2f) && labelFont.Size > 12f)
+            labelFont = _fonts.Bold.CreateFont(labelFont.Size - 1f, FontStyle.Bold);
+        ShareCardCanvas.DrawTrackedText(ctx, _fonts, labelText, labelFont, ShareCardCanvas.MutedInk, new PointF(x + inset, y + 42f), 1.8f);
 
-        DrawTextShadow(ctx, value, valueFontToUse, new PointF(x + 48f, y + 16f), HorizontalAlignment.Left);
-        ctx.DrawText(new RichTextOptions(valueFontToUse)
+        var valueFont = ImageTextLayout.FitFontToWidth(_fonts.Display, value, 66f, 30f, width - (inset * 2f));
+        var valueY = ShareCardCanvas.CenterTextY(value, valueFont, y + 74f + ((TileHeight - 74f - 18f) / 2f));
+        ctx.DrawText(new RichTextOptions(valueFont)
         {
-            Origin = new PointF(x + 48f, y + 16f),
+            Origin = new PointF(x + inset, valueY + 3f),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        }, value, new Rgba32(0, 0, 0, 150));
+        ctx.DrawText(new RichTextOptions(valueFont)
+        {
+            Origin = new PointF(x + inset, valueY),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
         }, value, accent);
-
-        ctx.DrawText(new RichTextOptions(labelFont)
-        {
-            Origin = new PointF(x + 198f, y + 24f),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top
-        }, label, MutedTextColor);
-    }
-
-    private static void DrawBackground(Image<Rgba32> image, Color accentColor)
-    {
-        var top = BackgroundTop.ToPixel<Rgba32>();
-        var bottom = BackgroundBottom.ToPixel<Rgba32>();
-        var accent = accentColor.ToPixel<Rgba32>();
-
-        image.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                var vertical = y / (float)(accessor.Height - 1);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var horizontal = x / (float)(row.Length - 1);
-                    var baseR = Lerp(top.R, bottom.R, vertical);
-                    var baseG = Lerp(top.G, bottom.G, vertical);
-                    var baseB = Lerp(top.B, bottom.B, vertical);
-
-                    var edgeLight = MathF.Max(0f, 1f - MathF.Sqrt(MathF.Pow((horizontal - 0.76f) / 0.5f, 2f) + MathF.Pow((vertical - 0.22f) / 0.68f, 2f)));
-                    var laneLight = MathF.Max(0f, 1f - MathF.Abs((horizontal + vertical * 0.32f) - 0.38f) / 0.075f) * 0.15f;
-                    var accentLight = MathF.Min(0.22f, edgeLight * 0.18f + laneLight);
-
-                    row[x] = new Rgba32(
-                        (byte)Math.Clamp(baseR + (accent.R * accentLight), 0, 255),
-                        (byte)Math.Clamp(baseG + (accent.G * accentLight), 0, 255),
-                        (byte)Math.Clamp(baseB + (accent.B * accentLight), 0, 255),
-                        255);
-                }
-            }
-        });
-
-        image.Mutate(ctx =>
-        {
-            ctx.Fill(new Rgba32(0, 0, 0, 74), new RectangularPolygon(0, 0, CanvasWidth, 72f));
-        });
-    }
-
-    private FontFamily GetFontFamily()
-    {
-        if (_fontLoaded)
-            return _fontFamily;
-
-        _fontFamily = _fonts.Add(_fontPath);
-        _fontLoaded = true;
-        return _fontFamily;
     }
 
     private string ComputeSignature(
@@ -423,10 +302,9 @@ public sealed class AthleteOgImageService
         string? profileImageId)
     {
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
-        var fontTicks = File.Exists(_fontPath) ? File.GetLastWriteTimeUtc(_fontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v34",
+            "athlete-og-v38",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
@@ -439,8 +317,9 @@ public sealed class AthleteOgImageService
             description,
             profilePicUrl ?? "",
             profileImageId ?? "",
+            ImageAssetRevision.ForFile(ResolveProfilePath(profilePicUrl)),
             logoTicks.ToString(CultureInfo.InvariantCulture),
-            fontTicks.ToString(CultureInfo.InvariantCulture));
+            _fonts.Ticks);
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(bytes).ToLowerInvariant()[..12];
@@ -986,43 +865,5 @@ public sealed class AthleteOgImageService
     private static string FormatReduction(double value)
     {
         return value.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
-    }
-
-    private static Rgba32 ToRgba(Color color, byte alpha)
-    {
-        var pixel = color.ToPixel<Rgba32>();
-        return new Rgba32(pixel.R, pixel.G, pixel.B, alpha);
-    }
-
-    private static float Lerp(float a, float b, float t)
-    {
-        return a + ((b - a) * t);
-    }
-
-    private static (string Text, Font Font) FitTextToWidth(FontFamily family, string text, float startSize, float minSize, float maxWidth)
-    {
-        var font = ImageTextLayout.FitFontToWidth(family, text, startSize, minSize, maxWidth);
-        if (TextMeasurer.MeasureSize(text, new RichTextOptions(font)).Width <= maxWidth)
-            return (text, font);
-
-        return (ImageTextLayout.EllipsizeToWidth(text, font, maxWidth), font);
-    }
-
-    private static void DrawTextShadow(
-        IImageProcessingContext ctx,
-        string text,
-        Font font,
-        PointF origin,
-        HorizontalAlignment alignment)
-    {
-        ctx.DrawText(
-            new RichTextOptions(font)
-            {
-                Origin = new PointF(origin.X, origin.Y + 2f),
-                HorizontalAlignment = alignment,
-                VerticalAlignment = VerticalAlignment.Top
-            },
-            text,
-            TextShadowColor);
     }
 }

@@ -84,7 +84,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         var page = await context.NewPageAsync();
         await SelectAthleteAsync(page);
         await OpenCalculatorAsync(page, clock);
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         await FillMarkerAsync(page, "glucose", "90.08", "18.016");
         await page.ReloadAsync();
@@ -115,6 +115,136 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await WaitForEntryAsync(page);
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("");
         await Assertions.Expect(page.Locator("#glucose")).ToHaveValueAsync("90.08");
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task HistoryReturn_RawDraftWinsWhenModulesResolveBeforeDomReady(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        await FillMarkerAsync(page, "glucose", "90.08", "18.016");
+        await page.Locator("#calculateBioageButton").ClickAsync();
+        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("45");
+        await page.Locator("#continueButton").ClickAsync();
+        await page.WaitForURLAsync("**/proofs");
+
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/js/site-statistics-tracking.js*", async route =>
+        {
+            requested.TrySetResult();
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            // Resolve the real modules while a deferred script holds DOM ready.
+            // Entry initialization then precedes native history form restoration.
+            var returning = page.GoBackAsync(new() { WaitUntil = WaitUntilState.Commit });
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await returning;
+            await page.WaitForFunctionAsync("() => !!window.LwcBioAgeRankPreview");
+            await page.EvaluateAsync("() => window.modulesReady");
+            release.TrySetResult();
+            await page.WaitForDocumentLoadedAsync();
+            await WaitForEntryAsync(page);
+            await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+            await AssertRawDraftAsync(page);
+            await Assertions.Expect(page.Locator("#dob-year")).ToHaveValueAsync("1980");
+            var key = $"bioageDraft:{clock}:update:Draft%20Test%20Athlete:v1";
+            Assert.Equal("", await page.EvaluateAsync<string>(
+                "key => JSON.parse(sessionStorage.getItem(key)).fields.albumin.value", key));
+        }
+        finally { release.TrySetResult(); }
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task CachedReturn_LateChangeCannotPromoteCarryoverIntoRawDraft(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        await page.Locator("#calculateBioageButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("45");
+        // A late native commit or restored form event must not turn a value
+        // filled by calculation into an explicit edit while the view is cached.
+        await RunCachedReturnAsync(page, () => page.EvaluateAsync("""
+            () => {
+                window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted:true}));
+                document.getElementById('albumin').dispatchEvent(new Event('change', {bubbles:true}));
+                window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));
+            }
+            """));
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
+        await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-09-01");
+        var key = $"bioageDraft:{clock}:update:Draft%20Test%20Athlete:v1";
+        Assert.Equal("", await page.EvaluateAsync<string>(
+            "key => JSON.parse(sessionStorage.getItem(key)).fields.albumin.value", key));
+        await FillMarkerAsync(page, "wbc", "6.1");
+        await page.ReloadAsync();
+        await WaitForEntryAsync(page);
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("6.1");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task ProofReturn_ReadyModulesCannotRestoreCalculatedCarryoverOverTheRawDraft(string clock)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await SelectAthleteAsync(page);
+        await OpenCalculatorAsync(page, clock);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
+        await FillMarkerAsync(page, "wbc", "5.2");
+        await page.Locator("#calculateBioageButton").ClickAsync();
+        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
+        await page.Locator("#continueButton").ClickAsync();
+        await page.WaitForURLAsync("**/proofs");
+        await page.WaitForDocumentContentLoadedAsync();
+        var readyGates = 0;
+
+        // Resolve the form modules before DOM-ready initialization on the return.
+        // This exposes native history restoration that follows a fast draft restore.
+        await context.RouteAsync("**/js/site-statistics-tracking.js*", async route =>
+        {
+            Interlocked.Increment(ref readyGates);
+            await page.WaitForFunctionAsync("() => !!window.LwcBioageFlow", options: new() { Timeout = 10000 });
+            await page.EvaluateAsync("() => window.modulesReady");
+            await route.ContinueAsync();
+        });
+        await page.GoBackAsync();
+        await WaitForEntryAsync(page);
+        await page.WaitForDocumentLoadedAsync();
+        Assert.True(readyGates > 0, "The return must exercise the controlled module-loading order.");
+        await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
+        await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
+        Assert.Equal(45, await page.EvaluateAsync<double>("() => JSON.parse(sessionStorage.getItem('biomarkerData')).Biomarkers[0].AlbGL"));
     }
 
     [Fact]
@@ -158,7 +288,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         var page = await context.NewPageAsync();
         await SelectAthleteAsync(page);
         await OpenCalculatorAsync(page, clock);
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         await page.Locator("#calculateBioageButton").ClickAsync();
         await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
@@ -196,7 +326,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await FillMarkerAsync(page, "wbc", "5.2");
         if (calculated)
         {
-            await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+            await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
             await page.Locator("#calculateBioageButton").ClickAsync();
             await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
             await page.Locator("#continueButton").ClickAsync();
@@ -217,7 +347,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         var page = await context.NewPageAsync();
         await SelectAthleteAsync(page);
         await OpenCalculatorAsync(page, clock);
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         // A date input can emit input while the edit has not yet committed change.
         await page.EvaluateAsync("() => { const date = document.querySelector('#blood-draw-date'); date.value = '2026-09-02'; date.dispatchEvent(new Event('input', {bubbles:true})); }");
@@ -236,7 +366,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         var page = await context.NewPageAsync();
         await SelectAthleteAsync(page);
         await OpenCalculatorAsync(page, clock);
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         await page.Locator("#calculateBioageButton").ClickAsync();
         await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
@@ -247,7 +377,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
         await WaitForEntryAsync(page);
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("5.2");
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-02");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-02");
         await page.ReloadAsync();
         await WaitForEntryAsync(page);
         await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-09-02");
@@ -265,7 +395,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         var page = await context.NewPageAsync();
         await SelectAthleteAsync(page);
         await OpenCalculatorAsync(page, clock);
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         await page.Locator("#calculateBioageButton").ClickAsync();
         await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
@@ -331,7 +461,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         var page = await context.NewPageAsync();
         await SelectAthleteAsync(page);
         await OpenCalculatorAsync(page, clock);
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-01");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         var key = $"bioageDraft:{clock}:update:Draft%20Test%20Athlete:v1";
         await page.WaitForFunctionAsync("key => sessionStorage.getItem(key)?.includes('5.2')", key);
@@ -339,7 +469,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         // Exercise the actual return lifecycle, including resetting the visible form.
         await RunCachedReturnAsync(page, () => page.EvaluateAsync("key => {sessionStorage.removeItem(key); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));}", key));
         await Assertions.Expect(page.Locator("#wbc")).ToHaveValueAsync("");
-        await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("");
+        await Assertions.Expect(page.Locator(".blood-draw-relative-label")).ToHaveTextAsync("Today");
         await WaitForEntryAsync(page);
         await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
         await FillMarkerAsync(page, "wbc", "7.3");
@@ -350,7 +480,9 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
 
     private static async Task SelectAthleteAsync(IPage page)
     {
-        if (page.Url == "about:blank") await page.GotoAsync("/dashboard");
+        // Only establish the storage origin here. An anonymous dashboard redirects
+        // to athlete selection while loading, racing the fixture's athlete seed.
+        if (page.Url == "about:blank") await page.GotoAsync("/health");
         await page.EvaluateAsync("athlete => sessionStorage.setItem('selectedAthlete', athlete)", Athlete);
     }
 
@@ -382,13 +514,25 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         // Restored documents can be parsed before their intended view is ready.
         await Assertions.Expect(page.Locator("#lwcStepsShell")).ToBeVisibleAsync();
         var input = page.Locator($"#{id}");
-        var header = input.Locator("xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' biomarker-card ')]").Locator(".biomarker-card-header");
-        // Mobile cards stay expanded and their headers are deliberately not
-        // buttons. Wait for restoration instead of attempting to toggle them.
-        if (!await input.IsVisibleAsync() && await header.GetAttributeAsync("role") == "button") await header.ClickAsync();
+        // Cards stay expanded and their headers are deliberately not buttons.
+        // Wait for restoration instead of attempting to toggle them.
         await Assertions.Expect(input).ToBeVisibleAsync();
         if (unit is not null) await page.Locator($"#{id}Unit").SelectOptionAsync(unit);
         await input.FillAsync(value);
+        if (value.Length > 0)
+        {
+            await page.EvaluateAsync("() => document.fonts.ready");
+            Assert.True(await input.EvaluateAsync<bool>(
+                """
+                input => {
+                    const style = getComputedStyle(input);
+                    const ctx = document.createElement('canvas').getContext('2d');
+                    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                    const available = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    return ctx.measureText(input.value).width <= available + 1;
+                }
+                """), $"{id}: the edited value is clipped beside its comparison chip.");
+        }
     }
 
     private static async Task AssertRawDraftAsync(IPage page)

@@ -15,7 +15,6 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, Pub
         new("/contribute", "index.html", "monthly", 0.6m),
         new("/leaderboard", "leaderboard/leaderboard.html", "daily", 0.9m),
         new("/longevitymaxxing", "longevitymaxxing/longevitymaxxing.html", "daily", 0.7m),
-        new("/helstab-kihivas", "helstab-kihivas/helstab-kihivas.html", "daily", 0.7m),
         new("/events", "event-board/event-board.html", "daily", 0.8m),
         new("/media", "misc-pages/media.html", "monthly", 0.6m),
         new("/about", "misc-pages/about.html", "monthly", 0.6m),

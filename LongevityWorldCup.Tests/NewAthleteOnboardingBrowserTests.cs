@@ -42,11 +42,11 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/pheno-age");
-            await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
+            await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate, mislabeledUnits: true);
 
             await page.Locator("#continueButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/apply");
-            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertPhenoHandoffAsync(page, bloodDrawDate);
@@ -71,8 +71,10 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         });
     }
 
-    [Fact]
-    public async Task ProOnboarding_CarriesBortzHandoffFromJoinToApplicationProofStage()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProOnboarding_CarriesBortzHandoffFromJoinToApplicationProofStage(bool conventionalApoValue)
     {
         var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
 
@@ -93,11 +95,11 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/bortz-age");
-            await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
+            await FillAndCalculateBortzAgeAsync(page, bloodDrawDate, mislabeledUnits: true, conventionalApoValue: conventionalApoValue);
 
             await page.Locator("#continueButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/apply");
-            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+            await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertBortzHandoffAsync(page, bloodDrawDate);
@@ -380,7 +382,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
                 "#25 Joe V -9.7y",
                 "#26 Todd Cus -7.5y",
                 "#27 You -6.5y",
-                "#28 Devarajan Narayanan -5.0y",
+                "#28 Devarajan Narayanan -4.4y",
                 "#29 Andressa Lohana de Almeida -2.8y"
             }
             : new[]
@@ -539,7 +541,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
         await page.WaitForDomContentLoadedUrlAsync("**/apply");
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
     }
 
     private static async Task CompleteProHandoffToApplicationAsync(IPage page, string bloodDrawDate)
@@ -550,10 +552,10 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
         await page.WaitForDomContentLoadedUrlAsync("**/apply");
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
     }
 
-    private static async Task FillAndCalculatePhenoAgeAsync(IPage page, string bloodDrawDate)
+    private static async Task FillAndCalculatePhenoAgeAsync(IPage page, string bloodDrawDate, bool mislabeledUnits = false)
     {
         await FillBioageStepOneAsync(page, bloodDrawDate);
         await SetFormValuesAsync(
@@ -573,19 +575,20 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
                 ["ap"] = "83",
                 ["apUnit"] = "1",
                 ["creatinine"] = "72",
-                ["creatinineUnit"] = "1",
+                ["creatinineUnit"] = mislabeledUnits ? "0.0113" : "1",
                 ["glucose"] = "5",
-                ["glucoseUnit"] = "1",
+                ["glucoseUnit"] = mislabeledUnits ? "18.016" : "1",
                 ["crp"] = "1.35",
                 ["crpUnit"] = "10"
-            });
+            }, unitDefaults: mislabeledUnits);
 
         await page.Locator("#calculateBioageButton").ClickAsync();
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
     }
 
-    private static async Task FillAndCalculateBortzAgeAsync(IPage page, string bloodDrawDate)
+    private static async Task FillAndCalculateBortzAgeAsync(IPage page, string bloodDrawDate,
+        bool mislabeledUnits = false, bool conventionalApoValue = false)
     {
         await FillBioageStepOneAsync(page, bloodDrawDate);
         await SetFormValuesAsync(
@@ -617,27 +620,29 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
                 ["ggt"] = "29",
                 ["ggtUnit"] = "1",
                 ["urea"] = "5.4",
-                ["ureaUnit"] = "1",
+                ["ureaUnit"] = mislabeledUnits ? "2.801" : "1",
                 ["creatinine"] = "72",
-                ["creatinineUnit"] = "1",
+                ["creatinineUnit"] = mislabeledUnits ? "0.0113" : "1",
                 ["cystatin_c"] = "0.9",
-                ["cystatin_cUnit"] = "1",
+                ["cystatin_cUnit"] = mislabeledUnits ? "0.1" : "1",
                 ["glucose"] = "5",
-                ["glucoseUnit"] = "1",
-                ["hba1c"] = "35.5",
+                ["glucoseUnit"] = mislabeledUnits ? "18.016" : "1",
+                ["hba1c"] = mislabeledUnits ? "5.39825" : "35.5",
                 ["hba1cUnit"] = "1",
                 ["cholesterol"] = "5.6",
                 ["cholesterolUnit"] = "1",
-                ["apoa1"] = "1.52",
-                ["apoa1Unit"] = "1",
+                ["apoa1"] = mislabeledUnits && conventionalApoValue ? "152" : "1.52",
+                ["apoa1Unit"] = mislabeledUnits && !conventionalApoValue ? "100" : "1",
                 ["crp"] = "1.35",
                 ["crpUnit"] = "1",
                 ["shbg"] = "45.6",
-                ["shbgUnit"] = "1",
+                ["shbgUnit"] = mislabeledUnits ? "0.0347" : "1",
                 ["vitamin_d"] = "50",
                 ["vitamin_dUnit"] = "1"
-            });
+            }, unitDefaults: mislabeledUnits);
 
+        // Verify corrected canonical values in the real application handoff,
+        // including both common ApoA1 mistakes and HbA1c's affine conversion.
         await page.Locator("#calculateBioageButton").ClickAsync();
         await page.WaitForSelectorAsync("#bortzAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
@@ -650,27 +655,29 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await page.Locator("#blood-draw-date").FillAsync(bloodDrawDate);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, bloodDrawDate);
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
     }
 
-    private static async Task SetFormValuesAsync(IPage page, Dictionary<string, string> values)
+    private static async Task SetFormValuesAsync(IPage page, Dictionary<string, string> values, bool unitDefaults = false)
     {
         await page.EvaluateAsync(
             """
-            values => {
+            ({values, unitDefaults}) => {
                 for (const [id, value] of Object.entries(values)) {
                     const element = document.getElementById(id);
                     if (!element) throw new Error(`Missing bioage field: ${id}`);
                     element.value = value;
+                    // Defaults may be inferred; an explicit unit change must be honored.
+                    if (unitDefaults && id.endsWith('Unit')) continue;
                     element.dispatchEvent(new Event('input', { bubbles: true }));
                     element.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
             """,
-            values);
+            new { values, unitDefaults });
     }
 
     private static async Task AssertPendingPaymentOfferAsync(IPage page, string expectedOfferType, double expectedAmountUsd)
@@ -1171,7 +1178,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     private static async Task GoToFakeApplicationFinalStageAsync(IPage page)
     {
         await GoToFakeProofStageAsync(page);
-        await AdvanceOnboardingStageAsync(page, "5. Final details");
+        await AdvanceOnboardingStageAsync(page, "Final details");
         await AdvanceOnboardingStageAsync(page, "Application");
         await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
     }
@@ -1179,11 +1186,11 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     private static async Task GoToFakeProofStageAsync(IPage page)
     {
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
-        await AdvanceOnboardingStageAsync(page, "2. Finding your why");
-        await AdvanceOnboardingStageAsync(page, "3. The price of glory");
-        await AdvanceOnboardingStageAsync(page, "4/a. Almost there");
-        await AdvanceOnboardingStageAsync(page, "4/b. Don't trust, verify");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Enter the arena" }).WaitForAsync();
+        await AdvanceOnboardingStageAsync(page, "Finding your why");
+        await AdvanceOnboardingStageAsync(page, "The price of glory");
+        await AdvanceOnboardingStageAsync(page, "Almost there");
+        await AdvanceOnboardingStageAsync(page, "Don't trust, verify");
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
     }

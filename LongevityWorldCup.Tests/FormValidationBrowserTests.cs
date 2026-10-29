@@ -44,11 +44,9 @@ public sealed class FormValidationBrowserTests(
         await flag.FillAsync("U");
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-invalid", "false");
         await Assertions.Expect(page.Locator("#flagError")).ToBeEmptyAsync();
-        await flag.PressAsync("Escape");
         await name.ClickAsync();
         await Assertions.Expect(flag).ToHaveAttributeAsync("aria-invalid", "true");
         await flag.FillAsync("United Kingdom");
-        await flag.PressAsync("Escape");
         await name.ClickAsync();
         await Assertions.Expect(page.Locator(".error-message:not(:empty)")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
@@ -160,7 +158,7 @@ public sealed class FormValidationBrowserTests(
         await page.GotoAsync(path);
         await page.WaitForFunctionAsync("() => document.querySelector('.bioage-biomarker-entry-ready')");
         await page.Locator("#dob-year").SelectOptionAsync("1980");
-        await page.Locator("#blood-draw-date").FillAsync(DateTime.UtcNow.AddDays(-9).ToString("yyyy-MM-dd"));
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, DateTime.UtcNow.AddDays(-9).ToString("yyyy-MM-dd"));
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await Assertions.Expect(page.Locator("#lwc-step-2")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lwc-step--visible"));
         await page.EvaluateAsync("id => window.LwcBioageFlow.expandBiomarkerCard(id)", secondInputId);
@@ -184,12 +182,8 @@ public sealed class FormValidationBrowserTests(
         await Assertions.Expect(page.Locator(".bioage-biomarker-error:visible")).ToHaveCountAsync(0);
         await page.EvaluateAsync("id => window.LwcBioageFlow.expandBiomarkerCard(id)", secondInputId);
         await second.FocusAsync();
-        // Desktop cards collapse behind their headers; mobile entry keeps
-        // the inputs directly accessible and its headers are noninteractive.
-        if (width > 768)
-            await page.Locator(".biomarker-card:has(#wbc) .biomarker-card-header").ClickAsync();
-        else
-            await first.ClickAsync();
+        // Every width keeps the inputs open; their headers are noninteractive.
+        await first.ClickAsync();
         await Assertions.Expect(page.Locator(".bioage-biomarker-error:visible")).ToHaveCountAsync(0);
     }
 

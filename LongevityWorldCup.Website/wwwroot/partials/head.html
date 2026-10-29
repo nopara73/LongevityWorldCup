@@ -1,5 +1,12 @@
 <meta charset="UTF-8" />
+<script>document.activeViewTransition?.ready.catch(() => {});</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#101820" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0b1117" media="(prefers-color-scheme: dark)" />
+<style id="lwc-first-paint">html{background:#f3f5f7;color:#17212b}@media (prefers-color-scheme:dark){html{background:#0d141b;color:#e6edf3}}</style>
+<link rel="preload" href="{{ASSET_ROBOTO_REGULAR}}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ASSET_ROBOTO_BOLD}}" as="font" type="font/woff2" crossorigin>
 <meta name="lwc-athlete-placeholder" content="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" />
 <meta name="description" content="{{SEO_DESCRIPTION}}" />
 <meta name="robots" content="{{SEO_ROBOTS}}" />
@@ -12,7 +19,6 @@
 <link rel="alternate" type="application/rss+xml" title="Longevity World Cup — Highlights (RSS)" href="https://longevityworldcup.com/feeds/events.rss" />
 <link rel="alternate" type="application/atom+xml" title="Longevity World Cup — Highlights (Atom)" href="https://longevityworldcup.com/feeds/events.atom" />
 
-<!-- Open Graph Meta Tags -->
 <meta property="og:title" content="{{SEO_OG_TITLE}}" />
 <meta property="og:description" content="{{SEO_OG_DESCRIPTION}}" />
 <meta property="og:image" content="{{SEO_OG_IMAGE}}" />
@@ -28,10 +34,8 @@
 <meta name="twitter:description" content="{{SEO_OG_DESCRIPTION}}" />
 <meta name="twitter:image" content="{{SEO_OG_IMAGE}}" />
 
-<!-- Upgrade to onion if someone comes from Tor Browser -->
 <link rel="alternate" type="application/tor-hidden-service" href="http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion">
 
-<!-- Favicon Links -->
 <link rel="icon" href="{{ASSET_FAVICON_ICO}}" type="image/x-icon" />
 <link rel="icon" href="{{ASSET_FAVICON_DARK_ICO}}" type="image/x-icon" media="(prefers-color-scheme: dark)" />
 <link rel="icon" type="image/png" sizes="192x192" href="{{ASSET_FAVICON_192}}" />
@@ -42,13 +46,13 @@
 <link rel="manifest" href="{{ASSET_SITE_WEBMANIFEST}}">
 <link rel="manifest" href="{{ASSET_SITE_DARK_WEBMANIFEST}}" media="(prefers-color-scheme: dark)">
 
-<!-- Preconnect for optional CDN-backed tools -->
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous">
 
-<!-- Self-hosted so core iconography survives CDN, privacy-filter, and offline failures. -->
 <link rel="preload" href="{{ASSET_FONT_AWESOME_CSS}}" as="style">
 <link rel="stylesheet" href="{{ASSET_FONT_AWESOME_CSS}}">
+<link rel="stylesheet" href="{{ASSET_ICONS_CSS}}">
+<script src="{{ASSET_ICONS_JS}}"></script>
 
 {{OPTIONAL_HEAD_SCRIPTS}}
 
@@ -78,7 +82,7 @@
 
             // Public GETs share one request per page. The deadline includes reading
             // the body: receiving response headers does not mean the JSON is ready.
-            window.fetchPublicJson = async function (url) {
+            window.fetchPublicJson = async function (url, options = {}) {
                 for (let attempt = 0; attempt < 2; attempt++) {
                     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
                     let timer;
@@ -86,6 +90,7 @@
                     try {
                         return await Promise.race([
                             fetch(url, {
+                                ...(options.force ? { cache: 'no-store' } : {}),
                                 headers: { accept: 'application/json' },
                                 ...(controller ? { signal: controller.signal } : {})
                             }).then(response => {
@@ -110,9 +115,9 @@
                 }
             };
 
-            function getSharedJson(url, property) {
-                if (!window[property]) {
-                    const request = window.fetchPublicJson(url);
+            function getSharedJson(url, property, refresh = false) {
+                if (refresh || !window[property]) {
+                    const request = window.fetchPublicJson(url, { force: refresh });
                     window[property] = request;
                     request.catch(() => {
                         // An older request must not invalidate a later refresh.
@@ -122,11 +127,11 @@
                 return window[property];
             }
 
-            window.getSharedAthletes = window.getSharedAthletes || function () {
-                return getSharedJson('/api/data/athletes', '__sharedAthletesRequest');
+            window.getSharedAthletes = window.getSharedAthletes || function (refresh = false) {
+                return getSharedJson('/api/data/athletes', '__sharedAthletesRequest', refresh);
             };
-            window.getSharedEvents = window.getSharedEvents || function () {
-                return getSharedJson('/api/events', '__sharedEventsRequest');
+            window.getSharedEvents = window.getSharedEvents || function (refresh = false) {
+                return getSharedJson('/api/events', '__sharedEventsRequest', refresh);
             };
             window.getSharedPrizeFund = function () {
                 return getSharedJson('/api/bitcoin/total-received', '__sharedPrizeFundRequest');
@@ -342,11 +347,6 @@
     };
 </script>
 
-<!--
-Monkey-patch DOMContentLoaded to delay all handlers until modulesReady resolves.
-Ensures imported modules (like PhenoAge) are available before any DOM logic runs.
-Must appear before any other script that attaches DOMContentLoaded listeners.
--->
 <script>
     ; (function () {
         const origAdd = document.addEventListener.bind(document);
@@ -370,10 +370,8 @@ Must appear before any other script that attaches DOMContentLoaded listeners.
 
 {{MODULES_BOOTSTRAP}}
 
-<!-- Structured Data -->
 <script id="pageStructuredData" type="application/ld+json">{{SEO_STRUCTURED_DATA}}</script>
 
-<!-- Google tag (gtag.js) -->
 <script id="googleAnalytics">
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }

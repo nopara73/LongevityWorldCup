@@ -35,13 +35,15 @@ const document = new Proxy(pageDocument, {
 });
 
 let athleteResults = [];
+let leaderboardOrderingSnapshot = null;
 let athletesOrderedByPace;
 let athletesOrderedByBortzPace;
 const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnly === 'true';
 let athleteResultsReady = false;
 let athleteResultsLoadPromise = null;
 let renderedLeaderboardSelection = '';
-let athleteDialogReturnFocusElement = null;
+let renderedStandingsComparable = false;
+let athleteDialogReturnFocus = null;
 const defaultProfilePic = leaderboardPageAssets.defaultProfilePic;
 
 const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
@@ -476,20 +478,255 @@ function wirePortraitFallback(img, athlete) {
         }
     };
     const currentSrc = toAbsoluteUrl(img.getAttribute('src') || img.src || '');
+    const isDefaultArtwork = source => toAbsoluteUrl(source).split('?')[0] === toAbsoluteUrl(defaultProfilePic).split('?')[0];
+    img.dataset.lwcImageRole = isDefaultArtwork(currentSrc) ? 'brand' : 'athlete';
     const currentIndex = candidates.findIndex(candidate => toAbsoluteUrl(candidate) === currentSrc);
     let nextCandidateIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
 
     img.onerror = function () {
         const nextCandidate = candidates[nextCandidateIndex++];
         if (nextCandidate) {
+            this.dataset.lwcImageRole = isDefaultArtwork(nextCandidate) ? 'brand' : 'athlete';
             this.src = nextCandidate;
             return;
         }
 
         this.onerror = null;
+        this.dataset.lwcImageRole = 'brand';
         this.src = defaultProfilePic;
         this.classList.add('portrait-fallback');
     };
+}
+
+function initializeAthletePortraitMotion() {
+    const podium = document.querySelector('.podium');
+    const leaderboard = document.querySelector('.leaderboard table tbody');
+    const profile = document.getElementById('modalProfilePic');
+    const profileModal = document.getElementById('detailsModal');
+    const profileContent = profileModal?.querySelector('.modal-content');
+
+    // Each clip belongs to one exact photograph, not to future profile updates.
+    const approvedMotions = [
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/benjamin_garden(?:_thumb_(?:sm|md))?_6683dd38d8317bb5a68b3053ca8dae7c53aad86cd1c6df1c1662e16fcbe83345\.webp$/,
+            clip: '/assets/athlete-motion/benjamin-garden-wink-f9f888014d01'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/valerie_orsoni(?:_thumb_(?:sm|md))?_e280d5d1d7278450a5d37ba7e16eee54719d0acb125f54c18b0b9a9a43c41976\.webp$/,
+            clip: '/assets/athlete-motion/valerie-orsoni-double-blink-ac418cfd20b2'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/anna_buky(?:_thumb_(?:sm|md))?_f36cf66df3a3f67ef88c000c32c0ae4093a7c174aaae81bbb2c0691c178fc1ec\.webp$/,
+            clip: '/assets/athlete-motion/anna-buky-brow-a23ae4dbcd12'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/martin_helstab(?:_thumb_(?:sm|md))?_03fd37f6337cd4f2d8ecdfa1b824bb970ed8c83be1eeaf29db078d25e02a7966\.webp$/,
+            clip: '/assets/athlete-motion/martin-helstab-breath-14f6a65f37ae'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/wen_z(?:_thumb_(?:sm|md))?_9d0f884164da2166825661b263042d63bbebda217511f97a72eec8887853590d\.webp$/,
+            clip: '/assets/athlete-motion/wen-z-hair-bfadd735074b'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/tibor_konkoly(?:_thumb_(?:sm|md))?_d563d8ade182b2286dbbeb6519e54f88e48ad04c40a3111649c4b598b605e501\.webp$/,
+            clip: '/assets/athlete-motion/tibor-konkoly-water-long-6c4b157156e0'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/charlotte_wong(?:_thumb_(?:sm|md))?_708c527def914308e9da42eaac2cde572770f4fe5c06fbb162b1c250c34b3391\.webp$/,
+            clip: '/assets/athlete-motion/charlotte-wong-flex-eb91ac025e86'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/slamovits_tibor(?:_thumb_(?:sm|md))?_f1ed3c0f28481d62d0df3f463a5077dacad31c9927894f9fe6ef8dbc87d85b78\.webp$/,
+            clip: '/assets/athlete-motion/slamovits-tibor-finger-tap-3f339e3278ca'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/qolars(?:_thumb_(?:sm|md))?_da84f1750d8a7b55779f34832c9990de28d12638ad0a2c6fa6102b33061e87f7\.webp$/,
+            clip: '/assets/athlete-motion/qolars-lamp-glow-c5a88f188dd6'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/markus_mattiasson(?:_thumb_(?:sm|md))?_405a0d4169a2aab78e2a7a0fd4569cc92633f0b202a0f37a7abb2ef431662593\.webp$/,
+            clip: '/assets/athlete-motion/markus-mattiasson-towel-sway-f3cafa2c6744'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/inka_land(?:_thumb_(?:sm|md))?_89251966a304b5b721333bd3a3c02d456f76a230e6549bdbb34c210a60814cca\.webp$/,
+            clip: '/assets/athlete-motion/inka-land-earring-swing-bd59700f80ce'
+        },
+        {
+            portrait: /^\/generated\/(?:thumbs|profiles)\/athletes\/tamas_toth(?:_thumb_(?:sm|md))?_613ab3be683feb657f8b3e3a6db17ecac97211f90f3d18b16f91bf50735c8781\.webp$/,
+            clip: '/assets/athlete-motion/tamas-toth-racket-settle-4aad19063da3'
+        }
+    ];
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const wired = new WeakSet();
+    const active = new Map();
+    const podiumPlayed = new Set();
+    let profilePlayed = null;
+
+    function motionFor(img) {
+        try {
+            const url = new URL(img.src, window.location.href);
+            return url.origin === window.location.origin
+                ? approvedMotions.find(motion => motion.portrait.test(url.pathname))
+                : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function play(img) {
+        const motion = motionFor(img);
+        if (active.has(img) || reducedMotion.matches || !img.isConnected || !motion) return false;
+        const wrapper = img.parentElement;
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
+
+        if (podium?.contains(img)) {
+            podiumPlayed.add(motion);
+            visiblePortraits?.unobserve(img);
+        }
+        if (img === profile) profilePlayed = motion;
+
+        const video = document.createElement('video');
+        video.className = 'athlete-portrait-motion';
+        video.setAttribute('aria-hidden', 'true');
+        video.tabIndex = -1;
+        video.muted = true;
+        video.defaultMuted = true;
+        video.playsInline = true;
+        video.disablePictureInPicture = true;
+        video.preload = 'auto';
+        // Table portraits can sit inside a rank-change wrapper and have different
+        // margins at each breakpoint. Follow the image's untransformed content box.
+        const sizeOverlay = () => {
+            video.style.left = `${img.offsetLeft + img.clientLeft}px`;
+            video.style.top = `${img.offsetTop + img.clientTop}px`;
+            video.style.width = `${img.clientWidth}px`;
+            video.style.height = `${img.clientHeight}px`;
+        };
+        const rowResize = leaderboard?.contains(img) ? new ResizeObserver(sizeOverlay) : null;
+        const stop = () => {
+            if (active.get(img)?.stop !== stop) return;
+            active.delete(img);
+            rowResize?.disconnect();
+            video.pause();
+            video.remove();
+            wrapper.classList.remove('portrait-motion');
+        };
+        active.set(img, { motion, stop });
+        video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+        video.addEventListener('ended', stop, { once: true });
+        video.addEventListener('error', stop, { once: true });
+        for (const [extension, type] of [['webm', 'video/webm'], ['mp4', 'video/mp4']]) {
+            const source = document.createElement('source');
+            source.src = `${motion.clip}.${extension}`;
+            source.type = type;
+            // Source failures do not bubble to the video element. The final
+            // fallback failing must also remove the overlay.
+            source.addEventListener('error', () => {
+                if (source === video.lastElementChild) stop();
+            }, { once: true });
+            video.appendChild(source);
+        }
+        wrapper.classList.add('portrait-motion');
+        img.after(video);
+        if (rowResize) {
+            sizeOverlay();
+            rowResize.observe(img);
+        }
+        video.play().catch(stop);
+        return true;
+    }
+
+    function wire(img) {
+        if (wired.has(img) || !motionFor(img)) return;
+        wired.add(img);
+        let pointerInside = false;
+        const link = img.closest('a');
+        img.addEventListener('pointerenter', event => {
+            pointerInside = event.pointerType !== 'touch';
+            if (pointerInside) play(img);
+        });
+        img.addEventListener('pointerleave', () => { pointerInside = false; });
+        img.addEventListener('focus', () => play(img));
+        link?.addEventListener('focus', () => play(img));
+        // Lazy table photos may finish loading after the first pointer entry.
+        // Replay then only if that interaction is still active.
+        img.addEventListener('load', () => {
+            if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
+        });
+    }
+
+    const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting || entry.intersectionRatio < .5) continue;
+            visiblePortraits.unobserve(entry.target);
+            const img = entry.target;
+            const start = () => {
+                const motion = motionFor(img);
+                if (img === profile) {
+                    if (!profileReady(motion) || profilePlayed === motion) return;
+                } else if (podiumPlayed.has(motion)) return;
+                play(img);
+            };
+            if (img.complete) start();
+            else img.addEventListener('load', start, { once: true });
+        }
+    }, { threshold: .5 });
+
+    function profileReady(motion) {
+        return profileModal.style.display === 'block'
+            && !profileModal.classList.contains('fade-out')
+            && !profileContent.inert
+            && !profileContent.classList.contains('is-loading')
+            && motion;
+    }
+
+    function scan(records) {
+        for (const [img, playback] of active) {
+            if (!img.isConnected || motionFor(img) !== playback.motion) playback.stop();
+        }
+        // Paging changes the profile, not the hundreds of portraits behind it.
+        // Only a board mutation (or the initial scan) needs to recheck those photos.
+        if (!records || records.some(record => !profileModal?.contains(record.target))) {
+            // Server-rendered rows also work while hydration is pending or fails.
+            leaderboard?.querySelectorAll('img.portrait').forEach(wire);
+            // Hydration replaces podium cards; only their final portraits autoplay.
+            if (athleteResultsReady) {
+                podium?.querySelectorAll('img.podium-portrait').forEach(img => {
+                    wire(img);
+                    const motion = motionFor(img);
+                    if (motion && !podiumPlayed.has(motion) && !reducedMotion.matches) visiblePortraits?.observe(img);
+                });
+            }
+        }
+
+        if (!profile) return;
+        const profileMotion = motionFor(profile);
+        if (!profileReady(profileMotion)) {
+            visiblePortraits?.unobserve(profile);
+            profilePlayed = null;
+            active.get(profile)?.stop();
+            return;
+        }
+        wire(profile);
+        // The portrait is already visible. Start its decorative clip from the
+        // browser's visibility report instead of forcing the rebuilt card to
+        // resolve layout synchronously inside every pager click.
+        if (profilePlayed !== profileMotion) visiblePortraits?.observe(profile);
+    }
+
+    const updates = new MutationObserver(scan);
+    if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    if (leaderboard) updates.observe(leaderboard, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    if (profile) {
+        updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
+        updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
+        updates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
+        profile.addEventListener('load', () => scan([]));
+    }
+    reducedMotion.addEventListener('change', () => {
+        if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
+    });
+    scan();
 }
 
 function markAthleteSkippedForGuessMyAge(athlete) {
@@ -636,9 +873,6 @@ function normalizeLeaderboardUrl() {
 
 
 if (!isAthleteDialogOnlyRuntime) {
-    // Prevent browser auto-restoring scroll on leaderboard history navigation.
-    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { }
-
     /* ------- ScrollGuard: block untrusted scrolls during anchor jump ------- */
     (function () {
         if (window.__scrollGuardInstalled) return;
@@ -733,6 +967,7 @@ function canAutoScroll() {
 
 let includePodiumGlobal = true
 let maxAthletesGlobal = Infinity;
+let athleteDialogBoardSequence = [];
 const CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT = 100;
 
 function isCompleteBiomarkerSet(set) {
@@ -945,15 +1180,34 @@ function processRowRevealQueue() {
     }, rowRevealStaggerMs);
 }
 
-function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
+function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh = false) {
     window.initializeSharedPageData();
     includePodiumGlobal = includePodium;
     maxAthletesGlobal = maxAthletes;
     athleteResultsReady = false;
-    setLeaderboardLoadingState(includePodium, maxAthletes);
+    if (!refresh) setLeaderboardLoadingState(includePodium, maxAthletes);
+    const fullBoard = pageDocument.querySelector('main[data-leaderboard-page="full"]');
+    if (fullBoard && !fullBoard.hasAttribute('data-lwc-refresh-ready')) {
+        fullBoard.setAttribute('data-lwc-refresh-ready', '');
+        fullBoard.addEventListener('lwc:pull-refresh', event => {
+            // Resolve fresh public data before touching the visible selection.
+            event.detail.waitUntil(window.getSharedAthletes(true).then(() =>
+                LoadLeaderboard(includePodiumGlobal, maxAthletesGlobal, true)).catch(() => {
+                    setLeaderboardStatus('Leaderboard could not load.', true);
+                }));
+        });
+        window.LwcTouch?.refresh();
+    }
 
     const currentLoadPromise = window.getSharedAthletes()
         .then(athletes => {
+            // A pull refresh can finish before the initial request. Only the
+            // latest load owns the visible board, including failure handling.
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
+            const selectedFilters = refresh ? new Set(Array.from(document.querySelectorAll('.sidebar input:checked'))
+                .map(input => `${input.name}\n${input.value}`)) : null;
+            const refreshFocus = refresh ? document.activeElement : null;
+            const refreshScroll = refresh ? window.scrollY : null;
             // Array to store athletes with their lowest PhenoAge and age reduction
             updateViewAllAthletesButton(athletes.length);
             const nowForCrowdAgeUtc = new Date();
@@ -1042,8 +1296,8 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     const firstSubmission = completeBiomarkerSets[0];
                     const lastSubmission  = completeBiomarkerSets[completeBiomarkerSets.length - 1];
 
-                    const ageAtFirst = window.calculateAgeAtDate(dob, new Date(firstSubmission.Date));
-                    const ageAtLast  = window.calculateAgeAtDate(dob, new Date(lastSubmission.Date));
+                    const ageAtFirst = window.calculateAgeAtDate(dob, getBiomarkerTestDate(firstSubmission.Date));
+                    const ageAtLast  = window.calculateAgeAtDate(dob, getBiomarkerTestDate(lastSubmission.Date));
 
                     const firstSubmissionValues = [
                         ageAtFirst,
@@ -1079,7 +1333,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
 
                 if (completeBiomarkerSets.length >= 2) {
                     const phenoSubmissionAges = completeBiomarkerSets.map((submission, index) => {
-                        const submittedAt = new Date(submission.Date);
+                        const submittedAt = getBiomarkerTestDate(submission.Date);
                         const ageAtSubmission = window.calculateAgeAtDate(dob, submittedAt);
                         const values = [
                             ageAtSubmission,
@@ -1139,7 +1393,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 let valuesForLowestPhenoAge = null;
 
                 athlete.Biomarkers.forEach(entry => {
-                    const entryDate = new Date(entry.Date);
+                    const entryDate = getBiomarkerTestDate(entry.Date);
                     const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
                     const candidateValues = [
@@ -1174,7 +1428,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 if (!Number.isFinite(lowestPhenoAge)) {
                     if (completeBiomarkerSets.length > 0) {
                         const last = completeBiomarkerSets[completeBiomarkerSets.length - 1];
-                        const ageAtLast = window.calculateAgeAtDate(dob, new Date(last.Date));
+                        const ageAtLast = window.calculateAgeAtDate(dob, getBiomarkerTestDate(last.Date));
                         valuesForLowestPhenoAge = [
                             ageAtLast,
                             last.AlbGL,
@@ -1211,7 +1465,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     let chronoAtBortzMin = null;
                     const completeBortzBiomarkerSets = athlete.Biomarkers.filter(isCompleteBortzBiomarkerSet);
                     const buildBortzValues = (entry) => {
-                        const entryDate = new Date(entry.Date);
+                        const entryDate = getBiomarkerTestDate(entry.Date);
                         const ageAtEntry = window.calculateAgeAtDate(dob, entryDate);
                         const wbc = entry.Wbc1000cellsuL;
                         const monoCount = wbc * entry.MonocytePc / 100;
@@ -1310,7 +1564,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 const rawFlag = athlete.Flag || '';
                 const canonicalFlag = getCanonicalFlagName(rawFlag);
 
-                return {
+                const result = {
                     name: athlete.Name,
                     displayName: displayName,
                     athleteSlug: athlete.AthleteSlug,
@@ -1325,6 +1579,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     bortzAgeReduction: bortzAgeReduction,
                     bortzAgeReductionPercent: bortzAgeReductionPercent,
                     lowestPhenoAge: lowestPhenoAge,
+                    hasPhenoRankData: Number.isFinite(lowestPhenoAge) && valuesForLowestPhenoAge != null,
                     chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                     ageReduction: ageReduction,
                     ageReductionPercent: ageReductionPercent,
@@ -1355,10 +1610,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                         : bortzAgeDifference,
                     podcastLink: athlete.PodcastLink,
                     lastMonthRank: lastMonthRank,
+                    placements: athlete.Placements || [],
                     rankImproved: rankImproved,
                     isNew: !!athlete.IsNew,
                     Badges: athlete.Badges || [],
                 };
+                result.orderValues = window.LwcLeaderboardOrder.values(athlete, result);
+                return result;
             });
 
             const getDisplayAgeReductionValue = (athlete) =>
@@ -1389,6 +1647,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 generateGenerationFilters(athleteResults);
                 generateExclusiveFilters(athleteResults);
                 generateLeagueTrackFilters(athleteResults);
+                if (selectedFilters) {
+                    document.querySelectorAll('.sidebar input').forEach(input => {
+                        input.checked = selectedFilters.has(`${input.name}\n${input.value}`);
+                    });
+                }
             }
 
             // Sort the athletes by age reduction in ascending order
@@ -1522,7 +1785,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                         <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                             ${rankEmoji}
                         </div>
-                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy"></a>
+                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
                         <div class="name-row">
                             <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
                         </div>
@@ -1626,7 +1889,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 const portraitLink = athleteCell.querySelector('.athlete-profile-link');
                 portraitLink.href = getAthleteProfileHref(athlete);
                 portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
-                athleteNameSpan.innerHTML = `<span class="athlete-name-content">${formatAthleteNameForMobile(athlete.displayName)}</span>`;
+                athleteNameSpan.innerHTML = `<span class="athlete-name-content">${escapeHtml(athlete.displayName)}</span>`;
                 athleteNameSpan.title = `View stats of ${athlete.displayName}`;
 
                 window.setBadges(athlete, athleteCell);
@@ -1668,14 +1931,20 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             const leagueRouteState = getLeagueRouteState(window.location.pathname);
             const flagRouteState = getFlagRouteState(window.location.pathname);
             const athleteParam = getInitialAthleteSlug();
-            if (athleteParam) {
-                const normalizedAthlete = window.slugifyName(athleteParam, false);
-                const athleteData = getAthleteData(normalizedAthlete);
-                if (athleteData) {
-                    fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
-                } else {
-                    // Redirect to the .NET 404 endpoint
-                    window.location.href = '/error/404';
+            if (refresh) {
+                // Current inputs remain authoritative during a refresh.
+            } else if (athleteParam) {
+                // A profile selected while the index was loading takes priority
+                // over the containing page's initial URL (including close/back).
+                if (currentAthleteModalRequestId === 0) {
+                    const normalizedAthlete = window.slugifyName(athleteParam, false);
+                    const athleteData = getAthleteData(normalizedAthlete);
+                    if (athleteData) {
+                        fetchFullAthleteData(normalizedAthlete, athleteData, { historyMode: 'replace' });
+                    } else {
+                        // Redirect to the .NET 404 endpoint
+                        window.location.href = '/error/404';
+                    }
                 }
             } else {
                 let searchOrFilterApplied = false; // Flag to check if filter was applied
@@ -1725,11 +1994,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     searchOrFilterApplied = true;
                 }
 
+                document.getElementById('group-flags').checked = new URLSearchParams(window.location.search).get('group')?.toLowerCase() === 'flags';
+                syncFlagFilters(document.getElementById('group-flags').checked);
                 const rawViewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
                 const viewParam = rawViewParam && rawViewParam.toLowerCase() === 'pheno-improvement'
                     ? 'improvement'
                     : rawViewParam;
-                if (viewParam && (viewParam.toLowerCase() === 'bortz' || viewParam.toLowerCase() === 'pheno' || viewParam.toLowerCase() === 'improvement' || viewParam.toLowerCase() === 'bortz-improvement' || viewParam.toLowerCase() === 'crowd')) {
+                if (viewParam && ['bortz', 'pheno', 'improvement', 'bortz-improvement', 'crowd'].includes(viewParam.toLowerCase())) {
                     const viewId = 'view-' + viewParam.toLowerCase();
                     const viewRadio = document.getElementById(viewId);
                     if (viewRadio) {
@@ -1744,9 +2015,14 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                 if (searchOrFilterApplied) {
                     toggleClearIcon();
 
-                    // Even here scroll to the search when filter applied because the table kinda starts there conceptually
+                    // Position a new incoming selection at its controls without
+                    // overwriting the reader's native Back/Forward restoration.
+                    const incomingScrollY = window.scrollY;
                     setTimeout(() => {
-                        if (canAutoScroll()) {
+                        const filtersPanel = document.querySelector('.sidebar');
+                        const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+                        if (!returning && canAutoScroll() && window.scrollY === incomingScrollY &&
+                            !filtersPanel?.matches(':hover, .expanded') && document.activeElement !== searchInput) {
                             searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
                     }, 1000);
@@ -1762,12 +2038,20 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
                     const target = document.querySelector(hash);
                     if (target?.getClientRects().length) {
                         ScrollGuard.setAnchorTarget(target);
-                        ScrollGuard.trustedScrollIntoView(target, { behavior: 'smooth', block: 'start' });
+                        ScrollGuard.trustedScrollIntoView(target, { behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
                         ScrollGuard.block(1600);
                     }
                 }
             }
             setLeaderboardStatus('Leaderboard loaded.');
+            if (refreshFocus && !refreshFocus.isConnected) {
+                const replacement = Array.from(document.querySelectorAll('.sidebar input, .leaderboard a')).find(element =>
+                    refreshFocus instanceof HTMLInputElement
+                        ? element.name === refreshFocus.name && element.value === refreshFocus.value
+                        : refreshFocus instanceof HTMLAnchorElement && element.getAttribute('href') === refreshFocus.getAttribute('href'));
+                replacement?.focus({ preventScroll: true });
+            }
+            if (refreshScroll !== null) window.scrollTo({ top: refreshScroll, behavior: 'instant' });
 
             // Pick up dynamically inserted [data-aos] nodes
             if (window.AOS && typeof AOS.refreshHard === 'function') {
@@ -1777,6 +2061,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
             }
         })
         .catch(error => {
+            if (athleteResultsLoadPromise !== currentLoadPromise) return;
             athleteResultsReady = false;
             athleteResultsLoadPromise = null;
             const tableBody = document.querySelector('.leaderboard table tbody');
@@ -1876,6 +2161,13 @@ function renderLeaderboardLoadError(tableBody) {
     });
 
     recovery.append(message, retryButton);
+    const flags = document.getElementById('flagLeaderboard');
+    if (getSelectedLeaderboardState().byFlag && flags) {
+        flags.querySelector('.leaderboard-recovery')?.remove();
+        flags.querySelector('.flag-empty')?.remove();
+        flags.appendChild(recovery);
+        return;
+    }
     cell.appendChild(recovery);
     row.appendChild(cell);
     if (hasServerRenderedLeaderboardRows(tableBody)) {
@@ -1892,7 +2184,8 @@ function setLeaderboardLoadingState(includePodium, maxAthletes) {
         if (includePodium) {
             if (podium.dataset.serverRendered !== 'true') {
                 const params = new URLSearchParams(window.location.search);
-                const hasIncomingSelection = !!(params.get('search')?.trim() || params.get('filters')?.trim())
+                const hasIncomingSelection = !!(params.get('search')?.trim() || params.get('filters')?.trim() || params.get('sort')?.trim())
+                    || params.get('group')?.toLowerCase() === 'flags'
                     || ['bortz', 'pheno', 'improvement', 'pheno-improvement', 'bortz-improvement', 'crowd'].includes(params.get('view')?.toLowerCase());
                 podium.style.display = hasIncomingSelection ? 'none' : 'flex';
                 podium.innerHTML = buildPodiumSkeletonHtml();
@@ -1956,6 +2249,8 @@ addClickListenerToImages('#modalProfilePic', function () {
     openEnlargedView(this);
 }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
 addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
+
+initializeAthletePortraitMotion();
 
 // Function to attach click event listener to all athlete-name elements
 function isPlainLinkActivation(event) {
@@ -2025,6 +2320,7 @@ function setProofViewerZoom(enlargedElem, requestedIndex, shouldCenter = true) {
     const ready = enlargedElem.dataset.imageState === 'ready';
 
     enlargedElem.proofZoomIndex = boundedIndex;
+    enlargedElem.dataset.proofZoom = String(zoom);
     enlargedElem.style.setProperty('--proof-viewer-zoom', String(zoom));
     if (zoomOut) zoomOut.disabled = !ready || boundedIndex === 0;
     if (zoomIn) zoomIn.disabled = !ready || boundedIndex === proofViewerZoomLevels.length - 1;
@@ -2045,6 +2341,13 @@ function setProofViewerZoom(enlargedElem, requestedIndex, shouldCenter = true) {
 function stopEnlargedImageLoad(enlargedElem) {
     clearTimeout(enlargedElem._imageLoadTimer);
     enlargedElem._imageLoadTimer = null;
+    const pendingImage = enlargedElem._pendingImage;
+    enlargedElem._pendingImage = null;
+    if (pendingImage) {
+        pendingImage.onload = null;
+        pendingImage.onerror = null;
+        pendingImage.removeAttribute('src');
+    }
     const image = enlargedElem.querySelector('.image-viewer-stage img');
     if (image) {
         image.onload = null;
@@ -2089,16 +2392,31 @@ function loadEnlargedImage(enlargedElem, sourceImage) {
     const image = document.createElement('img');
     image.alt = sourceImage.alt;
     image.loading = 'eager';
-    enlargedElem.querySelector('.image-viewer-stage img').replaceWith(image);
-    setEnlargedImageLoadState(enlargedElem, 'loading');
+    image.fetchPriority = 'high';
+    // A portrait is already useful at thumbnail resolution. Keep it visible
+    // while its full-size version downloads, including if that upgrade fails.
+    // Proofs still require the selected page to load before it can be read.
+    const preview = !enlargedElem.isProofGallery && !sourceImage.classList.contains('portrait-fallback')
+        && !sourceImage.hasAttribute('data-lwc-portrait-fallback')
+        && sourceImage.complete && sourceImage.naturalWidth > 0
+        ? document.createElement('img')
+        : null;
+    if (preview) {
+        preview.alt = sourceImage.alt;
+        preview.src = sourceImage.currentSrc || sourceImage.src;
+    }
+    enlargedElem.querySelector('.image-viewer-stage img').replaceWith(preview || image);
+    enlargedElem._pendingImage = image;
+    setEnlargedImageLoadState(enlargedElem, preview ? 'ready' : 'loading');
     const finish = state => {
-        if (enlargedElem.querySelector('.image-viewer-stage img') !== image
-            || enlargedElem.dataset.imageState !== 'loading') return;
+        if (enlargedElem._pendingImage !== image) return;
+        enlargedElem._pendingImage = null;
         clearTimeout(enlargedElem._imageLoadTimer);
         enlargedElem._imageLoadTimer = null;
         image.onload = null;
         image.onerror = null;
-        setEnlargedImageLoadState(enlargedElem, state);
+        if (preview && state === 'ready') preview.replaceWith(image);
+        if (!preview || state === 'ready') setEnlargedImageLoadState(enlargedElem, state);
         if (state === 'ready') {
             requestAnimationFrame(() => {
                 if (enlargedElem.querySelector('.image-viewer-stage img') === image) centerProofViewer(enlargedElem);
@@ -2259,6 +2577,7 @@ function openEnlargedView(imgElement, options) {
     updateEnlargedImage(viewer, initialIndex);
 
     viewer.hidden = false;
+    viewer.inert = false;
     viewer.setAttribute('aria-hidden', 'false');
     modalContent.inert = true;
     ownerDialog.classList.add('image-viewer-open');
@@ -2409,6 +2728,7 @@ function closeEnlargedView(enlargedElem) {
     }
     enlargedElem.classList.remove('show');
     enlargedElem.setAttribute('aria-hidden', 'true');
+    enlargedElem.inert = true;
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     enlargedElem._closeTimer = setTimeout(() => {
@@ -2458,8 +2778,166 @@ let savedBodyScroll = 0;
 let savedBodyScrollRestoration = null;
 let savedBodyBackground = '';
 let currentAthleteModalRequestId = 0;
+let athleteDialogSnapshotRequest = null;
+let athleteDialogSnapshot = null;
 let athleteShareState = null;
-const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
+let athleteShareLayoutCleanup = null;
+const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js@4.6.1';
+const athleteModalIsolation = new Map();
+const athleteModalFrames = new WeakSet();
+const athleteModalIsolationObserver = new MutationObserver(isolateAthleteModalBackground);
+let athleteModalFocusRevealFrame = 0;
+let athleteModalEntryFocusFrame = 0;
+const athleteModalFrameResizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(entries => {
+    entries.forEach(entry => revealAthleteModalFrameFocus(entry.target));
+}) : null;
+
+function revealAthleteModalFrameFocus(frame) {
+    if (pageDocument.activeElement !== frame) return;
+    cancelAnimationFrame(athleteModalFocusRevealFrame);
+    athleteModalFocusRevealFrame = requestAnimationFrame(() => {
+        athleteModalFocusRevealFrame = requestAnimationFrame(() => {
+            athleteModalFocusRevealFrame = 0;
+            if (!frame.isConnected || modal.style.display !== 'block' || pageDocument.activeElement !== frame) return;
+            const focused = frame.contentDocument?.activeElement;
+            if (!focused || focused === frame.contentDocument.body) return;
+            focused.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+            const scroller = frame.closest('.modal-content');
+            if (!scroller) return;
+            const viewport = scroller.getBoundingClientRect();
+            const frameRect = frame.getBoundingClientRect();
+            const target = focused.getBoundingClientRect();
+            const header = scroller.querySelector('.modal-sticky-header.visible');
+            const top = Math.max(0, viewport.top) + (header ? header.getBoundingClientRect().height : 0) + 8;
+            const bottom = Math.min(innerHeight, viewport.bottom) - 8;
+            const delta = frameRect.top + target.bottom > bottom ? frameRect.top + target.bottom - bottom
+                : frameRect.top + target.top < top ? frameRect.top + target.top - top : 0;
+            if (delta) scroller.scrollTo({ top: scroller.scrollTop + delta, behavior: 'instant' });
+        });
+    });
+}
+
+function isolateAthleteModalBackground() {
+    // The dialog is embedded in page content. Isolate sibling branches,
+    // never an ancestor that would also disable the dialog.
+    for (let branch = modal; branch?.parentElement; branch = branch.parentElement) {
+        if (branch === document.body) break;
+        for (const sibling of branch.parentElement.children) {
+            if (sibling === branch || !(sibling instanceof HTMLElement)) continue;
+            if (!athleteModalIsolation.has(sibling)) athleteModalIsolation.set(sibling, sibling.inert);
+            if (!sibling.inert) sibling.inert = true;
+        }
+    }
+}
+
+function activateAthleteModal() {
+    isolateAthleteModalBackground();
+    for (let ancestor = modal.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        athleteModalIsolationObserver.observe(ancestor, { childList: true });
+        if (ancestor === document.body) break;
+    }
+    modal.querySelectorAll('iframe').forEach(bindAthleteModalFrame);
+    if (!modal.contains(document.activeElement)) {
+        cancelAnimationFrame(athleteModalEntryFocusFrame);
+        athleteModalEntryFocusFrame = requestAnimationFrame(() => {
+            athleteModalEntryFocusFrame = 0;
+            if (modal.style.display === 'block' && !modal.classList.contains('fade-out')
+                && !modal.contains(document.activeElement)) closeBtn.focus({ preventScroll: true });
+        });
+    }
+}
+
+function rememberAthleteModalOpener(options) {
+    const candidate = options?.returnFocusTo instanceof HTMLElement ? options.returnFocusTo : pageDocument.activeElement;
+    if (candidate instanceof HTMLElement && candidate.isConnected && candidate !== pageDocument.body
+        && !modal.contains(candidate) && !candidate.closest('[hidden], [inert]')) {
+        athleteDialogReturnFocus = captureAthleteModalOpener(candidate);
+    }
+}
+
+function captureAthleteModalOpener(element) {
+    if (!(element instanceof HTMLElement)) return null;
+    return {
+        element,
+        source: element.closest('.leaderboard, .flag-team, .podium') || element.parentElement,
+        href: element instanceof HTMLAnchorElement ? element.href : null,
+        selector: element.matches('a.athlete-name') ? 'a.athlete-name[href]'
+            : element.matches('a.athlete-profile-link') ? 'a.athlete-profile-link[href]' : 'a[href]'
+    };
+}
+
+function resolveAthleteModalOpener(opener) {
+    if (opener?.element.isConnected) return opener.element;
+    if (!opener?.href || !opener.source?.isConnected) return null;
+    // Directory hydration replaces server-rendered links while their dialog
+    // remains open. Resolve the same control in its original board/card.
+    return Array.from(opener.source.querySelectorAll(opener.selector))
+        .find(link => link.href === opener.href && !modal.contains(link) && link.getClientRects().length) || null;
+}
+
+function releaseAthleteModal() {
+    cancelAnimationFrame(athleteModalEntryFocusFrame);
+    athleteModalEntryFocusFrame = 0;
+    athleteModalIsolationObserver.disconnect();
+    athleteModalFrameResizeObserver?.disconnect();
+    cancelAnimationFrame(athleteModalFocusRevealFrame);
+    athleteModalFocusRevealFrame = 0;
+    athleteModalIsolation.forEach((wasInert, element) => { element.inert = wasInert; });
+    athleteModalIsolation.clear();
+}
+
+function getAthleteModalFocusables(root = modal) {
+    return Array.from(root.querySelectorAll('a[href], button, input, select, textarea, iframe, [tabindex]'))
+        .filter(element => element.tabIndex >= 0 && !element.disabled && !element.closest('[inert], [hidden], [aria-hidden="true"]')
+            && element.getClientRects().length && getComputedStyle(element).visibility === 'visible')
+        .flatMap(element => {
+            if (element.tagName !== 'IFRAME') return [element];
+            try {
+                const controls = element.contentDocument && getAthleteModalFocusables(element.contentDocument);
+                // An empty same-origin frame has no keyboard destination.
+                return controls ?? [element];
+            } catch { return [element]; }
+        });
+}
+
+function containAthleteModalFocus(event) {
+    if (event.key !== 'Tab' || event.defaultPrevented || modal.style.display !== 'block') return;
+    if (modal.querySelector('#athleteImageViewer[aria-hidden="false"]')) return;
+    // The athlete share sheet lives inside this dialog, independently of the
+    // site's shared sheet. Keep its keyboard loop above the profile controls.
+    const focusRoot = modal.querySelector('#athleteShareMenu:not([hidden])') || modal;
+    const controls = getAthleteModalFocusables(focusRoot);
+    const active = event.target.ownerDocument.activeElement;
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (!first) {
+        event.preventDefault();
+        modal.focus({ preventScroll: true });
+    } else if (!controls.includes(active) || (event.shiftKey ? active === first : active === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+    }
+}
+
+function bindAthleteModalFrame(frame) {
+    athleteModalFrameResizeObserver?.observe(frame);
+    try {
+        const frameDocument = frame.contentDocument;
+        if (!frameDocument || athleteModalFrames.has(frameDocument)) return;
+        athleteModalFrames.add(frameDocument);
+        frameDocument.addEventListener('keydown', containAthleteModalFocus);
+        frameDocument.addEventListener('focusin', () => revealAthleteModalFrameFocus(frame));
+    } catch { /* External frames retain their native keyboard handling. */ }
+}
+modal.addEventListener('load', event => {
+    if (!(event.target instanceof HTMLIFrameElement)) return;
+    bindAthleteModalFrame(event.target);
+    // A navigating frame can discard its focused document. Keep entry focus
+    // inside the open profile rather than leaving it on the page body.
+    if (modal.style.display === 'block' && !modal.classList.contains('fade-out')
+        && pageDocument.activeElement === pageDocument.body) closeBtn.focus({ preventScroll: true });
+}, true);
+document.addEventListener('keydown', containAthleteModalFocus);
 
 // Direct profile/game links arrive with the requested dialog already open.
 // Make closing/back navigation available while the data request is pending.
@@ -2471,12 +2949,23 @@ const initialServerDialog = getServerRenderedAthleteDialog();
 if (initialServerDialog) {
     initialServerDialog.classList.add('is-loading');
     lockBodyScroll();
+    activateAthleteModal();
     history.replaceState({ ...history.state, modal: 'details', athlete: initialServerDialog.dataset.athleteSlug }, '', window.location.href);
+}
+
+function adoptSharedCharts(loaded) {
+    const ready = !window.LwcCharts && document.readyState === 'loading'
+        ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
+        : Promise.resolve();
+    return ready.then(() => {
+        if (loaded) window.LwcCharts?.install(window.Chart);
+        return loaded;
+    });
 }
 
 window.ensureChartJs = window.ensureChartJs || function () {
     if (typeof window.Chart === 'function') {
-        return Promise.resolve(true);
+        return adoptSharedCharts(true);
     }
 
     if (window.__chartJsPromise) {
@@ -2498,7 +2987,7 @@ window.ensureChartJs = window.ensureChartJs || function () {
         if (!loaded) {
             window.__chartJsPromise = null;
         }
-        return loaded;
+        return adoptSharedCharts(loaded);
     });
 
     return window.__chartJsPromise;
@@ -2531,6 +3020,7 @@ function resetAthleteEventsFrame(athleteSlug) {
     if (!eventsFrame) return null;
 
     const freshFrame = eventsFrame.cloneNode(false);
+    athleteModalFrameResizeObserver?.unobserve(eventsFrame);
     freshFrame.removeAttribute('src');
     freshFrame.dataset.expectedAthlete = athleteSlug || '';
     freshFrame.style.height = '1px';
@@ -2546,25 +3036,19 @@ function resetAthleteEventsFrame(athleteSlug) {
     return freshFrame;
 }
 
-function scheduleBiomarkerChartResize() {
-    if (window.biomarkerChartResizeFrame) return;
-    const requestFrame = window.requestAnimationFrame || function(callback) { return window.setTimeout(callback, 0); };
-    window.biomarkerChartResizeFrame = requestFrame(function() {
-        window.biomarkerChartResizeFrame = 0;
-        if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
-    });
-}
-
-function cancelBiomarkerChartResize() {
-    if (!window.biomarkerChartResizeFrame) return;
-    if (window.cancelAnimationFrame) window.cancelAnimationFrame(window.biomarkerChartResizeFrame);
-    else window.clearTimeout(window.biomarkerChartResizeFrame);
-    window.biomarkerChartResizeFrame = 0;
-}
-
-function resetModalForLoading(athleteSlug) {
+function resetModalForLoading(athleteSlug, allowPaging = false) {
+    const modalContent = document.querySelector('.modal-content');
+    if (!modalContent) return null;
+    // Reset the old scroll before changing content/styles; writing scrollTop
+    // after those changes synchronously laid out the whole new profile.
+    if (modalContent.scrollTop !== 0) modalContent.scrollTo({ top: 0, behavior: 'instant' });
+    // Read the page's scrollbar/background before rebuilding the card. Doing
+    // this after showing the loading state forced an intermediate full layout.
+    lockBodyScroll();
+    modal.dispatchEvent(new CustomEvent('athlete-dialog-loading', { detail: { slug: athleteSlug } }));
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
+    if (!allowPaging) modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
     const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
     if (viewer) closeEnlargedView(viewer);
     modal._historyClosePending = false;
@@ -2575,8 +3059,7 @@ function resetModalForLoading(athleteSlug) {
     }
     modal.classList.remove('fade-out');
 
-    const modalContent = document.querySelector('.modal-content');
-    if (!modalContent) return null;
+    modalContent.inert = false;
 
     if (modalContent.dataset.serverRenderedProfile === athleteSlug) {
         modalContent.classList.add('is-loading');
@@ -2584,7 +3067,7 @@ function resetModalForLoading(athleteSlug) {
         document.getElementById('shareAthleteProfile').disabled = true;
         const loadError = document.getElementById('athleteLoadError');
         if (loadError) loadError.hidden = true;
-        lockBodyScroll();
+        activateAthleteModal();
         return modalContent;
     }
     delete modalContent.dataset.serverRenderedProfile;
@@ -2593,7 +3076,6 @@ function resetModalForLoading(athleteSlug) {
     modalContent.classList.add('is-loading');
     modalContent.dataset.athleteSlug = athleteSlug;
     delete modalContent.dataset.profileImageId;
-    modalContent.scrollTop = 0;
 
     const loadError = document.getElementById('athleteLoadError');
     if (loadError) loadError.hidden = true;
@@ -2612,6 +3094,12 @@ function resetModalForLoading(athleteSlug) {
     }
     const stickyAthleteName = document.getElementById('stickyAthleteName');
     if (stickyAthleteName) stickyAthleteName.textContent = 'Loading...';
+    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    if (stickyPortrait) {
+        stickyPortrait.removeAttribute('src');
+        stickyPortrait.hidden = true;
+    }
+    renderPortraitFlagMark('');
 
     const profilePic = document.getElementById('modalProfilePic');
     if (profilePic) {
@@ -2621,9 +3109,16 @@ function resetModalForLoading(athleteSlug) {
     }
 
     const modalBadgeStrip = document.getElementById('modalBadgeStrip');
-    if (modalBadgeStrip) modalBadgeStrip.innerHTML = '';
+    if (modalBadgeStrip) {
+        setModalBadgeExplainer(modalBadgeStrip, null);
+        modalBadgeStrip.replaceChildren();
+    }
     const athleteBio = document.getElementById('athleteBio');
-    if (athleteBio) athleteBio.textContent = '';
+    if (athleteBio) {
+        athleteBio.textContent = '';
+        athleteBio.hidden = true;
+        athleteBio.removeAttribute('data-leading-quote');
+    }
     const personalLinkElement = document.getElementById('personalLink');
     if (personalLinkElement) personalLinkElement.style.display = 'none';
     const mediaContactElement = document.getElementById('mediaContact');
@@ -2636,18 +3131,13 @@ function resetModalForLoading(athleteSlug) {
         resetAthleteEventsFrame(athleteSlug);
     }
 
-    if (window.biomarkerChartInstance) {
-        window.biomarkerChartInstance.destroy();
-        window.biomarkerChartInstance = null;
-    }
-    cancelBiomarkerChartResize();
+    disposeBiomarkerHistory();
     const historySection = document.getElementById('athlete-biomarkers');
     if (historySection) {
         historySection._biomarkerHistory = null;
-        historySection.querySelectorAll('.biomarker-history-tabs button').forEach(button => { button.disabled = true; });
-        historySection.querySelectorAll('.biomarker-history-table thead, .biomarker-history-table tbody').forEach(element => element.replaceChildren());
-        const markerControls = historySection.querySelector('.biomarker-chart-controls');
-        if (markerControls) markerControls.hidden = true;
+        historySection.querySelector('.biomarker-overview-table tbody')?.replaceChildren();
+        const range = historySection.querySelector('.biomarker-overview-range');
+        if (range) range.textContent = '';
     }
     if (typeof window.destroyAgeRadarChart === 'function') {
         window.destroyAgeRadarChart();
@@ -2656,15 +3146,25 @@ function resetModalForLoading(athleteSlug) {
     if (modal.style.display !== "block") {
         modal.style.display = "block";
     }
-    lockBodyScroll();
+    activateAthleteModal();
+    if (allowPaging) updateAthleteDialogSteps();
 
     return modalContent;
 }
 
 // Improved body scroll lock for iOS
+function getLockedBodyWidth(previousWidth) {
+    // Compensate only for scrollbar space actually released by the lock.
+    // Reserving a root gutter also shrinks fixed overlays and action docks.
+    const releasedWidth = Math.max(0, window.innerWidth - previousWidth);
+    return `calc(100% - ${releasedWidth}px)`;
+}
+
 function lockBodyScroll() {
     if (document.body.classList.contains('no-scroll')) return;
 
+    const bodyWidth = document.body.clientWidth;
+    const bodyBackground = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
     savedBodyScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
     if ('scrollRestoration' in history) {
         savedBodyScrollRestoration ??= history.scrollRestoration;
@@ -2676,9 +3176,9 @@ function lockBodyScroll() {
     const scrollY = savedBodyScroll;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    document.body.style.width = getLockedBodyWidth(bodyWidth);
     savedBodyBackground = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor;
+    document.body.style.backgroundColor = bodyBackground;
 }
 
 function restoreAthleteHistoryScroll() {
@@ -2831,6 +3331,8 @@ function setupModalKeyboardNavigation() {
 
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
+        if (event.defaultPrevented || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return;
+        if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
         if (modalContent.classList.contains('guess-mode')) return;
 
         // Home key - scroll to top
@@ -2852,6 +3354,15 @@ function setupModalKeyboardNavigation() {
                 top: modalContent.scrollHeight,
                 behavior: prefersReducedMotion ? 'auto' : 'smooth'
             });
+            return;
+        }
+
+        // Left and Right step to the neighbouring athlete, unless a control
+        // inside the profile uses them itself.
+        if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+            && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
+            && !event.target.closest('[role="tablist"], [role="radiogroup"], [role="slider"], [role="listbox"], [role="menu"], [role="grid"], .age-clock-switch, canvas')) {
+            if (stepAthleteDialog(event.key === 'ArrowLeft' ? 'previous' : 'next')) event.preventDefault();
             return;
         }
 
@@ -2893,6 +3404,91 @@ closeBtn.onclick = function () {
     requestCloseAthleteModal();
 };
 
+// Neighbouring athletes follow the selected board order before its display
+// limit, or the overall ranking for a profile outside that selection.
+function getAthleteDialogBoardSequence() {
+    if (isAthleteDialogOnlyRuntime) return [];
+    if (getSelectedLeaderboardState().byFlag) {
+        // The ordinary table is hidden in the flag view. Only the expanded,
+        // filtered team links form the sequence the visitor is browsing.
+        const bySlug = new Map(athleteResults.map(athlete => [normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name), athlete]));
+        return [...pageDocument.querySelectorAll('#flagLeaderboard .flag-athlete-link')]
+            .filter(link => link.checkVisibility())
+            .map(link => bySlug.get(getAthleteSlugFromProfileLink(link)))
+            .filter(Boolean);
+    }
+    // Retain the selected order before the page's display limit, including
+    // podium athletes whose duplicate rows are hidden on the homepage.
+    return athleteDialogBoardSequence;
+}
+
+function getAthleteDialogNeighbours(slug = modal.querySelector('.modal-content')?.dataset.athleteSlug || '') {
+    if (!slug) return { previous: null, next: null };
+    const matches = athlete => normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name) === slug;
+    for (const sequence of [getAthleteDialogBoardSequence(), athleteResults]) {
+        const index = sequence.findIndex(matches);
+        if (index >= 0) return { previous: sequence[index - 1] || null, next: sequence[index + 1] || null };
+    }
+    return { previous: null, next: null };
+}
+
+function focusAvailableAthleteStep(neighbours) {
+    const focused = pageDocument.activeElement;
+    if (!focused?.matches('.athlete-step') || !modal.contains(focused) || neighbours[focused.dataset.step]) return;
+    const replacement = focused.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${focused.dataset.step}"])`);
+    if (!replacement || !neighbours[replacement.dataset.step]) return;
+    if (replacement.disabled) replacement.disabled = false;
+    replacement.focus({ preventScroll: true });
+}
+
+function updateAthleteDialogSteps() {
+    const neighbours = getAthleteDialogNeighbours();
+    focusAvailableAthleteStep(neighbours);
+    const available = !!(neighbours.previous || neighbours.next);
+    modal.querySelectorAll('.athlete-steps').forEach(group => { group.hidden = !available; });
+    modal.querySelectorAll('.athlete-step').forEach(button => {
+        const blocked = !neighbours[button.dataset.step];
+        button.disabled = blocked;
+    });
+}
+
+const athleteNeighbourPortraits = new Map();
+function preloadAthleteDialogNeighbours() {
+    const sources = new Set(Object.values(getAthleteDialogNeighbours()).filter(Boolean).map(getAthletePortraitUrl));
+    for (const source of athleteNeighbourPortraits.keys()) {
+        if (!sources.has(source)) athleteNeighbourPortraits.delete(source);
+    }
+    for (const source of sources) {
+        if (athleteNeighbourPortraits.has(source)) continue;
+        const image = new Image();
+        image.decoding = 'async';
+        image.src = source;
+        athleteNeighbourPortraits.set(source, image);
+        // Optional preparation never gates paging or changes the current image.
+        image.decode?.().catch(() => {});
+    }
+}
+
+function stepAthleteDialog(direction) {
+    const modalContent = modal.querySelector('.modal-content');
+    if (!modalContent || modal.style.display !== 'block' || modal._historyClosePending
+        || modalContent.matches('.guess-mode, .has-load-error, [data-server-rendered-profile], [data-server-rendered-loading]')
+        || (modalContent.classList.contains('is-loading') && !modalContent.dataset.athleteStep)
+        || modal.classList.contains('fade-out')
+        || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
+    const target = getAthleteDialogNeighbours()[direction];
+    if (!target) return false;
+    // Transfer boundary focus before hydration invalidates the card's layout.
+    focusAvailableAthleteStep(getAthleteDialogNeighbours(normalizeAthleteSlugForLookup(target.athleteSlug || target.name)));
+    modalContent.dataset.athleteStep = direction;
+    fetchFullAthleteData(target.name, target, { suppressGuessMyAge: true, historyMode: 'step' });
+    return true;
+}
+
+modal.querySelectorAll('.athlete-step').forEach(button => {
+    button.addEventListener('click', () => stepAthleteDialog(button.dataset.step));
+});
+
 window.addEventListener('click', function (event) {
     const modalContent = document.querySelector('.modal-content');
     if (event.target === modal && modalContent && !modalContent.classList.contains('guess-mode')) {
@@ -2901,8 +3497,10 @@ window.addEventListener('click', function (event) {
 });
 
 function requestCloseAthleteModal() {
+    if (modal.classList.contains('fade-out')) return;
     if (modal.style.display !== 'block' || modal._historyClosePending) return;
     if (isGuessMyAgeDismissBlocked(modal.querySelector('.modal-content'))) return;
+    modal.dispatchEvent(new Event('athlete-dialog-close-requested'));
     const depth = history.state?.athleteDialogDepth;
     if (history.state?.modal === 'details' && Number.isInteger(depth) && depth > 0 && depth < history.length) {
         // Return past only the profile visits created above the calling page.
@@ -2920,67 +3518,70 @@ function requestCloseAthleteModal() {
     closeModal({ fromHistory: true });
 }
 
+function finishAfterTransition(element, property, complete) {
+    const transition = element.getAnimations().find(animation => animation.transitionProperty === property);
+    const remaining = transition
+        ? Math.max(0, transition.effect.getComputedTiming().endTime - (transition.currentTime || 0))
+        : 0;
+    return window.setTimeout(complete, Math.ceil(remaining));
+}
+
 function closeModal(options) {
     if (!options?.fromHistory) return requestCloseAthleteModal();
+    if (modal.classList.contains('fade-out')) return;
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) return;
     modal._historyClosePending = false;
-
-    if (modalContent.classList.contains('gma-result-ready')) {
-        modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
-    }
+    const badgeShelf = document.getElementById('modalBadgeStrip');
+    if (badgeShelf) setModalBadgeExplainer(badgeShelf, null);
 
     currentAthleteModalRequestId++;
-    const returnFocusElement = athleteDialogReturnFocusElement;
-    athleteDialogReturnFocusElement = null;
+    // Resolve the return synchronously, before measuring the closing transition.
+    // Motion can choose the visible athlete's row without racing scroll unlock.
+    const closeReturn = { scrollTop: savedBodyScroll, returnFocusTo: resolveAthleteModalOpener(athleteDialogReturnFocus) };
+    modal.dispatchEvent(new CustomEvent('athlete-dialog-closing', { detail: closeReturn }));
+    savedBodyScroll = closeReturn.scrollTop;
+    const returnFocus = captureAthleteModalOpener(closeReturn.returnFocusTo) || athleteDialogReturnFocus;
 
-    resetAthleteShareState();
-
-    const athleteSlug = modalContent.dataset.athleteSlug;
-
-    // Don't store scroll position - always start from top when reopening
-
-    // Hide sticky header
-    const stickyHeader = document.getElementById('modalStickyHeader');
-    if (stickyHeader) {
-        stickyHeader.classList.remove('visible');
-    }
-
-    // Remove scroll listener to prevent memory leaks
-    if (modalContent._scrollProgressListener) {
-        modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
-        modalContent._scrollProgressListener = null;
-    }
-    if (window.biomarkerChartResizeObserver) {
-        window.biomarkerChartResizeObserver.disconnect();
-        window.biomarkerChartResizeObserver = null;
-    }
-    cancelBiomarkerChartResize();
-    if (typeof window.destroyAgeRadarChart === 'function') {
-        window.destroyAgeRadarChart();
-    }
-
+    // Keep the card and the page behind it still until their shared fade ends.
+    modalContent.inert = true;
     modal.classList.add('fade-out');
-    restoreBodyScroll();
     if (modal._closeTimer) {
         clearTimeout(modal._closeTimer);
     }
-    modal._closeTimer = setTimeout(() => {
+    modal._closeTimer = finishAfterTransition(modal, 'opacity', () => {
         modal._closeTimer = 0;
+        if (!modal.classList.contains('fade-out')) return;
+        athleteDialogReturnFocus = null;
         modal.style.display = "none";
         modal.classList.remove('fade-out');
+        modalContent.inert = false;
+        releaseAthleteModal();
+        restoreBodyScroll();
         restoreAthleteHistoryScroll();
 
-        // Reset scroll position for next open
-        if (modalContent) {
-            modalContent.scrollTop = 0;
+        if (modalContent.classList.contains('gma-result-ready')) {
+            modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
         }
+        resetAthleteShareState();
+        document.getElementById('modalStickyHeader')?.classList.remove('visible');
+        if (modalContent._scrollProgressListener) {
+            modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
+            modalContent._scrollProgressListener = null;
+        }
+        disposeBiomarkerHistory();
+        if (typeof window.destroyAgeRadarChart === 'function') window.destroyAgeRadarChart();
+        // resetModalForLoading resets the scroll on the next open. Touching the
+        // hidden card here forces a layout of the newly unlocked page before
+        // focus can return, adding a long pause after the fade has finished.
 
         resetPageTitle();
-        if (returnFocusElement?.isConnected) {
-            returnFocusElement.focus({ preventScroll: true });
-        }
-    }, 400);
+        const returnFocusElement = resolveAthleteModalOpener(returnFocus);
+        const focusTarget = returnFocusElement?.isConnected && !returnFocusElement.closest('[inert], [hidden]')
+            && returnFocusElement.getClientRects().length ? returnFocusElement : pageDocument.querySelector('a.header-link');
+        focusTarget?.focus({ preventScroll: true });
+        modal.dispatchEvent(new Event('athlete-dialog-closed'));
+    });
 }
 
 function debounceFilterAthletes() {
@@ -3010,7 +3611,7 @@ function clearSearch() {
     performFilter(); // Reapply filters without search terms
 
     if (podium) {
-        podium.style.display = includePodiumGlobal ? 'flex' : 'none';
+        podium.style.display = includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none';
     }
 
     const url = new URL(window.location.href);
@@ -3018,30 +3619,34 @@ function clearSearch() {
     history.replaceState(history.state || {}, "", url.toString());
 }
 
-// Wrap the filter function with debounce
-const debouncedFilter = debounce(() => {
-    performFilter();
-}, 400);
-
-function debounce(func, delay) {
-    let debounceTimer;
-    return function (...args) {
-        const context = this;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), delay);
+// Coalesce typing within a frame without leaving the previous results on
+// screen after the visitor has already entered their next query.
+const debouncedFilter = (() => {
+    let filterFrame = 0;
+    const debounced = function () {
+        if (filterFrame) return;
+        filterFrame = requestAnimationFrame(() => {
+            filterFrame = 0;
+            performFilter();
+        });
     };
-}
+    debounced.cancel = () => {
+        cancelAnimationFrame(filterFrame);
+        filterFrame = 0;
+    };
+    return debounced;
+})();
 
 function hasActiveLeaderboardState() {
     const searchInput = document.getElementById('athleteSearch');
     const hasSearch = !!(searchInput && searchInput.value.trim().length > 0);
-    return hasActiveLeaderboardFilterState() || hasSearch;
+    return hasActiveLeaderboardFilterState() || hasSearch || (!getSelectedLeaderboardState().byFlag && window.LwcLeaderboardOrder.getState().sort !== 'rank');
 }
 
 function hasActiveLeaderboardFilterState() {
     const state = getSelectedLeaderboardState();
     return state.divisions.length > 0 || state.flags.length > 0 || state.generations.length > 0
-        || state.exclusiveLeagues.length > 0 || state.leagueTracks.length === 1 || state.view !== 'ultimate';
+        || state.exclusiveLeagues.length > 0 || state.leagueTracks.length === 1 || state.view !== 'ultimate' || state.byFlag;
 }
 
 function syncAgingClockFilters(currentLeaderboardView) {
@@ -3049,6 +3654,16 @@ function syncAgingClockFilters(currentLeaderboardView) {
         const isActive = input.value === currentLeaderboardView;
         input.checked = isActive;
         input.closest('label')?.classList.toggle('active', isActive);
+    });
+}
+
+function syncFlagFilters(byFlag) {
+    const section = document.getElementById('flag-filter-section');
+    if (!section) return;
+    section.hidden = byFlag;
+    section.querySelectorAll('input[name="flag"]').forEach(input => {
+        if (byFlag) input.checked = false;
+        input.disabled = byFlag;
     });
 }
 
@@ -3100,8 +3715,8 @@ function getViewAllAthletesButton() {
     return pageDocument.getElementById('viewAllAthletesBtn');
 }
 
-function updateViewAllAthletesButton(count) {
-    updateLeaderboardSelectionSummary(count);
+function updateViewAllAthletesButton(count, updateSummary = true) {
+    if (updateSummary) updateLeaderboardSelectionSummary(count);
     const button = getViewAllAthletesButton();
     if (!button) return;
 
@@ -3117,16 +3732,20 @@ function updateLeaderboardSelectionSummary(count) {
     const summary = document.getElementById('leaderboardSelectionSummary');
     if (!summary || !Number.isFinite(count)) return;
     summary.hidden = false;
-    const resultLabel = `${count} ${count === 1 ? 'athlete' : 'athletes'}`;
-    document.getElementById('leaderboardResultCount').textContent = resultLabel;
+    const isFlags = getSelectedLeaderboardState().byFlag;
+    const resultLabel = `${count} ${isFlags ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
+    const resultCount = document.getElementById('leaderboardResultCount');
+    if (resultCount.textContent !== resultLabel) resultCount.textContent = resultLabel;
     const showResults = document.getElementById('showLeaderboardResults');
     if (showResults) showResults.textContent = `Show ${resultLabel}`;
 
     const choices = [];
     const state = getSelectedLeaderboardState();
     const viewLabels = { bortz: 'Bortz age', pheno: 'Pheno age', improvement: 'Pheno improvement', 'bortz-improvement': 'Bortz improvement', crowd: 'Crowd age' };
+    if (state.byFlag) choices.push({ label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
     if (state.view !== 'ultimate') choices.push({ label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
     for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
+        if (name === 'flag' && state.byFlag) continue;
         if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
         document.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
             const label = name === 'leagueTrack' ? getLeagueTrackLabel(input.value) : input.value;
@@ -3188,6 +3807,7 @@ function clearSidebarFilters() {
         input.checked = false;
     });
 
+    document.getElementById('group-flags').checked = false;
     const ultimateView = document.getElementById('view-ultimate');
     if (ultimateView) {
         ultimateView.checked = true;
@@ -3209,10 +3829,13 @@ function showAllAthletes() {
 
 function getSelectedLeaderboardState() {
     const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+    const byFlag = document.getElementById('group-flags')?.checked || false;
     return {
+        byFlag,
+        ordering: window.LwcLeaderboardOrder.getState(),
         divisions: Array.from(document.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value),
-        flags: Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+        flags: byFlag ? [] : Array.from(document.querySelectorAll('input[name="flag"]:checked'))
             .map(checkbox => getCanonicalFlagName(checkbox.value)),
         generations: Array.from(document.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value),
@@ -3262,6 +3885,8 @@ function buildLeaderboardNavigationUrl(state, searchQuery = document.getElementB
         url.searchParams.set('filters', serializeFiltersParam(filters));
     }
 
+    if (state.byFlag) url.searchParams.set('group', 'flags');
+    else url.searchParams.delete('group');
     const currentLeaderboardView = state.view;
     const canonicalLeagueSlug = selectedFlags.length === 0 && filters.length === 1
         ? getCanonicalLeagueSlugForFilter(filters[0])
@@ -3278,6 +3903,7 @@ function buildLeaderboardNavigationUrl(state, searchQuery = document.getElementB
         url.searchParams.set('view', currentLeaderboardView);
     }
 
+    window.LwcLeaderboardOrder.writeUrl(url, state.ordering || { sort: 'rank' });
     return `${url.pathname}${url.search}${url.hash}`;
 }
 
@@ -3324,17 +3950,24 @@ function updateLeaderboardStructuredData(entries) {
             if (search) query.push('search=' + encode(search));
             if (state.view !== 'ultimate') query.push('view=' + state.view);
         }
-        const url = siteUrl + selectedUrl.pathname + (query.length ? '?' + query.join('&') : '');
+        if (state.byFlag) query.push('group=flags');
+        const orderedUrl = new URL(siteUrl + selectedUrl.pathname + (query.length ? '?' + query.join('&') : ''));
+        window.LwcLeaderboardOrder.writeUrl(orderedUrl, state.ordering);
+        const url = orderedUrl.href;
         const id = url + '#ranking';
         const list = {
             '@type': 'ItemList', '@id': id, url,
             name: pageDocument.getElementById('leaderboardTitle')?.textContent.trim() || 'Longevity World Cup rankings',
             itemListOrder: 'https://schema.org/ItemListOrderAscending',
             numberOfItems: entries.length,
-            itemListElement: entries.map(({ athlete, rank }) => {
+            itemListElement: entries.map(({ athlete, rank, flag }, index) => {
+                if (flag) return {
+                    '@type': 'ListItem', position: index + 1,
+                    item: { '@type': 'Thing', name: flag, url: url + '#flag-team-' + getFlagRouteSlug(flag) }
+                };
                 const athleteUrl = siteUrl + '/athlete/' + encodeURIComponent(athlete.athleteSlug.replaceAll('_', '-').toLowerCase());
                 return {
-                    '@type': 'ListItem', position: rank,
+                    '@type': 'ListItem', position: state.ordering.sort === 'rank' ? rank : index + 1,
                     item: { '@type': 'Person', '@id': athleteUrl + '#person', url: athleteUrl, name: athlete.displayName }
                 };
             })
@@ -3351,8 +3984,187 @@ function updateLeaderboardStructuredData(entries) {
     }
 }
 
-function performFilter({ updateUrl = true } = {}) {
+function buildFlagTeams(entries, view) {
+    const groups = new Map();
+    entries.forEach(entry => {
+        const key = getFlagRouteSlug(entry.athlete.flag);
+        if (!key) return;
+        if (!groups.has(key)) groups.set(key, { key, flag: getCanonicalFlagName(entry.athlete.flag), entries: [] });
+        groups.get(key).entries.push(entry);
+    });
+    const definitions = {
+        bortz: [a => a.bortzAgeReduction, a => Number.isFinite(a.bortzAgeReduction), window.compareAthleteRank],
+        pheno: [a => a.ageReduction, a => a.hasPhenoRankData && Number.isFinite(a.ageReduction), window.compareAthleteRankPhenoOnly],
+        crowd: [a => a.crowdAgeReduction, a => a.crowdCount >= 100 && Number.isFinite(a.crowdAgeReduction), window.compareAthleteRankCrowdAge],
+        improvement: [a => a.phenoAgeImprovement, a => Number.isFinite(a.phenoAgeImprovement), window.compareAthleteRankPhenoImprovement],
+        'bortz-improvement': [a => a.bortzAgeImprovement, a => Number.isFinite(a.bortzAgeImprovement), window.compareAthleteRankBortzImprovement]
+    };
+    const teams = [...groups.values()].map(group => {
+        const candidates = (view === 'ultimate' ? ['bortz', 'pheno'] : [view]).map(clock => {
+            const [metric, eligible, compare] = definitions[clock];
+            const eligibleEntries = group.entries.filter(entry => eligible(entry.athlete));
+            const top = eligibleEntries.map(entry => entry.athlete).sort(compare).slice(0, 3);
+            return { ...group, eligibleEntries, view: clock, top, values: top.map(metric), score: top.reduce((sum, athlete) => sum + metric(athlete), 0) };
+        });
+        return candidates.sort((a, b) => b.top.length - a.top.length || (a.view === 'bortz' ? -1 : 1))[0];
+    }).filter(team => team.top.length > 0).sort((a, b) =>
+        b.top.length - a.top.length ||
+        (view === 'ultimate' ? Number(b.view === 'bortz') - Number(a.view === 'bortz') : 0) ||
+        a.score - b.score || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    let rank = null;
+    teams.forEach((team, index) => {
+        if (team.top.length < 3) { team.rank = null; return; }
+        if (!index || teams[index - 1].view !== team.view || teams[index - 1].score !== team.score) rank = index + 1;
+        team.rank = rank;
+    });
+    return teams;
+}
+
+function renderFlagTeams(teams, view) {
+    const container = document.getElementById('flagLeaderboard');
+    const focused = document.activeElement;
+    const focusedTeam = focused?.closest?.('.flag-team');
+    const focusedHref = focused?.closest?.('.flag-athlete-link')?.getAttribute('href');
+    const existingTeams = new Map([...container.querySelectorAll('.flag-team')].map(element => [element.id, element]));
+    const existingHeadings = new Map([...container.querySelectorAll('.flag-section-heading')].map(element => [element.textContent, element]));
+    const open = new Set([...container.querySelectorAll('details[open]')].map(element => element.id));
+    const labels = { bortz: 'Bortz Age', pheno: 'Pheno Age', crowd: 'Crowd Age', improvement: 'Pheno Improvement', 'bortz-improvement': 'Bortz Improvement' };
+    const signed = (number, decimals) => `${number > 0 ? '+' : ''}${number.toFixed(decimals)}`;
+    let previousSection = '';
+    const template = document.createElement('template');
+    template.innerHTML = teams.map(team => {
+        const id = `flag-team-${team.key}`;
+        const icon = getFlagIconCode(team.flag);
+        const section = team.rank ? view === 'ultimate' ? team.view : '' : 'incomplete';
+        const isAmateur = section === 'pheno';
+        const heading = isAmateur && previousSection === 'bortz'
+            ? '<h3 class="flag-section-heading tier-separator tier-separator-cell" aria-label="Start of Amateur track (Pheno Age) section"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></h3>'
+            : section === 'incomplete' && section !== previousSection ? '<h3 class="flag-section-heading">Incomplete teams</h3>' : '';
+        previousSection = section;
+        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
+            <summary title="${labels[team.view]}"><span class="flag-team-rank" data-rank="${team.rank || ''}" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
+            <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
+            <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" data-athlete-name="${escapeHtml(a.displayName)}" alt="" loading="lazy">`).join('')}</span>
+            <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`} <small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
+            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
+    }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
+    const nextChildren = [...template.content.children].map(incoming => {
+        if (incoming.classList.contains('flag-empty')) {
+            const existing = container.querySelector('.flag-empty:not([aria-busy="true"])');
+            return existing?.textContent.trim() === incoming.textContent.trim() ? existing : incoming;
+        }
+        if (incoming.classList.contains('flag-section-heading')) {
+            return existingHeadings.get(incoming.textContent) || incoming;
+        }
+        const existing = existingTeams.get(incoming.id);
+        if (!existing) {
+            incoming._flagMarkup = incoming.innerHTML;
+            return incoming;
+        }
+        // Keep the disclosure and summary themselves stable during hydration,
+        // retries and filtering. Unchanged cards also retain portrait fallbacks.
+        const nextMarkup = incoming.innerHTML;
+        if (existing._flagMarkup !== nextMarkup) {
+            for (const selector of ['summary', '.flag-team-athletes']) {
+                const currentPart = existing.querySelector(selector);
+                const nextPart = incoming.querySelector(selector);
+                for (const attribute of nextPart.attributes) currentPart.setAttribute(attribute.name, attribute.value);
+                currentPart.replaceChildren(...nextPart.childNodes);
+            }
+            existing._flagMarkup = nextMarkup;
+        }
+        existing.className = incoming.className;
+        existing.dataset.clock = incoming.dataset.clock;
+        existing.dataset.flag = incoming.dataset.flag;
+        return existing;
+    });
+    nextChildren.forEach((element, index) => {
+        if (container.children[index] !== element) container.insertBefore(element, container.children[index] || null);
+    });
+    while (container.children.length > nextChildren.length) container.lastElementChild.remove();
+    if (focusedTeam && document.activeElement !== focused) {
+        const retained = existingTeams.get(focusedTeam.id);
+        const matchingLink = retained?.isConnected && focusedHref
+            ? [...retained.querySelectorAll('.flag-athlete-link')].find(link => link.getAttribute('href') === focusedHref)
+            : null;
+        const focusTarget = focused.isConnected ? focused : matchingLink || (retained?.isConnected ? retained.querySelector('summary') : document.getElementById('athleteSearch'));
+        focusTarget?.focus({ preventScroll: true });
+    }
+    container.querySelectorAll('.flag-team').forEach((element, index) => {
+        element.addEventListener('toggle', scheduleLeaderboardTableHeightSync);
+        const team = teams[index];
+        element.querySelectorAll('.flag-team-portraits img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
+        element.querySelectorAll('.flag-athlete-link img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
+    });
+}
+
+const leaderboardRowAnimations = new Map();
+const leaderboardReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+function finishLeaderboardRowMotion() {
+    leaderboardRowAnimations.forEach(animation => animation.cancel());
+    leaderboardRowAnimations.clear();
+}
+leaderboardReducedMotion.addEventListener('change', finishLeaderboardRowMotion);
+window.addEventListener('pagehide', finishLeaderboardRowMotion);
+
+function captureLeaderboardRowMotion() {
+    if (!window.LwcMotion?.enabled() || document.hidden) {
+        finishLeaderboardRowMotion();
+        return null;
+    }
+    const rows = [...document.querySelectorAll('.leaderboard table tbody tr')]
+        .filter(row => row.style.display !== 'none');
+    // Measure the old viewport before changing any labels, ranks or filters.
+    // Large ranking changes get a short directional cue in their new slot:
+    // crossing whole rows (or leaving copies over new results) obscures names.
+    const style = getComputedStyle(pageDocument.documentElement);
+    const durationText = style.getPropertyValue('--lwc-motion-base').trim();
+    const duration = parseFloat(durationText) * (durationText.endsWith('ms') ? 1 : 1000) || 200;
+    const easing = style.getPropertyValue('--lwc-ease-standard').trim() || 'ease';
+    const before = new Map(rows.map((row, index) => [row, index]));
+    const visibleSlots = rows.flatMap((row, index) => {
+        const box = row.getBoundingClientRect();
+        return box.height && box.bottom > 0 && box.top < innerHeight ? [index] : [];
+    });
+    finishLeaderboardRowMotion();
+    return { before, duration, easing, first: visibleSlots[0], last: visibleSlots.at(-1) };
+}
+
+function moveLeaderboardRows(mutate, motion) {
+    const next = mutate().filter(row => row.style.display !== 'none');
+    if (!motion || motion.first === undefined) return;
+    // Slot order supplies the direction without forcing layout halfway through
+    // the update. The browser can lay out rows, counts and the rail together.
+    const { before, duration, easing, first, last } = motion;
+    for (let index = first; index <= Math.min(last, next.length - 1); index++) {
+        const row = next[index];
+        if (typeof row.animate !== 'function') continue;
+        const previous = before.get(row);
+        if (previous === index) continue;
+        const offset = previous === undefined ? 4 : Math.sign(previous - index) * 4;
+        const animation = row.animate([
+            { translate: `0 ${offset}px`, opacity: previous === undefined ? .8 : 1 },
+            { translate: '0 0', opacity: 1 }
+        ], { duration, easing });
+        leaderboardRowAnimations.set(row, animation);
+        const release = () => {
+            if (leaderboardRowAnimations.get(row) === animation) leaderboardRowAnimations.delete(row);
+        };
+        void animation.finished.then(release, release);
+    }
+}
+
+function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
+    // Immediate filter changes already consume the current query. A stale timer
+    // must not rewrite a profile URL opened from those freshly filtered rows.
+    debouncedFilter.cancel();
+    const rowMotion = captureLeaderboardRowMotion();
     const selectedState = getSelectedLeaderboardState();
+    const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
+    const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: document.getElementById('athleteSearch').value });
+    const orderingSnapshot = orderingOnly && !selectedState.byFlag && leaderboardOrderingSnapshot?.athletes === athleteResults
+        && leaderboardOrderingSnapshot.key === filterKey ? leaderboardOrderingSnapshot : null;
+    if (!orderingSnapshot) syncFlagFilters(selectedState.byFlag);
     const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
     const selectedFlags = selectedState.flags.map(getFlagFilterKey);
     const selectedGenerations = selectedState.generations.map(value => value.toLowerCase());
@@ -3362,9 +4174,19 @@ function performFilter({ updateUrl = true } = {}) {
 
     // Get leaderboard view (ultimate | bortz | pheno | improvement | bortz-improvement | crowd)
     const currentLeaderboardView = selectedState.view;
-    syncAgingClockFilters(currentLeaderboardView);
-    updateActiveFilterSections();
-    updateRankingExplanation(currentLeaderboardView);
+    if (document.querySelector('.leaderboard--flags') && !selectedState.byFlag) {
+        document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
+    }
+    document.querySelector('.leaderboard')?.classList.toggle('leaderboard--flags', selectedState.byFlag);
+    const searchInput = document.getElementById('athleteSearch');
+    searchInput.placeholder = selectedState.byFlag ? 'Search flags or athletes' : 'Search athletes';
+    searchInput.setAttribute('aria-label', searchInput.placeholder);
+    document.querySelector('label[for="athleteSearch"]').textContent = searchInput.placeholder;
+    if (!orderingSnapshot) {
+        syncAgingClockFilters(currentLeaderboardView);
+        updateActiveFilterSections();
+        updateRankingExplanation(currentLeaderboardView, selectedState.byFlag);
+    }
 
     const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
     const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -3421,10 +4243,12 @@ function performFilter({ updateUrl = true } = {}) {
         : currentLeaderboardView === 'bortz-improvement'
             ? 'Bortz improvement'
             : 'Age reduction';
-    if (metricHeader) {
+    if (metricHeader && metricHeader.textContent !== metricLabel) {
         metricHeader.textContent = metricLabel;
     }
-    document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
+    window.LwcLeaderboardOrder.sync(selectedState.ordering, selectedState.byFlag, metricLabel);
+    document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
+    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
         cell.setAttribute('data-label', metricLabel);
     });
 
@@ -3445,18 +4269,17 @@ function performFilter({ updateUrl = true } = {}) {
         return athletesByView.get(view);
     };
 
-    const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
     const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
     const uniqueSearchTerms = [...new Set(searchTerms)];
 
     const showAll = uniqueSearchTerms.length === 0;
 
     const athleteBadgeTextByName = new Map();
-    document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
+    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
         const athleteName = row.getAttribute('data-athlete-name');
         if (!athleteName) return;
 
-        const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class'))
+        const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'))
             .map(badge => {
                 const title = badge.getAttribute('title') || '';
                 const ariaLabel = badge.getAttribute('aria-label') || '';
@@ -3469,15 +4292,16 @@ function performFilter({ updateUrl = true } = {}) {
         athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
     });
 
-    const searchTextByAthlete = new Map(athleteResults.map(athlete => [athlete, [
+    const searchTextByAthlete = orderingSnapshot ? null : new Map(athleteResults.map(athlete => [athlete, [
         athlete.name,
+        athlete.displayName,
         athleteBadgeTextByName.get(athlete.name) || '',
         athlete.mediaContact || '',
         `${athlete.flag || ''} ${athlete.canonicalFlag || ''}`,
         athlete.why || ''
     ].map(text => window.normalizeString(text.toLowerCase())).join(' ')]));
 
-    const getMatchingEntries = (state) => {
+    const getMatchingEntries = (state, applySearch = true) => {
         const divisions = state.divisions.map(value => value.toLowerCase());
         const flags = state.flags.map(getFlagFilterKey);
         const generations = state.generations.map(value => value.toLowerCase());
@@ -3498,9 +4322,10 @@ function performFilter({ updateUrl = true } = {}) {
         return cohort.map((athlete, index) => ({
             athlete,
             rank: filtersUsed ? index + 1 : athlete.rank,
+            metricValue: getMetricValueForView(athlete, state.view),
             metric: formatMetricForView(cohort, athlete, index, state.view)
         })).filter(entry => {
-            if (showAll) return true;
+            if (showAll || !applySearch) return true;
             const { athlete, rank, metric } = entry;
             const value = getMetricValueForView(athlete, state.view);
             const percent = state.view === 'pheno'
@@ -3518,21 +4343,50 @@ function performFilter({ updateUrl = true } = {}) {
         });
     };
 
-    const matchingEntries = getMatchingEntries(selectedState);
+    if (selectedState.byFlag) {
+        const matchingTeamsByState = new Map();
+        const getMatchingFlagTeams = state => {
+            const key = JSON.stringify(state);
+            if (!matchingTeamsByState.has(key)) {
+                const teams = buildFlagTeams(getMatchingEntries(state, false), state.view);
+                matchingTeamsByState.set(key, teams.filter(team => uniqueSearchTerms.every(term =>
+                    window.normalizeString(team.flag.toLowerCase()).includes(term) ||
+                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term)))));
+            }
+            return matchingTeamsByState.get(key);
+        };
+        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
+        const matchingTeams = getMatchingFlagTeams(selectedState);
+        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
+        updateViewAllAthletesButton(matchingTeams.length);
+        updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
+        updateLeaderboardTitles(selectedState);
+        document.querySelector('.podium')?.style.setProperty('display', 'none');
+        updateLeaderboardStructuredData(matchingTeams.slice(0, maxAthletesGlobal));
+        finishLeaderboardFilter(selectedState, query, updateUrl);
+        return;
+    }
+
+    const cohortEntries = orderingSnapshot ? orderingSnapshot.entries : getMatchingEntries(selectedState);
+    leaderboardOrderingSnapshot = { key: filterKey, athletes: athleteResults, entries: cohortEntries };
+    const matchingEntries = window.LwcLeaderboardOrder.sort(cohortEntries, selectedState.ordering);
+    const tableBody = document.querySelector('.leaderboard table tbody');
+    tableBody.querySelector('.leaderboard-load-error-row')?.remove();
+    const allRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)'));
+    const rowsByName = new Map(allRows.filter(row => row.dataset.athleteName).map(row => [row.dataset.athleteName, row]));
+    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
+    athleteDialogBoardSequence = unslicedFilteredAthletes;
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
-    updateViewAllAthletesButton(unslicedFilteredAthletes.length);
+    updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot);
 
-    // First, hide all rows (including tier separator)
-    const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
-    tableRows.forEach(row => {
-        row.style.display = 'none';
-    });
+    const tableRows = allRows;
     const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
 
     // Remove 'blurred' class from all podium items
     const podiumItems = document.querySelectorAll('.podium-item');
+    const podiumByName = new Map(Array.from(podiumItems, item => [item.dataset.athleteName, item]));
     podiumItems.forEach(item => {
         item.classList.remove('blurred');
     });
@@ -3542,11 +4396,8 @@ function performFilter({ updateUrl = true } = {}) {
     // Show the rows and podium items for the filtered athletes
     filteredAthletes.forEach(athlete => {
         const athleteName = athlete.name;
-        const row = document.querySelector(`.leaderboard table tbody tr[data-athlete-name="${athleteName}"]`);
+        const row = rowsByName.get(athleteName);
         if (row) {
-            row.style.display = '';
-            window.showWithDelay(row);
-
             // Update the rank cell
             const rankCell = row.querySelector('td[data-label="Rank"] .rank');
             if (rankCell) {
@@ -3555,20 +4406,19 @@ function performFilter({ updateUrl = true } = {}) {
 
             const ageReductionCell = row.querySelector('.age-reduction');
             const displayMetric = entriesByAthlete.get(athlete).metric;
-            if (ageReductionCell && displayMetric) {
+            if (ageReductionCell && displayMetric && ageReductionCell.textContent !== displayMetric) {
                 ageReductionCell.textContent = displayMetric;
             }
 
         }
-        const item = document.querySelector(`.podium-item[data-athlete-name="${athleteName}"]`);
+        const item = podiumByName.get(athleteName);
         if (item) {
-            item.style.display = '';
-            window.showWithDelay(item);
+            if (item.style.display) item.style.display = '';
             anyPodiumVisible = true;
         }
     });
 
-    const hidePodiumRowsInTable = includePodiumGlobal && selectedDivisions.length === 0 && selectedFlags.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
+    const hidePodiumRowsInTable = includePodiumGlobal && selectedState.ordering.sort === 'rank' && selectedDivisions.length === 0 && selectedFlags.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
         !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0;
     const tableVisibleAthletes = hidePodiumRowsInTable
         ? filteredAthletes.filter(athlete => athlete.rank > 3)
@@ -3581,7 +4431,7 @@ function performFilter({ updateUrl = true } = {}) {
     // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
     if (tierSeparatorRow) {
         let separatorShouldShow = false;
-        if (currentLeaderboardView === 'ultimate') {
+        if (currentLeaderboardView === 'ultimate' && selectedState.ordering.sort === 'rank') {
             const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
             let sawPro = false;
             for (const a of tableVisibleAthletes) {
@@ -3596,45 +4446,46 @@ function performFilter({ updateUrl = true } = {}) {
     }
 
     // Reorder tbody so visible rows match the athletes actually shown in the table.
-    const tableBody = document.querySelector('.leaderboard table tbody');
-    const allRows = Array.from(tableBody.querySelectorAll('tr'));
-    const visibleOrdered = tableVisibleAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
-    const separator = allRows.find(r => r.classList.contains('tier-separator'));
-    const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
-    const fragment = document.createDocumentFragment();
-    const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-    const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
-    const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
-    if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
-        visibleOrdered.slice(0, firstAmateurIndex).forEach(r => fragment.appendChild(r));
-        fragment.appendChild(separator);
-        visibleOrdered.slice(firstAmateurIndex).forEach(r => fragment.appendChild(r));
-    } else {
-        visibleOrdered.forEach(r => fragment.appendChild(r));
-        if (separator) fragment.appendChild(separator);
-    }
-    hiddenRows.forEach(r => fragment.appendChild(r));
-    tableBody.appendChild(fragment);
-
-    // Remove existing highlights
-    window.removeAllHighlights();
-
-    // Highlight search terms
-    document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-        const athleteNameText = athleteNameElement.textContent;
-        const athleteOwner = athleteNameElement.closest('[data-athlete-name]');
-        const athleteKey = athleteOwner ? athleteOwner.getAttribute('data-athlete-name') : null;
-
-        // Check if the athlete is in filteredAthletes
-        const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === (athleteKey || athleteNameText));
-        const athleteInFilteredByDisplayedText = filteredAthletes.some(athlete => athlete.name === athleteNameText);
-        if (athleteInFiltered) {
-            window.highlightText(athleteNameElement, uniqueSearchTerms);
+    const visibleOrdered = tableVisibleAthletes.map(a => rowsByName.get(a.name)).filter(Boolean);
+    const visibleRows = new Set(visibleOrdered);
+    // Rows keep their identity, so a reorder or filter glides instead of jumping.
+    moveLeaderboardRows(() => {
+        rowsByName.forEach(row => {
+            const display = visibleRows.has(row) ? '' : 'none';
+            if (row.style.display !== display) row.style.display = display;
+        });
+        const separator = allRows.find(r => r.classList.contains('tier-separator'));
+        const hiddenRows = allRows.filter(r => r !== separator && !visibleRows.has(r));
+        const orderedRows = [...visibleOrdered];
+        const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
+        const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
+        const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
+        if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
+            orderedRows.splice(firstAmateurIndex, 0, separator);
+        } else {
+            if (separator) orderedRows.push(separator);
         }
-    });
+        orderedRows.push(...hiddenRows);
+        let nextRow = tableBody.firstElementChild;
+        for (const row of orderedRows) {
+            if (row === nextRow) nextRow = nextRow.nextElementSibling;
+            else tableBody.insertBefore(row, nextRow);
+        }
+        return orderedRows;
+    }, rowMotion);
 
-    // Update the counts in the filter sections
-    updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
+    // An ordering change cannot alter the search or sidebar membership. Keep
+    // their DOM and computed counts intact instead of rebuilding them per click.
+    if (!orderingSnapshot) {
+        if (document.querySelector('.athlete-name .highlight')) window.removeAllHighlights();
+        if (uniqueSearchTerms.length) {
+            const filteredNames = new Set(matchingEntries.map(entry => entry.athlete.name));
+            document.querySelectorAll('.athlete-name').forEach(element => {
+                if (filteredNames.has(element.closest('[data-athlete-name]')?.dataset.athleteName)) window.highlightText(element, uniqueSearchTerms);
+            });
+        }
+        updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
+    }
 
     // Add or remove 'blurred' class from podium items based on filtering
     podiumItems.forEach(item => {
@@ -3649,7 +4500,7 @@ function performFilter({ updateUrl = true } = {}) {
         }
     });
 
-    updateLeaderboardTitles(selectedState);
+    if (!orderingSnapshot) updateLeaderboardTitles(selectedState);
 
     // Display "No Results Found" if Necessary
     displayNoResults(tableRows, podiumItems, query);
@@ -3662,13 +4513,27 @@ function performFilter({ updateUrl = true } = {}) {
         });
     }
 
-    if (typeof AOS !== 'undefined') {
+    if (!orderingSnapshot && typeof AOS !== 'undefined') {
         AOS.refresh();
     }
 
+    finishLeaderboardFilter(selectedState, query, updateUrl);
+}
+
+function finishLeaderboardFilter(selectedState, query, updateUrl) {
+    const currentLeaderboardView = selectedState.view;
+    const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
+    const selectedGenerations = selectedState.generations.map(value => value.toLowerCase());
+    const selectedExclusiveLeagues = selectedState.exclusiveLeagues.map(value => value.toLowerCase());
+    const selectedLeagueTracks = selectedState.leagueTracks;
+    const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
     updateLeaderboardStateIndicator();
     scheduleLeaderboardTableHeightSync();
     renderedLeaderboardSelection = getLeaderboardSelectionKey();
+    // All row cues compare the same committed selection. Reading every filter
+    // again for each athlete turns a single input into thousands of DOM queries.
+    renderedStandingsComparable = !hasActiveLeaderboardState();
+    pageDocument.dispatchEvent(new Event('lwc:standings-ready'));
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
     if (!updateUrl) {
@@ -3678,7 +4543,7 @@ function performFilter({ updateUrl = true } = {}) {
     }
 
     const url = new URL(window.location.href);
-    url.hash = ""; // <- this line removes #ABCD or any other fragment
+    window.LwcLeaderboardOrder.writeUrl(url, selectedState.ordering);
 
     if (query === "") {
         url.searchParams.delete('search');
@@ -3686,8 +4551,7 @@ function performFilter({ updateUrl = true } = {}) {
         url.searchParams.set('search', encodeURIComponent(query));
     }
 
-    const selectedFlagKeys = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-        .map(checkbox => getFlagFilterKey(checkbox.value));
+    const selectedFlagKeys = selectedState.flags.map(getFlagFilterKey);
     const filters = [
         ...selectedDivisions,
         ...selectedFlagKeys,
@@ -3698,8 +4562,8 @@ function performFilter({ updateUrl = true } = {}) {
     const canonicalLeagueSlug = filters.length === 1 && selectedFlagKeys.length === 0
         ? getCanonicalLeagueSlugForFilter(filters[0])
         : null;
-    const cleanSearch = ([...url.searchParams].length === 0)
-        || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
+    const routeParams = [...url.searchParams.keys()].filter(key => !['group', 'sort', 'dir', 'then', 'thenDir'].includes(key));
+    const cleanSearch = routeParams.length === 0 || (routeParams.length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
     if (filters.length === 1 && selectedFlagKeys.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
         url.searchParams.delete('filters');
         url.pathname = `/flag/${getFlagRouteSlug(selectedState.flags[0])}`;
@@ -3724,11 +4588,13 @@ function performFilter({ updateUrl = true } = {}) {
         url.searchParams.set('view', currentLeaderboardView);
     }
 
+    if (selectedState.byFlag) url.searchParams.set('group', 'flags');
+    else url.searchParams.delete('group');
     history.replaceState(history.state || {}, "", url.toString());
     updateFullLeaderboardLink();
 }
 
-function updateRankingExplanation(currentLeaderboardView) {
+function updateRankingExplanation(currentLeaderboardView, byFlag = getSelectedLeaderboardState().byFlag) {
     const explanation = document.getElementById('rankingExplanation');
     if (!explanation) return;
 
@@ -3741,7 +4607,11 @@ function updateRankingExplanation(currentLeaderboardView) {
         crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.'
     };
 
-    const html = explanations[currentLeaderboardView] || '';
+    const html = byFlag
+        ? (currentLeaderboardView === 'ultimate'
+            ? 'Top-three total age reduction. Complete Bortz teams first, then complete Pheno teams.'
+            : 'Top-three total years. Lower wins.')
+        : explanations[currentLeaderboardView] || '';
     explanation.innerHTML = html;
     explanation.classList.toggle('is-visible', html.length > 0);
 }
@@ -3788,6 +4658,14 @@ function getDivisionLeagueLabel(divisions) {
 
 function buildLeaderboardPresentation(state) {
     const viewPresentation = leaderboardViewPresentations[state.view] || leaderboardViewPresentations.ultimate;
+    if (state.byFlag) {
+        let cohortLabel = [getGenerationLeagueLabel(state.generations), getDivisionLeagueLabel(state.divisions)].filter(Boolean).join(' ');
+        if (state.exclusiveLeagues.length > 0) cohortLabel = state.exclusiveLeagues.length === 1 ? state.exclusiveLeagues[0] : 'Exclusive Leagues';
+        else if (!cohortLabel && state.leagueTracks.length === 1) cohortLabel = getLeagueTrackLabel(state.leagueTracks[0]);
+        const clockLabel = state.view === 'ultimate' && cohortLabel ? '' : viewPresentation.railText.replace(/ League$/, '');
+        const railText = [cohortLabel, clockLabel, state.view === 'ultimate' ? 'Flag League' : 'by Flag'].filter(Boolean).join(' ');
+        return { railText, documentTitle: railText, accessibleLabel: railText };
+    }
     if (state.view !== 'ultimate') {
         return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
     }
@@ -3826,16 +4704,19 @@ function buildLeaderboardPresentation(state) {
 }
 
 function syncCollapsedTitleHeight() {
+    scheduleLeaderboardTableHeightSync();
+}
+
+function measureCollapsedTitleHeight() {
     const collapsedTitle = document.querySelector('.collapsed-title');
-    if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return;
+    if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return null;
 
     // Short result sets still need room for the complete league name.
-    // Measure the natural title, independently of the current row count.
-    const heading = document.querySelector('.sidebar-heading');
-    const leaderboard = document.querySelector('.leaderboard');
-    if (!heading || !leaderboard) return;
-    const minimumHeight = Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
-    leaderboard.style.setProperty('--leaderboard-title-height', `${minimumHeight}px`);
+    // Measure the visible rail, independently of the current row count. Its
+    // icon follows the table head and can be taller than the drawer heading.
+    const heading = document.querySelector('.sidebar-rail-icon') || document.querySelector('.sidebar-heading');
+    if (!heading) return null;
+    return Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
 }
 
 function updateLeaderboardTitles(state) {
@@ -3871,18 +4752,23 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
     document.querySelectorAll('.filter-section label').forEach(label => {
         const input = label.querySelector('input[type="checkbox"]');
         if (!input) return;
+        if (state.byFlag && input.name === 'flag') return;
         const isView = input.name === 'agingClockView';
         const field = fields[input.name];
         if (!isView && !field) return;
 
-        // Counts describe this option's members after adding it to its OR group,
+        // Counts use the result unit (athletes or flags) after adding this option to its OR group,
         // or switching clocks, with all other selections and the search preserved.
         const candidateState = isView
             ? { ...state, view: input.value }
             : { ...state, [field[0]]: [...state[field[0]], input.value] };
         const entries = input.checked ? currentEntries : getMatchingEntries(candidateState);
         const value = input.name === 'flag' ? getFlagFilterKey(input.value) : input.value.toLowerCase();
-        const count = isView ? entries.length : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value).length;
+        const members = isView ? entries : entries.filter(entry => field[1](entry.athlete).toLowerCase() === value);
+        const count = state.byFlag ? new Set(members.map(entry => entry.athlete.flagFilterKey)).size : members.length;
+        const countLabel = `${count} ${state.byFlag ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
+        label.querySelector('.filter-count')?.setAttribute('aria-label', countLabel);
+        label.querySelector('.filter-count')?.setAttribute('title', countLabel);
         // Combining leagues can change a matching athlete's rank even when the
         // added option has no matching members of its own. Do not enable empty
         // options that leave both the matching athletes and their scores unchanged.
@@ -3895,21 +4781,26 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
 }
 
 function displayNoResults(tableRows, podiumItems, query) {
-    // Remove existing no-results message if any
     const existingMessage = document.querySelector('.no-results');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
 
     // Check if any rows or podium items are visible
     const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
 
+    if (anyVisible) {
+        existingMessage?.remove();
+        return;
+    }
+    if (existingMessage) {
+        const host = existingMessage.querySelector('.no-results-empty-state');
+        if (host) window.LwcEmptyState?.decorate(host, query.trim() ? 'search' : 'filter');
+        return;
+    }
     if (!anyVisible) {
         const tableBody = document.querySelector('.leaderboard table tbody');
         const noResults = document.createElement('tr');
         noResults.classList.add('no-results');
         noResults.innerHTML = `
-            <td colspan="6">
+            <td colspan="${document.querySelectorAll('.leaderboard table thead th').length}">
                 <div class="no-results-empty-state">
                     <p>No athletes match this leaderboard.</p>
                     <button type="button" class="show-all-athletes-btn">Show all athletes</button>
@@ -4020,6 +4911,9 @@ document.addEventListener('click', function (event) {
     event.preventDefault();
     showAllAthletes();
 });
+
+window.LwcLeaderboardOrder.bind(() => performFilter({ updateUrl: false, orderingOnly: true }));
+document.getElementById('group-flags')?.addEventListener('change', () => performFilter());
 
 document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
     radio.addEventListener('change', function () {
@@ -4231,7 +5125,7 @@ function escapeHtml(text) {
 
 // Shows a rank and marks the top three places of the current view for their medal styling.
 function setDisplayedRank(rankElement, rank) {
-    rankElement.textContent = rank;
+    if (rankElement.textContent !== String(rank)) rankElement.textContent = rank;
     const place = Number(rank);
     if (place >= 1 && place <= 3) {
         rankElement.dataset.place = String(place);
@@ -4244,12 +5138,6 @@ function renderFilterIcon(iconClass) {
     return iconClass
         ? `<i class="fas ${escapeHtml(iconClass)} filter-icon" aria-hidden="true"></i>`
         : '';
-}
-
-function formatAthleteNameForMobile(name) {
-    const safeName = escapeHtml(name);
-    if (window.innerWidth >= 480) return safeName;
-    return safeName.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
 }
 
 function getModalRankText(rank) {
@@ -4305,6 +5193,27 @@ function getModalDetailRankMarkup(rank) {
     return rankText ? ` <span class="detail-muted">(rank: <span class="detail-value">${rankText}</span>)</span>` : '';
 }
 
+// The flag rides on the portrait's edge, opposite the PRO badge, and leads to the flag's team.
+function renderPortraitFlagMark(flag) {
+    const mark = document.getElementById('modalFlagMark');
+    if (!mark) return;
+    // Loading can open before the flag module arrives; clearing the old mark
+    // must not depend on the module that resolves the eventual athlete's flag.
+    const canonicalFlag = flag ? getCanonicalFlagName(flag) : '';
+    const icon = canonicalFlag ? window.LwcFlags.renderFlagIcon(canonicalFlag, 'portrait-flag-icon') : '';
+    mark.innerHTML = icon;
+    mark.hidden = !icon;
+    if (icon) {
+        mark.href = buildFlagHref(canonicalFlag);
+        mark.setAttribute('aria-label', canonicalFlag);
+        mark.title = canonicalFlag;
+    } else {
+        mark.removeAttribute('href');
+        mark.removeAttribute('aria-label');
+        mark.removeAttribute('title');
+    }
+}
+
 function renderAthleteFlagDetail(flag, athleteData) {
     const canonicalFlag = getCanonicalFlagName(flag);
     if (!canonicalFlag) return '';
@@ -4338,6 +5247,12 @@ function closeOpenComponents(options) {
         if (!closeAll) return;
     }
 
+    const badgeShelf = document.getElementById('modalBadgeStrip');
+    if (badgeShelf?.querySelector('.modal-badge-item.expanded')) {
+        setModalBadgeExplainer(badgeShelf, null);
+        if (!closeAll) return;
+    }
+
     // Keep the parent details modal locked until the Guess My Age response is confirmed.
     // Its nested image viewer and share menu remain independently dismissible above this guard.
     const modalContent = document.querySelector('.modal-content');
@@ -4367,8 +5282,11 @@ function handleAthleteNameClick(event) {
         return;
     }
 
-    // Fetch the full athlete JSON data
-    fetchFullAthleteData(athleteNameText, athleteData);
+    // Return to the activated control, or the name link for a row/card click.
+    const returnFocusTo = event.target.closest('a.athlete-name, a.athlete-profile-link')
+        || athleteRow.querySelector('a.athlete-name')
+        || athleteRow.querySelector('a.athlete-profile-link');
+    fetchFullAthleteData(athleteNameText, athleteData, { returnFocusTo });
 }
 
 function getAthleteRow(element) {
@@ -4436,6 +5354,7 @@ function navigateToAthleteFallback(fallbackUrl) {
     currentAthleteModalRequestId++;
     modal.style.display = 'none';
     modal.classList.remove('fade-out');
+    releaseAthleteModal();
     restoreBodyScroll();
     restoreAthleteHistoryScroll();
     window.location.assign(fallbackUrl);
@@ -4444,12 +5363,10 @@ function navigateToAthleteFallback(fallbackUrl) {
 window.openAthleteModalBySlug = function (athleteSlug, options) {
     const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
     if (!normalizedSlug) return false;
+    rememberAthleteModalOpener(options);
 
     const athleteData = findAthleteDataBySlug(normalizedSlug);
     if (athleteData) {
-        if (options?.returnFocusTo instanceof HTMLElement) {
-            athleteDialogReturnFocusElement = options.returnFocusTo;
-        }
         fetchFullAthleteData(athleteData.name, athleteData, options);
         return true;
     }
@@ -4460,9 +5377,6 @@ window.openAthleteModalBySlug = function (athleteSlug, options) {
         return false;
     }
 
-    if (options?.returnFocusTo instanceof HTMLElement) {
-        athleteDialogReturnFocusElement = options.returnFocusTo;
-    }
     const requestId = ++currentAthleteModalRequestId;
     const modalContent = resetModalForLoading(normalizedSlug);
 
@@ -4612,7 +5526,64 @@ function setShareButtonState(button, label, disabled) {
     button.disabled = false;
     button.setAttribute('aria-disabled', String(!!disabled));
     button.setAttribute('aria-busy', String(!!disabled));
-    button.innerHTML = `<i class="fa fa-share-nodes" aria-hidden="true"></i> ${escapeHtml(label)}`;
+    const icon = label === 'Copied' ? 'fa-check' : 'fa-share-nodes';
+    button.classList.toggle('is-copied', label === 'Copied');
+    button.innerHTML = `<i class="fa ${icon}" aria-hidden="true"></i> ${escapeHtml(label)}`;
+}
+
+async function loadAthleteSharePreview(state, shareUrl) {
+    const previous = document.getElementById('athleteSharePreview');
+    const figure = previous?.closest('.athlete-share-preview');
+    const menu = document.getElementById('athleteShareMenu');
+    if (!previous || !figure || !menu) return;
+
+    // A distinct element binds load/error events to this opening, including when
+    // the same profile is reopened while an older image request is still in flight.
+    const image = document.createElement('img');
+    image.id = 'athleteSharePreview';
+    image.alt = '';
+    image.width = 1200;
+    image.height = 630;
+    previous.replaceWith(image);
+    figure.classList.remove('is-loaded');
+    figure.hidden = false;
+    const menuVersion = state.menuVersion;
+    const current = () => isCurrentAthleteShare(state) && state.menuVersion === menuVersion
+        && !menu.hidden && image.isConnected;
+    const recovery = document.getElementById('athleteShareRecovery');
+    image.onload = () => {
+        if (!current() || (recovery && !recovery.hidden)) return;
+        figure.classList.add('is-loaded');
+        keepAthleteShareMenuInView(menu);
+    };
+    image.onerror = () => {
+        if (!current()) return;
+        figure.hidden = true;
+        keepAthleteShareMenuInView(menu);
+    };
+
+    const abort = new AbortController();
+    state.previewAbort = abort;
+    const deadline = window.setTimeout(() => abort.abort(), 10000);
+    try {
+        // Sharing always uses the canonical athlete URL. The containing page's
+        // og:image may belong to another athlete, clock, league or data revision.
+        const slug = new URL(shareUrl).pathname.match(/^\/athlete\/([^/]+)$/)?.[1];
+        if (!slug) throw new Error('Missing profile');
+        const response = await fetch(`/og/athlete/${slug}/preview`, { cache: 'no-store', signal: abort.signal });
+        if (!response.ok) throw new Error('Preview unavailable');
+        const preview = await response.json();
+        if (!current()) return;
+        const url = new URL(preview.imageUrl, window.location.origin);
+        if (url.origin !== window.location.origin || url.pathname !== `/og/athlete/${slug}.png`)
+            throw new Error('Invalid preview');
+        image.src = url.toString();
+    } catch (error) {
+        if (current()) figure.hidden = true;
+    } finally {
+        window.clearTimeout(deadline);
+        if (state.previewAbort === abort) state.previewAbort = null;
+    }
 }
 
 function isCurrentAthleteShare(state) {
@@ -4622,8 +5593,8 @@ function isCurrentAthleteShare(state) {
 
 function resetAthleteShareState() {
     if (athleteShareState?.feedbackTimer) window.clearTimeout(athleteShareState.feedbackTimer);
-    athleteShareState = null;
     closeAthleteShareMenu();
+    athleteShareState = null;
     setShareButtonState(document.getElementById('shareAthleteProfile'), 'Share', false);
     const status = document.getElementById('athleteShareStatus');
     if (status) status.textContent = '';
@@ -4680,13 +5651,29 @@ function setShareMenuCopyState(label, disabled) {
 }
 
 function closeAthleteShareMenu(options) {
+    athleteShareLayoutCleanup?.();
+    athleteShareLayoutCleanup = null;
     const menu = document.getElementById('athleteShareMenu');
     if (!menu) return false;
     const wasOpen = !menu.hidden;
     if (athleteShareState) athleteShareState.menuVersion++;
+    athleteShareState?.previewAbort?.abort();
+    const image = document.getElementById('athleteSharePreview');
+    if (image) {
+        image.onload = null;
+        image.onerror = null;
+        image.removeAttribute('src');
+        const figure = image.closest('.athlete-share-preview');
+        if (figure) {
+            figure.hidden = true;
+            figure.classList.remove('is-loaded');
+        }
+    }
 
     menu.hidden = true;
     menu.classList.remove('is-above');
+    menu.style.removeProperty('--athlete-share-available-height');
+    menu.style.removeProperty('--athlete-share-offset');
     setShareMenuCopyState('Copy link', false);
     const recovery = document.getElementById('athleteShareRecovery');
     if (recovery) recovery.hidden = true;
@@ -4704,28 +5691,53 @@ function closeAthleteShareMenu(options) {
 
 function positionAthleteShareMenu(menu) {
     if (!menu || menu.hidden) return;
+    const parent = menu.offsetParent;
+    if (!parent) return;
 
+    const scrollTop = menu.scrollTop;
+    menu.style.removeProperty('--athlete-share-available-height');
+    menu.style.removeProperty('--athlete-share-offset');
     menu.classList.remove('is-above');
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const modalRect = modalContent ? modalContent.getBoundingClientRect() : null;
     const viewportBottom = Math.min(window.innerHeight, modalRect ? modalRect.bottom : window.innerHeight);
-    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0);
+    const chrome = [...(modalContent?.querySelectorAll('#closeAthleteDetailsModal, :scope > .athlete-steps button, .modal-sticky-header.visible') || [])]
+        .map(element => element.getBoundingClientRect())
+        .filter(rect => rect.width > 0 && rect.height > 0 && rect.top < viewportBottom && rect.bottom > 0);
+    const viewportTop = Math.max(0, modalRect ? modalRect.top : 0, ...chrome.map(rect => rect.bottom));
     const padding = 12;
-    const belowRect = menu.getBoundingClientRect();
-
-    if (belowRect.bottom <= viewportBottom - padding) return;
-
+    // Entry motion belongs to the menu's paint, not its placement. Measure its
+    // layout box through the parent so the scale/translation cannot leave a
+    // stale offset when the animation finishes.
+    const measure = () => {
+        const rect = parent.getBoundingClientRect();
+        const scale = parent.offsetWidth > 0 ? rect.width / parent.offsetWidth : 1;
+        const top = rect.top + (parent.clientTop + menu.offsetTop - parent.scrollTop) * scale;
+        const height = menu.offsetHeight * scale;
+        return { top, bottom: top + height, height, scale };
+    };
+    const belowRect = measure();
+    const below = Math.max(0, viewportBottom - Math.max(viewportTop, belowRect.top) - padding);
     menu.classList.add('is-above');
-    const aboveRect = menu.getBoundingClientRect();
-    if (aboveRect.top < viewportTop + padding) {
-        menu.classList.remove('is-above');
-    }
+    const aboveRect = measure();
+    const above = Math.max(0, Math.min(viewportBottom, aboveRect.bottom) - viewportTop - padding);
+    const useAbove = belowRect.height > below && above > below;
+    menu.classList.toggle('is-above', useAbove);
+    // A short menu can fit the viewport even when neither side of its trigger
+    // has enough room. Shift it within the usable viewport before introducing
+    // a native scroller for genuinely taller content.
+    const top = viewportTop + padding;
+    const bottom = viewportBottom - padding;
+    menu.style.setProperty('--athlete-share-available-height', `${Math.max(0, Math.floor((bottom - top) / belowRect.scale))}px`);
+    const placed = measure();
+    const offset = placed.top < top ? top - placed.top : Math.min(0, bottom - placed.bottom);
+    menu.style.setProperty('--athlete-share-offset', `${offset / placed.scale}px`);
+    menu.scrollTop = scrollTop;
 }
 
 function keepAthleteShareMenuInView(menu) {
     if (!menu || menu.hidden) return;
     positionAthleteShareMenu(menu);
-    menu.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 function getAthleteSharePayload(button) {
@@ -4795,6 +5807,9 @@ function configureAthleteShareMenu(button, sharePayload) {
                 if (recovery && manualLink) {
                     manualLink.value = sharePayload.url;
                     recovery.hidden = false;
+                    // A failed copy needs the room more than the picture does.
+                    const preview = menu.querySelector('.athlete-share-preview');
+                    if (preview) preview.hidden = true;
                     keepAthleteShareMenuInView(menu);
                     if (document.activeElement === copyButton) {
                         manualLink.focus({ preventScroll: true });
@@ -4830,6 +5845,8 @@ function openAthleteShareMenu(button, sharePayload) {
     state.menuVersion++;
     configureAthleteShareMenu(button, sharePayload);
     menu.hidden = false;
+    menu.scrollTop = 0;
+    void loadAthleteSharePreview(state, sharePayload.url);
     button.setAttribute('aria-expanded', 'true');
 
     const copyButton = document.getElementById('copyAthleteProfileLink');
@@ -4837,7 +5854,31 @@ function openAthleteShareMenu(button, sharePayload) {
         copyButton.focus({ preventScroll: true });
     }
     keepAthleteShareMenuInView(menu);
-    requestAnimationFrame(() => keepAthleteShareMenuInView(menu));
+    athleteShareLayoutCleanup?.();
+    let layoutFrame = 0;
+    const scheduleLayout = () => {
+        if (layoutFrame) return;
+        layoutFrame = requestAnimationFrame(() => {
+            layoutFrame = 0;
+            if (isCurrentAthleteShare(state) && !menu.hidden) keepAthleteShareMenuInView(menu);
+        });
+    };
+    const observer = new ResizeObserver(scheduleLayout);
+    // Observe the anchors, not the menu whose height the callback adjusts.
+    observer.observe(button.parentElement);
+    const modalContent = menu.closest('.modal-content');
+    if (modalContent) {
+        observer.observe(modalContent);
+        const header = modalContent.querySelector('.modal-sticky-header');
+        if (header) observer.observe(header);
+        modalContent.addEventListener('scroll', scheduleLayout, { passive: true });
+    }
+    scheduleLayout();
+    athleteShareLayoutCleanup = () => {
+        observer.disconnect();
+        cancelAnimationFrame(layoutFrame);
+        modalContent?.removeEventListener('scroll', scheduleLayout);
+    };
 }
 
 function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
@@ -4913,6 +5954,11 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
 
     const athleteNameElement = document.getElementById('athleteName');
     if (athleteNameElement && !preserveServerProfile) athleteNameElement.textContent = 'Athlete details unavailable';
+    if (preserveServerProfile && athleteNameElement) {
+        // Sharing the readable server profile needs only its name and canonical
+        // slug; a failed enhancement must not leave this action disabled.
+        configureAthleteShareButton(athleteNameElement.textContent.trim(), athleteSlug);
+    }
     const stickyAthleteName = document.getElementById('stickyAthleteName');
     if (stickyAthleteName && !preserveServerProfile) stickyAthleteName.textContent = 'Athlete details unavailable';
     const profilePic = document.getElementById('modalProfilePic');
@@ -4934,22 +5980,51 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
     console.error('Error fetching full athlete data:', error);
 }
 
+// Record navigation intent before mutating the profile. History snapshots can
+// otherwise force a layout of half-hydrated content. Each newer intent replaces
+// the pending step immediately; only its request may commit profile content.
+function syncAthleteDialogHistory(athleteSlug, options) {
+    const pathnameBeforeOpen = window.location.pathname;
+    if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
+        originalAthletelessURL = getAthletelessURL();
+    }
+    const historyMode = options?.historyMode || 'push';
+    const previousState = history.state;
+    if (historyMode === 'replace' || (historyMode === 'push'
+        && previousState?.modal === 'details' && previousState.athlete === athleteSlug)) {
+        history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', window.location.href);
+    } else if (historyMode === 'step') {
+        // Stepping swaps the profile in place: Back and Close still return
+        // to the page the dialog was opened from.
+        history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', `/athlete/${athleteSlug}`);
+    } else if (historyMode === 'push') {
+        const previousIsProfile = previousState?.modal === 'details' || previousState?.modal === 'enlarged';
+        const previousDepth = previousState?.athleteDialogDepth;
+        const depth = previousIsProfile
+            ? (Number.isInteger(previousDepth) && previousDepth > 0
+                ? previousDepth + (previousState.modal === 'enlarged' ? 2 : 1)
+                : 0)
+            : 1;
+        history.pushState({ modal: 'details', athlete: athleteSlug, athleteDialogDepth: depth }, '', `/athlete/${athleteSlug}`);
+    }
+
+}
+
 function fetchFullAthleteData(athleteNameText, athleteData, options) {
     window.initializeSharedPageData();
-    athleteDialogReturnFocusElement =
-        options?.returnFocusTo instanceof HTMLElement
-            ? options.returnFocusTo
-            : null;
+    rememberAthleteModalOpener(options);
 
     const athleteSlug = normalizeAthleteSlugForLookup(
         athleteData?.athleteSlug || athleteNameText);
     const normalizedAthleteName = normalizeAthleteSlugForLookup(athleteNameText);
     const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
     const requestId = ++currentAthleteModalRequestId;
-    const modalContent = resetModalForLoading(athleteSlug);
+    syncAthleteDialogHistory(athleteSlug, options);
+    const modalContent = resetModalForLoading(athleteSlug, options?.historyMode === 'step');
+    if (modalContent && options?.historyMode !== 'step') delete modalContent.dataset.athleteStep;
 
-    return window.getSharedAthletes()
-        .then(athletes => {
+    const athletesRequest = window.getSharedAthletes();
+    const hydrate = athletes => {
             if (requestId !== currentAthleteModalRequestId) return;
             const fullAthleteData = athletes.find(a => {
                 const canonicalSlug = normalizeAthleteSlugForLookup(a.AthleteSlug);
@@ -5005,7 +6080,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 
             updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, rankSummary.ultimateRank);
 
-            // Age visualization (radar + center) and biomarker chart are created after modal is shown so canvases have layout dimensions.
+            // Resolve the result with its profile; canvas work can follow the first paint.
             const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
                 ? athleteData.lowestBortzAge
                 : athleteData.lowestPhenoAge;
@@ -5013,65 +6088,14 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 ? athleteData.chronoAtLowestBortzAge
                 : athleteData.chronoAtLowestPhenoAge;
 
-            // After populating the modal with athlete data but before showing it:
-            // Only update originalAthletelessURL when we're not already on an athlete URL, so a second open (e.g. URL sync with ?guessmyage=1) does not overwrite it with "/"
-            const pathnameBeforeOpen = window.location.pathname;
-            if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
-                originalAthletelessURL = getAthletelessURL();
-            }
-            const historyMode = options?.historyMode || 'push';
-            const previousState = history.state;
-            if (historyMode === 'replace' || (historyMode === 'push'
-                && previousState?.modal === 'details' && previousState.athlete === athleteSlug)) {
-                history.replaceState({ ...previousState, modal: 'details', athlete: athleteSlug }, '', window.location.href);
-            } else if (historyMode === 'push') {
-                const previousIsProfile = previousState?.modal === 'details' || previousState?.modal === 'enlarged';
-                const previousDepth = previousState?.athleteDialogDepth;
-                const depth = previousIsProfile
-                    ? (Number.isInteger(previousDepth) && previousDepth > 0
-                        ? previousDepth + (previousState.modal === 'enlarged' ? 2 : 1)
-                        : 0)
-                    : 1;
-                history.pushState({ modal: 'details', athlete: athleteSlug, athleteDialogDepth: depth }, '', `/athlete/${athleteSlug}`);
-            }
-
-            // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
-
-            // Populate proofs gallery after deferred modal sections are available.
             populateProofsGallery(fullAthleteData);
             const biomarkerHistory = buildBiomarkerHistory(fullAthleteData);
-            renderBiomarkerHistory(biomarkerHistory, fullAthleteData.Name);
+            renderBiomarkerHistory(biomarkerHistory, athletes);
 
-            // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
-            requestAnimationFrame(function() {
-                if (requestId !== currentAthleteModalRequestId) return;
-
-                window.ensureChartJs().then(function(chartLoaded) {
-                    if (requestId !== currentAthleteModalRequestId) return;
-
-                    generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
-                    if (chartLoaded) {
-                        generateBiomarkerChart(biomarkerHistory);
-                    } else {
-                        setBiomarkerHistoryView(biomarkerHistory, 'table');
-                    }
-
-                    // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
-                    requestAnimationFrame(function() {
-                        if (requestId !== currentAthleteModalRequestId) return;
-                        scheduleBiomarkerChartResize();
-                    });
-
-                    var chartContainer = document.getElementById('athlete-biomarkers');
-                    if (chartContainer && window.biomarkerChartInstance) {
-                        if (window.biomarkerChartResizeObserver) window.biomarkerChartResizeObserver.disconnect();
-                        if ('ResizeObserver' in window) {
-                            window.biomarkerChartResizeObserver = new ResizeObserver(scheduleBiomarkerChartResize);
-                            window.biomarkerChartResizeObserver.observe(chartContainer);
-                        }
-                    }
-                });
-            });
+            // Commit result text and controls with this identity. Only the
+            // canvas dependency and construction wait until after its first paint.
+            generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults, biomarkerHistory.clockResults,
+                () => window.ensureChartJs());
             if (!modalContent) {
                 console.error('Modal content element not found');
                 return;
@@ -5083,9 +6107,6 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             if (profileImageId) modalContent.dataset.profileImageId = profileImageId;
             else delete modalContent.dataset.profileImageId;
 
-            // Always start at top when modal opens
-            modalContent.scrollTop = 0;
-
             // Hide sticky header initially
             const stickyHeader = document.getElementById('modalStickyHeader');
             if (stickyHeader) {
@@ -5094,6 +6115,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
 
             // Initialize scroll progress indicator
             initializeScrollProgress(modalContent);
+            updateAthleteDialogSteps();
 
             // Setup scroll-to-section navigation (optional floating menu for long content)
             setupScrollToSectionNavigation(modalContent);
@@ -5116,9 +6138,9 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             gmaCard.classList.remove('gma-done');
             const athleteGuessState = window.LwcGuessState?.get(guessStateIdentity);
             // check if the user has hit “Skip All”
-            const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
+            const skipAll = window.LwcGuessState?.shouldSkipAll();
 
-            const seen = sessionStorage.getItem('gmaSeen');
+            const seen = window.LwcGuessState?.hasSeenPrompt();
 
             if (suppressGuessMyAge) {
                 markAthleteSkippedForGuessMyAge(guessStateIdentity);
@@ -5140,7 +6162,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             } else {
                 // first time on *this* athlete
                 modalContent.classList.add('guess-mode');
-                sessionStorage.setItem('gmaSeen', 'true');
+                window.LwcGuessState?.markPromptSeen();
             }
 
             const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
@@ -5164,43 +6186,8 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 if (seen) {
                     modalContent.classList.add('gma-fast');
                 } else {
-                    sessionStorage.setItem('gmaSeen', 'true');
+                    window.LwcGuessState?.markPromptSeen();
                 }
-            }
-
-            const bortzPaceOfAgingContainer = document.getElementById('bortzPaceOfAgingContainer');
-            const bortzPaceOfAgingValue =
-                (athleteData.lowestBortzAge && athleteData.chronoAtLowestBortzAge)
-                    ? (athleteData.lowestBortzAge / athleteData.chronoAtLowestBortzAge)
-                    : null;
-            if (Number.isFinite(bortzPaceOfAgingValue)) {
-                document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
-                bortzPaceOfAgingContainer.style.display = '';
-                const bortzPaceOfAgingRank = findAthleteIndexByName(athletesOrderedByBortzPace, athleteData.name) + 1;
-                document.getElementById('bortzPaceOfAgingRank').textContent =
-                    Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0
-                        ? '#' + bortzPaceOfAgingRank
-                        : '';
-            } else {
-                bortzPaceOfAgingContainer.style.display = 'none';
-            }
-
-            const paceOfAgingContainer = document.getElementById('paceOfAgingContainer');
-            const paceOfAgingValue =
-                (athleteData.lowestPhenoAge && athleteData.chronoAtLowestPhenoAge)
-                    ? (athleteData.lowestPhenoAge / athleteData.chronoAtLowestPhenoAge)
-                    : null;
-            if (Number.isFinite(paceOfAgingValue)) {
-                document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
-                paceOfAgingContainer.style.display = '';
-
-                const paceOfAgingRank = findAthleteIndexByName(athletesOrderedByPace, athleteData.name) + 1;
-                document.getElementById('paceOfAgingRank').textContent =
-                    Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0
-                        ? '#' + paceOfAgingRank
-                        : '';
-            } else {
-                paceOfAgingContainer.style.display = 'none';
             }
 
             const currentEnlargedState = history.state;
@@ -5211,16 +6198,35 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 history.replaceState({ ...history.state, modal: 'details', athlete: athleteSlug }, '', window.location.href);
             }
 
-        })
-        .catch(error => {
+            modal.dispatchEvent(new Event('athlete-dialog-ready'));
+            if (!modalContent.classList.contains('guess-mode')) preloadAthleteDialogNeighbours();
+
+        };
+    const failed = error => {
             if (requestId !== currentAthleteModalRequestId) return;
             handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error);
-        });
+        };
+    // Reuse only the exact shared request's resolved snapshot. Refreshes and
+    // image-identity updates replace that promise, so they cannot reuse stale
+    // data. Cached steps commit in one turn instead of exposing a reset state
+    // to mutation observers before an already-resolved promise resumes.
+    if (athleteDialogSnapshotRequest === athletesRequest && athleteDialogSnapshot) {
+        try { hydrate(athleteDialogSnapshot); }
+        catch (error) { failed(error); }
+        return Promise.resolve();
+    }
+    return athletesRequest.then(athletes => {
+        if (requestId !== currentAthleteModalRequestId) return;
+        athleteDialogSnapshotRequest = athletesRequest;
+        athleteDialogSnapshot = athletes;
+        hydrate(athletes);
+    }).catch(failed);
 }
 
 async function refreshAthleteAfterStaleGuess(athleteSlug) {
     const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
     if (!normalizedSlug) return false;
+    const requestId = currentAthleteModalRequestId;
 
     try {
         const refreshUrl = `/api/data/athletes?profileImageRefresh=${Date.now()}`;
@@ -5232,6 +6238,8 @@ async function refreshAthleteAfterStaleGuess(athleteSlug) {
 
         const athletes = await response.json();
         if (!Array.isArray(athletes)) return false;
+        if (requestId !== currentAthleteModalRequestId
+            || modal.style.display !== 'block' || modal.classList.contains('fade-out')) return false;
 
         const fullAthleteData = athletes.find(athlete =>
             normalizeAthleteSlugForLookup(athlete.AthleteSlug) === normalizedSlug ||
@@ -5322,6 +6330,16 @@ function getCompletedChronologicalAge(fullAthleteData, athleteData) {
     return Math.floor(athleteData.chronologicalAge);
 }
 
+function populateProfilePace(id, lowestAge, chronologicalAge, orderedAthletes, name) {
+    const pace = Number.isFinite(lowestAge) && Number.isFinite(chronologicalAge) && chronologicalAge > 0
+        ? lowestAge / chronologicalAge : null;
+    const available = Number.isFinite(pace);
+    document.getElementById(id + 'Container').hidden = !available;
+    document.getElementById(id).textContent = available ? pace.toFixed(2) : '';
+    const rank = available ? findAthleteIndexByName(orderedAthletes || [], name) + 1 : 0;
+    document.getElementById(id + 'Rank').textContent = rank > 0 ? '#' + rank : '';
+}
+
 function populateModal(fullAthleteData, athleteData, rankSummary) {
     const ultimateRank = rankSummary ? rankSummary.ultimateRank : athleteData.rank;
     const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
@@ -5342,9 +6360,19 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.src = getAthletePortraitUrl(fullAthleteData);
     profilePic.dataset.fullSrc = fullAthleteData.ProfilePic || profilePic.src;
     profilePic.alt = `${modalDisplayName} Profile Picture`;
-    profilePic.loading = 'lazy';
+    // This control survives paging and also appears in hidden-identity rounds.
+    profilePic.setAttribute('aria-label', 'Enlarge athlete profile picture');
+    profilePic.loading = 'eager';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
+    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    if (stickyPortrait) {
+        stickyPortrait.dataset.athleteName = modalDisplayName;
+        stickyPortrait.dataset.lwcImageRole = profilePic.dataset.lwcImageRole || 'athlete';
+        stickyPortrait.src = profilePic.src;
+        stickyPortrait.hidden = !profilePic.src;
+        stickyPortrait.onerror = () => { stickyPortrait.hidden = true; };
+    }
 
     const athleteProfileEl = document.getElementById('athlete-profile');
     if (athleteProfileEl) {
@@ -5357,37 +6385,55 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
         else modalStickyHeader.classList.remove('is-pro');
     }
 
-    document.getElementById('athleteBio').textContent = fullAthleteData.Why;
+    const athleteBio = document.getElementById('athleteBio');
+    const why = String(fullAthleteData.Why ?? '');
+    athleteBio.textContent = why;
+    // Match .NET TrimStart without changing any athlete-authored characters.
+    const whyStart = why.replace(/^\p{White_Space}+/u, '');
+    athleteBio.hidden = whyStart.length === 0;
+    athleteBio.toggleAttribute('data-leading-quote', /^["'“‘„«‹「『]/u.test(whyStart));
 
     document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary && rankSummary.bestCandidate);
     document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
     document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
     document.getElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
-    document.getElementById('chronologicalAge').textContent = getCompletedChronologicalAge(fullAthleteData, athleteData).toString();
+    renderPortraitFlagMark(fullAthleteData.Flag || athleteData.canonicalFlag);
+    const completedAge = getCompletedChronologicalAge(fullAthleteData, athleteData);
+    document.getElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
+    document.getElementById('chronologicalAgeContainer').hidden = !Number.isFinite(completedAge);
     updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
     updateYourGuess();
     const lowestBortzAgeEl = document.getElementById('lowestBortzAge');
     const lowestBortzAgeContainer = document.getElementById('lowestBortzAgeContainer');
     if (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge)) {
         lowestBortzAgeEl.textContent = athleteData.lowestBortzAge.toFixed(1);
-        lowestBortzAgeContainer.style.display = '';
+        lowestBortzAgeContainer.hidden = false;
     } else {
-        lowestBortzAgeContainer.style.display = 'none';
+        lowestBortzAgeEl.textContent = '';
+        lowestBortzAgeContainer.hidden = true;
     }
-    document.getElementById('lowestPhenoAge').textContent = athleteData.lowestPhenoAge.toFixed(1);
+    const hasPhenoAge = Number.isFinite(athleteData.lowestPhenoAge);
+    document.getElementById('lowestPhenoAge').textContent = hasPhenoAge ? athleteData.lowestPhenoAge.toFixed(1) : '';
+    document.getElementById('lowestPhenoAgeContainer').hidden = !hasPhenoAge;
     const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
     const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
     if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
-        bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction:" : "Bortz Age acceleration:";
+        bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration";
         document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
-        document.getElementById('bortzAgeReductionPercent').textContent = athleteData.bortzAgeReductionPercent.toFixed(1);
-        bortzAgeReductionContainer.style.display = '';
+        document.getElementById('bortzAgeReductionPercent').textContent = Number.isFinite(athleteData.bortzAgeReductionPercent) ? athleteData.bortzAgeReductionPercent.toFixed(1) : '';
+        document.getElementById('bortzAgeReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.bortzAgeReductionPercent);
+        bortzAgeReductionContainer.hidden = false;
     } else {
-        bortzAgeReductionContainer.style.display = 'none';
+        bortzAgeReductionContainer.hidden = true;
     }
-    document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction:" : "Pheno Age acceleration:";
-    document.getElementById('ageReduction').textContent = (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1);
-    document.getElementById('ageReductionPercent').textContent = athleteData.ageReductionPercent.toFixed(1);
+    document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration";
+    document.getElementById('ageReduction').textContent = Number.isFinite(athleteData.ageReduction)
+        ? (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1) : '';
+    document.getElementById('ageReductionContainer').hidden = !Number.isFinite(athleteData.ageReduction);
+    document.getElementById('ageReductionPercent').textContent = Number.isFinite(athleteData.ageReductionPercent) ? athleteData.ageReductionPercent.toFixed(1) : '';
+    document.getElementById('ageReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.ageReductionPercent);
+    populateProfilePace('bortzPaceOfAging', athleteData.lowestBortzAge, athleteData.chronoAtLowestBortzAge, athletesOrderedByBortzPace, athleteData.name);
+    populateProfilePace('paceOfAging', athleteData.lowestPhenoAge, athleteData.chronoAtLowestPhenoAge, athletesOrderedByPace, athleteData.name);
     updateAthleteInfoGrouping();
 
     // Personal Link
@@ -5422,7 +6468,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
     // — Add badge strip into the modal —
     const modalBadgeSection = document.getElementById('modalBadgeStrip');
-    modalBadgeSection.innerHTML = '';
+    setModalBadgeExplainer(modalBadgeSection, null);
+    modalBadgeSection.replaceChildren();
     // Clone athleteData but disable personalLink for modal badges
     const athleteForBadges = { ...athleteData, personalLink: null };
     window.setBadges(athleteForBadges, {
@@ -5431,7 +6478,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
     // wrap each badge in a column with its name
     const badges = Array.from(modalBadgeSection.children);
-    modalBadgeSection.innerHTML = '';
+    modalBadgeSection.replaceChildren();
     badges.forEach(badge => {
         const fullTitle = badge.getAttribute('title') || '';
         const colonIndex = fullTitle.indexOf(':');
@@ -5444,64 +6491,154 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
 
         const wrapper = document.createElement('div');
         wrapper.classList.add('modal-badge-item');
-        wrapper.setAttribute('role', 'button');
-        wrapper.setAttribute('tabindex', '0');
-        wrapper.setAttribute('aria-expanded', 'false');
-        wrapper.setAttribute('aria-label', fullTitle ? `Show badge details: ${fullTitle}` : 'Show badge details');
-        wrapper.appendChild(badge);
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'modal-badge-toggle';
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', fullTitle ? `Show badge details: ${fullTitle}` : 'Show badge details');
+        badge.removeAttribute('title');
+        if (!badge.matches('a')) {
+            badge.removeAttribute('tabindex');
+            badge.removeAttribute('aria-label');
+            badge.removeAttribute('role');
+            badge.removeAttribute('aria-haspopup');
+            badge.setAttribute('aria-hidden', 'true');
+            toggle.appendChild(badge);
+        } else wrapper.appendChild(badge);
 
-        const label = document.createElement('div');
+        const label = document.createElement('span');
         label.classList.add('modal-badge-name');
+        const title = document.createElement('span');
+        title.className = 'modal-badge-title';
+        title.textContent = titlePart;
+        label.appendChild(title);
         if (detailPart) {
-            label.innerHTML =
-                `<span class="modal-badge-title">${titlePart}</span>` +
-                `<span class="modal-badge-detail">${detailPart}</span>`;
-        } else {
-            label.innerHTML = `<span class="modal-badge-title">${titlePart}</span>`;
+            const detail = document.createElement('span');
+            detail.className = 'modal-badge-detail';
+            detail.textContent = detailPart;
+            label.appendChild(detail);
         }
-        wrapper.appendChild(label);
+        toggle.appendChild(label);
+        wrapper.appendChild(toggle);
 
-        const toggleBadgeDetails = (event) => {
-            if (event.target.closest('a.badge-podcast')) return;
-
-            const isExpanded = wrapper.classList.toggle('expanded');
-            wrapper.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-        };
-
-        wrapper.addEventListener('click', toggleBadgeDetails);
+        toggle.addEventListener('click', () => {
+            setModalBadgeExplainer(modalBadgeSection, wrapper.classList.contains('expanded') ? null : wrapper);
+        });
         wrapper.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            if (event.target.closest('a.badge-podcast')) return;
-
-            event.preventDefault();
-            toggleBadgeDetails(event);
+            if (event.key === 'Escape' && wrapper.classList.contains('expanded')) {
+                event.stopPropagation();
+                setModalBadgeExplainer(modalBadgeSection, null);
+                return;
+            }
         });
         modalBadgeSection.appendChild(wrapper);
     });
 
 }
 
+// The shelf keeps its grid still: a chosen badge's explanation opens as one
+// panel under that badge's row, with a caret pointing back at the badge.
+let modalBadgeExplainerObserver = null;
+let modalBadgeExplainerFrame = 0;
+
+function setModalBadgeExplainer(shelf, item) {
+    modalBadgeExplainerObserver?.disconnect();
+    modalBadgeExplainerObserver = null;
+    cancelAnimationFrame(modalBadgeExplainerFrame);
+    modalBadgeExplainerFrame = 0;
+    shelf.querySelectorAll('.modal-badge-item.expanded').forEach(open => {
+        open.classList.remove('expanded');
+        const toggle = open.querySelector('.modal-badge-toggle');
+        toggle?.setAttribute('aria-expanded', 'false');
+        toggle?.removeAttribute('aria-controls');
+    });
+    shelf.querySelector('.modal-badge-explainer')?.remove();
+    if (!item) return;
+
+    const detail = item.querySelector('.modal-badge-detail');
+    const title = item.querySelector('.modal-badge-title');
+    if (!detail && !title) return;
+
+    item.classList.add('expanded');
+    const toggle = item.querySelector('.modal-badge-toggle');
+    toggle.setAttribute('aria-expanded', 'true');
+
+    const panel = document.createElement('div');
+    panel.className = 'modal-badge-explainer';
+    panel.id = 'modalBadgeExplainer';
+    panel.setAttribute('role', 'region');
+    const heading = document.createElement('strong');
+    heading.className = 'modal-badge-explainer-title';
+    heading.id = 'modalBadgeExplainerTitle';
+    panel.setAttribute('aria-labelledby', heading.id);
+    heading.textContent = title ? title.textContent : '';
+    panel.appendChild(heading);
+    if (detail) {
+        const text = document.createElement('span');
+        text.className = 'modal-badge-explainer-detail';
+        text.textContent = detail.textContent;
+        panel.appendChild(text);
+    }
+    toggle.setAttribute('aria-controls', panel.id);
+
+    const placePanel = () => {
+        if (!shelf.isConnected || !item.isConnected || !shelf.getClientRects().length) {
+            setModalBadgeExplainer(shelf, null);
+            return;
+        }
+        // Measure natural rows without the old panel reserving a grid row.
+        panel.remove();
+        const items = Array.from(shelf.querySelectorAll('.modal-badge-item'));
+        // Hover/mint transforms move painted bounds, not the shelf's grid row.
+        const top = item.offsetTop;
+        const rowEnd = items.filter(other => Math.abs(other.offsetTop - top) < 1).pop() || item;
+        rowEnd.after(panel);
+        const panelRect = panel.getBoundingClientRect();
+        const badgeRect = (item.querySelector('.badge-class') || item).getBoundingClientRect();
+        panel.style.setProperty('--explainer-caret', `${Math.round(badgeRect.left + badgeRect.width / 2 - panelRect.left)}px`);
+    };
+    placePanel();
+    // Container and font changes can alter row placement without window resize.
+    modalBadgeExplainerObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(modalBadgeExplainerFrame);
+        modalBadgeExplainerFrame = requestAnimationFrame(placePanel);
+    });
+    modalBadgeExplainerObserver.observe(shelf);
+    shelf.querySelectorAll('.modal-badge-item').forEach(badge => modalBadgeExplainerObserver.observe(badge));
+}
+
+function getBiomarkerTestDate(value) {
+    // Lab dates are calendar dates; ISO midnight must not become the
+    // previous day for visitors in timezones west of UTC.
+    const date = new Date(value);
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 function buildBiomarkerHistory(fullAthleteData) {
-    const biomarkerData = (Array.isArray(fullAthleteData.Biomarkers) ? fullAthleteData.Biomarkers : [])
-        .slice().sort((a, b) => new Date(a?.Date) - new Date(b?.Date));
     const dob = new Date(
         fullAthleteData.DateOfBirth.Year,
         fullAthleteData.DateOfBirth.Month - 1,
         fullAthleteData.DateOfBirth.Day
     );
 
-    const chartData = biomarkerData.filter(entry => entry && entry.Date && Number.isFinite(Date.parse(entry.Date)) && Object.entries(entry).some(([key, value]) =>
-        key !== 'Date' && value != null && value !== '' && Number.isFinite(Number(value))
-    ));
+    // Filter before sorting: a NaN comparator from an invalid date can leave
+    // valid readings out of order and change which reading is called latest.
+    const chartData = (Array.isArray(fullAthleteData.Biomarkers) ? fullAthleteData.Biomarkers : [])
+        .filter(entry => entry && Number.isFinite(biomarkerHistoryTimestamp(entry.Date)) && Object.entries(entry).some(([key, value]) =>
+            key !== 'Date' && isBiomarkerHistoryValue(value)))
+        .sort((a, b) => biomarkerHistoryTimestamp(a.Date) - biomarkerHistoryTimestamp(b.Date));
 
     const labels = chartData.map(entry => entry.Date);
     const phenoAges = [];
     const bortzAges = [];
+    const chronologicalAges = [];
     const biomarkersRaw = initializeBiomarkersRaw();
+    const clockResults = { pheno: [], bortz: [] };
 
     chartData.forEach(entry => {
-        const entryDate = new Date(entry.Date);
+        const entryDate = getBiomarkerTestDate(entry.Date);
         const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
+        chronologicalAges.push(chronoAgeAtEntry);
 
         // Push in same order as bortz-age.html (WBC, Lymphocytes, Neutrophils, …)
         biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL != null ? entry.Wbc1000cellsuL : null);
@@ -5531,7 +6668,10 @@ function buildBiomarkerHistory(fullAthleteData) {
         if (isCompleteBiomarkerSet(entry)) {
             const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
             const computed = window.PhenoAge.calculatePhenoAge(biomarkerValues);
-            if (Number.isFinite(computed)) phenoAge = computed.toFixed(1);
+            if (Number.isFinite(computed)) {
+                phenoAge = computed;
+                clockResults.pheno.push({ date: entry.Date, bio: computed, chrono: chronoAgeAtEntry, values: biomarkerValues });
+            }
         }
         phenoAges.push(phenoAge);
 
@@ -5566,208 +6706,536 @@ function buildBiomarkerHistory(fullAthleteData) {
                 entry.ApoA1GL
             ];
             const computed = window.BortzAge.calculateBortzAge(chronoAgeAtEntry, bortzValues);
-            if (Number.isFinite(computed)) bortzAge = computed.toFixed(1);
+            if (Number.isFinite(computed)) {
+                bortzAge = computed;
+                clockResults.bortz.push({ date: entry.Date, bio: computed, chrono: chronoAgeAtEntry, values: bortzValues });
+            }
         }
         bortzAges.push(bortzAge);
     });
 
-    return { labels, phenoAges, bortzAges, biomarkersRaw, chart: null, selectedMarker: '' };
+    return { labels, phenoAges, bortzAges, chronologicalAges, biomarkersRaw, clockResults,
+        athleteKey: normalizeAthleteSlugForLookup(fullAthleteData.AthleteSlug || fullAthleteData.Name),
+        athleteName: fullAthleteData.DisplayName || fullAthleteData.Name };
+
 }
 
-function generateBiomarkerChart(history) {
-    if (history.labels.length === 0) return;
-    const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
-    const { labels, phenoAges, bortzAges, biomarkersRaw } = history;
-    const biomarkersZScores = calculateBiomarkerZScores(biomarkersRaw);
-    const datasets = prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores);
+const biomarkerHistoryDateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-    if (window.biomarkerChartInstance) {
-        window.biomarkerChartInstance.destroy();
-    }
-
-    window.biomarkerChartInstance = new Chart(biomarkerChartCtx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
-        options: getBiomarkerChartOptions()
-    });
-    history.chart = window.biomarkerChartInstance;
-    document.getElementById('biomarkerChartTab').disabled = false;
-    updateBiomarkerHistorySelection(history);
+function biomarkerHistoryTimestamp(value) {
+    if (typeof value !== 'string') return NaN;
+    const calendarDate = /^(\d{4}-\d{2}-\d{2})(?:$|T)/.exec(value)?.[1];
+    const timestamp = Date.parse(value);
+    if (!calendarDate || !Number.isFinite(timestamp)) return NaN;
+    const midnight = Date.parse(`${calendarDate}T00:00:00Z`);
+    return Number.isFinite(midnight) && new Date(midnight).toISOString().slice(0, 10) === calendarDate ? timestamp : NaN;
 }
 
-function renderBiomarkerHistory(history, athleteName) {
-    const section = document.getElementById('athlete-biomarkers');
-    if (!section) return;
-    section._biomarkerHistory = history;
-    const controls = section.querySelector('.biomarker-chart-controls');
-    const select = document.getElementById('biomarkerOverlaySelect');
-    select.replaceChildren();
-    const markerLabels = Object.keys(history.biomarkersRaw)
-        .filter(label => history.biomarkersRaw[label].some(isBiomarkerHistoryValue))
-        .sort((a, b) => a.localeCompare(b));
-    history.markerLabels = markerLabels;
-    history.athleteName = athleteName || 'Athlete';
-
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = 'Select a biomarker';
-    select.appendChild(none);
-
-    markerLabels.forEach(label => {
-        const option = document.createElement('option');
-        option.value = label;
-        option.textContent = label;
-        select.appendChild(option);
-    });
-    history.selectedMarker = markerLabels.includes(section.dataset.selectedBiomarker) ? section.dataset.selectedBiomarker : '';
-    select.value = history.selectedMarker;
-    controls.hidden = markerLabels.length === 0;
-
-    select.onchange = function () {
-        history.selectedMarker = select.value;
-        section.dataset.selectedBiomarker = select.value;
-        updateBiomarkerHistorySelection(history);
-    };
-    const chartTab = document.getElementById('biomarkerChartTab');
-    const tableTab = document.getElementById('biomarkerTableTab');
-    chartTab.disabled = true;
-    tableTab.disabled = false;
-    [chartTab, tableTab].forEach(tab => {
-        tab.onclick = () => setBiomarkerHistoryView(history, tab === tableTab ? 'table' : 'chart');
-        tab.onkeydown = event => {
-            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-            const target = event.key === 'Home' ? chartTab : event.key === 'End' ? tableTab : tab === chartTab ? tableTab : chartTab;
-            if (target.disabled) return;
-            event.preventDefault();
-            target.click();
-            target.focus();
-        };
-    });
-    setBiomarkerHistoryView(history, history.labels.length === 0 ? 'table' : section.dataset.historyView || 'chart');
-}
-
-function setBiomarkerHistoryView(history, view) {
-    const section = document.getElementById('athlete-biomarkers');
-    if (!section || section._biomarkerHistory !== history) return;
-    const tableVisible = view === 'table';
-    section.dataset.historyView = tableVisible ? 'table' : 'chart';
-    document.getElementById('biomarkerChartPanel').hidden = tableVisible;
-    document.getElementById('biomarkerTablePanel').hidden = !tableVisible;
-    ['Chart', 'Table'].forEach(name => {
-        const active = (name === 'Table') === tableVisible;
-        const tab = document.getElementById(`biomarker${name}Tab`);
-        tab.setAttribute('aria-selected', String(active));
-        tab.tabIndex = active ? 0 : -1;
-    });
-    if (tableVisible && !history.selectedMarker && history.markerLabels.length) {
-        history.selectedMarker = history.markerLabels[0];
-        document.getElementById('biomarkerOverlaySelect').value = history.selectedMarker;
-        section.dataset.selectedBiomarker = history.selectedMarker;
-    }
-    updateBiomarkerHistorySelection(history);
-    if (!tableVisible && history.chart) {
-        history.chart.resize();
-        history.chart.update('none');
-    }
+function formatResultDate(date) {
+    return biomarkerHistoryDateFormat.format(new Date(date));
 }
 
 function isBiomarkerHistoryValue(value) {
-    return value != null && value !== '' && Number.isFinite(Number(value));
+    return (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') && Number.isFinite(Number(value));
 }
 
-function readBiomarkerVisibilityState() {
-    try {
-        const state = JSON.parse(localStorage.getItem('biomarkerVisibilityState') || '{}');
-        return state && typeof state === 'object' && !Array.isArray(state) ? state : {};
-    } catch {
-        return {};
-    }
+function resultDecimalPlaces(value) {
+    const [significand, exponent = '0'] = String(value).toLowerCase().split('e');
+    return Math.max(0, (significand.split('.')[1] || '').length - Number(exponent));
 }
 
-function updateBiomarkerHistorySelection(history) {
-    renderBiomarkerHistoryTable(history);
-    const chart = history.chart;
-    if (!chart) return;
-    const state = {};
-    chart.data.datasets.forEach((dataset, index) => {
-        if (dataset.yAxisID !== 'y2') return;
-        const visible = dataset.label === history.selectedMarker;
-        chart.setDatasetVisibility(index, visible);
-        state[dataset.label] = !visible;
-    });
-    if (chart.options.scales?.y2) chart.options.scales.y2.display = !!history.selectedMarker;
-    try { localStorage.setItem('biomarkerVisibilityState', JSON.stringify(state)); } catch { /* Display does not depend on storage access. */ }
-    chart.update('none');
-}
-
-function renderBiomarkerHistoryTable(history) {
-    const table = document.querySelector('#athlete-biomarkers .biomarker-history-table');
-    if (!table) return;
-    table.caption.textContent = `${history.athleteName}'s biomarker history. Missing results are shown as a dash.`;
-    const heading = document.createElement('tr');
-    const appendHeading = (label, unit) => {
-        const th = document.createElement('th');
-        th.scope = 'col';
-        th.textContent = label;
-        if (unit) {
-            const span = document.createElement('span');
-            span.className = 'biomarker-history-unit';
-            span.textContent = unit;
-            th.appendChild(span);
+function resultDisplayDecimals(value, measure) {
+    if (measure.clock) return 1;
+    const decimals = resultDecimalPlaces(value);
+    if (typeof value !== 'number' || decimals < 12) return decimals;
+    // Legacy records retain canonical values, not the input unit or precision.
+    // Abbreviate only long tails reproduced EXACTLY by a supported calculator
+    // conversion of a short lab reading. Other high precision (including tiny
+    // measurements and explicitly supplied decimal strings) stays intact.
+    const factors = {
+        'Albumin (g/L)': [0.1], 'Creatinine (µmol/L)': [0.0113], 'Glucose (mmol/L)': [18.016],
+        'CRP (mg/L)': [0.1], 'Cystatin C (mg/L)': [0.1], 'Vitamin D (nmol/L)': [0.4],
+        'ApoA1 (g/L)': [100], 'Urea (mmol/L)': [6, 2.801], 'Cholesterol (mmol/L)': [38.67], 'SHBG (nmol/L)': [0.0347]
+    }[measure.key] || [];
+    for (const factor of factors) {
+        const inverse = 1 / factor;
+        for (let precision = 0; precision <= 4; precision++) {
+            const input = Number((value * factor).toFixed(precision));
+            if (input !== 0 && (input / factor === value || input * inverse === value))
+                return resultDecimalPlaces(Number(value.toFixed(2)));
+            // Older canonical -> alternate unit -> canonical round trips can
+            // add a binary tail too. Keep the short canonical value's own
+            // precision rather than imposing two decimals on these readings.
+            const canonical = Number(value.toFixed(precision));
+            if (canonical !== 0 && [canonical * factor / factor, canonical / factor * factor,
+                canonical * inverse / inverse, canonical / inverse * inverse].includes(value))
+                return resultDecimalPlaces(canonical);
         }
-        heading.appendChild(th);
-    };
-    appendHeading('Test date');
-    appendHeading('Pheno Age', 'years');
-    appendHeading('Bortz Age', 'years');
-    if (history.selectedMarker) {
-        const split = history.selectedMarker.lastIndexOf(' (');
-        appendHeading(history.selectedMarker.slice(0, split), history.selectedMarker.slice(split + 2, -1));
     }
-    table.tHead.replaceChildren(heading);
-    const rows = document.createDocumentFragment();
-    const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-    history.labels.forEach((isoDate, index) => {
-        const row = document.createElement('tr');
-        const dateHeading = document.createElement('th');
-        dateHeading.scope = 'row';
-        const time = document.createElement('time');
-        time.dateTime = isoDate;
-        const date = new Date(isoDate);
-        time.appendChild(document.createTextNode(dateFormat.format(date)));
-        const year = document.createElement('span');
-        year.className = 'biomarker-history-year';
-        year.textContent = String(date.getUTCFullYear());
-        time.appendChild(year);
-        dateHeading.appendChild(time);
-        row.appendChild(dateHeading);
-        const values = [history.phenoAges[index], history.bortzAges[index]];
-        if (history.selectedMarker) values.push(history.biomarkersRaw[history.selectedMarker][index]);
-        values.forEach(value => {
-            const cell = document.createElement('td');
-            if (isBiomarkerHistoryValue(value)) cell.textContent = String(value);
-            else {
-                cell.textContent = '—';
-                cell.setAttribute('aria-label', 'Not available');
-            }
-            row.appendChild(cell);
-        });
-        rows.appendChild(row);
-    });
-    if (!history.labels.length) {
-        const row = document.createElement('tr');
-        const cell = document.createElement('td');
-        cell.colSpan = heading.children.length;
-        cell.className = 'biomarker-history-empty';
-        cell.textContent = 'No test results available.';
-        row.appendChild(cell);
-        rows.appendChild(row);
-    }
-    table.tBodies[0].replaceChildren(rows);
+    return decimals;
 }
+
+function formatResultValue(value, measure) {
+    if (!isBiomarkerHistoryValue(value)) return '—';
+    if (measure.clock) return Number(value).toFixed(1);
+    const decimals = resultDisplayDecimals(value, measure);
+    return decimals < resultDecimalPlaces(value) ? String(Number(Number(value).toFixed(decimals))) : String(value);
+}
+
+function resultUnit(text) {
+    const span = document.createElement('span');
+    span.className = 'biomarker-history-unit';
+    span.textContent = text;
+    return span;
+}
+
+function disposeBiomarkerHistory() {
+    const history = document.getElementById('athlete-biomarkers')?._biomarkerHistory;
+    history?.expanded?.chart?.destroy();
+    history?.clockHistoryObserver?.disconnect();
+    if (history) history.expanded = null;
+}
+
+function renderBiomarkerHistory(history, athletes) {
+    const section = document.getElementById('athlete-biomarkers');
+    if (!section) return;
+    disposeBiomarkerHistory();
+    section._biomarkerHistory = history;
+    history.sourceAthletes = athletes;
+    const table = section.querySelector('.biomarker-overview-table');
+    table.caption.textContent = `${history.athleteName}'s clock results and biomarker history. The latest available value is shown for each result. Missing readings are dashes. Expand a result to inspect its dated measurements.`;
+    const firstDate = history.labels[0];
+    const lastDate = history.labels.at(-1);
+    section.querySelector('.biomarker-overview-range').textContent = firstDate
+        ? (firstDate === lastDate ? formatResultDate(firstDate) : `${formatResultDate(firstDate)} → ${formatResultDate(lastDate)}`) : '';
+    const measures = [
+        { key: 'bortz', name: 'Bortz Age', unit: 'years', clock: 'bortz', values: history.bortzAges },
+        { key: 'pheno', name: 'Pheno Age', unit: 'years', clock: 'pheno', values: history.phenoAges },
+        ...Object.keys(history.biomarkersRaw)
+            .sort((a, b) => a.localeCompare(b))
+            .map(label => {
+                const split = label.lastIndexOf(' (');
+                return { key: label, name: label.slice(0, split), unit: label.slice(split + 2, -1), values: history.biomarkersRaw[label] };
+            })
+    ].filter(measure => measure.values.some(isBiomarkerHistoryValue));
+    const firstBiomarkerIndex = measures.findIndex(measure => !measure.clock);
+    const rows = document.createDocumentFragment();
+    measures.forEach((measure, measureIndex) => {
+        const measuredIndices = measure.values.flatMap((value, index) => isBiomarkerHistoryValue(value) ? [index] : []);
+        const latestIndex = measuredIndices.at(-1);
+        const latest = measure.values[latestIndex];
+        const row = document.createElement('tr');
+        row.className = 'result-summary' + (measure.clock ? ' result-clock'
+            : measureIndex === firstBiomarkerIndex && firstBiomarkerIndex > 0 ? ' result-first-biomarker' : '');
+        row.dataset.measure = measure.key;
+        const accent = measure.clock === 'bortz' ? 'var(--athlete-modal-chart-bortz)' : 'var(--athlete-modal-chart-pheno)';
+        row.style.setProperty('--result-accent', accent);
+        const detail = document.createElement('tr');
+        detail.id = `biomarkerResultDetail-${measureIndex}`;
+        detail.className = 'result-detail-row';
+        detail.hidden = true;
+        detail.style.setProperty('--result-accent', accent);
+        const heading = document.createElement('th');
+        heading.scope = 'row';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = measure.name;
+        button.appendChild(resultUnit(measure.unit));
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-controls', detail.id);
+        button.title = `Compare ${measure.name} across LWC`;
+        button.disabled = latestIndex == null;
+        if (latestIndex != null && history.labels[latestIndex] !== lastDate) {
+            const time = document.createElement('time');
+            time.className = 'result-measurement-date';
+            time.dateTime = history.labels[latestIndex];
+            time.textContent = formatResultDate(history.labels[latestIndex]);
+            button.appendChild(time);
+        }
+        button.onclick = () => toggleResultDetail(history, measure, row, detail, button);
+        button.onkeydown = event => {
+            if (event.key !== 'Escape' || history.expanded?.button !== button) return;
+            event.preventDefault();
+            event.stopPropagation();
+            toggleResultDetail(history, measure, row, detail, button);
+        };
+        row.onclick = event => {
+            if (button.disabled || button.contains(event.target) || !window.getSelection().isCollapsed) return;
+            button.focus({ preventScroll: true });
+            button.click();
+        };
+        heading.appendChild(button);
+        const sparkline = document.createElement('td');
+        sparkline.className = 'biomarker-overview-history';
+        if (measure.clock) {
+            sparkline.appendChild(createClockHistory(history, measure, measuredIndices));
+        } else {
+            sparkline.setAttribute('aria-hidden', 'true');
+            sparkline.appendChild(createBiomarkerSparkline(history.labels, measure.values));
+        }
+        const result = document.createElement('td');
+        result.className = 'biomarker-overview-result';
+        const current = document.createElement('span');
+        current.className = 'biomarker-overview-current';
+        current.textContent = formatResultValue(latest, measure);
+        const arrow = document.createElement('span');
+        arrow.className = 'biomarker-overview-arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        result.append(current);
+        const change = createResultChange(measure, measuredIndices);
+        if (change) result.appendChild(change);
+        result.appendChild(arrow);
+        row.append(heading, sparkline, result);
+        rows.append(row, detail);
+    });
+    table.tBodies[0].replaceChildren(rows);
+    const strips = table.querySelectorAll('.clock-history-scroll');
+    if (strips.length) {
+        history.clockHistoryObserver = new ResizeObserver(entries => entries.forEach(({ target }) =>
+            updateClockHistoryOverflow(target.classList.contains('clock-history-scroll') ? target : target.parentElement)));
+        strips.forEach(strip => {
+            strip.onscroll = () => updateClockHistoryOverflow(strip);
+            history.clockHistoryObserver.observe(strip);
+            history.clockHistoryObserver.observe(strip.firstElementChild);
+        });
+    }
+}
+
+// Calculate from unrounded canonical readings; format at their displayed precision.
+function createResultChange(measure, indices) {
+    if (indices.length < 2) return null;
+    const first = Number(measure.values[indices[0]]);
+    const latest = Number(measure.values[indices.at(-1)]);
+    if (!Number.isFinite(first) || !Number.isFinite(latest) || !Number.isFinite(latest - first)) return null;
+    const precision = Math.max(resultDisplayDecimals(measure.values[indices[0]], measure), resultDisplayDecimals(measure.values[indices.at(-1)], measure));
+    const delta = precision <= 100 ? Number((latest - first).toFixed(precision)) : latest - first;
+    const change = document.createElement('span');
+    change.className = 'biomarker-overview-change';
+    change.dataset.direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+    const magnitude = precision <= 12 ? Math.abs(delta).toFixed(precision) : String(Math.abs(delta));
+    change.textContent = delta === 0 ? '±0' : `${delta > 0 ? '+' : '−'}${magnitude}`;
+    change.setAttribute('role', 'img');
+    change.setAttribute('aria-label', `Change since first reading: ${change.textContent} ${measure.unit}`);
+    return change;
+}
+
+function updateClockHistoryOverflow(strip) {
+    const overflow = strip.scrollWidth - strip.clientWidth;
+    strip.style.setProperty('--clock-history-left-fade', overflow + strip.scrollLeft > 1 ? '8px' : '0px');
+    strip.style.setProperty('--clock-history-right-fade', strip.scrollLeft < -1 ? '8px' : '0px');
+    strip.tabIndex = overflow > 1 ? 0 : -1;
+    // Keep complete figures at the edge of the scroll window. Opacity retains
+    // every dated value in the accessible history while avoiding half a number.
+    const bounds = strip.getBoundingClientRect();
+    strip.querySelectorAll('.clock-history-reading').forEach(reading => {
+        const value = reading.getBoundingClientRect();
+        reading.classList.toggle('is-clipped', value.left < bounds.left - .5 || value.right > bounds.right + .5);
+    });
+}
+
+function createClockHistory(history, measure, indices) {
+    const strip = document.createElement('div');
+    strip.className = 'clock-history-scroll';
+    strip.setAttribute('role', 'group');
+    strip.setAttribute('aria-label', `${measure.name} history, oldest to newest`);
+    const track = document.createElement('div');
+    track.className = 'clock-history-track';
+    track.setAttribute('role', 'list');
+    indices.forEach((index, position) => {
+        const reading = document.createElement('span');
+        reading.className = 'clock-history-reading' + (position === indices.length - 1 ? ' is-latest' : '');
+        reading.setAttribute('role', 'listitem');
+        reading.dataset.date = history.labels[index];
+        reading.title = formatResultDate(history.labels[index]);
+        reading.textContent = formatResultValue(measure.values[index], measure);
+        reading.setAttribute('aria-label', `${reading.title}: ${reading.textContent} years`);
+        track.appendChild(reading);
+    });
+    strip.appendChild(track);
+    return strip;
+}
+
+function toggleResultDetail(history, measure, row, detail, button) {
+    const previous = history.expanded;
+    if (previous) {
+        previous.chart?.destroy();
+        previous.detail.hidden = true;
+        previous.button.setAttribute('aria-expanded', 'false');
+        previous.row.classList.remove('is-expanded');
+        history.expanded = null;
+    }
+    if (previous?.detail === detail) return;
+    detail.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    row.classList.add('is-expanded');
+    const cell = document.createElement('td');
+    cell.colSpan = 3;
+    const body = document.createElement('div');
+    body.className = 'result-detail';
+    const title = document.createElement('h4');
+    title.textContent = `${measure.name} across LWC`;
+    body.appendChild(title);
+    const points = getResultComparisonPoints(history, measure);
+    const legend = document.createElement('p');
+    legend.className = 'result-plot-legend';
+    const own = document.createElement('span');
+    own.className = 'result-legend-athlete';
+    own.textContent = history.athleteName;
+    const others = document.createElement('span');
+    others.className = 'result-legend-others';
+    others.textContent = 'Other athletes';
+    legend.append(own, others);
+    if (measure.clock) {
+        const equal = document.createElement('span');
+        equal.className = 'result-legend-equal';
+        equal.textContent = 'Same age';
+        legend.appendChild(equal);
+    }
+    body.appendChild(legend);
+    const count = document.createElement('p');
+    count.className = 'result-field-count';
+    const athleteCount = new Set(points.map(point => point.athleteKey)).size;
+    count.textContent = `${points.length} result${points.length === 1 ? '' : 's'} · ${athleteCount} athlete${athleteCount === 1 ? '' : 's'}`;
+    body.appendChild(count);
+    const plot = document.createElement('div');
+    plot.className = 'result-plot';
+    body.append(plot, createResultHistoryTable(history, measure));
+    cell.appendChild(body);
+    detail.replaceChildren(cell);
+    const state = { history, measure, row, detail, button, plot, points, chart: null };
+    history.expanded = state;
+    drawResultPlot(state);
+    body.onkeydown = event => {
+        if (event.key !== 'Escape') return;
+        event.stopPropagation();
+        event.preventDefault();
+        toggleResultDetail(history, measure, row, detail, button);
+        button.focus({ preventScroll: true });
+    };
+}
+
+function createResultHistoryTable(history, measure) {
+    const table = document.createElement('table');
+    table.className = 'biomarker-history-table';
+    const caption = table.createCaption();
+    caption.textContent = `${history.athleteName}'s ${measure.name} history in ${measure.unit}. Missing results are shown as a dash.`;
+    const heading = table.createTHead().insertRow();
+    ['Test date', `${measure.name} (${measure.unit})`].forEach(text => {
+        const cell = document.createElement('th');
+        cell.scope = 'col';
+        cell.textContent = text;
+        heading.appendChild(cell);
+    });
+    const body = table.createTBody();
+    const latest = measure.values.findLastIndex(isBiomarkerHistoryValue);
+    history.labels.forEach((date, index) => {
+        const row = body.insertRow();
+        row.classList.toggle('is-latest', index === latest);
+        const cell = document.createElement('th');
+        cell.scope = 'row';
+        const time = document.createElement('time');
+        time.dateTime = date;
+        time.textContent = formatResultDate(date);
+        cell.appendChild(time);
+        row.appendChild(cell);
+        const result = row.insertCell();
+        result.textContent = formatResultValue(measure.values[index], measure);
+        if (!isBiomarkerHistoryValue(measure.values[index])) result.setAttribute('aria-label', 'Not available');
+    });
+    return table;
+}
+
+function getResultComparisonPoints(history, measure) {
+    history.comparisonHistories ||= history.sourceAthletes.map(buildBiomarkerHistory);
+    const points = [];
+    history.comparisonHistories.forEach(data => {
+        const values = measure.clock === 'bortz' ? data.bortzAges
+            : measure.clock === 'pheno' ? data.phenoAges : data.biomarkersRaw[measure.key];
+        data.labels.forEach((date, index) => {
+            const value = values[index];
+            if (!isBiomarkerHistoryValue(value) || !Number.isFinite(data.chronologicalAges[index])) return;
+            points.push({ date, x: data.chronologicalAges[index], y: Number(value),
+                name: data.athleteName, athleteKey: data.athleteKey, isAthlete: data.athleteKey === history.athleteKey, index });
+        });
+    });
+    return points.sort((a, b) => a.x - b.x || a.date.localeCompare(b.date));
+}
+
+function historySvgNode(parent, tag, attributes, text) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value)));
+    if (text != null) node.textContent = text;
+    parent.appendChild(node);
+    return node;
+}
+
+function createBiomarkerSparkline(labels, values) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 120 40');
+    const dates = labels.map((date, index) => ({ index, timestamp: biomarkerHistoryTimestamp(date) }))
+        .filter(date => Number.isFinite(date.timestamp)).sort((a, b) => a.timestamp - b.timestamp);
+    const measured = dates.filter(date => isBiomarkerHistoryValue(values[date.index]));
+    const numbers = measured.map(date => Number(values[date.index]));
+    const min = numbers.length ? Math.min(...numbers) : 0;
+    const max = numbers.length ? Math.max(...numbers) : 0;
+    const valueScale = Math.max(Math.abs(min), Math.abs(max), 1);
+    const start = dates[0]?.timestamp ?? 0;
+    const duration = (dates.at(-1)?.timestamp ?? start) - start;
+    const xAt = date => duration ? 8 + (date.timestamp - start) / duration * 104 : 60;
+    const latest = measured.at(-1)?.index;
+    // The whole test timeline sits under every trend, so a short series reads as recent, not misplaced.
+    historySvgNode(svg, 'line', { class: 'sparkline-track', x1: 8, y1: 36, x2: 112, y2: 36 });
+    dates.forEach(date => {
+        const x = xAt(date);
+        historySvgNode(svg, 'line', { class: 'sparkline-tick', x1: x, y1: 34, x2: x, y2: 38 });
+    });
+    const areas = historySvgNode(svg, 'g', { class: 'sparkline-area' });
+    const lines = historySvgNode(svg, 'g', {});
+    let run = [];
+    const closeRun = () => {
+        if (run.length > 1) historySvgNode(areas, 'path', {
+            d: `M${run[0].x},36 ${run.map(point => `L${point.x},${point.y}`).join(' ')} L${run.at(-1).x},36Z`
+        });
+        run = [];
+    };
+    dates.forEach(date => {
+        const index = date.index;
+        const value = values[index];
+        if (!isBiomarkerHistoryValue(value)) { closeRun(); return; }
+        const x = xAt(date);
+        const y = min === max ? 18 : 30 - (Number(value) / valueScale - min / valueScale) / (max / valueScale - min / valueScale) * 24;
+        const previous = run.at(-1);
+        if (previous) historySvgNode(lines, 'line', { x1: previous.x, y1: previous.y, x2: x, y2: y });
+        historySvgNode(svg, 'circle', { cx: x, cy: y, r: index === latest ? 4 : 2.5,
+            class: index === latest ? 'is-latest' : index === measured[0]?.index ? 'is-baseline' : '' });
+        run.push({ x, y });
+    });
+    closeRun();
+    return svg;
+}
+
+function drawResultPlot(state) {
+    const { history, measure, plot, points } = state;
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', measure.clock
+        ? `${measure.name} across LWC: chronological age at the test versus biological age, in years. Highlighted points are ${history.athleteName}'s results. The dashed line is equal biological and chronological age. Exact dated results are in the table below.`
+        : `${measure.name} across LWC: chronological age at the test in years versus ${measure.name} in ${measure.unit}. Highlighted points are ${history.athleteName}'s results. Exact dated results are in the table below.`);
+    canvas.dataset.clock = measure.clock || '';
+    plot.replaceChildren(canvas);
+    plot.setAttribute('aria-busy', 'true');
+    window.ensureChartJs().then(loaded => {
+        if (history.expanded !== state) return;
+        plot.removeAttribute('aria-busy');
+        if (!loaded) {
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.textContent = 'Retry chart';
+            retry.onclick = () => drawResultPlot(state);
+            plot.replaceChildren(retry);
+            return;
+        }
+        const style = getComputedStyle(plot);
+        const color = token => style.getPropertyValue(token).trim();
+        const accent = color(measure.clock === 'bortz' ? '--athlete-modal-chart-bortz' : '--athlete-modal-chart-pheno');
+        const tooltip = color('--athlete-modal-chart-tooltip');
+        const muted = color('--athlete-modal-muted');
+        const ink = color('--athlete-modal-text');
+        const own = points.filter(point => point.isAthlete);
+        const latestIndex = measure.values.findLastIndex(isBiomarkerHistoryValue);
+        const ownStyle = {
+            borderColor: accent, borderWidth: 2, pointBorderColor: accent, pointBorderWidth: 2,
+            pointBackgroundColor: context => context.raw?.index === latestIndex ? accent : tooltip,
+            pointRadius: context => context.raw?.index === latestIndex ? 5.5 : 4,
+            pointHoverRadius: 7, pointHoverBorderColor: ink, pointHitRadius: 12, clip: false
+        };
+        const datasets = [
+            { label: history.athleteName, data: own, ...ownStyle, order: 0 },
+            { label: 'Other athletes', data: points.filter(point => !point.isAthlete),
+                pointBackgroundColor: color('--athlete-modal-subtle'), pointBorderWidth: 0, pointRadius: 2.5, pointHoverRadius: 5,
+                pointHoverBorderWidth: 2, pointHoverBorderColor: ink, pointHitRadius: 8, order: 1 }
+        ];
+        const ages = points.map(point => point.x);
+        const low = Math.max(0, Math.floor(Math.min(...ages) / 10) * 10);
+        const high = Math.max(low + 10, Math.ceil(Math.max(...ages) / 10) * 10);
+        let clockBounds;
+        if (measure.clock) {
+            clockBounds = {
+                min: Math.floor(Math.min(low, ...points.map(point => point.y)) / 10) * 10,
+                max: Math.ceil(Math.max(high, ...points.map(point => point.y)) / 10) * 10
+            };
+            datasets.push({ label: 'Same age', type: 'line', data: [{ x: low, y: low }, { x: high, y: high }],
+                borderColor: muted, borderWidth: 1, borderDash: [4, 5], pointRadius: 0, pointHitRadius: 0, order: 2 });
+        }
+        const compact = () => plot.clientWidth < 360;
+        const axis = { type: 'linear', border: { display: false },
+            grid: { color: color('--athlete-modal-chart-grid'), drawTicks: false },
+            ticks: { color: muted, padding: 8, font: { family: 'Roboto', size: 11 }, maxRotation: 0 },
+            title: { display: true, color: muted, font: { family: 'Roboto', size: 11 } } };
+        const wrapPlotText = (text, available, font = '600 12px Roboto') => {
+            // Browser zoom can leave less room than the usual phone layout.
+            // Measure the bold title font (also safely bounds body text) rather
+            // than guessing a character count or reducing readable type.
+            const context = canvas.getContext('2d');
+            context.save();
+            context.font = font;
+            const lines = [];
+            let line = '';
+            for (const word of String(text).split(/\s+/)) {
+                if (line && context.measureText(line + ' ' + word).width > available) {
+                    lines.push(line);
+                    line = '';
+                }
+                for (const character of (line ? ' ' : '') + word) {
+                    if (line && context.measureText(line + character).width > available) {
+                        lines.push(line.trimEnd());
+                        line = '';
+                    }
+                    line += character;
+                }
+            }
+            if (line) lines.push(line);
+            context.restore();
+            return lines;
+        };
+        const titleLines = text => wrapPlotText(text, Math.max(1, plot.clientWidth - 32));
+        state.chart = new window.Chart(canvas, {
+            type: 'scatter', data: { datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'nearest', axis: 'xy', intersect: false },
+                layout: { padding: { top: 10, right: 10 } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true, position: 'nearest', displayColors: false,
+                        backgroundColor: tooltip, titleColor: ink, bodyColor: ink, borderColor: accent, borderWidth: 1,
+                        padding: 10, cornerRadius: 6, caretPadding: 7, titleFont: { family: 'Roboto', size: 12, weight: '600' },
+                        bodyFont: { family: 'Roboto', size: 12 },
+                        filter: item => item.dataset.label !== 'Same age',
+                        callbacks: {
+                            title: items => items.length ? titleLines(items[0].raw.name) : '',
+                            beforeBody: items => items.length ? formatResultDate(items[0].raw.date) : '',
+                            label: item => [
+                                ...titleLines(`${measure.name}: ${formatResultValue(item.raw.y, measure)} ${measure.unit}`),
+                                ...titleLines(`Chronological age: ${Number(item.raw.x).toFixed(1)} years`)
+                            ]
+                        }
+                    }
+                },
+                scales: {
+                    x: { ...axis, grid: { display: false },
+                        min: low, max: high,
+                        title: { ...axis.title, text: context => context.chart.width < 180
+                            ? ['Chronological', 'age (years)'] : 'Chronological age (years)' },
+                        ticks: { ...axis.ticks, maxTicksLimit: compact() ? 3 : 5 } },
+                    y: { ...axis, ...(measure.clock ? clockBounds : { grace: '8%' }), ticks: { ...axis.ticks, maxTicksLimit: 6 },
+                        title: { ...axis.title, text: `${measure.name} (${measure.unit})` } }
+                }
+            }
+        });
+    });
+}
+
 
 // Biomarker key order matches bortz-age.html card order (WBC, Lymphocytes, Neutrophils, …)
 function initializeBiomarkersRaw() {
@@ -5797,28 +7265,6 @@ function initializeBiomarkersRaw() {
     };
 }
 
-function collectBiomarkerValues(entry, biomarkersRaw) {
-    function pushOrInherit(key, newValue) {
-        // Retrieve the last known value if available
-        const lastValue = biomarkersRaw[key].length > 0 ? biomarkersRaw[key][biomarkersRaw[key].length - 1] : undefined;
-        // Use newValue if provided; otherwise, inherit lastValue
-        const valueToUse = newValue != null ? newValue : lastValue;
-        // Update the persistent storage
-        biomarkersRaw[key].push(valueToUse);
-        // Return the value used so we can update the entry
-        return valueToUse;
-    }
-    entry.Wbc1000cellsuL = pushOrInherit('WBC (10^3 cells/µL)', entry.Wbc1000cellsuL);
-    entry.LymPc = pushOrInherit('Lymphocytes (%)', entry.LymPc);
-    entry.McvFL = pushOrInherit('MCV (fL)', entry.McvFL);
-    entry.RdwPc = pushOrInherit('RDW (%)', entry.RdwPc);
-    entry.AlbGL = pushOrInherit('Albumin (g/L)', entry.AlbGL);
-    entry.AlpUL = pushOrInherit('ALP (U/L)', entry.AlpUL);
-    entry.CreatUmolL = pushOrInherit('Creatinine (µmol/L)', entry.CreatUmolL);
-    entry.GluMmolL = pushOrInherit('Glucose (mmol/L)', entry.GluMmolL);
-    entry.CrpMgL = pushOrInherit('CRP (mg/L)', entry.CrpMgL);
-}
-
 function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
     return [
         chronoAgeAtEntry,
@@ -5832,271 +7278,6 @@ function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
         entry.RdwPc,
         entry.AlpUL
     ];
-}
-
-function calculateBiomarkerZScores(biomarkersRaw) {
-    const biomarkersZScores = {};
-    for (const [key, values] of Object.entries(biomarkersRaw)) {
-        const hasNulls = values.some(v => v == null);
-        if (hasNulls) {
-            const valid = values.filter(v => v != null && Number.isFinite(v));
-            const n = valid.length;
-            if (n === 0) {
-                biomarkersZScores[key] = values.map(() => null);
-            } else {
-                const mean = valid.reduce((sum, val) => sum + val, 0) / n;
-                const variance = valid.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
-                const stdDev = Math.sqrt(variance);
-                biomarkersZScores[key] = values.map(val =>
-                    val == null || !Number.isFinite(val) ? null : (stdDev === 0 ? 0 : ((val - mean) / stdDev).toFixed(2))
-                );
-            }
-        } else {
-            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-            const stdDev = Math.sqrt(variance);
-            biomarkersZScores[key] = stdDev === 0
-                ? values.map(() => 0)
-                : values.map(val => ((val - mean) / stdDev).toFixed(2));
-        }
-    }
-    return biomarkersZScores;
-}
-
-function getAthleteModalCssVar(name, fallback) {
-    const modal = document.getElementById('detailsModal');
-    const value = modal ? window.getComputedStyle(modal).getPropertyValue(name).trim() : '';
-    return value || fallback;
-}
-
-function prepareBiomarkerDatasets(labels, phenoAges, bortzAges, biomarkersRaw, biomarkersZScores) {
-    const hasBortzAge = bortzAges.some(v => v != null && Number.isFinite(Number(v)));
-    const bortzColor = getAthleteModalCssVar('--athlete-modal-chart-bortz', 'rgba(154,232,178,.96)');
-    const phenoColor = getAthleteModalCssVar('--athlete-modal-chart-pheno', 'rgba(135,229,229,.96)');
-    const biomarkerOverlayColor = getAthleteModalCssVar('--athlete-modal-chart-biomarker', 'rgba(255,125,125,.96)');
-    const pointBorderColor = 'rgba(8,10,10,.94)';
-    const pointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
-    const datasets = [];
-    if (hasBortzAge) {
-        datasets.push({
-            label: 'Bortz Age',
-            data: bortzAges,
-            borderColor: bortzColor,
-            backgroundColor: 'rgba(154,232,178,.14)',
-            pointBackgroundColor: bortzColor,
-            pointBorderColor: pointBorderColor,
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointHitRadius: pointHitRadius,
-            fill: false,
-            tension: 0.1,
-            borderWidth: 3,
-            yAxisID: 'y1',
-            spanGaps: true
-        });
-    }
-    datasets.push({
-        label: 'Pheno Age',
-        data: phenoAges,
-        borderColor: phenoColor,
-        backgroundColor: 'rgba(135,229,229,.14)',
-        pointBackgroundColor: phenoColor,
-        pointBorderColor: pointBorderColor,
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        pointHitRadius: pointHitRadius,
-        fill: false,
-        tension: 0.1,
-        borderWidth: 3,
-        yAxisID: 'y1'
-    });
-
-    for (const [key, zScores] of Object.entries(biomarkersZScores)) {
-        const actualValues = biomarkersRaw[key];
-        const hasAtLeastOneValue = actualValues.some(v => v != null && Number.isFinite(v));
-        if (!hasAtLeastOneValue) continue;
-
-        const dataPoints = zScores.map((zScore, index) => ({
-            x: labels[index],
-            y: zScore,
-            actualValue: actualValues[index]
-        }));
-
-        // Retrieve saved visibility state from localStorage
-        const savedState = readBiomarkerVisibilityState();
-        const isHidden = Object.prototype.hasOwnProperty.call(savedState, key) ? savedState[key] : true;
-
-        datasets.push({
-            label: key,
-            data: dataPoints,
-            borderColor: biomarkerOverlayColor,
-            backgroundColor: 'rgba(255,125,125,.16)',
-            pointBackgroundColor: biomarkerOverlayColor,
-            pointBorderColor: pointBorderColor,
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointHitRadius: pointHitRadius,
-            fill: false,
-            tension: 0.1,
-            borderWidth: 3,
-            yAxisID: 'y2',
-            hidden: isHidden,
-            spanGaps: true
-        });
-    }
-    return datasets;
-}
-
-function getBiomarkerChartOptions() {
-    const chartTextColor = getAthleteModalCssVar('--athlete-modal-text', '#333');
-    const chartMutedColor = getAthleteModalCssVar('--athlete-modal-muted', '#666');
-    const chartGridColor = getAthleteModalCssVar('--athlete-modal-chart-grid', 'rgba(0,0,0,0.08)');
-    return {
-        responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: window.innerWidth < 768 ? 1.05 : 1.6,
-        layout: {
-            padding: {
-                left: window.innerWidth < 768 ? 4 : 12,
-                right: window.innerWidth < 768 ? 4 : 12,
-                top: 4
-            }
-        },
-        interaction: {
-            mode: 'index',
-            intersect: false
-        },
-        stacked: false,
-        plugins: {
-            tooltip: {
-                backgroundColor: 'rgba(5,7,7,.94)',
-                titleColor: 'rgba(255,255,255,.96)',
-                bodyColor: 'rgba(255,255,255,.9)',
-                borderColor: 'rgba(246,244,237,.34)',
-                borderWidth: 1,
-                cornerRadius: 6,
-                padding: 10,
-                displayColors: true,
-                callbacks: {
-                    label: function (context) {
-                        const label = context.dataset.label || '';
-                        const yValue = context.parsed.y;
-                        const actualValue = context.raw && context.raw.actualValue;
-                        if (label === 'Pheno Age' || label === 'Bortz Age') {
-                            return yValue != null ? `${label}: ${yValue}` : `${label}: N/A`;
-                        }
-                        const formattedValue = actualValue !== undefined && actualValue != null && !isNaN(actualValue)
-                            ? (actualValue % 1 !== 0 ? actualValue.toFixed(2) : actualValue.toString())
-                            : 'N/A';
-                        return `${label}: ${formattedValue}`;
-                    }
-                }
-            },
-            legend: {
-                position: 'bottom',
-                labels: {
-                    color: chartMutedColor,
-                    boxWidth: 9,
-                    boxHeight: 9,
-                    padding: 14,
-                    usePointStyle: true,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 12,
-                        weight: '600'
-                    },
-                    filter: function (legendItem, chartData) {
-                        const dataset = chartData.datasets[legendItem.datasetIndex];
-                        return dataset && dataset.yAxisID === 'y1';
-                    }
-                },
-                onHover: function (event) {
-                    event.native.target.style.cursor = 'pointer';
-                },
-                onLeave: function (event) {
-                    event.native.target.style.cursor = 'default';
-                },
-                onClick: function (e, legendItem, legend) {
-                    // Execute the default onClick handler
-                    Chart.defaults.plugins.legend.onClick.call(this, e, legendItem, legend);
-                    // Get the chart instance and dataset metadata
-                    const ci = legend.chart;
-                    const index = legendItem.datasetIndex;
-                    const meta = ci.getDatasetMeta(index);
-
-                    // Store the biomarker's new visibility status
-                    // Retrieve the stored state; if none exists, start with an empty object
-                    const state = readBiomarkerVisibilityState();
-
-                    // Update the state with the new key-value pair
-                    state[meta.label] = meta.hidden;
-
-                    // Save it back to localStorage as a JSON string
-                    try { localStorage.setItem('biomarkerVisibilityState', JSON.stringify(state)); } catch { /* Storage is optional. */ }
-                }
-            }
-        },
-        scales: {
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                title: {
-                    display: true,
-                    text: 'Age (years)',
-                    color: chartTextColor,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 14 // Adjust font size for mobile
-                    }
-                },
-                ticks: {
-                    color: chartMutedColor
-                },
-                grid: {
-                    drawOnChartArea: true,
-                    color: chartGridColor
-                }
-            },
-            y2: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
-                    display: true,
-                    text: 'Biomarkers (Z-scores)',
-                    color: chartTextColor,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 14
-                    }
-                },
-                ticks: {
-                    color: chartMutedColor
-                },
-                grid: {
-                    drawOnChartArea: false,
-                    color: chartGridColor
-                }
-            },
-            x: {
-                title: {
-                    display: true,
-                    text: 'Date',
-                    color: chartTextColor,
-                    font: {
-                        size: window.innerWidth < 768 ? 10 : 14
-                    }
-                },
-                ticks: {
-                    color: chartMutedColor
-                },
-                grid: {
-                    color: chartGridColor
-                }
-            }
-        }
-    };
 }
 
 function populateProofsGallery(fullAthleteData) {
@@ -6133,7 +7314,18 @@ function populateProofsGallery(fullAthleteData) {
         const proofItem = document.createElement('div');
         proofItem.classList.add('proof-item');
         const img = document.createElement('img');
-        img.src = proofUrl;
+        // Keep other image sources working for older data and embedded callers.
+        const previewUrl = /^\/athletes\/[\w-]+\/proof_[\w.-]+\.(?:webp|png|jpe?g|bmp|gif)(?:\?|$)/i.test(proofUrl)
+            ? proofUrl.replace('/athletes/', '/api/proof-previews/')
+            : proofUrl;
+        if (previewUrl !== proofUrl) {
+            img.dataset.fullSrc = proofUrl;
+            img.onerror = () => {
+                img.onerror = null;
+                img.src = proofUrl;
+            };
+        }
+        img.src = previewUrl;
         img.alt = `Proof image ${index + 1}`;
         img.setAttribute('role', 'button');
         img.setAttribute('tabindex', '0');
@@ -6167,6 +7359,7 @@ function reconcileRestoredLeaderboard() {
     if (isAthleteDialogOnlyRuntime) return;
     window.clearTimeout(leaderboardHistoryRestoreTimer);
     leaderboardHistoryRestoreTimer = window.setTimeout(() => {
+        window.LwcLeaderboardOrder.restore();
         if (athleteResultsReady && renderedLeaderboardSelection !== getLeaderboardSelectionKey()) {
             performFilter({ updateUrl: false });
         } else if (athleteResultsReady) {
@@ -6234,15 +7427,28 @@ window.addEventListener('popstate', function (event) {
 });
 
 const sidebar = document.querySelector('.sidebar');
+const sidebarPanel = sidebar?.querySelector('.sidebar-panel');
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 const sidebarClose = document.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
 const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
 let leaderboardTableHeightFrame = 0;
 let leaderboardTableResizeObserver = null;
+let sidebarDrawerCloseTimer = 0;
 
 function isMobileDrawerViewport() {
     return mobileDrawerMediaQuery.matches;
+}
+
+function syncSidebarPanelInteractivity() {
+    if (!sidebarPanel) return;
+    // An explicit opening is interactive immediately, including while enlarged
+    // text makes container queries refit the panel's computed layout.
+    const open = sidebar.classList.contains('expanded')
+        || (!isMobileDrawerViewport()
+            && getComputedStyle(sidebarPanel).getPropertyValue('--sidebar-panel-open').trim() === '1');
+    sidebarPanel.inert = !open;
+    sidebarPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
 }
 
 function scheduleLeaderboardTableHeightSync() {
@@ -6252,22 +7458,39 @@ function scheduleLeaderboardTableHeightSync() {
 
 function syncLeaderboardTableHeight() {
     leaderboardTableHeightFrame = 0;
+    syncSidebarPanelInteractivity();
 
     const leaderboard = document.querySelector('.leaderboard');
-    const table = document.querySelector('.leaderboard > table');
+    const table = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
     if (!leaderboard || !table) return;
 
+    // Complete geometry reads before writing styles. Sidebar measurements must
+    // not invalidate every athlete and badge through inherited board variables.
+    const headHeight = table.tHead?.getBoundingClientRect().height;
     if (isMobileDrawerViewport()) {
-        leaderboard.style.removeProperty('--leaderboard-table-height');
-        leaderboard.style.removeProperty('--leaderboard-title-height');
+        leaderboard.style.removeProperty('min-height');
+        sidebar?.style.removeProperty('--leaderboard-table-height');
+        sidebar?.style.removeProperty('--leaderboard-title-height');
+        sidebar?.style.removeProperty('--leaderboard-sidebar-viewport-top');
+        sidebar?.style.removeProperty('--leaderboard-head-height');
         return;
     }
-
     const tableHeight = table.getBoundingClientRect().height;
+    // Hover/expansion temporarily hides the rail title. Keep its measured
+    // footprint so opening the overlay cannot shorten the board beneath it.
+    const titleHeight = measureCollapsedTitleHeight()
+        ?? (parseFloat(sidebar.style.getPropertyValue('--leaderboard-title-height')) || 0);
+    const sidebarTop = Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top));
+    if (headHeight > 0) sidebar.style.setProperty('--leaderboard-head-height', `${Math.ceil(headHeight)}px`);
+    else sidebar.style.removeProperty('--leaderboard-head-height');
     if (tableHeight > 0) {
-        leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
-        syncCollapsedTitleHeight();
+        sidebar.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
+        sidebar.style.setProperty('--leaderboard-title-height', `${titleHeight}px`);
+        leaderboard.style.minHeight = `${Math.max(Math.ceil(tableHeight), titleHeight)}px`;
     }
+    // A newly opened panel may start below its sticky position. Size its scroll
+    // area to the space actually on screen, then refit as the page scrolls.
+    sidebar.style.setProperty('--leaderboard-sidebar-viewport-top', `${sidebarTop}px`);
 }
 
 function installLeaderboardTableHeightObserver() {
@@ -6277,6 +7500,10 @@ function installLeaderboardTableHeightObserver() {
     if ('ResizeObserver' in window) {
         leaderboardTableResizeObserver = new ResizeObserver(scheduleLeaderboardTableHeightSync);
         leaderboardTableResizeObserver.observe(table);
+        if (table.tHead) leaderboardTableResizeObserver.observe(table.tHead);
+        const flags = document.getElementById('flagLeaderboard');
+        if (flags) leaderboardTableResizeObserver.observe(flags);
+        if (sidebarPanel) leaderboardTableResizeObserver.observe(sidebarPanel);
         const title = document.querySelector('.collapsed-title');
         if (title) leaderboardTableResizeObserver.observe(title);
     }
@@ -6288,13 +7515,10 @@ sidebarToggle?.addEventListener('click', (event) => {
     toggleSidebar({ focusDrawerClose: event.detail === 0 });
 });
 
-sidebarToggle?.addEventListener('mouseenter', () => {
-    if (sidebar.classList.contains('expanded')) return;
-    sidebar.classList.add('partially-expanded');
-});
-
-sidebarToggle?.addEventListener('mouseleave', () => {
-    sidebar.classList.remove('partially-expanded');
+sidebar?.addEventListener('mouseleave', () => {
+    // An explicit close wins over hover until the pointer leaves the rail.
+    sidebar.classList.remove('button-collapsed');
+    syncSidebarPanelInteractivity();
 });
 
 sidebarClose?.addEventListener('click', (event) => {
@@ -6366,8 +7590,28 @@ function syncSidebarDrawerBackdrop() {
     if (!hasLeaderboardSidebar) return;
     const isMobileDrawer = isMobileDrawerViewport();
     const isOpenMobileDrawer = isMobileDrawer && sidebar.classList.contains('expanded');
-    document.body.classList.toggle('sidebar-drawer-open', isOpenMobileDrawer);
+    clearTimeout(sidebarDrawerCloseTimer);
+    sidebarDrawerCloseTimer = 0;
+    sidebar.inert = isMobileDrawer && !isOpenMobileDrawer;
+    if (isOpenMobileDrawer) {
+        const wasOpen = document.body.classList.contains('sidebar-drawer-open');
+        const bodyWidth = document.body.clientWidth;
+        document.body.classList.add('sidebar-drawer-open');
+        if (!wasOpen) document.body.style.setProperty('--sidebar-body-width', getLockedBodyWidth(bodyWidth));
+        document.body.classList.remove('sidebar-drawer-closing');
+    } else if (isMobileDrawer && document.body.classList.contains('sidebar-drawer-open')) {
+        document.body.classList.add('sidebar-drawer-closing');
+        sidebarDrawerCloseTimer = finishAfterTransition(sidebar, 'transform', () => {
+            sidebarDrawerCloseTimer = 0;
+            document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+            document.body.style.removeProperty('--sidebar-body-width');
+        });
+    } else {
+        document.body.classList.remove('sidebar-drawer-open', 'sidebar-drawer-closing');
+        document.body.style.removeProperty('--sidebar-body-width');
+    }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
+    syncSidebarPanelInteractivity();
 }
 
 function getSidebarFocusableControls() {
@@ -6409,7 +7653,7 @@ function pinActiveDesktopSidebar() {
     if (!hasActiveLeaderboardFilterState()) return;
     if (sidebar.classList.contains('expanded')) return;
 
-    openSidebar({ skipScroll: true });
+    openSidebar();
 }
 
 function openSidebar(options = {}) {
@@ -6419,8 +7663,7 @@ function openSidebar(options = {}) {
     const drawerScrollY = window.scrollY;
 
     scheduleLeaderboardTableHeightSync();
-    sidebar.classList.remove('partially-expanded');
-    sidebar.classList.remove('collapsed');
+    sidebar.classList.remove('button-collapsed', 'collapsed');
 
     if (!sidebar.classList.contains('expanded')) {
         sidebar.classList.add('expanded');
@@ -6445,15 +7688,7 @@ function openSidebar(options = {}) {
                     sidebarClose.focus({ preventScroll: true });
                 }
             }
-            window.scrollTo(drawerScrollX, drawerScrollY);
-        });
-    }
-
-    // Scroll to the leaderboard table
-    if (!isMobileDrawer && !options.skipScroll && canAutoScroll()) {
-        document.querySelector('.search-wrapper .sidebar-toggle').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
+            window.scrollTo({ left: drawerScrollX, top: drawerScrollY, behavior: 'instant' });
         });
     }
 }
@@ -6463,7 +7698,6 @@ function closeSidebar(options = {}) {
     sidebar.classList.remove('expanded');
     sidebar.setAttribute('aria-hidden', 'true');
     sidebarToggle.classList.remove('active');
-    sidebar.classList.remove('partially-expanded');
     if (!sidebar.classList.contains('button-collapsed')) {
         sidebar.classList.add('button-collapsed');
     }
@@ -6487,15 +7721,16 @@ function closeSidebar(options = {}) {
             }
         });
     }
-
-    setTimeout(() => {
-        sidebar.classList.remove('button-collapsed');
-    }, 50);
 }
 
 if (hasLeaderboardSidebar) {
     syncSidebarDrawerBackdrop();
     installLeaderboardTableHeightObserver();
+    sidebar.addEventListener('mouseenter', () => {
+        syncSidebarPanelInteractivity();
+        scheduleLeaderboardTableHeightSync();
+    });
+    window.addEventListener('scroll', scheduleLeaderboardTableHeightSync, { passive: true });
     window.addEventListener('resize', () => {
         syncSidebarDrawerBackdrop();
         scheduleLeaderboardTableHeightSync();
@@ -6514,16 +7749,27 @@ let startY = 0;
 let endY = 0;
 const SWIPE_THRESHOLD = 50; // Minimum distance to qualify as a swipe
 const TAP_THRESHOLD = 10; // Allowable movement for taps
+let sidebarSwipeEligible = false;
 
 document.addEventListener('touchstart', (e) => {
+    sidebarSwipeEligible = false;
     if (!hasLeaderboardSidebar) return;
     if (modal.style.display === "block") return;
+    if (e.touches.length !== 1) return;
+    // Horizontal scrollers own their gestures, including the Swag carousel.
+    // A page-level right swipe must not open the filter drawer over them.
+    if (e.composedPath().some(node => node instanceof HTMLElement
+        && node.scrollWidth > node.clientWidth + 1
+        && ['auto', 'scroll'].includes(getComputedStyle(node).overflowX))) return;
 
+    sidebarSwipeEligible = true;
     startX = e.changedTouches[0].clientX;
     startY = e.changedTouches[0].clientY;
 }, false);
 
 document.addEventListener('touchend', (e) => {
+    if (!sidebarSwipeEligible) return;
+    sidebarSwipeEligible = false;
     if (!hasLeaderboardSidebar) return;
     if (modal.style.display === "block") return;
 
@@ -6549,6 +7795,8 @@ document.addEventListener('touchend', (e) => {
         }
     }
 }, false);
+
+document.addEventListener('touchcancel', () => { sidebarSwipeEligible = false; }, { passive: true });
 
 // Updates the document title for the selected athlete.
 function updatePageTitleForAthlete(athleteName, athleteRank) {
@@ -6594,11 +7842,10 @@ function updateAthleteInfoGrouping() {
         .map(id => document.getElementById(id))
         .filter(Boolean);
 
-    groupedRows.forEach(row => row.classList.remove('athlete-info-group-first'));
-    const firstVisibleRow = groupedRows.find(row => window.getComputedStyle(row).display !== 'none');
-    if (firstVisibleRow) {
-        firstVisibleRow.classList.add('athlete-info-group-first');
-    }
+    // These rows are controlled by their native hidden state. Reading computed
+    // styles here flushed the entire profile three times during each hydration.
+    const firstVisibleRow = groupedRows.find(row => !row.hidden);
+    groupedRows.forEach(row => row.classList.toggle('athlete-info-group-first', row === firstVisibleRow));
 }
 
 function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
@@ -6612,6 +7859,16 @@ function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
         athleteData.crowdAgeReduction = Number.isFinite(age)
             ? age - athleteData.chronologicalAge
             : null;
+        // Guess submissions update this object in place, including eligibility.
+        // Do not reuse the prior Crowd cohort or its displayed ordering values.
+        leaderboardOrderingSnapshot = null;
+        if (athleteData.orderValues) {
+            const values = athleteData.orderValues;
+            const hasCrowd = athleteData.crowdCount > 0 && Number.isFinite(age);
+            values.crowd = hasCrowd ? age : null;
+            values.crowdCount = athleteData.crowdCount;
+            values.crowdReduction = hasCrowd && Number.isFinite(values.age) ? age - values.age : null;
+        }
         assignBestRankCandidates(athleteResults);
     }
 
@@ -6631,11 +7888,13 @@ function updateCrowdContainer(crowdAge, crowdCount) {
     const hasCrowdAge = Number.isFinite(crowdAge) && Number.isFinite(crowdCount) && crowdCount > 0;
 
     if (!hasCrowdAge) {
-        crowdContainer.style.display = 'none';
-        notEmptyCrowdContainer.style.display = 'none';
+        crowdContainer.hidden = true;
+        notEmptyCrowdContainer.hidden = true;
+        document.getElementById('crowdAge').textContent = '';
+        document.getElementById('crowdCount').textContent = '0';
     } else {
-        crowdContainer.style.display = '';
-        notEmptyCrowdContainer.style.display = 'block';
+        crowdContainer.hidden = false;
+        notEmptyCrowdContainer.hidden = false;
         document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
         document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
     }
@@ -6650,12 +7909,9 @@ function updateYourGuess() {
         ProfileImageId: modalContent?.dataset.profileImageId
     });
 
-    if (guessData && guessData.value != null) {
-        // show the row (use '' so table layout is preserved; mobile CSS overrides tr to block)
-        yourGuessContainer.style.display = '';
-
-        // convert guess to a number
-        const guess = Number(guessData.value);
+    const guess = guessData?.value != null ? Number(guessData.value) : NaN;
+    if (Number.isFinite(guess)) {
+        yourGuessContainer.hidden = false;
 
         // grab the displayed chrono & crowd ages
         const chrono = parseInt(document.getElementById('chronologicalAge').textContent, 10);
@@ -6668,18 +7924,18 @@ function updateYourGuess() {
         // collect any matching icons
         const iconClasses = [];
         if (diffYou === 0) iconClasses.push('fa-bullseye');
-        if (diffYou < diffCrowd) iconClasses.push('fa-trophy');
+        if (!document.getElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) iconClasses.push('fa-trophy');
         if (guessData.first) iconClasses.push('fa-medal');
 
         // build and render
-        const iconsHTML = iconClasses.map(c => `<i class="fa ${c}"></i>`).join(' ');
-        yourGuessSpan.innerHTML = `${iconsHTML} ${guess} years${guessData.first ? ' (first to guess)' : ''}`;
+        const iconsHTML = iconClasses.map(c => `<i class="fa ${c}" aria-hidden="true"></i>`).join(' ');
+        yourGuessSpan.innerHTML = `${iconsHTML} <span class="age-board-figure">${guess}</span> <span class="unit">years</span>${guessData.first ? '<span class="age-board-guess-note"> (first to guess)</span>' : ''}`;
 
         // apply stamp to the value span only so the row stays a normal table row
         yourGuessSpan.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
         if (diffYou === 0) {
             yourGuessSpan.classList.add('golden-stamp');
-        } else if (diffYou < diffCrowd) {
+        } else if (!document.getElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) {
             yourGuessSpan.classList.add('primary-stamp');
         } else if (guessData.first) {
             yourGuessSpan.classList.add('first-guess-stamp');
@@ -6687,7 +7943,7 @@ function updateYourGuess() {
 
     } else {
         // hide if no guess
-        yourGuessContainer.style.display = 'none';
+        yourGuessContainer.hidden = true;
     }
     updateAthleteInfoGrouping();
 }
@@ -6695,6 +7951,32 @@ function updateYourGuess() {
 // Keep the small public surface used by page bootstraps, Guess My Age, and
 // existing browser tests while the controller itself remains isolated.
 window.LoadLeaderboard = LoadLeaderboard;
+window.getLeaderboardPeek = name => {
+    const athlete = athleteResults.find(item => item.name === name);
+    if (!athlete) return null;
+    return Object.freeze({
+        chronologicalAge: athlete.chronologicalAge,
+        lowestBortzAge: athlete.lowestBortzAge,
+        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
+        lowestPhenoAge: athlete.lowestPhenoAge,
+        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        crowdAge: athlete.crowdAge,
+        crowdCount: athlete.crowdCount,
+        placements: athlete.placements
+    });
+};
+// The podium stage and rank-change cues read the same standing the row shows.
+window.getLeaderboardStanding = name => {
+    const athlete = athleteResults.find(item => item.name === name);
+    if (!athlete) return null;
+    return Object.freeze({
+        rank: athlete.rank,
+        lastMonthRank: Number.isFinite(athlete.lastMonthRank) ? athlete.lastMonthRank : null,
+        isNew: Boolean(athlete.isNew),
+        comparable: athleteResultsReady && renderedStandingsComparable,
+        flag: athlete.canonicalFlag || ''
+    });
+};
 window.openEnlargedView = openEnlargedView;
 window.closeEnlargedView = closeEnlargedView;
 window.populateProofsGallery = populateProofsGallery;

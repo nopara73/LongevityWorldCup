@@ -1,0 +1,57 @@
+/* ===== The entry journey in motion =====
+   Home, the play menu and the apply flow (Pheno Age, Bortz Age, the apply
+   card and its review) hand over to each other as one journey instead of
+   hard page cuts. The site header holds still while the leaving page lifts
+   away and the arriving page rises into place. Each page opts in with this
+   stylesheet. Reduced motion keeps the plain page change. */
+@media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+        navigation: auto;
+    }
+
+    /* A persistent transition name would trap floating PLAY below content. */
+    :root:active-view-transition header[role="banner"] {
+        view-transition-name: lwc-site-header;
+    }
+
+    /* Page-specific motion wins over the shared arrival styles, regardless
+       of where the common aesthetic stylesheet is inserted. */
+    :root::view-transition-group(lwc-site-header) {
+        animation-duration: 0s;
+    }
+
+    :root::view-transition-old(lwc-site-header) {
+        display: none;
+    }
+
+    :root::view-transition-new(lwc-site-header) {
+        animation: none;
+    }
+
+    :root::view-transition-old(root) {
+        animation: lwc-journey-leave 150ms cubic-bezier(0.4, 0, 1, 1) both;
+    }
+
+    :root::view-transition-new(root) {
+        animation: lwc-journey-arrive 260ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 70ms both;
+    }
+}
+
+@keyframes lwc-journey-leave {
+    to {
+        opacity: 0;
+        transform: translate3d(0, -10px, 0);
+    }
+}
+
+@keyframes lwc-journey-arrive {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 16px, 0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}

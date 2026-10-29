@@ -23,5 +23,14 @@
   "Division": "Open",
   "Flag": "Cyberspace",
   "Why": "To travel the stars and see all there is to see",
-  "PersonalLink": "https://www.instagram.com/devinneko"
+  "PersonalLink": "https://www.instagram.com/devinneko",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@devinneko",
+      "EvidenceUrls": [
+        "https://www.instagram.com/devinneko/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

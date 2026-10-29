@@ -123,6 +123,7 @@ public sealed partial class EventDataService : IDisposable
     private readonly FacebookEventService _facebookEvents;
     private readonly ILogger<EventDataService> _log;
     private readonly bool _enableEventDispatch;
+    private readonly AthleteDataCorrections _corrections;
     private int _processingImmediateCustomEvents;
 
     // Track failed attempts for custom events per platform: "eventId:platform" -> attempt count
@@ -131,7 +132,7 @@ public sealed partial class EventDataService : IDisposable
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log, IConfiguration configuration)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log, IConfiguration configuration, AthleteDataCorrections? corrections = null)
     {
         _slackEvents = slackEvents;
         _xEvents = xEvents;
@@ -140,6 +141,7 @@ public sealed partial class EventDataService : IDisposable
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _log = log;
         _enableEventDispatch = configuration.GetValue("EnableEventDispatch", !env.IsDevelopment());
+        _corrections = corrections ?? new AthleteDataCorrections();
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -1081,6 +1083,7 @@ public sealed partial class EventDataService : IDisposable
             }
         }
 
+        var correctedDates = _corrections.CorrectedResultDates(athletes);
         var created = _db.Run(sqlite =>
         {
             using var tx = sqlite.BeginTransaction();
@@ -1126,7 +1129,7 @@ public sealed partial class EventDataService : IDisposable
             {
                 pSlug.Value = slug;
                 pDate.Value = date;
-                if (remember.ExecuteNonQuery() == 0 || baseline)
+                if (remember.ExecuteNonQuery() == 0 || baseline || correctedDates.Contains((slug, date)))
                     continue;
 
                 pId.Value = $"accepted-result:{slug}:{date}";

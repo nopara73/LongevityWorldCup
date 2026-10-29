@@ -9,7 +9,7 @@
   },
   "Biomarkers": [
     {
-      "Date": "2025-11-14",
+      "Date": "2025-11-11",
       "AlbGL": 48.6,
       "CreatUmolL": 59.2920353982301,
       "GluMmolL": 4.770204262877443,
@@ -37,5 +37,47 @@
   "Flag": "Natural longevity",
   "Why": "A sustainable future where longevity, biotechnology, and nature coexist",
   "PersonalLink": "https://ilhui.com/",
-  "PodcastLink": "https://www.youtube.com/watch?v=qFWWghmFSCc"
+  "PodcastLink": "https://www.youtube.com/watch?v=qFWWghmFSCc",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/ilhui",
+      "EvidenceUrls": [
+        "https://ilhui.com/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "X": {
+      "Url": "https://x.com/ilhuihdez",
+      "EvidenceUrls": [
+        "https://x.com/ilhuihdez",
+        "https://ilhui.com/",
+        "https://www.linkedin.com/in/ilhui-hernandez-021b1417a"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@ilhui",
+      "EvidenceUrls": [
+        "https://www.instagram.com/ilhui/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "GitHub": {
+      "Url": "https://github.com/ilhui1ui",
+      "EvidenceUrls": [
+        "https://github.com/ilhui1ui",
+        "https://x.com/ilhuihdez",
+        "https://ilhui.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/ilhui-hernandez-021b1417a",
+      "EvidenceUrls": [
+        "https://github.com/ilhui1ui",
+        "https://ilhui.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

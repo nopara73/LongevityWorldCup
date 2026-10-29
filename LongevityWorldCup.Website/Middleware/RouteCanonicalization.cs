@@ -31,7 +31,6 @@ namespace LongevityWorldCup.Website.Middleware
             new("/events", "/event-board/event-board.html", "/event-board", "/event-board/event-board", "/event-board/event-board.html"),
             new("/leaderboard", "/leaderboard/leaderboard.html", "/leaderboard/leaderboard", "/leaderboard/leaderboard.html"),
             new("/longevitymaxxing", "/longevitymaxxing/longevitymaxxing.html", "/longevitymaxxing/longevitymaxxing", "/longevitymaxxing/longevitymaxxing.html"),
-            new("/helstab-kihivas", "/helstab-kihivas/helstab-kihivas.html", "/helstab-kihivas/helstab-kihivas", "/helstab-kihivas/helstab-kihivas.html"),
             new("/media", "/misc-pages/media.html", "/misc-pages/media", "/misc-pages/media.html"),
             new("/about", "/misc-pages/about.html", "/misc-pages/about", "/misc-pages/about.html"),
             new("/history", "/misc-pages/history.html", "/misc-pages/history", "/misc-pages/history.html"),
@@ -48,8 +47,7 @@ namespace LongevityWorldCup.Website.Middleware
             new("/edit-profile", "/play/edit-profile.html", "/play/edit-profile", "/play/edit-profile.html"),
             new("/unsubscribe", "/unsubscribe.html", "/unsubscribe.html"),
             new("/pheno-age", "/onboarding/pheno-age.html", "/onboarding/pheno-age", "/onboarding/pheno-age.html"),
-            new("/bortz-age", "/onboarding/bortz-age.html", "/onboarding/bortz-age", "/onboarding/bortz-age.html"),
-            new("/mortality-age", "/onboarding/mortality-age.html", "/onboarding/mortality-age", "/onboarding/mortality-age.html")
+            new("/bortz-age", "/onboarding/bortz-age.html", "/onboarding/bortz-age", "/onboarding/bortz-age.html")
         ];
 
         private static readonly IReadOnlyDictionary<string, PageRoute> PageByPath = Pages

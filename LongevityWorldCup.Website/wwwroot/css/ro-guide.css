@@ -1,8 +1,24 @@
 .ro-guide {
+    --ro-column: 44rem;
+    --ro-card-pad: var(--lwc-space-7);
+    /* The poster's arena colours, shared by the race strip and the finish line. */
+    --ro-field: #101c22;
+    --ro-field-ink: #f3f7f8;
+    --ro-field-muted: rgb(243 247 248 / 72%);
+    --ro-lane: #36525c;
+    --ro-racing: #5bd5dd;
+    --ro-check: 5px;
+    /* Page motion: quick and eased; the settle curve overshoots a touch for landings. */
+    --ro-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ro-ease-settle: cubic-bezier(0.34, 1.4, 0.64, 1);
+    /* The leaderboard podium's metal plinths. */
+    --ro-gold-plinth: #fff9db;
+    --ro-silver-plinth: #e9eef2;
+    --ro-bronze-plinth: #f3e8da;
     box-sizing: border-box;
-    max-width: 48rem;
+    max-width: 68rem;
     margin: 0 auto var(--lwc-space-7);
-    padding: clamp(2rem, 6vw, 4rem) var(--lwc-space-6);
+    padding: clamp(1.5rem, 4vw, 3rem) var(--lwc-space-6);
     color: var(--lwc-ink);
 }
 
@@ -10,40 +26,39 @@
     box-sizing: border-box;
 }
 
-.ro-essay::before {
-    content: '';
-    display: block;
-    width: 3rem;
-    height: 4px;
-    margin-bottom: var(--lwc-space-5);
-    background: var(--lwc-accent);
-}
-
 .ro-guide :is(h1, h2, h3, p) {
     margin: 0;
     text-align: left;
 }
 
+/* Poster stage: the RO x LWC banner spans the page and the intro card rides over its lower edge. */
 .ro-artwork {
-    --ro-poster-accent: #5bd5dd;
+    --ro-poster-accent: var(--ro-racing);
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    aspect-ratio: 2.5;
-    margin-bottom: var(--lwc-space-6);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: 1fr auto;
+    width: 100%;
+    aspect-ratio: 2.35;
+    min-height: 16rem;
     overflow: hidden;
     isolation: isolate;
     border-radius: var(--lwc-radius-lg);
-    background: #101c22;
-    color: #f3f7f8;
+    background: var(--ro-field);
+    color: var(--ro-field-ink);
+    box-shadow: var(--lwc-shadow-md);
 }
 
 .ro-artwork .ro-artwork-mark {
     z-index: 1;
+    grid-column: 1;
+    grid-row: 1;
     align-self: center;
-    padding-left: var(--lwc-space-6);
+    padding-left: clamp(var(--lwc-space-5), 6vw, 4.5rem);
+    transform: translateY(calc(-0.5 * var(--lwc-space-7)));
     font-family: 'Orbitron', sans-serif;
-    font-size: clamp(1.125rem, 3.75vw, 2.25rem);
+    font-size: clamp(1.5rem, 4.4vw, 3.25rem);
     font-weight: 700;
+    line-height: 1;
     white-space: nowrap;
 }
 
@@ -53,6 +68,8 @@
 
 .ro-arena {
     position: relative;
+    grid-column: 2;
+    grid-row: 1 / -1;
     display: grid;
     place-items: center;
     min-width: 0;
@@ -64,7 +81,7 @@
     width: 108%;
     max-width: none;
     height: 116%;
-    stroke: #36525c;
+    stroke: var(--ro-lane);
     stroke-width: 1;
 }
 
@@ -73,55 +90,54 @@
     stroke-width: 5;
 }
 
+.ro-lanes .ro-racing-glint {
+    stroke: none;
+}
+
 .ro-phoenix {
     position: relative;
-    width: 68%;
+    width: 62%;
     height: auto;
+    margin-bottom: 12%;
     opacity: 0.93;
     transform: rotate(-9deg);
 }
 
+/* The tagline sits in the open dark field under the mark, clear of the racing line. */
 .ro-sport-mark {
     position: absolute;
-    right: var(--lwc-space-5);
-    bottom: var(--lwc-space-4);
+    left: calc(-100% + clamp(var(--lwc-space-5), 6vw, 4.5rem));
+    top: calc(50% + var(--lwc-space-5));
     font-family: 'Orbitron', sans-serif;
-    font-size: clamp(0.5rem, 1.75vw, 0.75rem);
+    font-size: clamp(0.625rem, 1.4vw, 0.875rem);
     font-weight: 700;
     line-height: 1.4;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.ro-guide .ro-eyebrow {
-    margin-bottom: var(--lwc-space-4);
-    color: var(--lwc-accent);
-    font-size: var(--lwc-type-xs);
-    font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+    opacity: 0.86;
 }
 
-.ro-guide h1 {
-    margin-bottom: var(--lwc-space-6);
-    font-size: clamp(2rem, 4.5vw, 3rem);
-    line-height: 1.1;
-    letter-spacing: -0.035em;
-    text-wrap: balance;
+/* One landing sheet rides over the poster's lower edge: cover, essay, timeline band, closing actions. */
+.ro-guide .ro-essay {
+    --landing-pad: var(--ro-card-pad);
+    --landing-column: var(--ro-column);
+    z-index: 1;
+    width: min(100% - 2 * var(--lwc-space-6), var(--ro-column) + 2 * var(--ro-card-pad));
+    margin: clamp(-6rem, -8vw, -3rem) auto 0;
 }
 
-.ro-essay > p:not(.ro-eyebrow) {
+.ro-guide .ro-intro {
+    padding-top: var(--lwc-space-6);
+}
+
+.ro-guide .ro-body {
+    padding-block: var(--lwc-space-6);
+}
+
+.ro-guide .ro-body p {
+    color: var(--lwc-ink);
     font-size: 1.125rem;
     line-height: 1.7;
-}
-
-.ro-essay > p + p {
-    margin-top: var(--lwc-space-5);
-}
-
-.ro-essay > p.ro-lead {
-    font-size: 1.25rem;
-    line-height: 1.6;
 }
 
 .ro-guide a {
@@ -133,33 +149,53 @@
     outline-offset: 5px;
 }
 
-.ro-timeline {
-    margin-top: var(--lwc-space-6);
-    padding: var(--lwc-space-5);
-    border: 1px solid var(--lwc-border);
-    border-radius: var(--lwc-radius-md);
-    background: var(--lwc-surface-muted);
+/* The closing timeline is the poster's race strip: the same dark field, lane and racing accent, so the
+   page opens and closes on the RO x LWC arena. The rail fills leg by leg up to today. */
+.ro-guide .ro-timeline {
+    position: relative;
+    isolation: isolate;
+    padding: var(--lwc-space-7) var(--ro-card-pad);
+    background: var(--ro-field);
+    color: var(--ro-field-ink);
 }
 
 .ro-timeline-heading {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
     gap: var(--lwc-space-2) var(--lwc-space-4);
-    margin-bottom: var(--lwc-space-5);
+    margin-bottom: var(--lwc-space-7);
 }
 
-.ro-timeline h2 {
-    font-size: 1.125rem;
-    line-height: 1.4;
-}
-
-.ro-timeline-heading a {
+.ro-guide .ro-timeline h2 {
+    color: var(--ro-field-ink);
     font-size: var(--lwc-type-xs);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
 }
 
+.ro-guide .ro-timeline-heading a {
+    color: var(--ro-racing);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+}
+
+.ro-guide .ro-timeline-heading a:hover {
+    color: var(--ro-field-ink);
+}
+
+.ro-guide .ro-timeline a:focus-visible {
+    outline-color: var(--ro-racing);
+}
+
+/* The milestones run along one rail that ends at a filled finish marker. */
 .ro-milestones {
+    --ro-node: 24px;
+    --ro-track: 4px;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--lwc-space-5);
@@ -169,8 +205,9 @@
 }
 
 .ro-milestones li {
+    --ro-leg: 0;
     position: relative;
-    padding-top: var(--lwc-space-5);
+    padding-top: calc(var(--ro-node) + var(--lwc-space-5));
 }
 
 .ro-milestones li::before {
@@ -179,114 +216,241 @@
     z-index: 1;
     top: 0;
     left: 0;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--lwc-accent);
+    width: var(--ro-node);
+    height: var(--ro-node);
+    border: 4px solid var(--ro-racing);
     border-radius: 50%;
-    background: var(--lwc-surface-muted);
+    background: var(--ro-field);
+}
+
+.ro-milestones li:last-child::before {
+    background: var(--ro-racing);
+    box-shadow: 0 0 0 4px var(--ro-field), 0 0 0 6px var(--ro-racing);
 }
 
 .ro-milestones li:not(:last-child)::after {
     content: '';
     position: absolute;
-    top: 6px;
-    left: 14px;
+    top: calc((var(--ro-node) - var(--ro-track)) / 2);
+    left: var(--ro-node);
     right: calc(-1 * var(--lwc-space-5));
-    height: 2px;
-    background: var(--lwc-border-strong);
+    height: var(--ro-track);
+    border-radius: var(--ro-track);
+    background: linear-gradient(90deg,
+        var(--ro-racing) calc(var(--ro-leg) * 100%), var(--ro-lane) calc(var(--ro-leg) * 100%));
 }
 
-.ro-milestones time {
+/* Live states: run legs are filled, the next deadline carries the halo, later ones wait on the lane. */
+.ro-milestones li[data-ro-state='past']::before {
+    background: var(--ro-racing);
+}
+
+.ro-guide .ro-milestones li[data-ro-state='past'] :is(time, h3) {
+    color: var(--ro-field-muted);
+}
+
+.ro-milestones li[data-ro-state='next']::before {
+    box-shadow: 0 0 0 6px rgb(91 213 221 / 22%);
+}
+
+.ro-milestones li[data-ro-state='next']:last-child::before {
+    box-shadow: 0 0 0 4px var(--ro-field), 0 0 0 6px var(--ro-racing), 0 0 0 12px rgb(91 213 221 / 22%);
+}
+
+.ro-milestones li[data-ro-state='future']:not(:last-child)::before {
+    border-color: var(--ro-lane);
+}
+
+.ro-milestones li[data-ro-state='future'] time {
+    color: var(--ro-field-ink);
+}
+
+/* Dates are competition marks: Orbitron, like the poster's RO x LWC. */
+.ro-guide .ro-milestones time {
     display: block;
-    color: var(--lwc-accent);
-    font-size: 1.125rem;
+    color: var(--ro-racing);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: clamp(1.125rem, 2vw, 1.5rem);
     font-weight: 700;
-    line-height: 1.4;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
 }
 
-.ro-milestones h3 {
-    margin-top: var(--lwc-space-2);
-    font-size: var(--lwc-type-body);
-    line-height: 1.4;
+.ro-guide .ro-milestones h3 {
+    margin-top: var(--lwc-space-3);
+    color: var(--ro-field-ink);
+    font-size: 1.125rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
-.ro-milestones p {
+.ro-guide .ro-milestones p {
     margin-top: var(--lwc-space-2);
-    color: var(--lwc-muted);
+    color: var(--ro-field-muted);
     font-size: var(--lwc-type-sm);
     line-height: 1.6;
 }
 
-.ro-timeline .ro-timeline-note {
-    margin-top: var(--lwc-space-5);
-    padding-top: var(--lwc-space-4);
-    border-top: 1px solid var(--lwc-border);
-    color: var(--lwc-muted);
+/* The qualifying rule is the strip's footnote, ruled off the milestones like a race-card footer. */
+.ro-guide .ro-timeline .ro-timeline-note {
+    margin-top: var(--lwc-space-7);
+    padding: var(--lwc-space-5) 0 0;
+    border-top: 1px solid var(--ro-lane);
+    color: var(--ro-field-muted);
     font-size: var(--lwc-type-sm);
     line-height: 1.6;
 }
 
-.ro-actions {
+.ro-guide .ro-timeline-note strong {
+    color: var(--ro-racing);
+}
+
+/* Closing band: the two ways forward share one centred row. */
+.ro-guide .ro-actions {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--lwc-space-3) var(--lwc-space-5);
-    margin-top: var(--lwc-space-6);
-    padding-top: var(--lwc-space-5);
-    border-top: 1px solid var(--lwc-border);
+    justify-content: center;
+    gap: var(--lwc-space-4);
+    padding-block: var(--lwc-space-6);
 }
 
-.ro-guide .ro-button {
+.ro-guide:not(:has(.ro-standings:not([hidden]))) .ro-actions {
+    padding-top: calc(var(--lwc-space-6) + 2 * var(--ro-check));
+    border-top: 0;
+}
+
+/* The strip ends on a chequered finish line: the standings stand right behind it. Without standings
+   the finish line hands straight over to the two ways forward. */
+.ro-guide .ro-standings::before,
+.ro-guide:not(:has(.ro-standings:not([hidden]))) .ro-actions::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: calc(2 * var(--ro-check));
+    background: repeating-conic-gradient(var(--ro-field) 0 25%, var(--ro-field-ink) 0 50%) 0 0 / calc(2 * var(--ro-check)) calc(2 * var(--ro-check));
+}
+
+.ro-guide :is(.ro-button, .ro-text-action) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--lwc-space-4);
-    min-height: 48px;
-    padding: var(--lwc-space-3) var(--lwc-space-5);
+    gap: var(--lwc-space-3);
+    min-height: 56px;
+    min-width: 0;
+    max-width: 100%;
+    padding: var(--lwc-space-3) var(--lwc-space-6);
     border-radius: var(--lwc-radius-md);
-    background: var(--lwc-accent);
-    color: var(--lwc-on-accent);
+    font-size: 1.0625rem;
     font-weight: 700;
     text-decoration: none;
-    transition: background-color var(--lwc-duration-fast) var(--lwc-ease);
+    white-space: normal;
+    text-align: center;
+    transition: background-color var(--lwc-duration-fast) var(--lwc-ease),
+        border-color var(--lwc-duration-fast) var(--lwc-ease),
+        color var(--lwc-duration-fast) var(--lwc-ease),
+        transform 180ms var(--ro-ease-out),
+        box-shadow 180ms var(--ro-ease-out);
+}
+
+.ro-guide .ro-button {
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent);
+    box-shadow: var(--lwc-shadow-md);
 }
 
 .ro-guide .ro-button:hover {
     background: var(--lwc-accent-hover);
+    color: var(--lwc-on-accent);
 }
 
 .ro-guide .ro-text-action {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--lwc-space-2);
-    min-height: 44px;
-    font-size: var(--lwc-type-sm);
+    border: 1px solid var(--lwc-border-strong);
+    background: var(--lwc-surface);
+    color: var(--lwc-accent);
 }
 
-@media (max-width: 600px) {
+.ro-guide .ro-text-action:hover {
+    border-color: var(--lwc-accent);
+    background: var(--lwc-surface);
+    color: var(--lwc-accent-hover);
+}
+
+@media (max-width: 700px) {
     .ro-guide {
-        padding-inline: var(--lwc-space-5);
+        --ro-card-pad: min(var(--lwc-space-5), 6vw);
+        padding-inline: min(var(--lwc-space-4), 4vw);
+    }
+
+    /* Phone poster: the mark heads the frame and the phoenix gets the full width below it. */
+    .ro-artwork {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        aspect-ratio: 1.15;
+        min-height: 0;
     }
 
     .ro-artwork .ro-artwork-mark {
-        padding-left: var(--lwc-space-4);
+        align-self: start;
+        padding: var(--lwc-space-5) var(--lwc-space-5) 0;
+        font-size: min(2rem, 7vw);
+        transform: none;
+    }
+
+    .ro-arena {
+        grid-column: 1;
+        grid-row: 1 / -1;
+    }
+
+    .ro-lanes {
+        inset: -4% -6% auto auto;
+        width: 82%;
+        height: 108%;
+    }
+
+    .ro-phoenix {
+        width: 54%;
+        margin: 4% 0 0 24%;
     }
 
     .ro-sport-mark {
-        right: var(--lwc-space-3);
-        bottom: var(--lwc-space-3);
+        left: var(--lwc-space-5);
+        top: auto;
+        bottom: 22vw;
+        font-size: min(0.625rem, 2.6vw);
     }
 
-    .ro-essay > p:not(.ro-eyebrow) {
+    .ro-guide .ro-essay {
+        width: calc(100% - 6vw);
+        margin-top: -14vw;
+    }
+
+    .ro-guide .ro-intro {
+        padding-block: var(--lwc-space-5);
+    }
+
+    .ro-guide .ro-intro::before {
+        margin-bottom: var(--lwc-space-4);
+    }
+
+    .ro-guide .ro-body {
+        padding-block: var(--lwc-space-5);
+    }
+
+    .ro-guide .ro-body p {
         font-size: var(--lwc-type-body);
     }
 
-    .ro-essay > p.ro-lead {
-        font-size: 1.125rem;
+    .ro-guide .ro-timeline {
+        padding-block: var(--lwc-space-6);
     }
 
-    .ro-timeline {
-        padding: var(--lwc-space-4);
+    .ro-timeline-heading {
+        margin-bottom: var(--lwc-space-6);
     }
 
     .ro-milestones {
@@ -295,34 +459,772 @@
 
     .ro-milestones li {
         padding-top: 0;
-        padding-left: var(--lwc-space-6);
+        padding-left: calc(var(--ro-node) + var(--lwc-space-4));
     }
 
     .ro-milestones li::before {
-        top: 5px;
+        top: 2px;
     }
 
     .ro-milestones li:not(:last-child)::after {
-        top: 19px;
-        bottom: calc(-1 * var(--lwc-space-5) - 5px);
-        left: 6px;
+        top: calc(2px + var(--ro-node));
+        bottom: calc(-1 * var(--lwc-space-5) - 2px);
+        left: calc((var(--ro-node) - var(--ro-track)) / 2);
         right: auto;
-        width: 2px;
+        width: var(--ro-track);
         height: auto;
+        background: linear-gradient(180deg,
+            var(--ro-racing) calc(var(--ro-leg) * 100%), var(--ro-lane) calc(var(--ro-leg) * 100%));
     }
 
-    .ro-actions {
+    .ro-guide :is(.ro-button, .ro-text-action) {
+        gap: var(--lwc-space-2);
+        padding-inline: var(--lwc-space-4);
+    }
+
+    .ro-guide .ro-actions {
         align-items: stretch;
         flex-direction: column;
+        padding-block: var(--lwc-space-5);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .ro-guide {
+        --ro-gold-plinth: #3a3320;
+        --ro-silver-plinth: #29333d;
+        --ro-bronze-plinth: #382e26;
+    }
+}
+
+/* ---------- Live clock: the next deadline counts down under its date ---------- */
+.ro-guide .ro-clock {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+    max-width: 100%;
+    align-items: baseline;
+    margin-top: var(--lwc-space-2);
+    overflow: hidden;
+    color: var(--ro-field-ink);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: clamp(0.9375rem, 1.5vw, 1.0625rem);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+}
+
+.ro-clock-part {
+    display: inline-flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+.ro-clock-part > span {
+    display: inline-block;
+    width: 0.8em;
+    text-align: center;
+}
+
+.ro-clock-part > .is-sep {
+    width: auto;
+    padding-inline: 0.06em;
+    color: var(--ro-field-muted);
+}
+
+/* ---------- Standings: the podium on metal plinths, the chasing pack below ---------- */
+.ro-guide .ro-standings {
+    container-type: inline-size;
+    position: relative;
+    padding: calc(var(--lwc-space-7) + 2 * var(--ro-check)) var(--ro-card-pad) var(--lwc-space-6);
+    background: var(--lwc-surface);
+}
+
+.ro-podium,
+.ro-board {
+    width: 100%;
+    max-width: 36rem;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+}
+
+.ro-podium {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+}
+
+.ro-step {
+    --ro-metal: var(--lwc-silver);
+    --ro-plinth: var(--ro-silver-plinth);
+    --ro-portrait: 76px;
+    --ro-step-h: 4.5rem;
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+}
+
+.ro-step[data-place='1'] {
+    --ro-metal: var(--lwc-gold);
+    --ro-plinth: var(--ro-gold-plinth);
+    --ro-portrait: 96px;
+    --ro-step-h: 6.25rem;
+    grid-column: 2;
+}
+
+.ro-step[data-place='3'] {
+    --ro-metal: var(--lwc-bronze);
+    --ro-plinth: var(--ro-bronze-plinth);
+    --ro-portrait: 68px;
+    --ro-step-h: 3.25rem;
+    grid-column: 3;
+}
+
+.ro-guide .ro-step-link,
+.ro-step.is-skeleton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--lwc-ink);
+    text-decoration: none;
+}
+
+.ro-step-portrait {
+    position: relative;
+    width: var(--ro-portrait);
+    aspect-ratio: 1;
+    margin-bottom: var(--lwc-space-3);
+    border-radius: 50%;
+    background: var(--lwc-surface-muted);
+    box-shadow: 0 0 0 3px var(--ro-metal), 0 0 0 6px var(--lwc-surface);
+    transition: transform 200ms var(--ro-ease-out), box-shadow 300ms var(--ro-ease-out);
+}
+
+.ro-step-portrait img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.ro-step-name {
+    display: block;
+    max-width: 100%;
+    padding-inline: var(--lwc-space-1);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.ro-step-score {
+    margin: 2px 0 var(--lwc-space-3);
+    color: var(--lwc-accent);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ro-step[data-place='1'] .ro-step-score {
+    font-size: 1.0625rem;
+}
+
+.ro-step-block {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-self: stretch;
+    height: var(--ro-step-h);
+    padding-top: var(--lwc-space-2);
+    overflow: hidden;
+    border-top: 3px solid var(--ro-metal);
+    background: var(--ro-plinth);
+    transform-origin: 50% 100%;
+    transition: filter var(--lwc-duration-fast) var(--lwc-ease);
+}
+
+.ro-step[data-place='1'] .ro-step-block { border-radius: var(--lwc-radius-md) var(--lwc-radius-md) 0 0; }
+.ro-step[data-place='2'] .ro-step-block { border-radius: var(--lwc-radius-md) 0 0 0; }
+.ro-step[data-place='3'] .ro-step-block { border-radius: 0 var(--lwc-radius-md) 0 0; }
+
+.ro-step-rank {
+    color: var(--lwc-ink);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: clamp(1.375rem, 3vw, 2rem);
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.82;
+}
+
+.ro-step-link:is(:hover, :focus-visible) .ro-step-portrait {
+    transform: translateY(-4px);
+}
+
+.ro-step-link:is(:hover, :focus-visible) .ro-step-block {
+    filter: brightness(0.96);
+}
+
+.ro-step-link:active .ro-step-portrait {
+    transform: translateY(-1px) scale(0.97);
+    transition-duration: 80ms;
+}
+
+.ro-guide :is(.ro-standings a, .ro-actions a) {
+    scroll-margin-block: calc(var(--site-sticky-height, 56px) + 12px) 12px;
+}
+
+.ro-guide :is(.ro-step-link, .ro-row-link):focus-visible {
+    outline-offset: -3px;
+}
+
+/* The champion keeps a warm halo once the podium has landed. */
+.ro-step.is-crowned .ro-step-portrait,
+.ro-standings.is-settled .ro-step[data-place='1'] .ro-step-portrait {
+    box-shadow: 0 0 0 3px var(--ro-metal), 0 0 0 6px var(--lwc-surface), 0 0 28px 6px rgb(245 197 66 / 38%);
+}
+
+/* The chasing pack: rank, portrait, name, a score bar and the score itself. */
+.ro-board {
+    margin-top: var(--lwc-space-2);
+    border-top: 1px solid var(--lwc-border);
+}
+
+.ro-row {
+    position: relative;
+}
+
+.ro-guide .ro-row-link {
+    display: grid;
+    grid-template-columns: 2rem 40px minmax(0, 1fr) minmax(2rem, 5rem) auto;
+    align-items: center;
+    gap: var(--lwc-space-3);
+    min-height: 60px;
+    padding: var(--lwc-space-2) var(--lwc-space-3);
+    border-bottom: 1px solid var(--lwc-border);
+    color: var(--lwc-ink);
+    text-decoration: none;
+    transition: background-color var(--lwc-duration-fast) var(--lwc-ease), transform 160ms var(--ro-ease-out);
+}
+
+.ro-row-link:is(:hover, :focus-visible) {
+    background: var(--lwc-surface-muted);
+}
+
+.ro-row-link:active {
+    transform: scale(0.99);
+    transition-duration: 80ms;
+}
+
+.ro-row-rank {
+    color: var(--lwc-muted);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    transition: color var(--lwc-duration-fast) var(--lwc-ease);
+}
+
+.ro-row-link:hover .ro-row-rank {
+    color: var(--lwc-accent);
+}
+
+.ro-row-portrait {
+    grid-column: 2;
+    grid-row: 1;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--lwc-surface-muted);
+    object-fit: cover;
+}
+
+.ro-row-name {
+    min-width: 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.ro-row-bar {
+    height: 6px;
+    overflow: hidden;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface-muted);
+}
+
+.ro-row-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--lwc-accent);
+    transform: scaleX(var(--ro-score, 0));
+    transform-origin: 0 50%;
+    transition: transform 720ms var(--ro-ease-out) 80ms;
+}
+
+.ro-row-score {
+    color: var(--lwc-accent);
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Climbers wear the leaderboard's green rank-up bubble on their portrait. */
+.ro-climb {
+    position: absolute;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 5px 1px 4px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-success);
+    box-shadow: 0 0 0 2px var(--lwc-surface);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+.ro-climb svg {
+    width: 8px;
+    height: 8px;
+}
+
+.ro-step-portrait .ro-climb {
+    right: -4px;
+    bottom: 0;
+}
+
+.ro-row-link .ro-climb {
+    position: relative;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    justify-self: end;
+    margin: 0 -10px -4px 0;
+}
+
+/* Loading: the board holds its shape with quiet placeholders until the standings arrive. */
+.ro-step.is-skeleton .ro-step-name {
+    width: 70%;
+    height: 0.875rem;
+    margin-bottom: var(--lwc-space-6);
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface-muted);
+}
+
+.ro-step.is-skeleton .ro-step-portrait {
+    box-shadow: 0 0 0 3px var(--lwc-border), 0 0 0 6px var(--lwc-surface);
+}
+
+.ro-step.is-skeleton .ro-step-block {
+    border-top-color: var(--lwc-border);
+    background: var(--lwc-surface-muted);
+}
+
+.ro-row.is-skeleton {
+    height: 61px;
+    border-bottom: 1px solid var(--lwc-border);
+    background:
+        radial-gradient(circle 20px at calc(3 * var(--lwc-space-3) + 2rem + 20px) 50%, var(--lwc-surface-muted) 98%, transparent),
+        linear-gradient(var(--lwc-surface-muted) 0 0) calc(4 * var(--lwc-space-3) + 2rem + 40px) 50% / 32% 0.875rem no-repeat;
+}
+
+/* ---------- Motion ---------- */
+@property --ro-leg {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Poster: the lanes draw themselves, the racing line follows, the phoenix lifts into place. */
+    .ro-lanes rect {
+        stroke-dasharray: 1;
+        animation: ro-draw 1100ms var(--ro-ease-out) both;
     }
 
-    .ro-text-action {
-        align-self: flex-start;
+    .ro-lanes rect:nth-child(2) { animation-delay: 110ms; }
+    .ro-lanes rect:nth-child(3) { animation-delay: 220ms; }
+
+    .ro-lanes .ro-racing-line {
+        stroke-dasharray: 1;
+        animation: ro-draw 700ms var(--ro-ease-out) 700ms both;
+    }
+
+    /* Now and then a light runs the racing line, like a timing beam. */
+    .ro-lanes .ro-racing-glint {
+        stroke: var(--ro-field-ink);
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-dasharray: 0.1 1.1;
+        stroke-dashoffset: 0.1;
+        opacity: 0.85;
+        animation: ro-glint 7s linear 1.6s infinite;
+    }
+
+    .ro-phoenix {
+        animation: ro-rise 820ms var(--ro-ease-out) 220ms both;
+    }
+
+    .ro-artwork .ro-artwork-mark {
+        animation: ro-slide-in 560ms var(--ro-ease-out) 80ms both;
+    }
+
+    .ro-artwork-mark span {
+        display: inline-block;
+        animation: ro-spin-in 520ms var(--ro-ease-settle) 380ms both;
+    }
+
+    .ro-sport-mark {
+        animation: ro-fade-in 600ms var(--ro-ease-out) 900ms both;
+    }
+
+    .ro-guide .ro-essay {
+        animation: ro-sheet-up 620ms var(--ro-ease-out) 120ms both;
+    }
+
+    /* Bands below the fold arrive as they scroll in. */
+    .ro-timeline.ro-reveal > :not(script, .ro-milestones),
+    .ro-actions.ro-reveal > * {
+        transition: opacity 420ms var(--ro-ease-out), transform 420ms var(--ro-ease-out);
+    }
+
+    .ro-timeline.ro-reveal:not(.is-in) > :not(script, .ro-milestones),
+    .ro-actions.ro-reveal:not(.is-in) > * {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    .ro-timeline.ro-reveal > .ro-timeline-note { transition-delay: 700ms; }
+    .ro-actions.ro-reveal > :nth-child(2) { transition-delay: 90ms; }
+
+    /* Milestones: each node pops, its leg of rail runs out to the next, then the text follows. */
+    .ro-milestones li:nth-child(2) { --ro-i: 1; }
+    .ro-milestones li:nth-child(3) { --ro-i: 2; }
+
+    .ro-timeline.ro-reveal .ro-milestones li::before {
+        transition: transform 360ms var(--ro-ease-settle) calc(120ms + var(--ro-i, 0) * 180ms);
+    }
+
+    .ro-timeline.ro-reveal .ro-milestones li::after {
+        transform-origin: 0 50%;
+        transition: transform 520ms var(--ro-ease-out) calc(220ms + var(--ro-i, 0) * 180ms);
+    }
+
+    .ro-timeline.ro-reveal .ro-milestones li {
+        transition: --ro-leg 900ms var(--ro-ease-out) calc(500ms + var(--ro-i, 0) * 180ms);
+    }
+
+    .ro-timeline.ro-reveal .ro-milestones li > * {
+        transition: opacity 360ms var(--ro-ease-out), transform 360ms var(--ro-ease-out);
+        transition-delay: calc(200ms + var(--ro-i, 0) * 180ms);
+    }
+
+    .ro-timeline.ro-reveal:not(.is-in) .ro-milestones li {
+        --ro-leg: 0 !important;
+    }
+
+    .ro-timeline.ro-reveal:not(.is-in) .ro-milestones li::before {
+        transform: scale(0);
+    }
+
+    .ro-timeline.ro-reveal:not(.is-in) .ro-milestones li::after {
+        transform: scaleX(0);
+    }
+
+    .ro-timeline.ro-reveal:not(.is-in) .ro-milestones li > * {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    /* The next deadline breathes: a ring pings out from its node, and its clock digits roll. */
+    .ro-guide .ro-milestones li[data-ro-state='next'] time::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: var(--ro-node);
+        height: var(--ro-node);
+        border: 2px solid var(--ro-racing);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: ro-ping 2.4s var(--ro-ease-out) 1.2s infinite both;
+    }
+
+    .ro-clock-part > .is-rolling {
+        animation: ro-roll 280ms var(--ro-ease-out);
+    }
+
+    /* Standings stay hidden until the board plays its entrance. */
+    .ro-standings.ro-reveal:not(.is-in) :is(.ro-step-link, .ro-row-link) {
+        opacity: 0;
+    }
+
+    .ro-standings.is-playing .ro-row:not(.is-landed) .ro-row-bar > span {
+        transform: scaleX(0);
+    }
+
+    .ro-standings.is-playing .ro-row:not(.is-landed) .ro-climb {
+        transform: scale(0);
+    }
+
+    .ro-row.is-landed .ro-climb {
+        animation: ro-pop 420ms var(--ro-ease-settle);
+    }
+
+    .ro-standings.is-playing .ro-row.is-climber.is-landed .ro-row-link {
+        animation: ro-climb-flash 1100ms var(--ro-ease-out);
+    }
+
+    /* The champion's moment: a gold ring bursts off the portrait and light sweeps the plinth. */
+    .ro-step.is-crowned .ro-step-portrait::after {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border: 3px solid var(--ro-metal);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: ro-burst 900ms var(--ro-ease-out) both;
+    }
+
+    .ro-step.is-crowned .ro-step-block::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 55%) 50%, transparent 70%);
+        transform: translateX(-110%);
+        pointer-events: none;
+        animation: ro-sweep 900ms var(--ro-ease-out) 120ms both;
+    }
+
+    .ro-step.is-skeleton :is(.ro-step-portrait, .ro-step-name, .ro-step-block),
+    .ro-row.is-skeleton {
+        animation: ro-breathe 1.4s ease-in-out infinite alternate;
+    }
+
+    /* Calls to action: lift on hover, the arrow leans in, a sheen crosses the green; press sinks. */
+    .ro-guide :is(.ro-button, .ro-text-action) > span {
+        display: inline-block;
+        transition: transform 200ms var(--ro-ease-out);
+    }
+
+    .ro-guide .ro-button {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ro-guide .ro-button::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 26%) 50%, transparent 65%);
+        transform: translateX(-120%);
+        pointer-events: none;
+    }
+
+    .ro-guide :is(.ro-button, .ro-text-action):is(:hover, :focus-visible) {
+        transform: translateY(-2px);
+    }
+
+    .ro-guide .ro-button:is(:hover, :focus-visible) {
+        box-shadow: 0 14px 28px -12px rgb(0 0 0 / 45%), var(--lwc-shadow-md);
+    }
+
+    .ro-guide .ro-text-action:is(:hover, :focus-visible) {
+        box-shadow: var(--lwc-shadow-sm);
+    }
+
+    .ro-guide .ro-button:is(:hover, :focus-visible)::after {
+        transform: translateX(120%);
+        transition: transform 700ms var(--ro-ease-out);
+    }
+
+    .ro-guide :is(.ro-button, .ro-text-action):is(:hover, :focus-visible) > span {
+        transform: translateX(4px);
+    }
+
+    .ro-guide :is(.ro-button, .ro-text-action):active {
+        transform: translateY(0) scale(0.97);
+        box-shadow: var(--lwc-shadow-sm);
+        transition-duration: 80ms;
+    }
+
+    /* When the closing band arrives, the join button calls once. */
+    .ro-actions.ro-reveal.is-in .ro-button {
+        animation: ro-call 1200ms var(--ro-ease-out) 520ms;
+    }
+}
+
+@keyframes ro-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes ro-glint {
+    0% { stroke-dashoffset: 0.1; }
+    16%, 100% { stroke-dashoffset: -1.1; }
+}
+@keyframes ro-rise {
+    from { opacity: 0; transform: translateY(22px) rotate(-17deg) scale(0.94); }
+    to { opacity: 0.93; transform: rotate(-9deg); }
+}
+@keyframes ro-slide-in { from { opacity: 0; translate: -18px 0; } }
+@keyframes ro-spin-in { from { opacity: 0; transform: rotate(-135deg) scale(0.4); } }
+@keyframes ro-fade-in { from { opacity: 0; } }
+@keyframes ro-sheet-up { from { opacity: 0.2; transform: translateY(36px); } }
+@keyframes ro-roll { from { opacity: 0; transform: translateY(-55%); } }
+@keyframes ro-ping {
+    0% { opacity: 0.9; transform: scale(1); }
+    70%, 100% { opacity: 0; transform: scale(2.4); }
+}
+@keyframes ro-pop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.18); }
+}
+@keyframes ro-climb-flash { from { background-color: var(--lwc-success-soft); } }
+@keyframes ro-burst {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(1.7); }
+}
+@keyframes ro-sweep { to { transform: translateX(110%); } }
+@keyframes ro-breathe { from { opacity: 1; } to { opacity: 0.55; } }
+@keyframes ro-call {
+    from { box-shadow: var(--lwc-shadow-md), 0 0 0 0 var(--lwc-accent); }
+    to { box-shadow: var(--lwc-shadow-md), 0 0 0 16px transparent; }
+}
+
+@media (max-width: 700px) {
+    .ro-guide .ro-standings {
+        padding-top: calc(var(--lwc-space-6) + 2 * var(--ro-check));
+        padding-bottom: var(--lwc-space-5);
+    }
+
+    .ro-step { --ro-portrait: 60px; --ro-step-h: 3.5rem; }
+    .ro-step[data-place='1'] { --ro-portrait: 76px; --ro-step-h: 4.75rem; }
+    .ro-step[data-place='3'] { --ro-portrait: 54px; --ro-step-h: 2.5rem; }
+
+    .ro-step-name,
+    .ro-step-score,
+    .ro-step[data-place='1'] .ro-step-score {
+        font-size: var(--lwc-type-sm);
+    }
+
+    /* Phone rows: the score bar runs under the name. */
+    .ro-guide .ro-row-link {
+        grid-template-columns: 1.5rem 36px minmax(0, 1fr) auto;
+        grid-template-areas: 'rank pic name score' 'rank pic bar bar';
+        gap: 6px var(--lwc-space-3);
+        padding-inline: var(--lwc-space-2);
+    }
+
+    .ro-row-rank { grid-area: rank; font-size: 0.875rem; }
+    .ro-row-portrait { grid-area: pic; width: 36px; height: 36px; }
+    .ro-row-name { grid-area: name; font-size: var(--lwc-type-sm); }
+    .ro-row-bar { grid-area: bar; height: 4px; }
+    .ro-row-score { grid-area: score; font-size: var(--lwc-type-sm); }
+    .ro-row-link .ro-climb { grid-area: pic; }
+
+    .ro-row.is-skeleton {
+        background:
+            radial-gradient(circle 18px at calc(var(--lwc-space-2) + 1.5rem + var(--lwc-space-3) + 18px) 50%, var(--lwc-surface-muted) 98%, transparent),
+            linear-gradient(var(--lwc-surface-muted) 0 0) calc(var(--lwc-space-2) + 1.5rem + 36px + 2 * var(--lwc-space-3)) 50% / 40% 0.75rem no-repeat;
+    }
+}
+
+/* The phone rail runs down, so its legs grow downwards. */
+@media (max-width: 700px) and (prefers-reduced-motion: no-preference) {
+    .ro-timeline.ro-reveal .ro-milestones li::after {
+        transform-origin: 50% 0;
+    }
+
+    .ro-timeline.ro-reveal:not(.is-in) .ro-milestones li::after {
+        transform: scaleY(0);
+    }
+
+    .ro-guide .ro-milestones li[data-ro-state='next'] time::before {
+        top: 2px;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ro-guide .ro-button {
+    .ro-guide :is(.ro-button, .ro-text-action, .ro-row-link, .ro-step-portrait, .ro-row-bar > span) {
         transition: none;
+    }
+}
+
+
+.ro-standings[hidden] { display: none; }
+.ro-standings-title { max-width: 36rem; margin: 0 auto 1.5rem !important; font-size: 1.25rem; }
+.ro-standings-title a { color: inherit; text-decoration: none; }
+.ro-step-score, .ro-row-score { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.ro-step-portrait img.is-missing, .ro-row-portrait.is-missing { visibility: hidden; }
+
+/* Reflow with the reading column, including enlarged text, not just the viewport. */
+@container (max-width: 28rem) {
+    .ro-podium { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+    .ro-step, .ro-step[data-place='1'], .ro-step[data-place='3'] {
+        grid-column: auto; grid-row: auto; --ro-portrait: 60px;
+    }
+    .ro-guide .ro-step-link {
+        display: grid;
+        grid-template-columns: 60px minmax(0, 1fr) 2.5rem;
+        grid-template-rows: auto auto;
+        gap: 0.25rem 1rem;
+    }
+    .ro-step-portrait { grid-column: 1; grid-row: 1 / 3; margin: 0; }
+    .ro-step-name { grid-column: 2; grid-row: 1; text-align: left; padding: 0; }
+    .ro-step-score { grid-column: 2; grid-row: 2; margin: 0; }
+    .ro-step-block { grid-column: 3; grid-row: 1 / 3; height: auto; min-height: 4rem; align-self: stretch; }
+    .ro-guide .ro-row-link {
+        grid-template-columns: 1.5rem 36px minmax(0, 1fr);
+        grid-template-areas: 'rank pic name' 'rank pic score' 'rank bar bar';
+        gap: 0.375rem 0.75rem;
+        padding-inline: 0;
+    }
+    .ro-row-rank { grid-area: rank; }
+    .ro-row-portrait, .ro-row-link .ro-climb { grid-area: pic; }
+    .ro-row-name { grid-area: name; }
+    .ro-row-score { grid-area: score; text-align: left; }
+    .ro-row-bar { grid-area: bar; }
+}
+
+@container (max-width: 12rem) {
+    .ro-guide .ro-step-link { display: flex; }
+    .ro-step-name { text-align: center; }
+    .ro-step-block { min-height: 2rem; width: 100%; }
+    .ro-guide .ro-row-link {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas: 'rank pic' 'name name' 'score score' 'bar bar';
+    }
+    .ro-row-link .ro-climb { margin-right: 0; }
+}
+
+/* Enlarged text needs the same vertical race strip as a narrow viewport. */
+.ro-timeline { container: ro-timeline / inline-size; }
+@container ro-timeline (max-width: 36rem) {
+    .ro-milestones { grid-template-columns: minmax(0, 1fr); }
+    .ro-milestones li {
+        padding-top: 0;
+        padding-left: calc(var(--ro-node) + var(--lwc-space-4));
+    }
+    .ro-milestones li::before { top: 2px; }
+    .ro-milestones li:not(:last-child)::after {
+        top: calc(2px + var(--ro-node));
+        bottom: calc(-1 * var(--lwc-space-5) - 2px);
+        left: calc((var(--ro-node) - var(--ro-track)) / 2);
+        right: auto;
+        width: var(--ro-track);
+        height: auto;
+        background: linear-gradient(180deg,
+            var(--ro-racing) calc(var(--ro-leg) * 100%), var(--ro-lane) calc(var(--ro-leg) * 100%));
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .ro-timeline.ro-reveal .ro-milestones li::after { transform-origin: 50% 0; }
+        .ro-timeline.ro-reveal:not(.is-in) .ro-milestones li::after { transform: scaleY(0); }
+        .ro-guide .ro-milestones li[data-ro-state='next'] time::before { top: 2px; }
     }
 }

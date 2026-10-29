@@ -3,26 +3,34 @@
 <head>
     <title>Media kit | Longevity World Cup</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_LANDING_PAGE_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_STANDALONE_FEEL_CSS}}">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
             display: none !important;
         }
 
-        .media-kit-panel {
-            max-width: 820px;
-            margin: 2.25rem auto;
-            padding: 1.75rem;
-            background: var(--lwc-surface);
-            border-radius: var(--lwc-radius-lg);
-            box-shadow: var(--lwc-shadow-sm);
-            border: 1px solid var(--lwc-border);
+        /* Press page on the landing sheet: the cover carries the title, lead and
+           the whole-kit download; the kit's hero pictures open the body; each
+           folder follows as a numbered section; the press contact closes the sheet. */
+        .media-kit-main {
+            box-sizing: border-box;
+            width: min(1080px, calc(100% - 32px));
+            margin: clamp(1.5rem, 5vh, 3rem) auto clamp(2.5rem, 7vh, 4.5rem);
         }
 
-        .media-kit-title {
-            margin-top: 0;
-            margin-bottom: 0.8rem;
-            text-align: center;
+        .media-kit-panel.landing-sheet {
+            --landing-pad: clamp(1.25rem, 4.5vw, 3rem);
+            --media-kit-gutter: var(--landing-pad);
+        }
+
+        .media-kit-head.landing-cover {
+            padding-bottom: clamp(1.75rem, 4vw, 2.5rem);
+        }
+
+        .media-kit-panel .media-kit-title {
+            margin-bottom: var(--lwc-space-4);
         }
 
         .media-kit-title[data-aos]:not(.aos-animate) {
@@ -30,15 +38,8 @@
             transform: none;
         }
 
-        .media-kit-intro {
-            margin: 0;
-            color: #2b3748;
-            text-align: center;
-        }
-
-        .media-kit-actions {
-            margin: 1.25rem 0 1.5rem;
-            text-align: center;
+        .media-kit-panel .media-kit-actions {
+            margin-top: var(--lwc-space-6);
         }
 
         .media-kit-primary-download {
@@ -46,244 +47,607 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            min-height: 44px;
-            padding: 0.78rem 1.25rem;
+            gap: 0.65rem;
+            min-height: 52px;
+            max-width: 100%;
+            padding: 0.85rem 1.6rem;
             border-radius: var(--lwc-radius-md);
             background: var(--lwc-accent);
             color: var(--lwc-on-accent);
+            font-size: 1.0625rem;
             font-weight: 700;
+            text-align: center;
             text-decoration: none;
-            box-shadow: none;
-            transition: background-color var(--lwc-duration-fast) var(--lwc-ease);
+            overflow-wrap: break-word;
+            box-shadow: var(--lwc-shadow-sm);
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-fast) var(--lwc-ease);
+        }
+
+        .media-kit-panel a.media-kit-primary-download {
+            color: var(--lwc-on-accent);
+            text-decoration: none;
         }
 
         .media-kit-primary-download::before {
-            content: "\f019";
+            content: "\f019" / "";
             font-family: "Font Awesome 6 Free";
             font-weight: 900;
             font-size: 0.95em;
             line-height: 1;
         }
 
-        .media-kit-primary-download:hover,
-        .media-kit-primary-download:focus-visible {
+        .media-kit-panel a.media-kit-primary-download:hover,
+        .media-kit-panel a.media-kit-primary-download:focus-visible {
             background: var(--lwc-accent-hover);
             color: var(--lwc-on-accent);
+            box-shadow: var(--lwc-shadow-md);
         }
 
-        .media-kit-preview {
-            margin-top: 0;
+        .media-kit-preview.landing-body {
+            display: grid;
+            gap: var(--lwc-space-5);
+            padding-top: clamp(1.5rem, 3.5vw, 2.5rem);
         }
 
-        .media-kit-loading,
+        .media-kit-groups:empty {
+            display: none;
+        }
+
+        .media-kit-groups {
+            display: grid;
+            counter-reset: media-kit-folder;
+        }
+
+        /* While the archive opens, the body already shows the hero pair it will have. */
+        .media-kit-loading {
+            display: grid;
+            gap: var(--lwc-space-3);
+            color: var(--lwc-muted);
+            text-align: start;
+        }
+
+        .media-kit-skeleton {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+            gap: var(--lwc-space-5);
+        }
+
+        .media-kit-skeleton span {
+            aspect-ratio: 3 / 2;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-lg);
+        }
+
+        /* The shimmer and the fallback banner come from the shared feedback system. */
         .media-kit-fallback {
-            margin-top: 0.75rem;
-            color: #506176;
+            margin: 0;
+        }
+
+        /* Folders are numbered sections on the sheet, ruled apart by a hairline:
+           accent index, folder name, file count, then one even grid of files. */
+        .media-kit-group:not(.media-kit-root) {
+            counter-increment: media-kit-folder;
+            padding-block: clamp(1.5rem, 3.2vw, 2.25rem) 0;
+        }
+
+        .media-kit-group + .media-kit-group {
+            margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+            border-top: 1px solid var(--lwc-border);
+        }
+
+        .media-kit-group-head {
+            display: flex;
+            align-items: baseline;
+            gap: var(--lwc-space-3);
+            min-width: 0;
+            margin-bottom: var(--lwc-space-1);
+        }
+
+        .media-kit-group-head::before {
+            content: counter(media-kit-folder, decimal-leading-zero);
+            flex: none;
+            min-width: 2ch;
+            color: var(--lwc-accent);
+            font-family: 'Orbitron', 'Roboto', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .media-kit-panel .media-kit-group-title {
+            margin: 0;
+            min-width: 0;
+            color: var(--lwc-ink);
+            font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            line-height: 1.25;
+            text-align: left;
+            text-transform: capitalize;
+            overflow-wrap: anywhere;
+        }
+
+        .media-kit-group-count {
+            flex: none;
+            align-self: center;
+            min-width: 1.75rem;
+            padding: 0.1rem 0.55rem;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-muted);
+            font-size: var(--lwc-type-xs);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.5;
             text-align: center;
         }
 
         .media-kit-file-list {
             display: grid;
-            gap: 0.5rem;
+            grid-template-columns: minmax(0, 1fr);
+            gap: var(--lwc-space-3);
             list-style: none;
             padding: 0;
             margin: 0;
         }
 
+        .media-kit-group {
+            display: grid;
+            align-content: start;
+            gap: var(--lwc-space-4);
+        }
+
+        .media-kit-root {
+            gap: var(--lwc-space-5);
+        }
+
+        /* Tile widths follow the text size, so enlarged text gets fewer columns.
+           The script then picks, within what fits, the column count that leaves
+           the fewest gaps in a folder's last row. */
+        .media-kit-tiles {
+            --media-kit-tile: 10rem;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--media-kit-tile)), 1fr));
+            gap: var(--lwc-space-5) var(--lwc-space-4);
+        }
+
+        .media-kit-featured {
+            --media-kit-tile: 18rem;
+            gap: var(--lwc-space-5);
+        }
+
+        /* Logos are wide marks: fewer, larger wells. */
+        .media-kit-logos {
+            --media-kit-tile: 15rem;
+        }
+
+        .media-kit-docs {
+            --media-kit-tile: 15rem;
+            gap: var(--lwc-space-3);
+        }
+
         .media-file-row {
             box-sizing: border-box;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: var(--lwc-space-3);
-            align-items: center;
-            padding: 0.65rem 0.75rem;
             border: 1px solid var(--lwc-border);
             border-radius: var(--lwc-radius-md);
+            background: var(--lwc-surface);
+        }
+
+        /* A tile is its picture with the name as the caption below,
+           and download is a round mark on the picture's corner. */
+        .media-file-tile {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: auto auto;
+            align-self: start;
+            overflow: hidden;
+            transition: border-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-fast) var(--lwc-ease), transform var(--lwc-duration-fast) var(--lwc-ease);
+        }
+
+        .media-kit-featured .media-file-tile {
+            border-radius: var(--lwc-radius-lg);
+            box-shadow: var(--lwc-shadow-sm);
+        }
+
+        .media-file-tile:hover,
+        .media-file-tile:focus-within {
+            border-color: var(--lwc-accent);
+            box-shadow: var(--lwc-shadow-md);
+        }
+
+        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .media-file-tile:hover {
+                transform: translateY(-2px);
+            }
+        }
+
+        .media-file-thumb {
+            position: relative;
+            isolation: isolate;
+            display: block;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
             background: var(--lwc-surface-muted);
+        }
+
+        .media-kit-featured .media-file-thumb,
+        .media-kit-logos .media-file-thumb {
+            aspect-ratio: 3 / 2;
+        }
+
+        .media-file-thumb img {
+            position: relative;
+            z-index: 1;
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            opacity: 0;
+            transition: opacity var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .media-file-thumb[data-state="ready"] img {
+            opacity: 1;
+        }
+
+        /* A photo fills its well with a soft, blurred copy of itself, so a
+           portrait in a landscape well reads as one picture, not a strip. */
+        .media-file-thumb[data-fill="photo"]::before {
+            content: "";
+            position: absolute;
+            inset: -24px;
+            z-index: 0;
+            background: var(--media-file-backdrop) center / cover no-repeat;
+            filter: blur(18px) brightness(0.9) saturate(1.1);
+        }
+
+        /* Transparent artwork sits on a light checkerboard in either theme,
+           which is how press tools show a cut-out logo. */
+        .media-file-thumb[data-fill="transparent"] {
+            background:
+                repeating-conic-gradient(#eef2f5 0 25%, #ffffff 0 50%) 0 0 / 16px 16px;
+        }
+
+        .media-kit-logos .media-file-thumb[data-fill="transparent"] img {
+            padding: 8%;
+            box-sizing: border-box;
+        }
+
+        .media-file-thumb[data-state="failed"] {
+            display: grid;
+            place-items: center;
+            background: var(--lwc-surface-muted);
+        }
+
+        .media-file-thumb[data-state="failed"]::after {
+            content: "\f03e";
+            color: var(--lwc-subtle);
+            font-family: "Font Awesome 6 Free";
+            font-weight: 400;
+            font-size: 2.25rem;
+            line-height: 1;
+        }
+
+        /* A document shows its file type in a small accent well. */
+        .media-file-doc-thumb {
+            box-sizing: border-box;
+            display: grid;
+            place-items: center;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-surface-accent);
+        }
+
+        .media-file-icon {
+            color: var(--lwc-accent);
+            font-size: 2.75rem;
+            line-height: 1;
+            text-align: center;
         }
 
         .media-file-name {
             min-width: 0;
+            padding: 0.65rem 0.8rem 0.75rem;
+            border-top: 1px solid var(--lwc-border);
             color: var(--lwc-ink);
+            font-size: var(--lwc-type-sm);
+            font-weight: 500;
+            line-height: 1.4;
             overflow-wrap: break-word;
             word-break: normal;
-            line-height: 1.5;
+        }
+
+        .media-kit-featured .media-file-name {
+            padding: 0.85rem 1.1rem 0.95rem;
+            font-size: var(--lwc-type-body);
+            font-weight: 700;
         }
 
         .media-file-button {
             box-sizing: border-box;
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 2;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.38rem;
+            width: 44px;
+            height: 44px;
             min-height: 44px;
-            padding: 0.42rem 0.75rem;
-            border: 1px solid var(--lwc-border-strong);
-            border-radius: var(--lwc-radius-md);
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: var(--lwc-radius-pill);
             background: var(--lwc-surface);
             color: var(--lwc-accent);
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.28);
             font-family: inherit;
-            font-size: var(--lwc-type-sm);
+            font-size: 0;
+            cursor: pointer;
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
+        }
+
+        .media-kit-featured .media-file-button {
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 48px;
+            height: 48px;
         }
 
         .media-file-button::before {
             content: "\f019";
             font-family: "Font Awesome 6 Free";
             font-weight: 900;
-            font-size: 0.9em;
+            font-size: 1rem;
             line-height: 1;
         }
 
         .media-file-button:hover,
         .media-file-button:focus-visible {
-            border-color: var(--primary-color);
-            background: rgba(0, 188, 212, 0.08);
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent);
         }
 
-        .media-kit-contact {
-            margin: 1.5rem 0 0;
-            text-align: center;
+        .media-file-button[data-download-failed] {
+            border-color: var(--lwc-warning);
+            background: var(--lwc-warning-soft);
+            color: var(--lwc-warning);
+        }
+
+        .media-file-button[data-download-failed]::before {
+            content: "\f01e";
+        }
+
+        .media-file-row:has(.media-file-button[data-download-failed]) {
+            border-color: var(--lwc-warning);
+        }
+
+        .media-kit-primary-download:focus-visible,
+        .media-file-button:focus-visible {
+            outline: 3px solid var(--lwc-accent);
+            outline-offset: 3px;
+        }
+
+        /* Documents are download blocks: file type, name, and a bordered
+           round download, read left to right on one row. */
+        .media-kit-docs .media-file-doc {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: var(--lwc-space-3);
+            padding: var(--lwc-space-3);
+            padding-inline-end: var(--lwc-space-3);
+            background: var(--lwc-surface);
+        }
+
+        .media-kit-docs .media-file-icon {
+            font-size: 1.75rem;
+        }
+
+        .media-kit-docs .media-file-name {
+            padding: 0;
+            border-top: 0;
+            font-weight: 700;
+        }
+
+        .media-kit-docs .media-file-button {
+            position: static;
+            border-color: var(--lwc-border);
+            box-shadow: none;
+        }
+
+        /* When the list is narrow for its text size, the name takes its own
+           line under the file type and download. */
+        .media-kit-docs {
+            container: media-kit-docs / inline-size;
+        }
+
+        @container media-kit-docs (max-width: 18rem) {
+            .media-kit-docs .media-file-doc {
+                grid-template-columns: auto minmax(0, 1fr);
+            }
+
+            .media-kit-docs .media-file-button {
+                justify-self: end;
+            }
+
+            .media-kit-docs .media-file-name {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+        }
+
+        .media-kit-docs .media-file-button:hover,
+        .media-kit-docs .media-file-button:focus-visible {
+            border-color: var(--lwc-accent);
+        }
+
+        /* Closing band: the press contact, its address set large enough to copy. */
+        .media-kit-contact.landing-close {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            gap: var(--lwc-space-2) var(--lwc-space-4);
+        }
+
+        .media-kit-contact::before {
+            content: "\f0e0" / "";
+            grid-row: span 2;
+            display: grid;
+            place-items: center;
+            width: 3rem;
+            height: 3rem;
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-surface);
+            color: var(--lwc-accent);
+            box-shadow: var(--lwc-shadow-sm);
+            font-family: "Font Awesome 6 Free";
+            font-size: 1.15rem;
+            font-weight: 400;
+            line-height: 1;
+        }
+
+        .media-kit-panel .media-kit-contact-label {
+            color: var(--lwc-accent);
+            font-size: var(--lwc-type-xs);
+            font-weight: 700;
+            line-height: 1.4;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .media-kit-panel .media-kit-contact a {
+            justify-self: start;
+            min-width: 0;
+            font-size: clamp(1.125rem, 2vw, 1.375rem);
+            font-weight: 700;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 900px) {
+            .media-kit-tiles:not(.media-kit-featured, .media-kit-docs, .media-kit-logos) {
+                --media-kit-tile: 8.5rem;
+            }
+
+            .media-kit-logos {
+                --media-kit-tile: 12rem;
+            }
+        }
+
+        /* Phones: the sheet runs edge to edge and tile widths follow the text
+           size, including a single column when captions need the room. */
+        @media (max-width: 560px) {
+            main.media-kit-main {
+                width: 100%;
+                margin: 0 0 var(--lwc-space-6);
+                padding-inline: 0;
+            }
         }
 
         @media (max-width: 600px) {
-            .media-kit-panel {
-                margin: 1.5rem 1rem;
-                padding: 1.35rem 1rem;
-                border-radius: 14px;
-            }
-
-            .media-kit-title {
-                font-size: 2rem;
+            .media-kit-panel.landing-sheet {
+                --landing-pad: min(1.25rem, 5vw);
             }
 
             .media-kit-primary-download {
                 width: 100%;
                 padding-inline: 0.9rem;
-                font-size: 0.92rem;
-                line-height: 1.2;
-                white-space: normal;
-                text-align: center;
             }
 
-            .media-file-row {
-                grid-template-columns: 1fr;
-                gap: 0.55rem;
-                align-items: stretch;
+            .media-kit-preview.landing-body,
+            .media-kit-root {
+                gap: var(--lwc-space-4);
+            }
+
+
+            .media-kit-tiles:not(.media-kit-featured, .media-kit-docs, .media-kit-logos) {
+                --media-kit-tile: 8rem;
+                gap: var(--lwc-space-3) var(--lwc-space-2);
+            }
+
+            .media-kit-logos {
+                --media-kit-tile: 8rem;
+                gap: var(--lwc-space-3) var(--lwc-space-2);
+            }
+
+            .media-kit-docs {
+                --media-kit-tile: 100vw;
+                gap: var(--lwc-space-2);
+            }
+
+            .media-kit-featured {
+                --media-kit-tile: 100vw;
+                gap: var(--lwc-space-4);
             }
 
             .media-file-name {
-                font-size: 0.88rem;
-                line-height: 1.32;
-                overflow-wrap: anywhere;
-            }
-
-            .media-file-button {
-                width: 100%;
-                min-width: 0;
-                min-height: 44px;
-                padding: 0 0.65rem;
-                border-radius: 10px;
-                justify-self: stretch;
-                font-size: 0.85rem;
-            }
-
-            .media-file-button::before {
-                font-size: 0.95rem;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .media-kit-primary-download {
-                gap: 0.3rem;
-                padding-inline: 0.55rem;
-                font-size: 0.82rem;
-                line-height: 1.2;
-                white-space: normal;
-                text-align: center;
-            }
-
-            .media-file-row {
-                grid-template-columns: 1fr;
-                gap: 0.55rem;
-                align-items: stretch;
-            }
-
-            .media-file-button {
-                width: 100%;
-                min-width: 0;
-                min-height: 44px;
-                font-size: 0.85rem;
-                justify-self: stretch;
-            }
-
-            .media-file-button::before {
-                font-size: 0.95rem;
-            }
-        }
-        .media-kit-primary-download:focus-visible, .media-file-button:focus-visible {
-            outline: 3px solid var(--lwc-accent);
-            outline-offset: 3px;
-        }
-        @media (max-width: 600px) {
-            .media-kit-panel {
-                border-radius: var(--lwc-radius-lg);
-            }
-            .media-kit-primary-download, .media-file-button, .media-file-name {
+                padding: 0.5rem min(0.6rem, 3vw) 0.55rem;
                 font-size: var(--lwc-type-sm);
-                line-height: 1.5;
+                line-height: 1.45;
             }
-            .media-file-button {
-                border-radius: var(--lwc-radius-md);
-                padding-block: var(--lwc-space-2);
+
+            .media-kit-featured .media-file-name {
+                padding-inline: min(0.85rem, 3vw);
+            }
+
+            .media-file-icon {
+                font-size: 2.25rem;
+            }
+
+            .media-kit-contact::before {
+                width: 2.5rem;
+                height: 2.5rem;
+                font-size: 1rem;
             }
         }
-        .media-kit-intro {
-            color: var(--lwc-ink);
-        }
-        .media-kit-loading {
-            color: var(--lwc-muted);
-        }
-        .media-kit-fallback {
-            padding: var(--lwc-space-3);
-            border: 1px solid var(--lwc-border);
-            border-left: 3px solid var(--lwc-warning);
-            border-radius: var(--lwc-radius-md);
-            background: var(--lwc-surface-muted);
-            color: var(--lwc-ink);
-            text-align: left;
+
+        @media (max-width: 280px) {
+            .media-kit-contact.landing-close {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .media-kit-contact::before {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
     <!--HEADER-->
-    <main>
-        <section class="media-kit-panel">
-            <h1 class="media-kit-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Media kit</h1>
-            <p class="media-kit-intro">Press-ready assets for Longevity World Cup.</p>
+    <main class="media-kit-main">
+        <section class="media-kit-panel landing-sheet landing-sheet-bleed" aria-labelledby="media-kit-title">
+            <div class="media-kit-head landing-cover">
+                <h1 id="media-kit-title" class="media-kit-title landing-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Media kit</h1>
+                <p class="media-kit-intro landing-lead">Press-ready assets for Longevity World Cup.</p>
 
-            <p class="media-kit-actions">
-                <a href="https://cdn.jsdelivr.net/gh/nopara73/LongevityWorldCup@master/LongevityWorldCup.Documentation/MediaKit.zip"
-                   target="_blank" rel="noopener noreferrer"
-                   class="media-kit-primary-download">
-                    Download full media kit (ZIP)
-                </a>
-            </p>
-
-            <!-- Live file list extracted from ZIP (auto-load) -->
-            <div id="zipPreview" class="media-kit-preview">
-                <div id="loading" class="media-kit-loading">Loading…</div>
-                <ul id="fileList" class="media-kit-file-list"></ul>
-                <div id="fallback" class="media-kit-fallback" style="display:none;">
-                    Failed to preview. Use the ZIP link above.
-                </div>
+                <p class="media-kit-actions">
+                    <a href="{{ASSET_MEDIA_KIT_ZIP}}" download="MediaKit.zip"
+                       class="media-kit-primary-download">
+                        Download full media kit (ZIP)
+                    </a>
+                </p>
             </div>
 
-            <p class="media-kit-contact">
-                Press contact:
+            <!-- Live file list extracted from ZIP (auto-load) -->
+            <div id="zipPreview" class="media-kit-preview landing-body">
+                <div id="loading" class="media-kit-loading" role="status">
+                    <div class="media-kit-skeleton" aria-hidden="true"><span></span><span></span></div>
+                    Loading…
+                </div>
+                <div id="fileList" class="media-kit-groups"></div>
+                <div id="fallback" class="media-kit-fallback" role="status" style="display:none;">
+                    Failed to preview. Use the ZIP link above.
+                </div>
+                <div id="downloadStatus" class="visually-hidden" role="status"></div>
+            </div>
+
+            <p class="media-kit-contact landing-close">
+                <span class="media-kit-contact-label">Press contact:</span>
                 <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>
             </p>
         </section>
@@ -293,19 +657,35 @@
     <!-- JSZip (client-side unzip) -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
     <script>
-        history.replaceState({ modal: 'details' }, "", `/media`);
-
-        const ZIP_PRIMARY = "https://cdn.jsdelivr.net/gh/nopara73/LongevityWorldCup@master/LongevityWorldCup.Documentation/MediaKit.zip";
-        const ZIP_FALLBACK = "https://raw.githubusercontent.com/nopara73/LongevityWorldCup/master/LongevityWorldCup.Documentation/MediaKit.zip";
+        // The deployed archive's content version is shared by previews and downloads.
+        const ZIP_URL = document.querySelector('.media-kit-primary-download').href;
 
         const loadingEl = document.getElementById('loading');
         const listEl = document.getElementById('fileList');
         const fallbackEl = document.getElementById('fallback');
+        // Photo backdrops need their URL for as long as the page is visible.
+        // Keep them across bfcache restores; release them on an actual departure.
+        const objectUrls = new Set();
+        function createFileUrl(blob) {
+            const url = URL.createObjectURL(blob);
+            objectUrls.add(url);
+            return url;
+        }
+        function releaseFileUrl(url) {
+            URL.revokeObjectURL(url);
+            objectUrls.delete(url);
+        }
+        window.addEventListener('pagehide', event => {
+            if (event.persisted) return;
+            for (const url of objectUrls) releaseFileUrl(url);
+        });
 
         function appendFileName(target, path) {
-            for (const part of path.split(/([/_-])/)) {
+            for (const part of path.split(/([/_.-])/)) {
                 if (!part) continue;
 
+                // A long name wraps after a separator, or before its extension.
+                if (part === ".") target.appendChild(document.createElement("wbr"));
                 target.appendChild(document.createTextNode(part));
                 if (part === "/" || part === "_" || part === "-") {
                     target.appendChild(document.createElement("wbr"));
@@ -313,58 +693,297 @@
             }
         }
 
-        async function fetchZip(url) {
-            const res = await fetch(url, { cache: 'no-store' });
-            if (!res.ok) throw new Error("HTTP " + res.status);
-            return await res.arrayBuffer();
+        async function readArchive(cache) {
+            const controller = new AbortController();
+            // This is a large archive: bound inactivity, not a progressing download.
+            let deadline;
+            const touch = () => {
+                clearTimeout(deadline);
+                deadline = setTimeout(() => controller.abort(), 30000);
+            };
+            touch();
+            try {
+                const res = await fetch(ZIP_URL, { cache, signal: controller.signal });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                if (!res.body) return await JSZip.loadAsync(await res.arrayBuffer());
+                touch();
+                const reader = res.body.getReader();
+                const chunks = [];
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                        touch();
+                    }
+                } finally {
+                    reader.releaseLock();
+                }
+                return await JSZip.loadAsync(await new Blob(chunks).arrayBuffer());
+            } finally {
+                clearTimeout(deadline);
+            }
         }
+
+        // The scaled picture is at most 520px per side, so inspect every alpha
+        // value rather than skipping small cut-outs between sampled pixels.
+        function hasTransparency(context, width, height) {
+            try {
+                const { data } = context.getImageData(0, 0, width, height);
+                for (let i = 3; i < data.length; i += 4) if (data[i] < 255) return true;
+                return false;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        // Larger folders get at least two rows when space permits. Within that
+        // limit, trade an unused last-row cell for a column of wider captions.
+        function balanceColumns(list) {
+            const style = getComputedStyle(list);
+            const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+            const tileValue = style.getPropertyValue('--media-kit-tile').trim();
+            const tile = tileValue.endsWith('vw') ? innerWidth * parseFloat(tileValue) / 100 : parseFloat(tileValue) * rem;
+            const gap = parseFloat(style.columnGap) || 0;
+            const width = list.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            const count = list.children.length;
+            if (!count || !(width > 0) || !(tile > 0)) return;
+            const fits = Math.min(
+                Math.max(1, Math.floor((width + gap) / (tile + gap))),
+                count > 3 ? Math.ceil(count / 2) : count);
+            let columns = fits;
+            if (count > fits) {
+                let fewest = Infinity;
+                for (let c = fits; c >= Math.max(Math.min(2, fits), Math.ceil(fits / 2)); c--) {
+                    const cost = (c - count % c) % c + (fits - c);
+                    if (cost < fewest) { fewest = cost; columns = c; }
+                }
+            }
+            const template = `repeat(${columns}, minmax(0px, 1fr))`;
+            if (list.style.gridTemplateColumns !== template) list.style.gridTemplateColumns = template;
+        }
+
+        // The page is observed too, so a text-size change re-balances lists whose width stays the same.
+        const balancedLists = 'ResizeObserver' in window
+            ? new ResizeObserver(() => { for (const list of document.querySelectorAll('#fileList .media-kit-tiles')) balanceColumns(list); })
+            : null;
+        if (balancedLists) balancedLists.observe(document.documentElement);
 
         async function loadList() {
             try {
-                let buf;
+                let zip;
                 try {
-                    buf = await fetchZip(ZIP_PRIMARY);
+                    zip = await readArchive('default');
                 } catch (_) {
-                    buf = await fetchZip(ZIP_FALLBACK);
+                    // A failed transfer or corrupt cache gets one fresh attempt at the
+                    // same release, without switching to a different branch snapshot.
+                    zip = await readArchive('reload');
                 }
-
-                const zip = await JSZip.loadAsync(buf);
                 const files = [];
                 zip.forEach((path, file) => { if (!file.dir) files.push(path); });
                 files.sort();
 
+                // One group per folder inside the kit; files at its top level come first,
+                // then folders by name whatever their capitalisation.
+                const groups = new Map();
                 for (const path of files) {
+                    const parts = path.split('/');
+                    const folder = parts.length > 2 ? parts.slice(1, -1).join('/') : '';
+                    if (!groups.has(folder)) groups.set(folder, []);
+                    groups.get(folder).push(path);
+                }
+                const folders = [...groups.keys()].sort((a, b) =>
+                    a === '' ? -1 : b === '' ? 1 : a.localeCompare(b, 'en', { sensitivity: 'base' }) || (a < b ? -1 : 1));
+
+                const imageTypes = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+                const documentTypes = { pdf: 'application/pdf', txt: 'text/plain', md: 'text/markdown', svg: 'image/svg+xml' };
+                const extensionOf = path => path.slice(path.lastIndexOf('.') + 1).toLowerCase();
+                const typeOf = path => {
+                    const extension = extensionOf(path);
+                    return Object.hasOwn(imageTypes, extension) ? imageTypes[extension]
+                        : Object.hasOwn(documentTypes, extension) ? documentTypes[extension] : 'application/octet-stream';
+                };
+                const thumbnails = 'IntersectionObserver' in window
+                    ? new IntersectionObserver((entries, observer) => {
+                        for (const entry of entries) {
+                            if (!entry.isIntersecting) continue;
+                            observer.unobserve(entry.target);
+                            showThumbnail(entry.target);
+                        }
+                    }, { rootMargin: '600px 0px' })
+                    : null;
+
+                // Thumbnails come from the ZIP already in memory, as each tile nears the viewport.
+                // Each is scaled down to tile size first, so a page of tiles does not hold
+                // twenty full-size pictures decoded at once.
+                async function showThumbnail(image) {
+                    const path = image.dataset.path;
+                    const thumb = image.parentElement;
+                    try {
+                        const bytes = await zip.file(path).async('arraybuffer');
+                        const original = new Blob([bytes], { type: imageTypes[extensionOf(path)] });
+                        let preview = original;
+                        let transparent = null;
+                        try {
+                            const bitmap = await createImageBitmap(original);
+                            try {
+                                const scale = Math.min(1, 520 / bitmap.width, 520 / bitmap.height);
+                                const canvas = document.createElement('canvas');
+                                canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+                                canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+                                const context = canvas.getContext('2d');
+                                context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                                transparent = hasTransparency(context, canvas.width, canvas.height);
+                                preview = await new Promise(resolve => canvas.toBlob(blob => resolve(blob || original), 'image/png'));
+                            } finally {
+                                bitmap.close();
+                            }
+                        } catch (_) {
+                            preview = original;
+                        }
+                        // Without a sample, formats that usually carry a cut-out get the checkerboard.
+                        if (transparent === null) transparent = ['png', 'gif'].includes(extensionOf(path));
+                        const url = createFileUrl(preview);
+                        image.addEventListener('load', () => { thumb.dataset.state = 'ready'; }, { once: true });
+                        image.addEventListener('error', () => {
+                            releaseFileUrl(url);
+                            thumb.style.removeProperty('--media-file-backdrop');
+                            delete thumb.dataset.fill;
+                            image.remove();
+                            thumb.dataset.state = 'failed';
+                        }, { once: true });
+                        if (transparent) {
+                            thumb.dataset.fill = 'transparent';
+                        } else {
+                            thumb.dataset.fill = 'photo';
+                            thumb.style.setProperty('--media-file-backdrop', `url("${url}")`);
+                        }
+                        image.src = url;
+                    } catch (_) {
+                        image.remove();
+                        thumb.dataset.state = 'failed';
+                    }
+                }
+
+                function createTile(path) {
+                    const isPicture = Object.hasOwn(imageTypes, extensionOf(path));
+                    const filename = path.split('/').pop();
                     const li = document.createElement('li');
-                    li.className = 'media-file-row';
+                    // Documents share the download control and filename treatment.
+                    li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row media-file-tile media-file-doc';
+
+                    const thumb = document.createElement('span');
+                    if (isPicture) {
+                        thumb.className = 'media-file-thumb';
+                        thumb.dataset.state = 'loading';
+                        const image = document.createElement('img');
+                        image.alt = '';
+                        image.decoding = 'async';
+                        image.dataset.path = path;
+                        thumb.appendChild(image);
+                        if (thumbnails) thumbnails.observe(image); else showThumbnail(image);
+                    } else {
+                        thumb.className = 'media-file-thumb media-file-doc-thumb';
+                        const icon = document.createElement('i');
+                        icon.className = extensionOf(path) === 'pdf' ? 'fas fa-file-pdf media-file-icon' : 'fas fa-file-lines media-file-icon';
+                        icon.setAttribute('aria-hidden', 'true');
+                        thumb.appendChild(icon);
+                    }
+                    li.appendChild(thumb);
 
                     const name = document.createElement('span');
                     name.className = 'media-file-name';
-                    appendFileName(name, path);
+                    appendFileName(name, filename);
 
                     const btn = document.createElement('button');
+                    btn.type = 'button';
                     btn.textContent = 'Download';
-                    btn.setAttribute('aria-label', `Download ${path.split('/').pop()}`);
+                    btn.setAttribute('aria-label', `Download ${filename}`);
                     btn.className = 'media-file-button';
                     btn.addEventListener('click', async () => {
-                        const file = zip.file(path);
-                        const blob = await file.async('blob');
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = path.split('/').pop();
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        URL.revokeObjectURL(url);
+                        const status = document.getElementById('downloadStatus');
+                        try {
+                            const extracted = await zip.file(path).async('blob');
+                            const blob = extracted.slice(0, extracted.size, typeOf(path));
+                            const url = createFileUrl(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            // Allow the browser to consume the download before revoking.
+                            setTimeout(() => releaseFileUrl(url), 60000);
+                            btn.removeAttribute('data-download-failed');
+                            // The press lands: the arrow drops into a check for a moment.
+                            btn.setAttribute('data-downloaded', '');
+                            clearTimeout(btn.downloadedTimer);
+                            btn.downloadedTimer = setTimeout(() => btn.removeAttribute('data-downloaded'), 1600);
+                            btn.removeAttribute('aria-description');
+                            btn.removeAttribute('title');
+                            status.textContent = '';
+                        } catch (_) {
+                            const message = `${filename}: Download failed. Try again or use the ZIP link above.`;
+                            btn.removeAttribute('data-downloaded');
+                            btn.setAttribute('data-download-failed', '');
+                            btn.setAttribute('aria-description', message);
+                            btn.title = message;
+                            status.textContent = message;
+                        }
                     });
 
                     li.appendChild(name);
                     li.appendChild(btn);
-                    listEl.appendChild(li);
+                    return { li, isPicture };
+                }
+
+                function createList(className, items) {
+                    const list = document.createElement('ul');
+                    list.className = `media-kit-file-list media-kit-tiles ${className}`.trim();
+                    // Tiles rise in reading order (standalone-feel.css).
+                    items.forEach((item, index) => {
+                        item.li.style.setProperty('--media-tile-i', String(index));
+                        list.appendChild(item.li);
+                    });
+                    if (balancedLists) balancedLists.observe(list);
+                    return list;
+                }
+
+                for (const folder of folders) {
+                    const tiles = groups.get(folder).map(createTile);
+                    // Documents lead, pictures follow, each in file-name order.
+                    const docs = tiles.filter(tile => !tile.isPicture);
+                    const pictures = tiles.filter(tile => tile.isPicture);
+                    const group = document.createElement('section');
+                    group.className = 'media-kit-group';
+
+                    if (!folder) {
+                        // The kit's own top-level files: its hero pictures are featured
+                        // large, with its documents as a compact strip below.
+                        group.classList.add('media-kit-root');
+                        if (pictures.length) group.appendChild(createList('media-kit-featured', pictures));
+                        if (docs.length) group.appendChild(createList('media-kit-docs', docs));
+                    } else {
+                        const head = document.createElement('div');
+                        head.className = 'media-kit-group-head';
+                        const title = document.createElement('h2');
+                        title.className = 'media-kit-group-title';
+                        title.textContent = folder;
+                        const count = document.createElement('span');
+                        count.className = 'media-kit-group-count';
+                        count.textContent = String(tiles.length);
+                        head.append(title, count);
+                        group.appendChild(head);
+                        // Documents are download rows above the folder's pictures, and logo
+                        // folders get wider wells: their marks are wide, not portraits.
+                        if (docs.length) group.appendChild(createList('media-kit-docs', docs));
+                        if (pictures.length) group.appendChild(createList(/^logos?$/i.test(folder) ? 'media-kit-logos' : '', pictures));
+                    }
+                    listEl.appendChild(group);
                 }
             } catch (e) {
                 console.error(e);
-                fallbackEl.style.display = 'block';
+                fallbackEl.style.display = 'flex';
             } finally {
                 loadingEl.style.display = 'none';
             }

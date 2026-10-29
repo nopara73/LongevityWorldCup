@@ -11,6 +11,24 @@ public sealed class AestheticContentBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task LongLocalizedContent_ReflowsAfterADelayedStylesheet()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 320, Height = 720 }
+        });
+        var page = await context.NewPageAsync();
+        await page.RouteAsync("**/css/aesthetic-system.css*", async route =>
+        {
+            // A document can finish parsing before its final stylesheet arrives.
+            await Task.Delay(250);
+            await route.ContinueAsync();
+        });
+        await NavigateAndSettleAsync(page, "/privacy");
+        AssertExtremeContentLayout("/privacy", await InjectAndMeasureExtremeContentAsync(page));
+    }
+
+    [Fact]
     public async Task RepresentativePages_ReflowAtFourHundredPercentZoomApproximation()
     {
         var app = App;

@@ -108,7 +108,7 @@ public sealed class FlowAccessibilityBrowserTests(
 
         await AssertStepMarkersVisibleAsync(page, route, theme, forcedColors);
         await page.Locator("#dob-year").SelectOptionAsync("1980");
-        await page.Locator("#blood-draw-date").FillAsync("2026-09-29");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-29");
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await page.WaitForFunctionAsync("() => document.getElementById('lwcDot1').getAttribute('aria-disabled') === 'false'");
         await AssertStepMarkersVisibleAsync(page, route, theme, forcedColors);

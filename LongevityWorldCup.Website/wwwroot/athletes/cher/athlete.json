@@ -25,5 +25,16 @@
   "Flag": "United States",
   "Why": "My goal is to gain strength with each year.",
   "PersonalLink": "https://www.youtube.com/channel/UCDszADWxRhTn6HNvbhZfjMg",
-  "PodcastLink": "https://youtu.be/H0kWwC_z2v0"
+  "PodcastLink": "https://youtu.be/H0kWwC_z2v0",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/yogagirlsworld_/",
+      "EvidenceUrls": [
+        "https://www.instagram.com/yogagirlsworld_/",
+        "https://www.youtube.com/channel/UCDszADWxRhTn6HNvbhZfjMg",
+        "https://www.youtube.com/@thechereffect"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

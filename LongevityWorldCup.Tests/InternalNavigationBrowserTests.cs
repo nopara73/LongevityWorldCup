@@ -88,6 +88,9 @@ public sealed class InternalNavigationBrowserTests(
         Assert.EndsWith("#rank-1", href);
 
         var newPage = await context.RunAndWaitForPageAsync(() => link.ClickAsync(new() { Button = MouseButton.Middle }));
+        // Middle-click opens a background tab. Activate it before waiting for
+        // rendering work that Chromium may suspend in a hidden document.
+        await newPage.BringToFrontAsync();
         await WaitForLeaderboardAsync(newPage);
         Assert.EndsWith(href, newPage.Url);
         Assert.Equal(originalUrl, page.Url);
@@ -138,6 +141,8 @@ public sealed class InternalNavigationBrowserTests(
             })
             """));
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        // Leave the fixed header clear while exercising a real modified click.
+        await link.EvaluateAsync("e => e.scrollIntoView({block:'center', behavior:'instant'})");
         var newPage = await context.RunAndWaitForPageAsync(() => link.ClickAsync(new() { Modifiers = [KeyboardModifier.ControlOrMeta] }));
         await newPage.BringToFrontAsync();
         await newPage.WaitForURLAsync(url => new Uri(url).AbsolutePath == href,
@@ -228,7 +233,7 @@ public sealed class InternalNavigationBrowserTests(
 
     private static async Task WaitForLeaderboardAsync(IPage page)
     {
-        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await page.WaitForDocumentContentLoadedAsync();
         await page.WaitForFunctionAsync("() => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
     }
 }

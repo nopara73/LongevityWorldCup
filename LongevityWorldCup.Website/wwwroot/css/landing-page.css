@@ -1,0 +1,278 @@
+/* Landing page family: the Rejuvenation Olympics guide, the policy pages and Unsubscribe share
+   one sheet. A muted cover band carries the accent bar, eyebrow, title and lead; the body follows
+   a numbered rhythm; an accent-soft closing band holds the page's way out (actions or contact). */
+
+.landing-sheet {
+    --landing-pad: clamp(1.25rem, 5vw, 3.5rem);
+    --landing-column: 44rem;
+    box-sizing: border-box;
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-md);
+    color: var(--lwc-ink);
+    text-align: left;
+}
+
+.landing-sheet *,
+.landing-sheet *::before,
+.landing-sheet *::after {
+    box-sizing: border-box;
+}
+
+.landing-sheet :is(h1, h2, h3, p, ul, ol) {
+    margin: 0;
+    text-align: left;
+}
+
+.landing-cover {
+    position: relative;
+    padding: clamp(1.75rem, 4.5vw, 3.25rem) var(--landing-pad) clamp(1.75rem, 4vw, 2.75rem);
+    border-bottom: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-muted);
+}
+
+/* The family signature: one short accent bar above every eyebrow. */
+.landing-cover::before {
+    content: '';
+    display: block;
+    width: 3rem;
+    height: 4px;
+    margin-bottom: var(--lwc-space-5);
+    border-radius: 2px;
+    background: var(--lwc-accent);
+}
+
+.landing-sheet .landing-eyebrow {
+    display: block;
+    margin: 0 0 var(--lwc-space-3);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--lwc-accent);
+    font-size: var(--lwc-type-xs);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.landing-sheet .landing-title {
+    max-width: 18ch;
+    margin: 0 0 var(--lwc-space-5);
+    color: var(--lwc-ink);
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+}
+
+.landing-sheet .landing-lead {
+    max-width: var(--landing-column);
+    padding: 0;
+    border: 0;
+    color: var(--lwc-ink);
+    font-size: clamp(1.125rem, 1.7vw, 1.3125rem);
+    line-height: 1.6;
+}
+
+.landing-cover > :last-child {
+    margin-bottom: 0;
+}
+
+.landing-body {
+    padding: clamp(0.5rem, 2vw, 1.25rem) var(--landing-pad) clamp(1.75rem, 4vw, 3rem);
+    counter-reset: landing-section;
+}
+
+/* Numbered sections: hairline, accent index, heading, then the text column. */
+.landing-section {
+    counter-increment: landing-section;
+    padding: clamp(1.5rem, 3.2vw, 2.25rem) 0;
+}
+
+.landing-section + .landing-section {
+    border-top: 1px solid var(--lwc-border);
+}
+
+.landing-section-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--lwc-space-3);
+    min-width: 0;
+}
+
+.landing-section-head::before {
+    content: counter(landing-section, decimal-leading-zero);
+    flex: none;
+    min-width: 2ch;
+    color: var(--lwc-accent);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+}
+
+.landing-sheet .landing-section-head h2 {
+    min-width: 0;
+    color: var(--lwc-ink);
+    font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+}
+
+.landing-section-text {
+    min-width: 0;
+    margin-top: var(--lwc-space-3);
+}
+
+.landing-section-text > * + * {
+    margin-top: var(--lwc-space-4);
+}
+
+/* Desktop: headings take the margin rail and the text keeps one measured column. */
+@media (min-width: 900px) {
+    .landing-section {
+        display: grid;
+        grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+        gap: var(--lwc-space-6);
+        align-items: start;
+    }
+
+    .landing-section-head {
+        flex-direction: column;
+        gap: var(--lwc-space-2);
+    }
+
+    .landing-section-text {
+        margin-top: 0.1rem;
+    }
+}
+
+.landing-sheet .landing-section-text :is(p, li) {
+    color: var(--lwc-muted);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.landing-sheet .landing-section-text ul {
+    padding: 0;
+    list-style: none;
+}
+
+.landing-sheet .landing-section-text li {
+    position: relative;
+    padding: var(--lwc-space-3) 0 var(--lwc-space-3) var(--lwc-space-6);
+}
+
+.landing-sheet .landing-section-text li + li {
+    border-top: 1px dashed var(--lwc-border);
+}
+
+.landing-sheet .landing-section-text li::before {
+    content: '';
+    position: absolute;
+    top: calc(var(--lwc-space-3) + 0.85em - 5px);
+    left: 0.25rem;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--lwc-accent);
+    border-radius: 50%;
+}
+
+/* Unsectioned bodies read as one measured column with an accent-ruled opening paragraph. */
+.landing-prose {
+    padding-block: clamp(1.75rem, 4vw, 2.75rem);
+}
+
+.landing-sheet .landing-prose p {
+    max-width: var(--landing-column);
+    color: var(--lwc-muted);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+}
+
+.landing-sheet .landing-prose p + p {
+    margin-top: var(--lwc-space-5);
+}
+
+/* Closing band: the page's way out, full-bleed at the foot of the sheet. */
+.landing-close {
+    padding: clamp(1.5rem, 4vw, 2.5rem) var(--landing-pad);
+    border-top: 1px solid var(--lwc-border);
+    background: var(--lwc-accent-soft);
+}
+
+.landing-sheet .landing-close p {
+    max-width: var(--landing-column);
+    color: var(--lwc-ink);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.landing-sheet .landing-close h2 {
+    margin-bottom: var(--lwc-space-3);
+    color: var(--lwc-accent);
+    font-size: var(--lwc-type-xs);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.landing-sheet .landing-close a {
+    font-weight: 700;
+}
+
+.landing-sheet a {
+    color: var(--lwc-accent);
+    text-underline-offset: 0.2em;
+    overflow-wrap: anywhere;
+}
+
+.landing-sheet a:hover {
+    color: var(--lwc-accent-hover);
+}
+
+.landing-sheet a:focus-visible {
+    outline: 3px solid var(--lwc-accent);
+    outline-offset: 4px;
+    border-radius: 2px;
+}
+
+/* Phones: the sheet runs edge to edge so the reading column keeps every pixel. */
+@media (max-width: 560px) {
+    .landing-sheet.landing-sheet-bleed {
+        border-width: 0 0 1px;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .landing-sheet .landing-title {
+        font-size: 2.25rem;
+    }
+}
+
+/* Emergency wrapping still works when full zoom and enlarged text leave less than a syllable. */
+@media (max-width: 280px) {
+    .landing-sheet {
+        --landing-pad: min(1.25rem, 6.25vw);
+    }
+
+    html body .landing-sheet :is(#ro-title, .unsubscribe-panel h1),
+    html body .landing-sheet .page-title-word {
+        overflow-wrap: anywhere;
+    }
+}

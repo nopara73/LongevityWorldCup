@@ -23,5 +23,15 @@
   "Division": "Women's",
   "Flag": "United States",
   "Why": "Living as many healthy years with friends and family as possible. May I never know what I am preventing!",
-  "PersonalLink": null
+  "PersonalLink": null,
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/reneebelz/",
+      "EvidenceUrls": [
+        "https://biohackerbabes.reneebelz.com/about/",
+        "https://www.instagram.com/reneebelz/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

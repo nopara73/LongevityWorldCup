@@ -1,0 +1,300 @@
+/*
+ * Longevity World Cup desktop pointer and keyboard layer
+ *
+ * The desktop counterpart of touch.css. One vocabulary for how the site
+ * answers a mouse and a keyboard:
+ * - Hover intent: interactive cards lift, buttons rise a pixel and rows tint,
+ *   all on the same curve. Only fine pointers that can hover get it, and never
+ *   right after a finger tap (html[data-lwc-input="touch"]).
+ * - One tooltip (.lwc-tip) replaces the browser's title box.
+ * - One focus ring (.lwc-focus-ring) glides between keyboard stops.
+ * - Arrow-key arrivals and list ends get a short, quiet acknowledgement.
+ *
+ * Colours come from the existing --lwc-* tokens only. Reduced motion keeps
+ * every state and removes the travel.
+ */
+
+:root {
+    --lwc-hover-lift-card: -3px;
+    --lwc-hover-lift-control: -1px;
+    --lwc-hover-shadow: 0 14px 30px -12px color-mix(in srgb, var(--lwc-ink, #17212b) 26%, transparent), 0 2px 6px -2px color-mix(in srgb, var(--lwc-ink, #17212b) 14%, transparent);
+    --lwc-hover-tint: color-mix(in srgb, var(--lwc-accent, #087685) 7%, transparent);
+    --lwc-hover-edge: color-mix(in srgb, var(--lwc-accent, #087685) 45%, var(--lwc-border, #d7e0e6));
+    --lwc-ring-color: var(--lwc-accent-bright, #19c3d1);
+    --lwc-ring-halo: color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 28%, transparent);
+    --lwc-tip-surface: var(--lwc-ink, #17212b);
+    --lwc-tip-ink: var(--lwc-canvas, #f3f5f7);
+}
+
+/* ------------------------------------------------------------------ cursor */
+/* Everything that opens, toggles or chooses says so before the click. */
+:where(
+    .leaderboard table tbody tr[data-athlete-name],
+    .podium-item,
+    label.view-badge,
+    summary,
+    [role="tab"],
+    [role="option"],
+    [role="menuitem"],
+    .custom-event-expander,
+    .proof-page-preview
+) {
+    cursor: pointer;
+}
+
+:where(button, [role="button"], a, label.view-badge, .option-button):is(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------- hover intent */
+@media (hover: hover) and (pointer: fine) {
+    /* Interactive cards: a short lift with a soft shadow and an accent edge. */
+    :root:not([data-lwc-input="touch"]) :is(.proof-page-card, .lmx-habit-card:has(> button, > a[href]), [data-lwc-hover="card"]):hover {
+        translate: 0 var(--lwc-hover-lift-card);
+        box-shadow: var(--lwc-hover-shadow);
+    }
+
+    :root:not([data-lwc-input="touch"]) :is(.proof-page-card, [data-lwc-hover="card"]):hover {
+        border-color: var(--lwc-hover-edge);
+    }
+
+    /* Podium: the athlete steps up off the block; the prize base stays put. */
+    :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) :is(.athlete-profile-link, .podium-rank) {
+        translate: 0 -5px;
+    }
+
+    :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) .podium-portrait {
+        box-shadow: 0 0 0 5px var(--lwc-hover-tint), 0 16px 26px -12px color-mix(in srgb, var(--lwc-ink, #17212b) 55%, transparent);
+    }
+
+    :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) .athlete-name {
+        text-decoration-color: var(--lwc-accent, #087685);
+    }
+
+    /* The prize base answers on its own: a short lift of the amount only. */
+    :root:not([data-lwc-input="touch"]) .podium-item-lower:hover {
+        box-shadow: inset 0 3px 0 color-mix(in srgb, var(--lwc-ink, #17212b) 10%, transparent);
+    }
+
+    /* Buttons and chips rise by one pixel; the press in motion.css takes it back. */
+    :root:not([data-lwc-input="touch"]) :is(
+        .option-button,
+        .dialog-button,
+        .rankings-btn,
+        .enhanced-subscribe-btn,
+        .bioage-calculate-button,
+        a.join-game,
+        a.flow-action,
+        .flow-action,
+        .lmx-button,
+        .copy-btn,
+        .leaderboard-order-toggle,
+        label.view-badge,
+        [data-lwc-hover="control"]
+    ):not(:disabled, [aria-disabled="true"], :active):hover {
+        translate: 0 var(--lwc-hover-lift-control);
+        box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--lwc-ink, #17212b) 35%, transparent);
+    }
+
+    /* Icon links (personal page, podcast, contact, footer icons) get a soft disc. */
+    :root:not([data-lwc-input="touch"]) :is(.personal-link-icon, .media-contact, .footer-icon-link, .lmx-discussion-quiet-action, [data-lwc-hover="icon"]):hover {
+        background-color: var(--lwc-hover-tint);
+        border-radius: var(--lwc-radius-pill, 999px);
+    }
+
+    /* Highlights rows tint like leaderboard rows already do, with the same accent edge. */
+    :root:not([data-lwc-input="touch"]) .events-board table tbody tr.main-row:hover > td:first-child {
+        box-shadow: inset 3px 0 0 var(--lwc-accent, #087685);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        :where(.proof-page-card, .lmx-habit-card, [data-lwc-hover="card"]) {
+            transition-property: translate, box-shadow, border-color, background-color;
+            transition-duration: var(--lwc-motion-base, 200ms);
+            transition-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+        }
+
+        :where(.podium-item) :where(.athlete-profile-link, .podium-rank, .podium-portrait, .podium-item-lower) {
+            transition: translate var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)), box-shadow var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+        }
+
+        :where(.personal-link-icon, .media-contact, .footer-icon-link, .lmx-discussion-quiet-action) {
+            transition-property: background-color, color, translate;
+            transition-duration: var(--lwc-motion-fast, 140ms);
+            transition-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+        }
+
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root :is(.proof-page-card, .lmx-habit-card, [data-lwc-hover="card"], .option-button, .flow-action, .lmx-button, label.view-badge):hover,
+    :root .podium-item:hover :is(.athlete-profile-link, .podium-rank) {
+        translate: none;
+    }
+}
+
+/* ------------------------------------------------------------------ tooltip */
+.lwc-tip {
+    position: fixed;
+    inset: auto;
+    top: 0;
+    left: 0;
+    z-index: 2147483000;
+    margin: 0;
+    padding: 0.42rem 0.62rem;
+    border: 0;
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-tip-surface);
+    color: var(--lwc-tip-ink);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    /* Keep measurement independent of the previous fixed left position. */
+    width: max-content;
+    max-width: 320px;
+    box-sizing: border-box;
+    max-height: calc(100dvh - 16px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+    box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.45), 0 2px 6px rgba(15, 23, 42, 0.18);
+    opacity: 0;
+    translate: 0 4px;
+    scale: 0.96;
+    transform-origin: var(--lwc-tip-arrow, 50%) 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+
+.lwc-tip[hidden]:not(:popover-open) {
+    display: none;
+}
+
+.lwc-tip[data-side="bottom"] {
+    translate: 0 -4px;
+    transform-origin: var(--lwc-tip-arrow, 50%) 0;
+}
+
+.lwc-tip.is-open {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .lwc-tip {
+        transition: opacity 90ms var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1)), translate 90ms var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1)), scale 90ms var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1));
+    }
+
+    .lwc-tip.is-open {
+        transition-duration: 160ms;
+        transition-timing-function: var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1));
+    }
+
+    /* Skimming from one tip to the next: the tip travels instead of blinking. */
+    .lwc-tip.is-open.is-gliding {
+        transition: left 160ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)), top 160ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)), opacity 90ms linear;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --lwc-tip-surface: color-mix(in srgb, var(--lwc-surface, #17212b) 83.333%, var(--lwc-ink, #e6edf3) 16.667%);
+        --lwc-tip-ink: var(--lwc-ink, #e6edf3);
+    }
+
+    .lwc-tip {
+        box-shadow: 0 14px 32px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--lwc-border, #42515e);
+    }
+}
+
+@media (forced-colors: active) {
+    .lwc-tip {
+        border: 1px solid CanvasText;
+        background: Canvas;
+        color: CanvasText;
+    }
+}
+
+/* --------------------------------------------------------------- focus ring */
+.lwc-focus-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2147482999;
+    width: var(--lwc-ring-w, 0);
+    height: var(--lwc-ring-h, 0);
+    translate: var(--lwc-ring-x, 0) var(--lwc-ring-y, 0);
+    border: 0;
+    border-radius: var(--lwc-ring-radius, 8px);
+    box-shadow: 0 0 0 4px var(--lwc-ring-halo);
+    pointer-events: none;
+    opacity: 0;
+    box-sizing: border-box;
+}
+
+.lwc-focus-ring[hidden] {
+    display: none;
+}
+
+.lwc-focus-ring.is-on {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .lwc-focus-ring {
+        transition: opacity 120ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+        scale: 1.06;
+    }
+
+    .lwc-focus-ring.is-on {
+        scale: 1;
+        transition: opacity 120ms var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)), scale 160ms var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1));
+    }
+
+    /* Between two stops the ring travels and reshapes on one curve. */
+    .lwc-focus-ring.is-on.is-gliding {
+        transition: translate 190ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)), width 190ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)), height 190ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)), border-radius 190ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)), opacity 120ms linear;
+    }
+}
+
+/* Focus stays on the actual control immediately; only its outer halo travels.
+ * Page-specific focus shells and forced-colour outlines remain authoritative. */
+:where(a, button, summary, [role="button"], [role="tab"], [tabindex], label.view-badge, .view-badge):where(:focus-visible) {
+    outline: 3px solid var(--lwc-ring-color);
+    outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+    .lwc-focus-ring {
+        display: none;
+    }
+}
+
+/* ------------------------------------------------------- keyboard feedback */
+/* A row reached with the arrow keys warms up once, then rests on the
+ * existing focus-within tint. */
+@media (prefers-reduced-motion: no-preference) {
+    tr.lwc-key-arrive > td {
+        animation: lwc-key-arrive 420ms var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
+    }
+}
+
+@keyframes lwc-key-arrive {
+    from {
+        background-color: color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 22%, transparent);
+    }
+}
+
+/* Keyboard visitors see the row they are in even when the pointer is elsewhere. */
+:root[data-lwc-input="keyboard"] :is(.leaderboard, .events-board, .archive-table) tbody tr:focus-within > td {
+    background-color: var(--lwc-hover-tint);
+}
+
+:root[data-lwc-input="keyboard"] .events-board table tbody tr.main-row:focus-within > td:first-child {
+    box-shadow: inset 3px 0 0 var(--lwc-accent, #087685);
+}

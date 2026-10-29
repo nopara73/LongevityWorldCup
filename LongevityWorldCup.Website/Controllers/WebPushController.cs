@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace LongevityWorldCup.Website.Controllers;
 
+public sealed record WebPushRegistration(string Endpoint, WebPushKeys Keys, WebPushSubscription[]? Previous = null);
+
 [ApiController]
 [Route("api/web-push")]
 [EnableRateLimiting(WebPushTransport.RateLimitPolicy)]
@@ -20,13 +22,15 @@ public sealed class WebPushController(WebPushTransport transport, WebPushStore s
     }
 
     [HttpPost("subscribe")]
-    [RequestSizeLimit(4096)]
-    public IActionResult Subscribe([FromBody] WebPushSubscription? subscription)
+    [RequestSizeLimit(32768)]
+    public IActionResult Subscribe([FromBody] WebPushRegistration? registration)
     {
+        var subscription = registration is null ? null : new WebPushSubscription(registration.Endpoint, registration.Keys);
         if (!FromThisWebsite()) return BadRequest("Open the website to manage notifications.");
         if (!transport.IsConfigured) return StatusCode(503, "Website notifications are not configured.");
-        if (!WebPushTransport.IsValid(subscription)) return BadRequest("Invalid push subscription.");
-        try { store.Subscribe(subscription!, DateTimeOffset.UtcNow); }
+        if (!WebPushTransport.IsValid(subscription) || registration?.Previous is { Length: > 8 }
+            || registration?.Previous?.Any(old => !WebPushTransport.IsValid(old)) == true) return BadRequest("Invalid push subscription.");
+        try { store.Subscribe(subscription!, DateTimeOffset.UtcNow, registration?.Previous); }
         catch (InvalidOperationException) { return Conflict("The subscription could not be saved."); }
         Response.Headers.CacheControl = "no-store";
         return NoContent();

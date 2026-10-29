@@ -112,7 +112,7 @@ Ties break by older chronological age, then username alphabetically.
 If you submit multiple test results, the **best** result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.
 
 #### How are lab detection limits handled in the competition?
-When your lab reports a biomarker value below the detection limit, that limit is used in the calculation. This keeps comparisons fair for other participants. This most often affects CRP; when the limit is unknown, we default to 1 mg/L.
+If your lab confirms that your result was below its limit of detection (LoD), we use that limit in the calculation. If your lab reports a result below its limit of quantitation (LoQ), we use the LoQ unless the lab also confirms that your result was below the LoD. These limits must apply to the assay used for your sample. We accept a numerical result instead only when the lab validates it as quantitatively reliable; an unvalidated raw instrument reading is not sufficient. Substituted limits are scoring inputs, not measured concentrations. This keeps comparisons fair for other participants. This most often affects CRP; when the limit is unknown, we default to 1 mg/L.
 
 #### How can I cheat?
 You can't.

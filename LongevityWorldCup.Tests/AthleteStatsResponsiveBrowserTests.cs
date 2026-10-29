@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -10,10 +12,43 @@ public sealed class AthleteStatsResponsiveBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(false, 1440)]
+    [InlineData(false, 390)]
+    [InlineData(true, 1440)]
+    [InlineData(true, 390)]
+    public async Task AthleteWhy_AlreadyQuotedSourceKeepsOneOpenerBeforeAndAfterHydration(bool javascript, int width)
+    {
+        using var client = App.CreateClient();
+        var athletes = (await client.GetFromJsonAsync<JsonArray>("/api/data/athletes"))!;
+        var original = athletes.Single(a => a?["Name"]?.GetValue<string>() == "QingqingZhuo")!["Why"]!.GetValue<string>();
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce,
+            JavaScriptEnabled = javascript
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/qingqingzhuo");
+        if (javascript)
+            await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').hasAttribute('data-server-rendered-profile') && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+        await Assertions.Expect(page.Locator("#athleteBio")).ToHaveTextAsync(original);
+        var mark = await page.Locator("#athleteBio").EvaluateAsync<string>("bio => getComputedStyle(bio, '::before').content");
+        Assert.True(mark is "none" or "normal", $"The original quoted why already has its opener; decoration was {mark}.");
+        if (javascript)
+        {
+            await page.EvaluateAsync("() => window.openAthleteModalBySlug('michael-lustgarten')");
+            await page.WaitForFunctionAsync("() => document.querySelector('#detailsModal .modal-content').dataset.athleteSlug === 'michael-lustgarten' && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
+            Assert.Equal("\"“\" / \"\"", await page.Locator("#athleteBio").EvaluateAsync<string>("bio => getComputedStyle(bio, '::before').content"));
+        }
+    }
+
+    [Theory]
     [InlineData("/athlete/michael-lustgarten", 390, 100)]
     [InlineData("/athlete/michael-lustgarten", 375, 200)]
     [InlineData("/athlete/michael-lustgarten", 390, 200)]
     [InlineData("/athlete/michael-lustgarten", 480, 200)]
+    [InlineData("/athlete/michael-lustgarten", 769, 200)]
+    [InlineData("/athlete/michael-lustgarten", 933, 200)]
     [InlineData("/about", 390, 200)]
     public async Task ProfileStats_KeepLabelsValuesAndUnitsInsideTheirRows(string path, int width, int textPercent)
     {
@@ -125,5 +160,51 @@ public sealed class AthleteStatsResponsiveBrowserTests(
             }
             """);
         Assert.True(problems.Length == 0, $"{path}, {width}px, dark={dark}, {textPercent}% text: {string.Join(", ", problems)}");
+    }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    [InlineData(320, 640)]
+    public async Task AthleteWhy_ReadsAsAnOpenPullQuoteRatherThanAnotherBox(int width, int height)
+    {
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("""
+            () => document.querySelector('#detailsModal .modal-content')?.dataset.athleteSlug === 'michael-lustgarten'
+                && !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')
+            """);
+        // Exercise a realistic why regardless of the fixture's copy.
+        await page.EvaluateAsync("() => { document.getElementById('athleteBio').textContent = 'To extend my health span as long as possible, and to help others do the same.'; }");
+
+        var quote = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const bio = document.getElementById('athleteBio');
+                const style = getComputedStyle(bio);
+                const mark = getComputedStyle(bio, '::before');
+                const box = bio.getBoundingClientRect();
+                const name = document.getElementById('athleteName').getBoundingClientRect();
+                return [style.borderTopWidth, style.backgroundColor, style.boxShadow, mark.content, style.textAlign,
+                    String(Math.round(box.left + box.width / 2 - (name.left + name.width / 2))), String(box.right <= innerWidth && box.left >= 0)];
+            }
+            """);
+        var scenario = $"{width}x{height}";
+        Assert.True(quote[0] == "0px" && quote[1] == "rgba(0, 0, 0, 0)" && quote[2] == "none",
+            $"{scenario}: the why should not be a bordered box (border {quote[0]}, background {quote[1]}, shadow {quote[2]}).");
+        Assert.True(quote[3] == "\"“\" / \"\"", $"{scenario}: the why should open with a decorative quotation mark, not {quote[3]}.");
+        Assert.Equal("center", quote[4]);
+        Assert.True(Math.Abs(int.Parse(quote[5])) <= 2 && quote[6] == "true", $"{scenario}: the quote should sit centred under the name (offset {quote[5]}, inside {quote[6]}).");
+
+        await page.EvaluateAsync("() => { document.getElementById('athleteBio').textContent = ''; }");
+        Assert.False(await page.Locator("#athleteBio").IsVisibleAsync(), $"{scenario}: an athlete without a why should not show a lone quotation mark.");
     }
 }

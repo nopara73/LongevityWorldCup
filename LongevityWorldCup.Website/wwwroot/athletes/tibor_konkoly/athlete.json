@@ -32,10 +32,44 @@
       "GgtUL": 29,
       "ShbgNmolL": 51.3,
       "VitaminDNmolL": 180
+    },
+    {
+      "Date": "2026-10-05",
+      "AlbGL": 43,
+      "CreatUmolL": 111,
+      "GluMmolL": 4.8,
+      "CrpMgL": 0.14,
+      "LymPc": 28.9,
+      "McvFL": 94,
+      "RdwPc": 13.2,
+      "AlpUL": 65,
+      "Wbc1000cellsuL": 4.2,
+      "NeutrophilPc": 58.7,
+      "MonocytePc": 9.8,
+      "Rbc10e12L": 4.9,
+      "MchPg": 31,
+      "UreaMmolL": 7.9,
+      "CystatinCMgL": 0.84,
+      "Hba1cMmolMol": 35,
+      "CholesterolMmolL": 5.9,
+      "ApoA1GL": 1.91,
+      "AltUL": 25,
+      "GgtUL": 29,
+      "ShbgNmolL": 47.4,
+      "VitaminDNmolL": 152.9
     }
   ],
   "Division": "Men's",
   "Flag": "Hungary",
   "Why": "Building a stronger body for a longer life.",
-  "PersonalLink": "https://instagram.com/tibor.konkoly"
+  "PersonalLink": "https://instagram.com/tibor.konkoly",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@tibor.konkoly",
+      "EvidenceUrls": [
+        "https://www.instagram.com/tibor.konkoly/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

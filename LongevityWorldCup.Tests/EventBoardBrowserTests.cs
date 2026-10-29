@@ -110,20 +110,143 @@ public sealed class EventBoardBrowserTests(
         Assert.Empty(errors);
     }
 
+    [Theory]
+    [InlineData(1440, 100, "en-US")]
+    [InlineData(820, 100, "en-US")]
+    [InlineData(390, 100, "en-US")]
+    [InlineData(320, 100, "en-US")]
+    [InlineData(390, 200, "en-US")]
+    [InlineData(601, 100, "hu-HU")]
+    [InlineData(1440, 200, "de-DE")]
+    [InlineData(320, 200, "ja-JP")]
+    public async Task HighlightsPage_KeepsEachDateBesideItsEventAndTheChevronBesideItsTitle(int width, int textPercent, string locale)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = locale,
+            ViewportSize = new ViewportSize { Width = width, Height = 900 }
+        });
+        var currentYear = DateTime.UtcNow.Year;
+        var historicalYear = currentYear - 1;
+        var eventsBody = JsonSerializer.Serialize(new object[]
+        {
+            new { Id = "timeline-announcement", Type = 6, Text = "Season update\n\nThe full announcement is here.", OccurredAt = new DateTimeOffset(currentYear, 9, 26, 8, 0, 0, TimeSpan.Zero), Relevance = 10 },
+            new { Id = "timeline-short", Type = 6, Text = "Short note", OccurredAt = new DateTimeOffset(currentYear, 9, 15, 8, 0, 0, TimeSpan.Zero), Relevance = 10 },
+            new { Id = "timeline-historical", Type = 6, Text = "Historical note", OccurredAt = new DateTimeOffset(historicalYear, 9, 26, 8, 0, 0, TimeSpan.Zero), Relevance = 10 }
+        });
+        await RouteEventBoardDependenciesAsync(context, eventsBody);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("tr[data-event-id='timeline-short']").WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await page.EvaluateAsync("() => document.fonts.ready");
+        Assert.Contains(historicalYear.ToString(), await page.Locator("tr.main-row[data-event-id='timeline-historical'] .col-date").InnerTextAsync());
+
+        var problems = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const issues = [];
+                const board = document.querySelector('.events-board').getBoundingClientRect();
+                for (const row of document.querySelectorAll('#eventsTable tbody tr.main-row')) {
+                    const date = row.querySelector('.col-date');
+                    const text = row.querySelector('.event-message-cell');
+                    const dateBox = date.getBoundingClientRect();
+                    const textBox = text.getBoundingClientRect();
+                    const id = row.dataset.eventId;
+                    if (!date.textContent.trim() || dateBox.width === 0 || getComputedStyle(date).display === 'none')
+                        issues.push(`${id}: date hidden`);
+                    if (dateBox.left < board.left - 1 || dateBox.right > board.right + 1)
+                        issues.push(`${id}: date leaves the board`);
+                    const dateStyle = getComputedStyle(date);
+                    const dateRange = document.createRange();
+                    // Wide, the day leads and its month is the chapter heading above.
+                    dateRange.selectNodeContents(innerWidth > 600 ? date.querySelector('.event-date-day') ?? date : date);
+                    for (const line of dateRange.getClientRects()) {
+                        if (line.width > 0 && (line.left < dateBox.left + parseFloat(dateStyle.paddingLeft) - 1
+                            || line.right > dateBox.right - parseFloat(dateStyle.paddingRight) + 1))
+                            issues.push(`${id}: date text escapes its column`);
+                    }
+                    // Wide: the date leads the row, right beside the portrait. Narrow: it labels its day over the message.
+                    const besideMessage = dateBox.right <= textBox.left + 1 && textBox.left - dateBox.right < 120;
+                    const overMessage = dateBox.bottom <= textBox.top + 1 && textBox.top - dateBox.bottom < 12 && Math.abs(dateBox.left - textBox.left) <= 1;
+                    const repeatedDay = innerWidth <= 600 && row.classList.contains('day-repeat') && dateBox.width <= 1;
+                    if (!besideMessage && !overMessage && !repeatedDay) issues.push(`${id}: date is far from its event`);
+                }
+                const title = document.querySelector('tr.main-row[data-event-id="timeline-announcement"] .custom-event-title');
+                const expander = title.querySelector('.custom-event-expander');
+                const range = document.createRange();
+                range.selectNodeContents(title.firstChild);
+                const words = [...range.getClientRects()].pop();
+                const chevron = expander.getBoundingClientRect();
+                const glyph = getComputedStyle(expander, '::before');
+                // Translation can report 43.9999847 for a 44px box. Tolerate
+                // floating-point noise while still rejecting actual scaling.
+                if (chevron.width + .001 < 44 || chevron.height + .001 < 44) {
+                    const transforms=[];
+                    for(let node=expander;node;node=node.parentElement){const value=getComputedStyle(node).transform;if(value!=='none')transforms.push([node.tagName,node.className,value]);}
+                    issues.push(`chevron touch target is small (${chevron.width}x${chevron.height}; ${JSON.stringify(transforms)})`);
+                }
+                // After the last word, or (when the title fills its line) starting the next line under it.
+                const afterWords = Math.abs(chevron.top + chevron.height / 2 - (words.top + words.height / 2)) <= 4
+                    && chevron.left >= words.right - 1 && chevron.left - words.right <= 16;
+                const underTitle = chevron.top >= words.bottom - 1 && chevron.top - words.bottom <= 12
+                    && Math.abs(chevron.left - parseFloat(getComputedStyle(expander).marginLeft) - title.getBoundingClientRect().left) <= 2;
+                if (!afterWords && !underTitle) issues.push(`chevron is not beside its title (words ${Math.round(words.left)}-${Math.round(words.right)} x ${Math.round(words.top)}-${Math.round(words.bottom)}, chevron ${Math.round(chevron.left)} x ${Math.round(chevron.top)}-${Math.round(chevron.bottom)}, title left ${Math.round(title.getBoundingClientRect().left)})`);
+                if (getComputedStyle(expander).position === 'static' && glyph.position === 'absolute')
+                    issues.push('chevron glyph escapes its button');
+                if (document.documentElement.scrollWidth > innerWidth + 1) issues.push('page overflows');
+                return issues;
+            }
+            """);
+        Assert.True(problems.Length == 0, $"{width}px / {textPercent}%: {string.Join(", ", problems)}");
+
+        var row = page.Locator("tr.main-row[data-event-id='timeline-announcement']");
+        var wasOpen = await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')");
+        await row.Locator(".custom-event-expander").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        Assert.NotEqual(wasOpen, await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
+        if (wasOpen) await page.Keyboard.PressAsync("Enter");
+        Assert.True(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
+        var alignment = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const row = document.querySelector('tr.main-row[data-event-id="timeline-announcement"]');
+                const details = row.nextElementSibling.querySelector('.details-cell');
+                const content = details.querySelector('.custom-event-content').getBoundingClientRect();
+                return [content.left, row.querySelector('.event-message-cell').getBoundingClientRect().left,
+                    details.getBoundingClientRect().width, row.getBoundingClientRect().width];
+            }
+            """);
+        Assert.InRange(Math.Abs(alignment[0] - alignment[1]), 0, 1);
+        Assert.InRange(Math.Abs(alignment[2] - alignment[3]), 0, 1);
+        await page.Keyboard.PressAsync("Enter");
+        Assert.False(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('tr.main-row[data-event-id=\"timeline-announcement\"]').nextElementSibling.getBoundingClientRect().height <= 1");
+    }
+
     private static async Task AssertExpanderIsContainedAndCenteredAsync(
         ILocator row,
         ILocator expander)
     {
-        var rowBox = Assert.IsType<LocatorBoundingBoxResult>(await row.BoundingBoxAsync());
-        var expanderBox = Assert.IsType<LocatorBoundingBoxResult>(await expander.BoundingBoxAsync());
+        // Entrance motion moves both elements together. Sample their geometry
+        // in one frame so movement between protocol calls cannot skew the result.
+        var bounds = await row.EvaluateAsync<float[]>("""
+            row => {
+                const rowBox = row.getBoundingClientRect();
+                const expanderBox = row.querySelector('.custom-event-expander').getBoundingClientRect();
+                return [rowBox.top, rowBox.bottom, expanderBox.top, expanderBox.bottom];
+            }
+            """);
         var transform = await expander.EvaluateAsync<string>("element => getComputedStyle(element).transform");
-        var rowCenter = rowBox.Y + (rowBox.Height / 2);
-        var expanderCenter = expanderBox.Y + (expanderBox.Height / 2);
+        var rowCenter = (bounds[0] + bounds[1]) / 2;
+        var expanderCenter = (bounds[2] + bounds[3]) / 2;
 
         Assert.Equal("none", transform);
         Assert.True(
-            expanderBox.Y >= rowBox.Y && expanderBox.Y + expanderBox.Height <= rowBox.Y + rowBox.Height,
-            $"Expected the expander to stay within the row. Row: {rowBox.Y}-{rowBox.Y + rowBox.Height}; expander: {expanderBox.Y}-{expanderBox.Y + expanderBox.Height}.");
+            bounds[2] >= bounds[0] && bounds[3] <= bounds[1],
+            $"Expected the expander to stay within the row. Row: {bounds[0]}-{bounds[1]}; expander: {bounds[2]}-{bounds[3]}.");
         Assert.True(
             Math.Abs(rowCenter - expanderCenter) < 1,
             $"Expected the expander to be vertically centered. Row center: {rowCenter}; expander center: {expanderCenter}.");

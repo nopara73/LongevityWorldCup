@@ -22,7 +22,7 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1366, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
@@ -35,6 +35,9 @@ public sealed class FlowActionDockResultBrowserTests(
         Assert.Equal(2, layout.Count);
         Assert.True(layout.MaxGap <= 24,
             $"{path}: docked bioage commands are split apart by {layout.MaxGap}px instead of staying grouped.");
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
@@ -137,7 +140,7 @@ public sealed class FlowActionDockResultBrowserTests(
             Locale = "en-US",
             // Keep the desktop width while constraining height enough to exercise the dock.
             // At 768px the compact form and both actions now fit fully inline by design.
-            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1366, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
@@ -173,6 +176,92 @@ public sealed class FlowActionDockResultBrowserTests(
             $"Back should be visibly secondary. Back width {layout.BackWidth}, primary width {layout.PrimaryWidth}.");
         Assert.True(Math.Abs(layout.PrimaryCenter - layout.ViewportCenter) <= 16,
             $"Primary action should stay centered. Primary center {layout.PrimaryCenter}, viewport center {layout.ViewportCenter}.");
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
+        Assert.Empty(errors);
+    }
+
+    [Theory]
+    [InlineData("/pheno-age", 1440, 900, 100)]
+    [InlineData("/bortz-age", 1440, 900, 100)]
+    [InlineData("/pheno-age", 390, 844, 100)]
+    [InlineData("/pheno-age", 390, 844, 200)]
+    [InlineData("/pheno-age", 320, 844, 200)]
+    [InlineData("/bortz-age", 320, 844, 200)]
+    [InlineData("/pheno-age", 960, 900, 200)]
+    [InlineData("/bortz-age", 1024, 768, 200)]
+    public async Task BioageStepTwoDock_KeepsTheDisabledCalculateInItsSlot(string path, int width, int height, int textPercent)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = width, Height = height },
+            IsMobile = width < 600,
+            HasTouch = width < 600
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        var errors = CapturePageErrors(page);
+
+        await page.GotoAsync(path);
+        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
+        await ExpectActionStackDockedInViewportAsync(page, "#lwcStepTwoActions");
+        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+
+        var layout = await page.Locator("#lwcStepTwoActions").EvaluateAsync<DockedActionHierarchy>(
+            """
+            element => {
+                const primary = element.querySelector('#calculateBioageButton').getBoundingClientRect();
+                const back = element.querySelector('.back-button').getBoundingClientRect();
+                return {
+                    PrimaryLeft: primary.left,
+                    PrimaryRight: primary.right,
+                    PrimaryWidth: primary.width,
+                    PrimaryCenter: primary.left + primary.width / 2,
+                    BackLeft: back.left,
+                    BackRight: back.right,
+                    BackWidth: back.width,
+                    ViewportCenter: window.innerWidth / 2
+                };
+            }
+            """);
+        var labelFits = await page.Locator("#calculateBioageButton .flow-action__label").EvaluateAsync<bool>(
+            """
+            label => {
+                // Docked captions come from ::after while the original text is 0px.
+                // A Range over that hidden text cannot detect a broken visible word.
+                const caption = getComputedStyle(label, '::after');
+                if (caption.content !== 'none' && parseFloat(caption.fontSize) > 0) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    ctx.font = `${caption.fontWeight} ${caption.fontSize} ${caption.fontFamily}`;
+                    const text = label.dataset.flowDockLabel;
+                    return ctx.measureText(text).width <= label.getBoundingClientRect().width + 1;
+                }
+                const range = document.createRange();
+                range.selectNodeContents(label);
+                return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size <= 1;
+            }
+            """);
+
+        var scenario = $"{path} @ {width}px / {textPercent}%";
+        Assert.True(labelFits, $"{scenario}: the visible Calculate caption does not fit on one line.");
+        Assert.True(layout.BackLeft >= 0 && layout.PrimaryRight <= width + 1,
+            $"{scenario}: docked commands extend outside the viewport. {layout}");
+        if (width >= 960)
+        {
+            Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should sit left of Calculate. {layout}");
+            Assert.True(Math.Abs(layout.PrimaryCenter - layout.ViewportCenter) <= 16,
+                $"{scenario}: disabled Calculate should stay centered. {layout}");
+        }
+        else if (textPercent == 100)
+        {
+            Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should share Calculate's row. {layout}");
+        }
         Assert.Empty(errors);
     }
 
@@ -191,7 +280,7 @@ public sealed class FlowActionDockResultBrowserTests(
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
             // The compact first step fits inline at 720px; constrain height to exercise the portal.
-            ViewportSize = new ViewportSize { Width = 1280, Height = 650 }
+            ViewportSize = new ViewportSize { Width = 1280, Height = 560 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
@@ -219,6 +308,10 @@ public sealed class FlowActionDockResultBrowserTests(
             $"{formSelector}|{actionSelector}");
         Assert.NotEqual("none", state.FormTransform);
         Assert.True(state.ActionsParentIsBody, path);
+        await page.SetViewportSizeAsync(1280, 1000);
+        await page.WaitForFunctionAsync("selector => { window.LwcFlowActionDock.refreshNow(); return !document.querySelector(selector).classList.contains('flow-action-stack--docked'); }", actionSelector);
+        Assert.True(await page.Locator(actionSelector).EvaluateAsync<bool>("s => !!s.closest('form')"));
+        Assert.NotEqual("none", await page.Locator(formSelector).EvaluateAsync<string>("f => getComputedStyle(f).transform"));
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
@@ -265,12 +358,12 @@ public sealed class FlowActionDockResultBrowserTests(
 
     [Theory]
     [InlineData(390, 844, 245, false)]
-    [InlineData(390, 844, 220, true)]
+    [InlineData(390, 740, 220, true)]
     [InlineData(1366, 768, 68, false)]
-    [InlineData(1366, 768, 68, true)]
+    [InlineData(1366, 640, 68, true)]
     [InlineData(1280, 720, 68, false)]
-    [InlineData(1280, 720, 68, true)]
-    public async Task DashboardActions_DockAsCompactCommandGridWhenTheyWouldOverflow(
+    [InlineData(1280, 600, 68, true)]
+    public async Task DashboardActions_DockAsCompactCommandsWhenTheyWouldOverflow(
         int viewportWidth,
         int viewportHeight,
         double maxDockHeight,
@@ -278,6 +371,8 @@ public sealed class FlowActionDockResultBrowserTests(
     {
         var app = App;
         var browser = Browser;
+        // The captioned Pro card fits at common heights. These shorter Pro
+        // viewports exercise actual overflow; fitting layouts have separate coverage.
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -555,7 +650,7 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            ViewportSize = new ViewportSize { Width = 390, Height = 740 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.AddInitScriptAsync(FlowAuditStateScript);
@@ -570,7 +665,7 @@ public sealed class FlowActionDockResultBrowserTests(
         await page.Locator("#playDashboardBackBtn > i").EvaluateAsync(
             "icon => { icon.textContent = '\u2190'; icon.style.fontSize = '16px'; }");
 
-        await page.SetViewportSizeAndWaitForLayoutAsync(1366, 768);
+        await page.SetViewportSizeAndWaitForLayoutAsync(1366, 640);
         await page.WaitForFunctionAsync(
             """
             () => {
@@ -918,8 +1013,9 @@ public sealed class FlowActionDockResultBrowserTests(
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            // The shorter date form fits at 844px; use a height that exercises the sticky state.
-            ViewportSize = new ViewportSize { Width = 390, Height = 740 }
+            // Step one nearly fits at 740px now that the card has no empty tail;
+            // use a height that still exercises the sticky state.
+            ViewportSize = new ViewportSize { Width = 390, Height = 640 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 

@@ -19,7 +19,6 @@ public sealed class LegacyUrlCompatibilityTests(TestWebApplicationFactory factor
         { "/events", ["/event-board", "/event-board/event-board", "/event-board/event-board.html"] },
         { "/leaderboard", ["/leaderboard/leaderboard", "/leaderboard/leaderboard.html"] },
         { "/longevitymaxxing", ["/longevitymaxxing/longevitymaxxing", "/longevitymaxxing/longevitymaxxing.html"] },
-        { "/helstab-kihivas", ["/helstab-kihivas/helstab-kihivas", "/helstab-kihivas/helstab-kihivas.html"] },
         { "/media", ["/misc-pages/media", "/misc-pages/media.html"] },
         { "/about", ["/misc-pages/about", "/misc-pages/about.html"] },
         { "/history", ["/misc-pages/history", "/misc-pages/history.html"] },

@@ -3,71 +3,108 @@
 <head>
     <title>Unsubscribe - Longevity World Cup</title>
     <!--HEAD-->
+    <link rel="stylesheet" href="{{ASSET_LANDING_PAGE_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_STANDALONE_FEEL_CSS}}">
     <style>
         .join-game {
             display: none !important;
         }
 
-        .unsubscribe-panel {
-            max-width: 620px;
-            margin: 2.25rem auto;
-            padding: 2rem;
-            background: var(--lwc-surface, #ffffff);
-            border: 1px solid var(--lwc-border, #d7e0e6);
-            border-radius: var(--lwc-radius-md, 8px);
-            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
-            text-align: center;
+        /* Short pages: let main absorb the spare height so the footer reaches the bottom. */
+        body.unsubscribe-page {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            min-height: 100svh;
         }
 
-        .unsubscribe-panel h1 {
-            margin-top: 0;
-            margin-bottom: 0.8rem;
-            font-size: 2.5rem;
-            line-height: 1.12;
-            overflow-wrap: normal;
+        .unsubscribe-main {
+            flex: 1 0 auto;
+            display: grid;
+            place-items: center;
+            box-sizing: border-box;
+            width: 100%;
+            padding: clamp(1.5rem, 6vh, 4.5rem) 16px;
         }
 
-        .unsubscribe-copy {
-            max-width: 34rem;
-            margin: 0 auto;
-            color: var(--lwc-muted, #52606d);
-            line-height: 1.45;
+        .unsubscribe-panel.landing-sheet {
+            --landing-pad: clamp(1.25rem, 5vw, 2.75rem);
+            width: min(100%, 38rem);
+            margin: 0;
+        }
+
+        /* The envelope stamps the cover's corner, opposite the accent bar. */
+        .unsubscribe-mark {
+            position: absolute;
+            top: clamp(1.25rem, 4vw, 2.25rem);
+            right: var(--landing-pad);
+            display: grid;
+            place-items: center;
+            width: 56px;
+            height: 56px;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-surface);
+            color: var(--lwc-accent);
+            font-size: 22px;
+            box-shadow: var(--lwc-shadow-sm);
+            transform: rotate(-8deg);
+        }
+
+        .unsubscribe-panel .landing-title {
+            margin-bottom: var(--lwc-space-3);
+            padding-right: 64px;
+            font-size: 2.25rem;
+        }
+
+        .unsubscribe-panel .unsubscribe-copy {
+            max-width: 30rem;
+            color: var(--lwc-muted);
+            font-size: 1.0625rem;
+            line-height: 1.55;
         }
 
         .unsubscribe-form {
             display: grid;
-            gap: 0.75rem;
-            max-width: 420px;
-            margin: 1.5rem auto 0;
+            grid-template-columns: minmax(0, 1fr);
+            gap: var(--lwc-space-3);
+            margin: 0;
+            padding: clamp(1.5rem, 4vw, 2.25rem) var(--landing-pad) clamp(1.5rem, 4vw, 2.5rem);
             text-align: left;
         }
 
         .unsubscribe-form label {
+            color: var(--lwc-ink);
+            font-size: var(--lwc-type-xs);
             font-weight: 700;
-            color: var(--lwc-ink, #17212b);
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            overflow-wrap: anywhere;
         }
 
         .unsubscribe-form input {
             width: 100%;
             box-sizing: border-box;
-            min-height: 46px;
-            padding: 0.75rem 0.85rem;
-            border: 1px solid var(--lwc-border-strong, #71808d);
-            border-radius: var(--lwc-radius-sm, 4px);
-            background: var(--lwc-surface, #ffffff);
-            color: var(--lwc-ink, #17212b);
+            min-height: 56px;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--lwc-border-strong);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-surface);
+            color: var(--lwc-ink);
             font: inherit;
+            font-size: 1.0625rem;
+            transition: border-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-fast) var(--lwc-ease);
         }
 
         .unsubscribe-form input:focus {
-            border-color: var(--primary-color);
-            outline: 3px solid rgba(0, 188, 212, 0.18);
-            outline-offset: 1px;
+            border-color: var(--lwc-accent);
+            outline: none;
+            box-shadow: 0 0 0 4px var(--lwc-accent-soft);
         }
 
         #unsubscribe-form input[aria-invalid="true"] {
-            border-color: var(--lwc-danger, #b4233b);
-            outline-color: var(--lwc-danger, #b4233b);
+            border-color: var(--lwc-danger);
+            box-shadow: 0 0 0 4px var(--lwc-danger-soft);
         }
 
         .unsubscribe-button {
@@ -76,129 +113,129 @@
             justify-content: center;
             width: 100%;
             justify-self: stretch;
-            min-height: 46px;
-            margin-top: 0.25rem;
-            padding: 0.75rem 1.15rem;
+            min-height: 56px;
+            margin: 0;
+            padding: 0.85rem 1.5rem;
             border: none;
-            border-radius: var(--lwc-radius-sm, 4px);
-            background: var(--lwc-accent, #087685);
-            color: var(--lwc-on-accent, #ffffff);
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent);
+            font-size: 1.0625rem;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: none;
-            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            box-shadow: var(--lwc-shadow-md);
+            transition: background-color var(--lwc-duration-fast) var(--lwc-ease);
         }
 
         .unsubscribe-button:hover,
         .unsubscribe-button:focus-visible {
-            background: var(--lwc-accent-hover, #065d68);
-            box-shadow: none;
+            background: var(--lwc-accent-hover);
+            box-shadow: var(--lwc-shadow-md);
             transform: none;
         }
 
         .unsubscribe-button:focus-visible {
-            outline: 3px solid var(--lwc-accent, #087685);
-            outline-offset: 2px;
+            outline: 3px solid var(--lwc-accent);
+            outline-offset: 3px;
         }
 
         .unsubscribe-button[aria-disabled="true"] {
             cursor: progress;
-            opacity: 0.7;
+            opacity: 0.75;
+            box-shadow: none;
         }
 
+        /* The status is the shared feedback banner (aesthetic-system.css); it spans the form. */
         .unsubscribe-message {
             grid-column: 1 / -1;
             min-width: 0;
             margin: 0;
-            padding: 0.75rem 0.85rem;
-            border-left: 3px solid var(--lwc-success, #1f7a38);
-            border-radius: var(--lwc-radius-sm, 4px);
-            background: var(--lwc-surface-muted, #eef2f5);
-            color: var(--lwc-ink, #17212b);
-            text-align: left;
-            line-height: 1.45;
-            overflow-wrap: anywhere;
         }
 
         .unsubscribe-message:empty {
             display: none;
         }
 
-        .unsubscribe-message.is-error {
-            border-left-color: var(--lwc-danger, #b4233b);
-        }
-
-        @media (max-width: 600px) {
-            .unsubscribe-panel {
-                margin: 1.5rem 1rem;
-                padding: 1.35rem 1rem;
-                border-radius: var(--lwc-radius-md, 8px);
+        /* Very narrow windows give the title the whole cover; the stamp steps aside. */
+        @media (max-width: 359px) {
+            .unsubscribe-mark {
+                display: none;
             }
 
-            .unsubscribe-panel h1 {
-                font-size: clamp(1.8rem, 9vw, 2rem);
+            .unsubscribe-panel.landing-sheet {
+                --landing-pad: min(16px, 6.25vw);
             }
 
-            .unsubscribe-button {
-                min-height: 46px;
+            .unsubscribe-panel .landing-title {
+                padding-right: 0;
+                font-size: 2rem;
             }
         }
 
-        @media (min-width: 560px) and (max-width: 932px) and (max-height: 480px) {
-            .unsubscribe-panel {
-                max-width: 620px;
-                margin: 0.8rem auto 1.5rem;
-                padding: 1rem 1.25rem;
-            }
-
-            .unsubscribe-panel h1 {
-                margin-bottom: 0.45rem;
-                font-size: clamp(2rem, 6vw, 2.55rem);
-            }
-
-            .unsubscribe-copy {
-                line-height: 1.3;
+        @media (min-width: 560px) {
+            .unsubscribe-panel .landing-title {
+                font-size: 3rem;
             }
 
             .unsubscribe-form {
-                max-width: none;
-                margin-top: 1rem;
-                grid-template-columns: minmax(0, 1fr) minmax(9rem, 12rem);
-                align-items: end;
+                grid-template-columns: minmax(0, 1fr) auto;
+                align-items: stretch;
             }
 
-            .unsubscribe-form label {
+            .unsubscribe-form label,
+            .unsubscribe-message {
                 grid-column: 1 / -1;
             }
 
-            .unsubscribe-form input,
             .unsubscribe-button {
-                min-height: 44px;
-            }
-
-            .unsubscribe-button {
-                margin-top: 0;
+                width: auto;
+                min-width: 10rem;
             }
         }
 
-        @media (max-width: 300px) {
-            .unsubscribe-panel {
-                margin: 1.25rem 0.45rem;
-                padding: 1.2rem 0.75rem;
+        @media (max-width: 280px) {
+            .unsubscribe-button {
+                padding-inline: min(1.5rem, 5vw);
+                overflow-wrap: anywhere;
+            }
+        }
+
+        @media (max-height: 480px) and (min-width: 560px) {
+            .unsubscribe-main {
+                padding-block: 0.9rem;
             }
 
-            .unsubscribe-panel h1 {
-                font-size: 1.65rem;
+            .unsubscribe-panel .landing-cover {
+                padding-block: 1rem;
+            }
+
+            .unsubscribe-panel .landing-cover::before,
+            .unsubscribe-mark {
+                display: none;
+            }
+
+            .unsubscribe-form {
+                padding-block: 1rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .unsubscribe-button,
+            .unsubscribe-form input {
+                transition: none;
             }
         }
     </style>
 </head>
-<body>
+<body class="unsubscribe-page">
     <!--HEADER-->
-    <main>
-        <section class="unsubscribe-panel">
-            <h1>Unsubscribe</h1>
-            <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
+    <main class="unsubscribe-main">
+        <section class="unsubscribe-panel landing-sheet">
+            <div class="landing-cover">
+                <div class="unsubscribe-mark" aria-hidden="true"><i class="fas fa-envelope"></i></div>
+                <h1 class="landing-title" aria-label="Unsubscribe"><span class="page-title-word">Un&shy;sub&shy;scribe</span></h1>
+                <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
+            </div>
 
             <form id="unsubscribe-form" class="unsubscribe-form" novalidate>
                 <label for="email">Email address</label>
@@ -232,12 +269,25 @@
             const emailInput = document.getElementById("email");
             const button = document.getElementById("unsubscribe-button");
             const message = document.getElementById("message");
+            const panel = form.closest(".unsubscribe-panel");
             let submitting = false;
+
+            // The panel's state drives the press, the send-off and the shake (standalone-feel.css).
+            function setState(state) {
+                panel.removeAttribute("data-unsubscribe-state");
+                if (!state) return;
+                void panel.offsetWidth;
+                panel.setAttribute("data-unsubscribe-state", state);
+            }
             let retryEmail = "";
 
             function setMessage(text, isError) {
-                message.textContent = text;
                 message.classList.toggle("is-error", Boolean(text) && isError);
+                if (!text) {
+                    message.replaceChildren();
+                    return;
+                }
+                message.textContent = text;
             }
 
             function renderAction() {
@@ -254,6 +304,7 @@
             }
 
             emailInput.addEventListener("input", () => {
+                if (!submitting) setState("");
                 retryEmail = "";
                 emailInput.removeAttribute("aria-invalid");
                 setMessage("", false);
@@ -269,6 +320,7 @@
                 if (!emailInput.checkValidity()) {
                     setMessage(email ? "Enter a valid email address." : "Enter your email address.", true);
                     emailInput.setAttribute("aria-invalid", "true");
+                    setState("error");
                     emailInput.focus();
                     return;
                 }
@@ -277,6 +329,7 @@
                 retryEmail = "";
                 setMessage("", false);
                 submitting = true;
+                setState("busy");
                 renderAction();
                 const controller = new AbortController();
                 // Keep the timeout active through error-body reads as well.
@@ -295,14 +348,18 @@
                         const explanation = response.status === 400 && response.headers.get("content-type")?.includes("text/plain") && serverMessage
                             ? serverMessage : "Couldn’t confirm the removal. Try again.";
                         showFailure(email, explanation);
+                        setState(emailInput.value.trim() === email ? "error" : "");
                         return;
                     }
 
                     // Confirm only the submitted address, preserving a later edit.
-                    if (emailInput.value.trim() === email) emailInput.value = "";
+                    const unchanged = emailInput.value.trim() === email;
+                    if (unchanged) emailInput.value = "";
                     setMessage(`Removed ${email} from the yearly newsletter.`, false);
+                    setState(unchanged ? "done" : "");
                 } catch (_) {
                     showFailure(email, "Couldn’t confirm the removal. Try again.");
+                    setState(emailInput.value.trim() === email ? "error" : "");
                 } finally {
                     clearTimeout(timeout);
                     submitting = false;

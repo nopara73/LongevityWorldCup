@@ -32,13 +32,12 @@
         readonly data: RadarData;
         readonly bio: number;
         readonly chrono: number;
+        readonly date: string | null;
     }
 
     interface ClockState {
-        readonly hasPheno: boolean;
-        readonly hasBortz: boolean;
-        readonly pheno: ClockPayload | null;
-        readonly bortz: ClockPayload | null;
+        readonly readings: readonly ClockPayload[];
+        selectedIndex: number;
     }
 
     interface RadarTooltipItem {
@@ -284,6 +283,9 @@
     var radarChartInstance: RadarChartInstance | null = null;
     var radarResizeObserver: ResizeObserver | null = null;
     var radarResizeFrame = 0;
+    var radarBuildGeneration = 0;
+    var radarBuildFrame = 0;
+    var radarBuildTimer = 0;
     const RADAR_ANIMATION_DURATION_MS = 220;
     const RADAR_WEB_BOUNDARY_PERCENTILE = 80;
     const RADAR_SCALE_MAX_PERCENTILE = 100;
@@ -314,7 +316,16 @@
         radarResizeFrame = 0;
     }
 
+    function cancelRadarBuild(): void {
+        radarBuildGeneration++;
+        cancelAnimationFrame(radarBuildFrame);
+        window.clearTimeout(radarBuildTimer);
+        radarBuildFrame = 0;
+        radarBuildTimer = 0;
+    }
+
     function destroyRadarChart() {
+        cancelRadarBuild();
         cancelRadarResize();
         if (radarResizeObserver) {
             var wrapper = document.getElementById('ageRadarWrapper');
@@ -329,7 +340,8 @@
 
     function updateCenterAndFallback(bioAge: number, chronoAge: number, useBortz: boolean): void {
         var diff = bioAge - chronoAge;
-        var diffText = (diff > 0 ? '+' : '') + diff.toFixed(1) + ' years';
+        // True minus signs, matching every other figure on the site.
+        var diffText = (diff > 0 ? '+' : diff < 0 ? '−' : '') + Math.abs(diff).toFixed(1) + ' years';
         var label = diff < 0 ? 'age reduction' : 'age acceleration';
         var bioText = 'biological age: ' + (Number.isFinite(bioAge) ? bioAge.toFixed(1) : '—');
 
@@ -363,13 +375,58 @@
         radarChartInstance.update('active');
     }
 
-    var currentClockState: ClockState = { hasPheno: false, hasBortz: false, pheno: null, bortz: null };
+    var resultDateFormat = new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'
+    });
+
+    function buildClockState(
+        bortz: boolean,
+        athleteData: AgeVisualizationAthlete | null | undefined,
+        results: readonly AgeVisualizationAthlete[],
+        history: AgeVisualizationHistory | undefined
+    ): ClockState {
+        var readings: ClockPayload[] = [];
+        var radarData = bortz ? getBortzRadarData : getPhenoRadarData;
+        if (history) {
+            var entries = (bortz ? history.bortz : history.pheno).slice()
+                .filter(function (entry) {
+                    return Number.isFinite(Date.parse(entry.date)) && Number.isFinite(entry.bio)
+                        && Number.isFinite(entry.chrono) && entry.values.length >= (bortz ? 22 : 10)
+                        && entry.values.every(Number.isFinite);
+                }).sort(function (a, b) { return Date.parse(a.date) - Date.parse(b.date); });
+            entries.forEach(function (entry) {
+                // Every domain and the age summary must describe this same blood draw.
+                var values = bortz ? { bestBortzValues: entry.values } : { bestBiomarkerValues: entry.values };
+                var data = radarData(values, results, entry.chrono);
+                if (data) readings.push({ data: data, bio: entry.bio, chrono: entry.chrono, date: entry.date });
+            });
+        } else {
+            var bio = bortz ? athleteData?.lowestBortzAge : athleteData?.lowestPhenoAge;
+            var chrono = bortz ? athleteData?.chronoAtLowestBortzAge : athleteData?.chronoAtLowestPhenoAge;
+            if (typeof bio === 'number' && Number.isFinite(bio) && typeof chrono === 'number' && Number.isFinite(chrono)) {
+                var data = radarData(athleteData, results, chrono);
+                if (data) readings.push({ data: data, bio: bio, chrono: chrono, date: null });
+            }
+        }
+        var selectedIndex = 0;
+        readings.forEach(function (reading, index) {
+            if (reading.bio < (readings[selectedIndex]?.bio ?? Infinity)) selectedIndex = index;
+        });
+        return { readings: readings, selectedIndex: selectedIndex };
+    }
+
+    function resultLabel(reading: ClockPayload): string {
+        var date = reading.date ? resultDateFormat.format(new Date(reading.date)) + ' · ' : '';
+        return date + reading.bio.toFixed(1) + ' years';
+    }
 
     function generateAgeVisualization(
         bioAge: number,
         chronoAge: number,
         athleteData: AgeVisualizationAthlete | null | undefined,
-        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined
+        athleteResults: readonly AgeVisualizationAthlete[] | null | undefined,
+        history?: AgeVisualizationHistory,
+        loadChart?: () => Promise<unknown>
     ): void {
         var wrapper = document.getElementById('ageRadarWrapper');
         var fallback = document.getElementById('ageRadarFallback');
@@ -388,238 +445,360 @@
             return;
         }
 
-        var results: readonly AgeVisualizationAthlete[] = Array.isArray(athleteResults) ? athleteResults : [];
-        var hasPheno = Boolean(athleteData?.bestBiomarkerValues?.length
-            && results.some(function (a: AgeVisualizationAthlete) { return Boolean(a.bestBiomarkerValues?.length); }));
-        var hasBortz = Boolean(athleteData?.bestBortzValues?.length
-            && results.some(function (a: AgeVisualizationAthlete) { return Boolean(a.bestBortzValues?.length); }));
-        var bothClocks = hasPheno && hasBortz;
-
-        if (switchEl) {
-            if (bothClocks) {
-                switchEl.classList.add('visible');
-                if (tabBortz) {
-                    tabBortz.setAttribute('aria-selected', 'true');
-                    tabBortz.tabIndex = 0;
-                }
-                if (tabPheno) {
-                    tabPheno.setAttribute('aria-selected', 'false');
-                    tabPheno.tabIndex = -1;
-                }
-            } else {
-                switchEl.classList.remove('visible');
-            }
-        }
-
-        var phenoData = hasPheno ? getPhenoRadarData(athleteData, results, athleteData?.chronoAtLowestPhenoAge ?? NaN) : null;
-        var bortzData = hasBortz ? getBortzRadarData(athleteData, results, athleteData?.chronoAtLowestBortzAge ?? NaN) : null;
-        var phenoBio = typeof athleteData?.lowestPhenoAge === 'number' && Number.isFinite(athleteData.lowestPhenoAge) ? athleteData.lowestPhenoAge : null;
-        var phenoChrono = typeof athleteData?.chronoAtLowestPhenoAge === 'number' && Number.isFinite(athleteData.chronoAtLowestPhenoAge) ? athleteData.chronoAtLowestPhenoAge : null;
-        var bortzBio = typeof athleteData?.lowestBortzAge === 'number' && Number.isFinite(athleteData.lowestBortzAge) ? athleteData.lowestBortzAge : null;
-        var bortzChrono = typeof athleteData?.chronoAtLowestBortzAge === 'number' && Number.isFinite(athleteData.chronoAtLowestBortzAge) ? athleteData.chronoAtLowestBortzAge : null;
-
-        currentClockState = {
-            hasPheno: hasPheno,
-            hasBortz: hasBortz,
-            pheno: (phenoData && phenoBio != null && phenoChrono != null) ? { data: phenoData, bio: phenoBio, chrono: phenoChrono } : null,
-            bortz: (bortzData && bortzBio != null && bortzChrono != null) ? { data: bortzData, bio: bortzBio, chrono: bortzChrono } : null
-        };
-
-        var useBortz = hasBortz && !hasPheno ? true : (bothClocks ? true : !!hasBortz);
-        var data = useBortz ? (bortzData || phenoData) : (phenoData || bortzData);
-        var showBio = useBortz ? bortzBio : phenoBio;
-        var showChrono = useBortz ? bortzChrono : phenoChrono;
-        if (showBio == null) showBio = bioAge;
-        if (showChrono == null) showChrono = chronoAge;
-        updateCenterAndFallback(showBio, showChrono, useBortz);
-
-        var centerEl = document.getElementById('ageRadarCenter');
-        var ChartConstructor = window.Chart;
-        if (!data || !ChartConstructor || !canvas) {
-            destroyRadarChart();
-            wrapper.style.display = 'none';
-            if (centerEl) centerEl.style.display = 'none';
-            fallback.style.display = 'flex';
-            fallback.style.flexDirection = 'column';
-            fallback.style.alignItems = 'center';
-            fallback.style.justifyContent = 'center';
-            return;
-        }
-
-        wrapper.style.display = 'block';
-        if (centerEl) centerEl.style.display = 'flex';
-        fallback.style.display = 'none';
-
         destroyRadarChart();
-        var ctx = canvas.getContext('2d');
-        if (!ctx) {
-            wrapper.style.display = 'none';
-            if (centerEl) centerEl.style.display = 'none';
-            fallback.style.display = 'flex';
-            fallback.style.flexDirection = 'column';
-            fallback.style.alignItems = 'center';
-            fallback.style.justifyContent = 'center';
-            return;
-        }
-        var fontFamily = window.getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif';
-        var modal = document.getElementById('detailsModal');
-        var modalStyles = modal ? window.getComputedStyle(modal) : null;
-        var radarLabelColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-muted').trim() || 'rgba(0,0,0,0.7)') : 'rgba(0,0,0,0.7)';
-        var radarGridColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-grid').trim() || 'rgba(0,0,0,0.08)') : 'rgba(0,0,0,0.08)';
-        var radarFill = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream-soft').trim() || 'rgba(246,244,237,.18)') : 'rgba(246,244,237,.18)';
-        var radarStroke = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
-        var radarPoint = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
-        var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
-        var contributors = data.tooltipContributors || [];
-        var radarWebSpokesPlugin = {
-            id: 'radarWebSpokes',
-            beforeDatasetsDraw: function (chart: RadarPluginChart): void {
-                var scale = chart.scales?.r;
-                var labelCount = chart.data.labels?.length ?? 0;
-                if (!scale || labelCount === 0) return;
+        const buildGeneration = radarBuildGeneration;
+        var results: readonly AgeVisualizationAthlete[] = Array.isArray(athleteResults) ? athleteResults : [];
+        var pheno = buildClockState(false, athleteData, results, history);
+        var bortz = buildClockState(true, athleteData, results, history);
+        var hasPheno = pheno.readings.length > 0;
+        var hasBortz = bortz.readings.length > 0;
+        var bothClocks = hasPheno && hasBortz;
+        var useBortz = hasBortz;
+        var visualization = document.getElementById('ageVisualization');
+        if (visualization) visualization.hidden = !hasPheno && !hasBortz;
+        if (switchEl) switchEl.classList.toggle('visible', hasPheno || hasBortz);
+        if (tabPheno) tabPheno.hidden = !hasPheno;
+        if (tabBortz) tabBortz.hidden = !hasBortz;
 
-                var chartContext = chart.ctx;
-                chartContext.save();
-                chartContext.beginPath();
-                for (var index = 0; index < labelCount; index++) {
-                    var boundary = scale.getPointPositionForValue(index, RADAR_WEB_BOUNDARY_PERCENTILE);
-                    chartContext.moveTo(scale.xCenter, scale.yCenter);
-                    chartContext.lineTo(boundary.x, boundary.y);
-                }
-                chartContext.strokeStyle = radarGridColor;
-                chartContext.lineWidth = 1;
-                chartContext.stroke();
-                chartContext.restore();
-            }
-        };
+        var picker = document.getElementById('ageResultPicker');
+        var selectElement = document.getElementById('ageResultSelect');
+        var select = selectElement instanceof HTMLSelectElement ? selectElement : null;
+        var earlierElement = document.getElementById('ageResultEarlier');
+        var earlier = earlierElement instanceof HTMLButtonElement ? earlierElement : null;
+        var laterElement = document.getElementById('ageResultLater');
+        var later = laterElement instanceof HTMLButtonElement ? laterElement : null;
+        var current = document.getElementById('ageResultCurrent');
+        var resultDate = document.getElementById('ageResultDate');
+        var chevron = picker?.querySelector<SVGElement>('.age-result-chevron');
 
-        radarChartInstance = new ChartConstructor(ctx, {
-            type: 'radar',
-            plugins: [radarWebSpokesPlugin],
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: 'Percentile (higher = better)',
-                    data: data.values,
-                    backgroundColor: radarFill,
-                    borderColor: radarStroke,
-                    borderWidth: 2.5,
-                    pointBackgroundColor: radarPoint,
-                    pointBorderColor: 'rgba(18,20,20,.95)',
-                    pointBorderWidth: 2,
-                    pointHoverBackgroundColor: radarPoint,
-                    pointHoverBorderColor: 'rgba(18,20,20,.95)',
-                    pointHoverBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    pointHitRadius: radarPointHitRadius,
-                    clip: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                layout: { padding: 4 },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.78)',
-                        padding: 10,
-                        cornerRadius: 8,
-                        titleFont: { size: 12, weight: '600' },
-                        bodyFont: { size: 12 },
-                        callbacks: {
-                            title: function (tooltipItems: readonly RadarTooltipItem[]) {
-                                var firstItem = tooltipItems[0];
-                                if (!firstItem) return '';
-                                return String(firstItem.raw) + 'th percentile';
-                            },
-                            label: function () { return null; },
-                            afterBody: function (tooltipItems: readonly RadarTooltipItem[]) {
-                                var firstItem = tooltipItems[0];
-                                if (!firstItem) return [];
-                                var chart = radarChartInstance;
-                                if (!chart) return [];
-                                var contrib = chart._radarTooltipContributors;
-                                var idx = firstItem.dataIndex;
-                                var contributorLines = contrib?.[idx];
-                                if (!contributorLines?.length) return [];
-                                return [''].concat(contributorLines);
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    r: {
-                        min: 0,
-                        max: RADAR_SCALE_MAX_PERCENTILE,
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 20,
-                            backdropColor: 'transparent',
-                            display: false
-                        },
-                        pointLabels: {
-                            font: { family: fontFamily, size: 11, weight: '500' },
-                            color: radarLabelColor,
-                            padding: 8,
-                            z: 1
-                        },
-                        grid: {
-                            color: function (context: { readonly tick?: { readonly value?: number } }): string {
-                                return (context.tick?.value ?? 0) <= RADAR_WEB_BOUNDARY_PERCENTILE
-                                    ? radarGridColor
-                                    : 'transparent';
-                            },
-                            lineWidth: 1
-                        },
-                        angleLines: { display: false }
-                    }
-                },
-                animation: { duration: getRadarAnimationDuration() },
-                hover: { mode: 'nearest' }
+        function showReading(index: number): void {
+            var state = useBortz ? bortz : pheno;
+            const reading = state.readings[index];
+            if (!reading) return;
+            state.selectedIndex = index;
+            // The web takes the chosen clock's colour, so set it before the chart redraws.
+            if (canvas) canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
+            applyRadarData(reading.data);
+            updateCenterAndFallback(reading.bio, reading.chrono, useBortz);
+            if (select) select.value = String(index);
+            if (earlier) earlier.disabled = index === 0;
+            if (later) later.disabled = index === state.readings.length - 1;
+            if (resultDate) {
+                resultDate.textContent = reading.date ? resultDateFormat.format(new Date(reading.date)) : '';
+                resultDate.setAttribute('datetime', reading.date?.slice(0, 10) || '');
             }
-        });
-        radarChartInstance._radarTooltipContributors = contributors;
-        if (radarResizeObserver && wrapper) radarResizeObserver.disconnect();
-        if ('ResizeObserver' in window) {
-            radarResizeObserver = new ResizeObserver(scheduleRadarResize);
-            radarResizeObserver.observe(wrapper);
+            if (canvas) {
+                canvas.dataset.resultDate = reading.date || '';
+                canvas.setAttribute('aria-label', (useBortz ? 'Bortz Age' : 'Pheno Age') + ': '
+                    + resultLabel(reading) + '. Domain percentiles: ' + reading.data.labels.map(function (label, domainIndex) {
+                        return label + ': ' + reading.data.values[domainIndex];
+                    }).join('; ') + '.');
+            }
         }
 
-        function selectClock(bortz: boolean): void {
-            var payload = bortz ? currentClockState.bortz : currentClockState.pheno;
-            if (!payload) return;
-            applyRadarData(payload.data);
-            updateCenterAndFallback(payload.bio, payload.chrono, bortz);
+        function selectClock(isBortz: boolean): void {
+            var state = isBortz ? bortz : pheno;
+            var reading = state.readings[state.selectedIndex];
+            if (!reading) return;
+            useBortz = isBortz;
+            var clockName = isBortz ? 'Bortz Age' : 'Pheno Age';
             if (tabPheno) {
-                tabPheno.setAttribute('aria-selected', bortz ? 'false' : 'true');
-                tabPheno.tabIndex = bortz ? -1 : 0;
+                tabPheno.setAttribute('aria-selected', isBortz ? 'false' : 'true');
+                tabPheno.tabIndex = isBortz ? -1 : 0;
             }
             if (tabBortz) {
-                tabBortz.setAttribute('aria-selected', bortz ? 'true' : 'false');
-                tabBortz.tabIndex = bortz ? 0 : -1;
+                tabBortz.setAttribute('aria-selected', isBortz ? 'true' : 'false');
+                tabBortz.tabIndex = isBortz ? 0 : -1;
+            }
+            var multiple = state.readings.length > 1;
+            if (picker) {
+                picker.hidden = !reading.date;
+                picker.dataset.multiple = String(multiple);
+            }
+            if (select) {
+                select.hidden = !multiple;
+                select.setAttribute('aria-label', clockName + ' result');
+                select.replaceChildren(...state.readings.map(function (entry, index) {
+                    var option = document.createElement('option');
+                    option.value = String(index);
+                    option.textContent = resultLabel(entry);
+                    return option;
+                }));
+            }
+            if (earlier) earlier.hidden = !multiple;
+            if (later) later.hidden = !multiple;
+            if (chevron) chevron.style.display = multiple ? '' : 'none';
+            if (current) current.setAttribute('aria-hidden', multiple ? 'true' : 'false');
+            showReading(state.selectedIndex);
+        }
+
+        if (select) select.onchange = function () { showReading(Number(select?.value)); };
+        if (earlier) earlier.onclick = function () { showReading((useBortz ? bortz : pheno).selectedIndex - 1); };
+        if (later) later.onclick = function () { showReading((useBortz ? bortz : pheno).selectedIndex + 1); };
+        if (tabPheno) tabPheno.onclick = function () { selectClock(false); };
+        if (tabBortz) tabBortz.onclick = function () { selectClock(true); };
+        function handleClockKey(event: KeyboardEvent): void {
+            if (!bothClocks || event.defaultPrevented || event.altKey || event.ctrlKey
+                || event.metaKey || event.shiftKey || event.isComposing) return;
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+                event.preventDefault();
+                var nextBortz = event.key === 'Home' || (event.key !== 'End' && !useBortz);
+                selectClock(nextBortz);
+                (nextBortz ? tabBortz : tabPheno)?.focus();
+            }
+        }
+        if (tabPheno) tabPheno.onkeydown = handleClockKey;
+        if (tabBortz) tabBortz.onkeydown = handleClockKey;
+        selectClock(useBortz);
+
+        function renderRadar(): void {
+            if (buildGeneration !== radarBuildGeneration || !wrapper || !fallback) return;
+            var data = (useBortz ? bortz : pheno).readings[(useBortz ? bortz : pheno).selectedIndex]?.data;
+
+            var centerEl = document.getElementById('ageRadarCenter');
+            var ChartConstructor = window.Chart;
+            if (!data || !ChartConstructor || !canvas) {
+                destroyRadarChart();
+                wrapper.style.display = 'none';
+                if (centerEl) centerEl.style.display = 'none';
+                fallback.style.display = data ? 'flex' : 'none';
+                fallback.style.flexDirection = 'column';
+                fallback.style.alignItems = 'center';
+                fallback.style.justifyContent = 'center';
+                return;
+            }
+
+            wrapper.style.display = 'block';
+            if (centerEl) centerEl.style.display = 'flex';
+            fallback.style.display = 'none';
+
+            var ctx = canvas.getContext('2d');
+            if (!ctx) {
+                wrapper.style.display = 'none';
+                if (centerEl) centerEl.style.display = 'none';
+                fallback.style.display = 'flex';
+                fallback.style.flexDirection = 'column';
+                fallback.style.alignItems = 'center';
+                fallback.style.justifyContent = 'center';
+                return;
+            }
+            var fontFamily = window.getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif';
+            var modal = document.getElementById('detailsModal');
+            var modalStyles = modal ? window.getComputedStyle(modal) : null;
+            var radarLabelColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-muted').trim() || 'rgba(0,0,0,0.7)') : 'rgba(0,0,0,0.7)';
+            var radarGridColor = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-grid').trim() || 'rgba(0,0,0,0.08)') : 'rgba(0,0,0,0.08)';
+            var radarFill = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream-soft').trim() || 'rgba(246,244,237,.18)') : 'rgba(246,244,237,.18)';
+            var radarStroke = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
+            // The web wears the selected clock's colour from Results over time.
+            function clockColor(alpha?: number): string {
+                var token = canvas?.dataset.clock === 'pheno' ? '--athlete-modal-chart-pheno' : '--athlete-modal-chart-bortz';
+                var color = modalStyles ? modalStyles.getPropertyValue(token).trim() : '';
+                if (!color) return alpha == null ? radarStroke : radarFill;
+                if (alpha == null) return color;
+                var channels = color.match(/rgba?\(([^)]+)\)/)?.[1]?.split(',').slice(0, 3).join(',');
+                return channels ? 'rgba(' + channels + ',' + alpha + ')' : color;
+            }
+            var radarTooltip = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-chart-tooltip').trim() || 'rgba(0,0,0,0.78)') : 'rgba(0,0,0,0.78)';
+            var radarInk = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-text').trim() || '#fff') : '#fff';
+            const radarTextContext = ctx;
+            function wrapRadarText(text: string, width: number, size: number, weight = '400'): string[] {
+                radarTextContext.save();
+                radarTextContext.font = weight + ' ' + size + 'px ' + fontFamily;
+                var lines: string[] = [];
+                var line = '';
+                text.split(/\s+/).forEach(function (word) {
+                    var candidate = line ? line + ' ' + word : word;
+                    if (line && radarTextContext.measureText(candidate).width <= width) {
+                        line = candidate;
+                        return;
+                    }
+                    if (line && radarTextContext.measureText(candidate).width > width) {
+                        lines.push(line);
+                        line = '';
+                    }
+                    for (const glyph of word) {
+                        if (line && radarTextContext.measureText(line + glyph).width > width) {
+                            lines.push(line);
+                            line = '';
+                        }
+                        line += glyph;
+                    }
+                });
+                if (line) lines.push(line);
+                radarTextContext.restore();
+                return lines;
+            }
+            function tooltipFont(context: { readonly chart: { readonly width: number } }): { family: string; size: number; lineHeight: number } {
+                return { family: fontFamily, size: context.chart.width < 260 ? 11 : 12, lineHeight: context.chart.width < 260 ? 1.1 : 1.2 };
+            }
+            var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
+            var contributors = data.tooltipContributors || [];
+            var radarWebSpokesPlugin = {
+                id: 'radarWebSpokes',
+                beforeDatasetsDraw: function (chart: RadarPluginChart): void {
+                    var scale = chart.scales?.r;
+                    var labelCount = chart.data.labels?.length ?? 0;
+                    if (!scale || labelCount === 0) return;
+
+                    var chartContext = chart.ctx;
+                    chartContext.save();
+                    chartContext.beginPath();
+                    for (var index = 0; index < labelCount; index++) {
+                        var boundary = scale.getPointPositionForValue(index, RADAR_WEB_BOUNDARY_PERCENTILE);
+                        chartContext.moveTo(scale.xCenter, scale.yCenter);
+                        chartContext.lineTo(boundary.x, boundary.y);
+                    }
+                    chartContext.strokeStyle = radarGridColor;
+                    chartContext.lineWidth = 1;
+                    chartContext.stroke();
+                    chartContext.restore();
+                }
+            };
+
+            radarChartInstance = new ChartConstructor(ctx, {
+                type: 'radar',
+                plugins: [radarWebSpokesPlugin],
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Percentile (higher = better)',
+                        data: data.values,
+                        backgroundColor: function () { return clockColor(0.16); },
+                        borderColor: function () { return clockColor(); },
+                        // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.
+                        hoverBackgroundColor: function () { return clockColor(0.16); },
+                        hoverBorderColor: function () { return clockColor(); },
+                        borderWidth: 2.5,
+                        pointBackgroundColor: function () { return clockColor(); },
+                        pointBorderColor: 'rgba(18,20,20,.95)',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: function () { return clockColor(); },
+                        borderJoinStyle: 'round',
+                        pointHoverBorderColor: 'rgba(18,20,20,.95)',
+                        pointHoverBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointHitRadius: radarPointHitRadius,
+                        clip: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    // The wrapper sets a landscape shape, so side labels no longer shrink the web inside a square.
+                    maintainAspectRatio: false,
+                    layout: { padding: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 160 ? 12 : 4; } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: radarTooltip,
+                            titleColor: radarInk,
+                            bodyColor: radarInk,
+                            borderColor: function () { return clockColor(); },
+                            borderWidth: 1,
+                            displayColors: false,
+                            padding: function (context: { readonly chart: { readonly width: number; readonly height: number } }) { return context.chart.width < 260 || context.chart.height < 180 ? 6 : 10; },
+                            cornerRadius: 6,
+                            // Moving or resizing between contributors can carry stale bounds outside a narrow canvas.
+                            animations: {
+                                numbers: { duration: 0 },
+                                opacity: { duration: function () { return getRadarAnimationDuration() ? 200 : 0; } }
+                            },
+                            titleFont: function (context: { readonly chart: { readonly width: number } }) { return { ...tooltipFont(context), weight: '600' }; },
+                            bodyFont: tooltipFont,
+                            bodySpacing: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 260 ? 1 : 2; },
+                            titleMarginBottom: function (context: { readonly chart: { readonly width: number } }) { return context.chart.width < 260 ? 4 : 6; },
+                            callbacks: {
+                                title: function (tooltipItems: readonly RadarTooltipItem[]) {
+                                    var firstItem = tooltipItems[0];
+                                    if (!firstItem) return '';
+                                    return String(firstItem.raw) + 'th percentile';
+                                },
+                                label: function () { return null; },
+                                afterBody: function (tooltipItems: readonly RadarTooltipItem[]) {
+                                    var firstItem = tooltipItems[0];
+                                    if (!firstItem) return [];
+                                    const chart = radarChartInstance;
+                                    if (!chart) return [];
+                                    var contrib = chart._radarTooltipContributors;
+                                    var idx = firstItem.dataIndex;
+                                    var contributorLines = contrib?.[idx];
+                                    if (!contributorLines?.length) return [];
+                                    var compact = chart.width < 260 || chart.height < 180;
+                                    var wrapped = contributorLines.flatMap(function (line) {
+                                        return wrapRadarText(line, Math.max(32, chart.width - (compact ? 12 : 20)), chart.width < 260 ? 11 : 12);
+                                    });
+                                    return compact ? wrapped : [''].concat(wrapped);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: RADAR_SCALE_MAX_PERCENTILE,
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 20,
+                                backdropColor: 'transparent',
+                                display: false
+                            },
+                            pointLabels: {
+                                font: function (context: { readonly chart: { readonly width: number } }) {
+                                    return { family: fontFamily, size: context.chart.width >= 420 ? 12 : 11, weight: '500' };
+                                },
+                                color: radarLabelColor,
+                                // Each domain carries its percentile under its name, like a labelled axis.
+                                callback: function (this: { readonly chart?: { readonly width: number; readonly data: { readonly datasets: ReadonlyArray<{ readonly data: readonly unknown[] }> } } }, label: string, index: number): string | string[] {
+                                    var value = Number(this?.chart?.data.datasets[0]?.data[index]);
+                                    var width = this?.chart?.width ?? 420;
+                                    var names = width < 260 ? wrapRadarText(label, Math.max(32, width * .28), 11, '500') : [label];
+                                    return Number.isFinite(value) ? names.concat(String(Math.round(value))) : names;
+                                },
+                                padding: 6,
+                                z: 1
+                            },
+                            grid: {
+                                color: function (context: { readonly tick?: { readonly value?: number } }): string {
+                                    return (context.tick?.value ?? 0) <= RADAR_WEB_BOUNDARY_PERCENTILE
+                                        ? radarGridColor
+                                        : 'transparent';
+                                },
+                                lineWidth: 1
+                            },
+                            angleLines: { display: false }
+                        }
+                    },
+                    animation: { duration: getRadarAnimationDuration() },
+                    hover: { mode: 'nearest' }
+                }
+            });
+            radarChartInstance._radarTooltipContributors = contributors;
+            if (radarResizeObserver && wrapper) radarResizeObserver.disconnect();
+            if ('ResizeObserver' in window) {
+                radarResizeObserver = new ResizeObserver(scheduleRadarResize);
+                radarResizeObserver.observe(wrapper);
             }
         }
 
-        if (bothClocks && tabPheno && tabBortz) {
-            tabPheno.onclick = function () { selectClock(false); };
-            tabBortz.onclick = function () { selectClock(true); };
-            function handleKey(e: KeyboardEvent, isPheno: boolean): void {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    selectClock(!isPheno);
-                } else if (e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    selectClock(true);
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    selectClock(false);
-                }
-            }
-            tabPheno.onkeydown = function (e) { handleKey(e, true); };
-            tabBortz.onkeydown = function (e) { handleKey(e, false); };
-        }
+        const load = loadChart;
+        if (load && canvas && (hasPheno || hasBortz)) {
+            // The current result is readable now. Keep the canvas space stable
+            // while its optional dependency and expensive drawing wait to paint.
+            wrapper.style.display = 'block';
+            const center = document.getElementById('ageRadarCenter');
+            if (center) center.style.display = 'flex';
+            fallback.style.display = 'none';
+            radarBuildFrame = requestAnimationFrame(() => {
+                radarBuildFrame = 0;
+                if (buildGeneration !== radarBuildGeneration) return;
+                radarBuildTimer = window.setTimeout(() => {
+                    radarBuildTimer = 0;
+                    if (buildGeneration !== radarBuildGeneration) return;
+                    try { void load().then(renderRadar, renderRadar); }
+                    catch { renderRadar(); }
+                }, 0);
+            });
+        } else renderRadar();
     }
 
     function generateAgeVisualizationInternal(
@@ -645,7 +824,7 @@
         visualizationContainer.innerHTML = '';
         var difference = bioAge - chronoAge;
         var diff = difference.toFixed(1);
-        var text = (difference > 0 ? '+' : '') + diff + ' yrs';
+        var text = (difference > 0 ? '+' : difference < 0 ? '−' : '') + Math.abs(difference).toFixed(1) + ' yrs';
         visualizationContainer.innerHTML = '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--light-text-color);font-weight:bold;">' + text + '</span>';
     }
 
@@ -683,6 +862,10 @@
         return parts.length ? '(' + parts.join(', ') + ')' : null;
     }
 
+    // Invalidate pending work at close intent; the drawn chart can leave with
+    // its whole card before the existing completion path destroys it.
+    document.addEventListener('athlete-dialog-close-requested', cancelRadarBuild, true);
+    document.addEventListener('athlete-dialog-closing', cancelRadarBuild, true);
     window.generateAgeVisualization = generateAgeVisualization;
     window.generateAgeVisualizationInternal = generateAgeVisualizationInternal;
     window.destroyAgeRadarChart = destroyRadarChart;

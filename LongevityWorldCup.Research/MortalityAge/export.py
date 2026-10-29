@@ -11,7 +11,6 @@ from model import Fit, FEATURES, transform, design, predict_risk, reference_age
 REPO = Path(__file__).resolve().parents[2]
 ROOT = REPO / '.artifacts' / 'mortality-age'
 RESULTS = ROOT / 'results'
-PUBLIC = REPO / 'LongevityWorldCup.Website' / 'wwwroot' / 'research'
 ARCHIVE = Path(__file__).parent / 'artifacts'
 
 
@@ -21,7 +20,7 @@ def read(name):
 
 def write_json(path, value):
     # Match the repository's LF bytes on every platform so provenance hashes
-    # describe the published artifact, including when exporting on Windows.
+    # describe the archived artifact, including when exporting on Windows.
     path.write_text(json.dumps(value, indent=2, allow_nan=False), encoding='utf-8', newline='\n')
 
 
@@ -90,9 +89,8 @@ def main():
                   caveat='Research experiment; mortality associations do not establish treatment effects')
     digest = hashlib.sha256(json.dumps(bundle, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     bundle['modelVersion'] = 'mortality-age-0.2-' + digest[:12]
-    PUBLIC.mkdir(parents=True, exist_ok=True)
     ARCHIVE.mkdir(exist_ok=True)
-    write_json(PUBLIC / 'mortality-age-model.json', bundle)
+    write_json(ARCHIVE / 'mortality-age-model.json', bundle)
     # Independent Python expectations for browser parity, including sex functions.
     fixtures = []
     for profile in sensitivity['exampleProfiles']:
@@ -121,9 +119,9 @@ def main():
                          chronologicalAgeInRisk=False, chronologicalAgeInMissingInputDistribution=False,
                          referencePurpose='Fixed historical age/sex risk-to-years ruler; never uses the user\'s age',
                          evaluationStatus=config['evaluationReuse']),
-                     modelVersion=bundle['modelVersion'], modelSha256=hashlib.sha256((PUBLIC/'mortality-age-model.json').read_bytes()).hexdigest())
+                     modelVersion=bundle['modelVersion'], modelSha256=hashlib.sha256((ARCHIVE/'mortality-age-model.json').read_bytes()).hexdigest())
     write_json(ARCHIVE / 'results.json', aggregate)
-    print(json.dumps(dict(modelVersion=bundle['modelVersion'], exported=str(PUBLIC),
+    print(json.dumps(dict(modelVersion=bundle['modelVersion'], exported=str(ARCHIVE),
                          bootstrapConverged=len(public_full['bootstrap']), fitnessNumericWithheld=True)), flush=True)
 
 

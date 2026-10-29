@@ -18,6 +18,7 @@ interface FlowActionDockApi {
         inlineHeight: number;
         mutationObserver: MutationObserver;
         placeholder: HTMLDivElement;
+        oversizedInlineSignature: string;
     }
 
     interface VisualViewportBounds {
@@ -36,6 +37,8 @@ interface FlowActionDockApi {
     const singleBackActionClass = 'flow-action-stack--single-back-action';
     const backPrimaryActionClass = 'flow-action-stack--back-primary-action';
     const mobileMedia = window.matchMedia('(max-width: 760px)');
+    const desktopRowMedia = window.matchMedia('(min-width: 769px)');
+    const playerCardRowMedia = window.matchMedia('(min-width: 761px) and (min-height: 600px)');
     const keyboardMedia = window.matchMedia('(max-width: 760px), (pointer: coarse)');
     const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
     const states = new Map<HTMLElement, DockState>();
@@ -46,7 +49,9 @@ interface FlowActionDockApi {
     let transitionsReady = false;
     let generatedFormId = 0;
     let keyboardClearFrame = 0;
+    let elementClearFrame = 0;
     let focusedControlClearanceRequested = false;
+    let focusedControlLayoutSignature = '';
     let largestUnobscuredViewportHeight = 0;
     let lastLayoutViewportWidth = window.innerWidth;
     let isKeyboardOpen = false;
@@ -63,6 +68,22 @@ interface FlowActionDockApi {
             bottom: top + height,
             height
         };
+    }
+
+    function getInputViewportBounds(): VisualViewportBounds {
+        const viewport = getVisualViewportBounds();
+        let top = viewport.top;
+        for (const id of ['site-sticky-header', 'site-sticky-progress']) {
+            const bar = document.getElementById(id);
+            if (!bar?.classList.contains('visible') || !hasLayoutBox(bar)) continue;
+            const style = getComputedStyle(bar);
+            if (style.visibility === 'hidden') continue;
+            const rect = bar.getBoundingClientRect();
+            const fixedTop = parseFloat(style.top);
+            top = Math.max(top, Number.isFinite(fixedTop) ? fixedTop + rect.height : rect.bottom);
+        }
+        top = Math.min(top, viewport.bottom);
+        return { top, bottom: viewport.bottom, height: viewport.bottom - top };
     }
 
     function isKeyboardEditingControl(element: Element | null): element is HTMLElement {
@@ -124,23 +145,23 @@ interface FlowActionDockApi {
         document.body.style.setProperty('--flow-input-keyboard-occlusion', occlusionValue);
     }
 
-    function keepFocusedControlInVisualViewport(): void {
+    function keepFocusedControlInVisualViewport(layoutResized: boolean): void {
+        if ((!isKeyboardOpen && !layoutResized) || !isKeyboardEditingControl(document.activeElement)) return;
         if (keyboardClearFrame) window.cancelAnimationFrame(keyboardClearFrame);
-        if (!isKeyboardOpen || !isKeyboardEditingControl(document.activeElement)) {
-            keyboardClearFrame = 0;
-            return;
-        }
 
         keyboardClearFrame = window.requestAnimationFrame(() => {
             keyboardClearFrame = 0;
             const control = document.activeElement;
-            if (!isKeyboardOpen || !isKeyboardEditingControl(control)) return;
+            if ((!isKeyboardOpen && !layoutResized) || !isKeyboardEditingControl(control) || !isVisible(control)
+                || control.closest('[hidden], [inert], [aria-hidden="true"]')) return;
 
-            const viewport = getVisualViewportBounds();
+            const viewport = getInputViewportBounds();
             const rect = control.getBoundingClientRect();
             const margin = 16;
             const topLimit = viewport.top + margin;
-            const bottomLimit = viewport.bottom - margin;
+            const dockHeight = parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--flow-action-dock-height')) || 0;
+            const bottomLimit = viewport.bottom - dockHeight - margin;
             if (rect.bottom > bottomLimit) {
                 window.scrollBy({ top: Math.ceil(rect.bottom - bottomLimit), behavior: 'auto' });
             } else if (rect.top < topLimit) {
@@ -175,15 +196,12 @@ interface FlowActionDockApi {
             if (label) label.dataset.flowDockLabel = action.dataset.flowDockLabel;
         });
         const backAction = visibleActions.find(isBackAction);
+        // A primary action keeps its slot while disabled (shown as secondary), so the dock does not jump.
         const primaryAction = visibleActions.find(action =>
-            action !== backAction && !action.classList.contains('flow-action--secondary'));
+            action !== backAction && (action.matches(':disabled') || !action.classList.contains('flow-action--secondary')));
 
         element.classList.toggle(singleBackActionClass, visibleActions.length === 1 && isBackAction(visibleActions[0]));
         element.classList.toggle(backPrimaryActionClass, visibleActions.length === 2 && !!backAction && !!primaryAction);
-    }
-
-    function clearActionLayoutState(element: HTMLElement): void {
-        element.classList.remove(singleBackActionClass, backPrimaryActionClass);
     }
 
     function conditionMatches(element: HTMLElement): boolean {
@@ -237,7 +255,8 @@ interface FlowActionDockApi {
             enterFrame: 0,
             inlineHeight: 0,
             mutationObserver,
-            placeholder
+            placeholder,
+            oversizedInlineSignature: ''
         };
         states.set(element, state);
         resizeObserver?.observe(element);
@@ -263,7 +282,7 @@ interface FlowActionDockApi {
     }
 
     function beginDockEnter(element: HTMLElement, state: DockState): void {
-        if (!transitionsReady || reducedMotionMedia.matches) return;
+        if (!transitionsReady || reducedMotionMedia.matches || element.contains(document.activeElement)) return;
         element.classList.add(dockEnteringClass);
         state.enterFrame = window.requestAnimationFrame(() => {
             state.enterFrame = window.requestAnimationFrame(() => {
@@ -281,6 +300,87 @@ interface FlowActionDockApi {
         element.classList.remove(dockEnteringClass);
     }
 
+    function moveKeepingFocus(element: HTMLElement, move: () => void): void {
+        const focused = document.activeElement;
+        const hadFocus = focused instanceof HTMLElement && element.contains(focused);
+        const scrollLeft = window.scrollX;
+        const scrollTop = window.scrollY;
+        let focusAssigned = false;
+        const trackFocus = (event: FocusEvent): void => {
+            if (event.target !== focused) focusAssigned = true;
+        };
+        if (hadFocus) document.addEventListener('focusin', trackFocus, true);
+        try {
+            move();
+        } finally {
+            document.removeEventListener('focusin', trackFocus, true);
+        }
+        // insertBefore blurs a moved subtree in older engines. Only recover
+        // focus lost by the move, after its final layout and loading state agree.
+        // A page handler's new focus always takes precedence.
+        if (hadFocus && !focusAssigned && document.activeElement !== focused
+            && (!document.activeElement || document.activeElement === document.body)
+            && element.contains(focused) && focused.isConnected && focused.tabIndex >= 0
+            && !focused.matches(':disabled, [aria-disabled="true"]')
+            && !focused.closest('[hidden], [inert], [aria-hidden="true"]')
+            && isFocusTargetVisible(focused)) {
+            focused.focus({ preventScroll: true });
+        }
+        // A native state-preserving move can scroll a focused fixed control
+        // into its new inline position even though it never lost focus.
+        if (hadFocus && !focusAssigned && document.activeElement === focused
+            && (window.scrollX !== scrollLeft || window.scrollY !== scrollTop)) {
+            window.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'instant' });
+        }
+    }
+
+    function isFocusTargetVisible(element: HTMLElement): boolean {
+        if (!hasLayoutBox(element)) return false;
+        // The DOM-move fallback must also work in engines without checkVisibility.
+        for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+            const style = window.getComputedStyle(ancestor);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse'
+                || Number(style.opacity) === 0 || style.contentVisibility === 'hidden') return false;
+        }
+        return true;
+    }
+
+    function moveElement(element: HTMLElement, parent: Node, before: ChildNode | null): void {
+        if ('moveBefore' in parent && typeof parent.moveBefore === 'function'
+            && element.isConnected && parent.isConnected) {
+            parent.moveBefore(element, before);
+        } else {
+            parent.insertBefore(element, before);
+        }
+    }
+
+    function syncActionOrder(element: HTMLElement, docked: boolean): void {
+        const actions = Array.from(element.children);
+        // Multi-command docks can lead with Back while keeping it after the
+        // regular actions in their inline layout. Match keyboard and visual
+        // order using the same focus-preserving move as two-action flows.
+        if (element.hasAttribute('data-flow-dock-back-first')) {
+            const back = actions.find(action => isBackAction(action as HTMLElement)) as HTMLElement | undefined;
+            if (back && (docked ? element.firstElementChild !== back : element.lastElementChild !== back)) {
+                moveKeepingFocus(element, () => moveElement(back, element, docked ? element.firstChild : null));
+            }
+            return;
+        }
+        if (actions.length !== 2 || !actions.every(action => action.matches('.flow-action'))) return;
+        const back = actions.find(action => isBackAction(action as HTMLElement)) as HTMLElement | undefined;
+        const primary = actions.find(action => action !== back) as HTMLElement | undefined;
+        if (!back || !primary) return;
+        const inlineBackFirst = desktopRowMedia.matches
+            || (element.classList.contains('convergence-actions') && !mobileMedia.matches)
+            || (element.classList.contains('play-athlete-actions') && playerCardRowMedia.matches);
+        const backFirst = docked || element.hasAttribute('data-flow-dock-inline-back-first') || (inlineBackFirst
+            && !element.classList.contains('flow-action-stack--hide-disabled-primary'));
+        const first = backFirst ? back : primary;
+        if (element.firstElementChild !== first) {
+            moveKeepingFocus(element, () => moveElement(first, element, element.firstChild));
+        }
+    }
+
     function dockElement(element: HTMLElement, state: DockState): void {
         const rect = element.getBoundingClientRect();
         state.inlineHeight = rect.height || element.offsetHeight || state.inlineHeight;
@@ -288,21 +388,28 @@ interface FlowActionDockApi {
         setPlaceholderHeight(state, state.inlineHeight);
 
         ensureSubmitButtonFormOwnership(element);
-        document.body.appendChild(element);
-        element.classList.add(dockClass);
-        state.docked = true;
-        updateActionLayoutState(element);
+        moveKeepingFocus(element, () => {
+            moveElement(element, document.body, null);
+            element.classList.add(dockClass);
+            state.docked = true;
+            syncActionOrder(element, true);
+            updateActionLayoutState(element);
+        });
         beginDockEnter(element, state);
     }
 
     function undockElement(element: HTMLElement, state: DockState): void {
         cancelDockEnter(element, state);
         element.classList.remove(dockClass);
-        clearActionLayoutState(element);
+        updateActionLayoutState(element);
         state.docked = false;
 
-        if (state.placeholder.parentNode) {
-            state.placeholder.parentNode.insertBefore(element, state.placeholder.nextSibling);
+        const placeholderParent = state.placeholder.parentNode;
+        if (placeholderParent) {
+            moveKeepingFocus(element, () => {
+                moveElement(element, placeholderParent, state.placeholder.nextSibling);
+                syncActionOrder(element, false);
+            });
         }
         state.placeholder.hidden = true;
         state.placeholder.style.height = '';
@@ -314,6 +421,13 @@ interface FlowActionDockApi {
             : element.getBoundingClientRect();
     }
 
+    function getInlineSignature(element: HTMLElement): string {
+        const rect = element.getBoundingClientRect();
+        return [window.innerWidth, window.innerHeight, getVisualViewportBounds().height,
+            rect.width, rect.height, getComputedStyle(element).fontSize,
+            element.getAttribute('data-flow-dock-max-height-ratio'), element.textContent].join('|');
+    }
+
     function shouldDock(element: HTMLElement, state: DockState): boolean {
         if (!conditionMatches(element)) return false;
         // Portaled controls still belong to their source task while it loads.
@@ -321,6 +435,10 @@ interface FlowActionDockApi {
         if (document.documentElement.hasAttribute('data-initial-view') && origin.closest('.initial-view-main')) return false;
         if (state.docked ? !hasLayoutBox(state.placeholder) : !isVisible(element)) return false;
         if (isKeyboardOpen) return false;
+        // A large action set is more useful in normal flow than over most of the
+        // task. Retry its dock measurement when text, content or viewport changes.
+        if (!state.docked && state.oversizedInlineSignature
+            && state.oversizedInlineSignature === getInlineSignature(element)) return false;
 
         const mode = (element.getAttribute('data-flow-dock') || 'auto').toLowerCase();
         if (mode === 'off') return false;
@@ -346,7 +464,19 @@ interface FlowActionDockApi {
 
     function refresh(): void {
         refreshFrame = 0;
-        const shouldClearFocusedControl = focusedControlClearanceRequested;
+        // A page animating a whole screen into place holds dock decisions, so
+        // transformed, mid-motion geometry never docks or releases its actions.
+        // It refreshes again when the motion settles.
+        if (document.documentElement.hasAttribute('data-flow-dock-hold')) return;
+        // Step changes intentionally focus with preventScroll. Ordinary focus
+        // only opts into clearance when the viewport or text size really changed.
+        const viewport = getVisualViewportBounds();
+        const inputViewport = getInputViewportBounds();
+        document.documentElement.style.setProperty('--flow-input-top-occlusion', `${Math.ceil(inputViewport.top - viewport.top)}px`);
+        const layoutSignature = `${window.innerWidth}|${window.innerHeight}|${viewport.height}|${getComputedStyle(document.documentElement).fontSize}`;
+        const layoutResized = focusedControlLayoutSignature !== '' && focusedControlLayoutSignature !== layoutSignature;
+        focusedControlLayoutSignature = layoutSignature;
+        const shouldClearFocusedControl = focusedControlClearanceRequested || layoutResized;
         focusedControlClearanceRequested = false;
         ensureRegisteredElements();
         syncKeyboardState();
@@ -355,6 +485,10 @@ interface FlowActionDockApi {
         let hasDockedElement = false;
 
         states.forEach((state, element) => {
+            // Inline controls need the same visible-action classification as
+            // the dock when a primary action is hidden, disabled or restored.
+            updateActionLayoutState(element);
+            syncActionOrder(element, state.docked);
             const docked = shouldDock(element, state);
             if (docked && !state.docked) dockElement(element, state);
             if (!docked && state.docked) undockElement(element, state);
@@ -362,7 +496,22 @@ interface FlowActionDockApi {
 
             updateActionLayoutState(element);
             const measuredHeight = element.getBoundingClientRect().height || element.offsetHeight;
-            setPlaceholderHeight(state, state.inlineHeight || measuredHeight);
+            const maxHeightRatio = Number(element.getAttribute('data-flow-dock-max-height-ratio'));
+            const fitSelector = element.getAttribute('data-flow-dock-fit');
+            const fitContainer = fitSelector ? state.placeholder.closest<HTMLElement>(fitSelector) : null;
+            // A full-screen lockup needs room for its content as well as its
+            // actions. When text grows, keep the whole group in normal flow.
+            const viewportHeight = getVisualViewportBounds().height;
+            if ((maxHeightRatio > 0 && maxHeightRatio <= 1 && measuredHeight > viewportHeight * maxHeightRatio)
+                || (fitContainer && fitContainer.scrollHeight > viewportHeight + 1)) {
+                undockElement(element, state);
+                state.oversizedInlineSignature = getInlineSignature(element);
+                return;
+            }
+            state.oversizedInlineSignature = '';
+            // Wrapped dock actions can be taller than their original inline
+            // layout. Reserve that footprint so the final message stays reachable.
+            setPlaceholderHeight(state, Math.max(state.inlineHeight, measuredHeight));
             dockedHeight = Math.max(dockedHeight, measuredHeight);
             hasDockedElement = true;
         });
@@ -372,7 +521,7 @@ interface FlowActionDockApi {
         const heightValue = hasDockedElement ? `${Math.ceil(dockedHeight)}px` : '0px';
         document.documentElement.style.setProperty('--flow-action-dock-height', heightValue);
         document.body.style.setProperty('--flow-action-dock-height', heightValue);
-        if (shouldClearFocusedControl) keepFocusedControlInVisualViewport();
+        if (shouldClearFocusedControl) keepFocusedControlInVisualViewport(layoutResized);
     }
 
     function scheduleRefresh(): void {
@@ -421,27 +570,62 @@ interface FlowActionDockApi {
         return { top, bottom };
     }
 
-    function ensureElementClear(
+    function scrollElementClear(
         element: Element | null | undefined,
         options: FlowActionDockEnsureClearOptions = {}
-    ): void {
-        if (!element?.isConnected) return;
+    ): { left: number; minimumTop: number; maximumTop: number } | null {
+        if (!isVisible(element)) return null;
         refreshImmediately();
 
         const dockHeight = parseFloat(getComputedStyle(document.documentElement)
             .getPropertyValue('--flow-action-dock-height')) || 0;
-        if (!dockHeight) return;
+        if (!dockHeight && !isKeyboardOpen) return null;
 
         const requestedMargin = options.margin;
-        const margin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
         const rect = getClearanceRect(element, options);
-        const viewport = getVisualViewportBounds();
+        const viewport = getInputViewportBounds();
+        const desiredMargin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
+        // Keep both ends visible when a field and its counter nearly fill the viewport.
+        const availableMargin = Math.max(0, (viewport.height - dockHeight - (rect.bottom - rect.top)) / 2);
+        const margin = Math.min(desiredMargin, availableMargin);
         const bottomLimit = viewport.bottom - dockHeight - margin;
-        if (rect.bottom <= bottomLimit) return;
-
-        window.scrollBy({
-            top: Math.ceil(rect.bottom - bottomLimit),
+        const topLimit = viewport.top + margin;
+        const fits = rect.bottom - rect.top <= viewport.height - dockHeight;
+        const scroll = rect.bottom > bottomLimit ? Math.ceil(rect.bottom - bottomLimit)
+            : fits && rect.top < topLimit ? Math.floor(rect.top - topLimit) : 0;
+        const start = window.scrollY;
+        const target = Math.max(0, Math.min(start + scroll,
+            document.documentElement.scrollHeight - window.innerHeight));
+        if (scroll) window.scrollBy({
+            top: scroll,
             behavior: options.behavior || (reducedMotionMedia.matches ? 'auto' : 'smooth')
+        });
+        // An immediate scroll has already traversed its path. Only allow the
+        // remaining smooth-scroll movement during the deferred layout pass.
+        const remainingStart = window.scrollY;
+        return { left: window.scrollX, minimumTop: Math.min(remainingStart, target), maximumTop: Math.max(remainingStart, target) };
+    }
+
+    function cancelDeferredElementClearance(): void {
+        if (elementClearFrame) window.cancelAnimationFrame(elementClearFrame);
+        elementClearFrame = 0;
+    }
+
+    function ensureElementClear(element: Element | null | undefined, options: FlowActionDockEnsureClearOptions = {}): void {
+        cancelDeferredElementClearance();
+        const scrollPath = scrollElementClear(element, options)
+            ?? { left: window.scrollX, minimumTop: window.scrollY, maximumTop: window.scrollY };
+        const focused = document.activeElement;
+        // A sticky bar may appear after this scroll. Reconcile that edit once,
+        // allowing our smooth scroll to advance, while yielding to a later scroll.
+        elementClearFrame = window.requestAnimationFrame(() => {
+            elementClearFrame = window.requestAnimationFrame(() => {
+                elementClearFrame = 0;
+                if (document.activeElement === focused && window.scrollX === scrollPath.left
+                    && window.scrollY >= scrollPath.minimumTop - 1 && window.scrollY <= scrollPath.maximumTop + 1) {
+                    scrollElementClear(element, options);
+                }
+            });
         });
     }
 
@@ -470,6 +654,8 @@ interface FlowActionDockApi {
         window.addEventListener('resize', scheduleFocusedControlClearance);
         window.addEventListener('orientationchange', scheduleFocusedControlClearance);
         window.addEventListener('scroll', scheduleRefresh, { passive: true });
+        window.addEventListener('wheel', cancelDeferredElementClearance, { passive: true });
+        window.addEventListener('touchmove', cancelDeferredElementClearance, { passive: true });
         window.addEventListener('load', scheduleRefresh);
         window.addEventListener('pageshow', scheduleRefresh);
         document.addEventListener('focusin', scheduleFocusedControlClearance, true);

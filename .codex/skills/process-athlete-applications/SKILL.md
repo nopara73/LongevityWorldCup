@@ -98,6 +98,8 @@ Before redacting an existing athlete's new proofs, check their prior privacy req
 
 Parse `athlete.json`; compare email audit fields and visible proofs. Check identity/profile metadata (name/display name, division, flag, personal link, media contact, Why), plausible DOB/test chronology, numeric biomarkers in expected units, profile-image filename matching the folder key, and present `proof_*.ext` evidence for results. Append new records without replacing unrelated history.
 
+Before approval/publication, review `Name` and `DisplayName` casing. Correct accidental all-caps personal names in the canonical JSON fields, using natural casing supported by the application and human correspondence; do not merely hide the problem with CSS or a display-name override. Preserve deliberate handles/acronyms, already-correct casing, diacritics, initials, apostrophes, hyphens, and name particles. Never blindly title-case every name or invent spelling/accents. Keep folder keys, profile slugs, asset filenames, contact addresses, source proofs, and quoted correspondence unchanged. Record the before/after name in the private review and approval summary; after publication verify that the profile, roster, and highlights resolve the corrected name.
+
 A plausible-year December 31 DOB is an allowed privacy placeholder; never replace it with the exact DOB on a proof. Full applications require DOB. Use these sources when uncertain:
 
 - `LongevityWorldCup.Website/Business/ApplicantData.cs`: submitted fields.
@@ -107,15 +109,18 @@ A plausible-year December 31 DOB is an allowed privacy placeholder; never replac
 
 Visually inspect every proof image/PDF page; OCR is supplementary. For each record:
 
-- Verify ownership, collection date, each value/unit, and required biomarkers against one blood draw/coherent report for that date. Never combine unrelated tests, dates, or documents. Convert units only when the source unit is clear.
+- Verify ownership, collection/test date, each value/unit, and required biomarkers against coherent same-day evidence. Required markers may be documented across reports from that day; do not impose a same-blood-draw requirement or combine different test dates or unrelated evidence. Convert units only when the source unit is clear.
 - Correct unambiguous clerical errors locally (collection versus report date, mistyped value); disclose substantive corrections. Keep tiny conversion/rounding adjustments in the private review, not athlete emails. Uncertain values, units, or medical interpretation need human judgment.
-- Below-detection-limit results are valid: store the stated limit (CRP `<0.5 mg/L` becomes `"CrpMgL": 0.5`). If CRP's detection limit is unknown, use the competition default `1 mg/L`. Do not reject/remove the result because of the qualifier; disclose any changed submission value.
+- For limit-qualified results, read and apply the current detection-limit section of `LongevityWorldCup.Documentation/Ruleset.md`. Use the LoD only when the lab confirms the sample's result was below it. For a result reported below the LoQ, use the LoQ unless the lab also confirms the result was below the LoD. Both limits must apply to the assay used for that sample. Accept a numerical result instead only when the lab validates it as quantitatively reliable; an unvalidated raw instrument reading is not sufficient.
+- Do not substitute a lower limit based only on generic instrument specifications, another test, historical results, or a better projected rank. A `<0.1 mg/L` report alone does not justify using an LoD of `0.06 mg/L`. Do not interpret `0` or `<0` as a measured zero or as confirmation that the sample was below a particular LoD. If CRP's applicable limit is unknown, retain the competition default `1 mg/L`. A usable stated limit remains valid (CRP `<0.5 mg/L` becomes `"CrpMgL": 0.5`); do not reject/remove a result solely because of its qualifier.
+- Record the original result/qualifier and units, supporting report or lab confirmation, chosen scoring input, and whether it is a validated numerical result, LoD substitution, LoQ substitution, or CRP default in the private review. Substituted limits are scoring inputs, not measured concentrations. Disclose changed submission values and their basis in the approval summary and substantive correction reply; keep the normal approval gates.
 - Retain every complete submitted report page and all clinical content, including unused analytes, units/ranges, flags, comments, diagnoses/referrals, and specimen/report dates. Public proof is not a competition-marker excerpt.
-- Crop screenshots to complete report-page boundaries before redaction. Remove OS/browser/viewer chrome, filenames, toolbars, external canvas, and partial adjacent pages. Preserve report headers/footers, page numbers, provenance, dates, and clinical rows. If no complete page can be isolated, keep the source private and request a clean complete-page export.
+- Crop screenshots to the report-page boundaries before redaction. Remove OS/browser/viewer chrome, filenames, toolbars, external canvas, and duplicated partial adjacent pages while preserving readable report headers/footers, page numbers, provenance, dates, and all clinical rows. Floating controls over blank margins or generic footer boilerplate may be removed with a small opaque cleanup mask. Never reconstruct covered text or let cleanup erase a result, unit, reference range, identity/date evidence, or patient-specific clinical comment.
+- Treat cosmetic screenshot defects as editing work, not missing evidence. Do not block acceptance or request an original PDF solely because of phone UI, floating buttons, imperfect margins, or an obscured generic footer when the coherent report still verifies ownership, collection date, and every required value/unit and all visible clinical content can be preserved. Request replacement proof only for a specific unreadable/missing piece of clinical or verification evidence, or a privacy problem that cannot be safely cleaned; name that actual gap in the review and draft.
 - Redact private identifiers and unique administrative tokens for patients, clinicians, labs, providers, facilities, insurers, and other organizations: personal phone/email/home address; client/patient/medical-record/health/insurance/member IDs; license/registry/provider/facility/organization/staff codes; order/accession/specimen/report/account/payment numbers; encoding barcodes/QR codes.
 - Preserve the applicant's name, age, sex, clinical content, human-readable lab/provider names and logos, clinician/referrer/validator/technician/signer names/titles, facility addresses/contacts, doctor phone numbers, and renderer/footer metadata. Provider registry/code identifiers still require redaction.
 - With a non-December-31 JSON DOB, leave the full proof DOB visible. With the `12/31` placeholder, redact only proof DOB month/day everywhere, retaining the birth year and all other evidence.
-- Inspect every final page at readable size for remaining viewer UI, partial neighboring pages, and text fragments at redaction edges. For re-encoded proofs, decoded-pixel comparison or equivalent must confirm retained-page pixels changed only in intended redaction regions.
+- Inspect every final page at readable size for remaining viewer UI, partial neighboring pages, and text fragments at redaction edges. For cropped/re-encoded proofs, compare decoded pixels with the corresponding source crop and require zero changes outside the intended privacy-redaction and localized nonclinical viewer-UI cleanup regions.
 
 Pheno age requires one record containing:
 
@@ -154,15 +159,21 @@ For ordinary/full-application replies, prefer requester `Reply-To` or `Account e
 
 ## Reply Content
 
-Continue the latest direct exchange in a warm, concise human voice. Match demonstrated sender style from actual correspondence (brevity, punctuation, emoji, headings, calls to action). Avoid stacked prose praise; repeated completion emoji may fit established style. Greet only in the first direct human reply in a thread. Acknowledge relevant supplied proof/corrections, not unrelated side topics.
+Continue the latest direct exchange in a warm, concise human voice. The conversation and user-approved wording take precedence over a generic welcome template. Match demonstrated sender style from actual correspondence (brevity, punctuation, emoji, headings, calls to action). Avoid stacked prose praise; repeated completion emoji may fit established style. Greet only in the first direct human reply in a thread. Acknowledge relevant supplied proof/corrections, not unrelated side topics. Before saving, compare the reply with the latest inbound and prior human replies, including related threads; remove repeated introductions, already-covered requests, and unrelated promotional copy.
+
+For simple informational or pre-application questions, answer only the question and relevant eligibility condition. Do not turn them into an application review by adding document requests, missing-attachment commentary, payment instructions, or other next steps unless explicitly requested or necessary for an actual active submission. A general inquiry without an attachment is not a proof-blocked application.
+
+Do not use em dashes in newly written replies. Use periods or commas instead; preserve original quoted correspondence unchanged.
 
 Language priority: explicit user/athlete instruction; otherwise a clearly non-English `Why` field; otherwise latest direct exchange; otherwise English. Localize the entire reply, retaining names, URLs, biomarker labels, and exact values. Lab-report language alone does not establish preference.
 
-For new applications blocked by missing evidence, introduce Adam on first contact and ask only about the confirmed blocker. If unpaid, tell them to hold off paying until the evidence can be verified; if already paid and the evidence may not exist, offer a refund. Request only the missing markers, same-draw evidence, or safe proof needed, not a premature payment.
+For new applications blocked by missing evidence, introduce Adam on first contact and ask only about the confirmed blocker. If unpaid, tell them to hold off paying until the evidence can be verified; if already paid and the evidence may not exist, offer a refund. Request only the missing markers, same-day evidence, or safe proof needed, not a premature payment. Use the Ruleset's same-day wording in replies, not a stricter same-blood-draw requirement.
 
-Every accepted full-application welcome briefly introduces Adam as LWC's founder, even after requested corrections. Include acceptance, the new profile link, and an invitation to report corrections. Acknowledge the actual preceding exchange without repeating an earlier greeting.
+An introduction belongs only on first direct human contact when needed, not automatically at acceptance. Never repeat Adam's name/founder introduction after requested corrections or when prior correspondence has already introduced him. Do not restart a welcome script because the application has become acceptable.
 
-When review substantively corrects athlete-submitted information, include `Changes I made during the review:` with one short bullet per substantive change, showing submitted versus stored values/units where relevant. Place it before a new profile link; for existing-athlete updates it may be the entire substantive body. Never mention tiny unit-conversion or rounding differences in athlete emails (for example, 71.99 → 72 U/L or 35.39 → 35.4 U/L); record them only in the private review/ledger. Omit the section when no substantive corrections occurred. Exclude routine processing, redaction, filenames, internal details, and normal result additions; never invent changes.
+For accepted applications, lead with a brief, warm confirmation suited to the preceding exchange, then the new profile link. Follow with substantive review changes when relevant. Invite corrections only when useful; do not pad the reply with branding or generic praise.
+
+When review substantively corrects athlete-submitted information, include `Changes I made during the review:` with one short bullet per substantive change, showing submitted versus stored values/units where relevant. Place it after the warm confirmation and any useful profile link, not as an abrupt standalone opening. Never mention tiny unit-conversion or rounding differences in athlete emails (for example, 71.99 → 72 U/L or 35.39 → 35.4 U/L); record them only in the private review/ledger. Omit the section when no substantive corrections occurred. Exclude routine processing, redaction, filenames, internal details, and normal result additions; never invent changes.
 
 Existing-athlete replies normally omit repeated greeting, generic profile-updated text, unchanged/known URL, founder introduction, Slack invitation, signature, and unnecessary calls to action. Include links only for new/changed profiles, when requested, or when useful to resolve the request. With no correction/action, a brief sender-appropriate completion line is sufficient.
 
@@ -176,17 +187,13 @@ Changes I made during the review:
 - Your MCV was submitted as 84.7 fL, but the proof shows 86.7 fL, so I stored 86.7 fL.
 ```
 
-Include the following only in the first accepted full-application welcome if history shows it has not already been sent, unless explicitly requested elsewhere:
-
-```text
-Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
-```
-
-In Gmail rich text, hyperlink only `TumbleBit Slack` to `https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ`. Keep it last, with no visible raw URL or following signature. Remove sentences adding neither information/action nor demonstrated human voice.
+Do not automatically append Slack/community invitations or other promotional copy to acceptance replies. Include a community invitation only when the user explicitly asks or it directly answers the athlete's question. Remove sentences adding neither relevant information/action nor demonstrated human voice.
 
 ## Approval Summary
 
 Before sending/committing/pushing, present the decision and exact proposed actions with:
+
+Always include the relevant athlete-authored inbound email verbatim, with sender and date, clearly separated from the proposed reply. Show each relevant new message when several inform the reply; a summary alone is not enough. This applies to follow-ups and security-only handoffs too. If only an automated submission notice exists, label it as automated and quote the submitted request/changed fields instead of inventing personal correspondence.
 
 - Athlete/profile and actual folder path (underscore folder keys, hyphenated URL slugs); new applicants stay under `.artifacts/pending-athlete-reviews/`.
 - Current message ID, `expectedThreadId`, saved draft thread ID, explicit equality, draft text/ID, verified sender, unread status/restorations.

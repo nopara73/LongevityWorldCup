@@ -160,6 +160,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             if (requests.Count == 1) await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Connection interrupted. Try again.\"}" });
             else {
                 state["eligibleDays"]![0]!["existing"] = SavedCheckIn("Keep this note.", 2);
+                state["eligibleDays"]![0]!["existing"]!["images"] = JsonSerializer.SerializeToNode(new[]
+                {
+                    CheckInImage("/generated/longevitymaxxing/check-in-photos/walk.webp"),
+                    CheckInImage("/generated/longevitymaxxing/check-in-photos/lunch.webp")
+                });
                 await FulfillJsonAsync(route, state.ToJsonString());
             }
         });
@@ -186,6 +191,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         }
         await page.Locator(".lmx-checkin-switcher button[data-day='17']").ClickAsync();
         Assert.Equal(0, await form.Locator("[data-photo-previews] img").CountAsync());
+        Assert.Equal(2, await form.Locator(".lmx-note-photo-grid.saved img").CountAsync());
         await Assertions.Expect(form.Locator("button[type='submit']")).ToBeDisabledAsync();
     }
 

@@ -24,5 +24,14 @@
   "Division": "Men's",
   "Flag": "Bulgaria",
   "Why": "Creating the easiest, cheapest and replicable protocol for longevity",
-  "PersonalLink": "https://www.instagram.com/zhivkogichev/"
+  "PersonalLink": "https://www.instagram.com/zhivkogichev/",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@zhivkogichev",
+      "EvidenceUrls": [
+        "https://www.instagram.com/zhivkogichev/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

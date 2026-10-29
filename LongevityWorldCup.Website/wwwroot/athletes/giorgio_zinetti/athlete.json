@@ -35,5 +35,21 @@
   "Division": "Men's",
   "Flag": "Switzerland",
   "Why": "Do more climbing, building business, sport etc..",
-  "PersonalLink": "https://www.gio.fyi/"
+  "PersonalLink": "https://www.gio.fyi/",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/giozzi",
+      "EvidenceUrls": [
+        "https://www.gio.fyi/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/giojzi",
+      "EvidenceUrls": [
+        "https://www.gio.fyi/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

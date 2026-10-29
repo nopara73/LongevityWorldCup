@@ -161,6 +161,8 @@ sudo rsync -a --checksum --delete --no-owner --no-group \
   "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
 sudo rsync -a --checksum --delete --no-owner --no-group \
   "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
+sudo sh "$deploy_source/LongevityWorldCup.Website/Scripts/sync-owned-web-assets.sh" \
+  "$publish_output/wwwroot" "$publish_root/wwwroot"
 sudo_frontend_manifest "$publish_root/wwwroot/js" > "$live_manifest"
 if ! cmp -s "$published_manifest" "$live_manifest"; then
   echo "Live frontend assets differ from the verified published assets." >&2
@@ -291,7 +293,7 @@ The final sync preserves production-owned runtime paths:
 - `AppData/`
 - `wwwroot/generated/`
 
-Deletion is scoped to `wwwroot/athletes/` and the generated-only `wwwroot/js/` directory. Removed athlete proofs and obsolete scripts disappear from production without turning the deploy into a broad cleanup of unrelated server files.
+Deletion is scoped to `wwwroot/athletes/`, the generated-only `wwwroot/js/` directory, and the checkout-owned `wwwroot/css/`, `wwwroot/onboarding/`, and `wwwroot/research/` directories. The static-asset sync also removes a retired directory when it is absent from the new publish output. Other assets, uploads, generated data, configuration, and runtime sidecars are preserved.
 
 Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
 

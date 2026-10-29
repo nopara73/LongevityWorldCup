@@ -1,0 +1,28 @@
+{
+  "Name": "Kingl Tünde",
+  "DisplayName": null,
+  "MediaContact": "tunde.kingl@gmail.com",
+  "DateOfBirth": {
+    "Year": 1971,
+    "Month": 4,
+    "Day": 3
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-14",
+      "AlbGL": 43,
+      "CreatUmolL": 72,
+      "GluMmolL": 5.4,
+      "CrpMgL": 0.4,
+      "LymPc": 35,
+      "McvFL": 99,
+      "RdwPc": 12.5,
+      "AlpUL": 82,
+      "Wbc1000cellsuL": 4.5
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Magyarország",
+  "Why": "Managing Hashimoto’s and mastering swimming are my investments in a vibrant future. By choosing an anti-inflammatory lifestyle and a sustainable sport, I build a strong shield against stress for a healthy, independent, and peaceful life.",
+  "PersonalLink": null
+}

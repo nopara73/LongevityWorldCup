@@ -4,6 +4,10 @@
     <title>Longevity World Cup - Application review</title>
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="expect" href="#lwc-site-header" blocking="render">
+    <link rel="stylesheet" href="{{ASSET_APPLY_FLOW_FEEL_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_STANDALONE_FEEL_CSS}}">
     <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
     <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
@@ -13,15 +17,23 @@
             display: none !important;
         }
 
+        /* The review closes the application journey as a small celebration:
+           the joke artwork on a confetti band, a seal, then where the request stands. */
         .application-review-panel {
-            max-width: 720px;
-            margin: 2.25rem auto;
-            padding: 1.75rem;
-            background: var(--lwc-surface, rgba(255, 255, 255, 0.78));
+            --review-card-pad: clamp(16px, 4vw, 28px);
+            --review-seal: 64px;
+            --review-step: 40px;
+            width: min(100%, 640px);
+            max-width: calc(100vw - 2rem);
+            margin: 1.5rem auto 2rem;
+            padding: 0;
+            overflow: hidden;
+            background: var(--lwc-surface, #fff);
             border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
-            border-radius: var(--lwc-radius-md, 8px);
-            box-shadow: none;
-            text-align: left;
+            border-radius: var(--lwc-radius-lg, 12px);
+            box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.10));
+            box-sizing: border-box;
+            text-align: center;
         }
 
         .application-review-panel [data-aos]:not(.aos-animate) {
@@ -29,26 +41,48 @@
             transform: none;
         }
 
-        .application-review-title {
+        .application-review-visual {
+            position: relative;
             display: flex;
             justify-content: center;
-            align-items: baseline;
-            gap: 0.55rem;
-            margin-top: 0;
-            margin-bottom: 1.25rem;
+            margin: 0;
+            padding: var(--review-card-pad) var(--review-card-pad) max(var(--review-card-pad), calc(var(--review-seal) / 3 + 8px));
+            background-color: var(--lwc-surface-muted, #eef2f5);
+            border-bottom: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
         }
 
-        .application-review-title i {
-            font-size: 0.85em;
+        /* Podium-coloured confetti, scattered once across the band. */
+        .application-review-visual::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle, var(--lwc-gold) 0 4px, transparent 4.5px) 7% 18% / 18px 18px no-repeat,
+                radial-gradient(circle, var(--lwc-accent-bright) 0 3px, transparent 3.5px) 14% 62% / 14px 14px no-repeat,
+                radial-gradient(circle, var(--lwc-success) 0 3.5px, transparent 4px) 4% 88% / 16px 16px no-repeat,
+                radial-gradient(circle, var(--lwc-bronze) 0 3px, transparent 3.5px) 22% 36% / 14px 14px no-repeat,
+                radial-gradient(circle, var(--lwc-gold) 0 3px, transparent 3.5px) 80% 12% / 14px 14px no-repeat,
+                radial-gradient(circle, var(--lwc-success) 0 3px, transparent 3.5px) 92% 34% / 14px 14px no-repeat,
+                radial-gradient(circle, var(--lwc-accent-bright) 0 4px, transparent 4.5px) 86% 70% / 18px 18px no-repeat,
+                radial-gradient(circle, var(--lwc-bronze) 0 3.5px, transparent 4px) 96% 92% / 16px 16px no-repeat,
+                linear-gradient(var(--lwc-gold), var(--lwc-gold)) 17% 8% / 10px 4px no-repeat,
+                linear-gradient(var(--lwc-accent-bright), var(--lwc-accent-bright)) 9% 44% / 4px 10px no-repeat,
+                linear-gradient(var(--lwc-success), var(--lwc-success)) 20% 84% / 10px 4px no-repeat,
+                linear-gradient(var(--lwc-accent-bright), var(--lwc-accent-bright)) 76% 46% / 10px 4px no-repeat,
+                linear-gradient(var(--lwc-gold), var(--lwc-gold)) 91% 54% / 4px 10px no-repeat,
+                linear-gradient(var(--lwc-bronze), var(--lwc-bronze)) 82% 90% / 10px 4px no-repeat;
+            animation: reviewConfetti 900ms var(--lwc-ease, ease) both;
         }
 
-        .application-review-visual {
-            width: min(100%, 360px);
-            margin: 0 auto 1.35rem;
+        .application-review-frame {
+            position: relative;
+            width: min(100%, 340px);
         }
 
         .application-review-visual picture {
             display: block;
+            width: 100%;
         }
 
         .application-review-visual .illustration {
@@ -59,30 +93,157 @@
             margin: 0;
             border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
             border-radius: var(--lwc-radius-md, 8px);
-            background: var(--lwc-surface-muted, #eef2f5);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm);
             box-sizing: border-box;
             object-fit: contain;
         }
 
+        /* The seal stamps the photo's corner, like the envelope on the unsubscribe cover. */
+        .application-review-seal {
+            position: absolute;
+            right: calc(var(--review-seal) / -3);
+            bottom: calc(var(--review-seal) / -3);
+            z-index: 1;
+            display: grid;
+            place-items: center;
+            width: var(--review-seal);
+            height: var(--review-seal);
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-success);
+            color: var(--lwc-surface);
+            font-size: calc(var(--review-seal) * 0.42);
+            box-shadow: 0 0 0 5px var(--lwc-surface), 0 0 0 6px var(--lwc-border), var(--lwc-shadow-md);
+            transform: rotate(-8deg);
+            animation: reviewSeal 520ms 120ms var(--lwc-ease, ease) both;
+        }
+
+        .application-review-body {
+            padding: min(var(--review-card-pad), 22px) var(--review-card-pad) min(var(--review-card-pad), 24px);
+        }
+
+        .application-review-title {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0;
+            font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2.15rem);
+            line-height: 1.12;
+            text-align: center;
+        }
+
+        .application-review-title i {
+            color: var(--lwc-accent, #087685);
+            font-size: 0.8em;
+        }
+
+        /* Where the request stands, drawn rather than told: done, now, next. */
+        .application-review-trail {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem auto 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .application-review-trail li {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .application-review-trail li[hidden] {
+            display: none;
+        }
+
+        .application-review-trail li + li::before {
+            content: "";
+            width: clamp(14px, 6vw, 40px);
+            height: 2px;
+            margin: 0 6px;
+            border-radius: 2px;
+            background: var(--lwc-border);
+        }
+
+        .application-review-trail li.is-done + li::before {
+            background: var(--lwc-success);
+        }
+
+        .application-review-step {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: var(--review-step);
+            height: var(--review-step);
+            border: 2px dashed var(--lwc-border-strong);
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-surface);
+            color: var(--lwc-subtle);
+            font-size: calc(var(--review-step) * 0.4);
+            box-sizing: border-box;
+            transition: background-color var(--lwc-duration-normal) var(--lwc-ease), border-color var(--lwc-duration-normal) var(--lwc-ease), color var(--lwc-duration-normal) var(--lwc-ease);
+        }
+
+        .application-review-trail .is-done .application-review-step {
+            border: 2px solid var(--lwc-success);
+            background: var(--lwc-success-soft);
+            color: var(--lwc-success);
+        }
+
+        .application-review-trail .is-done .application-review-step::after {
+            content: "\f00c";
+            position: absolute;
+            right: -5px;
+            bottom: -5px;
+            display: grid;
+            place-items: center;
+            width: 17px;
+            height: 17px;
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-success);
+            color: var(--lwc-surface);
+            font: 900 9px/1 "Font Awesome 6 Free";
+            box-shadow: 0 0 0 2px var(--lwc-surface);
+        }
+
+        .application-review-trail .is-current .application-review-step {
+            border: 2px solid var(--lwc-accent);
+            background: var(--lwc-accent-soft);
+            color: var(--lwc-accent);
+            animation: reviewStepPulse 2.4s var(--lwc-ease, ease) infinite;
+        }
+
+        .application-review-trail .is-waiting .application-review-step {
+            border: 2px solid var(--lwc-warning);
+            background: var(--lwc-warning-soft);
+            color: var(--lwc-warning);
+        }
+
+        .application-review-trail .is-failed .application-review-step {
+            border: 2px solid var(--lwc-danger);
+            background: var(--lwc-danger-soft);
+            color: var(--lwc-danger);
+        }
+
         .application-review-copy {
-            max-width: 62ch;
-            margin: 0.8rem auto 0;
+            max-width: 32rem;
+            margin: 0.75rem auto 0;
             color: var(--lwc-muted, #4f5b68);
-            line-height: 1.45;
-            text-align: left;
+            line-height: 1.5;
+            text-align: center;
         }
 
         .application-review-copy.primary {
-            max-width: 560px;
-            margin-top: 1rem;
-            padding: 0.95rem 1.05rem;
-            border: 1px solid var(--lwc-border);
-            border-inline-start: 4px solid var(--lwc-success);
-            border-radius: 8px;
-            background: var(--lwc-surface-muted);
-            font-size: 1.02rem;
+            margin-top: 1.1rem;
+            padding: 0;
+            border: 0;
+            background: none;
+            font-size: 1.0625rem;
             color: var(--lwc-ink, #334155);
-            box-sizing: border-box;
+            text-wrap: balance;
         }
 
         .application-review-highlight {
@@ -90,62 +251,155 @@
             font-weight: 700;
         }
 
+        /* The address we will write to sits on its own line as a chip. */
         #contactEmailPlaceholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0.65rem auto 0;
+            padding: 0.45rem 0.9rem;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-pill);
+            background: var(--lwc-surface-muted);
+            box-sizing: border-box;
             overflow-wrap: anywhere;
             word-break: break-word;
             white-space: normal;
+            text-wrap: balance;
+        }
+
+        #contactEmailPlaceholder::before {
+            content: "\f0e0";
+            flex: none;
+            color: var(--lwc-accent);
+            font: 900 0.9em/1 "Font Awesome 6 Free";
+        }
+
+        #contactEmailPlaceholder.is-fallback {
+            border-style: dashed;
+            font-weight: 400;
+            color: var(--lwc-muted);
+        }
+
+        /* Fine print and the way home share one quiet footer band. */
+        .application-review-foot {
+            margin: 0;
+            padding: min(var(--review-card-pad), 22px) var(--review-card-pad) var(--review-card-pad);
+            border-top: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
+            background: var(--lwc-surface-muted);
+            text-align: left;
+        }
+
+        .application-review-foot .application-review-copy {
+            display: grid;
+            grid-template-columns: 1.25rem minmax(0, 1fr);
+            gap: 0.6rem;
+            align-items: start;
+            max-width: none;
+            margin: 0 0 0.65rem;
+            text-align: left;
+        }
+
+        .application-review-foot .application-review-copy > i {
+            margin-top: 0.22rem;
+            color: var(--lwc-accent);
+            font-size: 0.9rem;
+            text-align: center;
         }
 
         .application-review-actions {
-            margin-top: 1.45rem;
+            width: 100%;
+            max-width: none;
+            margin: 1rem 0 0;
+            padding-top: 0;
+            border-top: 0;
+        }
+
+        .application-review-actions.flow-action-stack--docked {
+            padding-top: 0.55rem;
         }
 
         .application-review-actions .option-button {
             width: 100%;
             min-width: 0;
             max-width: none;
-            margin-bottom: 0;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0;
+        }
+
+        /* Home lifts off the muted footer band on the card surface. */
+        .application-review-foot .application-review-actions .back-button {
+            background: var(--lwc-surface);
+        }
+
+        .application-review-foot .application-review-actions .back-button:hover {
+            border-color: var(--lwc-border-strong);
+        }
+
+        @keyframes reviewConfetti {
+            from {
+                opacity: 0;
+                transform: translateY(-14px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        @keyframes reviewSeal {
+            0% {
+                transform: scale(0.3) rotate(-30deg);
+            }
+
+            65% {
+                transform: scale(1.12) rotate(6deg);
+            }
+
+            100% {
+                transform: rotate(-8deg);
+            }
+        }
+
+        @keyframes reviewStepPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 var(--lwc-accent-soft);
+            }
+
+            50% {
+                box-shadow: 0 0 0 7px var(--lwc-accent-soft);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .application-review-visual::before,
+            .application-review-seal,
+            .application-review-trail .is-current .application-review-step {
+                animation: none;
+            }
         }
 
         @media (max-width: 600px) {
             .application-review-panel {
-                margin: 1.2rem 0.75rem;
-                padding: 1.15rem 0.85rem 1.15rem;
+                --review-seal: 54px;
+                --review-step: 34px;
+                max-width: calc(100vw - 1.5rem);
+                margin-block: 0.75rem 1rem;
             }
 
-            .application-review-title {
-                display: block;
-                margin-bottom: 0.85rem;
-                padding-top: 0.3rem;
-                font-size: 1.85rem;
-                line-height: 1.05;
-                overflow-wrap: normal;
-                word-break: normal;
-            }
-
-            .application-review-title i {
-                display: inline-block;
-                margin-left: 0.32rem;
-                font-size: 0.78em;
-                vertical-align: 0.04em;
-            }
-
-            .application-review-visual {
-                width: min(100%, 280px);
-                margin-bottom: 0.95rem;
+            .application-review-frame {
+                width: min(100%, 250px);
             }
 
             .application-review-copy {
-                margin-top: 0.65rem;
                 font-size: 0.95rem;
-                line-height: 1.4;
             }
 
             .application-review-copy.primary {
-                padding: 0.85rem 0.9rem;
-                line-height: 1.42;
+                font-size: 1rem;
             }
 
             .application-review-copy.community {
@@ -155,92 +409,122 @@
             .application-review-copy:not(.primary) .smaller-text {
                 font-size: 0.88rem;
             }
+        }
 
-            .application-review-copy:not(.primary) a,
-            .application-review-copy:not(.primary) .application-review-highlight {
-                white-space: normal;
+        @media (max-width: 360px) {
+            .application-review-panel {
+                --review-step: 30px;
             }
 
-            .application-review-actions {
-                margin-top: 1.1rem;
-            }
-
-            .application-review-actions .option-button {
-                width: 100%;
-                min-width: 0;
+            .application-review-trail li + li::before {
+                width: 10px;
+                margin: 0 4px;
             }
         }
 
-        @media (min-width: 960px) and (max-height: 780px) {
+        @media (max-width: 280px) {
             .application-review-panel {
-                margin-block: 1rem;
-                padding-block: 1.05rem;
+                --review-seal: 36px;
+                --review-step: 24px;
+            }
+
+            .application-review-frame {
+                max-width: calc(100% - 12px);
+            }
+
+            .application-review-trail {
+                flex-wrap: wrap;
+                row-gap: 0.5rem;
+            }
+
+            .application-review-trail li + li::before {
+                width: 6px;
+                margin-inline: 3px;
+            }
+        }
+
+        /* Laptop heights keep Home inline: a smaller photo and the address beside its sentence. */
+        @media (min-width: 960px) and (max-height: 960px) {
+            .application-review-frame {
+                width: min(100%, 300px);
+            }
+
+            #contactEmailPlaceholder {
+                display: inline-flex;
+                margin: 0.15rem 0 0 0.25rem;
+                padding-block: 0.2rem;
+                vertical-align: baseline;
+            }
+        }
+
+        @media (min-width: 960px) and (max-height: 880px) {
+            .application-review-panel {
+                --review-card-pad: 20px;
+                --review-seal: 56px;
+                --review-step: 34px;
+                margin-block: 0.6rem 1rem;
             }
 
             .application-review-title {
-                margin-bottom: 0.7rem;
-                font-size: 2.1rem;
-                line-height: 1.05;
+                font-size: 1.85rem;
             }
 
-            .application-review-visual {
+            .application-review-frame {
                 width: min(100%, 280px);
-                margin-bottom: 0.7rem;
-            }
-
-            .application-review-copy.primary {
-                margin-top: 0.6rem;
-                padding: 0.68rem 0.95rem;
-                line-height: 1.34;
-            }
-
-            .application-review-copy.contact {
-                margin-top: 0.6rem;
             }
 
             .application-review-copy.community {
                 display: none;
             }
 
+            .application-review-trail {
+                margin-top: 0.75rem;
+            }
+
+            .application-review-copy.primary {
+                margin-top: 0.8rem;
+            }
+
+            .application-review-foot {
+                padding-block: 14px 18px;
+            }
+
             .application-review-actions {
-                margin-top: 0.85rem;
+                margin-top: 0.75rem;
             }
         }
 
         @media (min-width: 960px) and (max-height: 720px) {
+            .application-review-frame {
+                width: min(100%, 262px);
+            }
+
             .application-review-panel {
-                margin-block: 0.9rem;
-                padding-block: 0.95rem;
+                --review-step: 30px;
+            }
+
+            .application-review-trail {
+                margin-top: 0.6rem;
             }
 
             .application-review-title {
-                margin-bottom: 0.6rem;
-                font-size: 2rem;
+                font-size: 1.7rem;
             }
 
-            .application-review-visual {
-                width: min(100%, 262px);
-                margin-bottom: 0.65rem;
+            .application-review-body {
+                padding-block: 14px;
             }
 
             .application-review-copy.primary {
-                margin-top: 0.55rem;
-                padding-block: 0.65rem;
-                line-height: 1.34;
+                margin-top: 0.6rem;
             }
 
-            .application-review-copy.contact {
-                margin-top: 0.55rem;
+            .application-review-foot {
+                padding-block: 12px 14px;
             }
 
             .application-review-actions {
-                margin-top: 0.8rem;
-            }
-        }
-
-        @media (max-width: 300px) {
-            .application-review-copy:not(.primary) .smaller-text {
-                font-size: 0.82rem;
+                margin-top: 0.6rem;
             }
         }
     </style>
@@ -248,36 +532,53 @@
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="initial-view-main">
-        <section class="application-review-panel">
-            <h1 id="appReviewTitle" class="application-review-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
-                <span id="appReviewText">Application review</span> <i class="fas fa-rocket" aria-hidden="true"></i>
-            </h1>
+        <section class="application-review-panel" data-review-kind="application">
             <div class="application-review-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-                <picture>
-                    <source srcset="{{ASSET_BEAN_WAITING_WEBP}}" type="image/webp">
-                    <source srcset="{{ASSET_BEAN_WAITING_PNG}}" type="image/png">
-                    <img src="{{ASSET_BEAN_WAITING_PNG}}" alt="Mr Bean waiting patiently for the review" class="illustration" width="860" height="721" loading="lazy" decoding="async">
-                </picture>
+                <div class="application-review-frame">
+                    <picture>
+                        <source srcset="{{ASSET_BEAN_WAITING_WEBP}}" type="image/webp">
+                        <source srcset="{{ASSET_BEAN_WAITING_PNG}}" type="image/png">
+                        <img src="{{ASSET_BEAN_WAITING_PNG}}" alt="Mr Bean waiting patiently for the review" class="illustration" width="860" height="721" loading="lazy" decoding="async">
+                    </picture>
+                    <span class="application-review-seal" aria-hidden="true"><i class="fas fa-check"></i></span>
+                </div>
             </div>
-            <p class="application-review-copy primary" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-                We're reviewing <span id="whatAreWeReviewing">your application</span>, which may take a day or two. Afterwards we'll contact you at <span id="contactEmailPlaceholder" class="application-review-highlight">
-                    the email address you provided with your application
+            <div class="application-review-body">
+                <h1 id="appReviewTitle" class="application-review-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                    <span id="appReviewText">Application review</span> <i class="fas fa-rocket" aria-hidden="true"></i>
+                </h1>
+                <ol class="application-review-trail" aria-hidden="true">
+                    <li class="is-done" data-step="sent"><span class="application-review-step"><i class="fas fa-paper-plane"></i></span></li>
+                    <li data-step="payment" hidden><span class="application-review-step"><i class="fas fa-receipt"></i></span></li>
+                    <li class="is-current" data-step="review"><span class="application-review-step"><i class="fas fa-hourglass-half"></i></span></li>
+                    <li data-step="email"><span class="application-review-step"><i class="fas fa-envelope"></i></span></li>
+                    <li data-step="finish"><span class="application-review-step"><i class="fas fa-trophy"></i></span></li>
+                </ol>
+                <p id="review-payment-status" class="visually-hidden" role="status" aria-atomic="true"></p>
+                <p class="application-review-copy primary" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                    We're reviewing <span id="whatAreWeReviewing">your application</span>, which may take a day or two. Afterwards we'll contact you at <span id="contactEmailPlaceholder" class="application-review-highlight">
+                        the email address you provided with your application
+                    </span>
+                </p>
+            </div>
+            <div class="application-review-foot">
+                <p class="application-review-copy contact" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+                    <i class="fas fa-circle-question" aria-hidden="true"></i>
+                    <span class="smaller-text">
+                    Questions, concerns, or signs of aging? Let us know at <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>
                 </span>
-            </p>
-            <p class="application-review-copy contact" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-                <span class="smaller-text">
-                Questions, concerns, or signs of aging? Let us know at <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>
-            </span>
-            </p>
-            <p class="application-review-copy community" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                <span class="smaller-text">
-                Want to hang out with other longevity athletes? Join the <span class="application-review-highlight">#longevity-world-cup</span> room on the <a href="https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ">TumbleBit Slack</a>!
-            </span>
-            </p>
-            <div class="options-container application-review-actions flow-action-stack" data-flow-dock="overflow" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                <button class="option-button back-button flow-action flow-action--secondary" onclick="window.location.href='/'">
-                    <span class="flow-action__label">Home</span><i class="fas fa-home" aria-hidden="true"></i>
-                </button>
+                </p>
+                <p class="application-review-copy community" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                    <i class="fas fa-hashtag" aria-hidden="true"></i>
+                    <span class="smaller-text">
+                    Want to hang out with other longevity athletes? Join the <span class="application-review-highlight">#longevity-world-cup</span> room on the <a href="https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ">TumbleBit Slack</a>!
+                </span>
+                </p>
+                <div class="options-container application-review-actions flow-action-stack" data-flow-dock="overflow" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                    <button class="option-button back-button flow-action flow-action--secondary" onclick="window.location.href='/'">
+                        <span class="flow-action__label">Home</span><i class="fas fa-home" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
         </section>
     </main>
@@ -410,6 +711,40 @@
         const isEditRequest = reviewSource === "edit-profile";
         removeSessionItem("came-from");
 
+        const REVIEW_FINISH_ICONS = {
+            application: 'fa-trophy',
+            result: 'fa-ranking-star',
+            edit: 'fa-id-card'
+        };
+
+        function setTrailStep(step, state) {
+            const item = document.querySelector(`.application-review-trail [data-step="${step}"]`);
+            if (!item) return;
+            const crossed = state === 'is-done' && item.classList.contains('is-waiting');
+            item.hidden = false;
+            item.classList.remove('is-done', 'is-current', 'is-waiting', 'is-failed');
+            if (state) item.classList.add(state);
+            // A step that was waiting and just finished crosses its line once. The
+            // attributes stay: removing them would replay the page's entrance motion.
+            if (crossed) {
+                item.dataset.applyCrossed = 'true';
+                document.querySelector('.application-review-panel')?.setAttribute('data-apply-crossing', 'true');
+            }
+        }
+
+        function initializeReviewTrail() {
+            const kind = isNewResultsUploaded ? 'result' : isEditRequest ? 'edit' : 'application';
+            document.querySelector('.application-review-panel').dataset.reviewKind = kind;
+            const finishIcon = document.querySelector('.application-review-trail [data-step="finish"] i');
+            if (finishIcon) finishIcon.className = `fas ${REVIEW_FINISH_ICONS[kind]}`;
+            // A pending invoice adds the payment stop; it waits until the status check confirms it.
+            if (pendingPaymentInvoice) {
+                setTrailStep('payment', 'is-waiting');
+                setTrailStep('review', null);
+                document.getElementById('review-payment-status').textContent = 'Payment confirmation pending.';
+            }
+        }
+
         function initializeReviewCopy() {
             if (isNewResultsUploaded) {
                 document.getElementById("appReviewText").textContent = "Result review";
@@ -422,6 +757,7 @@
 
         }
         initializeReviewCopy();
+        initializeReviewTrail();
         document.addEventListener('DOMContentLoaded', checkPendingPayment);
 
         // Retrieve the contact email
@@ -431,41 +767,113 @@
             document.getElementById('contactEmailPlaceholder').textContent = contactEmail;
         } else {
             // If no email is found, use a default message
+            document.getElementById('contactEmailPlaceholder').classList.add('is-fallback');
             document.getElementById('contactEmailPlaceholder').textContent = isNewResultsUploaded || isEditRequest
                 ? 'the email address you provided'
                 : 'the email address you provided with your application';
         }
 
-        // mark that they’ve submitted an application
-        setLocalItem('hasApplication', 'true');
+        // Result and edit return routes do not represent a new application.
+        if (!isNewResultsUploaded && !isEditRequest) setLocalItem('hasApplication', 'true');
         window.LwcInitialView.complete();
 
-        function checkPendingPayment() {
+        let paymentCheckTimer = null;
+        let paymentCheckAbort = null;
+        let paymentCheckAttempts = 0;
+        let paymentCheckStopped = false;
+        let paymentCheckComplete = false;
+        const MAX_PAYMENT_CHECKS = 12;
+
+        function pausePaymentChecks() {
+            clearTimeout(paymentCheckTimer);
+            paymentCheckTimer = null;
+            paymentCheckAbort?.abort();
+            paymentCheckAbort = null;
+        }
+
+        window.addEventListener('pagehide', () => {
+            paymentCheckStopped = true;
+            pausePaymentChecks();
+        });
+        window.addEventListener('pageshow', event => {
+            if (!event.persisted) return;
+            paymentCheckStopped = false;
+            paymentCheckAttempts = 0;
+            checkPendingPayment();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) pausePaymentChecks();
+            else if (!paymentCheckStopped) {
+                paymentCheckAttempts = 0;
+                checkPendingPayment();
+            }
+        });
+        window.addEventListener('online', () => {
+            paymentCheckAttempts = 0;
+            checkPendingPayment();
+        });
+
+        async function checkPendingPayment() {
             const pending = pendingPaymentInvoice;
+            if (!pending || !pending.invoiceId || paymentCheckStopped || paymentCheckComplete
+                || document.hidden || paymentCheckAbort || paymentCheckAttempts >= MAX_PAYMENT_CHECKS) return;
 
-            if (!pending || !pending.invoiceId) return;
+            clearTimeout(paymentCheckTimer);
+            paymentCheckTimer = null;
+            const controller = new AbortController();
+            paymentCheckAbort = controller;
+            paymentCheckAttempts++;
+            const timeout = setTimeout(() => controller.abort(), 12000);
 
-            fetchWithTimeout('/api/application/payment-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invoiceId: pending.invoiceId })
-            }, 12000)
-                .then(response => response.ok ? response.json() : null)
-                .then(result => {
-                    if (!result) return;
-                    // Payment completes the browser handoff; notification delivery is server-owned.
-                    if (result.isPaid) {
-                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                        const completedSubmissionId = normalizeOptionalString(pending.submissionId);
-                        if (completedSubmissionId && typeof window.clearPendingApplicationSubmission === 'function') {
-                            window.clearPendingApplicationSubmission(completedSubmissionId);
-                        }
-                    }
-                })
-                .catch(() => {
-                    // Silent failure: review page should still work even if payment check fails.
+            try {
+                const response = await fetch('/api/application/payment-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceId: pending.invoiceId }),
+                    signal: controller.signal
                 });
+                if (!response.ok) throw new Error('Payment status unavailable');
+                const result = await response.json();
+                if (paymentCheckStopped || paymentCheckAbort !== controller) return;
+                if (!result || result.checkedInvoice !== true || typeof result.isPaid !== 'boolean') {
+                    throw new Error('Payment status unconfirmed');
+                }
+
+                const status = typeof result.status === 'string' ? result.status.trim().toLowerCase() : '';
+                // The server also recognizes recorded payments on expired invoices.
+                if (result.isPaid === true) {
+                    paymentCheckComplete = true;
+                    setTrailStep('payment', 'is-done');
+                    setTrailStep('review', 'is-current');
+                    document.getElementById('review-payment-status').textContent = 'Payment confirmed. Awaiting review.';
+                    // Clear only the invoice this page verified; another tab may have stored a newer one.
+                    for (const [storage, key] of [['sessionStorage', PENDING_PAYMENT_INVOICE_KEY], ['localStorage', PENDING_PAYMENT_INVOICE_STORAGE_KEY]]) {
+                        const stored = parsePendingPaymentInvoice(getStorageItem(storage, key), () => {});
+                        if (stored?.invoiceId === pending.invoiceId) removeStorageItem(storage, key);
+                    }
+                    const completedSubmissionId = normalizeOptionalString(pending.submissionId);
+                    if (completedSubmissionId && typeof window.clearPendingApplicationSubmission === 'function') {
+                        window.clearPendingApplicationSubmission(completedSubmissionId);
+                    }
+                } else if (['expired', 'invalid', 'failed', 'cancelled', 'canceled'].includes(status)) {
+                    paymentCheckComplete = true;
+                    setTrailStep('payment', 'is-failed');
+                    document.querySelector('.application-review-trail [data-step="payment"] i').className = 'fas fa-circle-xmark';
+                    document.getElementById('review-payment-status').textContent = 'Payment was not confirmed: ' + status + '.';
+                }
+            } catch (_) {
+                if (!paymentCheckStopped && paymentCheckAbort === controller) {
+                    document.getElementById('review-payment-status').textContent = 'Payment confirmation unavailable. Awaiting confirmation.';
+                }
+            } finally {
+                clearTimeout(timeout);
+                if (paymentCheckAbort === controller) {
+                    paymentCheckAbort = null;
+                    if (!paymentCheckStopped && !paymentCheckComplete && !document.hidden && paymentCheckAttempts < MAX_PAYMENT_CHECKS) {
+                        paymentCheckTimer = setTimeout(checkPendingPayment, paymentCheckAttempts < 6 ? 5000 : 30000);
+                    }
+                }
+            }
         }
     </script>
 </body>

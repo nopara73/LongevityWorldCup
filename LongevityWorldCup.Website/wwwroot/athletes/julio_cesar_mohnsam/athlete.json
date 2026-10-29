@@ -1,0 +1,44 @@
+{
+  "Name": "Julio Cesar Mohnsam",
+  "DisplayName": null,
+  "MediaContact": "juliocesarmohnsam@gmail.com",
+  "DateOfBirth": {
+    "Year": 1980,
+    "Month": 5,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-09",
+      "AlbGL": 44.8,
+      "CreatUmolL": 76.024,
+      "GluMmolL": 4.768309,
+      "CrpMgL": 1.58,
+      "LymPc": 20.9,
+      "McvFL": 87,
+      "RdwPc": 12.8,
+      "AlpUL": 63,
+      "Wbc1000cellsuL": 8.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Brasil",
+  "Why": "I want to reverse my biological age; I enjoy taking care of my health.",
+  "PersonalLink": "https://www.instagram.com/juliocmohnsam/",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/JulioMohnsam",
+      "EvidenceUrls": [
+        "https://www.instagram.com/juliocmohnsam/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@juliocmohnsam",
+      "EvidenceUrls": [
+        "https://www.instagram.com/juliocmohnsam/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
+}

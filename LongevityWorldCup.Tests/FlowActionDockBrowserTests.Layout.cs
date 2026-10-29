@@ -365,8 +365,8 @@ public sealed class FlowActionDockLayoutBrowserTests(
     }
 
     [Theory]
-    [InlineData("/pheno-age", "#lwcStepOneActions", 650)]
-    [InlineData("/apply?fake=1", ".convergence-actions", 768)]
+    [InlineData("/pheno-age", "#lwcStepOneActions", 560)]
+    [InlineData("/apply?fake=1", ".convergence-actions", 640)]
     public async Task DesktopDocks_UseCompactCommandBarHeight(
         string path,
         string actionSelector,
@@ -391,11 +391,14 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var rect = await ReadElementRectAsync(page, actionSelector);
         Assert.True(rect.Height <= 68,
             $"{path}: {actionSelector} dock is too tall: {rect.Height}px.");
+        await page.SetViewportSizeAsync(1366, 1100);
+        await page.WaitForFunctionAsync("selector => { window.LwcFlowActionDock.refreshNow(); return !document.querySelector(selector).classList.contains('flow-action-stack--docked'); }", actionSelector);
+        await ExpectActionStackInViewportAsync(page, actionSelector);
         Assert.True(errors.Count == 0, $"{path}: {string.Join(" | ", errors)}");
     }
 
     [Fact]
-    public async Task DesktopDock_PreservesItsInlinePlaceholderHeightWithoutOscillating()
+    public async Task DesktopDock_ReservesItsHeightBelowTheCardWithoutOscillating()
     {
         var app = App;
         var browser = Browser;
@@ -417,7 +420,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
             "element => element.getBoundingClientRect().height");
         Assert.True(inlineHeight > 0, "The inline action stack had no measurable height.");
 
-        await page.SetViewportSizeAsync(1366, 650);
+        await page.SetViewportSizeAsync(1366, 560);
         await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
         var samples = await page.EvaluateAsync<double[][]>(
             """
@@ -428,10 +431,12 @@ public sealed class FlowActionDockLayoutBrowserTests(
                 for (let index = 0; index < 10; index += 1) {
                     window.LwcFlowActionDock?.refreshNow?.();
                     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    const main = document.querySelector('.phenoage-main');
                     samples.push([
                         placeholder?.getBoundingClientRect().height || 0,
                         actions?.getBoundingClientRect().height || 0,
-                        actions?.classList.contains('flow-action-stack--docked') ? 1 : 0
+                        actions?.classList.contains('flow-action-stack--docked') ? 1 : 0,
+                        parseFloat(getComputedStyle(main).paddingBottom) - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--flow-action-dock-height')) || -999)
                     ]);
                 }
                 return samples;
@@ -442,9 +447,16 @@ public sealed class FlowActionDockLayoutBrowserTests(
         foreach (var sample in samples)
         {
             Assert.Equal(1, sample[2]);
-            Assert.InRange(sample[0], inlineHeight - 1, inlineHeight + 1);
+            // The calculator card ends at its last field; the dock's height is
+            // reserved below the card rather than as an empty tail inside it.
+            Assert.InRange(sample[0], 0, 1);
+            Assert.InRange(sample[3], -2, 2);
             Assert.True(sample[1] > 0, "The docked action stack lost its rendered height.");
         }
+        await page.SetViewportSizeAsync(1366, 900);
+        await page.WaitForFunctionAsync("() => { window.LwcFlowActionDock.refreshNow(); return !document.getElementById('lwcStepOneActions').classList.contains('flow-action-stack--docked'); }");
+        await ExpectActionStackInViewportAsync(page, "#lwcStepOneActions");
+        Assert.InRange(await page.Locator("#lwcStepOneActions").EvaluateAsync<double>("s => s.getBoundingClientRect().height"), inlineHeight - 1, inlineHeight + 1);
         Assert.Empty(errors);
     }
 
@@ -469,7 +481,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
         await ExpectActionStackInViewportAsync(page, ".convergence-actions");
 
-        var titleRect = await ReadElementRectAsync(page, ".convergence-main > h1");
+        var titleRect = await ReadElementRectAsync(page, ".convergence-stage-head h1");
         var detailsRect = await ReadElementRectAsync(page, "#personalDetails");
         var actionsRect = await ReadElementRectAsync(page, ".convergence-actions");
         var descriptionDisplay = await page.Locator("#descriptionForm").EvaluateAsync<string>("element => getComputedStyle(element).display");
@@ -477,7 +489,7 @@ public sealed class FlowActionDockLayoutBrowserTests(
 
         Assert.True(scrollY <= 1, $"Apply first stage should not auto-scroll on load: scrollY={scrollY}.");
         Assert.True(titleRect.Top >= 0, $"Apply title starts above the viewport: {titleRect.Top}px.");
-        Assert.Equal("none", descriptionDisplay);
+        Assert.Equal("block", descriptionDisplay);
         Assert.True(detailsRect.Top >= titleRect.Bottom,
             $"Apply details should follow the title: details top {detailsRect.Top}px, title bottom {titleRect.Bottom}px.");
         Assert.True(detailsRect.Bottom <= actionsRect.Top - 12,
@@ -584,7 +596,14 @@ public sealed class FlowActionDockLayoutBrowserTests(
         var scenario = $"{viewportWidth}x{viewportHeight}";
         await page.GotoAsync("/apply?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync("() => document.body?.dataset.convergenceStage === '1'");
-        await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
+        // Phones dock the actions; a 720px desktop now fits Back and Next inline in one row.
+        if (viewportWidth < 769)
+            await ExpectActionStackDockedInViewportAsync(page, ".convergence-actions");
+        else
+        {
+            await ExpectActionStackInViewportAsync(page, ".convergence-actions");
+            Assert.False(await HasDockClassAsync(page, ".convergence-actions"));
+        }
 
         var layout = await page.EvaluateAsync<ApplyFirstStageDetailsLayout>(
             """

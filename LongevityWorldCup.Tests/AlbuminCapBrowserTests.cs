@@ -36,7 +36,7 @@ public sealed class AlbuminCapBrowserTests(
         await page.Locator("#dob-year").SelectOptionAsync("1980");
         await page.Locator("#dob-month").SelectOptionAsync("1");
         await page.Locator("#dob-day").SelectOptionAsync("1");
-        await page.Locator("#blood-draw-date").FillAsync("2026-01-01");
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-01-01");
         await page.Locator("#lwcToStep2Btn").ClickAsync();
         await Expect(page.Locator("#lwc-step-2")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lwc-step--visible"));
 

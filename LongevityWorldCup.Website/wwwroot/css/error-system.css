@@ -224,3 +224,300 @@ button:focus-visible {
         transition: none;
     }
 }
+
+/* Site chrome on the outage pages: the card opens with the same dark band,
+   phoenix lockup and hairline as the header, so a brief outage still looks
+   like the Longevity World Cup. */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/assets/fonts/Roboto-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/assets/fonts/Roboto-Bold.woff2') format('woff2');
+}
+
+:root {
+    --error-chrome: #101820;
+    --error-chrome-image: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
+    --error-chrome-line: rgba(255, 255, 255, 0.16);
+    --error-chrome-ink-soft: #cbd5e1;
+}
+
+body {
+    background:
+        radial-gradient(ellipse 70% 45% at 50% 0%, rgba(8, 118, 133, 0.08), transparent 70%),
+        var(--error-canvas);
+}
+
+.error-card {
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 18px 40px -24px rgba(15, 23, 42, 0.35);
+}
+
+.card-bar {
+    min-height: 68px;
+    flex-wrap: wrap;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    background: var(--error-chrome) var(--error-chrome-image);
+    color: #ffffff;
+}
+
+.brand {
+    gap: 0.85rem;
+    flex: 1 1 min-content;
+    flex-wrap: wrap;
+    max-width: 100%;
+    font-size: 1.1rem;
+    letter-spacing: 0.005em;
+}
+
+.brand > :last-child {
+    flex: 1 1 min-content;
+    min-width: min-content;
+    overflow-wrap: normal;
+}
+
+.mark {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding-right: 0.85rem;
+    border-right: 1px solid var(--error-chrome-line);
+    border-radius: 0;
+    box-sizing: content-box;
+}
+
+.mark img {
+    padding: 0;
+    filter: invert(100%);
+}
+
+.code {
+    padding: 0.3rem 0.75rem;
+    flex: 0 1 auto;
+    max-width: 100%;
+    margin-left: auto;
+    white-space: normal;
+    overflow-wrap: normal;
+    text-align: center;
+    border: 1px solid var(--error-chrome-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--error-chrome-ink-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.visual {
+    box-shadow: none;
+    border-radius: 12px;
+}
+
+h1 {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.joke {
+    margin-top: 0.85rem;
+}
+
+.actions {
+    margin-top: 1.5rem;
+}
+
+button {
+    padding: 0 1.5rem;
+}
+
+@media (max-width: 480px) {
+    .card-bar {
+        min-height: 60px;
+        padding: 0.6rem min(1rem, 16px);
+    }
+
+    .mark {
+        width: 1.9rem;
+        height: 1.9rem;
+        padding-right: 0.6rem;
+    }
+
+    .brand {
+        gap: 0.6rem;
+        font-size: 0.95rem;
+    }
+
+    .code {
+        padding: 0.25rem 0.55rem;
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background:
+            radial-gradient(ellipse 70% 45% at 50% 0%, rgba(25, 195, 209, 0.07), transparent 70%),
+            var(--error-canvas);
+    }
+
+    .error-card {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 18px 40px -24px rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* Alive, not broken: the status pill breathes like a beacon, Herold breathes
+   with it, a hairline under the band fills toward the next quiet check, and
+   Try again answers: it spins while it checks, shakes if the site is still
+   away, and lifts the card away when it is back. */
+.code {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.code::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #19c3d1;
+    box-shadow: 0 0 0 0 rgba(25, 195, 209, 0.55);
+}
+
+.retry-meter {
+    display: block;
+    height: 3px;
+    overflow: hidden;
+    background: var(--error-surface-muted);
+}
+
+.retry-meter::after {
+    content: "";
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(8, 118, 133, 0.35), var(--error-accent));
+    transform: scaleX(0);
+    transform-origin: left center;
+}
+
+button[data-retry] {
+    position: relative;
+    gap: 0.6rem;
+}
+
+button[data-retry]::before {
+    content: "";
+    display: none;
+    width: 1rem;
+    height: 1rem;
+    box-sizing: border-box;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+}
+
+.error-card[data-retry="checking"] button[data-retry]::before {
+    display: inline-block;
+}
+
+.error-card[data-retry="checking"] button[data-retry] {
+    cursor: progress;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .error-card {
+        animation: outage-arrive 520ms cubic-bezier(0, 0, 0, 1) backwards;
+    }
+
+    .code::before {
+        animation: outage-beacon 2.4s ease-out infinite;
+    }
+
+    .visual img {
+        animation: outage-breathe 6s ease-in-out infinite;
+        transform-origin: 50% 85%;
+    }
+
+    .retry-meter.is-running::after {
+        animation: outage-meter 20s linear both;
+    }
+
+    button[data-retry] {
+        transition: background-color 140ms cubic-bezier(0.2, 0, 0, 1), scale 90ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    button[data-retry]:active {
+        scale: 0.97;
+    }
+
+    .error-card[data-retry="checking"] .code::before {
+        animation-duration: 0.8s;
+    }
+
+    .error-card[data-retry="checking"] button[data-retry]::before {
+        animation: outage-spin 700ms linear infinite;
+    }
+
+    .error-card[data-retry="checking"] .retry-meter::after {
+        animation: outage-scan 900ms cubic-bezier(0.2, 0, 0, 1) infinite;
+        transform: scaleX(0.3);
+    }
+
+    .error-card[data-retry="still"] button[data-retry] {
+        animation: outage-still 420ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .error-card[data-retry="back"] {
+        transition: opacity 240ms cubic-bezier(0.3, 0, 1, 1), translate 240ms cubic-bezier(0.3, 0, 1, 1);
+        opacity: 0;
+        translate: 0 -10px;
+    }
+}
+
+@keyframes outage-arrive {
+    from { opacity: 0; translate: 0 12px; }
+}
+
+@keyframes outage-beacon {
+    0% { box-shadow: 0 0 0 0 rgba(25, 195, 209, 0.55); }
+    70%, 100% { box-shadow: 0 0 0 0.55rem rgba(25, 195, 209, 0); }
+}
+
+@keyframes outage-breathe {
+    0%, 100% { scale: 1; }
+    50% { scale: 1.025; }
+}
+
+@keyframes outage-meter {
+    to { transform: scaleX(1); }
+}
+
+@keyframes outage-scan {
+    from { translate: -100% 0; }
+    to { translate: 340% 0; }
+}
+
+@keyframes outage-spin {
+    to { rotate: 360deg; }
+}
+
+@keyframes outage-still {
+    0%, 100% { translate: 0 0; }
+    20% { translate: -7px 0; }
+    40% { translate: 6px 0; }
+    60% { translate: -4px 0; }
+    80% { translate: 2px 0; }
+}

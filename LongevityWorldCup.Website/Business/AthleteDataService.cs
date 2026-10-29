@@ -105,6 +105,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private const string DatabaseFileName = "LongevityWorldCup.db";
 
     private readonly DatabaseManager _db;
+    private readonly AthleteDataCorrections _corrections;
 
     private readonly string _athletesRootDir;
     private readonly string _profileThumbDir;
@@ -133,11 +134,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         IWebHostEnvironment env,
         EventDataService eventDataService,
         DatabaseManager db,
-        ILogger<AthleteDataService>? logger = null)
+        ILogger<AthleteDataService>? logger = null,
+        AthleteDataCorrections? corrections = null)
     {
         _env = env;
         _eventDataService = eventDataService;
         _db = db ?? throw new ArgumentNullException(nameof(db));
+        _corrections = corrections ?? new AthleteDataCorrections();
         _logger = logger;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
@@ -317,10 +320,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
 
         // persist biomarker/test signature for all athletes (so we can detect new/changed tests later)
-        var changedSigsAtStartup = SyncBiomarkerSignatures(); // returns slugs whose signatures changed
+        var (changedSigsAtStartup, correctedAtStartup) = SyncBiomarkerSignatures();
         SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigsAtStartup);
         HydratePlacementsIntoAthletesJson();
         var becameProAtStartup = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+        becameProAtStartup.RemoveAll(item => correctedAtStartup.Contains(item.AthleteSlug));
         var bioAgeImprovementsAtStartup = SyncBestBioAgeStates(
             changedSigsAtStartup,
             newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
@@ -541,6 +545,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             var proofs = new JsonArray();
             var proofFiles = Directory
                 .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
+                .Where(path => ProofPreviewService.IsProofFile(Path.GetFileName(path)))
                 .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
             foreach (var p in proofFiles)
                 proofs.Add(BuildVersionedAthleteAssetUrl(
@@ -998,9 +1003,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
 
                 // recompute and persist biomarker/test signatures after reload
-                var changedSigs = SyncBiomarkerSignatures();
+                var (changedSigs, correctedSlugs) = SyncBiomarkerSignatures();
                 SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
                 var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+                becamePro.RemoveAll(item => correctedSlugs.Contains(item.AthleteSlug));
                 var bioAgeImprovements = SyncBestBioAgeStates(
                     changedSigs,
                     newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
@@ -1440,7 +1446,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     {
         var order = GetRankingsOrder();
         var snapshot = GetAthletesSnapshot();
-        var extBySlug = new Dictionary<string, (string? PodcastLink, string? XHandle, string? MediaContact, string? DisplayName)>(StringComparer.OrdinalIgnoreCase);
+        var extBySlug = new Dictionary<string, (string? PodcastLink, string? XHandle, string? MediaContact, string? DisplayName, string? ThreadsHandle, string? InstagramHandle)>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in snapshot.OfType<JsonObject>())
         {
             var slug = o["AthleteSlug"]?.GetValue<string>();
@@ -1448,12 +1454,14 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             var link = o["PodcastLink"]?.GetValue<string>() ?? o["podcastLink"]?.GetValue<string>();
             var media = o["MediaContact"]?.GetValue<string>();
             var displayName = o["DisplayName"]?.GetValue<string>();
-            var handle = SocialContactParser.TryBuildMention(media, SocialPlatform.X);
+            var handle = AthleteSocialProfiles.ResolveMention(o, SocialPlatform.X);
             extBySlug[slug] = (
                 string.IsNullOrWhiteSpace(link) ? null : link.Trim(),
                 handle,
                 string.IsNullOrWhiteSpace(media) ? null : media.Trim(),
-                string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim());
+                string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim(),
+                AthleteSocialProfiles.ResolveMention(o, SocialPlatform.Threads),
+                AthleteSocialProfiles.ResolveMention(o, SocialPlatform.Instagram));
         }
         var list = new List<AthleteForX>();
         var rank = 0;
@@ -1474,7 +1482,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             if (o["PhenoAgeDiffFromBaseline"] is JsonValue pdv && pdv.TryGetValue<double>(out var pd)) phenoDiff = pd;
             double? bortzDiff = null;
             if (o["BortzAgeDiffFromBaseline"] is JsonValue bdv && bdv.TryGetValue<double>(out var bd)) bortzDiff = bd;
-            list.Add(new AthleteForX(slug, name, rank, lowestPheno, lowestBortz, chrono, phenoDiff, bortzDiff, ext.PodcastLink, ext.XHandle, ext.MediaContact));
+            list.Add(new AthleteForX(slug, name, rank, lowestPheno, lowestBortz, chrono, phenoDiff, bortzDiff, ext.PodcastLink, ext.XHandle, ext.MediaContact, ext.ThreadsHandle, ext.InstagramHandle));
         }
         return list;
     }
@@ -3417,15 +3425,17 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     // ===== biomarker/test signature helpers (single-column persistence) =====
 
-    private List<string> SyncBiomarkerSignatures()
+    private (List<string> Changed, HashSet<string> Corrected) SyncBiomarkerSignatures()
     {
         // Computes a deterministic signature from Biomarkers and stores it in Athletes.TestSig.
         // If nothing changed, no write occurs. This is called on startup and after reloads.
         var athletesSnapshot = GetAthletesSnapshot();
         var changed = new List<string>();
+        var corrected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _db.Run(sqlite =>
         {
             using var tx = sqlite.BeginTransaction();
+            AthleteDataCorrections.EnsureTrackingTable(sqlite, tx);
 
             foreach (var athlete in athletesSnapshot.OfType<JsonObject>())
             {
@@ -3449,21 +3459,33 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     using var upd = sqlite.CreateCommand();
                     upd.Transaction = tx;
                     upd.CommandText = $"UPDATE Athletes SET {TestSigColumn}=@s WHERE Key=@k";
-                    upd.Parameters.AddWithValue("@s", (object?)newSig ?? DBNull.Value);
+                    upd.Parameters.AddWithValue("@s", newSig);
                     upd.Parameters.AddWithValue("@k", slug);
                     upd.ExecuteNonQuery();
 
-                    changed.Add(slug);
+                    if (_corrections.IsSilentTransition(slug, oldSig, newSig))
+                    {
+                        AthleteDataCorrections.RememberPending(sqlite, tx, slug, newSig);
+                        corrected.Add(slug);
+                    }
+                    else
+                    {
+                        changed.Add(slug);
+                    }
                 }
             }
 
             tx.Commit();
         });
 
-        return changed;
+        // A restart may happen after signatures are committed but before all
+        // derived state has been rebased. Keep that same batch silent on retry.
+        corrected.UnionWith(AthleteDataCorrections.PendingForSnapshot(_db, athletesSnapshot).Select(c => c.AthleteSlug));
+        changed.RemoveAll(corrected.Contains);
+        return (changed, corrected);
     }
 
-    private static string ComputeBiomarkerSignature(JsonObject athlete)
+    internal static string ComputeBiomarkerSignature(JsonObject athlete)
     {
         // Canonicalize each biomarker record from present values only:
         // Date + numeric biomarker key/value pairs sorted by key.

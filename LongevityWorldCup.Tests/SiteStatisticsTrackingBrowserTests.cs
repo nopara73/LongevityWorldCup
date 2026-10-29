@@ -21,19 +21,19 @@ public sealed class SiteStatisticsTrackingBrowserTests(
     [InlineData("https://longevityworldcup.com/", true, false)]
     [InlineData("https://longevityworldcup.com/", false, true)]
     [InlineData("https://www.longevityworldcup.com/", false, true)]
-    [InlineData("https://longevityworldcup.com/mortality-age", false, false)]
-    [InlineData("https://www.longevityworldcup.com/mortality-age#sex=1&sbp=115&apob=90", false, false)]
+    [InlineData("https://longevityworldcup.com/mortality-age#sex=1&sbp=115&apob=90", false, false, false, true)]
     [InlineData("http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion/", false, true)]
     [InlineData("https://longevityworldcup.com/longevitymaxxing?token=private-access-token&utm_source=longevityworldcup&utm_medium=email&utm_campaign=longevitymaxxing&utm_content=daily_reminder", false, true, true)]
-    public async Task GoogleAnalyticsSkipsLocalAutomatedAndPrivateVisits(string url, bool automated, bool shouldLoad, bool emailCampaign = false)
+    public async Task GoogleAnalyticsSkipsLocalAutomatedAndPrivateVisits(string url, bool automated, bool shouldLoad, bool emailCampaign = false, bool retiredPage = false)
     {
         using var client = App.CreateClient();
-        var pagePath = new Uri(url).AbsolutePath;
-        var html = await client.GetStringAsync(pagePath == "/mortality-age" ? pagePath : "/");
+        using var response = await client.GetAsync(retiredPage ? new Uri(url).AbsolutePath : "/");
+        if (retiredPage) Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
         var privacyScript = Regex.Match(html, "<script id=\"pageAnalyticsPrivacy\">(?<code>[\\s\\S]*?)</script>").Groups["code"].Value;
         var script = Regex.Match(html, "<script id=\"googleAnalytics\">(?<code>[\\s\\S]*?)</script>").Groups["code"].Value;
         Assert.NotEmpty(script);
-        if (pagePath == "/mortality-age")
+        if (retiredPage)
         {
             Assert.NotEmpty(privacyScript);
             Assert.True(html.IndexOf("id=\"pageAnalyticsPrivacy\"", StringComparison.Ordinal) < html.IndexOf("id=\"googleAnalytics\"", StringComparison.Ordinal));
@@ -93,14 +93,18 @@ public sealed class SiteStatisticsTrackingBrowserTests(
         await page.WaitForFunctionAsync("() => !!window.LwcSiteStats");
         var firstUse = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && (r.Request.PostData?.Contains("\"eventName\":\"calculator_used\"", StringComparison.Ordinal) ?? false));
         await page.Locator("#dob-year option[value='1990']").WaitForAsync(new() { State = WaitForSelectorState.Attached });
-        await page.Locator("#dob-year").PressAsync("ArrowDown");
+        await page.Locator("#dob-year").PressAsync("Space");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("Enter");
         await firstUse;
         await page.WaitForFunctionAsync("() => !!sessionStorage.getItem('lwcSiteStatsFirstTouch')");
         var session = await page.EvaluateAsync<string>("sessionStorage.getItem('lwcSiteStatsSessionId')");
         await page.ReloadAsync();
         var secondUse = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && (r.Request.PostData?.Contains("\"eventName\":\"calculator_used\"", StringComparison.Ordinal) ?? false));
         await page.Locator("#dob-year option[value='1990']").WaitForAsync(new() { State = WaitForSelectorState.Attached });
-        await page.Locator("#dob-year").PressAsync("ArrowDown");
+        await page.Locator("#dob-year").PressAsync("Space");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("Enter");
         await secondUse;
         await page.GotoAsync("/apply?utm_source=claude");
         var started = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/site-statistics/event", StringComparison.Ordinal) && (r.Request.PostData?.Contains("\"eventName\":\"application_started\"", StringComparison.Ordinal) ?? false));

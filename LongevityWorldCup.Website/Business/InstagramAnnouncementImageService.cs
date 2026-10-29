@@ -40,6 +40,16 @@ public sealed class InstagramAnnouncementImageService(
         await _gate.WaitAsync(ct);
         try
         {
+            if (visual.Artwork?.InstagramAssetPath is { } portraitAsset)
+            {
+                using var portrait = await ImageInput.LoadAsync<Rgba32>(IOPath.Combine(environment.WebRootPath, portraitAsset), ct);
+                if (portrait.Width != Width || portrait.Height != Height)
+                    throw new InvalidOperationException("Prepared Instagram artwork must be 1080 by 1350 pixels.");
+                var prepared = new MemoryStream();
+                await portrait.SaveAsPngAsync(prepared, ct);
+                prepared.Position = 0;
+                return prepared;
+            }
             artworkPath ??= visual.Artwork?.FullPath(environment.WebRootPath);
             _bold ??= _fonts.Add(Asset("fonts", "Poppins-Bold.ttf"));
             _regular ??= _fonts.Add(Asset("fonts", "Poppins-Regular.ttf"));

@@ -17,7 +17,7 @@
                     <span id="lmxHeroMode" class="lmx-status-pill muted">Starts soon</span>
                 </div>
                 <div class="lmx-title-row">
-                    <h1 id="lmx-title">Longevitymaxxing</h1>
+                    <h1 id="lmx-title" aria-label="Longevitymaxxing"><span class="page-title-word">Lon&shy;gev&shy;ity<wbr>maxx&shy;ing</span></h1>
                 </div>
                 <p id="lmxHeroCopy" class="lmx-hero-copy">The first muscle to train is your mind.</p>
                 <div id="lmxHeroHighlights" class="lmx-benefit-strip" aria-label="Challenge benefits">
@@ -27,10 +27,14 @@
                     <span>Perfect plans keep failing?</span>
                 </div>
                 <div id="lmxLifeStrip" class="lmx-life-strip" aria-label="Real life compatible challenge">
-                    <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
-                    <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
-                    <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
-                    <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>
+                    <div class="lmx-life-pair">
+                        <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
+                        <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
+                    </div>
+                    <div class="lmx-life-pair">
+                        <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
+                        <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>
+                    </div>
                 </div>
                 <h2 id="lmxHabitHeading" class="lmx-habit-heading">Agencies to develop</h2>
                 <div id="lmxHabitGrid" class="lmx-habit-grid" aria-label="Daily check-in categories">
@@ -166,10 +170,16 @@
                 </div>
 
                 <div id="lmxAccessLoadingPanel" class="lmx-access-loading lmx-hidden" role="status" aria-live="polite" aria-atomic="true">
-                    <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
-                    <span>
-                        <strong>Loading…</strong>
-                    </span>
+                    <span class="lmx-loading-label">Loading…</span>
+                    <div class="lmx-loading-progress" aria-hidden="true"></div>
+                    <div class="lmx-loading-rows" aria-hidden="true">
+                        <div class="lmx-loading-row"><span class="lmx-loading-avatar"></span><span class="lmx-loading-name"></span><span class="lmx-loading-days"></span></div>
+                        <div class="lmx-loading-row"><span class="lmx-loading-avatar"></span><span class="lmx-loading-name"></span><span class="lmx-loading-days"></span></div>
+                        <div class="lmx-loading-row"><span class="lmx-loading-avatar"></span><span class="lmx-loading-name"></span><span class="lmx-loading-days"></span></div>
+                        <div class="lmx-loading-row"><span class="lmx-loading-avatar"></span><span class="lmx-loading-name"></span><span class="lmx-loading-days"></span></div>
+                        <div class="lmx-loading-row"><span class="lmx-loading-avatar"></span><span class="lmx-loading-name"></span><span class="lmx-loading-days"></span></div>
+                        <div class="lmx-loading-row"><span class="lmx-loading-avatar"></span><span class="lmx-loading-name"></span><span class="lmx-loading-days"></span></div>
+                    </div>
                 </div>
 
                 <div id="lmxParticipantPanel" class="lmx-participant-actions lmx-hidden">
@@ -309,7 +319,7 @@
             <div id="lmxNotes" class="lmx-notes"></div>
             <div id="lmxFeedSentinel" class="lmx-feed-sentinel" aria-hidden="true"></div>
             <div class="lmx-feed-footer">
-                <div id="lmxFeedCaughtUp" class="lmx-feed-caught-up" hidden>
+                <div id="lmxFeedCaughtUp" class="lmx-feed-caught-up" tabindex="-1" hidden>
                     <i class="fas fa-circle-check" aria-hidden="true"></i><span>You’re caught up</span>
                 </div>
                 <button id="lmxFeedOlder" class="lmx-feed-button" type="button" aria-controls="lmxNotes" hidden>
@@ -324,6 +334,7 @@
 <div id="lmxCheckinDialogBackdrop" class="lmx-checkin-dialog-backdrop" aria-hidden="true" hidden></div>
 
 <!--FOOTER-->
+<script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}" defer></script>
 <script src="{{ASSET_LONGEVITYMAXXING_JS}}" defer></script>
 </body>
 </html>

@@ -91,7 +91,12 @@ public sealed class HomepageLoadingBrowserTests(
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 2", target,
             new() { Timeout = 3000 });
         await page.Clock.FastForwardAsync(10_001);
+        await page.WaitForFunctionAsync("() => window.publicDataAborts === 2");
+        // Font/size observers can request a fit as the final timeout settles.
+        // Fitting must not consume recovery by starting another data request.
+        await page.EvaluateAsync("fitHomepageHighlights()");
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events could not load.");
+        Assert.Equal(2, await page.EvaluateAsync<int>("path => window.publicDataAttempts[path]", target));
         Assert.Equal(2, await page.EvaluateAsync<int>("window.publicDataAborts"));
         Assert.Equal(0, await page.Locator("#eventsTable .events-skeleton-row").CountAsync());
         if (target == "/api/data/athletes")

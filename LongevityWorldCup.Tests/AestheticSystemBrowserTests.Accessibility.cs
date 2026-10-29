@@ -11,6 +11,42 @@ public sealed class AestheticAccessibilityBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(ReducedMotion.Reduce, 1440)]
+    [InlineData(ReducedMotion.Reduce, 390)]
+    [InlineData(ReducedMotion.NoPreference, 1440)]
+    [InlineData(ReducedMotion.NoPreference, 390)]
+    public async Task MotionPreference_DoesNotIntroduceTransitionsForOrdinaryLayoutChanges(ReducedMotion motion, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            ReducedMotion = motion
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/about");
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const probe = document.createElement('div');
+                probe.style.cssText = 'font-size:16px;width:100px';
+                probe.textContent = 'Text and layout must update together';
+                document.body.append(probe);
+                void probe.getBoundingClientRect();
+                probe.style.fontSize = '32px';
+                probe.style.width = '200px';
+                const fontSize = parseFloat(getComputedStyle(probe).fontSize);
+                const width = probe.getBoundingClientRect().width;
+                const transitions = probe.getAnimations().filter(animation => animation instanceof CSSTransition).length;
+                probe.remove();
+                return [fontSize, width, transitions];
+            }
+            """);
+        Assert.Equal(32, layout[0]);
+        Assert.Equal(200, layout[1]);
+        Assert.Equal(0, layout[2]);
+    }
+
+    [Theory]
     [InlineData("/about", 720)]
     [InlineData("/about", 350)]
     [InlineData("/ruleset", 720)]
@@ -151,6 +187,19 @@ public sealed class AestheticAccessibilityBrowserTests(
             var href = await link.GetAttributeAsync("href");
             await link.ClickAsync();
 
+            // A normal-motion jump travels to its destination. Once it arrives,
+            // the reading position, focus and contents pane must remain stable.
+            // Pixel rounding can reach the final coordinate before focus lands.
+            await page.WaitForFunctionAsync("""
+                href => {
+                    const heading = document.getElementById(decodeURIComponent(href.slice(1)));
+                    const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--documentation-anchor-offset'));
+                    const top = Math.max(0, Math.min(heading.getBoundingClientRect().top + scrollY - offset,
+                        document.documentElement.scrollHeight - innerHeight));
+                    return Math.abs(scrollY - top) < 1 && document.activeElement === heading;
+                }
+                """, href);
+
             var stableArrival = await page.EvaluateAsync<bool>(
                 """
                 async href => {
@@ -244,7 +293,9 @@ public sealed class AestheticAccessibilityBrowserTests(
         var headingBox = await heading.BoundingBoxAsync();
         Assert.NotNull(toggleBox);
         Assert.NotNull(headingBox);
-        Assert.True(toggleBox.Height >= 44, $"Documentation disclosure measured {toggleBox.Height}px high.");
+        // Chromium's translated geometry can report 43.999985 for a 44px box.
+        const double geometryEpsilon = 0.001;
+        Assert.True(toggleBox.Height + geometryEpsilon >= 44, $"Documentation disclosure measured {toggleBox.Height}px high.");
         Assert.True(headingBox.Y < 260, $"Collapsed navigation delayed the History heading to y={headingBox.Y}px.");
 
         await toggle.ClickAsync();
@@ -258,7 +309,7 @@ public sealed class AestheticAccessibilityBrowserTests(
         {
             var box = await targets.Nth(index).BoundingBoxAsync();
             Assert.NotNull(box);
-            Assert.True(box.Height >= 44, $"Documentation navigation target {index + 1} measured {box.Height}px high.");
+            Assert.True(box.Height + geometryEpsilon >= 44, $"Documentation navigation target {index + 1} measured {box.Height}px high.");
         }
 
         var nestedMargin = await page.Locator(".documentation-nav-level-3").First.EvaluateAsync<double>(

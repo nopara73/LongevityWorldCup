@@ -1,84 +1,60 @@
-<style>
-@font-face {
-        font-family: 'Roboto';
-        font-style: normal;
-        font-weight: 300;
-        font-display: swap;
-        src: url('{{ASSET_ROBOTO_LIGHT}}') format('woff2');
-    }
-
-    @font-face {
-        font-family: 'Roboto';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url('{{ASSET_ROBOTO_REGULAR}}') format('woff2');
-    }
-
-    @font-face {
-        font-family: 'Roboto';
-        font-style: normal;
-        font-weight: 700;
-        font-display: swap;
-        src: url('{{ASSET_ROBOTO_BOLD}}') format('woff2');
-    }
-    @font-face {
-        font-family: 'Orbitron';
-        font-style: normal;
-        font-weight: 700;
-        font-display: swap;
-        src: url('{{ASSET_ORBITRON_BOLD}}') format('woff2');
-    }
-</style>
+<style>@font-face{font-family:'Roboto';font-weight:300;font-display:swap;src: url('{{ASSET_ROBOTO_LIGHT}}') format('woff2');}@font-face{font-family:'Roboto';font-weight:400;font-display:swap;src: url('{{ASSET_ROBOTO_REGULAR}}') format('woff2');}@font-face{font-family:'Roboto';font-weight:700;font-display:swap;src: url('{{ASSET_ROBOTO_BOLD}}') format('woff2');}@font-face{font-family:'Orbitron';font-weight:700;font-display:swap;src: url('{{ASSET_ORBITRON_BOLD}}') format('woff2');}</style>
 <link rel="stylesheet" href="{{ASSET_SITE_HEADER_CSS}}">
 
-<header role="banner">
-    <a href="/" class="header-link">
-        <img src="{{ASSET_FAVICON_128}}"
-             alt="Longevity World Cup logo, a phoenix symbolizing a new life"
-             class="main-logo-image"
-             width="128"
-             height="128"
-             loading="eager"
-             fetchpriority="high"
-             decoding="async">
-        <div class="bannertext">Longevity World&nbsp;Cup</div>
-        <span class="tagline">
-            longevity leaderboards
-        </span>
-    </a>
-    <a href="/play" class="join-game" aria-label="Play the game">
-        <strong>PLAY</strong>
-        <span class="join-game-middle" style="font-size: 1rem;">THE</span>
-        <strong class="join-game-end">GAME</strong>
-    </a>
-    <a href="/play" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
-        <strong>PLAY</strong>
-    </a>
-    <div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" hidden>
-        <div class="custom-alert-panel" tabindex="-1">
-            <h2 id="custom-alert-title" class="visually-hidden">Alert</h2>
-            <p id="custom-alert-message"></p>
-            <button id="custom-alert-close">OK</button>
-        </div>
-    </div>
-    <div id="loading-dialog" role="status" aria-modal="true" aria-labelledby="loading-dialog-label" aria-live="polite" hidden>
-        <div class="loading-dialog-panel" tabindex="-1">
-            <p id="loading-dialog-label" class="visually-hidden">Loading</p>
-            <div class="loader"></div>
-        </div>
-    </div>
-</header>
-<div id="site-sticky-header" class="site-sticky-header" aria-hidden="true">
-    <a href="/" class="site-sticky-header-link">
-        <img src="{{ASSET_FAVICON_128}}"
-             alt="Longevity World Cup logo, a phoenix symbolizing a new life"
-             class="main-logo-image site-sticky-header-logo"
-             width="32"
-             height="32"
-             loading="lazy">
-        <span class="site-sticky-header-title">Longevity World&nbsp;Cup</span>
-    </a>
+<header id="lwc-site-header" role="banner">
+<a href="/" class="header-link">
+<img src="{{ASSET_FAVICON_128}}"
+alt="Longevity World Cup logo, a phoenix symbolizing a new life"
+class="main-logo-image"
+width="128"
+height="128"
+loading="eager"
+fetchpriority="high"
+decoding="async">
+<div class="bannertext">Longevity World&nbsp;Cup</div>
+<span class="tagline">
+longevity leaderboards
+</span>
+</a>
+<div class="site-header-actions">
+<a href="/play" class="join-game" aria-label="Play the game">
+<strong>PLAY</strong>
+<span class="join-game-middle" style="font-size: 1rem;">THE</span>
+<strong class="join-game-end">GAME</strong>
+</a>
+
 </div>
+</header>
+<div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" data-tone="info" hidden>
+<div class="custom-alert-panel" tabindex="-1">
+<span class="custom-alert-mark" aria-hidden="true"><i class="fas fa-info"></i></span>
+<h2 id="custom-alert-title" class="visually-hidden">Alert</h2>
+<p id="custom-alert-message"></p>
+<button id="custom-alert-close">OK</button>
+</div>
+</div>
+<div id="loading-dialog" role="dialog" aria-modal="true" aria-labelledby="loading-dialog-label" hidden>
+<div class="loading-dialog-panel" tabindex="-1">
+<p id="loading-dialog-label" class="visually-hidden">Loading</p>
+<div class="loader" aria-hidden="true"></div>
+</div>
+</div>
+<div id="site-sticky-header" class="site-sticky-header" aria-hidden="true" inert>
+<a href="/" class="site-sticky-header-link">
+<img src="{{ASSET_FAVICON_128}}"
+alt="Longevity World Cup logo, a phoenix symbolizing a new life"
+class="main-logo-image site-sticky-header-logo"
+width="32"
+height="32"
+loading="lazy">
+<span class="site-sticky-header-title">Longevity World&nbsp;Cup</span>
+</a>
+<div class="site-sticky-actions">
+<a href="/play" class="join-game scrolled-button" aria-label="Play the game">
+<strong>PLAY</strong>
+</a>
+</div>
+</div>
+
 
 <script src="{{ASSET_SITE_HEADER_JS}}"></script>

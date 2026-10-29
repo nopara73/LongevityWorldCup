@@ -1,7 +1,8 @@
 /* The payoff lives inside the game card so it can never cover the athlete. */
 .gma-pop-banner {
     position: relative;
-    transform: translateY(-0.65rem) scale(0.72);
+    transform: scale(1.32);
+    opacity: 0;
     width: max-content;
     max-width: 100%;
     min-height: 56px;
@@ -24,7 +25,7 @@
 }
 
 .gma-pop-banner.show {
-    animation: gma-pop-slide-in calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) forwards;
+    animation: gma-pop-stamp calc(var(--lwc-duration-normal, 220ms) * 3) cubic-bezier(.2, .9, .3, 1) forwards;
 }
 
 .gma-pop-banner.hide {
@@ -35,29 +36,92 @@
     background: linear-gradient(135deg, #fff3a1 0%, #d6a315 48%, #fff1a0 72%, #9a6700 100%) !important;
     border-color: rgba(95, 69, 0, 0.34);
     color: #4f3900 !important;
+    text-shadow: 0 1px 0 rgba(255, 248, 205, 0.6);
     box-shadow: 0 1.25rem 3rem rgba(63, 44, 0, 0.42), 0 0 1.8rem rgba(255, 215, 0, 0.5);
 }
 
-@keyframes gma-pop-slide-in {
+/* The copy lands like a stamp; the marks follow from either side a beat later, and one
+   light sweep crosses the pill once it has settled. */
+.gma-pop-banner {
+    gap: 0.5em;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.gma-pop-banner-copy {
+    letter-spacing: 0.01em;
+}
+
+.gma-pop-banner-mark {
+    display: inline-block;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    line-height: 1;
+    text-shadow: none;
+}
+
+.gma-pop-banner.show .gma-pop-banner-mark {
+    animation: gma-pop-mark-in calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.3, 1.5, .5, 1) calc(var(--lwc-duration-fast, 140ms) * 2) both;
+}
+
+.gma-pop-banner.show .gma-pop-banner-mark--end {
+    --gma-mark-from: 0.9em;
+    --gma-mark-turn: 24deg;
+    animation-delay: calc(var(--lwc-duration-fast, 140ms) * 2.6);
+}
+
+.gma-pop-banner::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.42) 48%, transparent 64%);
+    transform: translateX(-120%);
+    pointer-events: none;
+}
+
+.gma-pop-banner.show::after {
+    animation: gma-pop-sheen calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) calc(var(--lwc-duration-normal, 220ms) * 2.4) both;
+}
+
+@keyframes gma-pop-stamp {
     0% {
-        transform: translateY(-0.65rem) scale(0.72) rotate(-2deg);
+        transform: scale(1.32);
         opacity: 0;
+        filter: blur(3px);
     }
 
-    58% {
-        transform: translateY(0.15rem) scale(1.1) rotate(1deg);
+    42% {
+        transform: scale(0.95);
         opacity: 1;
+        filter: blur(0);
     }
 
-    76% {
-        transform: translateY(0) scale(0.97) rotate(-0.6deg);
-        opacity: 1;
+    68% {
+        transform: scale(1.025);
     }
 
     100% {
-        transform: translateY(0) scale(1);
+        transform: scale(1);
         opacity: 1;
+        filter: none;
     }
+}
+
+@keyframes gma-pop-mark-in {
+    from {
+        opacity: 0;
+        transform: translateX(var(--gma-mark-from, -0.9em)) scale(0.2) rotate(var(--gma-mark-turn, -24deg));
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes gma-pop-sheen {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(120%); }
 }
 
 @keyframes gma-pop-slide-out {
@@ -67,7 +131,7 @@
     }
 
     to {
-        transform: translateY(-0.6rem) scale(0.88);
+        transform: translateY(0.4rem) scale(0.94);
         opacity: 0;
     }
 }
@@ -186,28 +250,117 @@
     overflow-y: auto;
 }
 
+/*
+ * The guess stage is one object: the portrait docks onto the top edge of the game card.
+ * The portrait track is the only flexible size, so the card (and its Submit button) always
+ * fits and the portrait takes whatever height is left, up to its cap.
+ */
 #detailsModal .modal-content.guess-mode #athlete-profile {
-    --gma-portrait-gap: clamp(2rem, 4vh, 3rem);
-    --gma-portrait-size: clamp(220px, min(58vw, 40vh), 430px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
+    --gma-portrait-max: min(360px, 68vw);
+    --gma-portrait-min: 112px;
+    --gma-overlap: clamp(1.75rem, 4.5vh, 2.75rem);
+    --gma-top-room: 3.5rem;
+    --gma-bottom-room: 0.75rem;
+    --gma-dock-height: 3.5rem;
+    --gma-bezel-gap: clamp(9px, 1.4vh, 14px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows:
+        minmax(var(--gma-top-room), 1fr)
+        minmax(var(--gma-portrait-min), var(--gma-portrait-max))
+        auto
+        minmax(var(--gma-bottom-room), 1fr);
+    justify-items: center;
+    align-items: start;
     gap: 0;
     height: 100%;
     min-height: 0;
     box-sizing: border-box;
-    padding-block: clamp(3rem, 4.5vh, 4rem) clamp(0.75rem, 2vh, 1.5rem);
+    padding: 0;
 }
 
 #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-    width: var(--gma-portrait-size);
-    height: auto;
+    grid-row: 2;
+    width: auto;
+    height: 100%;
     aspect-ratio: 1 / 1;
     max-width: none;
     max-height: none;
-    flex: 0 0 auto;
-    margin: 0 0 var(--gma-portrait-gap);
+    margin: 0;
+    z-index: 3;
+}
+
+/* The card rises into the portrait's row, so the portrait sits on its top edge. */
+#detailsModal .modal-content.guess-mode #guessAgeContainer {
+    grid-row: 3;
+    position: relative;
+    z-index: 2;
+    margin-top: calc(-1 * var(--gma-overlap));
+}
+
+/* A stopwatch bezel rings the portrait while the game is live. */
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before,
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--gma-bezel-gap));
+    border-radius: 50%;
+    pointer-events: none;
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before {
+    --gma-tick: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
+    background:
+        repeating-conic-gradient(from -1.2deg, var(--athlete-modal-cream, rgba(246,244,237,.92)) 0 2.4deg, transparent 2.4deg 30deg),
+        repeating-conic-gradient(from -0.6deg, var(--gma-tick) 0 1.2deg, transparent 1.2deg 6deg);
+    transition: filter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+/* The sweep hand only runs while the real age is travelling. */
+#detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::after {
+    background: conic-gradient(from 0deg, transparent 0 250deg, rgba(246,244,237,.08) 280deg, var(--athlete-modal-cream, rgba(246,244,237,.92)) 357deg, transparent 357deg);
+    opacity: 0;
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+#detailsModal .modal-content.guess-mode:has(#gmaRealBubble.is-travelling) #athlete-profile .portrait-wrapper::after,
+#detailsModal .modal-content.guess-mode:has(.gma-card.is-submitting) #athlete-profile .portrait-wrapper::after {
+    opacity: 1;
+    animation: gma-bezel-sweep calc(var(--lwc-duration-normal, 220ms) * 5) linear infinite;
+}
+
+#detailsModal .modal-content.guess-mode:has(.gma-card.celebrate-better) #athlete-profile .portrait-wrapper::before {
+    --gma-tick: var(--lwc-accent-bright, #19c3d1);
+    filter: drop-shadow(0 0 0.45rem rgba(25, 195, 209, 0.55));
+}
+
+#detailsModal .modal-content.guess-mode:has(.gma-card.celebrate-exact) #athlete-profile .portrait-wrapper::before {
+    --gma-tick: #f4d260;
+    background:
+        repeating-conic-gradient(from -1.2deg, #fff3a1 0 2.4deg, transparent 2.4deg 30deg),
+        repeating-conic-gradient(from -0.6deg, #d6a315 0 1.2deg, transparent 1.2deg 6deg);
+    filter: drop-shadow(0 0 0.6rem rgba(255, 215, 0, 0.7));
+}
+
+@keyframes gma-bezel-sweep {
+    to { transform: rotate(1turn); }
+}
+
+@keyframes gma-bezel-enter {
+    from { opacity: 0; transform: rotate(-36deg) scale(0.94); }
+    to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before {
+        animation: gma-bezel-enter calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+    }
+
+    #detailsModal .modal-content.guess-mode.gma-fast #athlete-profile .portrait-wrapper::before {
+        animation-duration: calc(var(--lwc-duration-normal, 220ms) * 2);
+    }
 }
 
 /* The game card is the active stage, with more depth than the profile below it. */
@@ -299,6 +452,12 @@
 .gma-card.is-revealing .gma-slider-wrap {
     padding-bottom: 2.85rem;
     margin-bottom: 0.35rem;
+}
+
+/* Inside the dialog the reveal keeps every row in place; nothing below the slider moves. */
+#detailsModal .gma-card.is-revealing .gma-slider-wrap {
+    padding-bottom: var(--gma-ruler-room, 1.1rem);
+    margin-bottom: var(--gma-slider-gap, 1.1rem);
 }
 
 /* slider track */
@@ -411,23 +570,105 @@
     animation: gma-real-age-settle calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
 }
 
+/* The answer drops onto the ruler: a short fall, one firm overshoot, a small rebound. */
 @keyframes gma-real-age-settle {
     0% {
-        transform: translateX(-50%) scale(0.86);
+        transform: translateX(-50%) translateY(-0.45rem) scale(0.9);
         box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 rgba(25, 195, 209, 0);
     }
-    48% {
-        transform: translateX(-50%) scale(1.24);
+    34% {
+        transform: translateX(-50%) translateY(0.12rem) scale(1.16);
         box-shadow: 0 1rem 2rem rgba(2, 8, 23, 0.3), 0 0 2.4rem var(--gma-settle-glow, rgba(25, 195, 209, 0.72));
     }
-    74% {
-        transform: translateX(-50%) scale(0.97);
-        box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 1rem var(--gma-settle-afterglow, rgba(25, 195, 209, 0.28));
+    58% {
+        transform: translateX(-50%) translateY(0) scale(0.97);
+        box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 1.2rem var(--gma-settle-afterglow, rgba(25, 195, 209, 0.28));
+    }
+    78% {
+        transform: translateX(-50%) scale(1.02);
     }
     100% {
         transform: translateX(-50%) scale(1);
         box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 rgba(25, 195, 209, 0);
     }
+}
+
+/* Guessing younger earns a little hop; guessing older makes the answer shake its head. */
+.gma-card[data-gma-reaction="younger"] #gmaRealBubble.is-settled {
+    animation-name: gma-real-age-hop;
+    animation-duration: calc(var(--lwc-duration-normal, 220ms) * 4.5);
+}
+
+.gma-card[data-gma-reaction="older"] #gmaRealBubble.is-settled {
+    animation-name: gma-real-age-oof;
+    animation-duration: calc(var(--lwc-duration-normal, 220ms) * 4.5);
+}
+
+@keyframes gma-real-age-hop {
+    0% { transform: translateX(-50%) translateY(-0.45rem) scale(0.9); }
+    30% { transform: translateX(-50%) translateY(0.1rem) scale(1.14); box-shadow: 0 1rem 2rem rgba(2, 8, 23, 0.3), 0 0 2.4rem var(--gma-settle-glow, rgba(25, 195, 209, 0.72)); }
+    48% { transform: translateX(-50%) translateY(-0.7rem) scale(1.04); }
+    66% { transform: translateX(-50%) translateY(0) scale(0.98); }
+    82% { transform: translateX(-50%) translateY(-0.18rem) scale(1.01); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+@keyframes gma-real-age-oof {
+    0% { transform: translateX(-50%) translateY(-0.45rem) scale(0.9); }
+    30% { transform: translateX(-50%) translateY(0.1rem) scale(1.12); box-shadow: 0 1rem 2rem rgba(2, 8, 23, 0.3), 0 0 1.6rem var(--gma-settle-afterglow, rgba(25, 195, 209, 0.28)); }
+    44% { transform: translateX(-50%) rotate(-7deg) scale(1); }
+    58% { transform: translateX(-50%) rotate(6deg) scale(1); }
+    72% { transform: translateX(-50%) rotate(-3.5deg) scale(1); }
+    86% { transform: translateX(-50%) rotate(1.5deg) scale(1); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+/* The miss as a dimension line under the track: drawn from the guess to the answer. */
+.gma-gap {
+    --gma-gap-color: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    position: absolute;
+    z-index: 1;
+    height: 6px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: var(--gma-gap-color);
+    box-shadow: 0 0 0.6rem color-mix(in srgb, var(--gma-gap-color) 45%, transparent);
+    pointer-events: none;
+    transform-origin: left center;
+    animation: gma-gap-draw calc(var(--lwc-duration-normal, 220ms) * 2.6) cubic-bezier(.2, .8, .2, 1) var(--lwc-duration-fast, 140ms) both;
+}
+
+.gma-gap[data-from="right"] {
+    transform-origin: right center;
+}
+
+.gma-gap::before,
+.gma-gap::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background: inherit;
+    transform: translateY(-50%);
+}
+
+.gma-gap::before { left: 0; }
+.gma-gap::after { right: 0; }
+
+.gma-gap[data-tone="crowd"] {
+    --gma-gap-color: var(--lwc-accent-bright, #19c3d1);
+}
+
+.gma-gap[data-tone="first"] {
+    --gma-gap-color: #f4d260;
+}
+
+@keyframes gma-gap-draw {
+    from { opacity: 0; transform: scaleX(0); }
+    20% { opacity: 1; }
+    to { opacity: 1; transform: scaleX(1); }
 }
 
     #gmaRealBubble::after {
@@ -595,6 +836,13 @@
     }
 }
 
+/* On the stage the card steps back without collapsing, so the portrait never lurches
+   before it glides into the profile. */
+@keyframes gma-stage-card-exit {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(0.9rem) scale(0.96); }
+}
+
 /* Exit is a measured max-height animation: auto -> 0 would only hard-cut. */
 #detailsModal .modal-content:not(.guess-mode) #guessAgeContainer,
 #detailsModal .modal-content.is-loading #guessAgeContainer {
@@ -607,17 +855,30 @@
     pointer-events: none;
 }
 
+#detailsModal .modal-content.guess-mode #guessAgeContainer.gma-done {
+    animation-name: gma-stage-card-exit !important;
+    /* Clipping changes this grid item's automatic minimum and redistributes its row. */
+    overflow: visible;
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile:has(> #guessAgeContainer.gma-done) .portrait-wrapper::before {
+    opacity: 0;
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
 #detailsModal .modal-content.gma-fast #guessAgeContainer.gma-done {
     animation-duration: var(--lwc-duration-fast, 140ms) !important;
 }
 
-/* The original endpoint gag: a modal-covering trollface rises from below. */
+/* The original endpoint gag: a modal-covering trollface springs up from below, lands
+   with a bounce, then leans in on the player just before the redirect. */
 #detailsModal .modal-content > .gma-trollface-container {
     position: absolute;
     left: 0;
     right: 0;
     height: 100%;
-    bottom: -100%;
+    bottom: 0;
+    transform: translateY(100%);
     background: transparent;
     overflow: hidden;
     display: flex;
@@ -636,14 +897,25 @@
 }
 
 @keyframes gmaTrollSlideUpOverlay {
-    from { bottom: -100%; }
-    to { bottom: 0; }
+    0% { transform: translateY(100%); }
+    40% { transform: translateY(-4%); }
+    54% { transform: translateY(1.5%); }
+    66% { transform: translateY(-0.5%); }
+    76%, 100% { transform: translateY(0); }
 }
 
 .gma-trollface-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    animation: gma-troll-lean-in calc(var(--lwc-duration-normal, 220ms) * 3.5) var(--lwc-ease, ease) calc(var(--lwc-duration-normal, 220ms) * 5.5) both;
+}
+
+@keyframes gma-troll-lean-in {
+    0% { transform: none; }
+    30% { transform: scale(1.03) rotate(-1.5deg); }
+    60% { transform: scale(1.06) rotate(1.5deg); }
+    100% { transform: scale(1.1) rotate(0); }
 }
 
 .gma-heading,
@@ -691,6 +963,11 @@
     z-index: 2;
 }
 
+/* Keep the answer legible when both values occupy the same part of the ruler. */
+#gmaBubble.gma-bubble-inactive.gma-bubble-overlap {
+    opacity: 0;
+}
+
 /* Smooth transitions on track, thumb & bubbles */
 #gmaRange,
 #gmaBubble,
@@ -710,33 +987,85 @@
     z-index: 10003;
     pointer-events: none;
     font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-    font-size: clamp(7rem, 18vw, 12rem);
+    font-size: clamp(5.5rem, 10vw, 8.5rem);
     line-height: 1;
-    filter: drop-shadow(0 0.5rem 1rem rgba(15, 23, 42, 0.24));
-    animation: gma-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 5) var(--lwc-ease, ease) both;
+    filter: drop-shadow(0 0.6rem 0.9rem rgba(0, 0, 0, 0.32));
+    animation: gma-reaction-peek calc(var(--lwc-duration-normal, 220ms) * 5) var(--lwc-ease, ease) both;
 }
 
 /* The exact-guess eyes punctuate the feint, then clear before the Bullseye banner. */
 .gma-reaction--exact {
+    animation-name: gma-reaction-double-take;
     animation-duration: calc(var(--lwc-duration-normal, 220ms) * 4);
 }
 
-@keyframes gma-reaction-pop {
+.gma-reaction--older {
+    animation-name: gma-reaction-sob;
+}
+
+/* Every glyph starts tucked behind the portrait rim (--gma-reaction-from-x), springs out,
+   holds a readable beat, then floats away. */
+@keyframes gma-reaction-peek {
     0% {
         opacity: 0;
-        transform: translate(-50%, -42%) scale(0.18) rotate(-18deg);
+        transform: translate(calc(-50% + var(--gma-reaction-from-x, 0px)), -50%) scale(0.3) rotate(-24deg);
     }
-    38% {
+    26% {
         opacity: 1;
-        transform: translate(-50%, -58%) scale(1.16) rotate(5deg);
+        transform: translate(-50%, -60%) scale(1.12) rotate(7deg);
     }
-    68% {
+    40% {
+        transform: translate(-50%, -53%) scale(0.95) rotate(-3deg);
+    }
+    54% {
+        transform: translate(-50%, -56%) scale(1) rotate(0);
+    }
+    80% {
         opacity: 1;
-        transform: translate(-50%, -55%) scale(0.98) rotate(-1deg);
+        transform: translate(-50%, -58%) scale(1) rotate(0);
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -72%) scale(1.04) rotate(2deg);
+        transform: translate(-50%, -84%) scale(0.86) rotate(5deg);
+    }
+}
+
+@keyframes gma-reaction-sob {
+    0% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--gma-reaction-from-x, 0px)), -50%) scale(0.3) rotate(-24deg);
+    }
+    26% {
+        opacity: 1;
+        transform: translate(-50%, -60%) scale(1.12) rotate(7deg);
+    }
+    40% { transform: translate(-50%, -53%) scale(0.95) rotate(-3deg); }
+    52% { transform: translate(-50%, -55%) scale(1) rotate(-6deg); }
+    60% { transform: translate(-50%, -54%) scale(1) rotate(6deg); }
+    68% { transform: translate(-50%, -55%) scale(1) rotate(-5deg); }
+    76% { opacity: 1; transform: translate(-50%, -54%) scale(1) rotate(3deg); }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -40%) scale(0.86) rotate(0);
+    }
+}
+
+@keyframes gma-reaction-double-take {
+    0% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--gma-reaction-from-x, 0px)), -50%) scale(0.3);
+    }
+    24% {
+        opacity: 1;
+        transform: translate(-50%, -56%) scale(1.08);
+    }
+    38% { transform: translate(-58%, -55%) scale(1); }
+    50% { transform: translate(-42%, -55%) scale(1); }
+    62% { transform: translate(-50%, -55%) scale(1.14); }
+    80% { opacity: 1; transform: translate(-50%, -56%) scale(1); }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -78%) scale(0.86);
     }
 }
 
@@ -764,7 +1093,14 @@
         radial-gradient(circle at 12% 18%, rgba(255, 66, 173, 0.2), transparent 24%),
         radial-gradient(circle at 88% 22%, rgba(25, 195, 209, 0.22), transparent 25%),
         linear-gradient(135deg, rgba(50, 28, 0, 0.34), rgba(5, 8, 14, 0.12));
-    animation: gma-exact-jackpot-enter calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+    /* Backwards fill only, so the closing fade below can take the opacity over. */
+    animation: gma-exact-jackpot-enter calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) backwards;
+    transition: opacity 900ms var(--lwc-ease, ease);
+}
+
+/* The last stretch dissolves the takeover so the gold card is left standing, not cut to. */
+.gma-exact-jackpot[data-ending="true"] {
+    opacity: 0;
 }
 
 /* The generic guess-mode child rule hides everything except the profile. This exact-only
@@ -776,7 +1112,7 @@
     z-index: 40 !important;
 }
 
-/* The homepage modal otherwise uses its legacy fallback layer (3), below sticky chrome. */
+/* The fullscreen jackpot also clears the body-mounted celebration layer. */
 #detailsModal.gma-exact-takeover-active {
     z-index: var(--athlete-dialog-layer, 10020);
 }
@@ -785,10 +1121,11 @@
     content: '';
     position: absolute;
     z-index: 0;
-    inset: -8vmin;
-    transform-origin: 50% 50%;
+    /* Oversized so rotating around the answer never exposes a corner. */
+    inset: -100vmax;
+    transform-origin: calc(var(--gma-jackpot-x, 50vw) + 100vmax) calc(var(--gma-jackpot-y, 50vh) + 100vmax);
     background: repeating-conic-gradient(
-        from -4deg,
+        from -4deg at calc(var(--gma-jackpot-x, 50vw) + 100vmax) calc(var(--gma-jackpot-y, 50vh) + 100vmax),
         rgba(255, 236, 126, 0.28) 0deg 5deg,
         rgba(255, 255, 255, 0.03) 5deg 11deg,
         rgba(25, 195, 209, 0.12) 11deg 15deg,
@@ -801,7 +1138,7 @@
     position: absolute;
     z-index: 1;
     inset: 0;
-    background: rgba(255, 247, 188, 0.52);
+    background: radial-gradient(circle at var(--gma-jackpot-x, 50%) var(--gma-jackpot-y, 50%), rgba(255, 247, 188, 0.92), rgba(255, 247, 188, 0.42) 32%, rgba(255, 247, 188, 0.08) 72%);
     opacity: 0;
     /* The first flashes are broad and slow. Later phases restart this pulse with more urgency. */
     animation: gma-exact-screen-flash calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) 2 both;
@@ -813,8 +1150,8 @@
 }
 
 @keyframes gma-exact-rays {
-    0% { transform: rotate(0deg) scale(0.86); opacity: 0; }
-    8% { opacity: 1; }
+    0% { transform: rotate(-20deg) scale(0.6); opacity: 0; }
+    6% { transform: rotate(0deg) scale(1); opacity: 1; }
     88% { opacity: 0.72; }
     100% { transform: rotate(112deg) scale(1.05); opacity: 0; }
 }
@@ -855,6 +1192,13 @@
     44% { opacity: 0.08; }
 }
 
+.gma-exact-jackpot-decoration {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    pointer-events: none;
+}
+
 .gma-exact-confetti-canvas {
     position: absolute;
     z-index: 2;
@@ -863,14 +1207,46 @@
     height: 100%;
 }
 
+/* Darkens the middle of the screen while a copy beat is up, so the words never fight
+   the confetti; it lifts again between beats. */
+.gma-exact-jackpot-scrim {
+    position: absolute;
+    z-index: 5;
+    inset: 0;
+    background: radial-gradient(ellipse 62% 42% at 50% 44%, rgba(5, 8, 14, 0.74), rgba(5, 8, 14, 0.38) 58%, transparent 88%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.gma-exact-jackpot-scrim.is-beat {
+    animation: gma-exact-scrim-beat calc(var(--lwc-duration-normal, 220ms) * 13.2) var(--lwc-ease, ease) both;
+}
+
+.gma-exact-jackpot-scrim.is-final {
+    animation: gma-exact-scrim-hold calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) forwards;
+}
+
+@keyframes gma-exact-scrim-beat {
+    0% { opacity: 0; }
+    10%, 70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes gma-exact-scrim-hold {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .gma-exact-jackpot-copy {
     position: absolute;
-    z-index: 6;
+    z-index: 7;
     left: 50%;
-    top: clamp(25%, 34vh, 38%);
+    top: 44%;
+    opacity: 0;
     width: min(94vw, 78rem);
     transform: translate(-50%, -50%);
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     gap: clamp(0.25rem, 1vw, 0.75rem);
     text-align: center;
@@ -878,9 +1254,27 @@
     filter: drop-shadow(0 0.8rem 1rem rgba(0, 0, 0, 0.62));
 }
 
+/* One beat: the parts land, hold long enough to read, then the block lifts away. */
+.gma-exact-jackpot-copy.is-beat {
+    animation: gma-exact-copy-beat calc(var(--lwc-duration-normal, 220ms) * 13.2) var(--lwc-ease, ease) both;
+}
+
+.gma-exact-jackpot-copy.is-final {
+    opacity: 1;
+    animation: none;
+}
+
+@keyframes gma-exact-copy-beat {
+    0%, 76% { opacity: 1; transform: translate(-50%, -50%); }
+    100% { opacity: 0; transform: translate(-50%, calc(-50% - 1.6rem)) scale(0.92); }
+}
+
 .gma-exact-jackpot-kicker,
 .gma-exact-jackpot-subtitle {
     display: block;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     padding: 0.35rem 0.9rem;
     background: rgba(6, 9, 15, 0.82);
     border: 2px solid rgba(255, 231, 102, 0.82);
@@ -894,14 +1288,18 @@
 
 .gma-exact-jackpot-kicker {
     font-size: clamp(0.78rem, 2.1vw, 1.45rem);
-    animation: gma-exact-cheese-drop calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
+}
+
+.is-beat > .gma-exact-jackpot-kicker {
+    animation: gma-exact-cheese-drop calc(var(--lwc-duration-normal, 220ms) * 3) cubic-bezier(.3, 1.4, .5, 1) calc(var(--lwc-duration-fast, 140ms) * 2.5) both;
 }
 
 .gma-exact-jackpot-title {
     display: block;
     max-width: 100%;
     font-family: Orbitron, Roboto, sans-serif;
-    font-size: clamp(4rem, 14vw, 11rem);
+    /* Fit the unbroken title and its 1.22x finale pulse even with enlarged text. */
+    font-size: min(clamp(4rem, 14vw, 11rem), 11.5vw);
     font-weight: 900;
     line-height: 0.86;
     letter-spacing: -0.06em;
@@ -912,49 +1310,47 @@
     -webkit-text-fill-color: transparent;
     -webkit-text-stroke: 2px rgba(94, 43, 0, 0.72);
     text-shadow: 0 0 2.5rem rgba(255, 203, 0, 0.86);
-    animation: gma-exact-title-slam calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) both;
+}
+
+.is-beat > .gma-exact-jackpot-title {
+    animation: gma-exact-title-slam calc(var(--lwc-duration-normal, 220ms) * 4) cubic-bezier(.5, 0, .2, 1) both;
+}
+
+/* The finale slams, then keeps pumping until the outro. */
+.is-final > .gma-exact-jackpot-title {
+    animation:
+        gma-exact-title-slam calc(var(--lwc-duration-normal, 220ms) * 4) cubic-bezier(.5, 0, .2, 1) both,
+        gma-exact-title-finale calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) calc(var(--lwc-duration-normal, 220ms) * 4) 2 forwards;
 }
 
 .gma-exact-jackpot-subtitle {
     font-size: clamp(0.72rem, 1.8vw, 1.2rem);
-    animation: gma-exact-cheese-rise calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) calc(var(--lwc-duration-fast, 140ms) * 3) both;
 }
 
+.is-beat > .gma-exact-jackpot-subtitle {
+    animation: gma-exact-cheese-rise calc(var(--lwc-duration-normal, 220ms) * 3) cubic-bezier(.3, 1.4, .5, 1) calc(var(--lwc-duration-fast, 140ms) * 3.5) both;
+}
+
+/* Falls toward the screen, hits once, and stands still: weight instead of wobble. */
 @keyframes gma-exact-title-slam {
-    0% { opacity: 0; transform: scale(4.5) rotate(-8deg); filter: blur(0.4rem); }
-    42% { opacity: 1; transform: scale(0.82) rotate(3deg); filter: blur(0); }
-    62% { transform: scale(1.14) rotate(-1deg); }
-    78% { transform: scale(0.96) rotate(0.5deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+    0% { opacity: 0; transform: scale(3.1) rotate(-4deg); filter: blur(0.35rem); }
+    36% { opacity: 1; transform: scale(0.9) rotate(0.6deg); filter: blur(0); }
+    56% { transform: scale(1.06) rotate(-0.3deg); }
+    76% { transform: scale(0.985) rotate(0); }
+    100% { opacity: 1; transform: scale(1) rotate(0); filter: none; }
 }
 
-.gma-exact-jackpot[data-phase="escalation"] .gma-exact-jackpot-title {
-    animation: gma-exact-title-escalation calc(var(--lwc-duration-normal, 220ms) * 22) var(--lwc-ease, ease) both;
+/* The stage takes the hit when each title lands. */
+.modal-content:has(> .gma-exact-jackpot.is-impact) #athlete-profile {
+    animation: gma-exact-impact calc(var(--lwc-duration-normal, 220ms) * 1.6) var(--lwc-ease, ease) both;
 }
 
-.gma-exact-jackpot[data-phase="frenzy"] .gma-exact-jackpot-title {
-    animation: gma-exact-title-frenzy calc(var(--lwc-duration-normal, 220ms) * 24) var(--lwc-ease, ease) both;
-}
-
-.gma-exact-jackpot[data-phase="finale"] .gma-exact-jackpot-title {
-    animation: gma-exact-title-finale calc(var(--lwc-duration-normal, 220ms) * 12) var(--lwc-ease, ease) both;
-}
-
-@keyframes gma-exact-title-escalation {
-    0%, 100% { transform: scale(1) rotate(0); }
-    18% { transform: scale(1.08) rotate(-1deg); }
-    42% { transform: scale(0.98) rotate(0.7deg); }
-    67% { transform: scale(1.1) rotate(-0.6deg); }
-}
-
-@keyframes gma-exact-title-frenzy {
-    0%, 100% { transform: scale(1) rotate(0); }
-    12% { transform: scale(1.1) rotate(-1.2deg); }
-    25% { transform: scale(0.97) rotate(0.8deg); }
-    39% { transform: scale(1.13) rotate(-0.8deg); }
-    54% { transform: scale(0.98) rotate(0.5deg); }
-    70% { transform: scale(1.14) rotate(-0.5deg); }
-    86% { transform: scale(1.02) rotate(0.25deg); }
+@keyframes gma-exact-impact {
+    0%, 100% { transform: none; }
+    20% { transform: translate(0, 5px); }
+    40% { transform: translate(-3px, -2px); }
+    60% { transform: translate(2px, 1px); }
+    80% { transform: translate(-1px, 0); }
 }
 
 @keyframes gma-exact-title-finale {
@@ -967,20 +1363,18 @@
 }
 
 @keyframes gma-exact-cheese-drop {
-    0% { opacity: 0; transform: translateY(-4rem) rotate(-8deg); }
-    64% { opacity: 1; transform: translateY(0.35rem) rotate(2deg); }
-    100% { opacity: 1; transform: translateY(0) rotate(0); }
+    0% { opacity: 0; transform: translateY(-1.6rem) scale(0.8); }
+    100% { opacity: 1; transform: none; }
 }
 
 @keyframes gma-exact-cheese-rise {
-    0% { opacity: 0; transform: translateY(3rem) scale(0.76); }
-    68% { opacity: 1; transform: translateY(-0.2rem) scale(1.06); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    0% { opacity: 0; transform: translateY(1.4rem) scale(0.8); }
+    100% { opacity: 1; transform: none; }
 }
 
 .gma-exact-jackpot-marquee {
     position: absolute;
-    z-index: 5;
+    z-index: 6;
     left: -24%;
     width: 148%;
     padding: 0.5rem 0;
@@ -997,26 +1391,42 @@
     box-shadow: 0 0 2rem rgba(255, 209, 0, 0.62);
 }
 
+/* The ribbons unfurl, then run as one seamless loop: the track holds the copy twice and
+   travels exactly one copy per lap. */
 .gma-exact-jackpot-marquee--top {
-    top: 7%;
-    transform: rotate(-4deg);
-    animation: gma-exact-marquee-top calc(var(--lwc-duration-normal, 220ms) * 68) var(--lwc-ease, ease) both;
+    top: 4%;
+    transform: rotate(-2.5deg);
+    animation: gma-exact-ribbon-in calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .gma-exact-jackpot-marquee--bottom {
-    bottom: 7%;
-    transform: rotate(4deg);
-    animation: gma-exact-marquee-bottom calc(var(--lwc-duration-normal, 220ms) * 68) var(--lwc-ease, ease) both;
+    bottom: 4%;
+    transform: rotate(2.5deg);
+    animation: gma-exact-ribbon-in calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.2, .8, .2, 1) var(--lwc-duration-fast, 140ms) both;
 }
 
-@keyframes gma-exact-marquee-top {
-    from { translate: -10% 0; }
-    to { translate: 10% 0; }
+.gma-exact-jackpot-marquee-track {
+    display: inline-flex;
+    width: max-content;
+    animation: gma-exact-marquee-run calc(var(--lwc-duration-normal, 220ms) * 40 * var(--gma-marquee-travel-ratio, 1)) linear 2 both;
 }
 
-@keyframes gma-exact-marquee-bottom {
-    from { translate: 10% 0; }
-    to { translate: -10% 0; }
+.gma-exact-jackpot-marquee--bottom .gma-exact-jackpot-marquee-track {
+    animation-direction: reverse;
+}
+
+.gma-exact-jackpot-marquee-track > span {
+    padding-inline-end: 0.6em;
+}
+
+@keyframes gma-exact-ribbon-in {
+    from { scale: 1 0; opacity: 0; }
+    to { scale: 1 1; opacity: 1; }
+}
+
+@keyframes gma-exact-marquee-run {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
 }
 
 .gma-exact-time-icon {
@@ -1044,7 +1454,7 @@
 .gma-exact-target {
     --gma-target-delay: 0ms;
     position: absolute;
-    z-index: 5;
+    z-index: 4;
     left: 50%;
     top: 48%;
     font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
@@ -1065,12 +1475,12 @@
 
 @media (max-width: 540px) {
     .gma-exact-jackpot-copy {
-        top: 36%;
+        top: 42%;
     }
 
     .gma-exact-jackpot-title {
         /* Leave room for the 1.22x finale slam without clipping the unbroken word. */
-        font-size: clamp(2.75rem, 11vw, 5.2rem);
+        font-size: min(clamp(2.75rem, 11vw, 5.2rem), 11.5vw);
         -webkit-text-stroke-width: 1px;
     }
 
@@ -1080,7 +1490,18 @@
     }
 }
 
+/* Celebration pieces are bare glyphs with a soft halo: they burst from the answer, slow
+   down, then drift and fade as they fall. */
+.gma-celebration {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .gma-celebration-spark {
+    --gma-spark-color: var(--lwc-accent-bright, #19c3d1);
     position: fixed;
     left: var(--gma-spark-x, 50%);
     top: var(--gma-spark-y, 50%);
@@ -1089,29 +1510,42 @@
     height: var(--gma-spark-size, 1.75rem);
     display: grid;
     place-items: center;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--lwc-surface, #fff) 90%, transparent);
-    color: var(--gma-spark-color, var(--lwc-accent, #087685));
-    box-shadow: 0 0.45rem 1rem rgba(2, 8, 23, 0.2), 0 0 0 1px rgba(255,255,255,.42) inset;
+    color: var(--gma-spark-color);
+    font-size: calc(var(--gma-spark-size, 1.75rem) * 0.72);
+    filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--gma-spark-color) 60%, transparent)) drop-shadow(0 0.2rem 0.3rem rgba(0, 0, 0, 0.45));
     pointer-events: none;
     opacity: 0;
-    animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 10) var(--lwc-ease, ease) both;
+    animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 10) linear both;
+}
+
+.gma-celebration-spark[data-kind="first"] {
+    --gma-spark-color: #f4d260;
+}
+
+.gma-celebration-spark:nth-child(4n) {
+    --gma-spark-color: var(--athlete-modal-cream, rgba(246,244,237,.92));
 }
 
 @keyframes gma-spark-flight {
     0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.35) rotate(0);
+        transform: translate(-50%, -50%) scale(0.2) rotate(0);
+        animation-timing-function: cubic-bezier(.12, .8, .3, 1);
     }
-    14% {
+    8% {
         opacity: 1;
     }
-    62% {
+    36% {
         opacity: 1;
+        transform: translate(calc(-50% + var(--gma-spark-dx, 0px)), calc(-50% + var(--gma-spark-dy, -8rem))) scale(1) rotate(calc(var(--gma-spark-rotation, 120deg) * 0.5));
+        animation-timing-function: cubic-bezier(.45, 0, .8, .6);
+    }
+    70% {
+        opacity: 0.85;
     }
     100% {
         opacity: 0;
-        transform: translate(calc(-50% + var(--gma-spark-dx, 0px)), calc(-50% + var(--gma-spark-dy, -8rem))) scale(0.9) rotate(var(--gma-spark-rotation, 120deg));
+        transform: translate(calc(-50% + (var(--gma-spark-dx, 0px) * 1.12)), calc(-50% + var(--gma-spark-dy, -8rem) + var(--gma-spark-fall, 3rem))) scale(0.7) rotate(var(--gma-spark-rotation, 120deg));
     }
 }
 
@@ -1217,17 +1651,34 @@
     border-color: #8a5c00 !important;
 }
 
+/*
+ * The card is a four-row instrument: prompt, status, slider, dock. The dock has a fixed
+ * height, and Skip/Submit, the submitting status and the payoff banner take turns in it,
+ * so the card never changes size between guessing and the reveal.
+ */
 #detailsModal .gma-card {
-    width: min(680px, calc(100% - 2rem));
+    --gma-ruler-room: 1.1rem;
+    --gma-slider-gap: clamp(0.85rem, 2.2vh, 1.35rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(var(--gma-dock-height, 3.5rem), auto);
+    grid-template-areas: "prompt" "status" "slider" "dock";
+    justify-items: center;
+    width: min(35rem, 100%);
     margin-top: 0;
     margin-bottom: 0;
     box-sizing: border-box;
-    background: linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
+    background:
+        radial-gradient(120% 70% at 50% 0%, rgba(246,244,237,.1), transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.045));
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
     border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     border-radius: var(--lwc-radius-lg, 12px);
     box-shadow: 0 1.15rem 2.65rem rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.08) inset;
-    padding: 1.65rem 2rem 2rem;
+    padding:
+        calc(var(--gma-overlap, 0px) + var(--gma-bezel-gap, 0px) + clamp(0.6rem, 1.6vh, 1rem))
+        clamp(1rem, 4vw, 2.25rem)
+        clamp(1rem, 2.6vh, 1.6rem);
 }
 #detailsModal .gma-avatar {
     background: rgba(255,255,255,.08);
@@ -1235,16 +1686,81 @@
 }
 #detailsModal .gma-heading,
 #detailsModal .chrono-age-heading {
+    grid-area: prompt;
     color: var(--athlete-modal-text, rgba(255,255,255,.94));
-    font-size: clamp(2rem, 4vw, 2.5rem);
-    margin-bottom: clamp(1.25rem, 2.5vh, 2rem);
+    font-size: clamp(1.75rem, 1rem + 2.4vh, 2.5rem);
+    margin-bottom: clamp(0.35rem, 1.2vh, 0.75rem);
     text-shadow: 0 0.25rem 0.8rem rgba(0,0,0,.3);
 }
 #detailsModal #gmaStatus {
+    grid-area: status;
     color: var(--athlete-modal-cream, rgba(246,244,237,.92));
     line-height: 1.35;
-    margin: 0.25rem auto 1rem;
+    margin: 0.25rem auto 0;
     max-width: 34rem;
+}
+/* While the request is in flight the status sits where the buttons were and breathes. */
+#detailsModal .gma-card.is-submitting #gmaStatus:not(.gma-status--semantic) {
+    grid-area: dock;
+    align-self: center;
+    margin: 0;
+    animation: gma-status-breathe calc(var(--lwc-duration-normal, 220ms) * 6) ease-in-out infinite;
+}
+
+@keyframes gma-status-breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+/* Hand-off: once the portrait glides home, the profile underneath settles in behind it
+   in reading order instead of appearing all at once. */
+#detailsModal .modal-content.gma-handoff [data-gma-handoff-part] {
+    /* The script numbers the visible parts in reading order. */
+    animation: gma-profile-settle calc(var(--lwc-duration-normal, 220ms) * 2) cubic-bezier(.2, .8, .2, 1) min(320ms, calc(40ms + (var(--gma-handoff-index, 0) * 45ms))) backwards;
+}
+
+@keyframes gma-profile-settle {
+    from { opacity: 0; transform: translateY(0.75rem); }
+    to { opacity: 1; transform: none; }
+}
+#detailsModal .gma-slider-wrap {
+    grid-area: slider;
+    justify-self: stretch;
+    width: auto;
+    margin: 0 var(--gma-slider-inset, 0.25rem) var(--gma-slider-gap);
+    padding-top: var(--gma-bubble-room, 5rem);
+    padding-bottom: var(--gma-ruler-room);
+}
+/* Decade ticks under the track turn the slider into an age ruler. */
+#detailsModal .gma-slider-wrap::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--gma-thumb, 64px) / 2);
+    right: calc(var(--gma-thumb, 64px) / 2);
+    bottom: 0;
+    height: 0.5rem;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, var(--athlete-modal-cream-border, rgba(246,244,237,.52)) 0 2px, transparent 2px) 0 0 / calc((100% - 2px) / 13) 100% repeat-x,
+        linear-gradient(90deg, var(--athlete-modal-border, rgba(246,244,237,.34)) 0 1px, transparent 1px) calc((100% - 2px) / 26) 100% / calc((100% - 2px) / 13) 50% repeat-x;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    opacity: 0.85;
+}
+#detailsModal .gma-payoff-region,
+#detailsModal .gma-actions {
+    grid-area: dock;
+    justify-self: stretch;
+    min-width: 0;
+}
+#detailsModal .gma-payoff-region {
+    grid-template-columns: minmax(0, 1fr);
+}
+#detailsModal .gma-payoff-region,
+#detailsModal .gma-card.is-revealing .gma-payoff-region:not(:empty) {
+    align-self: center;
+    min-height: 0;
+    margin: 0;
 }
 #detailsModal #gmaStatus.gma-status--semantic {
     position: absolute !important;
@@ -1258,7 +1774,26 @@
     border: 0 !important;
 }
 #detailsModal #gmaRange {
+    --gma-thumb-size: var(--gma-thumb, 64px);
+    display: block;
+    height: var(--gma-track, 3rem);
+    margin: 0;
     background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.35);
+}
+#detailsModal #gmaRange::-webkit-slider-thumb {
+    width: var(--gma-thumb, 64px);
+    height: var(--gma-thumb, 64px);
+}
+#detailsModal #gmaRange::-moz-range-thumb {
+    width: var(--gma-thumb, 64px);
+    height: var(--gma-thumb, 64px);
+}
+#detailsModal #gmaBubble,
+#detailsModal #gmaRealBubble {
+    font-size: var(--gma-bubble-font, 2.6rem);
+    line-height: 1;
+    padding: var(--gma-bubble-pad, 0.7rem 1.4rem);
 }
 #detailsModal #gmaRange:focus-visible {
     outline: 3px solid var(--lwc-accent-bright, #19c3d1);
@@ -1292,11 +1827,35 @@
 }
 #detailsModal #gmaBubble::after,
 #detailsModal #gmaRealBubble::after {
-    background: rgba(10,12,12,.96);
+    bottom: -8px;
+    width: 14px;
+    height: 14px;
+    border-left-width: 2px;
+    border-bottom-width: 2px;
+    background: rgb(10,12,12);
     border-left-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     border-bottom-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
 }
+/* Skip, Skip all and Submit are one row of equal-height pills spanning the slider. */
+#detailsModal .gma-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: clamp(0.5rem, 1.4vw, 0.85rem);
+    width: 100%;
+}
 #detailsModal .gma-btn {
+    flex: 1 1 0;
+    min-width: max-content;
+    min-height: max(44px, var(--gma-dock-height, 3.5rem));
+    height: auto;
+    box-sizing: border-box;
+    padding: 0.6rem clamp(0.6rem, 2vw, 1.25rem);
+    border-radius: 999px;
+    font-size: var(--gma-button-font, 1.05rem);
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
     box-shadow: 0 0.55rem 1.35rem rgba(0,0,0,.26);
 }
 #detailsModal .gma-btn:focus-visible {
@@ -1305,9 +1864,9 @@
     outline-offset: 3px;
 }
 #detailsModal .gma-btn--ghost {
+    border: 2px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     background: rgba(246,244,237,.06);
     color: var(--athlete-modal-cream, rgba(246,244,237,.92));
-    border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
 }
 #detailsModal .gma-btn--ghost:hover,
 #detailsModal .gma-btn--ghost:focus-visible {
@@ -1315,13 +1874,36 @@
     background: var(--athlete-modal-cream, rgba(246,244,237,.92));
 }
 #detailsModal .gma-btn--primary {
+    flex-grow: 1.75;
+    border: 2px solid transparent;
+    font-size: calc(var(--gma-button-font, 1.05rem) * 1.14);
     background: var(--athlete-modal-cream, rgba(246,244,237,.92));
     color: rgba(12,16,16,.94);
     box-shadow: 0 0.65rem 1.55rem rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.68) inset;
 }
+/* Hidden actions still size the shared dock, including when enlarged labels wrap it. */
+#detailsModal .gma-actions.gma-actions-hide {
+    max-height: none;
+    animation: gma-stage-actions-exit var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) both !important;
+}
+@keyframes gma-stage-actions-exit {
+    from { opacity: 1; visibility: visible; }
+    to { opacity: 0; visibility: hidden; }
+}
 #detailsModal .gma-btn--primary:hover,
 #detailsModal .gma-btn--primary:focus-visible {
     filter: brightness(1.04);
+}
+/* The payoff banner lands in the slot the buttons just left, at their height. */
+#detailsModal .gma-pop-banner {
+    flex-wrap: wrap;
+    min-width: 0;
+    min-height: var(--gma-dock-height, 3.5rem);
+    box-sizing: border-box;
+    padding: 0.6rem clamp(0.9rem, 3vw, 1.6rem);
+    border-radius: 999px;
+    font-size: var(--gma-banner-font, clamp(1.15rem, 0.8rem + 1.2vw, 1.6rem));
+    white-space: normal;
 }
 #detailsModal .gma-card.celebrate-exact {
     --gma-settle-glow: rgba(255, 215, 0, 0.82);
@@ -1353,8 +1935,6 @@
 }
 #detailsModal .gma-card.gma-done {
     margin: 0;
-    border: 0;
-    box-shadow: none;
 }
 @media (max-width: 768px) {
     #detailsModal .modal-content.guess-mode #guessAgeContainer {
@@ -1369,17 +1949,14 @@
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: clamp(1.5rem, 3.5vh, 2.5rem);
-        --gma-portrait-size: clamp(180px, min(70vw, 36vh), 320px);
-        padding-block: clamp(3.5rem, 5.5vh, 4.5rem) clamp(0.5rem, 2vh, 1.25rem);
-    }
-    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-        width: var(--gma-portrait-size);
-        height: auto;
-    }
-    #detailsModal .gma-card {
-        width: 100%;
-        padding: 1.75rem 1.25rem 2rem;
+        --gma-portrait-max: min(320px, 66vw);
+        --gma-top-room: 3.25rem;
+        --gma-dock-height: 3.25rem;
+        --gma-thumb: 56px;
+        --gma-track: 2.6rem;
+        --gma-bubble-font: 2.1rem;
+        --gma-bubble-pad: 0.55rem 1.1rem;
+        --gma-bubble-room: 4.1rem;
     }
     #detailsModal .modal-content.guess-mode .gma-heading,
     #detailsModal .modal-content.guess-mode .chrono-age-heading {
@@ -1393,106 +1970,72 @@
     #detailsModal .modal-content.guess-mode .chrono-age-heading.is-revealing {
         animation: none;
     }
-    #detailsModal .gma-slider-wrap {
-        width: 86%;
+}
+
+@media (max-width: 420px) {
+    #detailsModal .modal-content.guess-mode #athlete-profile {
+        --gma-portrait-max: min(300px, 70vw);
+        --gma-dock-height: 3rem;
+        --gma-thumb: 52px;
+        --gma-track: 2.4rem;
+        --gma-bubble-font: 1.75rem;
+        --gma-bubble-pad: 0.45rem 0.9rem;
+        --gma-bubble-room: 3.6rem;
+        --gma-button-font: 0.95rem;
+    }
+}
+
+@media (max-width: 360px) {
+    #detailsModal .gma-pop-banner {
+        column-gap: 0.125rem;
+        padding-inline: 0.5rem;
+    }
+}
+
+/* Short laptop screens: the dialog grows to 96vh and every instrument steps down a size. */
+@media (min-width: 769px) and (max-height: 800px) {
+    #detailsModal .modal-content.guess-mode {
+        box-sizing: border-box;
+        height: 96vh;
+        max-height: 96vh;
+        margin: 2vh auto;
+    }
+    #detailsModal .modal-content.guess-mode #athlete-profile {
+        --gma-top-room: 3rem;
+        --gma-overlap: 1.75rem;
+        --gma-dock-height: 3.25rem;
+        --gma-thumb: 52px;
+        --gma-track: 2.5rem;
+        --gma-bubble-font: 2.1rem;
+        --gma-bubble-pad: 0.55rem 1.1rem;
+        --gma-bubble-room: 4.1rem;
     }
 }
 
 @media (max-height: 680px) {
     #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: 1.35rem;
-        --gma-portrait-size: clamp(140px, min(64vw, 32vh), 260px);
-        padding-block: 3rem 0.5rem;
-    }
-    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-        width: var(--gma-portrait-size);
-        height: auto;
+        --gma-portrait-min: 96px;
+        --gma-top-room: 2.75rem;
+        --gma-bottom-room: 0.25rem;
+        --gma-overlap: 1.4rem;
+        --gma-dock-height: 2.9rem;
+        --gma-thumb: 46px;
+        --gma-track: 2.2rem;
+        --gma-bubble-font: 1.6rem;
+        --gma-bubble-pad: 0.4rem 0.85rem;
+        --gma-bubble-room: 3.35rem;
     }
     #detailsModal .modal-content.guess-mode .gma-card {
-        margin-bottom: 0;
-        padding: 1rem 1rem 1.15rem;
+        --gma-ruler-room: 0.85rem;
+        --gma-slider-gap: 0.7rem;
     }
     #detailsModal .modal-content.guess-mode .gma-heading,
     #detailsModal .modal-content.guess-mode .chrono-age-heading {
-        margin-bottom: 1.25rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-slider-wrap {
-        --gma-you-anchor-y: 6.65rem;
-        margin: 0.25rem auto 0.75rem;
-        padding-top: 3.75rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange {
-        --gma-thumb-size: 52px;
-        height: 2.5rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
-        width: 52px;
-        height: 52px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
-        width: 52px;
-        height: 52px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaBubble,
-    #detailsModal .modal-content.guess-mode #gmaRealBubble {
-        font-size: 2rem;
-        padding: 0.55rem 1.1rem;
+        font-size: 1.6rem;
     }
 }
 
-@media (min-width: 769px) and (max-height: 760px) {
-    #detailsModal .modal-content.guess-mode {
-        box-sizing: border-box;
-        height: 96vh;
-        max-height: 96vh;
-        margin: 1vh auto;
-    }
-    #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: .8rem;
-        --gma-portrait-size: clamp(150px, min(34vw, 28vh), 230px);
-        padding-block: 2.25rem .5rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-card {
-        width: min(620px, calc(100% - 2rem));
-        padding: .95rem 1.25rem 1.15rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-heading,
-    #detailsModal .modal-content.guess-mode .chrono-age-heading {
-        font-size: 2rem;
-        margin-bottom: .9rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-slider-wrap {
-        --gma-you-anchor-y: 6.25rem;
-        width: 84%;
-        margin: .25rem auto .75rem;
-        padding-top: 3.5rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange {
-        --gma-thumb-size: 50px;
-        height: 2.35rem;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
-        width: 50px;
-        height: 50px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
-        width: 50px;
-        height: 50px;
-    }
-    #detailsModal .modal-content.guess-mode #gmaBubble,
-    #detailsModal .modal-content.guess-mode #gmaRealBubble {
-        font-size: 1.9rem;
-        padding: .48rem .95rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-actions {
-        gap: .75rem;
-    }
-    #detailsModal .modal-content.guess-mode .gma-btn {
-        min-height: 44px;
-        padding: .75rem 1.45rem;
-    }
-}
-
+/* Landscape phones have no height to stack in, so the portrait stands to the card's left. */
 @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
     #detailsModal .modal-content.guess-mode {
         width: calc(100vw - .75rem);
@@ -1503,30 +2046,50 @@
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: 0;
-        --gma-portrait-size: clamp(86px, 25vh, 116px);
-        flex-direction: row;
+        --gma-overlap: 0px;
+        --gma-bezel-gap: 7px;
+        --gma-dock-height: 2.75rem;
+        --gma-thumb: 44px;
+        --gma-track: 2rem;
+        --gma-bubble-font: 1.45rem;
+        --gma-bubble-pad: .35rem .75rem;
+        --gma-bubble-room: 3.1rem;
+        --gma-button-font: .9rem;
+        grid-template-columns: auto minmax(0, 540px);
+        grid-template-rows: minmax(min-content, 1fr);
         justify-content: center;
         align-items: center;
-        gap: clamp(.65rem, 2vw, 1rem);
+        column-gap: clamp(1rem, 3vw, 1.5rem);
         min-height: 100%;
         padding: 0 0.65rem 0 3.25rem;
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-        width: var(--gma-portrait-size);
-        margin: 0;
+        grid-row: 1;
+        grid-column: 1;
+        align-self: start;
+        height: clamp(86px, 25vh, 116px);
+        margin: max(0px, calc((100dvh - clamp(86px, 25vh, 116px)) / 2 - 1.125rem)) 0 0;
+    }
+
+    #detailsModal .modal-content.guess-mode #guessAgeContainer {
+        grid-row: 1;
+        grid-column: 2;
+        align-self: center;
+        margin-top: 0;
     }
 
     #detailsModal .modal-content.guess-mode .gma-card {
-        width: min(100%, 540px);
+        --gma-ruler-room: .75rem;
+        --gma-slider-gap: .55rem;
+        width: 100%;
         padding: .7rem .9rem .8rem;
     }
 
     #detailsModal .modal-content.guess-mode .gma-heading,
     #detailsModal .modal-content.guess-mode .chrono-age-heading {
         font-size: clamp(1.35rem, 6vh, 1.75rem);
-        margin-bottom: .45rem;
+        margin-bottom: .2rem;
     }
 
     #detailsModal .modal-content.guess-mode .gma-heading {
@@ -1536,44 +2099,30 @@
         overflow: visible;
         white-space: normal;
     }
+}
 
-    #detailsModal .modal-content.guess-mode .gma-slider-wrap {
-        --gma-you-anchor-y: 5.4rem;
-        width: 82%;
-        margin: .35rem auto .55rem;
-        padding-top: 3rem;
-    }
+/* Keep a round still after a live motion-preference change. Returning to normal motion
+   starts with the next athlete, without replaying the completed effects. */
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer,
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer *,
+#detailsModal .modal-content.gma-motion-stopped #guessAgeContainer *::after,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper::before,
+#detailsModal .modal-content.gma-motion-stopped .portrait-wrapper::after,
+#detailsModal .modal-content.gma-motion-stopped .gma-trollface-container,
+#detailsModal .modal-content.gma-motion-stopped .gma-trollface-container img {
+    animation: none !important;
+    transition: none !important;
+}
 
-    #detailsModal .modal-content.guess-mode #gmaRange {
-        --gma-thumb-size: 44px;
-        height: 2rem;
-    }
+#detailsModal .modal-content.gma-motion-stopped .gma-pop-banner,
+#detailsModal .modal-content.gma-motion-stopped > .gma-trollface-container {
+    opacity: 1;
+    transform: none;
+}
 
-    #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
-        width: 44px;
-        height: 44px;
-    }
-
-    #detailsModal .modal-content.guess-mode #gmaRange::-moz-range-thumb {
-        width: 44px;
-        height: 44px;
-    }
-
-    #detailsModal .modal-content.guess-mode #gmaBubble,
-    #detailsModal .modal-content.guess-mode #gmaRealBubble {
-        font-size: 1.45rem;
-        padding: .35rem .75rem;
-    }
-
-    #detailsModal .modal-content.guess-mode .gma-actions {
-        gap: .5rem;
-    }
-
-    #detailsModal .modal-content.guess-mode .gma-btn {
-        min-height: 44px;
-        padding: .55rem .9rem;
-        font-size: .9rem;
-    }
+#detailsModal .modal-content.gma-motion-stopped #gmaRealBubble.is-settled {
+    transform: translateX(-50%) scale(1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1583,26 +2132,39 @@
     #detailsModal .modal-content #guessAgeContainer.gma-done,
     .gma-heading,
     .gma-actions,
-    .gma-actions.gma-actions-hide,
+    #detailsModal .gma-actions.gma-actions-hide,
     .gma-payoff-region,
     .gma-slider-wrap,
     #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper,
     .chrono-age-heading,
     .gma-reaction,
     .gma-trollface-container,
+    .gma-trollface-container img,
+    .gma-pop-banner-mark,
+    .gma-gap,
+    #gmaStatus,
+    #detailsModal .modal-content.gma-handoff *,
+    #detailsModal .modal-content #athlete-profile,
     .gma-celebration-spark,
     .gma-exact-jackpot,
     .gma-exact-time-icon,
     .gma-exact-target,
     #gmaRange,
     #gmaBubble,
-    #gmaRealBubble {
+    #gmaRealBubble,
+    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::before,
+    #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::after {
         animation: none !important;
         transition: none !important;
     }
 
     .gma-pop-banner {
-        transform: translateY(0) scale(1);
+        transform: none;
+        opacity: 1;
+    }
+
+    .gma-pop-banner::after {
+        display: none;
     }
 
     #gmaRealBubble.is-settled {
@@ -1626,11 +2188,8 @@
     }
 
     #detailsModal .modal-content.guess-mode > .gma-trollface-container {
-        bottom: 0;
+        transform: none;
     }
-}
-#detailsModal .gma-actions {
-    gap: var(--lwc-space-2);
 }
 
 #detailsModal #gmaBubble,
@@ -1641,11 +2200,4 @@
 #detailsModal #gmaStatus {
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
-}
-
-@media (max-width: 420px) {
-    #detailsModal .gma-btn--ghost {
-        font-size: var(--lwc-type-sm);
-        line-height: 1.5;
-    }
 }

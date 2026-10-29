@@ -47,12 +47,7 @@
     --lwc-duration-fast: 140ms;
     --lwc-duration-normal: 220ms;
     --lwc-ease: cubic-bezier(0.2, 0, 0, 1);
-    --lwc-type-xs: 0.75rem;
-    --lwc-type-sm: 0.875rem;
-    --lwc-type-body: 1rem;
-    --lwc-type-h3: clamp(1.15rem, 2vw, 1.35rem);
-    --lwc-type-h2: clamp(1.5rem, 3vw, 2rem);
-    --lwc-type-h1: clamp(2rem, 4vw, 3rem);
+    /* Type scale, leading, tracking and rhythm tokens live in type-system.css. */
 }
 
 html {
@@ -63,7 +58,7 @@ body {
     background: var(--lwc-canvas);
     color: var(--lwc-ink);
     font-size: var(--lwc-type-body);
-    line-height: 1.5;
+    line-height: var(--lwc-leading-body);
     font-synthesis: none;
 }
 
@@ -72,7 +67,7 @@ button,
 input,
 select,
 textarea {
-    font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 a {
@@ -99,24 +94,29 @@ button {
 h1,
 h2,
 h3 {
-    font-family: 'Roboto', system-ui, sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, sans-serif;
     font-weight: 700;
-    line-height: 1.15;
     text-shadow: none;
     text-wrap: balance;
     break-after: avoid;
 }
 
-h1 {
+:where(main) :where(h1):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h1);
+    line-height: var(--lwc-leading-h1);
+    letter-spacing: var(--lwc-tracking-h1);
 }
 
-h2 {
+:where(main) :where(h2):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h2);
+    line-height: var(--lwc-leading-h2);
+    letter-spacing: var(--lwc-tracking-h2);
 }
 
-h3 {
+:where(main) :where(h3):not(:where(.modal *, [role="dialog"] *, [role="alertdialog"] *, [popover] *)) {
     font-size: var(--lwc-type-h3);
+    line-height: var(--lwc-leading-h3);
+    letter-spacing: var(--lwc-tracking-h3);
 }
 
 p,
@@ -162,7 +162,7 @@ video {
 
 [class^="lmx-"],
 [class*=" lmx-"] {
-    font-family: 'Roboto', system-ui, sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, sans-serif;
 }
 
 /* Challenge feature: keep its dense dashboard, but use the same hierarchy. */
@@ -259,7 +259,7 @@ video {
 
 .lmx-metric strong,
 .lmx-ops-tile strong {
-    font-family: 'Roboto', system-ui, sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
 }
 
@@ -515,11 +515,15 @@ textarea:disabled,
     cursor: not-allowed;
 }
 
+/* Components can request taller fields without competing with the shared touch-size default. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+    min-height: 44px;
+}
+
 /* Forms retain visible boundaries and predictable state changes. */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 select,
 textarea {
-    min-height: 44px;
     border: 1px solid var(--lwc-border-strong);
     border-radius: var(--lwc-radius-md);
     background: var(--lwc-surface);
@@ -530,6 +534,26 @@ textarea {
 
 textarea {
     min-height: 7rem;
+}
+
+/* Grow motivations where supported; retain the existing rows and sizing elsewhere.
+   Leave room for the actions so both ends remain reachable in short viewports. */
+@supports (field-sizing: content) {
+    #whyDisplayInput,
+    #why {
+        field-sizing: content;
+        --motivation-height-limit: min(22rem, max(calc(1lh + 1.6rem), calc(100dvh
+            - var(--flow-input-keyboard-occlusion, 0px)
+            - var(--flow-input-top-occlusion, 0px)
+            - var(--flow-action-dock-height, 0px)
+            - var(--motivation-counter-space, 0px) - 32px)));
+        min-height: min(calc(3lh + 1.6rem), var(--motivation-height-limit));
+        max-height: var(--motivation-height-limit);
+    }
+
+    #why {
+        --motivation-counter-space: calc(max(26px, var(--lwc-type-xs, 0.75rem) + 0.4rem + 2px) + 0.45rem);
+    }
 }
 
 input::placeholder,
@@ -571,17 +595,293 @@ textarea:read-only {
 .error-message,
 .validation-message,
 [role="alert"] {
-    color: #8f1d32;
+    color: var(--lwc-danger);
 }
 
+/* Feedback system. Everything the site says about what just happened uses one mark
+   and one set of tones, at three sizes: a banner (page or form status) is a tinted
+   card with a tone rail and a small mark; a field error is the same mark beside its
+   words, under its input; a short confirmation is a pill with the mark. The modal
+   alert and the loading dialog carry the large mark on one panel (site-header.css). */
 .error-message:not(:empty),
+.profile-field-error,
 .validation-message:not(:empty),
 .bioage-inline-notice,
-.proof-upload-notice,
-.lmx-status:not(:empty),
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+.media-kit-fallback,
+#athleteLoadError:not([hidden]),
+#copiedText,
 body .bioage-rank-error,
 body .events-recovery,
 body .leaderboard-recovery {
+    --lwc-feedback-tone: var(--lwc-accent);
+    --lwc-feedback-soft: var(--lwc-accent-soft);
+    --lwc-feedback-glyph: "i";
+}
+
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+#copiedText {
+    --lwc-feedback-tone: var(--lwc-success);
+    --lwc-feedback-soft: var(--lwc-success-soft);
+    --lwc-feedback-glyph: "\2713";
+}
+
+.media-kit-fallback {
+    --lwc-feedback-tone: var(--lwc-warning);
+    --lwc-feedback-soft: var(--lwc-warning-soft);
+    --lwc-feedback-glyph: "!";
+}
+
+.error-message:not(:empty),
+.profile-field-error,
+.validation-message:not(:empty),
+.bioage-inline-notice,
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus.is-error:not(:empty),
+.unsubscribe-message.is-error:not(:empty),
+#athleteLoadError:not([hidden]),
+body .bioage-rank-error,
+body .events-recovery,
+body .leaderboard-recovery {
+    --lwc-feedback-tone: var(--lwc-danger);
+    --lwc-feedback-soft: var(--lwc-danger-soft);
+    --lwc-feedback-glyph: "\2715";
+}
+
+/* Banner: tinted card, tone rail, small mark on the first line. */
+.validation-message:not(:empty),
+.bioage-inline-notice,
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+.media-kit-fallback,
+#athleteLoadError:not([hidden]),
+body .bioage-rank-error,
+body .events-recovery,
+body .leaderboard-recovery {
+    position: relative;
+    box-sizing: border-box;
+    --lwc-feedback-pad: min(var(--lwc-space-4), 4vw);
+    padding: var(--lwc-space-3) var(--lwc-feedback-pad);
+    padding-inline-start: calc(var(--lwc-feedback-pad) + 1.375rem + min(var(--lwc-space-3), 3vw));
+    border: 1px solid color-mix(in srgb, var(--lwc-feedback-tone) 35%, var(--lwc-border));
+    border-inline-start: 4px solid var(--lwc-feedback-tone);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-feedback-soft);
+    box-shadow: none;
+    color: var(--lwc-ink);
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: start;
+    overflow-wrap: anywhere;
+}
+
+.error-message:not(:empty)::before,
+.profile-field-error::before,
+.validation-message:not(:empty)::before,
+.bioage-inline-notice::before,
+#applicationDraftStatus:not([hidden])::before,
+.profile-draft-status:not([hidden])::before,
+#newsletterStatus:not(:empty)::before,
+.unsubscribe-message:not(:empty)::before,
+.media-kit-fallback::before,
+#athleteLoadError:not([hidden])::before,
+#copiedText::before,
+body .bioage-rank-error::before,
+body .events-recovery::before,
+body .leaderboard-recovery::before {
+    content: var(--lwc-feedback-glyph) / "";
+    position: absolute;
+    top: calc(var(--lwc-space-3) + 0.05rem);
+    inset-inline-start: calc(var(--lwc-feedback-pad, var(--lwc-space-4)) - 4px);
+    display: grid;
+    place-items: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-feedback-tone);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lwc-feedback-tone) 20%, transparent);
+    color: var(--lwc-surface);
+    font: normal 900 0.75rem/1 'Roboto', system-ui, sans-serif;
+}
+
+/* Status rows that hold a retry action read left to right: mark, words, Retry.
+   The mark joins the row itself, so page padding rules cannot slide words under it. */
+body .bioage-rank-error,
+body .events-recovery,
+body .leaderboard-recovery {
+    padding-inline-start: var(--lwc-feedback-pad);
+}
+
+body .bioage-rank-error::before,
+body .events-recovery::before,
+body .leaderboard-recovery::before {
+    position: static;
+    flex: none;
+}
+
+body :is(.bioage-rank-error, .events-recovery, .leaderboard-recovery) > p {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+/* Field error: the same mark and tone, no card, directly under its input. */
+.error-message:not(:empty),
+.profile-field-error {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    margin: var(--lwc-space-2) 0 0;
+    padding: 0;
+    padding-inline-start: calc(1.125rem + var(--lwc-space-2));
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--lwc-danger);
+    font-size: var(--lwc-type-sm);
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: start;
+    overflow-wrap: anywhere;
+}
+
+.profile-field-error[hidden],
+.profile-field-error:empty {
+    display: none;
+}
+
+.error-message:not(:empty)::before,
+.profile-field-error::before {
+    top: calc((var(--lwc-type-sm) * 1.45 - 1.125rem) / 2);
+    inset-inline-start: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    box-shadow: none;
+    font-size: 0.625rem;
+}
+
+/* A search hint that reuses the error slot stays a quiet line. */
+.error-message.athlete-search-empty:not(:empty) {
+    padding: 0;
+    color: var(--lwc-muted);
+    font-weight: 400;
+}
+
+.error-message.athlete-search-empty:not(:empty)::before {
+    content: none;
+}
+
+/* Match the control's validation state, rather than an adjacent status such as
+   "No matching athlete." This outranks the shared text-input border. */
+html body :is(input, select, textarea)[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    border-color: var(--lwc-danger);
+}
+
+/* Toast: a short confirmation is a pill with the same mark. */
+#copiedText {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    box-sizing: border-box;
+    padding: var(--lwc-space-1) var(--lwc-space-3);
+    padding-inline-start: calc(var(--lwc-space-2) + 1.25rem + var(--lwc-space-2));
+    border: 1px solid color-mix(in srgb, var(--lwc-feedback-tone) 35%, var(--lwc-border));
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-feedback-soft);
+    color: var(--lwc-ink);
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+#copiedText[hidden] {
+    display: none;
+}
+
+#copiedText::before {
+    top: 50%;
+    inset-inline-start: var(--lwc-space-2);
+    width: 1.25rem;
+    height: 1.25rem;
+    box-shadow: none;
+    font-size: 0.7rem;
+    transform: translateY(-50%);
+}
+
+.validation-message:not(:empty),
+.bioage-inline-notice,
+#applicationDraftStatus:not([hidden]),
+.profile-draft-status:not([hidden]),
+#newsletterStatus:not(:empty),
+.unsubscribe-message:not(:empty),
+.media-kit-fallback,
+#athleteLoadError:not([hidden]),
+.error-message:not(:empty),
+.profile-field-error,
+#copiedText {
+    animation: lwcFeedbackIn var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwcFeedbackIn {
+    from {
+        opacity: 0;
+        translate: 0 -3px;
+    }
+
+    to {
+        opacity: 1;
+        translate: none;
+    }
+}
+
+/* Loading placeholders share one shimmer, drawn from the surface tokens in both themes. */
+.skeleton-shimmer,
+.media-kit-skeleton span,
+.media-file-thumb[data-state="loading"],
+#detailsModal .modal-content.is-loading #ageVisualization::after {
+    background: linear-gradient(100deg, var(--lwc-surface-muted) 30%, color-mix(in srgb, var(--lwc-surface-muted) 35%, var(--lwc-surface)) 50%, var(--lwc-surface-muted) 70%) 0 0 / 300% 100%;
+    animation: lwcSkeletonShimmer 1.6s linear infinite;
+}
+
+@keyframes lwcSkeletonShimmer {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer,
+    .media-kit-skeleton span,
+    .media-file-thumb[data-state="loading"],
+    #detailsModal .modal-content.is-loading #ageVisualization::after {
+        animation: none;
+    }
+
+    .validation-message:not(:empty),
+    .bioage-inline-notice,
+    #applicationDraftStatus:not([hidden]),
+    .profile-draft-status:not([hidden]),
+    #newsletterStatus:not(:empty),
+    .unsubscribe-message:not(:empty),
+    .media-kit-fallback,
+    #athleteLoadError:not([hidden]),
+    .error-message:not(:empty),
+    .profile-field-error,
+    #copiedText {
+        animation: none;
+    }
+}
+
+/* Proof and Longevitymaxxing statuses keep their own placement inside their cards. */
+.proof-upload-notice,
+.lmx-status:not(:empty) {
     padding: var(--lwc-space-3) var(--lwc-space-4);
     border: 0;
     border-inline-start: 4px solid var(--lwc-accent);
@@ -592,34 +892,105 @@ body .leaderboard-recovery {
     line-height: 1.45;
 }
 
-.error-message:not(:empty),
-.validation-message:not(:empty),
-.bioage-inline-notice,
-.lmx-status.error:not(:empty),
-body .bioage-rank-error,
-body .events-recovery,
-body .leaderboard-recovery {
+.lmx-status.error:not(:empty) {
     border-inline-start-color: var(--lwc-danger);
 }
 
-.lmx-status.success:not(:empty),
-.application-review-copy.primary {
+.lmx-status.success:not(:empty) {
     border-inline-start-color: var(--lwc-success);
 }
 
-/* Both application and result uploads use the same local proof review workspace. */
+/* Both application and result uploads use the same local proof review workspace:
+   one document card (header band, page tiles, notice footer), a tracker card in the
+   same shape, and a viewer that reads like the card opened full screen. */
 html body #proofImageContainer {
     width: min(100%, 640px);
     min-inline-size: 0;
     margin: var(--lwc-space-5) auto 0;
     padding: 0;
-    border: 0;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-sm);
+    box-sizing: border-box;
+    overflow: hidden;
     text-align: left;
 }
 html body #proofImageContainer[hidden] { display: none !important; }
-.proof-review-heading { margin: 0 0 var(--lwc-space-3); font-size: var(--lwc-type-body); }
-.proof-page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); gap: var(--lwc-space-3); }
-.proof-page-card { display: flex; flex-direction: column; min-width: 0; padding: var(--lwc-space-2); border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-md); background: var(--lwc-surface); }
+
+/* Header bands share the site's strip title: tinted band, uppercase, letter-spaced. */
+.proof-review-head,
+html body #biomarker-checklist .proof-tracker-head {
+    position: relative;
+    display: grid;
+    gap: var(--lwc-space-2);
+    min-height: 44px;
+    padding: 0 var(--lwc-space-4);
+    border-bottom: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-accent);
+    color: var(--lwc-accent-hover);
+    box-sizing: border-box;
+    align-content: center;
+}
+.proof-review-heading,
+html body #biomarker-checklist .proof-tracker-head h4 {
+    margin: 0 !important;
+    padding: 14px 0;
+    color: inherit;
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: 700;
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    line-height: var(--lwc-leading-eyebrow);
+    text-transform: uppercase;
+}
+.proof-preparation {
+    display: grid;
+    gap: var(--lwc-space-2);
+    margin: calc(-1 * var(--lwc-space-2)) 0 0;
+    padding: 0 0 var(--lwc-space-3);
+    color: var(--lwc-ink);
+    font-size: var(--lwc-type-sm);
+    overflow-wrap: anywhere;
+}
+.proof-preparation progress {
+    width: 100%;
+    height: 6px;
+    border: 0;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface);
+    overflow: hidden;
+    appearance: none;
+    accent-color: var(--lwc-accent);
+}
+.proof-preparation progress::-webkit-progress-bar { border-radius: var(--lwc-radius-pill); background: var(--lwc-surface); }
+.proof-preparation progress::-webkit-progress-value { border-radius: var(--lwc-radius-pill); background: var(--lwc-accent); transition: width var(--lwc-duration-normal) var(--lwc-ease); }
+.proof-preparation progress::-moz-progress-bar { border-radius: var(--lwc-radius-pill); background: var(--lwc-accent); }
+
+.proof-page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+    gap: var(--lwc-space-3);
+    padding: var(--lwc-space-4);
+}
+.proof-page-card,
+.proof-page-pending {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+    box-sizing: border-box;
+    transition: border-color var(--lwc-duration-fast) var(--lwc-ease), box-shadow var(--lwc-duration-fast) var(--lwc-ease);
+}
+.proof-page-card:hover,
+.proof-page-card:focus-within {
+    border-color: var(--lwc-accent);
+    box-shadow: var(--lwc-shadow-sm);
+}
 .proof-page-preview,
 .proof-page-remove,
 .proof-undo,
@@ -637,34 +1008,415 @@ html body #proofImageContainer[hidden] { display: none !important; }
     cursor: pointer;
     box-shadow: none;
     transform: none;
-    transition: background-color var(--lwc-duration-fast) var(--lwc-ease);
+    transition: background-color var(--lwc-duration-fast) var(--lwc-ease), border-color var(--lwc-duration-fast) var(--lwc-ease);
 }
-.proof-page-preview { display: flex; flex-direction: column; align-items: stretch; gap: var(--lwc-space-2); padding: 0 0 var(--lwc-space-2); border-color: transparent; color: var(--lwc-accent); font-size: var(--lwc-type-sm); overflow: hidden; }
-.proof-page-preview img { display: block; width: 100%; height: 168px; object-fit: contain; background: var(--lwc-surface-muted); border-radius: var(--lwc-radius-sm); }
+/* The page sits on a mat as a sheet of paper, whole and never cropped. */
+.proof-page-preview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 168px;
+    padding: var(--lwc-space-3) var(--lwc-space-3) 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--lwc-surface-muted);
+    color: var(--lwc-accent);
+    font-size: var(--lwc-type-sm);
+    overflow: hidden;
+    box-sizing: border-box;
+}
+.proof-page-preview img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    align-self: flex-end;
+    border-radius: 2px 2px 0 0;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16), 0 6px 16px rgba(15, 23, 42, 0.10);
+    object-fit: contain;
+}
 .proof-page-preview:hover { background: var(--lwc-accent-soft); }
-.proof-page-caption { display: flex; flex-direction: column; gap: var(--lwc-space-1); padding: var(--lwc-space-2) var(--lwc-space-1); font-size: var(--lwc-type-sm); }
+.proof-page-zoom-hint {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent);
+    font-size: 1rem;
+    box-shadow: var(--lwc-shadow-md);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+    transition: opacity var(--lwc-duration-fast) var(--lwc-ease), transform var(--lwc-duration-fast) var(--lwc-ease);
+    pointer-events: none;
+}
+.proof-page-preview:hover .proof-page-zoom-hint,
+.proof-page-preview:focus-visible .proof-page-zoom-hint {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+}
+.proof-page-preview:disabled .proof-page-zoom-hint { display: none; }
+.proof-page-caption {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--lwc-space-2) var(--lwc-space-3) var(--lwc-space-3);
+    border-top: 1px solid var(--lwc-border);
+    font-size: var(--lwc-type-sm);
+}
+.proof-page-caption strong {
+    color: var(--lwc-accent-hover);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
 .proof-page-source { color: var(--lwc-muted); font-size: var(--lwc-type-xs); overflow-wrap: anywhere; line-height: 1.4; }
-.proof-page-remove { align-self: stretch; margin-top: auto; color: var(--lwc-danger); font-size: var(--lwc-type-sm); font-weight: 400; }
-.proof-page-remove:hover { background: var(--lwc-danger-soft); }
-.proof-review-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--lwc-space-3); margin-top: var(--lwc-space-3); padding: var(--lwc-space-3); background: var(--lwc-surface-muted); border-radius: var(--lwc-radius-md); }
+/* The complete page stays available in review; its duplicate label is visually hidden. */
+.proof-page-preview > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.proof-page-remove {
+    position: absolute; top: 2px; right: 2px; display: grid; place-items: center;
+    width: 44px; min-width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0;
+    border: 0; border-radius: 0; background: transparent;
+    color: var(--lwc-danger); font-size: 0;
+}
+/* Only the 32px mark is round. All 44px of the target must catch taps, including
+   its transparent corners, so they cannot fall through to the review control. */
+.proof-page-remove::before {
+    content: "\f00d"; display: grid; place-items: center; width: 32px; height: 32px; box-sizing: border-box;
+    border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-pill, 999px); background: var(--lwc-surface); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
+    font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .875rem; line-height: 1;
+    transition: background-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
+}
+.proof-page-remove:hover { background: transparent; color: var(--lwc-on-accent, #ffffff); }
+.proof-page-remove:hover::before { border-color: var(--lwc-danger); background: var(--lwc-danger); }
+
+/* Files still being prepared hold their place as blank sheets. */
+.proof-page-pending { border-style: dashed; background: transparent; }
+.proof-page-pending-sheet {
+    display: grid;
+    place-items: center;
+    height: 168px;
+    background: var(--lwc-surface-muted);
+    color: var(--lwc-subtle);
+    font-size: 1.75rem;
+}
+.proof-page-pending-line {
+    display: block;
+    height: 8px;
+    margin: var(--lwc-space-3) var(--lwc-space-3) 0;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface-muted);
+}
+.proof-page-pending-line + .proof-page-pending-line { width: 60%; margin-top: var(--lwc-space-2); margin-bottom: var(--lwc-space-3); }
+@media (prefers-reduced-motion: no-preference) {
+    .proof-page-pending-sheet,
+    .proof-page-pending-line { animation: proof-page-pending 1.4s var(--lwc-ease) infinite alternate; }
+}
+@keyframes proof-page-pending { from { opacity: 1; } to { opacity: .55; } }
+
+/* Preparation: the drawn bar continues from where it stopped and creeps toward
+   the next file, so progress always feels alive. The native meter stays for
+   assistive technology. */
+.proof-preparation:has(.proof-preparation-bar) progress {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+.proof-preparation-bar {
+    position: relative;
+    display: block;
+    height: 6px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface);
+    overflow: hidden;
+}
+.proof-preparation-bar > span {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--lwc-accent);
+    transform-origin: left center;
+    transform: scaleX(var(--proof-to, 0));
+}
+@media (prefers-reduced-motion: no-preference) {
+    .proof-preparation-bar > span {
+        animation:
+            proof-bar-catch-up var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease) both,
+            proof-bar-creep 6s var(--lwc-motion-move, 260ms) cubic-bezier(0, 0, 0.2, 1) forwards;
+    }
+    .proof-preparation-bar::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lwc-surface) 55%, transparent), transparent);
+        background-size: 40% 100%;
+        background-repeat: no-repeat;
+        animation: proof-bar-shimmer 1.3s linear infinite;
+    }
+    .proof-page-pending {
+        position: relative;
+        overflow: hidden;
+    }
+    .proof-page-pending::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--lwc-accent-soft) 70%, transparent) 50%, transparent 70%) no-repeat;
+        background-size: 250% 100%;
+        animation: proof-bar-sweep 1.4s var(--lwc-ease) infinite;
+        pointer-events: none;
+    }
+
+    /* A new page lands in the grid, then is "scanned" onto its sheet. */
+    .proof-page-card.is-arriving .proof-page-preview img {
+        animation: proof-sheet-scan 620ms calc(140ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-standard, ease) backwards,
+            proof-card-arrive 380ms calc(0ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-pop, ease) backwards;
+    }
+    .proof-page-card.is-arriving .proof-page-preview::after {
+        content: "";
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        top: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--lwc-accent);
+        box-shadow: 0 0 10px 2px color-mix(in srgb, var(--lwc-accent) 45%, transparent);
+        opacity: 0;
+        pointer-events: none;
+        animation: proof-scan-line 620ms calc(140ms - var(--proof-elapsed, 0ms)) var(--lwc-ease-standard, ease) both;
+    }
+}
+@keyframes proof-bar-catch-up { from { transform: scaleX(var(--proof-from, 0)); } }
+@keyframes proof-bar-creep { from { transform: scaleX(var(--proof-to, 0)); } to { transform: scaleX(var(--proof-creep, 0)); } }
+@keyframes proof-bar-shimmer { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+@keyframes proof-bar-sweep { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+@keyframes proof-card-arrive { from { opacity: 0; transform: translateY(10px) scale(0.94); } }
+.proof-page-exit {
+    position: fixed;
+    z-index: 100;
+    object-fit: contain;
+    pointer-events: none;
+}
+@keyframes proof-sheet-scan { from { clip-path: inset(0 0 100% 0); filter: brightness(1.25); } to { clip-path: inset(0); filter: none; } }
+@keyframes proof-scan-line {
+    0% { top: 4%; opacity: 0; }
+    12% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { top: 96%; opacity: 0; }
+}
+
+/* Notices and undo close the card as its footer. */
+.proof-review-feedback {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lwc-space-3);
+    margin: 0;
+    padding: var(--lwc-space-3) var(--lwc-space-4);
+    border-top: 1px solid var(--lwc-border);
+    border-radius: 0;
+    background: var(--lwc-surface-muted);
+}
+.proof-review-feedback.has-notice { box-shadow: inset 4px 0 0 var(--lwc-accent); }
 html body #proofImageContainer .proof-upload-notice { flex: 1 1 150px; margin: 0; padding: 0; border: 0; background: transparent; color: var(--lwc-ink); font-size: var(--lwc-type-sm); font-weight: 400; }
-.proof-undo { color: var(--lwc-accent); font-size: var(--lwc-type-sm); }
-.proof-preparation { display: grid; gap: var(--lwc-space-2); margin-bottom: var(--lwc-space-3); padding: var(--lwc-space-3); border-radius: var(--lwc-radius-md); background: var(--lwc-surface-muted); overflow-wrap: anywhere; }
-.proof-preparation progress { width: 100%; height: 6px; accent-color: var(--lwc-accent); }
+html body #proofImageContainer .proof-upload-notice:not(:empty)::before {
+    content: "\f05a" / "";
+    margin-right: var(--lwc-space-2);
+    color: var(--lwc-accent);
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+}
+.proof-undo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lwc-space-2);
+    max-width: 100%;
+    margin-left: auto;
+    padding-inline: min(var(--lwc-space-4), 16px);
+    border-color: var(--lwc-border-strong);
+    color: var(--lwc-accent-hover);
+    font-size: var(--lwc-type-sm);
+    overflow-wrap: normal;
+    word-break: normal;
+}
+.proof-undo i { flex: 0 0 auto; font-size: 0.8em; }
+
+/* The proof tracker is the same card, its band filling as items are confirmed. */
+html body #biomarker-checklist.proof-tracker {
+    padding: 0;
+    border: 1px solid var(--lwc-border);
+    border-inline-start-width: 1px;
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-sm);
+    box-sizing: border-box;
+    overflow: hidden;
+    color: var(--lwc-ink);
+    text-align: left;
+}
+html body #biomarker-checklist.proof-tracker:empty { display: none; }
+.proof-tracker-meter {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 3px;
+    background: var(--lwc-border);
+}
+.proof-tracker-meter > span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--lwc-accent);
+    transition: width var(--lwc-duration-normal) var(--lwc-ease), background-color var(--lwc-duration-normal) var(--lwc-ease);
+}
+html body #biomarker-checklist.is-complete .proof-tracker-head { background: var(--lwc-success-soft); color: var(--lwc-success); }
+html body #biomarker-checklist.is-complete .proof-tracker-meter > span { background: var(--lwc-success); }
+html body #biomarker-checklist.proof-tracker > p {
+    margin: 0 !important;
+    padding: var(--lwc-space-3) var(--lwc-space-4) var(--lwc-space-2);
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.45;
+}
+.proof-tracker-group { padding: var(--lwc-space-1) var(--lwc-space-2); }
+.proof-tracker-group:last-child { padding-bottom: var(--lwc-space-2); }
+.proof-tracker-group + .proof-tracker-group { border-top: 1px solid var(--lwc-border); }
+html body #biomarker-checklist .proof-tracker-group > div + div { border-top: 0; }
+html body #biomarker-checklist .biomarker-item {
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-3);
+    min-height: 44px;
+    margin: 0;
+    padding: var(--lwc-space-1) var(--lwc-space-2);
+    border-radius: var(--lwc-radius-md);
+    color: var(--lwc-ink);
+    font-size: var(--lwc-type-body);
+    font-weight: 400;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: background-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
+}
+html body #biomarker-checklist .biomarker-item:hover { background: var(--lwc-accent-soft); }
+html body #biomarker-checklist .biomarker-item:has(.biomarker-checkbox:checked) { background: var(--lwc-success-soft); }
+html body #biomarker-checklist .biomarker-checkbox {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--lwc-success);
+    cursor: pointer;
+}
+html body #biomarker-checklist .biomarker-checkbox:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+
+/* Viewer: the card opened full screen, with every page as a thumbnail below. */
 body.proof-review-open { overflow: hidden; }
-.proof-review-dialog { width: min(100% - 32px, 1040px); height: min(100dvh - 32px, 1000px); max-width: none; max-height: none; padding: 0; border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-lg); background: var(--lwc-surface); color: var(--lwc-ink); box-shadow: var(--lwc-shadow-md); box-sizing: border-box; overflow: hidden; }
+.proof-review-dialog { width: min(100% - 32px, 1040px); height: min(100dvh - 32px, 1000px); max-width: none; max-height: none; padding: 0; border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-lg); background: var(--lwc-surface); color: var(--lwc-ink); box-shadow: var(--lwc-shadow-md); box-sizing: border-box; overflow: auto; }
 .proof-review-dialog[open] { display: flex; flex-direction: column; }
 .proof-review-dialog::backdrop { background: rgba(4, 12, 20, .72); }
-.proof-review-toolbar { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--lwc-space-3); padding: var(--lwc-space-3) var(--lwc-space-4); border-bottom: 1px solid var(--lwc-border); }
-.proof-review-toolbar h2 { min-width: 0; margin: 0; font-size: var(--lwc-type-body); font-weight: 700; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.proof-review-toolbar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lwc-space-3);
+    padding: var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-4);
+    border-bottom: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-accent);
+}
+.proof-review-title { display: flex; align-items: center; gap: var(--lwc-space-3); min-width: 0; }
+.proof-review-toolbar h2 { min-width: 0; margin: 0; color: var(--lwc-ink); text-align: left; font-size: var(--lwc-type-body); font-weight: 700; overflow-wrap: anywhere; }
+.proof-review-position {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
 .proof-review-close { flex: 0 0 auto; }
-.proof-review-stage { display: flex; flex: 1 1 auto; align-items: center; justify-content: center; min-height: 0; padding: var(--lwc-space-3); overflow: auto; background: var(--lwc-surface-muted); overscroll-behavior: contain; }
-.proof-review-stage img { display: block; width: 100%; height: 100%; object-fit: contain; border: 0; border-radius: 0; transition: none; }
+.proof-review-stage { display: flex; flex: 1 1 auto; align-items: center; justify-content: center; min-height: max(80px, min(160px, 35dvh)); padding: var(--lwc-space-4); overflow: auto; background: var(--lwc-canvas); overscroll-behavior: contain; box-sizing: border-box; }
+.proof-review-stage img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; border: 0; border-radius: 2px; background: #ffffff; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.18), 0 16px 40px rgba(15, 23, 42, 0.18); object-fit: contain; transition: none; }
 .proof-review-dialog.is-zoomed .proof-review-stage { display: block; }
 .proof-review-dialog.is-zoomed .proof-review-stage img { width: max(100%, 1200px); height: auto; max-width: none; max-height: none; }
-.proof-review-navigation { display: flex; flex: 0 0 auto; justify-content: center; align-items: center; gap: var(--lwc-space-3); padding: var(--lwc-space-3) var(--lwc-space-4); border-top: 1px solid var(--lwc-border); }
-.proof-review-position { min-width: 3rem; text-align: center; font-variant-numeric: tabular-nums; }
-.proof-review-zoom { margin-left: auto !important; }
+.proof-review-filmstrip {
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: safe center;
+    gap: var(--lwc-space-2);
+    padding: var(--lwc-space-2) var(--lwc-space-4);
+    border-top: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-muted);
+    overflow-x: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+.proof-review-filmstrip[hidden] { display: none; }
+.proof-review-dialog .proof-review-thumb {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 58px;
+    min-height: 44px;
+    padding: 3px;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-sm);
+    background: var(--lwc-surface);
+    opacity: .72;
+}
+.proof-review-dialog .proof-review-thumb:hover { opacity: 1; background: var(--lwc-surface); border-color: var(--lwc-accent); }
+.proof-review-dialog .proof-review-thumb[aria-current="true"] { opacity: 1; border-color: var(--lwc-accent); box-shadow: 0 0 0 2px var(--lwc-accent); }
+.proof-review-thumb-sheet { display: block; width: 100%; height: 100%; background: #ffffff center / contain no-repeat; }
+.proof-review-navigation { display: flex; flex: 0 0 auto; justify-content: space-between; align-items: center; gap: var(--lwc-space-3); padding: var(--lwc-space-3) var(--lwc-space-4); border-top: 1px solid var(--lwc-border); }
+/* Previous and Next are one segmented control. */
+.proof-review-steps { display: inline-flex; min-width: 0; }
+.proof-review-steps button { display: inline-flex; align-items: center; justify-content: center; gap: var(--lwc-space-1); flex: 0 0 auto; white-space: nowrap; }
+/* Keep the full accessible names when enlarged text needs arrow-only targets. */
+.proof-review-steps.is-compact .proof-review-step-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.proof-review-dialog.is-compact-title .proof-review-close-label,
+.proof-review-dialog.is-compact-height .proof-review-close-label { display: none; }
+/* Fit the controls to the measured space, including enlarged text and short
+   windows. The dialog can still scroll when the controls need more room. */
+.proof-review-dialog.is-compact-height[open] { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(64px, 1fr) auto; }
+.proof-review-dialog.is-compact-height .proof-review-toolbar,
+.proof-review-dialog.is-compact-height .proof-review-stage { grid-column: 1 / -1; }
+.proof-review-dialog.is-compact-height .proof-review-toolbar { gap: 8px; padding: 4px 8px; }
+.proof-review-dialog.is-compact-height .proof-review-title { gap: 8px; }
+.proof-review-dialog.is-compact-height .proof-review-close { min-width: 44px; padding: 8px; }
+.proof-review-dialog.is-compact-height .proof-review-stage { min-height: 64px; padding: 8px; }
+.proof-review-dialog.is-compact-height .proof-review-filmstrip { min-width: 0; align-items: center; gap: 8px; padding: 4px 0; }
+.proof-review-dialog.is-compact-height .proof-review-thumb { width: 44px; height: 44px; }
+.proof-review-dialog.is-compact-height .proof-review-navigation { flex-wrap: nowrap; gap: 4px; padding: 4px; }
+.proof-review-dialog.is-compact-height .proof-review-steps,
+.proof-review-dialog.is-compact-height .proof-review-zoom { flex: 0 0 auto; }
+.proof-review-dialog.is-compact-height .proof-review-navigation button { flex: 0 0 auto; min-width: 44px; padding: 8px; }
+.proof-review-dialog.is-compact-height .proof-review-step-label,
+.proof-review-dialog.is-compact-height .proof-review-zoom-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.proof-review-dialog.is-compact-height .proof-review-filmstrip[hidden] + .proof-review-navigation { grid-column: 1 / -1; justify-content: center; }
+.proof-review-dialog .proof-review-previous { border-start-end-radius: 0; border-end-end-radius: 0; }
+.proof-review-dialog .proof-review-next { margin-inline-start: -1px; border-start-start-radius: 0; border-end-start-radius: 0; }
+.proof-review-zoom { display: inline-flex; align-items: center; justify-content: center; gap: var(--lwc-space-2); margin-left: auto !important; }
+/* Empty alternative text keeps the glyphs out of the buttons' accessible names. */
+.proof-review-zoom::before { content: "\f00e" / ""; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .85em; }
+.proof-review-zoom[aria-pressed="true"]::before { content: "\f010" / ""; }
 .proof-review-dialog button:hover,
 .proof-undo:hover { background: var(--lwc-accent-soft); }
 .proof-page-preview:focus-visible,
@@ -672,17 +1424,31 @@ body.proof-review-open { overflow: hidden; }
 .proof-undo:focus-visible,
 .proof-review-stage:focus-visible,
 .proof-review-dialog button:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+/* A focused half of the segmented control draws its ring over the shared border. */
+.proof-review-steps button:focus-visible { position: relative; z-index: 1; }
 .proof-page-card button:disabled,
 .proof-undo:disabled,
 .proof-review-dialog button:disabled { cursor: default; color: var(--lwc-muted); background: var(--lwc-surface-muted); opacity: .65; }
+.proof-page-card .proof-page-remove:disabled { background: transparent; }
+.proof-page-card .proof-page-preview:focus-visible,
+.proof-page-card .proof-page-remove:focus-visible { outline-offset: -3px; }
 @media (max-width: 600px) {
     .proof-review-dialog { width: 100%; height: 100dvh; border: 0; border-radius: 0; }
-    .proof-review-navigation { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--lwc-space-2); padding-bottom: max(var(--lwc-space-3), env(safe-area-inset-bottom)); }
-    .proof-review-zoom { grid-column: 1 / -1; margin-left: 0 !important; }
+    .proof-review-stage { padding: var(--lwc-space-3); }
+    .proof-review-navigation { gap: var(--lwc-space-2); padding: var(--lwc-space-2) var(--lwc-space-3) max(var(--lwc-space-3), env(safe-area-inset-bottom)); }
+    .proof-review-filmstrip { padding-inline: var(--lwc-space-3); }
+    .proof-review-steps { flex: 1 1 auto; }
+    .proof-review-steps button { flex: 1 1 0; min-width: 0; }
+}
+@media (max-width: 400px) {
+    .proof-review-navigation { flex-wrap: wrap; }
+    .proof-review-steps,
+    .proof-review-zoom { flex: 1 1 100%; }
 }
 @media (max-width: 360px) {
-    .proof-page-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .proof-page-preview img { height: 128px; }
+    .proof-page-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr)); gap: var(--lwc-space-2); padding: var(--lwc-space-2); }
+    .proof-page-preview,
+    .proof-page-pending-sheet { height: 136px; }
 }
 
 body .bioage-rank-error,
@@ -695,33 +1461,6 @@ body .leaderboard-recovery {
     margin-top: var(--lwc-space-3);
     font-size: var(--lwc-type-body);
     text-align: left;
-}
-
-.badge-clickable[title],
-.badge-explained[title] {
-    position: relative;
-}
-
-.badge-clickable[title]:focus-visible::after,
-.badge-explained[title]:focus-visible::after {
-    content: attr(title);
-    width: max-content;
-    max-width: min(18rem, 70vw);
-    padding: var(--lwc-space-2) var(--lwc-space-3);
-    position: absolute;
-    bottom: calc(100% + var(--lwc-space-2));
-    left: 50%;
-    z-index: 1200;
-    border: 1px solid var(--lwc-border-strong);
-    border-radius: var(--lwc-radius-sm);
-    background: #17212b;
-    color: #ffffff;
-    font-size: var(--lwc-type-sm);
-    font-weight: 400;
-    line-height: 1.35;
-    text-align: left;
-    white-space: normal;
-    transform: translateX(-50%);
 }
 
 body .bioage-rank-retry,
@@ -851,7 +1590,7 @@ html body .leaderboard-view-switcher .view-badge {
 .leaderboard-view-switcher input:checked + .view-badge {
     background: var(--lwc-surface);
     color: var(--lwc-accent-hover);
-    box-shadow: inset 0 -3px 0 var(--lwc-accent);
+    box-shadow: inset 0 -3px 0 var(--lwc-accent), 0 0 0 1px var(--lwc-accent);
 }
 
 .ranking-explanation {
@@ -903,8 +1642,7 @@ html body .leaderboard table th {
 }
 
 .leaderboard .badge-personal,
-.leaderboard .badge-podcast,
-.leaderboard .badge-overflow-count {
+.leaderboard .badge-podcast {
     margin: 0;
     background: transparent !important;
     border: 0 !important;
@@ -915,10 +1653,8 @@ html body .leaderboard table th {
 
 .leaderboard .badge-personal:hover,
 .leaderboard .badge-podcast:hover,
-.leaderboard .badge-overflow-count:hover,
 .leaderboard .badge-personal:focus-visible,
-.leaderboard .badge-podcast:focus-visible,
-.leaderboard .badge-overflow-count:focus-visible {
+.leaderboard .badge-podcast:focus-visible {
     background: var(--lwc-surface-muted) !important;
     color: var(--lwc-accent) !important;
     box-shadow: none;
@@ -987,9 +1723,6 @@ html body .leaderboard .athlete-name {
 }
 
 .leaderboard .media-contact i { width: auto; height: auto; font-size: 1.2rem; line-height: 1; }
-
-.leaderboard-selection-heading { min-height: 32px; }
-.leaderboard-selection-heading:has(button:not([hidden])) { min-height: 44px; }
 
 .leaderboard table thead,
 .archive-table thead {
@@ -1064,24 +1797,7 @@ html body .leaderboard .athlete-name {
     border-radius: 50%;
 }
 
-/* Set safe defaults while preserving each component's explicit transitions. */
-:where(button, a, input, select, textarea, .view-badge, .leaderboard table tbody tr) {
-    transition-property: background-color, border-color, color, box-shadow, opacity, transform;
-}
-
-/* Motion explains state without making the interface restless. */
-@media (prefers-reduced-motion: no-preference) {
-    button,
-    a,
-    input,
-    select,
-    textarea,
-    .view-badge,
-    .leaderboard table tbody tr {
-        transition-duration: var(--lwc-duration-fast);
-        transition-timing-function: var(--lwc-ease);
-    }
-}
+/* Control transitions, press feedback and open/close motion live in motion.css. */
 
 @media (max-width: 768px) {
     .section-container {
@@ -1228,17 +1944,6 @@ html body .leaderboard .athlete-name {
         color: var(--lwc-ink);
     }
 
-    html body .application-review-copy.primary {
-        border-color: var(--lwc-border);
-        border-inline-start: 4px solid var(--lwc-success);
-        background: #173525;
-        color: var(--lwc-ink);
-    }
-
-    html body .application-review-highlight {
-        color: #8ee2a1;
-    }
-
     html body .events-board,
     html body .leaderboard,
     html body .archive-table-wrapper,
@@ -1298,14 +2003,14 @@ html body .leaderboard .athlete-name {
         color: var(--lwc-ink);
     }
 
-    html body .application-review-actions .back-button,
     html body .proof-upload-final-actions .back-button {
         border-color: var(--lwc-border) !important;
         background: var(--lwc-surface-muted) !important;
         color: var(--lwc-ink) !important;
     }
 
-    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]),
+    /* Play's green forward actions retain their route-specific colours. */
+    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]):not(:where(.play-flow-route .green)),
     html body .dialog-button:not(:disabled):not([aria-disabled="true"]),
     html body .rankings-btn:not(:disabled):not([aria-disabled="true"]),
     html body .enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]),
@@ -1314,7 +2019,7 @@ html body .leaderboard .athlete-name {
         color: var(--lwc-on-accent);
     }
 
-    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]):hover,
+    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]):not(:where(.play-flow-route .green)):hover,
     html body .dialog-button:not(:disabled):not([aria-disabled="true"]):hover,
     html body .rankings-btn:not(:disabled):not([aria-disabled="true"]):hover,
     html body .enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]):hover,
@@ -1365,7 +2070,8 @@ html body .leaderboard .athlete-name {
         animation-duration: 1ms !important;
         animation-iteration-count: 1 !important;
         transition-delay: 0ms !important;
-        transition-duration: 1ms !important;
+        /* A nonzero duration starts transitions for otherwise static properties. */
+        transition-duration: 0ms !important;
     }
 }
 
@@ -1402,6 +2108,10 @@ main.homepage-main .section-container h2,
 main.homepage-main .events-board thead th,
 main.homepage-main .lwc-countdown-header-row {
     padding-block: 6px;
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: var(--lwc-weight-strong);
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    line-height: var(--lwc-leading-eyebrow);
 }
 
 main.homepage-main .section-container h2 {
@@ -1415,10 +2125,10 @@ main.homepage-main .section-container h2 {
     border-bottom: 1px solid var(--lwc-border);
     background: var(--lwc-surface-accent);
     color: var(--lwc-accent-hover);
-    font-size: 0.85rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    line-height: 1.15;
+    font-size: var(--lwc-type-eyebrow);
+    font-weight: 700;
+    letter-spacing: var(--lwc-tracking-eyebrow);
+    line-height: var(--lwc-leading-eyebrow);
     text-align: left;
     text-transform: uppercase;
 }
@@ -1550,11 +2260,6 @@ main.homepage-main .lwc-merch-body {
         padding-inline: 14px;
     }
 
-    main.homepage-main .section-container h2,
-    main.homepage-main .lwc-countdown-header-row {
-        font-size: 0.82rem;
-    }
-
     main.homepage-main .contribute-content > p,
     main.homepage-main .contribute-panel,
     main.homepage-main .newsletter-panel,
@@ -1576,5 +2281,153 @@ main.homepage-main .lwc-merch-body {
 
     main.homepage-main .homepage-faq-item:first-child {
         border-top: 0;
+    }
+}
+
+/* Keep a title word together whenever it fits, and use only its discretionary
+   syllable breaks when it cannot. The font remains free to enlarge. */
+.page-title-word {
+    display: inline-block;
+    inline-size: max-content;
+    max-inline-size: 100%;
+    vertical-align: top;
+    hyphens: manual;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+html body :is(#about-longevity-world-cup, #history-of-longevity-as-a-sport, #ro-title, #lmx-title, .unsubscribe-panel h1) {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+@media (max-width: 600px) {
+    html body .lmx-title-panel {
+        padding-inline: min(clamp(1rem, 3vw, 1.7rem), 5vw);
+    }
+
+    html body .documentation-page-about .documentation-document {
+        --about-bleed: min(1.1rem, 5.5vw);
+    }
+
+    html body .documentation-page-history .documentation-document {
+        padding-inline: min(1.1rem, 5.5vw);
+    }
+}
+
+/* ===== Loading, scroll and page-to-page feel =====
+   One system for how pages arrive: the canvas is right from the first frame
+   (head bootstrap), busy regions hold the space their content will take,
+   placeholders hand over to content with a short fade, late media fades in
+   instead of popping, and same-site navigations cross-fade under a header
+   that stays put. Reduced motion keeps every state, only without movement. */
+
+/* Same-site page changes: the old page dissolves while the new one settles in.
+   Browsers without cross-document view transitions navigate as before. */
+@view-transition {
+    navigation: auto;
+}
+
+/* Named only during a transition, so the banner never forms a lasting
+   stacking context around the alert and loading dialogs it contains. */
+:root:active-view-transition header[role="banner"] {
+    view-transition-name: lwc-site-header;
+}
+
+::view-transition-group(lwc-site-header) {
+    animation-duration: var(--lwc-duration-normal);
+    animation-timing-function: var(--lwc-ease);
+}
+
+::view-transition-old(root) {
+    animation: lwc-page-leave var(--lwc-duration-fast) var(--lwc-ease) both;
+}
+
+::view-transition-new(root) {
+    animation: lwc-page-enter var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwc-page-leave {
+    to { opacity: 0; }
+}
+
+@keyframes lwc-page-enter {
+    from { opacity: 0; translate: 0 6px; }
+}
+
+/* Portraits and avatars that arrive after their box has painted fade in.
+   Their boxes are sized by CSS, so this never moves surrounding content. */
+html.lwc-media-fade img[data-lwc-media="pending"] {
+    opacity: 0;
+}
+
+html.lwc-media-fade img[data-lwc-media="ready"] {
+    animation: lwc-media-arrive var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwc-media-arrive {
+    from { opacity: 0; }
+}
+
+/* Highlights reserve a screen while loading, so the footer cannot ride up
+   under the placeholder and then jump away when the days arrive. */
+.event-board-page .events-board[aria-busy="true"] {
+    min-height: max(32rem, calc(100dvh - 10rem));
+}
+
+/* Content that replaces a placeholder fades up from it rather than popping. */
+.event-board-page .events-board[aria-busy="false"] #eventsTable tbody {
+    animation: lwc-content-arrive var(--lwc-duration-normal) var(--lwc-ease) both;
+}
+
+@keyframes lwc-content-arrive {
+    from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    @view-transition {
+        navigation: none;
+    }
+
+    html.lwc-media-fade img[data-lwc-media],
+    .event-board-page .events-board[aria-busy="false"] #eventsTable tbody {
+        animation: none;
+    }
+
+    html.lwc-media-fade img[data-lwc-media] {
+        opacity: 1;
+    }
+}
+
+/* ===== Home board → full leaderboard =====
+   Arriving from the home page, the board stays on screen and grows into its
+   place on the full leaderboard while the rest of the page cross-fades.
+   The home page names its copies only for this navigation (homepage.js). */
+@media (prefers-reduced-motion: no-preference) {
+    ::view-transition-group(lwc-board) {
+        animation-duration: var(--lwc-motion-move, 260ms);
+        animation-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    }
+
+    /* The board unfolds downward from its top edge instead of stretching. */
+    ::view-transition-group(lwc-board) {
+        overflow: clip;
+    }
+
+    ::view-transition-old(lwc-board),
+    ::view-transition-new(lwc-board) {
+        height: auto;
+        object-fit: none;
+        object-position: 50% 0;
+    }
+
+    ::view-transition-old(lwc-board) {
+        animation: lwc-page-leave var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in) both;
+    }
+
+    ::view-transition-new(lwc-board) {
+        animation: lwc-content-arrive var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out) both;
     }
 }

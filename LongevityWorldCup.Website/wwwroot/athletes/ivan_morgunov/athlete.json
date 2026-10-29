@@ -25,5 +25,15 @@
   "Why": "immortalityyyyyyyyyyyyyyyyyyyy",
   "PersonalLink": "https://unlimit.bio/",
   "ExclusiveLeague": "Prosperan",
-  "PodcastLink": "https://youtu.be/ppOqngQv8hM"
+  "PodcastLink": "https://youtu.be/ppOqngQv8hM",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/EvanMorgun",
+      "EvidenceUrls": [
+        "https://x.com/EvanMorgun",
+        "https://www.unlimited.bio/news/unlimited-bio-ceo-ivan-morgunov-at-raadfest-2026/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

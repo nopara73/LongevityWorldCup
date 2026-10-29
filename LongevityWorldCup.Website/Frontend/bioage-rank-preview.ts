@@ -413,7 +413,7 @@ declare global {
 
     function buildAvatar(row: RankRow): string {
         if (row.isYou) {
-            return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-placeholder" aria-hidden="true">' +
+            return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-placeholder" data-lwc-image-role="illustration" aria-hidden="true">' +
                 '<img src="' + escapeHtml(athletePlaceholderImage) + '" alt="" loading="lazy" decoding="async">' +
                 '</span>';
         }
@@ -421,7 +421,7 @@ declare global {
         var name = row.displayName || row.name || '';
         var image = row.profilePicThumb || '';
         if (image) {
-            return '<span class="bioage-rank-row-avatar" aria-hidden="true">' +
+            return '<span class="bioage-rank-row-avatar" data-lwc-image-role="athlete" data-athlete-name="' + escapeHtml(name) + '" aria-hidden="true">' +
                 '<img src="' + escapeHtml(image) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">' +
                 '</span>';
         }
@@ -455,6 +455,20 @@ declare global {
                 '</div>';
         }
         return html;
+    }
+
+    function installAvatarFallbacks(target: HTMLElement): void {
+        target.querySelectorAll<HTMLImageElement>('.bioage-rank-row-avatar img').forEach(function (image) {
+            const showInitials = function (): void {
+                const avatar = image.parentElement;
+                if (!avatar || !avatar.contains(image)) return;
+                const name = avatar.closest('.bioage-rank-row')?.querySelector('.bioage-rank-row-name')?.textContent || '';
+                avatar.classList.add('bioage-rank-row-avatar-fallback');
+                avatar.textContent = initialsFromName(name);
+            };
+            image.addEventListener('error', showInitials, { once: true });
+            if (image.complete && image.naturalWidth === 0) showInitials();
+        });
     }
 
     function buildHtml(
@@ -575,6 +589,7 @@ declare global {
                 var rankedFieldSize = rows.length;
                 var topPercent = Math.max(1, Math.ceil(rank / rankedFieldSize * 100));
                 target.innerHTML = buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex);
+                installAvatarFallbacks(target);
                 target.setAttribute('aria-busy', 'false');
             })
             .catch(function () {

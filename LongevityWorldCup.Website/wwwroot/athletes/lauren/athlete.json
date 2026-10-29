@@ -24,5 +24,14 @@
   "Division": "Women's",
   "Flag": "Cyberspace",
   "Why": "empowering others to self-advocate, to play, and to create",
-  "PersonalLink": "https://www.instagram.com/lauren_sambataro"
+  "PersonalLink": "https://www.instagram.com/lauren_sambataro",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@lauren_sambataro",
+      "EvidenceUrls": [
+        "https://www.instagram.com/lauren_sambataro/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

@@ -40,5 +40,14 @@
   "Division": "Open",
   "Flag": "USA",
   "Why": "Seeing the World a Better Place for Everyone  🌎",
-  "PersonalLink": "https://www.instagram.com/agelesswithelenalee"
+  "PersonalLink": "https://www.instagram.com/agelesswithelenalee",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@agelesswithelenalee",
+      "EvidenceUrls": [
+        "https://www.instagram.com/agelesswithelenalee/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

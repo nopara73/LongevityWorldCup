@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.AutoIdentifiers;
@@ -11,6 +12,7 @@ var websiteRoot = args.Length > 1
     : Path.Combine(repoRoot, "LongevityWorldCup.Website");
 
 ScopedStylesheetGenerator.Generate(websiteRoot);
+ReadingFeel.Generate(websiteRoot);
 
 var pages = new[]
 {
@@ -28,7 +30,13 @@ var pages = new[]
         Source: Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "Ruleset.md"),
         Output: Path.Combine(websiteRoot, "wwwroot", "misc-pages", "ruleset.html"),
         CanonicalPath: "/ruleset",
-        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md")
+        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md",
+        Reference: true),
+    new DocumentationPage(
+        Source: Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "PrivacyPolicy.md"),
+        Output: Path.Combine(websiteRoot, "wwwroot", "privacy-policy.html"),
+        CanonicalPath: "/privacy",
+        SourceUrl: "https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/PrivacyPolicy.md")
 };
 
 var pipeline = new MarkdownPipelineBuilder()
@@ -41,8 +49,31 @@ foreach (var page in pages)
 {
     var markdown = await File.ReadAllTextAsync(page.Source);
     var title = ExtractTitle(markdown);
-    var documentHtml = AddTableCellLabels(OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
+    var documentHtml = AddTableCellLabels(DocumentationLinks.OpenExternalLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
+    if (page.CanonicalPath is "/about" or "/history")
+    {
+        // A discretionary break preserves the full title at enlarged text sizes.
+        // Keep metadata, source Markdown, anchors and the accessible name verbatim.
+        documentHtml = Regex.Replace(documentHtml, "<h1(?<attributes>[^>]*)>(?<title>.*?)</h1>", match =>
+            $"<h1{match.Groups["attributes"].Value} aria-label=\"{WebUtility.HtmlEncode(title)}\">" +
+            Regex.Replace(match.Groups["title"].Value, "[Ll]ongevity", word =>
+                $"<span class=\"page-title-word\">{word.Value[..3]}&shy;gev&shy;ity</span>")
+                .Replace("History", "His&shy;tory", StringComparison.Ordinal) + "</h1>");
+    }
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
+    documentHtml = BuildTimeline(documentHtml);
+    if (page.Reference)
+    {
+        documentHtml = ReferencePage.BuildDocument(documentHtml);
+        contentsHtml = ReferencePage.BuildContents(contentsHtml, documentHtml);
+    }
+    else if (page.CanonicalPath is "/about" or "/privacy")
+    {
+        (documentHtml, contentsHtml) = BuildChapters(documentHtml, contentsHtml);
+    }
+
+    documentHtml = BuildCover(BuildNextSteps(documentHtml));
+
     var pageHtml = NormalizeGeneratedHtml(RenderPage(title, documentHtml, contentsHtml, page));
 
     Directory.CreateDirectory(Path.GetDirectoryName(page.Output)!);
@@ -76,8 +107,13 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
         {
             var id = WebUtility.HtmlEncode(match.Groups["id"].Value);
             var level = WebUtility.HtmlEncode(match.Groups["level"].Value);
-            var text = WebUtility.HtmlEncode(StripTags(WebUtility.HtmlDecode(match.Groups["text"].Value)));
-            return $"            <a class=\"documentation-nav-level-{level}\" href=\"#{id}\">{text}</a>";
+            var plainText = StripTags(WebUtility.HtmlDecode(match.Groups["text"].Value));
+            if (level == "3" && TrySplitTimelineHeading(plainText, out var date, out var separator, out var title))
+            {
+                return $"            <a class=\"documentation-nav-level-3 documentation-nav-timeline\" href=\"#{id}\">{TimelineLabelHtml("documentation-nav-entry", date, separator, title)}</a>";
+            }
+
+            return $"            <a class=\"documentation-nav-level-{level}\" href=\"#{id}\">{WebUtility.HtmlEncode(plainText)}</a>";
         })
         .ToList();
 
@@ -86,8 +122,8 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
     {
         return $"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
-                <span>On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
+            <button type="button" class="documentation-nav-toggle" onclick="this.setAttribute('aria-expanded', this.closest('nav').classList.toggle('is-open')); this.lastElementChild.textContent = this.getAttribute('aria-expanded') === 'true' ? '−' : '+';" aria-expanded="false" aria-controls="documentation-nav-links">
+                <span class="documentation-nav-current">On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
             </button>
             <div class="documentation-nav-links" id="documentation-nav-links">
                 <a class="documentation-source-link" href="{source}" target="_blank" rel="noopener">Source Markdown</a>
@@ -98,8 +134,8 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
 
     return $$"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
-                <span>On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
+            <button type="button" class="documentation-nav-toggle" onclick="this.setAttribute('aria-expanded', this.closest('nav').classList.toggle('is-open')); this.lastElementChild.textContent = this.getAttribute('aria-expanded') === 'true' ? '−' : '+';" aria-expanded="false" aria-controls="documentation-nav-links">
+                <span class="documentation-nav-current">On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
             </button>
             <div class="documentation-nav-links" id="documentation-nav-links">
                 <div class="documentation-nav-title">Contents</div>
@@ -108,6 +144,140 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
             </div>
         </nav>
 """;
+}
+
+// A level-3 heading that starts with a year ("2026 January 15 - Season ended") is a
+// timeline entry. Its date and title are set apart; the separator stays in the text so
+// the heading reads, copies and links exactly as written.
+static bool TrySplitTimelineHeading(string text, out string date, out string separator, out string title)
+{
+    var match = Regex.Match(text, "^(?<date>\\d{4}\\b[^-–]*?)(?<separator>\\s+[-–]\\s+)(?<title>\\S.*)$", RegexOptions.Singleline);
+    date = match.Groups["date"].Value.Trim();
+    separator = match.Groups["separator"].Value;
+    title = match.Groups["title"].Value.Trim();
+    return match.Success;
+}
+
+static string TimelineLabelHtml(string block, string date, string separator, string title)
+{
+    return $"<span class=\"{block}-date\">{WebUtility.HtmlEncode(date)}</span>"
+        + $"<span class=\"documentation-timeline-separator\">{WebUtility.HtmlEncode(separator)}</span>"
+        + $"<span class=\"{block}-title\">{WebUtility.HtmlEncode(title)}</span>";
+}
+
+// Each dated entry, with everything up to the next heading, becomes one section, and a
+// run of them becomes one timeline. Pages without dated headings are left untouched.
+static string BuildTimeline(string documentHtml)
+{
+    var headings = Regex.Matches(documentHtml, "<h(?<level>[23]) id=\"(?<id>[^\"]+)\">(?<text>.*?)</h[23]>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+    if (headings.Count == 0)
+    {
+        return documentHtml;
+    }
+
+    var output = new StringBuilder();
+    var position = 0;
+    var inTimeline = false;
+    for (var i = 0; i < headings.Count; i++)
+    {
+        var heading = headings[i];
+        var end = i + 1 < headings.Count ? headings[i + 1].Index : documentHtml.Length;
+        output.Append(documentHtml, position, heading.Index - position);
+
+        var text = StripTags(WebUtility.HtmlDecode(heading.Groups["text"].Value));
+        if (heading.Groups["level"].Value == "3" && !heading.Groups["text"].Value.Contains('<') && TrySplitTimelineHeading(text, out var date, out var separator, out var title))
+        {
+            if (!inTimeline)
+            {
+                output.Append("<div class=\"documentation-timeline\">\n");
+                inTimeline = true;
+            }
+
+            var announced = date.Contains("announced", StringComparison.OrdinalIgnoreCase) ? " is-announced" : string.Empty;
+            output.Append($"<section class=\"documentation-timeline-entry{announced}\">\n");
+            output.Append($"<h3 id=\"{heading.Groups["id"].Value}\" class=\"documentation-timeline-heading\">{TimelineLabelHtml("documentation-timeline", date, separator, title)}</h3>");
+            output.Append(documentHtml, heading.Index + heading.Length, end - heading.Index - heading.Length);
+            output.Append("</section>\n");
+        }
+        else
+        {
+            if (inTimeline)
+            {
+                output.Append("</div>\n");
+                inTimeline = false;
+            }
+
+            output.Append(documentHtml, heading.Index, end - heading.Index);
+        }
+
+        position = end;
+    }
+
+    if (inTimeline)
+    {
+        output.Append("</div>\n");
+    }
+
+    output.Append(documentHtml, position, documentHtml.Length - position);
+    return output.ToString();
+}
+
+// The title and the paragraphs that introduce it open every page as one cover band.
+static string BuildCover(string documentHtml)
+{
+    return Regex.Replace(
+        documentHtml,
+        "(?<title><h1\\b[^>]*>.*?</h1>)(?<lede>(?:\\s*<p(?:\\s[^>]*)?>(?:(?!<img\\b|</p>).)*</p>)*)",
+        match => $"<div class=\"documentation-cover\">\n{match.Groups["title"].Value}{match.Groups["lede"].Value}\n</div>",
+        RegexOptions.Singleline,
+        TimeSpan.FromSeconds(1));
+}
+
+// The closing section (next-step links, or the contact note) sits in its own band at
+// the foot of the document.
+static string BuildNextSteps(string documentHtml)
+{
+    if (documentHtml.Contains("<section class=\"ruleset-section ruleset-next\">", StringComparison.Ordinal))
+    {
+        return documentHtml.Replace(
+            "<section class=\"ruleset-section ruleset-next\">",
+            "<section class=\"ruleset-section ruleset-next documentation-next\">",
+            StringComparison.Ordinal);
+    }
+
+    var heading = ClosingSectionIds
+        .Select(id => $"<h2 id=\"{id}\">")
+        .FirstOrDefault(candidate => documentHtml.Contains(candidate, StringComparison.Ordinal));
+    var start = heading is null ? -1 : documentHtml.IndexOf(heading, StringComparison.Ordinal);
+    if (heading is null || documentHtml.IndexOf("<h2", start + heading.Length, StringComparison.Ordinal) >= 0)
+    {
+        return documentHtml;
+    }
+
+    var rest = documentHtml[start..];
+    var trailing = rest.Length - rest.TrimEnd().Length;
+    return documentHtml[..start] + "<section class=\"documentation-next\">\n" + rest.TrimEnd() + "\n</section>" + rest[^trailing..];
+}
+
+// Narrative sections are numbered chapters, in the document and in the contents alike.
+static (string Document, string Contents) BuildChapters(string documentHtml, string contentsHtml)
+{
+    var document = Regex.Replace(documentHtml, "<h2 id=\"(?<id>[^\"]+)\">(?<title>.*?)</h2>", match =>
+    {
+        var id = match.Groups["id"].Value;
+        if (ClosingSectionIds.Contains(id))
+        {
+            return match.Value;
+        }
+
+        contentsHtml = contentsHtml.Replace(
+            $"<a class=\"documentation-nav-level-2\" href=\"#{id}\">",
+            $"<a class=\"documentation-nav-level-2 documentation-nav-chapter\" href=\"#{id}\">",
+            StringComparison.Ordinal);
+        return $"<h2 id=\"{id}\" class=\"documentation-chapter\"><span class=\"documentation-chapter-title\">{match.Groups["title"].Value}</span></h2>";
+    }, RegexOptions.Singleline);
+
+    return (document, contentsHtml);
 }
 
 static string StripTags(string value)
@@ -161,18 +331,28 @@ static string AddTableCellLabels(string html)
                 },
                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-            return $"<table>{Environment.NewLine}<thead>{Environment.NewLine}<tr>{match.Groups["header"].Value}</tr>{Environment.NewLine}</thead>{Environment.NewLine}<tbody>{body}</tbody>{Environment.NewLine}</table>";
+            // Columns whose every value is a number (ranks, years) align to the right.
+            var rows = Regex.Matches(body, "<tr>(?<row>.*?)</tr>", RegexOptions.Singleline)
+                .Select(row => Regex.Matches(row.Groups["row"].Value, "<td[^>]*>(?<text>.*?)</td>", RegexOptions.Singleline)
+                    .Select(cell => StripTags(WebUtility.HtmlDecode(cell.Groups["text"].Value)))
+                    .ToArray())
+                .ToArray();
+            var numeric = Enumerable.Range(0, headers.Length)
+                .Select(column => rows.Length > 0 && rows.All(row => column < row.Length && Regex.IsMatch(row[column], "^[-+−]?\\d[\\d.,]*(\\s+\\p{L}+)?$")))
+                .ToArray();
+            string MarkNumeric(string html, string tag) => Regex.Replace(html, $"<{tag}(?<attrs>[^>]*)>(?<rest>.*?)</{tag}>", cell =>
+                {
+                    var column = Regex.Matches(html[..cell.Index], $"<{tag}[\\s>]").Count;
+                    return numeric.ElementAtOrDefault(column)
+                        ? $"<{tag} class=\"is-numeric\"{cell.Groups["attrs"].Value}>{cell.Groups["rest"].Value}</{tag}>"
+                        : cell.Value;
+                }, RegexOptions.Singleline);
+            var header = MarkNumeric(match.Groups["header"].Value, "th");
+            body = Regex.Replace(body, "<tr>(?<row>.*?)</tr>", row => $"<tr>{MarkNumeric(row.Groups["row"].Value, "td")}</tr>", RegexOptions.Singleline);
+
+            return $"<div class=\"documentation-table\">{Environment.NewLine}<table>{Environment.NewLine}<thead>{Environment.NewLine}<tr>{header}</tr>{Environment.NewLine}</thead>{Environment.NewLine}<tbody>{body}</tbody>{Environment.NewLine}</table>{Environment.NewLine}</div>";
         },
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
-}
-
-static string OpenAbsoluteLinksInNewTabs(string html)
-{
-    return Regex.Replace(
-        html,
-        "<a href=\"(?<href>https?://[^\"]+)\">",
-        match => $"<a href=\"{match.Groups["href"].Value}\" target=\"_blank\" rel=\"noopener noreferrer\">",
-        RegexOptions.IgnoreCase);
 }
 
 static string RewriteWebsiteAssetImageSources(string html)
@@ -194,6 +374,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     var encodedTitle = WebUtility.HtmlEncode(title);
     var canonicalPath = WebUtility.HtmlEncode(page.CanonicalPath);
     var sourceUrl = WebUtility.HtmlEncode(page.SourceUrl);
+    var pageClass = WebUtility.HtmlEncode("documentation-page-" + page.CanonicalPath.Trim('/'));
 
     return $$"""
 <!DOCTYPE html>
@@ -201,30 +382,38 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 <head>
     <title>{{encodedTitle}} | Longevity World Cup</title>
     <!--HEAD-->
+    <script>document.documentElement.classList.add("documentation-js");</script>
     <link rel="alternate" type="text/markdown" title="Source Markdown" href="{{sourceUrl}}" />
     <style>
+        /* About, History and the Ruleset share one long-form reading system: a
+           contents rail beside one document card that opens on a cover band, runs
+           through numbered chapters, and closes on a band of next-step tiles. */
         .documentation-page {
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: minmax(11.5rem, 14rem) minmax(0, 50rem);
-            gap: clamp(1.4rem, 3vw, 2.6rem);
+            grid-template-columns: minmax(min(12rem, 26vw), min(15rem, 30vw)) minmax(0, 47rem);
+            gap: clamp(1.5rem, 3vw, 2.75rem);
             align-items: start;
-            max-width: 74rem;
-            margin: 2.5rem auto 3.5rem;
+            justify-content: center;
+            max-width: 72rem;
+            margin: 2.5rem auto 4rem;
             padding: 0 clamp(1rem, 3vw, 1.5rem);
         }
 
+        /* Contents: one rail. Every section link sits on it, and it fills with
+           the accent up to the section being read. */
         .documentation-nav {
             --documentation-nav-offset: 4.25rem;
             position: sticky;
             top: var(--documentation-nav-offset);
             display: grid;
-            gap: 0.2rem;
-            padding: 0.85rem 0.7rem 0.95rem;
-            border-left: 3px solid var(--lwc-accent, var(--primary-color));
-            border-radius: 0 8px 8px 0;
-            background: var(--lwc-surface-muted, #eef2f5);
-            box-shadow: none;
+            gap: 0;
+            padding: 1rem 0.75rem 0.85rem;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: var(--lwc-radius-lg, 8px);
+            background: var(--lwc-surface, #ffffff);
+            box-shadow: var(--lwc-shadow-sm, none);
+            counter-reset: documentation-nav-chapter ruleset-nav-rule;
         }
 
         @media (min-width: 901px) {
@@ -240,13 +429,14 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         }
 
         .documentation-nav-title {
-            margin: 0 0 0.35rem;
-            padding: 0 0.45rem;
+            margin: 0 0 0.6rem;
+            padding: 0 0.6rem;
             color: var(--lwc-muted, #526373);
-            font-size: var(--lwc-type-sm);
+            font-size: var(--lwc-type-xs, 0.75rem);
             font-weight: 700;
-            text-transform: none;
+            letter-spacing: 0.08em;
             line-height: 1.5;
+            text-transform: uppercase;
         }
 
         .documentation-nav-toggle {
@@ -255,30 +445,68 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-nav-links {
             display: grid;
-            gap: 0.2rem;
+            gap: 0;
             min-width: 0;
         }
 
         .documentation-nav a {
+            box-sizing: border-box;
             display: flex;
-            padding: 0.38rem 0.45rem;
+            align-items: center;
+            gap: 0.6rem;
+            min-height: 2.5rem;
+            padding: 0.4rem 0.6rem;
             border-radius: var(--lwc-radius-sm);
             color: var(--lwc-ink, #334155);
             font-size: var(--lwc-type-sm);
-            line-height: 1.5;
+            line-height: 1.4;
             text-decoration: none;
-            min-height: 44px;
-            box-sizing: border-box;
-            align-items: center;
+            transition: border-color var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease),
+                background-color var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
+        }
+
+        .documentation-nav a[href^="#"] {
+            border-left: 3px solid var(--lwc-border, #d7e0e6);
+            border-radius: 0 var(--lwc-radius-sm) var(--lwc-radius-sm) 0;
+        }
+
+        /* Top-level entries keep one number column, so their titles line up
+           whether or not the section is numbered. */
+        .documentation-nav a.documentation-nav-level-2::before {
+            content: "";
+            flex: 0 0 auto;
+            min-width: 1.45rem;
+            color: var(--lwc-muted, #526373);
+            font-family: Roboto, sans-serif;
+            font-size: var(--lwc-type-xs, 0.75rem);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+        }
+
+        .documentation-nav a.documentation-nav-chapter {
+            counter-increment: documentation-nav-chapter;
+        }
+
+        .documentation-nav a.documentation-nav-chapter::before {
+            content: counter(documentation-nav-chapter, decimal-leading-zero);
         }
 
         .documentation-nav .documentation-nav-level-3 {
-            margin-left: 0.55rem;
-            padding-top: 0.28rem;
-            padding-bottom: 0.28rem;
+            margin-left: 1.1rem;
+            padding-left: 0.85rem;
+            border-left-width: 2px;
             color: var(--lwc-muted, #506176);
-            font-size: var(--lwc-type-sm);
-            line-height: 1.5;
+        }
+
+        .documentation-nav a[href^="#"]:has(~ a.is-active),
+        .documentation-nav a[href^="#"].is-active {
+            border-left-color: var(--lwc-accent, var(--primary-color));
+        }
+
+        .documentation-nav a.documentation-nav-level-2:has(~ a.is-active)::before,
+        .documentation-nav a.documentation-nav-level-2.is-active::before {
+            color: var(--lwc-accent-hover, #047888);
         }
 
         .documentation-nav a:hover,
@@ -286,32 +514,66 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-nav a.is-active {
             background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
             color: var(--lwc-accent-hover, #047888);
-            outline: none;
         }
 
         .documentation-nav a.is-active {
             font-weight: 700;
-            box-shadow: inset 3px 0 0 var(--lwc-accent);
+        }
+
+        .documentation-nav a:focus-visible {
+            outline: 2px solid var(--lwc-accent);
+            outline-offset: -2px;
         }
 
         .documentation-nav .documentation-source-link {
-            margin-top: 0.65rem;
+            margin-top: 0.75rem;
             padding-top: 0.75rem;
             border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: 0;
             color: var(--lwc-accent, var(--primary-color));
             font-weight: 700;
         }
 
+        .documentation-nav .documentation-source-link:hover,
+        .documentation-nav .documentation-source-link:focus-visible {
+            background: transparent;
+            color: var(--lwc-accent-hover, #047888);
+        }
+
+        .documentation-nav a.documentation-nav-timeline {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0.05rem;
+        }
+
+        .documentation-nav-entry-date {
+            color: var(--lwc-accent, var(--primary-color));
+            font-size: var(--lwc-type-xs, 0.75rem);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+        }
+
+        .documentation-nav a.is-active .documentation-nav-entry-date {
+            color: inherit;
+        }
+
+        /* The document: one card with a shared measure and rhythm. */
         .documentation-document {
+            --doc-pad: clamp(1.35rem, 3.4vw, 2.6rem);
             box-sizing: border-box;
-            padding: clamp(1.35rem, 3vw, 2.2rem);
+            padding: var(--doc-pad);
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.08));
-            border-radius: 8px;
+            border-radius: var(--lwc-radius-lg, 8px);
             background: var(--lwc-surface, #ffffff);
+            box-shadow: var(--lwc-shadow-sm, none);
             color: var(--lwc-ink, #233142);
-            font-size: 1.04rem;
-            line-height: 1.7;
+            font-size: 1.0625rem;
+            line-height: 1.72;
             overflow-wrap: break-word;
+            counter-reset: documentation-chapter ruleset-rule;
         }
 
         .documentation-document h1,
@@ -319,120 +581,595 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-document h3,
         .documentation-document h4 {
             color: var(--lwc-ink, #1f2b3a);
-            line-height: 1.16;
-            overflow-wrap: anywhere;
+            line-height: 1.18;
+            letter-spacing: 0;
+            text-align: left;
+            text-shadow: none;
+            overflow-wrap: break-word;
+        }
+
+        /* Cover band: the title with its accent stroke, then the lede. */
+        .documentation-cover {
+            margin: calc(-1 * var(--doc-pad)) calc(-1 * var(--doc-pad)) 0;
+            padding: calc(var(--doc-pad) * 1.15) var(--doc-pad) var(--doc-pad);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: calc(var(--lwc-radius-lg, 8px) - 1px) calc(var(--lwc-radius-lg, 8px) - 1px) 0 0;
+            background: var(--lwc-surface-muted, #eef2f5);
+            text-align: left;
         }
 
         .documentation-document h1 {
-            margin: 0 0 1.25rem;
-            padding: 0 0 1rem;
-            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
-            text-align: left;
-            font-size: clamp(2.1rem, 4vw, 2.85rem);
-            letter-spacing: 0;
-            text-shadow: none;
+            margin: 0 0 1.35rem;
+            padding: 0;
+            border: 0;
+            font-size: clamp(2.3rem, 5vw, 3.35rem);
+            line-height: 1.06;
+            overflow-wrap: anywhere;
         }
 
-        .documentation-document h2 {
-            margin: 2.45rem 0 0.85rem;
-            padding-top: 1.05rem;
-            border-top: 1px solid var(--lwc-border, rgba(0, 0, 0, 0.08));
+        .documentation-document h1::after {
+            content: "";
+            display: block;
+            width: 3.5rem;
+            height: 4px;
+            margin-top: 1.1rem;
+            border-radius: 2px;
+            background: var(--lwc-accent, var(--primary-color));
+        }
+
+        .documentation-cover p {
+            max-width: 38em;
             text-align: left;
-            font-size: clamp(1.55rem, 3vw, 2rem);
-            text-shadow: none;
+            margin: 0 0 1rem;
+            color: var(--lwc-ink, #233142);
+            font-size: clamp(1.12rem, 1.6vw, 1.24rem);
+            line-height: 1.6;
+        }
+
+        .documentation-cover > :last-child {
+            margin-bottom: 0;
+        }
+
+        /* Sections: a hairline, then the heading. */
+        .documentation-document h2 {
+            margin: 3.25rem 0 1rem;
+            padding-top: 1.6rem;
+            border-top: 1px solid var(--lwc-border, rgba(0, 0, 0, 0.08));
+            font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+        }
+
+        .documentation-document .documentation-cover + h2,
+        .documentation-cover + .ruleset-section > h2:first-child {
+            margin-top: 2.4rem;
+            padding-top: 0;
+            border-top: 0;
+        }
+
+        .documentation-cover + .ruleset-section > h2:first-child {
+            margin-top: 0;
         }
 
         .documentation-document h3 {
-            margin: 1.8rem 0 0.6rem;
-            font-size: clamp(1.22rem, 2.2vw, 1.45rem);
-            text-shadow: none;
+            margin: 2rem 0 0.6rem;
+            font-size: clamp(1.2rem, 2vw, 1.38rem);
         }
 
         .documentation-document h4 {
-            margin: 1.35rem 0 0.35rem;
+            margin: 1.4rem 0 0.4rem;
             font-size: 1.08rem;
+        }
+
+        /* Numbered chapters and rules share one accent number tile. */
+        .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2) {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem 0.85rem;
+        }
+
+        .documentation-document h2.documentation-chapter {
+            counter-increment: documentation-chapter;
+        }
+
+        /* Collect flex lines using the longest word, not the entire title. */
+        .documentation-chapter-title {
+            flex: 1 1 min-content;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2)::before {
+            content: counter(documentation-chapter, decimal-leading-zero);
+            display: inline-grid;
+            flex: 0 0 auto;
+            place-items: center;
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: var(--lwc-radius-md);
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent);
+            font-family: Roboto, sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1;
         }
 
         .documentation-document p,
         .documentation-document ul,
         .documentation-document ol {
-            margin: 0 0 1rem;
+            margin: 0 0 1.1rem;
         }
 
-        .documentation-document ul,
-        .documentation-document ol {
-            padding-left: 1.5rem;
-        }
-
-        .documentation-document li {
-            margin: 0.44rem 0;
-            padding-left: 0.1rem;
+        .documentation-document strong {
+            color: var(--lwc-ink, #1f2b3a);
         }
 
         .documentation-document a {
             color: var(--lwc-accent, var(--primary-color));
-            font-weight: 700;
+            font-weight: 600;
+            text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
             text-decoration-thickness: 0.08em;
-            text-underline-offset: 0.14em;
+            text-underline-offset: 0.16em;
         }
 
         .documentation-document a:hover,
         .documentation-document a:focus-visible {
             color: var(--lwc-accent-hover, #008fa1);
+            text-decoration-color: currentColor;
+        }
+
+        /* Lists read as clauses: square accent markers, sub-clauses on a rail. */
+        .documentation-document ul:not(.ruleset-term-list, #where-to-go-next + ul) {
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .documentation-document ul:not(.ruleset-term-list, #where-to-go-next + ul) > li {
+            position: relative;
+            margin: 0.7rem 0;
+            padding-left: 1.55rem;
+        }
+
+        .documentation-document ul:not(.ruleset-term-list, #where-to-go-next + ul) > li::before {
+            content: "";
+            position: absolute;
+            top: 0.66em;
+            left: 0.2rem;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 2px;
+            background: var(--lwc-accent);
+        }
+
+        .documentation-document li ul:not(.ruleset-term-list) {
+            margin: 0.55rem 0 0.2rem;
+            padding: 0.1rem 0 0.1rem 0.95rem;
+            border-left: 2px solid var(--lwc-border);
+        }
+
+        .documentation-document li li:not(.ruleset-term-list > li) {
+            margin: 0.5rem 0;
+            padding-left: 1.2rem;
+        }
+
+        .documentation-document li li:not(.ruleset-term-list > li)::before {
+            top: 0.7em;
+            left: 0.1rem;
+            width: 0.42rem;
+            height: 0.42rem;
+            border: 2px solid var(--lwc-accent);
+            background: transparent;
+            box-sizing: border-box;
+        }
+
+        .documentation-document ol {
+            padding-left: 1.6rem;
+        }
+
+        .documentation-document ol > li {
+            margin: 0.6rem 0;
+            padding-left: 0.2rem;
+        }
+
+        .documentation-document ol > li::marker {
+            color: var(--lwc-accent);
+            font-weight: 700;
+        }
+
+        .documentation-document code {
+            padding: 0.08em 0.4em;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: var(--lwc-radius-sm);
+            background: var(--lwc-surface-muted, #eef2f5);
+            font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+            font-size: 0.88em;
+            overflow-wrap: anywhere;
+        }
+
+        .documentation-document pre {
+            margin: 1.25rem 0 1.5rem;
+            padding: 1rem 1.15rem;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-lg);
+            background: var(--lwc-surface-muted);
+            overflow-x: auto;
+        }
+
+        .documentation-document pre code {
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+
+        .documentation-document blockquote {
+            margin: 1.5rem 0;
+            padding: 0.9rem 1.15rem;
+            border-left: 3px solid var(--lwc-accent);
+            border-radius: 0 var(--lwc-radius-md) var(--lwc-radius-md) 0;
+            background: var(--lwc-surface-muted);
+            color: var(--lwc-ink);
+        }
+
+        .documentation-document blockquote > :last-child {
+            margin-bottom: 0;
+        }
+
+        /* Pictures sit on a plate, so screenshots and diagrams read as one set
+           in both themes. */
+        .documentation-document p:has(> img) {
+            display: grid;
+            justify-items: center;
+            gap: 0.75rem;
+            margin: 1.75rem 0 2rem;
+            padding: clamp(0.5rem, 1.4vw, 0.85rem);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+            border-radius: var(--lwc-radius-lg, 8px);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.82));
         }
 
         .documentation-document img {
             box-sizing: border-box;
             display: block;
             max-width: 100%;
-            max-width: min(100%, 48rem);
             max-height: 560px;
             max-height: min(560px, calc(100vh - 7rem));
             max-height: min(560px, calc(100svh - 7rem));
             width: auto;
             height: auto;
             object-fit: contain;
-            margin: 1.45rem auto 1.8rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.82));
+            margin: 0;
+            border: 0;
+            border-radius: var(--lwc-radius-md, 6px);
             box-shadow: none;
         }
 
-        .documentation-document table {
-            display: block;
-            width: 100%;
-            margin: 1.25rem 0 1.5rem;
-            overflow-x: auto;
-            border-collapse: collapse;
+        /* Tables: one framed sheet with a header band; number columns align right. */
+        .documentation-table {
+            margin: 1.5rem 0 1.85rem;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: var(--lwc-radius-lg, 8px);
             background: var(--lwc-surface, #ffffff);
-            border-radius: 8px;
+            overflow-x: auto;
+            container: documentation-table / inline-size;
+        }
+
+        .documentation-document table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
             font-variant-numeric: tabular-nums;
+            line-height: 1.45;
         }
 
         .documentation-document th,
         .documentation-document td {
-            padding: 0.62rem 0.75rem;
+            padding: 0.62rem 1rem;
             border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
             text-align: left;
-            vertical-align: top;
-            white-space: nowrap;
+            vertical-align: baseline;
+            overflow-wrap: normal;
+            word-break: normal;
         }
 
         .documentation-document th {
-            color: var(--lwc-ink, #111827);
             background: var(--lwc-surface-muted);
+            color: var(--lwc-muted, #526373);
+            font-size: var(--lwc-type-xs, 0.75rem);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .documentation-document tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .documentation-document tbody tr:hover {
+            background: color-mix(in srgb, var(--lwc-accent-soft) 45%, transparent);
+        }
+
+        .documentation-document :is(th, td).is-numeric {
+            width: 1%;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .documentation-document td.is-numeric:first-child {
+            color: var(--lwc-muted, #526373);
             font-weight: 700;
         }
 
-        .documentation-source {
-            margin: 2.25rem 0 0;
-            padding-top: 1rem;
-            border-top: 1px solid var(--lwc-border, rgba(0, 0, 0, 0.08));
+        .documentation-document td:not(.is-numeric) {
+            overflow-wrap: anywhere;
+        }
+
+        /* Closing band: the next-step tiles at the foot of every document. */
+        .documentation-document .documentation-next {
+            margin: 3.5rem calc(-1 * var(--doc-pad)) calc(-1 * var(--doc-pad));
+            padding: 2rem var(--doc-pad) var(--doc-pad);
+            border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: 0 0 calc(var(--lwc-radius-lg, 8px) - 1px) calc(var(--lwc-radius-lg, 8px) - 1px);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        .documentation-document .documentation-next > h2 {
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        .documentation-document .documentation-next > h2 + p {
+            margin-top: 0.85rem;
+        }
+
+        .documentation-document .documentation-next > :last-child {
+            margin-bottom: 0;
+        }
+
+        /* A short last row stretches to the full width instead of leaving an empty slot. */
+        .documentation-page #where-to-go-next + ul {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.25rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .documentation-page #where-to-go-next + ul > li {
+            position: relative;
+            flex: 1 1 13.5rem;
+            min-width: 0;
+            margin: 0;
+            padding: 1rem 3rem 1.05rem 1.1rem;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            border-radius: var(--lwc-radius-lg, 8px);
+            background: var(--lwc-surface, #ffffff);
             color: var(--lwc-muted, #506176);
-            font-size: var(--lwc-type-sm);
-            text-align: left;
+            font-size: 0.97rem;
             line-height: 1.5;
+            transition: border-color var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease),
+                box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
+        }
+
+        .documentation-page #where-to-go-next + ul > li::before {
+            content: "\2192" / "";
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: var(--lwc-accent, var(--primary-color));
+            pointer-events: none;
+        }
+
+        .documentation-page #where-to-go-next + ul > li > a {
+            border-radius: inherit;
+            font-size: 1.06rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .documentation-page #where-to-go-next + ul > li > a::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+        }
+
+        .documentation-page #where-to-go-next + ul > li:hover,
+        .documentation-page #where-to-go-next + ul > li:focus-within {
+            border-color: var(--lwc-accent, var(--primary-color));
+            box-shadow: var(--lwc-shadow-sm, none);
+        }
+
+        .documentation-page #where-to-go-next + ul > li > a:focus-visible {
+            outline: none;
+        }
+
+        .documentation-page #where-to-go-next + ul > li > a:focus-visible::after {
+            outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+            outline-offset: 2px;
+        }
+
+        /* About opens on the champion's silhouette, edge to edge under the cover. */
+        .documentation-page-about .documentation-document p:has(> img) {
+            display: block;
+            margin: 0 calc(-1 * var(--doc-pad));
+            padding: 0;
+            border: 0;
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+            border-radius: 0;
+            background: none;
+        }
+
+        .documentation-page-about .documentation-document p > img {
+            width: 100%;
+            max-width: none;
+            max-height: none;
+            aspect-ratio: 16 / 9;
+            border-radius: 0;
+            object-fit: cover;
+            object-position: 50% 8%;
+        }
+
+        .documentation-page-about .documentation-document p:has(> img) + p {
+            margin: 0.85rem 0 0;
+            padding-left: 0.85rem;
+            border-left: 3px solid var(--lwc-accent, var(--primary-color));
+            color: var(--lwc-muted, #506176);
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        /* History: dated entries on a rail, one marker per entry, the date in a
+           pill above a short title. Announced entries are hollow. */
+        .documentation-timeline {
+            --timeline-gutter: 1.9rem;
+            --timeline-date-height: 1.45rem;
+            position: relative;
+            margin: 1.75rem 0 0;
+            padding-left: var(--timeline-gutter);
+        }
+
+        .documentation-timeline::before {
+            content: "";
+            position: absolute;
+            top: 0.55rem;
+            bottom: 0.35rem;
+            left: 0.4rem;
+            width: 2px;
+            border-radius: 1px;
+            background: var(--lwc-border, #d7e0e6);
+        }
+
+        .documentation-timeline-entry {
+            position: relative;
+        }
+
+        .documentation-timeline-entry + .documentation-timeline-entry {
+            margin-top: 2.6rem;
+        }
+
+        .documentation-timeline-entry::before {
+            content: "";
+            position: absolute;
+            top: calc(var(--timeline-date-height) / 2 - 0.4rem);
+            left: calc(-1 * var(--timeline-gutter) + 1px);
+            box-sizing: border-box;
+            width: 0.8rem;
+            height: 0.8rem;
+            border: 2px solid var(--lwc-accent, var(--primary-color));
+            border-radius: 50%;
+            background: var(--lwc-accent, var(--primary-color));
+            box-shadow: 0 0 0 4px var(--lwc-surface, #ffffff);
+        }
+
+        .documentation-timeline-entry.is-announced::before {
+            background: var(--lwc-surface, #ffffff);
+        }
+
+        .documentation-document .documentation-timeline-heading {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin: 0 0 0.75rem;
+        }
+
+        .documentation-timeline-date {
+            box-sizing: border-box;
+            max-width: 100%;
+            min-height: var(--timeline-date-height);
+            padding: 0.2rem 0.65rem;
+            border: 1px solid transparent;
+            border-radius: var(--lwc-radius-pill, 999px);
+            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+            color: var(--lwc-accent-hover, #047888);
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+            line-height: 1.4;
+        }
+
+        .documentation-timeline-entry.is-announced .documentation-timeline-date {
+            border: 1px dashed var(--lwc-accent, var(--primary-color));
+            background: transparent;
+        }
+
+        .documentation-timeline-separator {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        .documentation-timeline-entry > p:has(> img) {
+            margin: 1.25rem 0 1.5rem;
+        }
+
+        /* A sheet too narrow for its columns reads as compact two-line rows: the
+           first value beside the rest, with the column headings left to assistive
+           technology instead of repeated on every row. */
+        @container documentation-table (max-width: 24rem) {
+            .documentation-document .documentation-table thead {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip-path: inset(50%);
+                white-space: nowrap;
+            }
+
+            .documentation-document .documentation-table thead :is(tr, th) {
+                display: block;
+                width: 1px;
+                padding: 0;
+            }
+
+            .documentation-document .documentation-table table,
+            .documentation-document .documentation-table tbody {
+                display: block;
+            }
+
+            .documentation-document .documentation-table tbody tr {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                align-items: baseline;
+                column-gap: 0.75rem;
+                padding: 0.6rem 0.85rem;
+                border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            }
+
+            .documentation-document .documentation-table tbody tr:last-child {
+                border-bottom: 0;
+            }
+
+            .documentation-document .documentation-table tbody td {
+                display: block;
+                grid-column: 2;
+                width: auto;
+                padding: 0;
+                border: 0;
+                text-align: left;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
+            .documentation-document .documentation-table tbody td:first-child {
+                grid-row: 1 / span 9;
+                grid-column: 1;
+                min-width: 1.5em;
+                text-align: right;
+            }
+
+            .documentation-document .documentation-table tbody td:not(:first-child, :nth-child(2)) {
+                color: var(--lwc-muted, #526373);
+                font-size: var(--lwc-type-sm, 0.875rem);
+            }
         }
 
         @media (max-width: 900px) {
@@ -442,27 +1179,97 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 padding: 0 1rem;
             }
 
+            /* Phones and tablets: the contents fold into a bar above the document
+               that stays under the site header while the document scrolls. Its
+               header row names the section being read, and its bottom edge fills
+               with the accent as the reader moves through the document. */
             .documentation-nav {
                 position: static;
                 display: block;
-                margin: 0 0 0.75rem;
+                margin: 0 0 1rem;
                 padding: 0.35rem;
-                border-left: 0;
-                border-top: 3px solid var(--lwc-accent, var(--primary-color));
-                border-radius: 0 0 8px 8px;
+                box-shadow: none;
             }
 
-            .documentation-nav.is-enhanced .documentation-nav-toggle {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) {
+                position: relative;
+                top: auto;
+                z-index: 20;
+                padding: 0;
+                transition: box-shadow var(--lwc-duration-fast, 0.15s) var(--lwc-ease, ease);
+            }
+
+            .documentation-nav:is(.is-enhanced, .documentation-js *).is-stuck {
+                box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.1));
+            }
+
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-toggle {
+                position: relative;
+                overflow: hidden;
+                border-radius: calc(var(--lwc-radius-lg, 8px) - 1px);
+            }
+
+            .documentation-nav:is(.is-enhanced, .documentation-js *).is-open .documentation-nav-toggle {
+                border-radius: calc(var(--lwc-radius-lg, 8px) - 1px) calc(var(--lwc-radius-lg, 8px) - 1px) 0 0;
+            }
+
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-toggle::after {
+                content: "";
+                position: absolute;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                height: 3px;
+                background: var(--lwc-accent, var(--primary-color));
+                transform: scaleX(var(--documentation-progress, 0));
+                transform-origin: left center;
+                pointer-events: none;
+            }
+
+            .documentation-nav-current {
+                display: flex;
+                align-items: center;
+                gap: 0.65rem;
+                min-width: 0;
+            }
+
+            .documentation-nav-current[data-number]::before {
+                content: attr(data-number);
+                box-sizing: border-box;
+                display: inline-grid;
+                flex: 0 0 auto;
+                place-items: center;
+                min-width: 1.85rem;
+                height: 1.85rem;
+                padding: 0 0.3rem;
+                border-radius: var(--lwc-radius-sm, 4px);
+                background: var(--lwc-accent, var(--primary-color));
+                color: var(--lwc-on-accent, #ffffff);
+                font-family: Roboto, sans-serif;
+                font-size: var(--lwc-type-xs, 0.75rem);
+                font-variant-numeric: tabular-nums;
+                letter-spacing: 0.02em;
+            }
+
+            .documentation-nav-current-text {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-toggle {
                 box-sizing: border-box;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+                gap: 0.75rem;
                 width: 100%;
-                min-height: 44px;
-                padding: 0.6rem 0.75rem;
-                border: 1px solid var(--lwc-border-strong, #71808d);
-                border-radius: var(--lwc-radius-md);
-                background: var(--lwc-surface, #ffffff);
+                min-height: 52px;
+                padding: 0.65rem 0.75rem 0.65rem 1rem;
+                border: 0;
+                border-radius: 0;
+                background: transparent;
                 color: var(--lwc-ink, #334155);
                 font: inherit;
                 font-weight: 700;
@@ -472,31 +1279,58 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav-toggle:hover {
-                border-color: var(--lwc-accent, var(--primary-color));
                 background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
             }
 
             .documentation-nav-toggle:focus-visible {
                 outline: 3px solid var(--lwc-accent-bright, #19c3d1);
-                outline-offset: 2px;
+                outline-offset: -3px;
             }
 
             .documentation-nav-toggle-icon {
-                font-size: 1.25rem;
+                box-sizing: border-box;
+                display: inline-grid;
+                place-items: center;
+                flex: 0 0 2rem;
+                width: 2rem;
+                height: 2rem;
+                border: 1px solid var(--lwc-accent, var(--primary-color));
+                border-radius: var(--lwc-radius-pill, 999px);
+                color: var(--lwc-accent, var(--primary-color));
+                font-size: 1.15rem;
                 line-height: 1;
-                flex: 0 0 1.5rem;
-                width: 1.5rem;
-                text-align: center;
+            }
+
+            .documentation-nav.is-open .documentation-nav-toggle-icon {
+                background: var(--lwc-accent, var(--primary-color));
+                color: var(--lwc-on-accent, #ffffff);
             }
 
             .documentation-nav-links {
-                max-height: min(65svh, 30rem);
-                margin-top: 0.35rem;
+                max-height: var(--documentation-list-height, 65svh);
                 overflow-y: auto;
                 overscroll-behavior: contain;
             }
 
-            .documentation-nav.is-enhanced:not(.is-open) .documentation-nav-links {
+            /* The open list hangs below the bar instead of pushing the document down. */
+            .documentation-nav:is(.is-enhanced, .documentation-js *) .documentation-nav-links {
+                position: absolute;
+                top: 100%;
+                right: -1px;
+                left: -1px;
+                padding: 0.5rem 0.75rem 0.6rem;
+                border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+                border-radius: 0 0 var(--lwc-radius-lg, 8px) var(--lwc-radius-lg, 8px);
+                background: var(--lwc-surface, #ffffff);
+                box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.1));
+            }
+
+            .documentation-nav:is(.is-enhanced, .documentation-js *).is-open {
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+
+            .documentation-nav:is(.is-enhanced, .documentation-js *):not(.is-open) .documentation-nav-links {
                 display: none;
             }
 
@@ -505,339 +1339,151 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav a {
-                box-sizing: border-box;
-                display: flex;
-                align-items: center;
                 width: 100%;
                 max-width: 100%;
                 min-height: 44px;
-                padding: 0.6rem 0.75rem;
-                background: var(--lwc-surface, #ffffff);
                 white-space: normal;
                 overflow-wrap: anywhere;
             }
 
             .documentation-nav .documentation-nav-level-3 {
-                width: calc(100% - 0.75rem);
-                margin-left: 0.75rem;
-                border-left: 2px solid var(--lwc-border, #d7e0e6);
-                font-size: 0.9rem;
+                width: calc(100% - 1.1rem);
             }
 
             .documentation-nav .documentation-source-link {
-                margin-top: 0.35rem;
-                padding-top: 0.6rem;
-                border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+                margin-top: 0.5rem;
+                padding-top: 0.5rem;
             }
+        }
+
+        /* Only screens with room to spare keep the folded contents on screen;
+           short landscape phones scroll it away with the cover. */
+        @media (max-width: 900px) and (min-height: 500px) {
+            .documentation-nav:is(.is-enhanced, .documentation-js *) {
+                position: sticky;
+                top: calc(var(--site-sticky-height, 0px) + 0.5rem);
+            }
+
+        }
+
+        /* Reserve the bar for fragments and focused document controls, while
+           the sticky toggle can use the space immediately below the header. */
+        :root:has(.documentation-nav:is(.is-enhanced, .documentation-js *)) .documentation-document :is([id], a, button, input, select, textarea, summary, li) {
+            scroll-margin-top: max(0px, calc(var(--documentation-anchor-offset, 0px) - max(3.25rem, var(--site-sticky-height, 0px))));
         }
 
         @media (max-width: 600px) {
+            .documentation-page {
+                padding-inline: min(1rem, 5vw);
+            }
+
             .documentation-document {
-                padding: 1.1rem;
-                font-size: 0.98rem;
-                line-height: 1.64;
-            }
-
-            .documentation-document h1 {
-                font-size: 1.95rem;
-            }
-
-            .documentation-document h2 {
-                font-size: 1.45rem;
-            }
-
-            .documentation-document img {
-                margin: 1.15rem auto 1.45rem;
-            }
-        }
-
-        @media (max-width: 720px) {
-            .documentation-document table {
-                display: block;
-                border-collapse: separate;
-                background: transparent;
-                border-radius: 0;
-                overflow: visible;
-            }
-
-            .documentation-document thead {
-                display: none;
-            }
-
-            .documentation-document tbody {
-                display: grid;
-                gap: 0.55rem;
-            }
-
-            .documentation-document tbody tr {
-                display: grid;
-                grid-template-columns: auto minmax(0, 1fr);
-                gap: 0.35rem 0.7rem;
-                padding: 0.62rem 0.7rem;
-                border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.28));
-                border-radius: 8px;
-                background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.78));
-            }
-
-            .documentation-document tbody td {
-                padding: 0;
-                border-bottom: 0;
-                white-space: normal;
-                overflow-wrap: normal;
-                word-break: normal;
-            }
-
-            .documentation-document tbody td {
-                display: grid;
-                grid-template-columns: auto minmax(0, 1fr);
-                gap: 0.35rem;
-                align-items: baseline;
-                color: var(--lwc-ink, #334155);
-                font-size: var(--lwc-type-sm);
-                line-height: 1.5;
-            }
-
-            .documentation-document tbody td::before {
-                content: attr(data-label);
-                color: var(--lwc-muted, #526373);
-                font-size: var(--lwc-type-xs);
-                font-weight: 700;
-                text-transform: none;
-                letter-spacing: 0;
-                line-height: 1.5;
-            }
-
-            .documentation-document tbody td:first-child {
-                grid-column: 1;
-                grid-template-columns: auto auto;
-            }
-
-            .documentation-document tbody td:nth-child(2) {
-                grid-column: 1 / -1;
-                grid-row: 2;
-                font-size: 0.96rem;
-                font-weight: 700;
-                white-space: normal;
-                overflow-wrap: anywhere;
-            }
-
-            .documentation-document tbody td:nth-child(2)::before {
-                display: none;
-            }
-
-            .documentation-document tbody td:last-child {
-                grid-column: 2;
-                justify-self: end;
-                width: 6.25rem;
-                grid-template-columns: 1fr;
-                justify-items: end;
-                gap: 0.12rem;
-                text-align: right;
-            }
-
-            .documentation-document tbody td:last-child::before {
-                white-space: nowrap;
-            }
-        }
-        .documentation-nav a:focus-visible {
-            outline: 2px solid var(--lwc-accent);
-            outline-offset: -2px;
-        }
-        @media (max-width: 600px) {
-            .documentation-document {
+                --doc-pad: min(1.1rem, 5.5vw);
                 font-size: var(--lwc-type-body);
                 line-height: 1.65;
             }
-            .documentation-document :is(p,li) {
+
+            .documentation-document :is(p, li) {
                 line-height: 1.65;
             }
+
+            .documentation-cover {
+                padding-top: 1.5rem;
+            }
+
+            .documentation-document h2 {
+                margin-top: 2.75rem;
+                padding-top: 1.35rem;
+                font-size: 1.45rem;
+            }
+
+            .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2) {
+                gap: 0.5rem 0.7rem;
+            }
+
+            .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2)::before {
+                width: 2.25rem;
+                height: 2.25rem;
+                font-size: 0.85rem;
+            }
+
+            .documentation-document p:has(> img) {
+                margin: 1.35rem 0 1.6rem;
+                padding: 0.4rem;
+            }
+
+            .documentation-page-about .documentation-document p > img {
+                aspect-ratio: 4 / 3;
+            }
+
+            .documentation-document .documentation-next {
+                margin-top: 2.75rem;
+                padding-top: 1.6rem;
+            }
+
+            .documentation-page #where-to-go-next + ul > li {
+                padding: 0.8rem 2.6rem 0.85rem 0.85rem;
+            }
+
+            .documentation-page #where-to-go-next + ul > li::before {
+                top: 0.8rem;
+                right: 0.85rem;
+            }
+
+            .documentation-page #where-to-go-next + ul > li > a {
+                font-size: inherit;
+            }
+
+            /* The rail keeps a fixed narrow gutter, so enlarged text keeps its width. */
+            .documentation-timeline {
+                --timeline-gutter: 22px;
+            }
+
+            .documentation-timeline::before {
+                left: 5px;
+            }
+
+            .documentation-timeline-entry::before {
+                top: calc(var(--timeline-date-height) / 2 - 6px);
+                left: -22px;
+                width: 12px;
+                height: 12px;
+                box-shadow: 0 0 0 3px var(--lwc-surface, #ffffff);
+            }
+
+            .documentation-timeline-entry + .documentation-timeline-entry {
+                margin-top: 2rem;
+            }
         }
-    </style>
+
+        @media (prefers-reduced-motion: reduce) {
+            .documentation-nav,
+            .documentation-nav a,
+            .documentation-page #where-to-go-next + ul > li {
+                transition: none;
+            }
+        }
+    </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
+    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">
 </head>
 <body>
     <!--HEADER-->
-    <main class="documentation-page">
+    <main class="documentation-page {{pageClass}}">
 {{contentsHtml}}
-        <article class="documentation-document">
+        <article class="documentation-document{{(page.Reference ? " ruleset-document" : string.Empty)}}">
 {{documentHtml}}
         </article>
     </main>
     <!--FOOTER-->
-    <script>
-        history.replaceState({}, "", "{{canonicalPath}}" + (window.location.search || "") + (window.location.hash || ""));
-        document.addEventListener("DOMContentLoaded", () => {
-            const documentationNav = document.querySelector(".documentation-nav");
-            const documentationNavToggle = documentationNav?.querySelector(".documentation-nav-toggle");
-            const setDocumentationNavOpen = open => {
-                if (!documentationNav || !documentationNavToggle) {
-                    return;
-                }
-
-                documentationNav.classList.toggle("is-open", open);
-                documentationNavToggle.setAttribute("aria-expanded", String(open));
-                const icon = documentationNavToggle.querySelector(".documentation-nav-toggle-icon");
-                if (icon) {
-                    icon.textContent = open ? "−" : "+";
-                }
-            };
-
-            if (documentationNav && documentationNavToggle) {
-                documentationNav.classList.add("is-enhanced");
-                setDocumentationNavOpen(false);
-            }
-
-            documentationNavToggle?.addEventListener("click", () => {
-                setDocumentationNavOpen(documentationNavToggle.getAttribute("aria-expanded") !== "true");
-            });
-
-            const navLinks = Array.from(document.querySelectorAll(".documentation-nav a[href^='#']"));
-            const headings = navLinks
-                .map(link => document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1))))
-                .filter(Boolean);
-
-            const getOffset = () => {
-                const stickyHeader = document.getElementById("site-sticky-header");
-                return ((stickyHeader && stickyHeader.offsetHeight) || 52) + 18;
-            };
-
-            let activeLink = null;
-            let navigationDestination = null;
-            const revealActiveLink = () => {
-                const link = documentationNav?.querySelector("a:focus") || activeLink;
-                if (!documentationNav || !link || !window.matchMedia("(min-width: 901px)").matches) {
-                    return;
-                }
-
-                const pane = documentationNav.getBoundingClientRect();
-                const target = link.getBoundingClientRect();
-                const padding = parseFloat(getComputedStyle(documentationNav).scrollPaddingTop) || 0;
-                if (target.top < pane.top + padding) {
-                    documentationNav.scrollTop += target.top - pane.top - padding;
-                } else if (target.bottom > pane.bottom - padding) {
-                    documentationNav.scrollTop += target.bottom - pane.bottom + padding;
-                }
-            };
-
-            const setActive = id => {
-                const previousActiveLink = activeLink;
-                activeLink = null;
-                navLinks.forEach(link => {
-                    const active = decodeURIComponent(link.getAttribute("href").slice(1)) === id;
-                    link.classList.toggle("is-active", active);
-                    if (active) {
-                        activeLink = link;
-                        link.setAttribute("aria-current", "location");
-                    } else {
-                        link.removeAttribute("aria-current");
-                    }
-                });
-                if (activeLink !== previousActiveLink) {
-                    revealActiveLink();
-                }
-            };
-
-            navLinks.forEach(link => {
-                link.addEventListener("click", event => {
-                    const target = document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1)));
-                    if (!target) {
-                        return;
-                    }
-
-                    event.preventDefault();
-                    if (window.matchMedia("(max-width: 900px)").matches) {
-                        setDocumentationNavOpen(false);
-                    }
-                    const top = target.getBoundingClientRect().top + window.scrollY - getOffset();
-                    window.scrollTo({ top, behavior: "instant" });
-                    history.pushState(null, "", link.getAttribute("href"));
-                    navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
-                    setActive(target.id);
-
-                    target.setAttribute("tabindex", "-1");
-                    target.focus({ preventScroll: true });
-                });
-            });
-
-            const updateActiveFromScroll = () => {
-                const offset = getOffset() + 6;
-                // A section near the page end may be visible without reaching the offset.
-                // Honor that destination until the reader moves away from its landing position.
-                if (navigationDestination && window.scrollY === navigationDestination.scrollY &&
-                    window.location.hash === navigationDestination.hash) {
-                    const bounds = navigationDestination.target.getBoundingClientRect();
-                    if (bounds.bottom > offset && bounds.top < window.innerHeight) {
-                        setActive(navigationDestination.target.id);
-                        return;
-                    }
-                }
-                navigationDestination = null;
-                let current = headings[0];
-
-                for (const heading of headings) {
-                    if (heading.getBoundingClientRect().top <= offset) {
-                        current = heading;
-                    } else {
-                        break;
-                    }
-                }
-                if (window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1) {
-                    current = headings[headings.length - 1];
-                }
-                if (current) {
-                    setActive(current.id);
-                }
-            };
-
-            const synchronizeNavigationFromHash = () => {
-                let id;
-                try {
-                    id = decodeURIComponent(window.location.hash.slice(1));
-                } catch {
-                    id = "";
-                }
-                const target = headings.find(heading => heading.id === id);
-                navigationDestination = null;
-                if (target) {
-                    const bounds = target.getBoundingClientRect();
-                    if (bounds.bottom > getOffset() && bounds.top < window.innerHeight) {
-                        navigationDestination = { target, scrollY: window.scrollY, hash: window.location.hash };
-                    }
-                }
-                updateActiveFromScroll();
-            };
-
-            let ticking = false;
-            window.addEventListener("scroll", () => {
-                if (ticking) {
-                    return;
-                }
-
-                ticking = true;
-                window.requestAnimationFrame(() => {
-                    updateActiveFromScroll();
-                    ticking = false;
-                });
-            }, { passive: true });
-            window.addEventListener("resize", () => {
-                updateActiveFromScroll();
-                revealActiveLink();
-            });
-            window.addEventListener("hashchange", () => window.requestAnimationFrame(synchronizeNavigationFromHash));
-            window.addEventListener("pageshow", event => {
-                if (!event.persisted && window.location.hash) {
-                    synchronizeNavigationFromHash();
-                }
-            });
-
-            updateActiveFromScroll();
-            if (window.location.hash) {
-                window.requestAnimationFrame(synchronizeNavigationFromHash);
-            }
-        });
-    </script>
+    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
 </body>
 </html>
 """;
 }
 
-internal sealed record DocumentationPage(string Source, string Output, string CanonicalPath, string SourceUrl);
+internal static partial class Program
+{
+    private static readonly string[] ClosingSectionIds = ["where-to-go-next", "contact"];
+}
+
+internal sealed record DocumentationPage(string Source, string Output, string CanonicalPath, string SourceUrl, bool Reference = false);

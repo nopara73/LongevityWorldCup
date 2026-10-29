@@ -10,6 +10,59 @@ public sealed class PlayAthleteFlowBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AthleteLookup_CancelsOnPageHideAndRetriesOnReturn_WhileActiveFailuresStayVisible(bool leaving)
+    {
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("""
+            window.__athleteRequests = 0;
+            const actualFetch = window.fetch;
+            window.fetch = (url, options) => {
+                if (url !== '/api/data/athletes') return actualFetch(url, options);
+                window.__athleteRequests++;
+                if (window.__athleteRequests > 1) return Promise.resolve(new Response('[]'));
+                window.__athleteSignal = options?.signal;
+                return new Promise((resolve, reject) => {
+                    window.__failAthletes = () => reject(new TypeError('Failed to fetch'));
+                    options?.signal?.addEventListener('abort', () => reject(options.signal.reason));
+                });
+            };
+            """);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
+        await page.GotoAsync("/select-athlete");
+        await page.WaitForFunctionAsync("() => typeof window.__failAthletes === 'function'");
+        if (leaving)
+        {
+            await page.EvaluateAsync("""
+                () => {
+                    const input = document.getElementById('playAthleteInput');
+                    input.value = 'Unsaved athlete search';
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+                }
+                """);
+            Assert.True(await page.EvaluateAsync<bool>("() => window.__athleteSignal?.aborted === true"));
+            await page.EvaluateAsync("() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))");
+            await page.WaitForFunctionAsync("() => window.__athleteRequests === 2");
+            await Assertions.Expect(page.Locator("#playAthleteInput")).ToHaveValueAsync("Unsaved athlete search");
+            Assert.DoesNotContain(errors, error => error.Contains("Error fetching athletes"));
+        }
+        else
+        {
+            await page.EvaluateAsync("() => window.__failAthletes()");
+            await Assertions.Expect(page.Locator("#playAthleteError .athlete-load-retry")).ToBeVisibleAsync();
+            Assert.Contains(errors, error => error.Contains("Error fetching athletes"));
+        }
+    }
+
     [Fact]
     public async Task PlayForwardActions_KeepTheirGreenNavigationCue()
     {
@@ -891,6 +944,9 @@ public sealed class PlayAthleteFlowBrowserTests(
         await page.WaitForFunctionAsync("() => window.location.pathname === '/select-athlete'");
         await athleteRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        // Fast in-flow preparation keeps the previous screen available. A
+        // genuinely delayed request must still reach the loading state.
+        await page.WaitForFunctionAsync("() => document.body.classList.contains('play-route-hydrating')");
         Assert.True(await page.Locator("body").EvaluateAsync<bool>(
             "body => body.classList.contains('play-route-hydrating') && body.getAttribute('aria-busy') === 'true'"));
         Assert.False(await page.Locator("#newGameBtn").IsVisibleAsync());

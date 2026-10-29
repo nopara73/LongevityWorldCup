@@ -48,12 +48,14 @@ public sealed class ProofUploadBrowserTests(
         };
         page.PageError += (_, error) => errors.Add(error);
 
-        var navigation = page.GotoAsync(
+        await page.GotoAsync(
             "/play/proof-upload.html",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        // Time the deliberately delayed module after document navigation, rather
+        // than spending its deadline on a cold page and its blocking assets.
         await proofHelperRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(await page.EvaluateAsync<bool>("() => typeof window.setupProofUploadHTML === 'function'"));
         releaseProofHelper.SetResult();
-        await navigation;
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
 
@@ -97,17 +99,17 @@ public sealed class ProofUploadBrowserTests(
         };
         page.PageError += (_, error) => errors.Add(error);
 
-        var navigation = page.GotoAsync(
+        await page.GotoAsync(
             "/onboarding/convergence.html?fake=1",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await proofHelperRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(await page.EvaluateAsync<bool>("() => typeof window.setupProofUploadHTML === 'function'"));
         releaseProofHelper.SetResult();
-        await navigation;
 
-        await AdvanceOnboardingStageAsync(page, "2. Finding your why");
-        await AdvanceOnboardingStageAsync(page, "3. The price of glory");
-        await AdvanceOnboardingStageAsync(page, "4/a. Almost there");
-        await AdvanceOnboardingStageAsync(page, "4/b. Don't trust, verify");
+        await AdvanceOnboardingStageAsync(page, "Finding your why");
+        await AdvanceOnboardingStageAsync(page, "The price of glory");
+        await AdvanceOnboardingStageAsync(page, "Almost there");
+        await AdvanceOnboardingStageAsync(page, "Don't trust, verify");
 
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
@@ -117,17 +119,18 @@ public sealed class ProofUploadBrowserTests(
         Assert.Contains("Albumin", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.Contains("Glucose", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
-        Assert.True(await page.Locator("#onboardingProofSymbol").IsVisibleAsync());
-        Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
+        Assert.True(await page.Locator("#illustrationPicture").IsVisibleAsync());
+        Assert.Contains("apply-bloodwork.", await page.Locator("#illustrationImage").GetAttributeAsync("src"));
 
         await page.Locator("#nextButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "5. Final details" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Final details" }).WaitForAsync();
         await page.Locator("#backButton").ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "4/b. Don't trust, verify" }).WaitForAsync();
-        Assert.Equal("stage active", await page.Locator("#subStage4").GetAttributeAsync("class"));
-        Assert.Equal("stage", await page.Locator("#subStage5").GetAttributeAsync("class"));
-        Assert.True(await page.Locator("#onboardingProofSymbol").IsVisibleAsync());
-        Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Don't trust, verify" }).WaitForAsync();
+        Assert.Equal("stage completed", await page.Locator("#subStage4").GetAttributeAsync("class"));
+        Assert.Equal("stage active", await page.Locator("#subStage5").GetAttributeAsync("class"));
+        Assert.Equal("stage", await page.Locator("#subStage6").GetAttributeAsync("class"));
+        Assert.True(await page.Locator("#illustrationPicture").IsVisibleAsync());
+        Assert.Contains("apply-bloodwork.", await page.Locator("#illustrationImage").GetAttributeAsync("src"));
 
         var uploadButton = page.Locator("#uploadProofButton");
         var cameraButton = page.Locator("#takeProofPhotoButton");

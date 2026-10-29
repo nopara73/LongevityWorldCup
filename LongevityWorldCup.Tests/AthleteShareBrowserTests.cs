@@ -11,6 +11,38 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     private const string FirstUrl = "https://longevityworldcup.com/athlete/michael-lustgarten";
     private const string SecondUrl = "https://longevityworldcup.com/athlete/michael-egorov";
 
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task FailedProfileEnhancement_KeepsServerProfileSharingAndRetryUsable(int width)
+    {
+        await using var context = await CreateContextAsync(width: width);
+        await context.RouteAsync("**/api/data/athletes", route => route.AbortAsync());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeVisibleAsync();
+        var share = page.Locator("#shareAthleteProfile");
+        await Assertions.Expect(share).ToBeEnabledAsync();
+        await share.ClickAsync();
+        await Assertions.Expect(page.Locator("#copyAthleteProfileLink")).ToBeFocusedAsync();
+        Assert.Contains(FirstUrl, Uri.UnescapeDataString(
+            (await page.Locator("#shareAthleteProfileEmail").GetAttributeAsync("href"))!));
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(share).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+        await share.PressAsync("Enter");
+        await page.Locator("#copyAthleteProfileLink").ClickAsync();
+        Assert.Equal([FirstUrl], await CopyCallsAsync(page));
+
+        await context.UnrouteAsync("**/api/data/athletes");
+        await page.Locator("#retryAthleteLoad").ClickAsync();
+        await WaitForProfileAsync(page, "michael-lustgarten");
+        await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeHiddenAsync();
+        await share.ClickAsync();
+        await page.Locator("#copyAthleteProfileLink").ClickAsync();
+        Assert.Equal([FirstUrl, FirstUrl], await CopyCallsAsync(page));
+    }
+
     [Fact]
     public async Task Copy_SerializesRequestsAndKeepsFocusAfterSuccess()
     {

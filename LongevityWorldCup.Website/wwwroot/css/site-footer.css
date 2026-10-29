@@ -1,91 +1,293 @@
-/* Footer Styles */
+/* Footer: the closing half of the site chrome. It shares the header's dark
+   band and hairline, opens with the phoenix crest, then sets the site's pages
+   in one ruled rail above the platforms people follow. */
 .footer {
-    background: #101820;
-    color: var(--light-text-color);
-    padding: 1.75rem 0 1.6rem;
-    margin-top: 4rem;
+    --footer-line: var(--chrome-line, rgba(255, 255, 255, 0.09));
+    --footer-line-strong: var(--chrome-line-strong, rgba(255, 255, 255, 0.16));
+    --footer-ink-soft: var(--chrome-ink-soft, #cbd5e1);
+    --footer-accent: var(--primary-color-bright, #19c3d1);
+    --footer-surface: var(--chrome-surface, #101820);
     position: relative;
     width: 100%;
     clear: both;
-    box-shadow: none;
-    border-top: 3px solid var(--lwc-accent, #087685);
+    box-sizing: border-box;
+    margin-top: 1.5rem;
+    padding: 3rem 0 2.5rem;
+    background: var(--footer-surface) var(--chrome-surface-image, linear-gradient(120deg, #0b1117 0%, #2d3942 100%));
+    color: var(--light-text-color);
+    border-top: 1px solid var(--footer-line);
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* The crest sits on the band's top edge like a seal. */
+.footer-crest {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    box-sizing: border-box;
+    border: 1px solid var(--footer-line-strong);
+    border-radius: 50%;
+    background: var(--footer-surface) linear-gradient(160deg, #0b1117 0%, #2d3942 100%);
+    box-shadow: 0 6px 16px -8px rgba(2, 12, 18, 0.7);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.footer-crest-mark {
+    width: 62%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    filter: invert(100%);
+    object-fit: contain;
+}
+
+.footer-container {
+    max-width: var(--chrome-column, 1152px);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.footer-column {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
 }
 
 .footer-link {
     color: var(--light-text-color);
     text-decoration: none;
-    padding: 0.5rem 0.65rem;
+    padding: 0.5rem 0.85rem;
     border-radius: var(--radius-sm, 4px);
-    transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-    display: flex;
+    transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     min-height: 2.75rem;
     box-sizing: border-box;
-    width: 100%;
     font-weight: 400;
     font-size: 0.95rem;
-    letter-spacing: 0.005em;
+    letter-spacing: 0.01em;
+    max-width: 100%;
 }
 
-    .footer-link:hover {
-        color: var(--primary-color-bright);
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    .footer-link:focus-visible {
-        color: var(--primary-color-bright);
-        background: rgba(255, 255, 255, 0.08);
-        outline: 3px solid var(--primary-color-bright);
-        outline-offset: 3px;
-        box-shadow: none;
-    }
-
-    .footer-link[aria-current="page"] {
-        color: var(--primary-color-bright);
-        background: rgba(255, 255, 255, 0.08);
-        border-inline-start: 3px solid var(--primary-color-bright);
-    }
-
-    .footer-link :is(i, svg) {
-        width: 1.25rem;
-        flex-shrink: 0;
-        margin-right: 0.75rem;
-        text-align: center;
-        font-size: 1.125rem;
-    }
-
-    .footer-link svg {
-        height: 1.125rem;
-    }
-
-.footer-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(8.5rem, max-content));
-    column-gap: clamp(4rem, 16vw, 13rem);
-    justify-content: center;
-    align-items: start;
-    margin-bottom: 0;
+.footer-link :is(i, svg) {
+    width: 1.25rem;
+    flex-shrink: 0;
+    margin-right: 0.6rem;
+    text-align: center;
+    font-size: 1.05rem;
 }
 
-.footer-column {
-    display: flex;
-    flex-direction: column;
-    gap: 0.05rem;
-    margin: 0;
-    align-items: flex-start;
+.footer-link svg {
+    height: 1.05rem;
+}
+
+.footer-link:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.footer-link:focus-visible {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    outline: 3px solid var(--footer-accent);
+    outline-offset: 3px;
+    box-shadow: none;
+}
+
+/* Pages: one ruled rail with hairline dividers between its cells. */
+.footer-column--explore {
+    flex-wrap: wrap;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid var(--footer-line);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: rgba(255, 255, 255, 0.025);
+    gap: 0;
+}
+
+.footer-column--explore .footer-link {
+    flex: 1 0 auto;
+    min-height: 3.25rem;
+    padding: 0.5rem 1.35rem;
+    border-radius: 0;
+    color: var(--footer-ink-soft);
+}
+
+.footer-column--explore .footer-link + .footer-link {
+    border-left: 1px solid var(--footer-line);
+}
+
+.footer-column--explore .footer-link :is(i, svg) {
+    color: var(--footer-accent);
+    opacity: 0.9;
+}
+
+.footer-column--explore .footer-link:is(:hover, :focus-visible) {
+    color: #ffffff;
+}
+
+.footer-column--explore .footer-link:is(:hover, :focus-visible) :is(i, svg) {
+    opacity: 1;
+}
+
+.footer-column--explore .footer-link:focus-visible {
+    outline-offset: -3px;
+}
+
+.footer-link[aria-current="page"] {
+    color: #ffffff;
+    background: rgba(25, 195, 209, 0.08);
+    box-shadow: inset 0 -2px 0 var(--footer-accent);
+}
+
+/* Platforms: featured rings first, the rest and the subscriptions beneath. */
+.footer-column--follow {
+    --footer-icon-size: clamp(44px, 12cqw, 2.75rem);
+    gap: 1rem 0.6rem;
+    width: min(100%, 40rem);
+    container-type: inline-size;
 }
 
 .footer-follow-links {
-    display: contents;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    max-width: min(100%, calc(4 * var(--footer-icon-size) + 3 * 0.5rem));
+}
+
+.footer-follow-links--primary {
+    --footer-icon-size: clamp(56px, 18cqw, 4rem);
+    flex: 0 0 100%;
+    flex-wrap: wrap;
+    max-width: none;
+    gap: 1.1rem;
 }
 
 .footer-subscriptions {
     display: flex;
-    gap: 0.25rem;
-    width: 100%;
+    gap: 0.5rem;
+    padding-left: 0.85rem;
+    border-left: 1px solid var(--footer-line-strong);
+}
+
+.footer-column--follow .footer-link {
+    position: relative;
+    width: var(--footer-icon-size);
+    height: var(--footer-icon-size);
+    min-height: var(--footer-icon-size);
+    flex: 0 0 auto;
+    padding: 0;
+    border: 1px solid var(--footer-line-strong);
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--footer-ink-soft);
+}
+
+.footer-follow-links--primary .footer-link {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+.footer-column--follow .footer-link:is(:hover, :focus-visible) {
+    border-color: var(--footer-accent);
+    background: rgba(25, 195, 209, 0.1);
+    color: #ffffff;
+}
+
+.footer-column--follow .footer-link :is(i, svg) {
+    width: calc(var(--footer-icon-size) * 0.46);
+    margin-right: 0;
+    font-size: calc(var(--footer-icon-size) * 0.4);
+}
+
+.footer-column--follow .footer-link svg {
+    height: calc(var(--footer-icon-size) * 0.4);
+}
+
+/* Names remain available to assistive technology and on focus and hover. */
+.footer-column--follow .footer-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    bottom: calc(100% + 0.55rem);
+    background: #0b1117;
+    border: 0 solid var(--footer-line-strong);
+    border-radius: var(--lwc-radius-sm, 6px);
+    box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    z-index: 1;
+}
+
+/* Keyboard focus also needs its name on touch screens with a keyboard. */
+.footer-column--follow .footer-link:focus-visible:not([data-label-dismissed]) .footer-link-label {
+    width: max-content;
+    height: auto;
+    margin: 0;
+    padding: 0.3rem 0.6rem;
+    overflow: visible;
+    clip-path: none;
+    border-width: 1px;
+}
+
+@media (hover: hover) {
+    .footer-column--follow .footer-link:hover:not([data-label-dismissed]) .footer-link-label {
+        width: max-content;
+        height: auto;
+        margin: 0;
+        padding: 0.3rem 0.6rem;
+        overflow: visible;
+        clip-path: none;
+        border-width: 1px;
+    }
+}
+
+/* A resting pointer must not cover the name being read by keyboard focus. */
+.footer-column--follow:has(.footer-link:focus-visible:not([data-label-dismissed])) .footer-link:not(:focus-visible) .footer-link-label {
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    border-width: 0;
+}
+
+.footer-follow-links .footer-link:first-child .footer-link-label {
+    left: 0;
+}
+
+.footer-follow-links .footer-link:last-child .footer-link-label {
+    right: 0;
+}
+
+/* Give subscriptions their own row when the smaller icons need more room. */
+@container (max-width: 20rem) {
+    .footer-subscriptions {
+        flex-basis: 100%;
+        justify-content: center;
+        padding-left: 0;
+        border-left: 0;
+    }
 }
 
 .footer-icon-link {
@@ -108,40 +310,257 @@
     white-space: nowrap;
 }
 
-@media (max-width: 768px) {
-    .footer {
-        padding: 1.65rem 0 1.35rem;
+/* Tablets: the rail becomes a ruled three-by-two table. */
+@media (max-width: 900px) {
+    .footer-column--explore {
+        width: min(100%, 36rem);
     }
 
-    .footer-container {
-        margin-bottom: 0;
-        padding: 0 1.5rem;
-        column-gap: clamp(1.5rem, 6vw, 3.25rem);
+    /* Equal thirds that still wrap when enlarged text needs the room. */
+    .footer-column--explore .footer-link {
+        flex: 1 0 33.333%;
+        justify-content: flex-start;
+        padding-inline: 1.1rem;
     }
 
-    .footer-link {
-        padding: 0.5rem 0.55rem;
+    .footer-column--explore .footer-link + .footer-link {
+        border-left: 0;
+    }
+
+    .footer-column--explore .footer-link:not(:nth-child(3n + 2)) {
+        border-left: 1px solid var(--footer-line);
+    }
+
+    .footer-column--explore .footer-link:nth-child(n + 5) {
+        border-top: 1px solid var(--footer-line);
     }
 }
 
-@media (max-width: 375px) {
+@media (max-width: 768px) {
+    .footer {
+        padding: 2.75rem 0 2rem;
+    }
+
     .footer-container {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         padding: 0 1rem;
-        column-gap: 1rem;
+        gap: 1.75rem;
+    }
+}
+
+/* Phones: two columns, still ruled. */
+@media (max-width: 560px) {
+    .footer-column--explore {
+        width: min(100%, 26rem);
     }
 
-    .footer-column {
-        margin: 0;
+    .footer-column--explore .footer-link {
+        flex-basis: 50%;
+        padding-inline: 0.9rem;
     }
 
+    .footer-column--explore .footer-link:not(:nth-child(3n + 2)) {
+        border-left: 0;
+    }
+
+    .footer-column--explore .footer-link:nth-child(n + 5) {
+        border-top: 0;
+    }
+
+    .footer-column--explore .footer-link:nth-child(odd) {
+        border-left: 1px solid var(--footer-line);
+    }
+
+    .footer-column--explore .footer-link:nth-child(n + 4) {
+        border-top: 1px solid var(--footer-line);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
     .footer-link {
-        padding-inline: 0.45rem;
-        font-size: 0.9rem;
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .footer-column--explore,
+    .footer-column--follow .footer-link,
+    .footer-crest {
+        border-color: CanvasText;
+    }
+}
+
+@media (max-width: 280px) {
+    .footer-container {
+        padding-inline: min(1rem, 5vw);
     }
 
-    .footer-link :is(i, svg) {
-        width: 1.1rem;
-        margin-right: 0.55rem;
+    .footer-column--explore .footer-link {
+        flex-basis: 100%;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 0;
+        padding: 0.5rem;
+        overflow-wrap: anywhere;
+    }
+
+    .footer-column--explore .footer-link :is(i, svg) {
+        margin-right: 0;
+    }
+
+    .footer-follow-links--primary {
+        flex-wrap: wrap;
+    }
+}
+
+/* The rail's indicator: one tile that rests on the current page and glides to
+   whichever page the pointer or keyboard is on. With it in place the cells
+   stop drawing their own hover tint, current underline and focus ring. */
+.has-nav-glide {
+    position: relative;
+    isolation: isolate;
+}
+
+.has-nav-glide > .footer-link {
+    position: relative;
+    z-index: 1;
+}
+
+.has-nav-glide > .footer-link:is(:hover, :focus-visible, [aria-current="page"]) {
+    background: transparent;
+    box-shadow: none;
+}
+
+.has-nav-glide > .footer-link:focus-visible {
+    outline-color: var(--footer-accent, #19c3d1);
+}
+
+.nav-glide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    width: var(--glide-w, 0);
+    height: var(--glide-h, 0);
+    box-sizing: border-box;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 -2px 0 rgba(25, 195, 209, 0.5);
+    outline: 3px solid transparent;
+    outline-offset: -3px;
+    transform: translate(var(--glide-x, 0), var(--glide-y, 0));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
+        width var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
+        height var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
+        background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        box-shadow var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        outline-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        opacity var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease);
+}
+
+.nav-glide.is-shown {
+    opacity: 1;
+}
+
+.nav-glide.is-current {
+    background: rgba(25, 195, 209, 0.1);
+    box-shadow: inset 0 -2px 0 var(--footer-accent, #19c3d1);
+}
+
+.nav-glide.is-focus {
+    outline-color: var(--footer-accent, #19c3d1);
+}
+
+.nav-glide.is-instant {
+    transition: none;
+}
+
+/* The current page's icon brightens; its neighbours stay quieter. */
+.has-nav-glide > .footer-link[aria-current="page"] :is(i, svg) {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-glide {
+        transition: opacity var(--lwc-motion-fast, 140ms) linear;
+    }
+}
+
+@media (forced-colors: active) {
+    .nav-glide {
+        background: Highlight;
+        opacity: 0.35;
+    }
+    .nav-glide:not(.is-shown) { opacity: 0; }
+    .has-nav-glide > .footer-link:focus-visible { outline-color: Highlight; }
+}
+
+/* The crest doubles as the way back up: it lifts toward the top on hover. */
+a.footer-crest {
+    pointer-events: auto;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        translate var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease),
+        border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        box-shadow var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease),
+        outline-offset var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease);
+    outline: 3px solid transparent;
+    outline-offset: 9px;
+}
+
+a.footer-crest:is(:hover, :focus-visible) {
+    translate: 0 -4px;
+    border-color: var(--footer-accent);
+    box-shadow: 0 10px 22px -10px rgba(25, 195, 209, 0.45);
+}
+
+a.footer-crest:focus-visible {
+    outline-color: var(--footer-accent);
+    outline-offset: 3px;
+}
+
+a.footer-crest .footer-crest-mark {
+    transition: rotate var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, ease);
+}
+
+a.footer-crest:hover .footer-crest-mark {
+    rotate: -8deg;
+}
+
+/* The footer's pieces rise in as it comes into view. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+        .footer .footer-column--explore,
+        .footer .footer-follow-links,
+        .footer .footer-subscriptions {
+            animation: footer-rise linear both;
+            animation-timeline: view();
+            animation-range: entry 10% entry 90%;
+        }
+    }
+}
+
+@keyframes footer-rise {
+    from {
+        opacity: 0;
+        translate: 0 18px;
+    }
+}
+
+.footer:focus-within :is(.footer-column--explore, .footer-follow-links, .footer-subscriptions) {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    a.footer-crest,
+    a.footer-crest .footer-crest-mark {
+        transition: none;
+    }
+
+    a.footer-crest:is(:hover, :focus-visible) {
+        translate: none;
     }
 }

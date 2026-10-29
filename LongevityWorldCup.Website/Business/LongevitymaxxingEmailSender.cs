@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using Microsoft.AspNetCore.WebUtilities;
+using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -17,41 +18,67 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 {
     private readonly Config _config = config;
     private readonly ILogger<SmtpLongevitymaxxingEmailSender> _logger = logger;
+    private readonly Func<SmtpClient> _createClient = () => new SmtpClient();
+
+    internal SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpLongevitymaxxingEmailSender> logger, Func<SmtpClient> createClient)
+        : this(config, logger) => _createClient = createClient;
 
     public Task SendConfirmationAsync(string email, string displayName, string confirmationUrl, CancellationToken ct = default)
-    {
-        var body =
-            $"Hi {SafeName(displayName)},\n\n" +
-            "Confirm your Longevitymaxxing Challenge spot:\n" +
-            $"{EmailCampaignUrl(confirmationUrl, "confirmation")}\n\n" +
-            "After confirmation, this browser can check in without another login.\n\n" +
-            "Longevity World Cup";
-
-        return SendAsync(email, displayName, "Confirm your Longevitymaxxing Challenge spot", body, ct);
-    }
+        => SendAsync(email, displayName, BuildConfirmationEmailContent(displayName, confirmationUrl), ct);
 
     public Task SendAccessLinkAsync(string email, string displayName, string accessUrl, CancellationToken ct = default)
-    {
-        var body =
-            $"Hi {SafeName(displayName)},\n\n" +
-            "Your Longevitymaxxing Challenge link:\n" +
-            $"{EmailCampaignUrl(accessUrl, "access_link")}\n\n" +
-            "Open it once on a browser and the page will remember you.\n\n" +
-            "Longevity World Cup";
-
-        return SendAsync(email, displayName, "Your Longevitymaxxing Challenge link", body, ct);
-    }
+        => SendAsync(email, displayName, BuildAccessLinkEmailContent(displayName, accessUrl), ct);
 
     public Task SendDailyReminderAsync(LongevitymaxxingReminderCandidate reminder, string checkInUrl, string stopUrl, CancellationToken ct = default)
     {
         var content = BuildDailyReminderEmailContent(reminder, checkInUrl, stopUrl);
-        return SendAsync(reminder.Email, reminder.DisplayName, content.Subject, content.TextBody, ct);
+        return SendAsync(reminder.Email, reminder.DisplayName, content, ct);
     }
 
     public Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default)
     {
         var content = BuildChallengeStartEmailContent(start, challengeUrl, stopUrl);
-        return SendAsync(start.Email, start.DisplayName, content.Subject, content.TextBody, ct);
+        return SendAsync(start.Email, start.DisplayName, content, ct);
+    }
+
+    internal static LongevitymaxxingEmailContent BuildConfirmationEmailContent(string displayName, string confirmationUrl)
+    {
+        const string subject = "Confirm your Longevitymaxxing Challenge spot";
+        const string note = "After confirmation, this browser can check in without another login.";
+        var url = EmailCampaignUrl(confirmationUrl, "confirmation");
+        var body =
+            $"Hi {SafeName(displayName)},\n\n" +
+            $"{subject}:\n" +
+            $"{url}\n\n" +
+            $"{note}\n\n" +
+            "Longevity World Cup";
+        var html = new TransactionalEmail(subject)
+            .Greeting($"Hi {SafeName(displayName)},")
+            .Action(subject, url)
+            .Paragraph(note)
+            .Render();
+
+        return new LongevitymaxxingEmailContent(subject, body, html);
+    }
+
+    internal static LongevitymaxxingEmailContent BuildAccessLinkEmailContent(string displayName, string accessUrl)
+    {
+        const string subject = "Your Longevitymaxxing Challenge link";
+        const string note = "Open it once on a browser and the page will remember you.";
+        var url = EmailCampaignUrl(accessUrl, "access_link");
+        var body =
+            $"Hi {SafeName(displayName)},\n\n" +
+            $"{subject}:\n" +
+            $"{url}\n\n" +
+            $"{note}\n\n" +
+            "Longevity World Cup";
+        var html = new TransactionalEmail(subject)
+            .Greeting($"Hi {SafeName(displayName)},")
+            .Action(subject, url)
+            .Paragraph(note)
+            .Render();
+
+        return new LongevitymaxxingEmailContent(subject, body, html);
     }
 
     internal static LongevitymaxxingEmailContent BuildDailyReminderEmailContent(
@@ -61,35 +88,54 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
     {
         var isPractice = !reminder.CountsForScore;
         var lead = isPractice
-            ? $"Day {reminder.ChallengeDay} practice check-in is ready. Check in for {reminder.TargetDate}:"
-            : $"Day {reminder.ChallengeDay} is ready. Check in for {reminder.TargetDate}:";
+            ? $"Day {reminder.ChallengeDay} practice check-in is ready. Check in for {reminder.TargetDate}"
+            : $"Day {reminder.ChallengeDay} is ready. Check in for {reminder.TargetDate}";
         var guidance = isPractice
             ? "This first check-in counts for checked-in days and streak, not points. Use it to learn the sleep, exercise, nutrition, and vices flow."
             : "Sleep. Exercise. Nutrition. Vices. Your next move matters.";
         var continuation = reminder.ChallengeDay == 14
-            ? "The 14-day sprint does not stop here. The leaderboard keeps going, and daily check-in emails continue until you stop them or miss 3 scored days in a row.\n\n"
-            : "";
-        var discussionDigest = BuildDiscussionDigestBlock(reminder.DiscussionDigest);
+            ? "The 14-day sprint does not stop here. The leaderboard keeps going, and daily check-in emails continue until you stop them or miss 3 scored days in a row."
+            : null;
+        var digest = BuildDiscussionDigest(reminder.DiscussionDigest);
+        var url = EmailCampaignUrl(checkInUrl, "daily_reminder");
+        var subject = $"Longevitymaxxing Day {reminder.ChallengeDay} check-in";
 
         var body =
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-            $"{lead}\n" +
-            $"{EmailCampaignUrl(checkInUrl, "daily_reminder")}\n\n" +
+            $"{lead}:\n" +
+            $"{url}\n\n" +
             $"{guidance}\n\n" +
-            $"{continuation}" +
-            $"{discussionDigest}" +
-            $"Stop Challenge reminder emails: {stopUrl}\n\n" +
+            (continuation is null ? "" : $"{continuation}\n\n") +
+            (digest is null ? "" : $"{digest.Value.Summary}\n{string.Join("\n", digest.Value.Lines.Select(line => $"- {line}"))}\n{DiscussionDigestFooter}\n\n") +
+            $"{StopRemindersText}: {stopUrl}\n\n" +
             "Longevity World Cup";
 
+        var html = new TransactionalEmail(subject)
+            .Greeting($"Hi {SafeName(reminder.DisplayName)},")
+            .Action(lead, url)
+            .Paragraph(guidance);
+        if (continuation is not null)
+            html.Paragraph(continuation);
+        if (digest is not null)
+        {
+            html.Panel(digest.Value.Summary,
+                TransactionalEmail.ListRows(digest.Value.Lines) +
+                TransactionalEmail.PanelParagraph(TransactionalEmail.Encode(DiscussionDigestFooter), muted: true));
+        }
+
         return new LongevitymaxxingEmailContent(
-            $"Longevitymaxxing Day {reminder.ChallengeDay} check-in",
-            body);
+            subject,
+            body,
+            html.FooterLink(stopUrl, StopRemindersText).Render());
     }
 
-    private static string BuildDiscussionDigestBlock(LongevitymaxxingDiscussionDigest digest)
+    private const string StopRemindersText = "Stop Challenge reminder emails";
+    private const string DiscussionDigestFooter = "Open the check-in link above to read and reply.";
+
+    private static (string Summary, List<string> Lines)? BuildDiscussionDigest(LongevitymaxxingDiscussionDigest digest)
     {
         if (digest.TotalCount <= 0 || digest.Items.Count == 0)
-            return "";
+            return null;
 
         const int displayedItemLimit = 3;
         const int displayedAuthorLimit = 3;
@@ -110,38 +156,39 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
                 return item.Kind switch
                 {
+                    LongevitymaxxingDiscussionActivityKind.Mention when item.SystemPostKind == "announcement"
+                        => $"{actorText} mentioned you in a Challenge announcement ({item.Date}).",
+                    LongevitymaxxingDiscussionActivityKind.Reply when item.SystemPostKind == "announcement"
+                        => $"Your Challenge announcement ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
                     LongevitymaxxingDiscussionActivityKind.Mention
                         when item.SystemPostKind == "participant-joined" && item.Count == 1
-                        => $"- {actorText} mentioned you in the welcome thread for {postDisplayName} ({item.Date}).",
+                        => $"{actorText} mentioned you in the welcome thread for {postDisplayName} ({item.Date}).",
                     LongevitymaxxingDiscussionActivityKind.Mention
                         when item.SystemPostKind == "participant-joined"
-                        => $"- {item.Count} new mentions in the welcome thread for {postDisplayName} ({item.Date}) from {actorText}.",
+                        => $"{item.Count} new mentions in the welcome thread for {postDisplayName} ({item.Date}) from {actorText}.",
                     LongevitymaxxingDiscussionActivityKind.Reply
                         when item.SystemPostKind == "participant-joined"
-                        => $"- Your Challenge welcome thread ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
+                        => $"Your Challenge welcome thread ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
                     LongevitymaxxingDiscussionActivityKind.Mention when item.Count == 1
-                        => $"- {actorText} mentioned you in a Day {item.ChallengeDay} post ({item.Date}).",
+                        => $"{actorText} mentioned you in a Day {item.ChallengeDay} post ({item.Date}).",
                     LongevitymaxxingDiscussionActivityKind.Mention
-                        => $"- {item.Count} new mentions in a Day {item.ChallengeDay} post ({item.Date}) from {actorText}.",
+                        => $"{item.Count} new mentions in a Day {item.ChallengeDay} post ({item.Date}) from {actorText}.",
                     LongevitymaxxingDiscussionActivityKind.Reply
-                        => $"- Your Day {item.ChallengeDay} post ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
+                        => $"Your Day {item.ChallengeDay} post ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
                     _ => throw new InvalidOperationException("Unknown discussion activity kind.")
                 };
             })
             .ToList();
         var remainingItems = Math.Max(0, digest.Items.Count - lines.Count);
         if (remainingItems > 0)
-            lines.Add($"- Plus activity on {remainingItems} more discussion {(remainingItems == 1 ? "post" : "posts")}.");
+            lines.Add($"Plus activity on {remainingItems} more discussion {(remainingItems == 1 ? "post" : "posts")}.");
 
         var summary = new List<string>();
         if (digest.MentionCount > 0)
             summary.Add($"{digest.MentionCount} new {(digest.MentionCount == 1 ? "mention" : "mentions")}");
         if (digest.ReplyCount > 0)
             summary.Add($"{digest.ReplyCount} new {(digest.ReplyCount == 1 ? "reply" : "replies")}");
-        return
-            $"Discussion activity: {string.Join(" and ", summary)}\n" +
-            string.Join("\n", lines) +
-            "\nOpen the check-in link above to read and reply.\n\n";
+        return ($"Discussion activity: {string.Join(" and ", summary)}", lines);
     }
 
     internal static LongevitymaxxingEmailContent BuildChallengeStartEmailContent(
@@ -149,17 +196,32 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         string challengeUrl,
         string stopUrl)
     {
+        const string subject = "Longevitymaxxing Challenge check-ins are ready";
+        const string ready = "Your Longevitymaxxing Challenge check-ins are ready.";
+        const string howTo = "Check in once per day about the previous day: Sleep, Exercise, Nutrition, and Vices. No photos, no long report, no perfect schedule required.";
+        const string practice = "Your first eligible check-in is practice: it counts for checked-in days and streak, not points.";
+        const string open = "Open your participant page for check-ins, leaderboard, and Slack";
+        var timeZone = $"Timezone: {SafeTimeZoneLabel(start.TimeZoneId)}";
+        var url = EmailCampaignUrl(challengeUrl, "challenge_start");
         var body =
             $"Hi {SafeName(start.DisplayName)},\n\n" +
-            "Your Longevitymaxxing Challenge check-ins are ready.\n\n" +
-            "Check in once per day about the previous day: Sleep, Exercise, Nutrition, and Vices. No photos, no long report, no perfect schedule required.\n" +
-            "Your first eligible check-in is practice: it counts for checked-in days and streak, not points.\n" +
-            $"Timezone: {SafeTimeZoneLabel(start.TimeZoneId)}\n\n" +
-            $"Open your participant page for check-ins, leaderboard, and Slack:\n{EmailCampaignUrl(challengeUrl, "challenge_start")}\n\n" +
-            $"Stop Challenge reminder emails: {stopUrl}\n\n" +
+            $"{ready}\n\n" +
+            $"{howTo}\n" +
+            $"{practice}\n" +
+            $"{timeZone}\n\n" +
+            $"{open}:\n{url}\n\n" +
+            $"{StopRemindersText}: {stopUrl}\n\n" +
             "Longevity World Cup";
+        var html = new TransactionalEmail(subject)
+            .Greeting($"Hi {SafeName(start.DisplayName)},")
+            .Paragraph(ready)
+            .Lead(howTo, practice)
+            .Meta(timeZone)
+            .Action(open, url)
+            .FooterLink(stopUrl, StopRemindersText)
+            .Render();
 
-        return new LongevitymaxxingEmailContent("Longevitymaxxing Challenge check-ins are ready", body);
+        return new LongevitymaxxingEmailContent(subject, body, html);
     }
 
     private static string EmailCampaignUrl(string url, string content)
@@ -174,8 +236,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
     private async Task SendAsync(
         string email,
         string displayName,
-        string subject,
-        string textBody,
+        LongevitymaxxingEmailContent content,
         CancellationToken ct)
     {
         var smtpServer = RequireConfiguredValue(_config.SmtpServer, nameof(_config.SmtpServer));
@@ -183,19 +244,19 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var smtpPort = RequireConfiguredPort(_config.SmtpPort);
         var smtpPassword = _config.GetSmtpPassword();
 
-        var message = new MimeMessage();
+        using var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Longevity World Cup", RequireConfiguredValue(_config.EmailFrom, nameof(_config.EmailFrom))));
         message.To.Add(new MailboxAddress(displayName ?? string.Empty, email));
-        message.Subject = subject;
-        message.Body = new TextPart("plain") { Text = textBody };
+        message.Subject = content.Subject;
+        message.Body = new BodyBuilder { TextBody = content.TextBody, HtmlBody = content.HtmlBody }.ToMessageBody();
 
-        using var client = new SmtpClient();
+        using var client = _createClient();
+        client.Timeout = checked((int)PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout.TotalMilliseconds);
         await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls, ct).ConfigureAwait(false);
         await client.AuthenticateAsync(smtpUser, smtpPassword, ct).ConfigureAwait(false);
-        await client.SendAsync(message, ct).ConfigureAwait(false);
-        await client.DisconnectAsync(true, ct).ConfigureAwait(false);
+        await SmtpMessageDelivery.SendAsync(client, message, _logger, ct).ConfigureAwait(false);
 
-        _logger.LogInformation("Sent Longevitymaxxing email '{Subject}' to {Email}", subject, email);
+        _logger.LogInformation("SMTP accepted a Longevitymaxxing email.");
     }
 
     private static string SafeName(string? displayName)
@@ -227,4 +288,5 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
 internal sealed record LongevitymaxxingEmailContent(
     string Subject,
-    string TextBody);
+    string TextBody,
+    string HtmlBody);

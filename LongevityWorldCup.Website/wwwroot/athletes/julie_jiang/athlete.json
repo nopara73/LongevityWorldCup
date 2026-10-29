@@ -23,5 +23,23 @@
   "Division": "Women's",
   "Flag": "United States",
   "Why": "I enjoy helping people to be healthier and happier!",
-  "PersonalLink": "https://www.zhuzhuliving.com"
+  "PersonalLink": "https://www.zhuzhuliving.com",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/zhuzhuliving",
+      "EvidenceUrls": [
+        "https://x.com/zhuzhuliving",
+        "https://www.zhuzhuliving.com"
+      ],
+      "VerifiedOn": "2026-10-23"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/zhuzhuliving/",
+      "EvidenceUrls": [
+        "https://www.instagram.com/zhuzhuliving/",
+        "https://www.zhuzhuliving.com/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

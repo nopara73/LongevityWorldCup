@@ -39,7 +39,11 @@ public sealed class PublicLeaderboardSnapshot
         }).ToArray());
         var rows = LeaderboardSnapshotBuilder.Build(rankedJson, athletes).Rows;
         var source = athletes.OfType<JsonObject>().ToDictionary(a => a["AthleteSlug"]!.GetValue<string>(), StringComparer.OrdinalIgnoreCase);
-        Athletes = rows.Select(row => new PublicAthlete(row, stats[row.Slug], source[row.Slug])).ToList();
+        Athletes = rows.Select(row =>
+        {
+            var athlete = new PublicAthlete(row, stats[row.Slug], source[row.Slug]);
+            return athlete with { Row = row with { OrderValues = LeaderboardOrdering.Values(athlete) } };
+        }).ToList();
     }
 
     public PublicLeaderboardSelection Select(string path, IQueryCollection query)
@@ -60,7 +64,10 @@ public sealed class PublicLeaderboardSnapshot
         var divisions = MatchValues(filters, a => a.Row.Division);
         var generations = MatchValues(filters, a => a.Row.Generation);
         var exclusive = MatchValues(filters, a => a.Row.ExclusiveLeague);
-        var flags = Athletes.Select(a => FlagKey(a.Row.Flag)).Where(key => key.Length > 0 && filters.Any(f => FlagKey(f) == key)).ToHashSet();
+        var byFlag = string.Equals(query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase);
+        var ordering = LeaderboardOrderState.Parse(query);
+        // Flag competitions compare the whole cohort, even on an old flag-filtered URL.
+        HashSet<string> flags = byFlag ? [] : Athletes.Select(a => FlagKey(a.Row.Flag)).Where(key => key.Length > 0 && filters.Any(f => FlagKey(f) == key)).ToHashSet();
         var tracks = filters.Where(f => f.Equals("professional", StringComparison.OrdinalIgnoreCase) || f.Equals("amateur", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var cohort = Order(view!).Where(a =>
             (tracks.Length != 1 || a.IsPro == tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase)) &&
@@ -92,7 +99,21 @@ public sealed class PublicLeaderboardSnapshot
             else if (tracks.Length == 1) railTitle = tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase) ? "Pro League" : "Amateur League";
         }
         var isDefault = view == "ultimate" && divisions.Count == 0 && generations.Count == 0 && exclusive.Count == 0 && flags.Count == 0 && tracks.Length != 1;
-        return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(rows), railTitle, isDefault);
+        if (byFlag)
+        {
+            var cohortLabel = string.Join(' ', new[] { GenerationLabel(generations), DivisionLabel(divisions) }.Where(s => s.Length > 0));
+            if (exclusive.Count > 0) cohortLabel = exclusive.Count == 1 ? exclusive.First() : "Exclusive Leagues";
+            else if (cohortLabel.Length == 0 && tracks.Length == 1)
+                cohortLabel = tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase) ? "Pro" : "Amateur";
+            var clockLabel = view == "ultimate" && cohortLabel.Length > 0 ? "" : FlagLeaderboard.Label(view!);
+            railTitle = string.Join(' ', new[] { cohortLabel, clockLabel, view == "ultimate" ? "Flag League" : "by Flag" }.Where(s => s.Length > 0));
+        }
+        return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(LeaderboardOrdering.Apply(rows, byFlag ? new() : ordering)), railTitle, isDefault && !byFlag && !ordering.IsCustom)
+        {
+            Ordering = ordering,
+            ByFlag = byFlag,
+            FlagTeams = byFlag ? FlagLeaderboard.Build(cohort, view!) : []
+        };
     }
 
     public IReadOnlyList<PublicAthlete> Order(string view)
@@ -170,5 +191,9 @@ public sealed record PublicAthlete(LeaderboardSnapshotRow Row, PhenoStatsCalcula
 
 public sealed record PublicLeaderboardSelection(string View, LeaderboardSnapshot Snapshot, string RailTitle, bool IsDefault)
 {
+    public bool ByFlag { get; init; }
+    public LeaderboardOrderState Ordering { get; init; } = new();
+    public LeaderboardOrderState DisplayOrdering => ByFlag ? new() : Ordering;
+    public IReadOnlyList<FlagLeaderboardTeam> FlagTeams { get; init; } = [];
     public string MetricLabel => View switch { "improvement" => "Improvement", "bortz-improvement" => "Bortz improvement", _ => "Age reduction" };
 }

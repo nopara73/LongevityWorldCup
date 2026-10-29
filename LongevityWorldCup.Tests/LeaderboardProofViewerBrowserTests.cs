@@ -216,6 +216,8 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await page.WaitForFunctionAsync("() => typeof populateProofsGallery === 'function'");
         await page.WaitForFunctionAsync(
             "() => document.querySelectorAll('.leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]').length > 0");
+        // Server-rendered rows can precede hydration. Finish route initialization before installing a synthetic athlete URL.
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.EvaluateAsync(
             """
             () => {
@@ -419,8 +421,12 @@ public sealed class LeaderboardProofViewerBrowserTests(
             }
             """);
         await page.Locator("#athleteImageViewer.show").WaitForAsync();
-        var realProfileSource = await viewer.Locator("img").GetAttributeAsync("src");
+        // The viewer deliberately shows a loaded thumbnail while the full
+        // portrait downloads. Compare history against the canonical source,
+        // and wait for that upgrade instead of sampling its transient preview.
+        var realProfileSource = await page.Locator("#modalProfilePic").GetAttributeAsync("data-full-src");
         Assert.False(string.IsNullOrWhiteSpace(realProfileSource));
+        await Assertions.Expect(viewer.Locator("img")).ToHaveAttributeAsync("src", realProfileSource!);
         await TraverseHistoryAsync(page, -1);
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         Assert.Equal("details", await page.EvaluateAsync<string>("() => history.state?.modal"));
@@ -484,7 +490,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')");
         Assert.Equal("enlarged", await page.EvaluateAsync<string>("() => history.state?.modal"));
         Assert.Equal(realAthletePath, new Uri(page.Url).AbsolutePath);
-        Assert.Equal(realProfileSource, await viewer.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator("img")).ToHaveAttributeAsync("src", realProfileSource!);
 
         await page.EvaluateAsync("() => history.go(-2)");
         await page.WaitForFunctionAsync(
@@ -497,7 +503,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await page.WaitForFunctionAsync(
             "() => history.state?.modal === 'enlarged' && !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')");
         Assert.Equal(realAthletePath, new Uri(page.Url).AbsolutePath);
-        Assert.Equal(realProfileSource, await viewer.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator("img")).ToHaveAttributeAsync("src", realProfileSource!);
 
         await page.EvaluateAsync("() => history.go(-2)");
         await page.WaitForFunctionAsync(

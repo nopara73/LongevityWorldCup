@@ -23,5 +23,14 @@
   "Division": "Men's",
   "Flag": "Global Country of World Peace",
   "Why": "Spread health and mindset shift to people.Live this beautiful life for as long as possible.",
-  "PersonalLink": "https://www.instagram.com/gui_espina?igsh=MXV1ZmJsMTNjNG14MQ=="
+  "PersonalLink": "https://www.instagram.com/gui_espina?igsh=MXV1ZmJsMTNjNG14MQ==",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@gui_espina",
+      "EvidenceUrls": [
+        "https://www.instagram.com/gui_espina/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

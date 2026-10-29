@@ -31,7 +31,9 @@ AppData
 /LongevityWorldCup.Website/smtp-token/*
 /LongevityWorldCup.Website/wwwroot/js/
 /LongevityWorldCup.Website/wwwroot/css/athlete-dialog/
+/LongevityWorldCup.Website/wwwroot/css/documentation-reading.css
 /LongevityWorldCup.Website/wwwroot/generated/
+/LongevityWorldCup.Website/wwwroot/assets/media-kit/
 
 # JetBrains / Rider
 .idea/

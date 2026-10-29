@@ -1,0 +1,409 @@
+/*
+ * The athlete application, from the first field to the review page, as one race.
+ *
+ * - The step meter carries the athlete's marker; each new segment fills, catches
+ *   a glint and the marker hops onto its end.
+ * - Fields answer focus with a ring that closes in and a label that lights up;
+ *   a field that is done earns a quiet check.
+ * - The photo and proof stages light up when files are dragged over the card.
+ * - A saved portrait opens in the banner like an iris.
+ * - The review page settles in order: the steps behind you, the line to the
+ *   current step, then the words. A confirmed payment crosses its line.
+ *
+ * Colours are the existing --lwc-* tokens; durations are the motion tokens.
+ * Everything that moves sits behind prefers-reduced-motion: no-preference.
+ */
+
+/* ---------- Step meter: the athlete's marker ---------- */
+
+/* At browser zoom the unequal label lengths need unequal shares of the row. */
+@media (max-width: 300px) {
+    body[data-convergence-stage] #mainProgressBar { width: 100%; }
+    body[data-convergence-stage] #mainProgressBar .stage { flex-basis: auto; }
+    body[data-convergence-stage] #mainProgressBar .stage-label { overflow-wrap: normal; white-space: nowrap; }
+}
+
+.convergence-stage-layout .sub-progress-container .stages {
+    padding-block: 4px;
+}
+
+.convergence-stage-layout .sub-progress-container .stage.active {
+    overflow: visible;
+}
+
+.convergence-stage-layout .sub-progress-container .stage.active::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -4px;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-accent);
+    box-shadow: 0 0 0 3px var(--lwc-surface), 0 0 0 7px var(--lwc-accent-soft);
+    box-sizing: border-box;
+}
+
+/* The last stage is the finish: its marker turns into a hollow finish ring. */
+body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-container .stage.active::after {
+    border: 3px solid var(--lwc-accent);
+    background: var(--lwc-surface);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .convergence-stage-layout .sub-progress-container .stage.active::before {
+        background-image: linear-gradient(100deg, transparent 35%, color-mix(in srgb, var(--lwc-surface) 55%, transparent) 50%, transparent 65%);
+        background-size: 260% 100%;
+        background-repeat: no-repeat;
+        animation: apply-segment-glint 900ms 300ms var(--lwc-ease-standard) both;
+    }
+
+    .convergence-stage-layout .sub-progress-container .stage.active::after {
+        animation: apply-marker-hop var(--lwc-motion-slow) 360ms var(--lwc-ease-pop) backwards;
+    }
+
+    .convergence-stage-layout .sub-progress-container .stage::before {
+        transition-duration: 420ms;
+        transition-timing-function: var(--lwc-ease-standard);
+    }
+}
+
+@keyframes apply-segment-glint {
+    from { background-position: 120% 0; }
+    to { background-position: -40% 0; }
+}
+
+@keyframes apply-marker-hop {
+    0% { opacity: 0; transform: translateX(-10px) scale(0.4); }
+    60% { opacity: 1; }
+    100% { transform: none; }
+}
+
+/* ---------- Stage travel ---------- */
+
+/* The banner leans into the travel direction as the new artwork arrives. */
+@media (prefers-reduced-motion: no-preference) {
+    .convergence-stage-enter[data-apply-travel="forward"] .convergence-visual #illustrationImage {
+        animation: apply-banner-forward 420ms var(--lwc-ease-enter) both;
+    }
+
+    .convergence-stage-enter[data-apply-travel="back"] .convergence-visual #illustrationImage {
+        animation: apply-banner-back 420ms var(--lwc-ease-enter) both;
+    }
+}
+
+@keyframes apply-banner-forward {
+    from { opacity: 0.35; transform: scale(1.06) translateX(2.5%); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes apply-banner-back {
+    from { opacity: 0.35; transform: scale(1.06) translateX(-2.5%); }
+    to { opacity: 1; transform: none; }
+}
+
+/* ---------- Fields: focus and readiness ---------- */
+
+#inputForm :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+    outline: 3px solid transparent;
+    outline-offset: 6px;
+}
+
+#inputForm :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):focus {
+    outline-color: rgba(25, 195, 209, 0.28);
+    outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #inputForm :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+        transition: border-color var(--lwc-motion-base) var(--lwc-ease-standard),
+            outline-color var(--lwc-motion-base) var(--lwc-ease-standard),
+            outline-offset var(--lwc-motion-move) var(--lwc-ease-enter),
+            background-color var(--lwc-motion-base) var(--lwc-ease-standard);
+    }
+
+    #inputForm label {
+        transition: color var(--lwc-motion-base) var(--lwc-ease-standard);
+    }
+}
+
+/* The label lights up with its field. */
+#inputForm label:has(+ :is(input, select, textarea):focus),
+#inputForm label:has(+ .autocomplete-container input:focus) {
+    color: var(--lwc-accent);
+}
+
+/* A finished field earns a check inside its right edge. The empty error line
+   under it carries the mark, so nothing moves when it appears. */
+#inputForm :is(#name, #flag, #mediaContact, #personalLink, #accountEmail):not(:placeholder-shown):not(:focus):not([aria-invalid="true"]):valid + .error-message:empty {
+    position: relative;
+    display: block;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+}
+
+#inputForm :is(#name, #flag, #mediaContact, #personalLink, #accountEmail):not(:placeholder-shown):not(:focus):not([aria-invalid="true"]):valid + .error-message:empty::after {
+    content: "\2713" / "";
+    position: absolute;
+    right: 12px;
+    bottom: calc(var(--apply-field-gap, 0px) + 11px);
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-accent);
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1;
+    pointer-events: none;
+}
+
+#inputForm :is(#name, #flag, #mediaContact, #personalLink, #accountEmail):not(:placeholder-shown):not(:focus):not([aria-invalid="true"]):valid {
+    padding-right: 44px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #inputForm :is(#name, #flag, #mediaContact, #personalLink, #accountEmail):not(:placeholder-shown):not(:focus):not([aria-invalid="true"]):valid + .error-message:empty::after {
+        animation: apply-check-in var(--lwc-motion-move) var(--lwc-ease-pop) backwards;
+    }
+}
+
+@keyframes apply-check-in {
+    from { opacity: 0; transform: scale(0.3) rotate(-25deg); }
+}
+
+.apply-error-spacer {
+    display: block;
+    overflow: hidden;
+}
+
+/* The script nudges new errors without hiding their text. Do not stack the
+   shared feedback fade on top of that immediate validation feedback. */
+#inputForm .error-message:not(:empty) {
+    animation: none;
+}
+
+/* ---------- Drop files on the photo and proof stages ---------- */
+
+#profileUploadSection,
+#proofUploadSection {
+    position: relative;
+    border-radius: var(--lwc-radius-md, 12px);
+    outline: 2px dashed transparent;
+    outline-offset: 12px;
+}
+
+#profileUploadSection.apply-drop-armed,
+#proofUploadSection.apply-drop-armed {
+    outline-color: color-mix(in srgb, var(--lwc-accent) 55%, transparent);
+    outline-offset: 8px;
+}
+
+#profileUploadSection.apply-drop-over,
+#proofUploadSection.apply-drop-over {
+    outline-color: var(--lwc-accent);
+    outline-offset: 4px;
+}
+
+#profileUploadSection::after,
+#proofUploadSection::after {
+    content: "\f574" / "";
+    position: absolute;
+    inset: -4px;
+    z-index: 3;
+    display: grid;
+    place-items: start center;
+    padding-top: clamp(20px, 5vh, 48px);
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--lwc-accent-soft) 88%, transparent);
+    box-sizing: border-box;
+    color: var(--lwc-accent);
+    font: 900 2.75rem/1 "Font Awesome 6 Free";
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.98);
+}
+
+#profileUploadSection::after {
+    content: "\f03e" / "";
+}
+
+#profileUploadSection.apply-drop-over::after,
+#proofUploadSection.apply-drop-over::after {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #profileUploadSection,
+    #proofUploadSection {
+        transition: outline-color var(--lwc-motion-base) var(--lwc-ease-standard),
+            outline-offset var(--lwc-motion-move) var(--lwc-ease-enter);
+    }
+
+    #profileUploadSection::after,
+    #proofUploadSection::after {
+        transition: opacity var(--lwc-motion-base) var(--lwc-ease-standard),
+            transform var(--lwc-motion-move) var(--lwc-ease-pop);
+    }
+
+    #profileUploadSection.apply-drop-over::after,
+    #proofUploadSection.apply-drop-over::after {
+        animation: apply-drop-bob 900ms var(--lwc-ease-standard) infinite alternate;
+    }
+}
+
+@keyframes apply-drop-bob {
+    from { translate: 0 3px; }
+    to { translate: 0 -5px; }
+}
+
+/* ---------- The portrait opens in the banner ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    .apply-portrait-arriving #profileImage {
+        animation: apply-portrait-iris 620ms var(--lwc-ease-enter) both;
+    }
+
+    .apply-portrait-arriving::after {
+        content: "";
+        position: absolute;
+        left: calc(var(--convergence-card-pad) + 56px - 70px);
+        bottom: -118px;
+        width: 140px;
+        height: 140px;
+        border: 2px solid var(--lwc-accent);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: apply-portrait-ring 700ms 180ms var(--lwc-ease-enter) both;
+    }
+}
+
+@keyframes apply-portrait-iris {
+    from { clip-path: circle(0% at 50% 50%); filter: brightness(1.35); scale: 0.9; }
+    to { clip-path: circle(71% at 50% 50%); filter: none; scale: 1; }
+}
+
+@keyframes apply-portrait-ring {
+    from { opacity: 0.9; transform: scale(0.75); }
+    to { opacity: 0; transform: scale(1.25); }
+}
+
+/* ---------- Review page: the request crosses the line ---------- */
+
+/* Connectors draw rather than switch colour. */
+.application-review-panel .application-review-trail li + li::before {
+    background: linear-gradient(var(--lwc-success), var(--lwc-success)) left center / 0% 100% no-repeat, var(--lwc-border);
+}
+
+.application-review-panel .application-review-trail li.is-done + li::before {
+    background-size: 100% 100%, auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .application-review-panel .application-review-trail li + li::before {
+        transition: background-size 480ms var(--lwc-ease-standard);
+    }
+
+    /* Steps arrive left to right after the seal lands; the lines between finished
+       steps draw as the next one appears. */
+    .application-review-panel .application-review-trail li {
+        animation: apply-trail-step var(--lwc-motion-slow) var(--lwc-ease-pop) backwards;
+        animation-delay: calc(520ms + var(--apply-trail-i, 0) * 110ms);
+    }
+
+    .application-review-panel .application-review-trail li.is-done + li::before {
+        animation: apply-trail-draw 420ms var(--lwc-ease-standard) backwards;
+        animation-delay: calc(560ms + var(--apply-trail-i, 0) * 110ms);
+    }
+
+    .application-review-panel .application-review-trail li:nth-child(2) { --apply-trail-i: 1; }
+    .application-review-panel .application-review-trail li:nth-child(3) { --apply-trail-i: 2; }
+    .application-review-panel .application-review-trail li:nth-child(4) { --apply-trail-i: 3; }
+    .application-review-panel .application-review-trail li:nth-child(5) { --apply-trail-i: 4; }
+
+    /* The words settle under the trail, one after another. */
+    .application-review-panel .application-review-body > p,
+    .application-review-panel .application-review-foot > * {
+        animation: apply-settle 420ms var(--lwc-ease-enter) backwards;
+    }
+
+    .application-review-panel .application-review-body > p { animation-delay: 980ms; }
+    .application-review-panel .application-review-foot > :nth-child(1) { animation-delay: 1060ms; }
+    .application-review-panel .application-review-foot > :nth-child(2) { animation-delay: 1130ms; }
+    .application-review-panel .application-review-foot > :nth-child(3) { animation-delay: 1200ms; }
+
+    /* One pass of light over the artwork as the page lands: the finish line. */
+    .application-review-panel .application-review-frame::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--lwc-surface) 45%, transparent) 50%, transparent 70%) no-repeat;
+        background-size: 250% 100%;
+        pointer-events: none;
+        animation: apply-finish-sweep 1100ms 260ms var(--lwc-ease-standard) both;
+    }
+
+    /* A confirmed payment crosses its line: the step pops, a ring spreads once,
+       the line to the review draws and the seal stamps again. */
+    .application-review-panel .application-review-trail li[data-apply-crossed] {
+        animation: none;
+    }
+
+    .application-review-panel .application-review-trail li[data-apply-crossed] .application-review-step {
+        animation: apply-step-cross 640ms var(--lwc-ease-pop) both;
+    }
+
+    .application-review-panel .application-review-trail li[data-apply-crossed] + li::before {
+        animation: apply-trail-draw 480ms 120ms var(--lwc-ease-standard) backwards;
+    }
+
+    .application-review-panel[data-apply-crossing] .application-review-seal {
+        animation: apply-seal-restamp 520ms var(--lwc-ease-pop) both;
+    }
+
+    .application-review-panel[data-apply-crossing] .application-review-frame::after {
+        animation: apply-finish-sweep-again 1000ms var(--lwc-ease-standard) both;
+    }
+}
+
+@keyframes apply-trail-step {
+    from { opacity: 0; transform: translateY(6px) scale(0.6); }
+}
+
+@keyframes apply-trail-draw {
+    from { background-size: 0% 100%, auto; }
+}
+
+@keyframes apply-settle {
+    from { opacity: 0; translate: 0 12px; }
+}
+
+@keyframes apply-finish-sweep {
+    from { background-position: 130% 0; }
+    to { background-position: -30% 0; }
+}
+
+@keyframes apply-finish-sweep-again {
+    from { background-position: 130% 0; }
+    to { background-position: -30% 0; }
+}
+
+@keyframes apply-step-cross {
+    0% { transform: scale(0.85); box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-success) 45%, transparent); }
+    45% { transform: scale(1.14); }
+    100% { transform: none; box-shadow: 0 0 0 16px transparent; }
+}
+
+@keyframes apply-seal-restamp {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.22) rotate(-8deg); }
+    100% { transform: none; }
+}

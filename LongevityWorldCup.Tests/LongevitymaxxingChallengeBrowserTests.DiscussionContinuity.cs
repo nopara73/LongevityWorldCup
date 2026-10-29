@@ -253,7 +253,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(thread.Locator("[data-discussion-reply-body]").Last).ToHaveTextAsync("My published reply.");
         Assert.NotNull(postedReplyId);
         await Assertions.Expect(thread.Locator($"[data-discussion-reply-id='{postedReplyId}']")).ToBeFocusedAsync();
-        await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveTextAsync("Reply posted.");
+        await Assertions.Expect(thread.Locator(".lmx-discussion-feedback")).ToHaveCountAsync(0);
         await thread.Locator("[data-discussion-reply]").ClickAsync();
         Assert.Equal("", await thread.Locator("textarea").InputValueAsync());
         var dialogs = 0;
@@ -296,7 +296,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await FulfillJsonAsync(route, response.ToJsonString());
         });
         try {
-            var order = await page.Locator("#lmxNotes article").EvaluateAllAsync<string[]>("articles => articles.map(a => a.dataset.feedKey)");
+            var order = await page.Locator("#lmxNotes > article").EvaluateAllAsync<string[]>("articles => articles.map(a => a.dataset.feedKey)");
             var eli = DiscussionThread(page, "p6", 19);
             await eli.Locator("[data-discussion-reply]").ClickAsync();
             await eli.Locator("textarea").FillAsync("New activity.");
@@ -313,7 +313,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             Assert.Equal("Still writing when the order changes.", await target.Locator("textarea").InputValueAsync());
             Assert.Equal(new[] { 3, 7 }, await target.Locator("textarea").EvaluateAsync<int[]>("e => [e.selectionStart, e.selectionEnd]"));
             Assert.InRange(Math.Abs(top - await target.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top")), 0, 2);
-            Assert.Equal(order, await page.Locator("#lmxNotes article").EvaluateAllAsync<string[]>("articles => articles.map(a => a.dataset.feedKey)"));
+            Assert.Equal(order, await page.Locator("#lmxNotes > article").EvaluateAllAsync<string[]>("articles => articles.map(a => a.dataset.feedKey)"));
             await Assertions.Expect(target).ToHaveCountAsync(1);
             await page.Locator("#lmxProfileTab").ClickAsync();
             await Assertions.Expect(target).ToHaveCountAsync(1);
@@ -400,7 +400,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         }
         await page.Locator("#lmxParticipantTabs").WaitForAsync();
         await page.Locator("#lmxCheckinTab").ClickAsync();
-        await page.Locator("#lmxNotes article").First.WaitForAsync();
+        await page.Locator("#lmxNotes > article").First.WaitForAsync();
         return page;
     }
 }

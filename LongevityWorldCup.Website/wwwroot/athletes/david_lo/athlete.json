@@ -36,5 +36,14 @@
   "Division": "Men's",
   "Flag": "United States",
   "Why": "I’m driven by the desire to stay young from the inside out. Not just looking younger, but feeling stronger, thinking clearer, moving better, and living with energy every day. Longevity is a journey of continuous learning, and I hope to inspire others to invest in their health before disease ever begins. ✨",
-  "PersonalLink": "https://www.instagram.com/davidlo91/"
+  "PersonalLink": "https://www.instagram.com/davidlo91/",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@davidlo91",
+      "EvidenceUrls": [
+        "https://www.instagram.com/davidlo91/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

@@ -38,5 +38,22 @@
   "Flag": "Corsica",
   "Why": "Pushing the limits of my body and mind",
   "PersonalLink": "http://www.instagram.com/valerieorsoni",
-  "PodcastLink": "https://youtu.be/ZQuOu-I9IPM"
+  "PodcastLink": "https://youtu.be/ZQuOu-I9IPM",
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/valerieorsoni",
+      "EvidenceUrls": [
+        "https://www.lebootcamp.com/fr/publicdownload/pdf/file/ChallengeBooster-v11512568135.pdf",
+        "https://x.com/valerieorsoni"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Threads": {
+      "Url": "https://www.threads.com/@valerieorsoni",
+      "EvidenceUrls": [
+        "https://www.instagram.com/valerieorsoni/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

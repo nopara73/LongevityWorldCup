@@ -39,49 +39,6 @@ body.play-flow-route > main {
     margin-bottom: 0;
 }
 
-@media (max-width: 768px) {
-    body.play-flow-route:not(.play-start-active) header {
-        padding-top: 0.7rem;
-        padding-bottom: 0.75rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .header-link > .main-logo-image {
-        width: clamp(42px, 12vw, 54px);
-        margin-bottom: 0.3rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .bannertext {
-        font-size: clamp(1.45rem, 6vw, 1.85rem);
-        line-height: 1.05;
-    }
-
-    body.play-flow-route:not(.play-start-active) .tagline {
-        display: none;
-    }
-}
-
-@media (min-width: 769px) {
-    body.play-flow-route:not(.play-start-active) header {
-        padding-top: 0.75rem;
-        padding-bottom: 0.85rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .header-link > .main-logo-image {
-        width: clamp(54px, 5vw, 64px);
-        margin-bottom: 0.35rem;
-    }
-
-    body.play-flow-route:not(.play-start-active) .bannertext {
-        font-size: 1.9rem;
-        line-height: 1.04;
-    }
-
-    body.play-flow-route:not(.play-start-active) .tagline {
-        margin-top: 0.35rem;
-        font-size: 0.95rem;
-    }
-}
-
 .flow-action-dock-placeholder {
     width: min(100%, 408px);
     max-width: 408px;
@@ -115,9 +72,9 @@ body.play-flow-route > main {
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--dock-entering {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(0.55rem) !important;
+    /* Docking changes placement, not availability. Keep the commands inside
+       the bottom padding and usable while they settle into their final place. */
+    transform: translateY(6px) !important;
 }
 
 .flow-action-stack.flow-action-stack--docked .flow-action {
@@ -137,33 +94,45 @@ body.play-flow-route > main {
     padding-right: 1.25rem;
 }
 
+/* Back and the primary action follow their DOM order, including when text wraps. */
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action {
-    display: grid;
-    grid-template-columns: minmax(5.5rem, 6.25rem) minmax(0, 1fr);
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: stretch;
     gap: 0.55rem;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .flow-action:not(.back-button) {
-    grid-column: 2;
-    grid-row: 1;
-    width: 100%;
+    flex: 1 1 min-content;
+    overflow-wrap: break-word;
+    width: auto;
     max-width: none;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left {
-    grid-column: 1;
-    grid-row: 1;
-    width: 100%;
-    max-width: none;
+    flex: 0 0 auto;
+    order: -1;
+    width: auto;
+    min-width: 5.5rem;
+    max-width: 100%;
     margin: 0;
-    padding-right: 0.65rem;
-    padding-left: 2rem;
+    padding-inline: 0.85rem;
+    gap: 0.5em;
 }
 
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left .flow-action__icon,
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left > i {
-    left: 0.75rem;
+    position: static;
+    width: auto;
+    transform: none;
+    flex: none;
+}
+
+.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button .flow-action__label {
+    flex: none;
+    width: auto;
+    white-space: nowrap;
 }
 
 body.bioage-result-ready .lwc-step-actions {
@@ -244,6 +213,44 @@ body.flow-input-keyboard-open::after {
     left: 1.35rem;
 }
 
+/* Inline desktop Back reads as one mark, like the join step's: the arrow sits
+   beside its label and the pair is centred, instead of the arrow stranded at
+   the button's far edge. */
+@media (min-width: 769px) {
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left {
+        gap: 0.5em;
+        padding-inline: 1.35rem !important;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left > i,
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left > .flow-action__icon {
+        position: static;
+        width: auto;
+        transform: none;
+        flex: none;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left .flow-action__label {
+        width: auto;
+        margin: 0;
+        /* Keep longer captions inside the control, including compact action rows. */
+        flex: 0 1 auto !important;
+        white-space: normal !important;
+    }
+
+    /* A lone Back is a compact control, not a full-width bar. */
+    .flow-action-stack:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left:only-child,
+    .flow-action-stack--single-back-action:not(.flow-action-stack--docked) > .option-button.flow-action.back-button.flow-action--icon-left {
+        /* Visible actions, rather than DOM child count, determine a lone Back.
+           These bounds also take precedence over the two-action row's sizing. */
+        flex: 0 1 auto !important;
+        width: min(100%, 11rem) !important;
+        max-width: 11rem !important;
+        margin-inline: auto !important;
+        align-self: center;
+    }
+}
+
 .option-button.flow-action.back-button,
 .option-button.flow-action.flow-action--secondary {
     background: var(--lwc-surface-muted, var(--surface-muted, #eef2f5));
@@ -265,6 +272,7 @@ body.flow-input-keyboard-open::after {
 .option-button.flow-action:disabled:hover {
     background: var(--lwc-surface-muted, #eef2f7) !important;
     border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
+    border-style: dashed !important;
     color: var(--lwc-muted, #526373);
     box-shadow: none !important;
     cursor: not-allowed;
@@ -274,7 +282,7 @@ body.flow-input-keyboard-open::after {
     user-select: none;
 }
 
-.flow-action-stack.flow-action-stack--hide-disabled-primary > .flow-action:disabled {
+.flow-action-stack.flow-action-stack--hide-disabled-primary > .flow-action:disabled:not([data-lwc-wait]):not([data-lwc-wait-end]) {
     display: none;
 }
 
@@ -320,7 +328,8 @@ body.flow-input-keyboard-open::after {
     .flow-action-stack.flow-action-stack--docked .flow-action {
         min-height: 48px;
         padding-block: 0.55rem;
-        padding-inline: 2.4rem;
+        /* Reserve the icon's space on its own side, leaving room for enlarged captions. */
+        padding-inline: 1rem 2.8rem;
         font-size: 0.95rem;
     }
 
@@ -332,6 +341,22 @@ body.flow-input-keyboard-open::after {
     .option-button.flow-action.flow-action--icon-left > i,
     .flow-action--icon-left .flow-action__icon {
         left: 1.2rem;
+    }
+}
+
+/* Native phone zoom can leave less than 200px of usable layout width. Give
+   the caption the whole line before placing its icon on the next one. */
+@media (max-width: 280px) {
+    .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action[data-flow-dock] > .flow-action:not(.back-button) {
+        flex-direction: column;
+        gap: 0.4em;
+        padding-inline: 0.75rem;
+    }
+
+    .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action[data-flow-dock] > .flow-action:not(.back-button) > :is(i, .flow-action__icon) {
+        position: static;
+        width: auto;
+        transform: none;
     }
 }
 
@@ -370,7 +395,7 @@ body.flow-input-keyboard-open::after {
 
     .flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action {
         display: grid;
-        grid-template-columns: minmax(8.75rem, 11rem) minmax(16rem, 19rem) minmax(8.75rem, 11rem);
+        grid-template-columns: minmax(0, 11rem) minmax(0, 19rem) minmax(0, 11rem);
         justify-content: center;
         gap: 0.75rem;
     }
@@ -415,5 +440,45 @@ body.flow-input-keyboard-open::after {
 @media (prefers-reduced-motion: reduce) {
     .flow-action-stack.flow-action-stack--docked {
         transition: none;
+    }
+}
+
+/* Only two-action steps use the compact desktop row. The dock script keeps
+   their DOM order aligned with Back on the left. Long labels can wrap the row. */
+@media (min-width: 769px) {
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .flow-action:not(.back-button) {
+        flex: 1 1 min-content;
+        overflow-wrap: break-word;
+        width: auto;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button.flow-action--icon-left {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: min(100%, 8.5rem);
+        max-width: 100%;
+        align-self: stretch;
+        padding-inline: 1.15rem;
+        gap: 0.5em;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button > i {
+        position: static;
+        width: auto;
+        transform: none;
+        flex: none;
+    }
+
+    .flow-action-stack:not(.flow-action-stack--docked):not(.flow-action-stack--hide-disabled-primary):has(> .flow-action:first-child + .flow-action:last-child):has(> .back-button.flow-action--icon-left) > .back-button .flow-action__label {
+        flex: none;
+        width: auto;
+        white-space: nowrap;
     }
 }

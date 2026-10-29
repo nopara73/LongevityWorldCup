@@ -62,5 +62,15 @@
   "Why": "Beating personal bests, breaking barriers, and taking on new challenges",
   "PersonalLink": "https://www.instagram.com/thepescatarianyogi",
   "PodcastLink": "https://youtu.be/4hFzzMfV2To",
-  "DisplayName": null
+  "DisplayName": null,
+  "SocialProfiles": {
+    "LinkedIn": {
+      "Url": "https://www.linkedin.com/in/melodychong",
+      "EvidenceUrls": [
+        "https://sg.linkedin.com/in/melodychong",
+        "https://youtu.be/4hFzzMfV2To"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

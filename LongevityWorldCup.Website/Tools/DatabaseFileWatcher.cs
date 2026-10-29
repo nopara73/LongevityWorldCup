@@ -41,6 +41,7 @@ public sealed class DatabaseFileWatcher : IDisposable
     private long _lastJournalLength;
 
     private int _scheduled;
+    private int _firing;
     private int _disposed;
 
     public event Action? DatabaseChanged;
@@ -121,19 +122,41 @@ public sealed class DatabaseFileWatcher : IDisposable
     private void DebouncedFire()
     {
         if (Volatile.Read(ref _disposed) != 0) return;
-        if (Interlocked.Exchange(ref _scheduled, 0) == 0) return;
-
-        (_lastDbWriteUtc, _lastDbLength) = SafeGetWriteAndLength(_dbPath);
-        (_lastWalWriteUtc, _lastWalLength) = SafeGetWriteAndLength(_walPath);
-        (_lastShmWriteUtc, _lastShmLength) = SafeGetWriteAndLength(_shmPath);
-        (_lastJournalWriteUtc, _lastJournalLength) = SafeGetWriteAndLength(_journalPath);
+        // A timer can fire again while subscribers are still processing a change.
+        // Keep one pending signal instead of blocking another thread on their locks.
+        if (Interlocked.CompareExchange(ref _firing, 1, 0) != 0) return;
 
         try
         {
-            DatabaseChanged?.Invoke();
+            if (Volatile.Read(ref _disposed) != 0) return;
+            if (Interlocked.Exchange(ref _scheduled, 0) == 0) return;
+
+            (_lastDbWriteUtc, _lastDbLength) = SafeGetWriteAndLength(_dbPath);
+            (_lastWalWriteUtc, _lastWalLength) = SafeGetWriteAndLength(_walPath);
+            (_lastShmWriteUtc, _lastShmLength) = SafeGetWriteAndLength(_shmPath);
+            (_lastJournalWriteUtc, _lastJournalLength) = SafeGetWriteAndLength(_journalPath);
+
+            try
+            {
+                DatabaseChanged?.Invoke();
+            }
+            catch
+            {
+            }
         }
-        catch
+        finally
         {
+            Volatile.Write(ref _firing, 0);
+            if (Volatile.Read(ref _scheduled) != 0 && Volatile.Read(ref _disposed) == 0)
+            {
+                try
+                {
+                    _debounceTimer.Change(DebounceMs, Timeout.Infinite);
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
         }
     }
 

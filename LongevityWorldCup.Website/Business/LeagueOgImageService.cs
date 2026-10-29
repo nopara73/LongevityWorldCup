@@ -15,29 +15,21 @@ namespace LongevityWorldCup.Website.Business;
 
 public sealed class LeagueOgImageService
 {
-    private const int CanvasWidth = 1200;
-    private const int CanvasHeight = 630;
-    private const float HeaderX = 58f;
-    private const float LeagueTitleY = 74f;
-    private const float LeagueSubtitleY = 145f;
-    private static readonly Color LeagueTitleColor = Color.White;
-    private static readonly Color LeagueSubtitleColor = new(new Rgba32(255, 255, 255, 205));
+    private const float TitleY = 124f;
+    private const float RowX = ShareCardCanvas.Margin;
+    private const float RowWidth = ShareCardCanvas.Width - (ShareCardCanvas.Margin * 2f);
+    private const float RowHeight = 98f;
     private static readonly Color AccentColor = Color.ParseHex("#78DA3B");
-    private static readonly Color BackgroundTop = Color.ParseHex("#05080B");
-    private static readonly Color BackgroundBottom = Color.ParseHex("#15181B");
-    private static readonly Rgba32 RowFillColor = new(34, 42, 38, 255);
-    private static readonly Rgba32 RowStrokeColor = new(255, 255, 255, 26);
-    private static readonly Rgba32 RowShadowColor = new(0, 0, 0, 70);
-    private static readonly Color RowMutedTextColor = new(new Rgba32(255, 255, 255, 172));
+    private static readonly Color MutedNameColor = new(new Rgba32(255, 255, 255, 150));
     private static readonly Color GoldAccentColor = new(new Rgba32(230, 181, 55, 255));
     private static readonly Color SilverAccentColor = new(new Rgba32(196, 205, 209, 255));
     private static readonly Color BronzeAccentColor = new(new Rgba32(189, 103, 42, 255));
 
     private static readonly LeaderboardRow[] LeaderboardRows =
     [
-        new(1, 120f, 216f, 960f, 94f, 76, GoldAccentColor),
-        new(2, 120f, 326f, 870f, 86f, 68, SilverAccentColor),
-        new(3, 120f, 430f, 780f, 86f, 68, BronzeAccentColor)
+        new(1, RowX, 256f, RowWidth, RowHeight, 72, GoldAccentColor),
+        new(2, RowX, 368f, RowWidth, RowHeight, 72, SilverAccentColor),
+        new(3, RowX, 480f, RowWidth, RowHeight, 72, BronzeAccentColor)
     ];
 
     private static readonly IReadOnlyDictionary<string, string> LeagueDisplayNames =
@@ -61,14 +53,9 @@ public sealed class LeagueOgImageService
     private readonly AthleteDataService _athletes;
     private readonly ILogger<LeagueOgImageService> _log;
     private readonly string _logoPath;
-    private readonly string _boldFontPath;
-    private readonly string _regularFontPath;
+    private readonly ShareCardCanvas.Fonts _fonts;
     private readonly string _outputDir;
-    private readonly FontCollection _fonts = new();
     private readonly SemaphoreSlim _renderLock = new(1, 1);
-    private FontFamily _boldFamily;
-    private FontFamily _regularFamily;
-    private bool _fontsLoaded;
 
     public LeagueOgImageService(IWebHostEnvironment env, AthleteDataService athletes, ILogger<LeagueOgImageService> log)
     {
@@ -76,8 +63,7 @@ public sealed class LeagueOgImageService
         _athletes = athletes;
         _log = log;
         _logoPath = IOPath.Combine(_env.WebRootPath, "assets", "HdLogo.png");
-        _boldFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Bold.ttf");
-        _regularFontPath = IOPath.Combine(_env.WebRootPath, "assets", "fonts", "Poppins-Regular.ttf");
+        _fonts = ShareCardCanvas.GetFonts(_env.WebRootPath);
         _outputDir = IOPath.Combine(_env.WebRootPath, "generated", "og", "league");
     }
 
@@ -87,7 +73,10 @@ public sealed class LeagueOgImageService
         string DisplayName,
         IReadOnlyList<string> Top3Slugs,
         IReadOnlyList<string> Top3Names,
-        string Signature);
+        string Signature)
+    {
+        internal IReadOnlyList<string?>? ProfilePaths { get; init; }
+    }
 
     private readonly record struct LeaderboardRow(
         int Rank,
@@ -99,9 +88,7 @@ public sealed class LeagueOgImageService
         Color Accent);
 
     public bool IsConfigured =>
-        File.Exists(_logoPath) &&
-        File.Exists(_boldFontPath) &&
-        File.Exists(_regularFontPath);
+        File.Exists(_logoPath) && _fonts.Exist;
 
     public static bool TryNormalizeLeagueSlug(string? raw, out string slug)
     {
@@ -170,9 +157,12 @@ public sealed class LeagueOgImageService
             .Select(AthleteSlug.Normalize)
             .ToArray();
 
-        var top3Names = GetAthleteDisplayNames(top3Slugs);
+        var snapshot = _athletes.GetAthletesSnapshot();
+        var top3Names = GetAthleteDisplayNames(top3Slugs, snapshot);
+        var profileImageIds = GetProfileImageIds(top3Slugs, snapshot);
+        var profilePaths = top3Slugs.Select(slug => TryResolveProfilePath(slug, snapshot, out var path) ? path : null).ToArray();
         var displayName = LeagueDisplayNames[normalized];
-        var signature = ComputeSignature(normalized, displayName, top3Slugs);
+        var signature = ComputeSignature(normalized, displayName, top3Slugs, top3Names, profileImageIds, profilePaths);
 
         payload = new LeagueOgPayload(
             InternalSlug: normalized,
@@ -180,7 +170,7 @@ public sealed class LeagueOgImageService
             DisplayName: displayName,
             Top3Slugs: top3Slugs,
             Top3Names: top3Names,
-            Signature: signature);
+            Signature: signature) { ProfilePaths = profilePaths };
         return true;
     }
 
@@ -233,90 +223,45 @@ public sealed class LeagueOgImageService
 
     private async Task RenderImageAsync(LeagueOgPayload payload, string outputPath, CancellationToken ct)
     {
-        using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
-        DrawBackground(image);
+        using var image = new Image<Rgba32>(ShareCardCanvas.Width, ShareCardCanvas.Height);
+        ShareCardCanvas.DrawBackground(image, AccentColor);
+        await ShareCardCanvas.DrawMastheadAsync(image, _logoPath, _fonts, caption: null, AccentColor, _log, ct);
 
-        var fonts = GetFontFamilies();
-        await DrawBrandAsync(image, fonts.Bold, ct);
-        await DrawLeaderboardRowsAsync(image, payload, fonts.Bold, ct);
-
-        var titleFont = ImageTextLayout.FitFontToWidth(fonts.Bold, payload.DisplayName, 56f, 38f, 800f, sizeStep: 1f);
-        var subtitleFont = fonts.Regular.CreateFont(24f, FontStyle.Regular);
         var title = payload.DisplayName;
         var subtitle = payload.Top3Names.Count == 0 ? "Rankings opening soon" : "Current top longevity athletes";
+        var subtitleFont = _fonts.Regular.CreateFont(26f, FontStyle.Regular);
+        var subtitleWidth = TextMeasurer.MeasureSize(subtitle, new RichTextOptions(subtitleFont)).Width;
+        var titleWidth = RowWidth - subtitleWidth - 32f;
+        var titleFont = ImageTextLayout.FitFontToWidth(_fonts.Bold, title, 62f, 32f, titleWidth, sizeStep: 1f);
+        title = ImageTextLayout.EllipsizeToWidth(title, titleFont, titleWidth);
+        var titleCenterY = TitleY + 34f;
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(120, 218, 59, 220), new RectangularPolygon(506f, LeagueSubtitleY + 41f, 188f, 5f));
-            DrawTextShadow(ctx, title, titleFont, new PointF(CanvasWidth / 2f, LeagueTitleY), HorizontalAlignment.Center, 3f);
-            ctx.DrawText(new RichTextOptions(titleFont)
-            {
-                Origin = new PointF(CanvasWidth / 2f, LeagueTitleY),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, title, LeagueTitleColor);
-
+            ShareCardCanvas.DrawLines(ctx, _fonts, [title], titleFont, ShareCardCanvas.Ink, RowX, ShareCardCanvas.CenterTextY(title, titleFont, titleCenterY), 0f);
             ctx.DrawText(new RichTextOptions(subtitleFont)
             {
-                Origin = new PointF(CanvasWidth / 2f, LeagueSubtitleY),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            }, subtitle, LeagueSubtitleColor);
-        });
-
-        await image.SaveAsPngAsync(outputPath, ct);
-    }
-
-    private async Task DrawBrandAsync(Image<Rgba32> image, FontFamily boldFamily, CancellationToken ct)
-    {
-        var brandFont = boldFamily.CreateFont(21f, FontStyle.Bold);
-
-        try
-        {
-            using var logo = await ImageLogo.LoadMarkAsync(_logoPath, ct);
-            using var smallLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
-            {
-                Size = new Size(54, 54),
-                Mode = ResizeMode.Max
-            }));
-            using var backgroundLogo = logo.Clone(ctx => ctx.Resize(new ResizeOptions
-            {
-                Size = new Size(430, 430),
-                Mode = ResizeMode.Max
-            }));
-
-            image.Mutate(ctx =>
-            {
-                ctx.DrawImage(backgroundLogo, new Point(807, 64), 0.016f);
-                ctx.DrawImage(smallLogo, new Point((int)HeaderX, 36), 0.96f);
-            });
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "Failed to draw league OG logo.");
-        }
-
-        image.Mutate(ctx =>
-        {
-            ctx.DrawText(new RichTextOptions(brandFont)
-            {
-                Origin = new PointF(HeaderX + 68f, 39f),
+                Origin = new PointF(RowX + RowWidth - subtitleWidth, ShareCardCanvas.CenterTextY(subtitle, subtitleFont, titleCenterY + 6f)),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
-            }, "LONGEVITY\nWORLD CUP", LeagueTitleColor);
+            }, subtitle, ShareCardCanvas.MutedInk);
+            ctx.Fill(ShareCardCanvas.WithAlpha(AccentColor, 230), new RectangularPolygon(RowX, TitleY + 88f, 120f, 6f));
         });
-    }
 
-    private async Task DrawLeaderboardRowsAsync(Image<Rgba32> image, LeagueOgPayload payload, FontFamily boldFamily, CancellationToken ct)
-    {
         for (var i = 0; i < LeaderboardRows.Length; i++)
         {
             var row = LeaderboardRows[i];
             var hasAthlete = i < payload.Top3Slugs.Count;
             var slug = hasAthlete ? payload.Top3Slugs[i] : "";
             var name = hasAthlete && i < payload.Top3Names.Count ? payload.Top3Names[i] : "OPEN";
-            await DrawLeaderboardRowAsync(image, row, slug, name, boldFamily, ct);
+            var profilePath = payload.ProfilePaths is { } captured
+                ? (i < captured.Count ? captured[i] : null)
+                : (TryResolveProfilePath(slug, _athletes.GetAthletesSnapshot(), out var currentPath) ? currentPath : null);
+            await DrawLeaderboardRowAsync(image, row, slug, name, profilePath, ct);
         }
+
+        ShareCardCanvas.DrawAccentBar(image, AccentColor);
+        await image.SaveAsPngAsync(outputPath, ct);
     }
 
     private async Task DrawLeaderboardRowAsync(
@@ -324,42 +269,37 @@ public sealed class LeagueOgImageService
         LeaderboardRow row,
         string athleteSlug,
         string displayName,
-        FontFamily boldFamily,
+        string? profilePath,
         CancellationToken ct)
     {
-        DrawRowPanel(image, row);
+        image.Mutate(ctx =>
+        {
+            ShareCardCanvas.DrawPanel(ctx, row.X, row.Y, row.Width, row.Height);
+            ctx.Fill(ShareCardCanvas.WithAlpha(row.Accent, 240), ShareCardCanvas.RoundedRect(row.X, row.Y, 8f, row.Height, 4f));
+        });
 
-        var profilePath = "";
-        var hasPortrait = !string.IsNullOrWhiteSpace(athleteSlug) && TryResolveProfilePath(athleteSlug, out profilePath);
-        if (hasPortrait)
+        var isOpen = string.IsNullOrWhiteSpace(athleteSlug);
+        var drewPhoto = false;
+        if (!isOpen && profilePath is not null)
         {
             try
             {
                 await DrawProfilePortraitAsync(image, profilePath, row, ct);
+                drewPhoto = true;
             }
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "Failed to render league top3 profile image for {AthleteSlug}: {Path}", athleteSlug, profilePath);
-                DrawOpenPortrait(image, row);
-                displayName = string.IsNullOrWhiteSpace(displayName) ? "OPEN" : displayName;
             }
         }
-        else
-        {
-            DrawOpenPortrait(image, row);
-            displayName = "OPEN";
-        }
 
-        DrawRowText(image, row, displayName, boldFamily);
+        if (!drewPhoto)
+            DrawOpenPortrait(image, row, isOpen ? null : displayName);
+
+        DrawRowText(image, row, isOpen ? "OPEN" : displayName, isOpen);
     }
 
-    private static void DrawRowPanel(Image<Rgba32> image, LeaderboardRow row)
-    {
-        FillRectangleLayer(image, RowShadowColor, row.X + 6f, row.Y + 8f, row.Width, row.Height);
-        FillRectangleLayer(image, RowStrokeColor, row.X, row.Y, row.Width, row.Height);
-        FillRectangleLayer(image, RowFillColor, row.X + 1f, row.Y + 1f, row.Width - 2f, row.Height - 2f);
-        FillRectangleLayer(image, ToRgba(row.Accent, 238), row.X + 12f, row.Y + 16f, 7f, row.Height - 32f);
-    }
+    private static PointF PortraitCenter(LeaderboardRow row) => new(row.X + 156f, row.Y + (row.Height / 2f));
 
     private async Task DrawProfilePortraitAsync(Image<Rgba32> image, string profilePath, LeaderboardRow row, CancellationToken ct)
     {
@@ -374,197 +314,79 @@ public sealed class LeagueOgImageService
         }).Brightness(1.08f).Contrast(1.06f).Saturate(1.05f));
         ImageMasks.MakeCircular(profile);
 
-        var portraitX = (int)MathF.Round(row.X + 34f);
-        var portraitY = (int)MathF.Round(row.Y + ((row.Height - size) / 2f));
-        var centerX = portraitX + (size / 2f);
-        var centerY = portraitY + (size / 2f);
-
+        var center = PortraitCenter(row);
         image.Mutate(ctx =>
         {
-            ctx.SetGraphicsOptions(new GraphicsOptions
-            {
-                Antialias = true,
-                AntialiasSubpixelDepth = 16
-            });
-            ctx.Fill(new Rgba32(0, 0, 0, 128), new EllipsePolygon(centerX + 5f, centerY + 7f, (size / 2f) + 6f));
-            ctx.Fill(new Rgba32(255, 255, 255, 16), new EllipsePolygon(centerX, centerY, (size / 2f) + 8f));
-            ctx.Draw(ToRgba(row.Accent, 236), 4f, new EllipsePolygon(centerX, centerY, (size / 2f) + 2.5f));
-            ctx.DrawImage(profile, new Point(portraitX, portraitY), 1f);
-            ctx.Draw(new Rgba32(255, 255, 255, 70), 1.4f, new EllipsePolygon(centerX, centerY, (size / 2f) - 1f));
+            ShareCardCanvas.DrawPortraitRing(ctx, center.X, center.Y, size / 2f, row.Accent, 4f);
+            ctx.DrawImage(profile, new Point((int)MathF.Round(center.X - (size / 2f)), (int)MathF.Round(center.Y - (size / 2f))), 1f);
+            ctx.Draw(new Rgba32(255, 255, 255, 70), 1.4f, new EllipsePolygon(center.X, center.Y, (size / 2f) - 1f));
         });
     }
 
-    private static void DrawOpenPortrait(Image<Rgba32> image, LeaderboardRow row)
+    private void DrawOpenPortrait(Image<Rgba32> image, LeaderboardRow row, string? athleteName)
     {
-        var size = row.PortraitSize;
-        var portraitX = row.X + 34f;
-        var portraitY = row.Y + ((row.Height - size) / 2f);
-        var centerX = portraitX + (size / 2f);
-        var centerY = portraitY + (size / 2f);
-
+        var center = PortraitCenter(row);
+        var radius = row.PortraitSize / 2f;
         image.Mutate(ctx =>
         {
-            ctx.SetGraphicsOptions(new GraphicsOptions
+            if (athleteName is null)
             {
-                Antialias = true,
-                AntialiasSubpixelDepth = 16
-            });
-            ctx.Fill(new Rgba32(0, 0, 0, 122), new EllipsePolygon(centerX + 5f, centerY + 7f, (size / 2f) + 6f));
-            ctx.Fill(new Rgba32(12, 15, 18, 225), new EllipsePolygon(centerX, centerY, size / 2f));
-            ctx.Draw(ToRgba(row.Accent, 220), 3.5f, new EllipsePolygon(centerX, centerY, (size / 2f) + 1.5f));
-            ctx.Draw(new Rgba32(255, 255, 255, 54), 1.2f, new EllipsePolygon(centerX, centerY, (size / 2f) - 7f));
+                ctx.Fill(new Rgba32(12, 15, 18, 235), new EllipsePolygon(center.X, center.Y, radius));
+                ctx.Draw(ShareCardCanvas.WithAlpha(row.Accent, 200), 3f, new EllipsePolygon(center.X, center.Y, radius + 1.5f));
+                ctx.Draw(new Rgba32(255, 255, 255, 46), 1.2f, new EllipsePolygon(center.X, center.Y, radius - 8f));
+                return;
+            }
+
+            ShareCardCanvas.DrawPortraitRing(ctx, center.X, center.Y, radius, row.Accent, 4f);
+            ShareCardCanvas.DrawMonogramDisc(ctx, _fonts, athleteName, center.X, center.Y, radius, row.Accent);
         });
     }
 
-    private static void DrawRowText(Image<Rgba32> image, LeaderboardRow row, string displayName, FontFamily boldFamily)
+    private void DrawRowText(Image<Rgba32> image, LeaderboardRow row, string displayName, bool isOpen)
     {
+        const float nameOffset = 228f;
         var rankText = "#" + row.Rank.ToString(CultureInfo.InvariantCulture);
-        var rankFont = boldFamily.CreateFont(row.Rank == 1 ? 27f : 25f, FontStyle.Bold);
-        var nameFont = ImageTextLayout.FitFontToWidth(boldFamily, displayName, row.Rank == 1 ? 34f : 31f, 22f, row.Width - 286f, sizeStep: 1f);
+        var rankFont = _fonts.Display.CreateFont(38f, FontStyle.Bold);
+        var maxNameWidth = row.Width - nameOffset - 40f;
+        var nameFont = ImageTextLayout.FitFontToWidth(_fonts.Bold, displayName, 42f, 26f, maxNameWidth, sizeStep: 1f, fallbackFonts: _fonts.Fallbacks);
+        var name = ImageTextLayout.EllipsizeToWidth(displayName, nameFont, maxNameWidth, _fonts.Fallbacks);
         var centerY = row.Y + (row.Height / 2f);
-        var rankX = row.X + 132f;
-        var nameX = row.X + 206f;
-        var rankY = CenterTextY(rankText, rankFont, centerY);
-        var nameY = CenterTextY(displayName, nameFont, centerY);
-        var nameColor = string.Equals(displayName, "OPEN", StringComparison.OrdinalIgnoreCase)
-            ? RowMutedTextColor
-            : LeagueTitleColor;
 
         image.Mutate(ctx =>
         {
-            DrawTextShadow(ctx, displayName, nameFont, new PointF(nameX, nameY), HorizontalAlignment.Left, 2.5f);
             ctx.DrawText(new RichTextOptions(rankFont)
             {
-                Origin = new PointF(rankX, rankY),
+                Origin = new PointF(row.X + 34f, ShareCardCanvas.CenterTextY(rankText, rankFont, centerY)),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
-            }, rankText, ToRgba(row.Accent, 245));
-            ctx.DrawText(new RichTextOptions(nameFont)
-            {
-                Origin = new PointF(nameX, nameY),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, displayName, nameColor);
+            }, rankText, ShareCardCanvas.WithAlpha(row.Accent, 245));
+            ShareCardCanvas.DrawLines(ctx, _fonts, [name], nameFont, isOpen ? MutedNameColor : ShareCardCanvas.Ink, row.X + nameOffset, ShareCardCanvas.CenterTextY(name, nameFont, centerY, _fonts), 0f);
         });
     }
 
-    private static void DrawBackground(Image<Rgba32> image)
-    {
-        var top = BackgroundTop.ToPixel<Rgba32>();
-        var bottom = BackgroundBottom.ToPixel<Rgba32>();
-        var accent = AccentColor.ToPixel<Rgba32>();
-
-        image.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                var vertical = y / (float)(accessor.Height - 1);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var horizontal = x / (float)(row.Length - 1);
-                    var baseR = Lerp(top.R, bottom.R, vertical);
-                    var baseG = Lerp(top.G, bottom.G, vertical);
-                    var baseB = Lerp(top.B, bottom.B, vertical);
-                    var edgeLight = MathF.Max(0f, 1f - MathF.Sqrt(MathF.Pow((horizontal - 0.76f) / 0.52f, 2f) + MathF.Pow((vertical - 0.23f) / 0.68f, 2f)));
-                    var laneLight = MathF.Max(0f, 1f - MathF.Abs((horizontal + vertical * 0.34f) - 0.38f) / 0.08f) * 0.16f;
-                    var rowLight = MathF.Max(0f, 1f - MathF.Abs(vertical - 0.58f) / 0.35f) * 0.035f;
-                    var accentLight = MathF.Min(0.22f, edgeLight * 0.17f + laneLight + rowLight);
-
-                    row[x] = new Rgba32(
-                        (byte)Math.Clamp(baseR + (accent.R * accentLight), 0, 255),
-                        (byte)Math.Clamp(baseG + (accent.G * accentLight), 0, 255),
-                        (byte)Math.Clamp(baseB + (accent.B * accentLight), 0, 255),
-                        255);
-                }
-            }
-        });
-
-        image.Mutate(ctx =>
-        {
-            ctx.Fill(new Rgba32(0, 0, 0, 72), new RectangularPolygon(0, 0, CanvasWidth, 72f));
-            ctx.Fill(new Rgba32(0, 0, 0, 76), new RectangularPolygon(0, CanvasHeight - 32f, CanvasWidth, 32f));
-        });
-    }
-
-    private (FontFamily Bold, FontFamily Regular) GetFontFamilies()
-    {
-        if (_fontsLoaded)
-            return (_boldFamily, _regularFamily);
-
-        _boldFamily = _fonts.Add(_boldFontPath);
-        _regularFamily = _fonts.Add(_regularFontPath);
-        _fontsLoaded = true;
-        return (_boldFamily, _regularFamily);
-    }
-
-    private static void FillRectangleLayer(Image<Rgba32> image, Rgba32 color, float x, float y, float width, float height)
-    {
-        if (color.A == 0)
-            return;
-
-        using var layer = new Image<Rgba32>(CanvasWidth, CanvasHeight, Color.Transparent);
-        layer.Mutate(ctx => ctx.Fill(new Rgba32(color.R, color.G, color.B, 255), new RectangularPolygon(x, y, width, height)));
-        image.Mutate(ctx => ctx.DrawImage(layer, new Point(0, 0), color.A / 255f));
-    }
-
-    private static void DrawTextShadow(
-        IImageProcessingContext ctx,
-        string text,
-        Font font,
-        PointF origin,
-        HorizontalAlignment alignment,
-        float offset)
-    {
-        ctx.DrawText(new RichTextOptions(font)
-        {
-            Origin = new PointF(origin.X + offset, origin.Y + offset),
-            HorizontalAlignment = alignment,
-            VerticalAlignment = VerticalAlignment.Top
-        }, text, new Rgba32(0, 0, 0, 150));
-    }
-
-    private static float CenterTextY(string text, Font font, float centerY)
-    {
-        var measurement = TextMeasurer.MeasureSize(text, new RichTextOptions(font));
-        return centerY - (measurement.Height / 2f) - 1f;
-    }
-
-    private static Rgba32 ToRgba(Color color, byte alpha)
-    {
-        var pixel = color.ToPixel<Rgba32>();
-        return new Rgba32(pixel.R, pixel.G, pixel.B, alpha);
-    }
-
-    private static float Lerp(float start, float end, float amount)
-    {
-        return start + ((end - start) * amount);
-    }
-
-    private string ComputeSignature(string leagueSlug, string leagueDisplayName, IReadOnlyList<string> top3Slugs)
+    private string ComputeSignature(string leagueSlug, string leagueDisplayName, IReadOnlyList<string> top3Slugs,
+        IReadOnlyList<string> top3Names, IReadOnlyList<string> profileImageIds, IReadOnlyList<string?> profilePaths)
     {
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
-        var boldFontTicks = File.Exists(_boldFontPath) ? File.GetLastWriteTimeUtc(_boldFontPath).Ticks : 0L;
-        var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
-        var top3ProfileImageIds = GetProfileImageIds(top3Slugs);
 
         var raw = string.Join("|",
-            "league-og-v36",
+            "league-og-v41",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
-            string.Join(",", top3ProfileImageIds),
+            string.Join("\n", top3Names),
+            string.Join(",", profileImageIds),
+            string.Join(",", profilePaths.Select(path => path is null ? "" : IOPath.GetRelativePath(_env.WebRootPath, path).Replace('\\', '/'))),
+            string.Join(",", profilePaths.Select(ImageAssetRevision.ForFile)),
             logoTicks.ToString(CultureInfo.InvariantCulture),
-            boldFontTicks.ToString(CultureInfo.InvariantCulture),
-            regularFontTicks.ToString(CultureInfo.InvariantCulture));
+            _fonts.Ticks);
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(bytes).ToLowerInvariant()[..12];
     }
 
-    private IReadOnlyList<string> GetProfileImageIds(IEnumerable<string> athleteSlugs)
+    private static IReadOnlyList<string> GetProfileImageIds(IEnumerable<string> athleteSlugs, JsonArray snapshot)
     {
-        var snapshot = _athletes.GetAthletesSnapshot();
         var bySlug = snapshot
             .OfType<JsonObject>()
             .Select(o => new
@@ -584,14 +406,13 @@ public sealed class LeagueOgImageService
             .ToArray();
     }
 
-    private bool TryResolveProfilePath(string athleteSlug, out string fullPath)
+    private bool TryResolveProfilePath(string athleteSlug, JsonArray snapshot, out string fullPath)
     {
         fullPath = "";
         if (string.IsNullOrWhiteSpace(athleteSlug))
             return false;
 
         var normalizedSlug = AthleteSlug.Normalize(athleteSlug);
-        var snapshot = _athletes.GetAthletesSnapshot();
         var athlete = snapshot
             .OfType<JsonObject>()
             .FirstOrDefault(o =>
@@ -640,9 +461,8 @@ public sealed class LeagueOgImageService
         return true;
     }
 
-    private IReadOnlyList<string> GetAthleteDisplayNames(IEnumerable<string> top3Slugs)
+    private static IReadOnlyList<string> GetAthleteDisplayNames(IEnumerable<string> top3Slugs, JsonArray snapshot)
     {
-        var snapshot = _athletes.GetAthletesSnapshot();
         var bySlug = snapshot
             .OfType<JsonObject>()
             .Select(o => new

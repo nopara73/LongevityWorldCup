@@ -17,7 +17,8 @@ public sealed class SiteStatisticsDashboardPageTests(TestWebApplicationFactory s
         Assert.Contains("/js/site-statistics.js?v=", html);
         Assert.Contains("trafficOverview", html);
         Assert.Contains("<span>Timeframe</span>", html);
-        Assert.Contains("<option value=\"90d\">Last 90 days</option>", html);
+        Assert.Contains("<option value=\"90d\" selected>Last 90 days</option>", html);
+        Assert.DoesNotContain("<option value=\"30d\" selected", html);
         Assert.Contains("<option value=\"alltime\">All-time</option>", html);
         Assert.Contains("Decision Brief", html);
         Assert.Contains("Recommended Investigations", html);

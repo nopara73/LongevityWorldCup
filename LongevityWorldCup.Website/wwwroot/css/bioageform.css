@@ -1,8 +1,19 @@
+/*
+ * The calculator is one instrument: a card whose top band carries the step
+ * track, whose sections are full-width field rows, and whose footer band holds
+ * the actions. Bands bleed to the card edge through --bioage-pad-x/-y.
+ */
 .bioageform {
-    width: min(100%, 600px);
-    max-width: calc(100vw - 2rem);
+    --bioage-card-width: 600px;
+    --bioage-card-max-width: calc(100vw - 2rem);
+    --bioage-pad-x: var(--lwc-space-5, 1.5rem);
+    --bioage-pad-y: var(--lwc-space-5, 1.5rem);
+    --bioage-band: var(--lwc-surface-muted, #eef2f5);
+    --bioage-hairline: var(--lwc-border, #d7e0e6);
+    width: min(100%, var(--bioage-card-width));
+    max-width: var(--bioage-card-max-width);
     margin: 2rem auto;
-    padding: var(--lwc-space-5, 1.5rem);
+    padding: var(--bioage-pad-y) var(--bioage-pad-x);
     border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
     background-color: var(--lwc-surface, #ffffff);
     color: var(--lwc-ink, #243447);
@@ -21,35 +32,42 @@
     container: bioage-form / inline-size;
 }
 
+/* Top band: the two steps read as one segmented track across the card. */
 .bioageform .lwc-wizard-nav {
-    display: flex;
-    justify-content: center;
-    gap: 0;
-    margin: -0.25rem 0 0.25rem;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--lwc-space-2, 0.5rem);
+    margin: calc(-1 * var(--bioage-pad-y)) calc(-1 * var(--bioage-pad-x)) 0;
+    padding: 0 var(--bioage-pad-x);
+    border-bottom: 1px solid var(--bioage-hairline);
+    border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+    background: var(--bioage-band);
     user-select: none;
 }
 
 .bioageform .lwc-dot {
-    width: 44px;
+    width: 100%;
+    min-width: 0;
     height: 44px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    justify-content: center;
     box-sizing: border-box;
-    border-radius: 50%;
+    border-radius: var(--lwc-radius-sm, 4px);
     border: 0;
     background: transparent;
 }
 
 .bioageform .lwc-dot::before {
     content: "";
-    width: 8px;
-    height: 8px;
+    width: 100%;
+    height: 6px;
     box-sizing: border-box;
     border-radius: 999px;
     border: 0;
-    background: var(--lwc-border-strong, #71808d);
-    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    background-color: var(--lwc-border-strong, #71808d);
+    background-repeat: no-repeat;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-size var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -58,7 +76,7 @@
     }
 
     .bioageform .lwc-dot:not(.lwc-dot--on):hover::before {
-        background: var(--lwc-muted, #526373);
+        background-color: var(--lwc-muted, #526373);
     }
 }
 
@@ -67,20 +85,27 @@
     pointer-events: none;
 }
 
-/* Only the pill marks the current step, rather than the shared disabled surface. */
+/* Only the track marks the current step, rather than the shared disabled surface. */
 html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     border: 0;
     background: transparent;
 }
 
-.bioageform .lwc-dot.lwc-dot--on::before {
-    width: 24px;
-    background: var(--lwc-accent, #087685);
+.bioageform .lwc-dot.lwc-dot--on::before,
+.bioageform #lwcDot1:not(.lwc-dot--on)::before {
+    background-color: var(--lwc-accent, #087685);
+}
+
+/* On the biomarker step its segment fills as the panel is entered. */
+.bioageform.bioage-biomarker-entry-ready #lwcDot2.lwc-dot--on::before {
+    background-color: var(--lwc-border-strong, #71808d);
+    background-image: linear-gradient(var(--lwc-accent, #087685), var(--lwc-accent, #087685));
+    background-size: var(--bioage-entry-progress, 0%) 100%;
 }
 
 .bioageform .lwc-dot:focus-visible {
     outline: 3px solid var(--lwc-accent-bright, #19c3d1);
-    outline-offset: -6px;
+    outline-offset: -4px;
     box-shadow: none;
 }
 
@@ -473,10 +498,13 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 /* Responsive adjustments */
 @media (max-width: 600px), (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
     .bioageform {
+        --bioage-card-width: 100%;
+        --bioage-card-max-width: calc(100vw - 1.5rem);
         width: 100%;
-        max-width: calc(100vw - 1.5rem);
+        max-width: var(--bioage-card-max-width);
         margin: var(--lwc-space-2) auto;
-        padding: var(--lwc-space-4, 1rem);
+        --bioage-pad-x: var(--lwc-space-4, 1rem);
+        --bioage-pad-y: var(--lwc-space-4, 1rem);
     }
 
     .bioageform #lwc-step-1.lwc-step--active > fieldset {
@@ -570,136 +598,189 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
         line-height: 1.5;
         white-space: nowrap;
     }
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset {
-        margin-top: var(--lwc-space-4, 1rem);
-        padding-inline: 0;
-    }
+/* Every biomarker is open at once, so the whole panel can be typed straight through.
+   Each domain is a section title over full-width rows divided by hairlines,
+   so the panel reads as one ruled sheet rather than cards inside a card. */
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset {
+    margin-top: var(--lwc-space-5, 1.5rem);
+    padding: 0;
+    border-top: 0;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset:not(:first-of-type) {
-        padding-top: var(--lwc-space-4, 1rem);
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 > fieldset > legend {
+    margin-bottom: var(--lwc-space-2, 0.5rem);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card {
-        margin-bottom: var(--lwc-space-3);
-        border-color: var(--lwc-border, rgba(148, 163, 184, 0.38));
-        border-radius: 8px;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card {
+    margin: 0 calc(-1 * var(--bioage-pad-x));
+    overflow: visible;
+    border: 0;
+    border-top: 1px solid var(--bioage-hairline);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-header {
-        min-height: 38px;
-        padding: var(--lwc-space-2) var(--lwc-space-3);
-        cursor: default !important;
-        pointer-events: none !important;
-        font-size: var(--lwc-type-sm);
-        line-height: 1.5;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card:last-child {
+    border-bottom: 1px solid var(--bioage-hairline);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .toggle-icon {
-        display: inline-flex !important;
-        flex: 0 0 1.35rem;
-        width: 1.35rem;
-        height: 1.35rem;
-        border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.38));
-        border-radius: 50%;
-        color: transparent;
-        background: var(--lwc-surface-muted, #f4f7f9);
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card:focus-within {
+    background: var(--lwc-surface-accent, #e7f7f8);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete {
-        border-color: var(--lwc-accent, var(--primary-color, #19c3d1));
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-header,
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-header {
+    justify-content: flex-start;
+    gap: 0.6rem;
+    min-height: 0;
+    padding: 0.8rem var(--bioage-pad-x) 0;
+    background: transparent;
+    color: var(--lwc-ink, #17212b);
+    cursor: default !important;
+    pointer-events: none !important;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete .toggle-icon {
-        border-color: var(--lwc-accent, var(--primary-color, #19c3d1));
-        background: var(--lwc-accent, var(--primary-color, #19c3d1));
-        color: var(--lwc-on-accent, #fff);
-        font-size: 0;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .toggle-icon {
+    display: inline-flex !important;
+    order: -1;
+    flex: 0 0 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    box-sizing: border-box;
+    border: 2px solid var(--bioage-hairline);
+    border-radius: 50%;
+    color: transparent;
+    background: transparent;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete .toggle-icon::before {
-        content: "✓";
-        font-size: 0.78rem;
-        font-weight: 900;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete {
+    box-shadow: inset 3px 0 0 var(--lwc-accent, #087685);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content {
-        max-height: none !important;
-        overflow: visible !important;
-        padding: 0.55rem 0.65rem 0.65rem !important;
-        border-top: 1px solid var(--lwc-border);
-        background: var(--lwc-surface);
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete .toggle-icon {
+    border-color: var(--lwc-accent, #087685);
+    background: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #fff);
+    font-size: 0;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
-        display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-        align-items: stretch;
-        gap: var(--lwc-space-2);
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete .toggle-icon::before {
+    content: "✓";
+    font-size: 0.72rem;
+    font-weight: 900;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input,
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
-        min-width: 0 !important;
-        width: 100% !important;
-        min-height: 46px;
-        margin: 0 !important;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card:has(input[aria-invalid="true"]) {
+    background: var(--lwc-danger-soft, #fdecef);
+    box-shadow: inset 3px 0 0 var(--lwc-danger, #b4233b);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input {
-        font-size: 1rem;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+    container: bioage-entry / inline-size;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0.5rem var(--bioage-pad-x) 0.8rem !important;
+    border: 0;
+    background: transparent;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
-        padding-left: 0.55rem;
-        padding-right: 1.6rem;
-        background-position: right 0.5rem center;
-        font-size: var(--lwc-type-sm);
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: var(--lwc-space-2);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group .bioage-fixed-unit-select {
-        display: none !important;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input,
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: 46px;
+    margin: 0 !important;
+    border-radius: var(--lwc-radius-md, 8px);
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .bioage-fixed-unit {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 0;
-        min-height: 46px;
-        padding: 0 0.65rem;
-        border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.38));
-        border-radius: var(--lwc-radius-md);
-        background: var(--lwc-surface-muted, #eef2f5);
-        color: var(--lwc-muted, #526373);
-        font-size: var(--lwc-type-sm);
-        font-weight: 700;
-        box-sizing: border-box;
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input {
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 input[data-bioage-complete="true"] {
-        border-color: var(--lwc-accent, var(--primary-color, #19c3d1));
-    }
+/* An entered value reads heavier than the example behind an empty field. */
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input:not(:placeholder-shown) {
+    font-weight: 700;
+}
 
-    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 input[aria-invalid="true"] {
-        border-color: var(--danger-color, #b4233b);
-        box-shadow: 0 0 0 3px rgba(180, 35, 59, 0.12);
-    }
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
+    padding-left: 0.65rem;
+    padding-right: 1.6rem;
+    background-position: right 0.55rem center;
+    font-size: var(--lwc-type-sm);
+}
 
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group .bioage-fixed-unit-select {
+    display: none !important;
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 .bioage-fixed-unit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 0;
+    min-height: 46px;
+    padding: 0 0.65rem;
+    border: 1px dashed var(--bioage-hairline);
+    border-radius: var(--lwc-radius-md);
+    background: transparent;
+    color: var(--lwc-muted, #526373);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    box-sizing: border-box;
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 input[data-bioage-complete="true"] {
+    border-color: var(--lwc-accent, var(--primary-color, #19c3d1));
+}
+
+.bioageform.bioage-biomarker-entry-ready #lwc-step-2 input[aria-invalid="true"] {
+    border-color: var(--danger-color, #b4233b);
+    box-shadow: 0 0 0 3px rgba(180, 35, 59, 0.12);
 }
 
 .bioage-fixed-unit {
     display: none;
 }
 
+/* Each value and unit gets at least nine rem before the pair stacks. */
+@container bioage-entry (max-width: 18.5rem) {
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* The count continues the top band, directly under the segment it fills. */
 .bioage-biomarker-progress {
-    margin: 0.4rem 0 0.7rem;
+    margin: 0 calc(-1 * var(--bioage-pad-x));
+    padding: 0 var(--bioage-pad-x) 0.6rem;
+    border-bottom: 1px solid var(--bioage-hairline);
+    background: var(--bioage-band);
     color: var(--lwc-muted, #526373);
     font-size: var(--lwc-type-sm);
     font-weight: 700;
-    text-align: center;
+    text-align: right;
     font-variant-numeric: tabular-nums;
     line-height: 1.5;
+}
+
+.bioageform:has(#lwc-step-2.lwc-step--active .bioage-biomarker-progress) .lwc-wizard-nav {
+    border-bottom-color: transparent;
 }
 
 .bioage-biomarker-progress--complete {
@@ -707,7 +788,7 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 .bioage-biomarker-error {
-    margin: 0.45rem 0 0;
+    margin: 0.4rem 0 0;
     color: var(--danger-color, #b4233b);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -716,6 +797,39 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 
 .bioageform .bioage-update-date-fieldset {
     margin-top: 0.75rem;
+}
+
+.bioageform .blood-draw-date-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.bioageform .blood-draw-date-control input {
+    grid-area: 1 / 1;
+    margin: 0;
+}
+
+.bioageform .blood-draw-relative-label {
+    grid-area: 1 / 1;
+    align-self: center;
+    justify-self: start;
+    margin-inline: calc(0.75rem + 1px) 2.75rem;
+    color: var(--lwc-ink, #243447);
+    font-size: 1rem;
+    line-height: 1.5;
+    pointer-events: none;
+}
+
+.bioageform .blood-draw-date-control.has-relative-date:not(:focus-within) input {
+    color: transparent;
+}
+
+.bioageform .blood-draw-date-control.has-relative-date:not(:focus-within) input::-webkit-datetime-edit {
+    color: transparent;
+}
+
+.bioageform .blood-draw-date-control:focus-within .blood-draw-relative-label {
+    display: none;
 }
 
 @media (max-width: 360px) {
@@ -728,11 +842,8 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
     .bioageform {
         margin: 0.8rem auto;
-        padding: 0.75rem;
-    }
-
-    .bioageform .lwc-wizard-nav {
-        margin: -0.35rem 0 0.05rem;
+        --bioage-pad-x: 0.75rem;
+        --bioage-pad-y: 0.75rem;
     }
 
     .bioageform .lwc-dot {
@@ -741,11 +852,15 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 @media (min-width: 960px) and (min-height: 640px) {
+    .bioageform {
+        --bioage-card-width: 760px;
+    }
+
     #phenoAgeForm,
     #bortzAgeForm {
-        width: min(100%, 760px);
+        width: min(100%, var(--bioage-card-width));
         margin: 1.25rem auto;
-        padding: var(--lwc-space-5, 1.5rem) var(--lwc-space-6, 2rem);
+        --bioage-pad-x: var(--lwc-space-6, 2rem);
     }
 }
 
@@ -757,11 +872,12 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 @media (min-width: 960px) and (min-height: 640px) {
+    /* Blood draw date shares the birth date's label and field rows, so every field lines up. */
     .bioageform #lwc-step-1.lwc-step--active {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.55fr);
         align-items: start;
-        gap: 1rem;
+        column-gap: 1rem;
     }
 
     .bioageform #lwc-step-1 > fieldset {
@@ -771,7 +887,47 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     }
 
     .bioageform #lwc-step-1 > fieldset:nth-of-type(2) {
-        align-self: start;
+        padding-top: calc(28px + 0.75rem + 0.35rem);
+    }
+
+    .bioageform #lwc-step-1 label,
+    .bioageform #lwc-step-1 > fieldset:nth-of-type(2) > legend {
+        line-height: 1.4;
+    }
+
+    /* Matches a birth date label plus the gap above its select. */
+    .bioageform #lwc-step-1 > fieldset:nth-of-type(2) > legend {
+        min-height: 0;
+        margin: 0.35rem 0 0.95rem;
+        font-size: 1rem;
+    }
+
+    /* Each biomarker is one row: its name on the left, value and unit on the right. */
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+        align-items: center;
+        min-height: 60px;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-header,
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-header {
+        padding: 0.6rem var(--lwc-space-4, 1rem) 0.6rem var(--bioage-pad-x);
+        font-size: 1rem;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0.5rem var(--bioage-pad-x) 0.5rem 0 !important;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input,
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select,
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .bioage-fixed-unit {
+        min-height: 44px;
     }
 
     .bioageform #dobFieldset {
@@ -829,14 +985,14 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     }
 
     .bioageform #lwc-step-1 .privacy-note {
-        margin-top: 0.25rem;
+        margin-top: 0.4rem;
         font-size: 0.9rem;
-        line-height: 1.22;
+        line-height: 1.45;
     }
 
     .bioageform #lwc-step-1 > .lwc-step-actions {
         grid-column: 1 / -1;
-        margin-top: 0.2rem;
+        margin-top: var(--lwc-space-4, 1rem);
     }
 }
 
@@ -845,9 +1001,62 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     .bioageform #lwc-step-1.lwc-step--active {
         display: block;
     }
+
+    /* Enlarged text: stack name over value rather than squeezing the name away. */
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card {
+        display: block;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-header,
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-header {
+        padding: 0.8rem var(--bioage-pad-x) 0;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+        padding: 0.5rem var(--bioage-pad-x) 0.8rem !important;
+    }
 }
 
 @container bioage-form (max-width: 15rem) {
+    /* Keep enlarged names and their status marks inside a narrow card. */
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-header {
+        display: block;
+        padding-inline: 8px;
+        overflow-wrap: anywhere;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .toggle-icon {
+        flex-basis: min(1.35rem, 24px);
+        width: min(1.35rem, 24px);
+        height: min(1.35rem, 24px);
+        margin-inline-start: 8px;
+        vertical-align: middle;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete .toggle-icon::before {
+        font-size: min(0.78rem, 18px);
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content {
+        padding-inline: 8px !important;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input,
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .bioage-fixed-unit {
+        padding-inline: 8px;
+    }
+
+    .bioageform.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
+        padding-inline: 6px 20px;
+        background-position: right 6px center;
+        background-size: 12px;
+    }
+
     .bioageform #lwc-step-1.lwc-step--active #dobFieldset {
         display: block;
         padding-inline: 0;
@@ -963,6 +1172,7 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 }
 
 .bioage-rank-preview {
+    container: bioage-rank / inline-size;
     width: 100%;
     margin-top: 1rem;
     padding: 0.85rem 0.8rem;
@@ -1018,6 +1228,12 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     font-size: 0.92rem;
     line-height: 1.5;
     font-weight: 400;
+}
+
+/* The global alert color is fixed to the light theme. Calculator errors must
+   stay readable on the invalid row's theme-aware surface. */
+:is(#phenoAgeForm, #bortzAgeForm) .bioage-biomarker-error {
+    color: var(--lwc-danger, #b4233b);
 }
 
 .bioage-rank-meta {
@@ -1161,8 +1377,15 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
 
 @media (max-width: 420px) {
     .bioageform {
-        max-width: calc(100vw - 1rem);
-        padding: var(--lwc-space-4, 1rem);
+        --bioage-card-max-width: calc(100vw - 1rem);
+        max-width: var(--bioage-card-max-width);
+        --bioage-pad-x: var(--lwc-space-4, 1rem);
+        --bioage-pad-y: var(--lwc-space-4, 1rem);
+    }
+
+    #phenoAgeForm,
+    #bortzAgeForm {
+        --bioage-pad-x: 0.75rem;
     }
 
     .bioageform fieldset {
@@ -1357,4 +1580,1320 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     outline-offset: 2px;
     border-radius: var(--lwc-radius-sm);
     text-decoration: underline;
+}
+
+/* Result scoreboard: the age and the reduction read as one result, aligned with the form card. */
+@media (max-width: 600px) {
+    body .phenoage-main,
+    body .bioage-main {
+        padding-inline: min(1rem, 16px);
+    }
+}
+
+body .lwc-steps-shell {
+    max-width: min(100%, 780px);
+}
+
+body #phenoAgeForm,
+body #bortzAgeForm,
+body #phenoAgeResult.show,
+body #bortzAgeResult.show {
+    width: min(100%, var(--bioage-card-width));
+    max-width: min(var(--bioage-card-max-width), 780px);
+}
+
+body #phenoAgeResult.show,
+body #bortzAgeResult.show {
+    --bioage-pad-x: clamp(1rem, 3vw, 2rem);
+    --bioage-pad-y: clamp(1rem, 3vw, 2rem);
+    padding: var(--bioage-pad-y) var(--bioage-pad-x);
+}
+
+body #validAgeInput {
+    container-type: inline-size;
+    width: 100%;
+    min-width: 0;
+}
+
+body #validAgeInput > div:first-child {
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+}
+
+body #validAgeInput .bio-age-number-container {
+    min-height: 0;
+    margin: 0;
+    padding: 0.25rem 0 0;
+}
+
+body #validAgeInput .bioage-result-value-stack {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body #validAgeInput #animatedAge,
+body #validAgeInput .bioage-result-visual {
+    font-size: min(clamp(4.5rem, 3rem + 6vw, 7.5rem), calc(150cqi / var(--bioage-result-characters, 6)));
+}
+
+body #validAgeInput #yearsText {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0.75rem auto 0;
+    padding: 0.45rem 1.1rem;
+    border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface-muted, #eef2f5);
+    color: var(--lwc-ink, #17212b);
+    font-size: clamp(1.1rem, 0.95rem + 0.6vw, 1.45rem);
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+body #validAgeInput + * {
+    margin-top: 1.25rem;
+}
+
+/* The rank is the second half of the result reveal, not a grey box inside it:
+   its label, place and field read like the age above them, and the nearby
+   athletes keep their scores beside their names when the content fits. */
+.bioage-rank-preview {
+    margin-top: 1.5rem;
+    padding: 1.25rem 0 0;
+    border: 0;
+    border-top: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
+    border-radius: 0;
+    background: transparent;
+}
+
+.bioage-rank-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    text-align: center;
+}
+
+.bioage-rank-copy {
+    display: contents;
+    text-align: center;
+}
+
+.bioage-rank-label {
+    order: 1;
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: var(--lwc-type-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.bioage-rank-number {
+    order: 2;
+    flex: 1 1 100%;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    font-size: clamp(2.75rem, 2rem + 3vw, 3.75rem);
+    line-height: 1;
+    overflow-wrap: anywhere;
+}
+
+.bioage-rank-meta {
+    order: 3;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.bioage-rank-percentile {
+    order: 4;
+    min-width: 0;
+    padding: 0.1rem 0.65rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.bioage-rank-neighbors {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin-top: 1.1rem;
+    border-top: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
+}
+
+.bioage-rank-row {
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 0.75rem;
+    min-height: 52px;
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
+    border-radius: 0;
+    font-size: var(--lwc-type-body, 1rem);
+}
+
+.bioage-rank-row.current {
+    box-shadow: inset 3px 0 0 var(--lwc-accent, #087f91);
+}
+
+.bioage-rank-row-place {
+    flex: 0 1 auto;
+    max-width: 100%;
+    color: var(--lwc-muted, #526373);
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.bioage-rank-row.current .bioage-rank-row-place {
+    color: inherit;
+}
+
+.bioage-rank-row-avatar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+}
+
+.bioage-rank-row-name {
+    flex: 1 1 min-content;
+    max-width: 100%;
+    overflow-wrap: break-word;
+}
+
+.bioage-rank-row-score {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+@container bioage-rank (max-width: 24rem) {
+    .bioage-rank-row {
+        gap: 0.55rem;
+        padding-inline: 0.5rem;
+    }
+
+    .bioage-rank-row-avatar {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+@media (max-width: 360px) {
+    body.bioage-result-ready #continueButton.flow-action {
+        padding-left: 0.5rem;
+    }
+}
+
+/* Native selects cannot wrap their selected option. Give full month names
+   more of the date row before stacking the controls on very narrow forms. */
+:is(#phenoAgeForm, #bortzAgeForm) fieldset#dobFieldset {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.8fr) minmax(0, 1fr);
+}
+
+@container bioage-form (max-width: 14em) {
+    :is(#phenoAgeForm, #bortzAgeForm) fieldset#dobFieldset > :is(label, select, #privacyNote) {
+        grid-column: 1 / -1;
+        grid-row: auto;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) fieldset#dobFieldset > select {
+        padding-inline: 6px 24px;
+        background-position: right 6px center;
+        background-size: 12px;
+    }
+}
+
+/*
+ * Calculator instrument (pheno and bortz only; the application form shares
+ * .bioageform and keeps its own look).
+ */
+:is(#phenoAgeForm, #bortzAgeForm) .lwc-step {
+    /* Full-width rows have no horizontal gutter to slide through. Keep the
+       opacity reveal without moving the sheet beyond the phone viewport. */
+    transform: none;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) legend {
+    min-height: 24px;
+    margin-bottom: var(--lwc-space-3, 0.75rem);
+    color: var(--lwc-muted, #52606d);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) legend .category-icon {
+    flex-basis: 24px;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--lwc-radius-sm, 4px);
+    font-size: 0.72rem;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:first-of-type {
+    margin-top: var(--lwc-space-5, 1.5rem);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 label {
+    color: var(--lwc-ink, #17212b);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 label span {
+    color: var(--lwc-muted, #52606d);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) :is(input, select) {
+    border-radius: var(--lwc-radius-md, 8px);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #privacyNote {
+    padding-left: var(--lwc-space-3, 0.75rem);
+    border-left: 2px solid var(--bioage-hairline);
+}
+
+/* Footer band: the step's actions close the card instead of floating in it. */
+:is(#phenoAgeForm, #bortzAgeForm) .lwc-step-actions {
+    box-sizing: border-box;
+    width: auto;
+    max-width: none;
+    margin: var(--lwc-space-6, 2rem) calc(-1 * var(--bioage-pad-x)) calc(-1 * var(--bioage-pad-y));
+    padding: var(--lwc-space-4, 1rem) max(var(--bioage-pad-x), calc((100% + 2 * var(--bioage-pad-x) - 408px) / 2));
+    border-top: 1px solid var(--bioage-hairline);
+    border-radius: 0 0 calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px);
+    background: var(--bioage-band);
+}
+
+@media (min-width: 960px) and (min-height: 640px) {
+    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > .lwc-step-actions {
+        margin-top: var(--lwc-space-6, 2rem);
+    }
+
+    /* Both section titles share a line, and the date field lines up with the
+       birth date selects below their labels. */
+    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) {
+        margin-top: var(--lwc-space-5, 1.5rem);
+        padding-top: 0;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) > legend {
+        min-height: 24px;
+        margin: 0 0 var(--lwc-space-3, 0.75rem);
+        font-size: 0.8rem;
+        line-height: 1.3;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 .blood-draw-date-control {
+        padding-top: calc(1.55rem + 0.95rem * 1.4 + 2px);
+    }
+}
+
+/* While the step actions ride in the dock, the card ends at its last field;
+   the space the dock covers is kept below the card instead of inside it.
+   Result actions keep their own placeholder outside the card. */
+:is(#phenoAgeForm, #bortzAgeForm) .flow-action-dock-placeholder {
+    height: 1px !important;
+    margin: 0;
+}
+
+html.flow-action-dock-active body:not(.bioage-result-ready) :is(.phenoage-main, .bioage-main) {
+    padding-bottom: var(--flow-action-dock-height, 0px);
+}
+
+/* Result readout: a band names the clock, a tinted field carries the age. */
+body :is(#phenoAgeResult, #bortzAgeResult).show {
+    --bioage-tone: var(--lwc-accent, #087685);
+    --bioage-tone-soft: var(--lwc-surface-accent, #e7f7f8);
+    margin-top: var(--lwc-space-4, 1rem);
+    border-top: 3px solid var(--bioage-tone);
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult).show:has(#animatedAge.age-excellent) {
+    --bioage-tone: var(--lwc-success, #1f7a38);
+    --bioage-tone-soft: var(--lwc-success-soft, #e7f5eb);
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult).show:has(#animatedAge.age-average) {
+    --bioage-tone: var(--lwc-warning, #9a6700);
+    --bioage-tone-soft: var(--lwc-warning-soft, #fff4d6);
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #validAgeInput {
+    width: auto;
+    align-self: stretch;
+    margin: calc(-1 * var(--bioage-pad-y)) calc(-1 * var(--bioage-pad-x)) 0;
+    padding: 0 var(--bioage-pad-x) var(--lwc-space-6, 2rem);
+    border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+    background:
+        radial-gradient(ellipse 60% 70% at 50% 58%, var(--bioage-tone-soft), transparent 72%),
+        var(--lwc-surface, #fff);
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #validAgeInput > div:first-child {
+    margin: 0 calc(-1 * var(--bioage-pad-x)) var(--lwc-space-2, 0.5rem);
+    padding: 0.7rem var(--bioage-pad-x);
+    border-bottom: 1px solid var(--bioage-hairline);
+    background: var(--bioage-band);
+    color: var(--lwc-muted, #52606d);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #animatedAge,
+body :is(#phenoAgeResult, #bortzAgeResult) .bioage-result-visual {
+    font-family: Orbitron, Roboto, sans-serif;
+    font-weight: 700;
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #yearsText {
+    border-color: color-mix(in srgb, var(--bioage-tone) 35%, transparent);
+    background: var(--lwc-surface, #fff);
+    color: var(--lwc-ink, #17212b);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #phenoAgeRow {
+    color: var(--lwc-muted, #52606d);
+    font-size: var(--lwc-type-body, 1rem);
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #validAgeInput + * {
+    margin-top: 0;
+}
+
+/* An impossible result replaces the readout with the warning itself. */
+body :is(#phenoAgeResult, #bortzAgeResult).show:has(#ensureCorrectInputSuggestion[style*="block"]) {
+    --bioage-tone: var(--lwc-danger, #b4233b);
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion {
+    align-self: stretch;
+    margin: calc(-1 * var(--bioage-pad-y)) calc(-1 * var(--bioage-pad-x));
+    padding: var(--lwc-space-5, 1.5rem) var(--bioage-pad-x);
+    border: 0;
+    border-radius: 0 0 calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px);
+    background: var(--lwc-danger-soft, #fdecef);
+    color: var(--lwc-ink, #17212b);
+    font-weight: 600;
+    text-align: center;
+}
+
+body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
+    margin-top: var(--lwc-space-2, 0.5rem);
+    color: var(--lwc-danger, #b4233b);
+    font-size: 1.25rem;
+}
+
+/* Rank: a band titles it, the place reads like a scoreboard mark, and the
+   neighbours are full-width rows like the biomarker sheet above. */
+.bioage-rank-preview {
+    width: auto;
+    align-self: stretch;
+    margin: 0 calc(-1 * var(--bioage-pad-x, 0px)) calc(-1 * var(--bioage-pad-y, 0px));
+    padding: 0;
+    border-top: 1px solid var(--bioage-hairline, var(--lwc-border));
+}
+
+.bioage-rank-preview .bioage-rank-summary {
+    gap: 0.25rem 0.6rem;
+    padding: 0 var(--bioage-pad-x, 0px) var(--lwc-space-4, 1rem);
+}
+
+.bioage-rank-preview .bioage-rank-label {
+    margin: 0 calc(-1 * var(--bioage-pad-x, 0px)) var(--lwc-space-3, 0.75rem);
+    padding: 0.7rem var(--bioage-pad-x, 0px);
+    border-bottom: 1px solid var(--bioage-hairline, var(--lwc-border));
+    background: var(--bioage-band, var(--lwc-surface-muted));
+    font-size: 0.8rem;
+}
+
+.bioage-rank-preview .bioage-rank-number {
+    color: var(--lwc-accent, #087685);
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: clamp(2.5rem, 2rem + 2.5vw, 3.25rem);
+    font-variant-numeric: tabular-nums;
+}
+
+.bioage-rank-preview .bioage-rank-neighbors {
+    margin-top: 0;
+    border-top: 1px solid var(--bioage-hairline, var(--lwc-border));
+}
+
+.bioage-rank-preview .bioage-rank-row {
+    padding-inline: var(--bioage-pad-x, 0.75rem);
+}
+
+.bioage-rank-preview .bioage-rank-row:last-child {
+    border-bottom: 0;
+    border-radius: 0 0 calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px);
+}
+
+.bioage-rank-preview .bioage-rank-row.current {
+    background: var(--lwc-surface-accent, #e7f7f8);
+    box-shadow: inset 4px 0 0 var(--lwc-accent, #087685);
+}
+
+.bioage-rank-preview .bioage-rank-row-place {
+    min-width: 3.25rem;
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: var(--lwc-type-sm, 0.875rem);
+    font-weight: 700;
+}
+
+.bioage-rank-preview .bioage-rank-row-score {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.bioage-rank-preview .bioage-rank-loading {
+    padding: var(--lwc-space-5, 1.5rem) var(--bioage-pad-x, 0px);
+    text-align: center;
+}
+
+.bioage-rank-preview .bioage-rank-error {
+    margin: var(--lwc-space-4, 1rem) var(--bioage-pad-x, 0px);
+}
+
+/*
+ * Calculator entry sheet. Every section opens with a band like the card's own
+ * header, so the form reads as one paced sheet: birth date, draw date, then
+ * each biomarker domain. On a phone the band of the section in hand stays in
+ * view, and its pips show which of its biomarkers still need a value.
+ */
+:is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset {
+    margin-top: var(--lwc-space-5, 1.5rem);
+    padding: 0;
+    border-top: 0;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset > legend {
+    position: sticky;
+    top: var(--bioage-band-top, 0px);
+    z-index: 2;
+    box-sizing: border-box;
+    width: calc(100% + 2 * var(--bioage-pad-x));
+    max-width: none;
+    min-height: 44px;
+    margin: 0 calc(-1 * var(--bioage-pad-x));
+    padding: 0.55rem var(--bioage-pad-x);
+    border-top: 1px solid var(--bioage-hairline);
+    border-bottom: 1px solid var(--bioage-hairline);
+    background: var(--bioage-band);
+    color: var(--lwc-ink, #17212b);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset > legend .category-icon {
+    flex-basis: 26px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 1px var(--bioage-hairline);
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-2 > fieldset.bioage-domain--complete > legend .category-icon {
+    background: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #fff);
+    box-shadow: none;
+}
+
+.bioage-domain-tally {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 5px;
+    margin-left: auto;
+    padding-left: var(--lwc-space-3, 0.75rem);
+}
+
+.bioage-domain-pip {
+    width: 9px;
+    height: 9px;
+    box-sizing: border-box;
+    border: 1.5px solid var(--lwc-muted, #52606d);
+    border-radius: 50%;
+    opacity: 0.55;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.bioage-domain-pip--complete {
+    border-color: var(--lwc-accent, #087685);
+    background: var(--lwc-accent, #087685);
+    opacity: 1;
+}
+
+.bioage-domain-pip--invalid {
+    border-color: var(--lwc-danger, #b4233b);
+    background: var(--lwc-danger, #b4233b);
+    opacity: 1;
+}
+
+/* Rows open straight under their band and the next band closes them, so the
+   domains run on as one ruled sheet. */
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 > fieldset > .biomarker-card:first-of-type {
+    border-top: 0;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 > fieldset + fieldset {
+    margin-top: 0;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 > fieldset:has(+ fieldset) > .biomarker-card:last-child {
+    border-bottom: 0;
+}
+
+/* Birth date and draw date follow the same band-then-fields rhythm. */
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
+    display: block;
+}
+
+/* On a desktop both sections share one band row, split by a rule, so the
+   whole step still fits above the actions on a laptop. */
+@media (min-width: 960px) and (min-height: 640px) {
+    /* Enlarged text keeps the stacked sections. */
+    @container bioage-form (width > 38rem) {
+        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.55fr);
+            align-items: start;
+            column-gap: 1rem;
+        }
+
+        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
+            margin-top: 0;
+        }
+
+        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset#dobFieldset > legend {
+            width: calc(100% + var(--bioage-pad-x) + 0.5rem);
+            margin-right: -0.5rem;
+            margin-left: calc(-1 * var(--bioage-pad-x));
+        }
+
+        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) > legend {
+            width: calc(100% + var(--bioage-pad-x) + 0.5rem);
+            margin-right: calc(-1 * var(--bioage-pad-x));
+            margin-left: -0.5rem;
+            padding-left: 0.5rem;
+            border-top: 0;
+            border-left: 1px solid var(--bioage-hairline);
+        }
+
+        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .blood-draw-date-control {
+            width: 100%;
+            padding-top: calc(0.95rem * 1.4 + 0.95rem);
+        }
+    }
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset:first-of-type {
+    margin-top: 0;
+}
+
+/* The first section band continues the card header band under its rule. */
+:is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset:first-of-type > legend {
+    border-top: 0;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) {
+    padding-top: 0;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) > legend {
+    min-height: 44px;
+    margin: 0 calc(-1 * var(--bioage-pad-x)) var(--lwc-space-4, 1rem);
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 .blood-draw-date-control {
+    padding-top: 0;
+}
+
+
+
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset {
+    column-gap: var(--lwc-space-2, 0.5rem);
+    row-gap: 0.35rem;
+    padding-inline: 0;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset > legend {
+    grid-column: 1 / -1;
+    margin-bottom: var(--lwc-space-3, 0.75rem);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset > label {
+    align-self: end;
+    margin-top: 0;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset > #privacyNote {
+    margin: var(--lwc-space-3, 0.75rem) 0 0;
+}
+
+/* Value and unit are one measurement: a single bordered field whose unit sits
+   in a tinted end cap, chosen there when a lab can report it more than one way. */
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 1fr) var(--bioage-unit-cap, 9.5rem);
+    gap: 0;
+    min-height: 46px;
+    overflow: hidden;
+    box-sizing: border-box;
+    border: 1px solid var(--lwc-input-border, var(--lwc-border-strong, var(--bioage-hairline)));
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface, #fff);
+    transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group:focus-within {
+    border-color: var(--lwc-accent, #087685);
+    box-shadow: 0 0 0 3px var(--lwc-focus-ring, color-mix(in srgb, var(--lwc-accent, #087685) 28%, transparent));
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card--complete .input-group {
+    border-color: var(--lwc-accent, #087685);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group:has(input[aria-invalid="true"]) {
+    border-color: var(--lwc-danger, #b4233b);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lwc-danger, #b4233b) 16%, transparent);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input,
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select,
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group .bioage-fixed-unit {
+    min-height: 44px;
+    height: 100%;
+    border: 0 !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    outline: none;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group input {
+    padding-inline: 0.8rem;
+    background: transparent;
+    font-size: 1.05rem;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select,
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group .bioage-fixed-unit {
+    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0 !important;
+    text-overflow: ellipsis;
+    border-left: 1px solid var(--bioage-hairline) !important;
+    background-color: var(--bioage-band);
+    color: var(--lwc-ink, #17212b);
+    font-size: var(--lwc-type-sm, 0.875rem);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group .bioage-fixed-unit {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.8rem;
+    color: var(--lwc-muted, #52606d);
+    cursor: default;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select:focus-visible {
+    background-color: var(--lwc-surface-accent, #e7f7f8);
+}
+
+/* Enlarged text on a narrow phone: the unit cap drops under the value inside
+   the same field rather than squeezing it. */
+@container bioage-entry (max-width: 14.5rem) {
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group :is(input, select, .bioage-fixed-unit) {
+        height: auto;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group :is(select, .bioage-fixed-unit) {
+        border-left: 0 !important;
+        border-top: 1px solid var(--bioage-hairline) !important;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
+        padding-right: 20px;
+        background-position: right 6px center;
+    }
+}
+
+/* A phone row is a name over a full-width measurement, set tighter so a full
+   panel scrolls by in fewer screens. */
+@media (max-width: 959px), (max-height: 639px) {
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-header,
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-header {
+        padding-top: 0.7rem;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+        padding: 0.45rem var(--bioage-pad-x) 0.75rem !important;
+    }
+}
+
+@media (forced-colors: active) {
+    .bioage-domain-pip--complete,
+    .bioage-domain-pip--invalid {
+        background: CanvasText;
+    }
+}
+
+/* At a phone's actual 200% browser zoom, keep the native unit labels at their
+   normal text size by returning the outer gutter to the measurement. */
+@container bioage-form (max-width: 15rem) {
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+        padding-inline: 8px !important;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset > legend {
+        display: block;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) legend .category-icon {
+        display: inline-flex;
+        margin-right: 0.4rem;
+        vertical-align: middle;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm) .bioage-domain-tally {
+        display: flex;
+        justify-content: flex-start;
+        gap: 4px;
+        margin-top: 0.4rem;
+        margin-left: 0;
+        padding-left: 0;
+    }
+}
+
+@media (max-width: 239px) {
+    body :is(#phenoAgeForm, #bortzAgeForm) {
+        width: calc(100% + 24px);
+        max-width: none;
+        margin-inline: -12px;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content,
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.active .biomarker-card-content {
+        padding-inline: 2px !important;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group select {
+        padding-inline: 2px 16px;
+        background-position: right 4px center;
+    }
+
+}
+
+#phenoAgeForm {
+    --bioage-unit-cap: 7.5rem;
+}
+
+/* ==========================================================================
+   Live instrument (pheno and Bortz calculators)
+   The panel reacts while it is filled in and, once complete, the result
+   follows every edit. Static states first; all motion sits in the
+   no-preference block at the end so reduced motion gets plain swaps.
+   ========================================================================== */
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument {
+    --bioage-live-spring: cubic-bezier(0.3, 1.35, 0.45, 1);
+}
+
+/* Keep the explicit Calculate action in the editable panel after a live
+   reading. Only the result actions dock; an idle update must not remove a
+   control the user is about to activate. */
+body.bioage-result-ready .bioage-live-instrument #lwcStepTwoActions {
+    display: flex !important;
+}
+
+/* Focus: the row label leans toward the field and the unit cap lights up. */
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card-header {
+    transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card:focus-within .biomarker-card-header {
+    color: var(--lwc-accent-hover, #065d68);
+    transform: translateX(3px);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card:focus-within .input-group :is(select, .bioage-fixed-unit) {
+    background: var(--lwc-accent-soft, #dff5f7);
+    color: var(--lwc-accent-hover, #065d68);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card:focus-within .input-group input {
+    font-weight: 600;
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card {
+    transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+/* Out of the usual range for the chosen unit: amber, pointing at the unit. */
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card[data-bioage-range="far"] {
+    box-shadow: inset 3px 0 0 var(--lwc-warning, #9a6700);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card[data-bioage-range="far"] .input-group {
+    border-color: var(--lwc-warning, #9a6700);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lwc-warning, #9a6700) 18%, transparent);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card[data-bioage-range="far"] .input-group :is(select, .bioage-fixed-unit) {
+    background: var(--lwc-warning-soft, #fff4d6);
+    color: var(--lwc-warning, #9a6700);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card[data-bioage-range="far"] .toggle-icon {
+    border-color: var(--lwc-warning, #9a6700);
+    background: var(--lwc-warning, #9a6700);
+}
+
+/* Domains further down wait, dimmed but usable, until the panel reaches them. */
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset {
+    transition: opacity 320ms var(--lwc-ease, ease), filter 320ms var(--lwc-ease, ease);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset[data-bioage-wake="dormant"]:not(:focus-within, :hover) {
+    opacity: 0.85;
+    filter: saturate(0.4);
+}
+
+/* Unit change: the cap and value re-draw (motion below); the field flashes. */
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .input-group.bioage-unit--morph {
+    border-color: var(--lwc-accent, #087685);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--lwc-accent, #087685) 22%, transparent);
+}
+
+:is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .input-group.bioage-unit--auto :is(select, .bioage-fixed-unit) {
+    background: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #fff);
+}
+
+/* ---- Result as a live readout ------------------------------------------ */
+
+.bio-age-number-container.bioage-result-reveal--live #animatedAge {
+    opacity: 0 !important;
+    transition: none !important;
+}
+
+.bio-age-number-container.bioage-result-reveal--live .bioage-result-visual {
+    opacity: 1;
+    /* Rolling digits travel one row; the rows above and below stay hidden. */
+    clip-path: inset(0.1em -1em 0.06em -1em);
+    transition: color 360ms var(--lwc-ease, ease);
+}
+
+.bioage-roll {
+    position: relative;
+    display: inline-block;
+}
+
+.bioage-roll::before {
+    position: absolute;
+    left: 0;
+    right: 0;
+    content: none;
+}
+
+.bioage-roll--up::before {
+    content: attr(data-roll-from);
+    top: -100%;
+}
+
+.bioage-roll--down::before {
+    content: attr(data-roll-from);
+    top: 100%;
+}
+
+/* Gap against chronological age: a centred track whose bar grows toward
+   younger (left) or older (right), with a bead riding its end. */
+.bioage-gap-meter {
+    --bioage-gap-color: var(--lwc-accent, #087685);
+    position: relative;
+    width: min(20rem, 72%);
+    height: 14px;
+    margin: 0.95rem auto 0;
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+.bioage-gap-meter[data-bioage-gap-tone="excellent"] {
+    --bioage-gap-color: var(--lwc-success, #1f7a38);
+}
+
+.bioage-gap-meter[data-bioage-gap-tone="average"] {
+    --bioage-gap-color: var(--lwc-warning, #9a6700);
+}
+
+.bioage-gap-meter__track,
+.bioage-gap-meter__fill {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: var(--lwc-radius-pill, 999px);
+}
+
+.bioage-gap-meter__track {
+    left: 0;
+    right: 0;
+    background: var(--lwc-surface-muted, #eef2f5);
+    box-shadow: inset 0 0 0 1px var(--lwc-border, #d7e0e6);
+}
+
+.bioage-gap-meter__fill {
+    left: var(--bioage-gap-start, 50%);
+    width: var(--bioage-gap-size, 0%);
+    background: var(--bioage-gap-color);
+    transition:
+        left 560ms var(--lwc-ease, ease),
+        width 560ms var(--lwc-ease, ease),
+        background-color 360ms var(--lwc-ease, ease);
+}
+
+.bioage-gap-meter__origin {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--lwc-border-strong, #71808d);
+}
+
+.bioage-gap-meter__needle {
+    position: absolute;
+    top: 50%;
+    left: var(--bioage-gap-needle, 50%);
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    box-sizing: border-box;
+    border: 3px solid var(--bioage-gap-color);
+    border-radius: 50%;
+    background: var(--lwc-surface, #fff);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    transition:
+        left 620ms cubic-bezier(0.3, 1.35, 0.45, 1),
+        border-color 360ms var(--lwc-ease, ease);
+}
+
+.bioageform.show[data-bioage-result-stage="age"] .bioage-gap-meter {
+    opacity: 0;
+}
+
+.bioageform.show[data-bioage-result-stage="age"] .bioage-gap-meter__fill {
+    left: 50%;
+    width: 0;
+}
+
+.bioageform.show[data-bioage-result-stage="age"] .bioage-gap-meter__needle {
+    left: 50%;
+}
+
+/* Mid-edit with the panel incomplete: the last reading dims instead of vanishing. */
+:is(#phenoAgeResult, #bortzAgeResult).bioage-result--stale :is(.bio-age-number-container, .bioage-gap-meter) {
+    opacity: 0.36;
+    filter: grayscale(0.7);
+}
+
+:is(#phenoAgeResult, #bortzAgeResult).show.bioage-result--stale[data-bioage-result-stage] :is([data-bioage-result-difference], [data-bioage-result-rank]) {
+    opacity: 0.36 !important;
+    filter: grayscale(0.7);
+}
+
+:is(#phenoAgeResult, #bortzAgeResult) :is(.bio-age-number-container, .bioage-gap-meter) {
+    transition: opacity 260ms var(--lwc-ease, ease), filter 260ms var(--lwc-ease, ease);
+}
+
+/* Floating readout: keeps the age in sight while the panel is being edited
+   and the result card is scrolled away. Tapping it returns to the card. */
+.bioage-live-readout {
+    --bioage-readout-color: var(--lwc-accent, #087685);
+    position: fixed;
+    z-index: 1101;
+    right: max(16px, env(safe-area-inset-right));
+    /* Sits on the docked actions' top edge so it never covers the field above. */
+    bottom: max(calc(14px + env(safe-area-inset-bottom)), calc(var(--flow-action-dock-height, 0px) - 19px));
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 44px;
+    max-width: calc(100vw - 32px);
+    padding: 0.3rem 0.45rem 0.3rem 0.8rem;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--bioage-readout-color) 40%, var(--lwc-border, #d7e0e6));
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface, #fff);
+    color: var(--bioage-readout-color);
+    box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.10));
+    font-family: 'Roboto', sans-serif;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(14px) scale(0.92);
+    transform-origin: right bottom;
+    transition:
+        opacity 200ms var(--lwc-ease, ease),
+        transform 280ms cubic-bezier(0.3, 1.35, 0.45, 1),
+        border-color 360ms var(--lwc-ease, ease),
+        color 360ms var(--lwc-ease, ease);
+}
+
+.bioage-live-readout[hidden] {
+    display: none;
+}
+
+body.flow-input-keyboard-open .bioage-live-readout {
+    visibility: hidden;
+}
+
+.bioage-live-readout--shown {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+}
+
+.bioage-live-readout:hover {
+    border-color: var(--bioage-readout-color);
+}
+
+.bioage-live-readout:focus-visible {
+    outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+    outline-offset: 2px;
+}
+
+.bioage-live-readout[data-bioage-gap-tone="excellent"] {
+    --bioage-readout-color: var(--lwc-success, #1f7a38);
+}
+
+.bioage-live-readout[data-bioage-gap-tone="average"] {
+    --bioage-readout-color: var(--lwc-warning, #9a6700);
+}
+
+.bioage-live-readout__value {
+    overflow: hidden;
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.bioage-live-readout__gap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    overflow: hidden;
+    padding: 0.28rem 0.55rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: color-mix(in srgb, var(--bioage-readout-color) 14%, transparent);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.bioage-live-readout__gap i {
+    font-size: 0.7rem;
+}
+
+@media (forced-colors: active) {
+    .bioage-gap-meter__fill,
+    .bioage-gap-meter__origin {
+        background: CanvasText;
+    }
+
+    .bioage-live-readout {
+        border-color: ButtonText;
+    }
+}
+
+/* ---- Motion ------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: no-preference) {
+    .bioage-roll--up {
+        animation: bioage-roll-up 230ms var(--lwc-ease, ease) both;
+    }
+
+    .bioage-roll--down {
+        animation: bioage-roll-down 230ms var(--lwc-ease, ease) both;
+    }
+
+    /* Valid value: a light sweep across the row and the check pops in. */
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card.bioage-card--settled {
+        background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lwc-accent, #087685) 16%, transparent), transparent);
+        background-repeat: no-repeat;
+        background-size: 45% 100%;
+        animation: bioage-row-sweep 600ms var(--lwc-ease, ease) both;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card.bioage-card--settled .toggle-icon {
+        animation: bioage-check-pop 420ms cubic-bezier(0.3, 1.35, 0.45, 1) both;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card.bioage-card--nudge .input-group {
+        animation: bioage-field-nudge 460ms var(--lwc-ease, ease);
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card.bioage-card--nudge .input-group :is(select, .bioage-fixed-unit) {
+        animation: bioage-unit-beckon 520ms var(--lwc-ease, ease);
+    }
+
+    .bioage-domain-pip--pop {
+        animation: bioage-pip-pop 400ms cubic-bezier(0.3, 1.35, 0.45, 1);
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset.bioage-domain--sealed > legend .category-icon {
+        animation: bioage-check-pop 480ms cubic-bezier(0.3, 1.35, 0.45, 1) both;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset.bioage-domain--sealed > legend {
+        background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lwc-accent, #087685) 18%, transparent), transparent);
+        background-repeat: no-repeat;
+        background-size: 40% 100%;
+        animation: bioage-row-sweep 700ms var(--lwc-ease, ease) both;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset.bioage-domain--waking > .biomarker-card {
+        animation: bioage-domain-wake 420ms var(--lwc-ease, ease) backwards;
+    }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset.bioage-domain--waking > .biomarker-card:nth-of-type(2) { animation-delay: 50ms; }
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset.bioage-domain--waking > .biomarker-card:nth-of-type(3) { animation-delay: 100ms; }
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 > fieldset.bioage-domain--waking > .biomarker-card:nth-of-type(n+4) { animation-delay: 150ms; }
+
+    :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .input-group.bioage-unit--auto {
+        animation: bioage-unit-auto 700ms var(--lwc-ease, ease);
+    }
+
+    /* The card drops in and settles, then the rolling number takes over. */
+    body:has(.bioage-live-instrument) :is(#phenoAgeResult, #bortzAgeResult).show {
+        animation: bioage-card-settle 640ms cubic-bezier(0.22, 1.25, 0.36, 1) backwards;
+    }
+
+    body:has(.bioage-live-instrument) :is(#phenoAgeResult, #bortzAgeResult).show.bioage-result--arrived {
+        animation: bioage-card-settle 640ms cubic-bezier(0.22, 1.25, 0.36, 1) backwards, bioage-card-ring 900ms var(--lwc-ease, ease);
+    }
+
+    .bio-age-number-container.bioage-result-reveal--nudge .bioage-result-halo {
+        animation: bioage-result-halo 520ms var(--lwc-ease, ease) both;
+    }
+
+    .bio-age-number-container.bioage-result-reveal--nudge .bioage-result-value-stack::after {
+        animation: bioage-result-track-lock 520ms var(--lwc-ease, ease) both;
+    }
+
+    /* Path onward: the result actions rise in and the primary one calls once. */
+    body:has(.bioage-live-instrument) #continueButton.show {
+        animation: bioage-next-call 1400ms var(--lwc-ease, ease) 420ms 1 backwards;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bioage-live-instrument *,
+    :is(#phenoAgeResult, #bortzAgeResult) *,
+    .bioage-live-readout {
+        transition: none !important;
+    }
+}
+
+@keyframes bioage-roll-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+@keyframes bioage-roll-down {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+@keyframes bioage-row-sweep {
+    from { background-position: -60% 0; }
+    to { background-position: 160% 0; }
+}
+
+@keyframes bioage-check-pop {
+    0% { transform: scale(0.55); }
+    60% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
+@keyframes bioage-pip-pop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.75); }
+    100% { transform: scale(1); }
+}
+
+@keyframes bioage-field-nudge {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    45% { transform: translateX(4px); }
+    70% { transform: translateX(-2px); }
+}
+
+@keyframes bioage-unit-beckon {
+    0%, 100% { box-shadow: none; }
+    35% { box-shadow: inset 0 -3px 0 var(--lwc-warning, #9a6700); }
+}
+
+@keyframes bioage-domain-wake {
+    from { opacity: 0.4; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bioage-unit-auto {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-accent, #087685) 45%, transparent); }
+    100% { box-shadow: 0 0 0 10px transparent; }
+}
+
+@keyframes bioage-card-settle {
+    0% { opacity: 0; transform: translateY(22px) scale(0.975); }
+    55% { opacity: 1; transform: translateY(-3px) scale(1.004); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bioage-card-ring {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-accent, #087685) 40%, transparent); }
+    100% { box-shadow: 0 0 0 18px transparent; }
+}
+
+@keyframes bioage-actions-arrive {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bioage-next-call {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-success, #1f7a38) 55%, transparent); }
+    50% { box-shadow: 0 0 0 12px transparent; }
+    51% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-success, #1f7a38) 40%, transparent); }
+    100% { box-shadow: 0 0 0 12px transparent; }
 }

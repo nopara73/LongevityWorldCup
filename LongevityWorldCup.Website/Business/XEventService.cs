@@ -212,7 +212,7 @@ public class XEventService
         {
             if (_bySlug.TryGetValue(slug, out var a))
             {
-                if (!string.IsNullOrWhiteSpace(a.XHandle)) return a.XHandle;
+                if (a.MentionFor(SocialPlatform.X) is { } mention) return mention;
                 if (!string.IsNullOrWhiteSpace(a.Name)) return a.Name;
             }
         }
@@ -226,7 +226,7 @@ public class XEventService
         {
             if (_bySlug.TryGetValue(slug, out var athlete))
             {
-                var mention = SocialContactParser.TryBuildMention(athlete.MediaContact, SocialPlatform.X);
+                var mention = athlete.MentionFor(SocialPlatform.X);
                 if (!string.IsNullOrWhiteSpace(mention))
                     return mention;
 

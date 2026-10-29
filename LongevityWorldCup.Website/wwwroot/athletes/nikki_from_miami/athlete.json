@@ -24,5 +24,14 @@
   "Division": "Women's",
   "Flag": "United States",
   "Why": "Being creative & trying new things!!",
-  "PersonalLink": "https://www.creatza.com"
+  "PersonalLink": "https://www.creatza.com",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/nikkifrommiami",
+      "EvidenceUrls": [
+        "https://creatza.com/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

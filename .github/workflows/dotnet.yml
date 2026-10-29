@@ -4,28 +4,57 @@
 name: .NET
 
 on:
+  workflow_dispatch:
+    inputs:
+      reference_tests:
+        description: Optional full commit SHA of a reference test suite for pruning audits
+        type: string
+        required: false
+      timing_seed_run:
+        description: Optional run ID whose complete passing reports should seed duration estimates
+        type: string
+        required: false
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
 permissions:
+  actions: read
   contents: read
   issues: write
   pull-requests: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # New pushes supersede stale branch runs; manual audit runs stay independent.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event_name == 'push' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+
+env:
+  TEST_SHARDS: 12
 
 jobs:
-  build:
+  prepare:
 
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    outputs:
+      sdk: ${{ steps.repo_sdk.outputs.version }}
+      matrix: ${{ steps.test_plan.outputs.matrix }}
+      build-artifact: ${{ steps.upload_build.outputs.artifact-id }}
 
     steps:
     - uses: actions/checkout@v7
+    - name: Restore reference tests for a manual audit
+      if: github.event_name == 'workflow_dispatch' && inputs.reference_tests != ''
+      env:
+        REFERENCE_TESTS: ${{ inputs.reference_tests }}
+      run: |
+        [[ "$REFERENCE_TESTS" =~ ^[a-f0-9]{40}$ ]]
+        git fetch --no-tags --depth=1 origin "$REFERENCE_TESTS"
+        git restore --source=FETCH_HEAD --staged --worktree -- LongevityWorldCup.Tests
+    - name: Verify CI accounting guards
+      run: python3 -B -m unittest discover -s .github/scripts -p test_ci_tests.py
     - name: Reject tracked local artifacts
       shell: bash
       run: |
@@ -36,10 +65,17 @@ jobs:
           printf '%s\n' "$tracked"
           exit 1
         fi
+    - name: Verify retired static asset cleanup
+      run: sh LongevityWorldCup.Website/Scripts/test-sync-owned-web-assets.sh
+    - name: Verify independent outage assets and rollback
+      run: sh LongevityWorldCup.Website/Scripts/test-sync-outage-assets.sh
+    - name: Read repository SDK version
+      id: repo_sdk
+      run: echo "version=$(jq -r '.sdk.version' global.json)" >> "$GITHUB_OUTPUT"
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 10.0.x
+        dotnet-version: ${{ steps.repo_sdk.outputs.version }}
     - name: Setup Node.js
       uses: actions/setup-node@v7
       with:
@@ -98,15 +134,22 @@ jobs:
         frontend_manifest LongevityWorldCup.Website/wwwroot/js > "$source_manifest"
         test -s "$source_manifest"
 
-        # Prove Node-free publishing recreates the derived dialog CSS, including
-        # a clean checkout where these ignored files do not exist yet.
+        # Prove Node-free publishing recreates ignored assets in a clean checkout.
         rm -f LongevityWorldCup.Website/wwwroot/css/athlete-dialog/*.css
+        rm -f LongevityWorldCup.Website/wwwroot/css/documentation-reading.css
+        rm -f LongevityWorldCup.Website/wwwroot/assets/media-kit/MediaKit.zip
 
         PATH="$deny_node_bin:$PATH" dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj \
           --configuration Release \
           --no-restore \
           --output "$publish_output" \
-          -p:BuildFrontend=false
+          -p:BuildFrontend=false \
+          -p:SourceRevisionId="$GITHUB_SHA"
+
+        if ! grep -a -Fq "$GITHUB_SHA" "$publish_output/LongevityWorldCup.Website.dll"; then
+          echo "Published assembly is missing the verified revision." >&2
+          exit 1
+        fi
 
         frontend_manifest "$publish_output/wwwroot/js" > "$published_manifest"
         if ! cmp -s "$source_manifest" "$published_manifest"; then
@@ -120,48 +163,202 @@ jobs:
           cmp "LongevityWorldCup.Website/wwwroot/css/athlete-dialog/$stylesheet.css" \
               "$publish_output/wwwroot/css/athlete-dialog/$stylesheet.css"
         done
+        cmp LongevityWorldCup.Website/wwwroot/css/documentation-reading.css \
+            "$publish_output/wwwroot/css/documentation-reading.css"
+        cmp LongevityWorldCup.Documentation/MediaKit.zip \
+            "$publish_output/wwwroot/assets/media-kit/MediaKit.zip"
+    - name: Restore measured test durations
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ runner.temp }}/lwc-ci-timings.json
+        key: ci-test-timings-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: ci-test-timings-${{ runner.os }}-
+    - name: Validate optional timing seed
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      env:
+        TIMING_SEED_RUN: ${{ inputs.timing_seed_run }}
+      run: '[[ "$TIMING_SEED_RUN" =~ ^[1-9][0-9]*$ ]]'
+    - name: Read seed discovery plan
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      uses: actions/download-artifact@v8
+      with:
+        pattern: ci-build*
+        path: ${{ runner.temp }}/ci-seed-build
+        run-id: ${{ inputs.timing_seed_run }}
+        github-token: ${{ github.token }}
+    - name: Read seed test reports
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      uses: actions/download-artifact@v8
+      with:
+        pattern: test-results-*
+        path: ${{ runner.temp }}/ci-seed-results
+        run-id: ${{ inputs.timing_seed_run }}
+        github-token: ${{ github.token }}
+    - name: Validate complete seed reports and use their measured durations
+      if: github.event_name == 'workflow_dispatch' && inputs.timing_seed_run != ''
+      run: |
+        python3 .github/scripts/ci_tests.py extract-seed-plan \
+          --builds "$RUNNER_TEMP/ci-seed-build" --output "$RUNNER_TEMP/ci-seed-plan/plan.json"
+        python3 .github/scripts/ci_tests.py aggregate \
+          --plan "$RUNNER_TEMP/ci-seed-plan/plan.json" \
+          --results "$RUNNER_TEMP/ci-seed-results" --output "$RUNNER_TEMP/ci-seed-report"
+        cp "$RUNNER_TEMP/ci-seed-report/timings.json" "$RUNNER_TEMP/lwc-ci-timings.json"
+    - name: Discover and balance the complete suite
+      id: test_plan
+      shell: bash
+      run: |
+        mkdir -p .artifacts/ci-tests
+        dotnet vstest LongevityWorldCup.Tests/bin/Debug/net10.0/LongevityWorldCup.Tests.dll \
+          /ListFullyQualifiedTests /ListTestsTargetPath:.artifacts/ci-tests/discovered.txt
+        python3 .github/scripts/ci_tests.py plan \
+          --discovery .artifacts/ci-tests/discovered.txt \
+          --timings "$RUNNER_TEMP/lwc-ci-timings.json" \
+          --output .artifacts/ci-tests --revision "$GITHUB_SHA" --shards "$TEST_SHARDS"
+        echo "matrix=$(jq -c '{shard: [.shards[].index]}' .artifacts/ci-tests/plan.json)" >> "$GITHUB_OUTPUT"
+    - name: Package the verified build
+      shell: bash
+      run: |
+        # A tar preserves the executable Playwright driver and generated assets.
+        tar -czf "$RUNNER_TEMP/ci-build.tgz" \
+          --exclude=LongevityWorldCup.Tests/obj --exclude=LongevityWorldCup.Tests/TestResults \
+          LongevityWorldCup.Tests \
+          LongevityWorldCup.Website/obj/Debug/net10.0/compressed \
+          LongevityWorldCup.Website/wwwroot/js \
+          LongevityWorldCup.Website/wwwroot/css/athlete-dialog \
+          LongevityWorldCup.Website/wwwroot/css/documentation-reading.css \
+          LongevityWorldCup.Website/wwwroot/assets/media-kit/MediaKit.zip \
+          .artifacts/ci-tests
+    - uses: actions/upload-artifact@v7
+      id: upload_build
+      with:
+        name: ci-build-attempt-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/ci-build.tgz
+        compression-level: 0
+        retention-days: 1
+        if-no-files-found: error
+
+  test:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      SHARD: ${{ matrix.shard }}
+      DOTNET_CLI_UI_LANGUAGE: en-US
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: ${{ needs.prepare.outputs.sdk }}
+    - uses: actions/download-artifact@v8
+      with:
+        artifact-ids: ${{ needs.prepare.outputs.build-artifact }}
+        path: ${{ runner.temp }}
+    - name: Unpack the verified build
+      run: |
+        tar -xzf "$RUNNER_TEMP/ci-build.tgz"
+        python3 - <<'PY'
+        import json
+        from pathlib import Path
+
+        manifest = Path('LongevityWorldCup.Tests/bin/Debug/net10.0/LongevityWorldCup.Website.staticwebassets.runtime.json')
+        for root in json.loads(manifest.read_text())['ContentRoots']:
+            if not Path(root).is_dir():
+                raise SystemExit(f'Build artifact is missing static assets: {root}')
+        PY
+    - name: Restore test dependencies
+      run: dotnet restore LongevityWorldCup.Tests/LongevityWorldCup.Tests.csproj -p:BuildFrontend=false
     - name: Install Playwright Chromium
       run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
     - name: Test with coverage
       run: >
-        dotnet test
-        --no-build
-        --verbosity normal
+        dotnet test LongevityWorldCup.Tests/LongevityWorldCup.Tests.csproj
+        --no-build --no-restore --verbosity minimal
+        --settings ".artifacts/ci-tests/shard-$SHARD.runsettings"
+        --logger "trx;LogFileName=tests.trx"
+        --results-directory "$RUNNER_TEMP/test-results"
+        --blame-hang-timeout 10m --blame-hang-dump-type none
         -p:CollectCoverage=true
-        -p:CoverletOutput=TestResults/Coverage/
-        -p:CoverletOutputFormat=cobertura
-    - name: Summarize .NET coverage
-      id: coverage
+        -p:CoverletOutput="$RUNNER_TEMP/test-results/coverage"
+        -p:CoverletOutputFormat=json%2ccobertura
+    - name: Report interrupted test sequence
+      if: failure()
       shell: bash
       run: |
-        set -euo pipefail
-
-        coverage_file="$(find . -name coverage.cobertura.xml -print | head -n 1)"
-        if [[ -z "$coverage_file" ]]; then
-          echo "coverage.cobertura.xml was not produced." >&2
-          exit 1
-        fi
-
-        python3 - "$coverage_file" <<'PY' | tee coverage-summary.md
-        import sys
+        python3 - <<'PY'
+        import os
+        from pathlib import Path
         import xml.etree.ElementTree as ET
 
-        root = ET.parse(sys.argv[1]).getroot()
-        line_coverage = float(root.attrib.get("line-rate", "0")) * 100
-        branch_coverage = float(root.attrib.get("branch-rate", "0")) * 100
-
-        print("## .NET test coverage")
-        print()
-        print(f"- Line coverage: {line_coverage:.1f}%")
-        print(f"- Branch coverage: {branch_coverage:.1f}%")
+        for path in (Path(os.environ['RUNNER_TEMP']) / 'test-results').rglob('Sequence*.xml'):
+            print(f'Interrupted test sequence: {path}')
+            tests = list(ET.parse(path).getroot().iter('Test'))
+            unfinished = [test for test in tests if any(test.get(key, '').lower() == 'false'
+                          for key in ('Completed', 'IsCompleted'))]
+            for test in unfinished or tests[-20:]:
+                print(test.attrib)
         PY
+    - name: Preserve shard results and diagnostics
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-results-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/test-results/
+        retention-days: 3
+        if-no-files-found: error
 
-        cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
+  build:
+    # Keep the existing required check name; it succeeds only after all shards.
+    if: always()
+    needs: [prepare, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/download-artifact@v8
+      with:
+        artifact-ids: ${{ needs.prepare.outputs.build-artifact }}
+        path: ${{ runner.temp }}
+    - name: Read the discovered test plan
+      run: tar -xzf "$RUNNER_TEMP/ci-build.tgz" .artifacts/ci-tests/plan.json
+    - uses: actions/download-artifact@v8
+      with:
+        pattern: test-results-*
+        path: ${{ runner.temp }}/ci-results
+    - name: Reconcile every test and combine coverage
+      id: coverage
+      shell: bash
+      env:
+        PREPARE_RESULT: ${{ needs.prepare.result }}
+        TEST_RESULT: ${{ needs.test.result }}
+      run: |
+        test "$PREPARE_RESULT" = success
+        test "$TEST_RESULT" = success
+        python3 .github/scripts/ci_tests.py aggregate \
+          --plan .artifacts/ci-tests/plan.json --results "$RUNNER_TEMP/ci-results" \
+          --output "$RUNNER_TEMP/ci-report"
+        cat "$RUNNER_TEMP/ci-report/summary.md" >> "$GITHUB_STEP_SUMMARY"
+        cp "$RUNNER_TEMP/ci-report/timings.json" "$RUNNER_TEMP/lwc-ci-timings.json"
         {
-          echo "markdown<<DOTNET_COVERAGE_SUMMARY"
-          cat coverage-summary.md
-          echo "DOTNET_COVERAGE_SUMMARY"
+          echo 'markdown<<DOTNET_COVERAGE_SUMMARY'
+          cat "$RUNNER_TEMP/ci-report/summary.md"
+          echo DOTNET_COVERAGE_SUMMARY
         } >> "$GITHUB_OUTPUT"
+    - name: Preserve combined evidence
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: ci-verification-attempt-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/ci-report/
+        retention-days: 3
+    - name: Save measured durations for the next run
+      if: success() && github.event_name != 'pull_request'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ runner.temp }}/lwc-ci-timings.json
+        key: ci-test-timings-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
     - name: Comment .NET coverage on PR
       if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
       uses: actions/github-script@v9

@@ -1,3 +1,81 @@
+/* Flag teams share the selected clock and the leaderboard's filter rail. */
+.leaderboard-group-switcher { flex: 0 0 auto; }
+.leaderboard-group-switcher input { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+.leaderboard-group-switcher .view-badge { display: flex; align-items: center; gap: .5rem; min-height: 44px; padding: .65rem .9rem; border: 1px solid var(--border-color); border-radius: 9px; cursor: pointer; box-sizing: border-box; white-space: nowrap; color: var(--lwc-muted, #526373); }
+.leaderboard-group-switcher input:checked + label { color: var(--primary-color); background: var(--lwc-accent-soft, #e7f5f6); border-color: var(--primary-color); box-shadow: inset 0 -3px var(--primary-color); }
+.leaderboard-group-switcher input:focus-visible + label { outline: 3px solid var(--primary-color); outline-offset: 3px; }
+.flag-leaderboard { display: none; flex: 1 1 0; min-width: 0; container: flag-results / inline-size; }
+.leaderboard--flags > .flag-leaderboard { display: block; }
+.leaderboard--flags > table { display: none !important; }
+.flag-section-heading { margin: 0; padding: .65rem 1.5rem; color: var(--lwc-muted, #526373); background: var(--lwc-surface-muted); font: 600 .75rem Roboto, sans-serif; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border-color); }
+.flag-team { border-bottom: 1px solid var(--border-color); color: var(--dark-text-color); }
+.flag-team.tier-amateur { background: var(--tier-amateur-bg); }
+.flag-team.tier-amateur:nth-child(even) { background: var(--tier-amateur-bg-even); }
+.flag-team:last-child { border-bottom: 0; }
+.flag-team summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto 6.5rem 1rem; align-items: center; gap: 1rem; min-height: 100px; padding: 1rem 1.5rem; cursor: pointer; list-style: none; box-sizing: border-box; }
+.flag-team summary::-webkit-details-marker { display: none; }
+.flag-team[open] summary { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); }
+@media (hover: hover) { .flag-team summary:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); } }
+.flag-team summary:focus-visible, .flag-athlete-link:focus-visible { outline: 3px solid var(--primary-color); outline-offset: -3px; border-radius: 6px; }
+.flag-team-rank { font-family: Orbitron, sans-serif; font-size: 1.4rem; font-weight: 700; text-align: center; color: var(--primary-color); font-variant-numeric: tabular-nums; }
+.flag-team-name { display: flex; align-items: center; gap: 1rem; min-width: 0; font-size: 1.12rem; font-weight: 700; overflow-wrap: anywhere; }
+.flag-team-icon { flex: 0 0 2.4rem; width: 2.4rem; font-size: 1.8rem; color: var(--primary-color); text-align: center; }
+.flag-team-icon .fi { width: 1.33em; border-radius: 3px; box-shadow: 0 0 0 1px rgba(100,116,139,.16); }
+.flag-team small { display: block; margin-top: .3rem; font-size: .75rem; font-weight: 400; color: var(--lwc-muted, #526373); font-family: Roboto, sans-serif; line-height: 1.3; }
+.flag-team-portraits { display: flex; padding-left: .6rem; }
+.flag-team-portraits img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg); margin-left: -.6rem; background: var(--card-bg); }
+.flag-team-score { text-align: right; font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--primary-color); }
+.flag-team-chevron { color: var(--lwc-muted, #526373); font-size: 1.5rem; line-height: 1; transition: transform 140ms; }
+.flag-team[open] .flag-team-chevron { transform: rotate(180deg); }
+.flag-team-athletes { list-style: none; margin: 0; padding: .25rem 1.5rem .75rem 5.5rem; }
+.flag-team-athletes li + li { border-top: 1px solid var(--border-color); }
+.flag-athlete-link { display: grid; grid-template-columns: 1.25rem 40px minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .85rem .5rem; color: inherit; text-decoration: none; min-height: 66px; border-radius: 6px; }
+@media (hover: hover) { .flag-athlete-link:hover { background: var(--lwc-accent-soft, rgba(8,118,133,.06)); } }
+.flag-athlete-link img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
+.flag-athlete-rank { color: var(--lwc-muted, #526373); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.flag-athlete-name { font-weight: 600; overflow-wrap: anywhere; }
+.flag-athlete-metric { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.flag-empty { padding: 2rem; text-align: center; color: var(--lwc-muted, #526373); }
+@media (max-width: 768px) {
+    .leaderboard-controls .leaderboard-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .leaderboard-controls .leaderboard-view-switcher { display: contents; }
+    .leaderboard-controls .view-switcher-label { grid-column: 1; grid-row: 1; align-self: center; }
+    .leaderboard-controls .leaderboard-group-switcher { grid-column: 2; grid-row: 1; }
+    .leaderboard-controls .view-switcher-chips { grid-column: 1 / -1; grid-row: 2; }
+    .leaderboard-controls .search-wrapper { grid-column: 1 / -1; grid-row: 3; width: 100%; }
+    .flag-team summary { grid-template-columns: 1.5rem minmax(0, 1fr) auto .8rem; gap: .65rem; padding: 1rem .75rem; min-height: 88px; }
+    .flag-team-name { gap: .6rem; font-size: 1rem; }
+    .flag-team-rank { font-size: 1.05rem; }
+    .flag-team-icon { flex-basis: 1.75rem; width: 1.75rem; font-size: 1.3rem; }
+    .flag-team-portraits { display: none; }
+    .flag-team-score { font-size: 1.15rem; }
+    .flag-team-athletes { padding: .25rem .75rem .5rem 1.75rem; }
+    .flag-athlete-link { grid-template-columns: 1rem 32px minmax(0, 1fr) auto; gap: .5rem; font-size: .9rem; }
+    .flag-athlete-link img { width: 32px; height: 32px; }
+}
+@container leaderboard-results (max-width: 45rem) {
+    .sidebar.expanded ~ .flag-leaderboard { flex-basis: 100%; }
+}
+@container flag-results (max-width: 42rem) {
+    .flag-team-portraits { display: none; }
+    .flag-team summary { grid-template-columns: 2rem minmax(0, 1fr) auto 1rem; gap: .75rem; padding: 1rem; }
+}
+@container flag-results (max-width: 28rem) {
+    .flag-team summary { grid-template-columns: 1.5rem minmax(0, 1fr) auto .8rem; gap: .65rem; padding: 1rem .75rem; }
+    .flag-team-athletes { padding-left: 1.75rem; }
+    .flag-team-icon { flex-basis: 1.75rem; width: 1.75rem; font-size: 1.3rem; }
+}
+@container flag-results (max-width: 22rem) {
+    .flag-team summary { grid-template-columns: 24px minmax(0, 1fr) 16px; grid-template-areas: "rank name chevron" ". score score"; gap: .5rem; padding: 1rem 12px; }
+    .flag-team-rank { grid-area: rank; }
+    .flag-team-name { grid-area: name; }
+    .flag-team-icon { flex-basis: 28px; width: 28px; font-size: 24px; }
+    .flag-team-score { grid-area: score; text-align: left; }
+    .flag-team-score small { display: inline; margin-left: .4rem; }
+    .flag-team-chevron { grid-area: chevron; }
+}
+@media (prefers-reduced-motion: reduce) { .flag-team-chevron { transition: none; } }
+
 /* =========================
 1) Design tokens
 ========================= */
@@ -100,15 +178,8 @@
      border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
  }
 
- @keyframes skeletonShimmer{
-     0%{ background-position:200% 0; }
-     100%{ background-position:-200% 0; }
- }
-
- .skeleton-shimmer{
-     background:linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(255,255,255,.7) 50%, rgba(0,0,0,.06) 75%);
-     background-size:200% 100%;
-     animation:skeletonShimmer 1.4s ease-in-out infinite;
+ .leaderboard .sidebar{
+     --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
  }
 
  .podium-skeleton-item{
@@ -225,13 +296,6 @@
      min-width:72px;
  }
 
- @media (prefers-reduced-motion:reduce){
-     .skeleton-shimmer{
-         animation:none;
-         background:rgba(0,0,0,.08);
-     }
- }
-
  /* Scope table styles to the leaderboard table only */
  .leaderboard > table{ flex-grow:1; width:auto; border-collapse:separate; border-spacing:0; align-self:flex-start; }
 
@@ -274,7 +338,8 @@
  }
  .leaderboard table tbody tr.tier-separator .tier-separator-link{ pointer-events: auto; }
  .leaderboard table tbody tr.tier-separator:hover{ transform: none; box-shadow: none; }
- .leaderboard table tbody tr.tier-separator .tier-separator-cell{
+ .leaderboard table tbody tr.tier-separator .tier-separator-cell,
+ .flag-section-heading.tier-separator-cell{
      padding: 0.5rem 1rem;
      text-align: left;
      font-size: 0.8rem;
@@ -285,7 +350,7 @@
      border-top: 1px solid rgba(0, 0, 0, 0.06);
      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
  }
- .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; }
+ .tier-separator-label{ display: inline-flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
  .tier-separator-cell .tier-separator-link{
      display: inline-flex;
      align-items: center;
@@ -328,7 +393,7 @@
     ========================= */
  .sidebar{
      position:relative; width:50px; height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); min-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); max-height:max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
-     margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+     margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
      overflow:hidden; flex-shrink:0;
  }
  /* Closing a mobile drawer must also suppress hover during its slide-out. */
@@ -346,9 +411,8 @@
  .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"])::-webkit-scrollbar-thumb:hover,
  .sidebar.expanded::-webkit-scrollbar-thumb:hover{ background:rgba(0,188,212,.68); }
  .sidebar .filter-section{ display:none; }
- .sidebar:hover .filter-section, .sidebar.expanded .filter-section{ display:block; }
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .filter-section, .sidebar.expanded .filter-section{ display:block; }
 
- .sidebar.partially-expanded{ width:80px; }
  .sidebar-toggle{
      background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:44px; height:44px;
      display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); margin-right:1rem; position:relative;
@@ -411,8 +475,9 @@
      background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
      -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
  }
- .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
- .sidebar-heading{ display:flex; align-items:center; gap:var(--lwc-space-2); width:100%; border-bottom:1px solid var(--lwc-border); }
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
+ /* The measured rail heading must keep its natural height before and during hover. */
+ .sidebar-heading{ display:flex; flex:0 0 auto; align-items:center; gap:var(--lwc-space-2); width:100%; border-bottom:1px solid var(--lwc-border); }
  /* The rail's heading is the first cell of the board's head: same tint, same
     height, no gap, collapsed or open. */
  @media (min-width: 769px){
@@ -442,7 +507,7 @@
      background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
  }
  .sidebar .sidebar-title .sidebar-title-text{ display:none; margin-left:var(--lwc-space-2); font-size:1.5rem; }
- .sidebar:hover .sidebar-title .sidebar-title-text,
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-title .sidebar-title-text,
  .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
  .clear-sidebar-filters{
      display:none; align-items:center; justify-content:center; flex:0 0 44px; width:44px; height:44px; margin:0; padding:0;
@@ -463,7 +528,7 @@
  .clear-sidebar-filters:active{
      color:var(--primary-color); background:rgba(0,188,212,.08); border-color:rgba(0,188,212,.24); outline:none;
  }
- .sidebar.has-active-state:hover .clear-sidebar-filters,
+ .sidebar.has-active-state:hover:not(.button-collapsed):not([aria-hidden="true"]) .clear-sidebar-filters,
  .sidebar.has-active-state.expanded .clear-sidebar-filters{
      display:inline-flex; visibility:visible; pointer-events:auto; color:var(--secondary-color); background:var(--lwc-accent-soft); border-color:var(--lwc-border);
  }
@@ -475,6 +540,7 @@
  .sidebar:hover:not([aria-hidden="true"]) ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
 
  .filter-section{ margin-bottom:1.5rem; width:100%; }
+ #flag-filter-section[hidden], .leaderboard--flags #flag-filter-section{ display:none !important; }
  .filter-section h3{
      display:flex; align-items:center; gap:var(--lwc-space-2); margin-bottom:var(--lwc-space-2); color:var(--lwc-ink); font-size:var(--lwc-type-body);
      transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
@@ -685,6 +751,24 @@
  }
  .podium-item .podium-portrait:hover{ transform: scale(1.04); }
 
+ .portrait-motion{ position:relative; }
+ .athlete-portrait-motion{
+     position:absolute; top:3px; left:3px;
+     border-radius:50%; object-fit:cover; pointer-events:none; opacity:0; z-index:1;
+     transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+ }
+ .podium-item .athlete-portrait-motion{
+     width:calc(var(--podium-portrait-size) - 6px); height:calc(var(--podium-portrait-size) - 6px);
+ }
+ .athlete-portrait-motion.is-playing{ opacity:1; }
+ .podium-item .podium-portrait:hover ~ .athlete-portrait-motion{ transform:scale(1.04); }
+ .leaderboard .portrait:hover ~ .athlete-portrait-motion{ transform:scale(var(--portrait-hover-scale)); }
+ #athlete-profile .athlete-portrait-motion{ width:calc(100% - 6px); height:calc(100% - 6px); }
+ #athlete-profile .portrait-wrapper:hover .athlete-portrait-motion{ transform:scale(1.05); }
+ @media (prefers-reduced-motion:reduce){
+     .athlete-portrait-motion{ display:none; }
+ }
+
  /* When wrapped on podium: wrapper defines circle, img fills it */
  .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:0 0 1.6rem; flex:0 0 auto; }
  .podium-item .rank-change img.podium-portrait{
@@ -781,7 +865,10 @@
      width:var(--portrait-size);
      min-width:var(--portrait-size);
  }
+ /* Block-level, so a rank-change ring adds no line gap and movers keep the
+    height of every other row. */
  .leaderboard .athlete-td .portrait-wrapper .rank-change{
+     display:block;
      width:var(--portrait-size);
      min-width:var(--portrait-size);
  }
@@ -845,7 +932,8 @@
      --podium-gold-surface:#fff9db;
      --podium-silver-surface:#e9eef2;
      --podium-bronze-surface:#f3e8da;
-     display:flex; justify-content:center; align-items:stretch; gap:0;
+     display:flex; flex-wrap:wrap; justify-content:center; align-items:stretch; gap:0;
+     container:podium / inline-size;
      margin:0 0 var(--lwc-space-6); padding:0;
  }
  @media (prefers-color-scheme:dark){
@@ -903,6 +991,24 @@
  .podium-score .age-reduction{ display:block; color:var(--lwc-accent); font-size:1.5rem; line-height:1.2; text-align:center; font-variant-numeric:tabular-nums; }
  .podium-item.first .podium-score .age-reduction{ font-size:1.9rem; }
 
+ /* Enlarged text can also exhaust a narrow desktop's three columns. Keep the
+    same cards and font sizes, giving each placing a full row when needed. */
+ @media (min-width: 933px), (min-width: 769px) and (min-height: 481px){
+     @container podium (max-width: 32em){
+         .podium-item{
+             width:100%; max-width:none; margin:0 0 var(--lwc-space-3); padding:var(--lwc-space-3) var(--lwc-space-3) 0; overflow:hidden;
+             border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-lg); background:var(--lwc-surface); box-shadow:var(--lwc-shadow-sm);
+         }
+         .podium-item.first{ order:1; }
+         .podium-item.second{ order:2; margin-top:0; }
+         .podium-item.third{ order:3; margin-top:0; }
+         .podium-item .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 18px); }
+         .podium-item:is(.first, .second, .third) > .podium-item-lower{
+             min-height:0; margin:auto calc(-1 * var(--lwc-space-3)) 0; padding:var(--lwc-space-3); border-radius:0;
+         }
+     }
+ }
+
  /* =========================
     8) Table row bits
     ========================= */
@@ -916,6 +1022,10 @@
      min-width:0;
  }
  .athlete-td .badge-section{ flex:0 0 auto; flex-wrap:nowrap; }
+ .athlete-identity{ display:flex; align-items:center; flex-wrap:wrap; gap:0 .125rem; min-width:0; }
+ .athlete-identity .athlete-name{ min-width:0; max-width:100%; }
+ .athlete-name-links{ display:inline-flex; align-items:center; flex:0 0 auto; gap:.125rem; }
+ .athlete-name-links:empty{ display:none; }
 
  .athlete-name{
      color:var(--primary-color); text-decoration:underline; text-decoration-thickness:.08em; text-underline-offset:.18em; text-align:left; cursor:pointer;
@@ -924,6 +1034,9 @@
      border:0; background:transparent; font:inherit; appearance:none; -webkit-appearance:none; box-sizing:border-box;
  }
  .athlete-name-content{ min-width:0; }
+ /* Let an otherwise unbreakable name shrink inside the wider table too.
+    Phones override this with their per-row, whole-word fallback below. */
+ .leaderboard table tbody .athlete-name{ overflow-wrap:anywhere; }
  .athlete-name:hover{
      color:var(--secondary-color); background-color:rgba(8,118,133,.08); box-shadow:inset 0 0 0 1px rgba(8,118,133,.12);
  }
@@ -966,12 +1079,8 @@
     10) Modal
     ========================= */
  .modal{
-     display:none; position:fixed; z-index:var(--athlete-dialog-layer, 3); left:0; top:0; width:100%; height:100%;
+     display:none; position:fixed; z-index:var(--athlete-dialog-layer, 1000); left:0; top:0; width:100%; height:100%;
      overflow:hidden; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
- }
- .modal.fade-out .modal-content,
- .modal.fade-out .modal-sticky-header{
-     visibility:hidden;
  }
  .modal-content.is-loading:not([data-server-rendered-profile]) #athleteBio,
  .modal-content.is-loading:not([data-server-rendered-profile]) #athleteRank,
@@ -1005,11 +1114,7 @@
  #athleteLoadError{
      width:min(100%, var(--athlete-modal-section-width));
      box-sizing:border-box;
-     margin:.5rem auto 0;
-     padding:.8rem;
-     border:1px solid var(--athlete-modal-cream-border);
-     border-radius:var(--lwc-radius-md, 8px);
-     background:rgba(255,255,255,.08);
+     margin:var(--athlete-doc-gap, 1.5rem) auto 0;
  }
  #athleteLoadError[hidden]{ display:none; }
  #detailsModal .modal-content[data-server-rendered-loading].is-loading > :not(#closeAthleteDetailsModal):not(#modalStickyHeader) {
@@ -1018,22 +1123,12 @@
  #detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
      content:"";
      position:absolute;
-     top:4rem;
-     left:calc(50% - .75rem);
-     width:1.5rem;
-     height:1.5rem;
-     border:2px solid var(--athlete-modal-border);
-     border-top-color:var(--athlete-modal-text);
-     border-radius:50%;
-     animation:athlete-initial-loading 1s linear infinite;
- }
- @keyframes athlete-initial-loading { to { transform:rotate(360deg); } }
- @media (prefers-reduced-motion:reduce) {
-     #detailsModal .modal-content[data-server-rendered-loading].is-loading::after { animation:none; }
+     top:calc(4rem + var(--lwc-space-3));
+     left:calc(50% - 1.75rem);
  }
  #detailsModal #athleteLoadError p{
      margin:0 0 .65rem;
-     color:var(--athlete-modal-text);
+     color:inherit;
  }
  .modal-content{
      background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
@@ -1062,6 +1157,7 @@
      --athlete-modal-chart-pheno: rgba(135,229,229,.96);
      --athlete-modal-chart-biomarker: rgba(255,125,125,.96);
      --athlete-modal-chart-panel: rgba(8,10,10,.28);
+     --athlete-modal-chart-tooltip: #102028;
      --athlete-modal-section-width: 640px;
  }
  #detailsModal.modal{
@@ -1319,21 +1415,40 @@
      outline:2px solid var(--athlete-modal-link);
      outline-offset:2px;
  }
+ /* The athlete's why is their own voice: an open pull quote under the name,
+    not one more box in the stack of rank, badge and stat cards. */
  #detailsModal #athleteBio{
-     width: min(100%, var(--athlete-modal-section-width));
-     color: var(--athlete-modal-muted);
+     width: min(100%, 34rem);
+     color: var(--athlete-modal-cream);
+     font-size: 1.08rem;
      line-height: 1.6;
-     margin: 1rem auto 1.45rem;
-     padding: .9rem 1.1rem;
+     margin: 1.1rem auto 1.6rem;
+     padding: 0 1.25rem;
      box-sizing: border-box;
-     background: rgba(246,244,237,.065);
-     border: 1px solid rgba(246,244,237,.18);
-     border-radius: var(--lwc-radius-lg);
-     box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 12px 28px rgba(0,0,0,.16);
+     background: none;
+     border: 0;
+     border-radius: 0;
+     box-shadow: none;
      font-weight: 400;
      letter-spacing: normal;
      overflow-wrap:anywhere;
      word-break:normal;
+     white-space:pre-wrap;
+     text-wrap:balance;
+ }
+ #detailsModal #athleteBio:not(:empty):not([data-leading-quote])::before{
+     content: "\201C" / "";
+     display: block;
+     height: 1.6rem;
+     color: var(--athlete-modal-accent, #7bdde3);
+     font-family: Georgia, "Times New Roman", serif;
+     font-size: 3.4rem;
+     line-height: 1;
+     opacity: .8;
+ }
+ #detailsModal #athleteBio:empty,
+ #detailsModal #athleteBio[hidden]{
+     display: none;
  }
 
  .athlete-info {
@@ -1472,11 +1587,6 @@
      background: var(--athlete-modal-border);
  }
 
- /* === FIX: Pace of aging sor biztosan egy sorban === */
- #bortzPaceOfAgingContainer td{ white-space: nowrap; }
- #paceOfAgingContainer td{ white-space: nowrap; }
-
-
  #ageReduction,
  #ageReductionPercent,
  #lowestBortzAge,
@@ -1544,7 +1654,8 @@
      left:0;
      z-index:80;
      min-width:12.5rem;
-     max-height:calc(100dvh - 6rem);
+     max-height:var(--athlete-share-available-height, calc(100dvh - 24px));
+     translate:0 var(--athlete-share-offset, 0px);
      overflow-y:auto;
      overscroll-behavior:contain;
      padding:.35rem;
@@ -1702,9 +1813,11 @@
      padding: 1rem;
      color: var(--athlete-modal-text);
  }
+ /* Highlights draws its own head strip and rows edge to edge, like its two neighbours. */
  #detailsModal .events-embed{
      position:relative;
-     padding:.75rem;
+     margin-top:1.5rem;
+     padding:0;
      overflow:hidden;
  }
  #detailsModal .events-embed::before{
@@ -1715,7 +1828,7 @@
      position:relative;
      z-index:1;
      display:block;
-     border-radius:16px;
+     border-radius:0;
  }
  #detailsModal .biomarkers-section h3,
  #detailsModal .proofs-section h3{
@@ -1735,190 +1848,278 @@
      letter-spacing:1px;
      line-height:1.15;
  }
+ /* One gap between the three lower sections. */
  #detailsModal .biomarkers-section{
      overflow:hidden;
-     margin-top:1.15rem;
-     margin-bottom:1.6rem;
+     margin-top:1.5rem;
+     margin-bottom:1.5rem;
  }
  #detailsModal .biomarkers-section::after{
      content:none;
      display:none;
  }
- #detailsModal .biomarkers-heading{
-     display:flex;
-     flex-wrap:wrap;
-     align-items:center;
-     justify-content:space-between;
-     gap:.75rem 1rem;
-     margin:-1rem -1rem 1rem;
-     padding:.65rem 1rem;
-     background:rgba(246,244,237,.06);
-     border-bottom:1px solid rgba(246,244,237,.16);
- }
- #detailsModal .biomarkers-heading h3{
-     min-height:0;
-     margin:0;
-     padding:0;
-     background:none;
-     border:0;
-     flex:1 1 13rem;
- }
- #detailsModal .biomarker-history-tabs{
-     display:inline-flex;
-     flex:0 0 auto;
-     gap:3px;
-     padding:3px;
-     border:1px solid var(--athlete-modal-border);
-     border-radius:var(--lwc-radius-md);
- }
- #detailsModal .biomarker-history-tabs button{
-     min-height:38px;
-     padding:.4rem .8rem;
+ #detailsModal #biomarkerResultList{ --result-content-inset:var(--lwc-space-3, .75rem); max-width:100%; overflow-x:auto; }
+ #detailsModal .biomarker-overview-range{
+     margin:0 0 .3rem;
+     padding-inline:var(--result-content-inset);
      color:var(--athlete-modal-muted);
-     background:transparent;
-     border:0;
-     border-radius:calc(var(--lwc-radius-md) - 3px);
-     font:inherit;
-     font-size:.85rem;
-     font-weight:600;
-     cursor:pointer;
- }
- #detailsModal .biomarker-history-tabs button[aria-selected="true"]{
-     color:var(--athlete-modal-text);
-     background:rgba(123,221,227,.14);
- }
- #detailsModal .biomarker-history-tabs button:focus-visible{
-     outline:2px solid var(--athlete-modal-link);
-     outline-offset:2px;
- }
- #detailsModal .biomarker-history-tabs button:disabled{
-     cursor:default;
-     opacity:.55;
- }
- #detailsModal .biomarker-history-table{
-     width:100%;
-     table-layout:fixed;
-     border-collapse:collapse;
-     color:var(--athlete-modal-text);
-     font-size:.88rem;
+     font-size:.8rem;
      font-variant-numeric:tabular-nums;
  }
- #detailsModal .biomarker-history-table caption{
-     position:absolute;
-     width:1px;
-     height:1px;
-     overflow:hidden;
-     clip-path:inset(50%);
+ #detailsModal .biomarker-overview-table{
+     width:100%;
+     border-collapse:collapse;
+     color:var(--athlete-modal-text);
+     font-size:.9rem;
+     font-variant-numeric:tabular-nums;
  }
- #detailsModal .biomarker-history-table th,
- #detailsModal .biomarker-history-table td{
-     padding:1rem .35rem;
+ #detailsModal .biomarker-overview-table > thead > tr > th,
+ #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){
+     padding:.9rem .3rem;
      border-bottom:1px solid var(--athlete-modal-border);
      text-align:right;
      vertical-align:middle;
-     overflow-wrap:anywhere;
+     overflow-wrap:normal;
  }
- #detailsModal .biomarker-history-table thead th{
-     color:var(--athlete-modal-muted);
-     font-size:.8rem;
-     font-weight:400;
-     line-height:1.4;
- }
- #detailsModal .biomarker-history-table th:first-child{
-     width:29%;
-     padding-left:0;
+ #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+ #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{
+     width:36%;
+     padding-left:var(--result-content-inset);
      text-align:left;
+ }
+ #detailsModal .biomarker-overview-table > thead > tr > th:last-child,
+ #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{ padding-right:1.2rem; }
+ #detailsModal .biomarker-overview-table > thead > tr > th{
+     color:var(--athlete-modal-muted);
+     font-size:.8rem;
      font-weight:400;
  }
- #detailsModal .biomarker-history-table th:last-child,
- #detailsModal .biomarker-history-table td:last-child{
-     padding-right:0;
+ #detailsModal .biomarker-overview-table > thead .biomarker-overview-history{ text-align:center; }
+ #detailsModal .result-summary button{
+     display:block;
+     min-height:44px;
+     padding:0;
+     border:0;
+     background:none;
+     outline:none;
+     box-shadow:none;
+     color:inherit;
+     font:inherit;
+     font-weight:500;
+     text-align:left;
+     line-height:1.5;
+     cursor:pointer;
  }
- #detailsModal .biomarker-history-table tbody tr:last-child > *{
-     border-bottom:0;
+ #detailsModal .result-summary button:disabled{ cursor:default; opacity:.6; }
+ #detailsModal .result-summary:has(button:enabled){ cursor:pointer; }
+ #detailsModal .result-summary:has(button:enabled):hover,
+ #detailsModal .result-summary:has(button:focus-visible),
+ #detailsModal .result-summary:has(.clock-history-scroll:focus-visible),
+ #detailsModal .result-summary.is-expanded{ background:rgba(123,221,227,.045); }
+ #detailsModal .result-summary.result-first-biomarker > *{ border-top:2px solid var(--athlete-modal-border); }
+ #detailsModal .biomarker-overview-history{ width:26%; }
+ #detailsModal .clock-history-scroll{
+     width:100%;
+     min-width:0;
+     min-height:44px;
+     contain:inline-size;
+     overflow-x:auto;
+     direction:rtl; /* Start at the newest reading; the track keeps chronological order. */
+     padding:.3rem 0;
+     outline:none;
+     scrollbar-width:thin;
+     scrollbar-color:var(--athlete-modal-border) transparent;
+     mask-image:linear-gradient(to right, transparent, #000 var(--clock-history-left-fade, 0px),
+         #000 calc(100% - var(--clock-history-right-fade, 0px)), transparent);
  }
+ #detailsModal .clock-history-track{
+     --clock-history-gap:.6rem;
+     display:grid;
+     direction:ltr;
+     grid-auto-flow:column;
+     grid-auto-columns:minmax(max-content, 1fr);
+     gap:var(--clock-history-gap);
+     width:max-content;
+     min-width:100%;
+ }
+ #detailsModal .clock-history-reading{
+     position:relative;
+     display:flex;
+     flex-direction:column;
+     align-items:center;
+     gap:.45rem;
+     color:var(--athlete-modal-muted);
+     font-size:.75rem;
+     line-height:1.25;
+     white-space:nowrap;
+ }
+ #detailsModal .clock-history-reading::before{
+     content:'';
+     box-sizing:border-box;
+     width:7px;
+     height:7px;
+     border:1px solid currentColor;
+     border-radius:50%;
+ }
+ #detailsModal .clock-history-reading:not(:last-child)::after{
+     content:'';
+     position:absolute;
+     top:3px;
+     left:calc(50% + 5px);
+     width:calc(100% + var(--clock-history-gap) - 10px);
+     border-top:1px solid var(--athlete-modal-border);
+ }
+ #detailsModal .clock-history-reading.is-latest{ color:var(--result-accent); font-weight:700; }
+ #detailsModal .clock-history-reading.is-latest::before{ background:currentColor; }
+ #detailsModal .clock-history-reading.is-clipped{ opacity:0; }
+ #detailsModal .biomarker-overview-history svg{
+     display:block;
+     width:100%;
+     min-width:40px;
+     max-width:120px;
+     height:40px;
+     margin:auto;
+ }
+ #detailsModal .biomarker-overview-history line{
+     stroke:var(--athlete-modal-muted);
+     stroke-width:1.5;
+     opacity:.55;
+ }
+ #detailsModal .biomarker-overview-history circle{ fill:var(--athlete-modal-text); }
+ #detailsModal .biomarker-overview-history .is-latest{ fill:var(--result-accent, var(--athlete-modal-chart-pheno)); }
+ #detailsModal .biomarker-overview-history .is-baseline{
+     fill:none;
+     stroke:var(--athlete-modal-muted);
+     stroke-width:1.5;
+ }
+ #detailsModal .biomarker-overview-result{ position:relative; white-space:nowrap; }
  #detailsModal .biomarker-history-unit,
- #detailsModal .biomarker-history-year{
+ #detailsModal .result-measurement-date{
      display:block;
      color:var(--athlete-modal-muted);
      font-size:.8rem;
      font-weight:400;
  }
- #detailsModal .biomarker-history-empty{
-     text-align:center;
-     color:var(--athlete-modal-muted);
- }
- #detailsModal .biomarkers-section [hidden]{ display:none !important; }
- @media (pointer:coarse){
-     #detailsModal .biomarker-history-tabs button{ min-height:44px; }
- }
- #detailsModal .biomarker-chart-controls{
-     display:flex;
-     justify-content:center;
-     align-items:center;
-     position:relative;
-     width:min(100%, 320px);
-     max-width:100%;
-     margin:.75rem auto 1.25rem;
-     padding:0;
-     background:none;
-     border:0;
-     box-shadow:none;
-     color:var(--athlete-modal-text);
- }
- #detailsModal .biomarker-chart-controls::after{
-     content:"";
-     position:absolute;
-     right:1.05rem;
-     top:50%;
-     width:.42rem;
-     height:.42rem;
-     border-right:2px solid currentColor;
-     border-bottom:2px solid currentColor;
-     transform:translateY(-65%) rotate(45deg);
-     opacity:.9;
-     pointer-events:none;
- }
- #detailsModal .biomarker-chart-controls select{
-     appearance:none;
-     -webkit-appearance:none;
-     width:100%;
-     min-height:44px;
-     color:var(--athlete-modal-text);
-     background:var(--athlete-modal-card);
-     border:1px solid var(--athlete-modal-border);
-     border-radius:var(--lwc-radius-md);
-     padding:.65rem 2.35rem .65rem 1.05rem;
-     box-shadow:none;
-     font-size:.88rem;
-     font-weight:700;
-     line-height:1.15;
- }
- #detailsModal .biomarker-chart-controls option{
-     color:#f6f4ed;
-     background:#202323;
-     font-weight:500;
- }
- #detailsModal .biomarker-chart-controls option:checked{
-     color:#fff;
-     background:#1f6fe5;
- }
- #detailsModal .biomarker-chart-controls select:focus-visible{
-     outline:none;
-     box-shadow:var(--athlete-modal-focus);
- }
- #detailsModal #biomarkerChart{
-     display:block;
-     max-height:360px;
-     margin-top:.15rem;
-     border:1px solid rgba(246,244,237,.09);
-     border-radius:16px;
-     background:var(--athlete-modal-chart-panel);
-     box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 10px 24px rgba(0,0,0,.15);
+ #detailsModal .result-measurement-date{ font-size:.72rem; }
+ #detailsModal .biomarker-history-unit{ white-space:nowrap; }
+ #detailsModal .biomarker-overview-current{ display:block; font-size:1.1rem; font-weight:500; }
+ #detailsModal .result-clock button{ font-weight:700; }
+ #detailsModal .result-clock .biomarker-overview-current{ font-size:1.25rem; color:var(--result-accent); }
+ #detailsModal .biomarker-overview-arrow{
+     display:inline-block;
      box-sizing:border-box;
+     width:.4rem;
+     height:.4rem;
+     position:absolute;
+     right:.15rem;
+     top:50%;
+     margin:-.2rem 0 0;
+     border-top:1px solid currentColor;
+     border-right:1px solid currentColor;
+     color:var(--athlete-modal-muted);
+     vertical-align:middle;
+     transform:rotate(45deg);
+ }
+ #detailsModal .is-expanded .biomarker-overview-arrow{ transform:rotate(135deg); }
+ #detailsModal .result-summary:has(button:disabled) .biomarker-overview-arrow{ visibility:hidden; }
+ #detailsModal .result-detail-row > td{ padding:0; border:0; }
+ #detailsModal .result-detail{
+     box-sizing:border-box;
+     width:100%;
+     min-width:0;
+     contain:inline-size;
+     padding:1rem var(--result-content-inset);
+     margin:0 0 .65rem;
+     border-bottom:1px solid var(--athlete-modal-border);
+     background:var(--athlete-modal-chart-panel);
+ }
+ #detailsModal .result-detail h4{
+     margin:0 0 .6rem;
+     color:var(--athlete-modal-text);
+     font-size:1rem;
+     font-weight:500;
+     text-transform:none;
+     letter-spacing:0;
+ }
+ #detailsModal .result-plot-legend{
+     display:flex;
+     flex-wrap:wrap;
+     gap:.3rem 1rem;
+     margin:0;
+     color:var(--athlete-modal-muted);
+     font-size:.75rem;
+ }
+ #detailsModal .result-plot-legend span{ display:inline-flex; align-items:center; gap:.4rem; }
+ #detailsModal .result-plot-legend span::before{ content:""; display:inline-block; width:7px; height:7px; border-radius:50%; }
+ #detailsModal .result-legend-athlete::before{ border:2px solid var(--result-accent); }
+ #detailsModal .result-legend-others::before{ background:var(--athlete-modal-muted); opacity:.5; }
+ #detailsModal .result-plot-legend .result-legend-equal::before{ width:12px; height:0; border-top:1px dashed var(--athlete-modal-muted); border-radius:0; }
+ #detailsModal .result-field-count{ margin:.3rem 0 .2rem; color:var(--athlete-modal-muted); font-size:.75rem; }
+ #detailsModal .result-plot{ position:relative; width:100%; height:320px; min-width:0; margin:.5rem 0 1rem; contain:inline-size; user-select:none; }
+ #detailsModal .result-plot canvas{ display:block; max-width:100%; cursor:crosshair; touch-action:pan-y; }
+ #detailsModal .result-plot[aria-busy="true"]{ opacity:.5; }
+ #detailsModal .biomarker-history-table{ width:100%; border-collapse:collapse; font-size:.85rem; }
+ #detailsModal .biomarker-history-table caption,
+ #detailsModal .biomarker-overview-table caption{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+ #detailsModal .biomarker-history-table th,
+ #detailsModal .biomarker-history-table td{ padding:.6rem .2rem; border-bottom:1px solid var(--athlete-modal-border); text-align:right; overflow-wrap:normal; font-weight:400; }
+ #detailsModal .biomarker-history-table th:first-child{ text-align:left; padding-left:0; }
+ #detailsModal .biomarker-history-table td{ white-space:nowrap; }
+ #detailsModal .biomarker-history-table thead th{ color:var(--athlete-modal-muted); font-size:.8rem; }
+ #detailsModal .biomarker-history-table tbody tr:last-child > *{ border-bottom:0; }
+ #detailsModal .biomarkers-section [hidden]{ display:none !important; }
+ @media (max-width:400px){
+     #detailsModal .result-clock .biomarker-overview-current{ font-size:1.1rem; }
+     #detailsModal .result-detail{ padding-block:.8rem; }
+     #detailsModal .result-plot{ height:260px; }
+ }
+ @media (max-width:360px){
+     #detailsModal .biomarker-overview-history{ width:30%; }
+     #detailsModal .clock-history-track{ --clock-history-gap:.3rem; }
+     #detailsModal .biomarker-overview-table{ font-size:.8rem; }
+     #detailsModal .biomarker-overview-table > thead > tr > th{ font-size:.75rem; }
+     #detailsModal .biomarker-overview-table > thead .biomarker-history-unit{ font-size:inherit; }
+     #detailsModal .biomarker-overview-table > thead > tr > th,
+     #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){ padding:.8rem .15rem; }
+     #detailsModal .biomarker-overview-history svg{ min-width:30px; }
+ }
+ /* Results over time reads as one scannable list: the two clocks lead with
+    room to breathe, and each biomarker is a single compact line with its
+    unit beside its name, its trend and its latest value. */
+ #detailsModal .biomarker-overview-table > tbody > .result-summary:not(.result-clock) > :is(th,td){
+     padding-block:.15rem;
+ }
+ #detailsModal .result-summary:not(.result-clock) button{
+     display:flex;
+     align-items:baseline;
+     flex-wrap:wrap;
+     justify-content:flex-start;
+     column-gap:.45rem;
+     align-content:center;
+     width:100%;
+     text-align:left;
+ }
+ #detailsModal .result-summary:not(.result-clock) .biomarker-history-unit{
+     display:inline;
+     font-size:.75rem;
+ }
+ #detailsModal .result-summary:not(.result-clock) .result-measurement-date{ flex-basis:100%; }
+ #detailsModal .result-summary:not(.result-clock) .biomarker-overview-history svg{ height:26px; }
+ #detailsModal .result-summary:not(.result-clock) .biomarker-overview-current{ font-size:1rem; }
+ /* Phones give the name the trend's spare width, so name and unit keep one line. */
+ @media (max-width:600px){
+     #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+     #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{ width:44%; }
+     #detailsModal .biomarker-overview-history{ width:24%; }
+ }
+ @media (max-width:360px){
+     #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+     #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{ width:40%; }
+     #detailsModal .biomarker-overview-history{ width:30%; }
  }
  #detailsModal .proofs-section{
-     margin-top:1.9rem;
+     container:athlete-proofs / inline-size;
+     margin-top:1.5rem;
      overflow:hidden;
  }
  #detailsModal .proofs-gallery{
@@ -1939,11 +2140,13 @@
  #detailsModal .proofs-gallery[data-proof-count="2"]{
      grid-template-columns:repeat(2, minmax(0, 1fr));
  }
- #detailsModal .proofs-heading{
+ #detailsModal .proofs-heading,
+ #detailsModal .biomarkers-heading{
      display:flex;
+     flex-wrap:wrap;
      align-items:center;
      justify-content:space-between;
-     gap:var(--lwc-space-3);
+     gap:var(--lwc-space-1) var(--lwc-space-3);
      box-sizing:border-box;
      min-height:57px;
      margin:-1rem -1rem 1rem;
@@ -1951,7 +2154,8 @@
      background:rgba(246,244,237,.06);
      border-bottom:1px solid var(--athlete-modal-border);
  }
- #detailsModal .proofs-heading h3{
+ #detailsModal .proofs-heading h3,
+ #detailsModal .biomarkers-heading h3{
      min-height:0;
      margin:0;
      padding:0;
@@ -2394,7 +2598,7 @@
      /* Age reduction is now the last column; keep it off the board's edge. */
      .leaderboard table th:nth-child(4),
      .leaderboard table .age-reduction-td{ padding-right:var(--lwc-space-4, 1rem); }
-     .leaderboard table td .badge-section{ display:none; }
+     .leaderboard table td :is(.badge-section, .athlete-name-links){ display:none; }
  }
 
  @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
@@ -2412,13 +2616,18 @@
          margin-left:auto;
          margin-right:auto;
      }
+     html:has(body.sidebar-drawer-open){ overflow:hidden; }
      body.sidebar-drawer-open{
          overflow:hidden;
+         width:var(--sidebar-body-width, 100%);
      }
-     body.sidebar-drawer-open::before{
+     body:has(:where(#leaderboardFilters))::before{
          content:''; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.38);
-         backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:auto; cursor:pointer;
+         backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); pointer-events:none; cursor:pointer;
+         opacity:0; visibility:hidden;
+         transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), visibility 0s linear var(--lwc-duration-normal, 220ms);
      }
+     body.sidebar-drawer-open:not(.sidebar-drawer-closing)::before{ opacity:1; visibility:visible; pointer-events:auto; transition-delay:0s; }
      .leaderboard-view-switcher{
          margin-left:0; order:1; align-items:stretch; width:min(100%, 26rem); max-width:100%; min-width:0; gap:.35rem;
      }
@@ -2450,7 +2659,7 @@
      .main-container{ flex-direction:column; }
      .leaderboard{ overflow:visible; min-height:0; }
      .sidebar{
-         width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
+         width:320px; max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
          padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
          position:fixed; top:0; left:0; height:100dvh; min-height:0; max-height:100dvh; align-items:stretch; border-radius:0 18px 18px 0;
          background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-x:hidden; overflow-y:auto; transform:translateX(-105%);
@@ -2469,22 +2678,22 @@
      }
      .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]),
      .sidebar.expanded{
-         display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem);
+         display:block; width:320px; max-width:calc(100vw - 2rem);
          padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
          position:fixed; top:0; left:0; height:100dvh; min-height:0; max-height:100dvh;
          transform:translateX(0); visibility:visible; pointer-events:auto; transition-delay:0s;
      }
-     .sidebar.expanded .filter-section{ display:block; }
+     .sidebar .filter-section{ display:block; }
      .sidebar .collapsed-title{ display:none; }
      .sidebar .sidebar-close{
-         position:static; margin:0;
+         display:inline-flex; position:static; margin:0;
      }
      .sidebar-heading{ position:sticky; top:-1rem; z-index:10; background:var(--card-bg); }
      .sidebar .sidebar-title{ width:auto; padding:.75rem 0; }
      .sidebar .sidebar-title .sidebar-title-text{ display:inline-block; font-size:1.25rem; }
      .sidebar .sidebar-title .sidebar-icon{ flex-basis:1.5rem; width:1.5rem; height:1.5rem; font-size:1.5rem; }
-     .sidebar.has-active-state.expanded .clear-sidebar-filters{
-         display:flex; background:var(--lwc-accent-soft); box-shadow:none;
+     .sidebar.has-active-state .clear-sidebar-filters{
+         display:flex; visibility:visible; background:var(--lwc-accent-soft); box-shadow:none;
      }
      .sidebar.has-active-state.expanded .clear-sidebar-filters:focus-visible{
          outline:3px solid var(--lwc-accent); outline-offset:2px; box-shadow:none;
@@ -2534,6 +2743,30 @@
      .podium-item.first .btc-amount{ margin-top:0; }
      .podium-skeleton-item.first .age-reduction{ margin-inline:0; }
 
+     /* Enlarged text: each card gets the full width and the champion stacks like
+        the other two, so names wrap between words instead of letter by letter. */
+     @container podium (max-width: 16em) {
+         .podium-item,
+         .podium-item.second,
+         .podium-item.third{ width:100%; }
+         .podium-item.first{
+             max-width:none;
+             grid-template-columns:minmax(0, 1fr); grid-template-areas:"portrait" "name" "score" "links" "prize";
+             justify-items:center; padding:var(--lwc-space-3) var(--lwc-space-3) 0; text-align:center;
+         }
+         .podium-item.first > .athlete-profile-link,
+         .podium-item.first > .podium-skeleton-portrait{ align-self:center; }
+         .podium-item.first .podium-portrait,
+         .podium-item.first .rank-change,
+         .podium-item.first .podium-skeleton-portrait{ margin:0 auto 1.2rem; }
+         .podium-item.first .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); left:50%; }
+         .podium-item.first > .name-row{ justify-content:center; }
+         .podium-item.first > :is(.podium-link-row, .podium-score){ justify-self:center; justify-content:center; }
+         .podium-item.first .podium-score .age-reduction{ text-align:center; }
+         .podium-item.first > .podium-item-lower{ justify-self:stretch; margin-inline:calc(-1 * var(--lwc-space-3)); }
+         .podium .name-row .athlete-name{ overflow-wrap:anywhere; text-align:center; }
+     }
+
      .leaderboard table{ width:100%; table-layout:auto; }
      .leaderboard table th:last-child,
      .leaderboard table td:last-child{ padding-right:0.5rem; }
@@ -2543,7 +2776,7 @@
      .leaderboard table .media-contact-td{ display:none; }
      .leaderboard table th:nth-child(4),
      .leaderboard table td:nth-child(4){ padding-right:0.5rem; }
-     .leaderboard table td .badge-section{ display:none; }
+     .leaderboard table td :is(.badge-section, .athlete-name-links){ display:none; }
      .leaderboard table th{
          font-size:.66rem;
          line-height:1.05;
@@ -2672,25 +2905,6 @@
      .athlete-info-table .unit {
          white-space: normal;
      }
-     /* Use the card's available width and text size, including in scoped dialogs. */
-     @container athlete-stats (min-width: 16em) {
-         .athlete-info-table tr {
-             display: grid;
-             grid-template-columns: fit-content(52%) minmax(0, 1fr);
-             column-gap: 0.75rem;
-             align-items: baseline;
-         }
-         .athlete-info-table tr.athlete-info-divider-row td {
-             grid-column: 1 / -1;
-         }
-         .athlete-info-table th,
-         .athlete-info-table td {
-             width: auto;
-         }
-         .athlete-info-table td {
-             text-align: right;
-         }
-     }
      /* Pace/age rows: allow wrapping on mobile instead of nowrap */
      #bortzPaceOfAgingContainer td,
      #paceOfAgingContainer td,
@@ -2814,12 +3028,70 @@
              font-weight: 700;
              line-height: 1.2;
              min-width: 0;
-             overflow-wrap: anywhere;
+             overflow-wrap: break-word;
              word-break: normal;
          }
 
+         /* A name whose longest word cannot sit beside the portrait moves under it
+            and takes the cell's full width instead of breaking letter by letter. */
+         .leaderboard table tbody tr:not(.no-results):not(.tier-separator) td.athlete-td {
+             flex-wrap: wrap;
+             row-gap: 0.25rem;
+         }
+
+         .leaderboard table tbody td.athlete-td .athlete-identity {
+             flex: 1 1 min-content;
+             max-width: 100%;
+         }
+
+         /* One column head names the score for every row, in place of a label
+            repeated under each one. It uses the rows' own three columns. */
          .leaderboard table thead {
-             display: none;
+             display: block;
+         }
+
+         /* Wrap whole heading items when text grows beyond the available row width. */
+         .leaderboard table thead tr {
+             display: flex;
+             flex-wrap: wrap;
+             align-items: center;
+             column-gap: 0.6rem;
+             min-height: 44px;
+             padding: 0 0.5rem 0 0.4rem;
+             border-bottom: 1px solid var(--lwc-border, #d7e0e6);
+             background: var(--lwc-surface-accent, var(--surface-accent));
+         }
+
+         .leaderboard table thead tr > th:nth-child(n) {
+             display: block;
+             width: auto;
+             min-width: 0;
+             height: auto;
+             padding: 0;
+             border: 0;
+             background: none;
+             font-size: var(--lwc-type-xs, .75rem);
+             letter-spacing: 0;
+             line-height: 1.2;
+         }
+
+         .leaderboard table thead tr > th.sponsor-th:nth-child(n),
+         .leaderboard table thead tr > th.media-contact-th:nth-child(n) { display: none; }
+
+         .leaderboard table thead tr > th:nth-child(1),
+         .leaderboard table thead tr > th:nth-child(2) { overflow-wrap: normal; }
+         .leaderboard table thead tr > th:nth-child(1) { flex: 0 0 2.25rem; text-align: center; }
+         .leaderboard table thead tr > th:nth-child(2) { flex: 1 0 min-content; }
+         .leaderboard table thead tr > th:nth-child(4) { flex: 0 1 auto; min-width: min-content; margin-inline-start: auto; text-align: right; overflow-wrap: normal; }
+
+         .leaderboard table thead tr > th:nth-child(4) a {
+             display: inline-flex;
+             align-items: center;
+             justify-content: flex-end;
+             min-height: 44px;
+             max-width: 100%;
+             overflow-wrap: normal;
+             text-align: right;
          }
 
          .leaderboard table tbody {
@@ -2874,6 +3146,16 @@
              font-weight: 700;
          }
 
+         .leaderboard table td.rank-td .rank:not([data-place]):not(.skeleton-shimmer) {
+             color: var(--lwc-ink);
+         }
+
+         /* The Amateur track's edge bar takes its width out of the row's own
+            padding, so rank, portrait and name line up with the rows above. */
+         .leaderboard table tbody tr.tier-amateur:not(.no-results):not(.tier-separator) {
+             padding-left: calc(0.4rem - 4px);
+         }
+
          .leaderboard table tbody tr td.athlete-td {
              grid-area: athlete;
              gap: 0.3rem;
@@ -2892,7 +3174,7 @@
          }
 
          .leaderboard table td.age-reduction-td::before {
-             content: attr(data-label);
+             content: none;
              color: var(--lwc-muted, #52606d);
              font-size: .6875rem;
              font-weight: 700;
@@ -2919,16 +3201,42 @@
 
          /* Reflow relative to the reader's text size when three columns no longer fit. */
          @container leaderboard (max-width: 17em) {
+             /* Rank and portrait lead; the name and then the score each get the
+                whole row width so long names and the label stay whole. */
              .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
-                 grid-template-columns: 1.9rem minmax(0, 1fr);
+                 grid-template-columns: minmax(1.9rem, max-content) auto minmax(0, 1fr);
                  grid-template-areas:
-                     "rank athlete"
-                     "rank score";
-                 row-gap: 0.2rem;
+                     "rank portrait ."
+                     "name name name"
+                     "score score score";
+                 row-gap: 0.3rem;
+             }
+
+             .leaderboard table tbody tr:not(.no-results):not(.tier-separator) td.athlete-td {
+                 display: contents;
+             }
+
+             .leaderboard table tbody td.athlete-td > .portrait-wrapper {
+                 grid-area: portrait;
+             }
+
+             .leaderboard table tbody td.athlete-td > .athlete-identity {
+                 grid-area: name;
+             }
+
+             .leaderboard table td.age-reduction-td {
+                 justify-self: stretch;
+                 align-items: flex-start;
+                 text-align: left;
              }
 
              .leaderboard table td.age-reduction-td .age-reduction {
                  white-space: normal;
+             }
+
+             /* Stacked under the name, the score is no longer beneath its column head. */
+             .leaderboard table td.age-reduction-td::before {
+                 content: attr(data-label);
              }
          }
      }
@@ -2964,21 +3272,10 @@
          line-height:1.08;
          margin-top:.75rem;
      }
-     #detailsModal #athleteBio,
-     #detailsModal .athlete-info,
-     #detailsModal .age-visualization,
-     #detailsModal .events-embed,
-     #detailsModal .biomarkers-section,
-     #detailsModal .proofs-section{
-         width:calc(100% - 1.5rem) !important;
-         max-width:calc(100% - 1.5rem) !important;
-         margin-left:auto;
-         margin-right:auto;
-         box-sizing:border-box;
-     }
      #detailsModal #athleteBio{
-         margin:.75rem auto 1rem;
-         padding:.85rem 1rem;
+         margin:.85rem auto 1.25rem;
+         padding:0 .5rem;
+         font-size:1rem;
          text-wrap:balance;
      }
      #detailsModal .athlete-links{
@@ -3202,20 +3499,9 @@
          margin-bottom:.1rem;
      }
 
-     #detailsModal #athleteBio,
-     #detailsModal .athlete-links,
-     #detailsModal .athlete-info,
-     #detailsModal .age-visualization,
-     #detailsModal .events-embed,
-     #detailsModal .biomarkers-section,
-     #detailsModal .proofs-section{
-         width:calc(100% - 1rem) !important;
-         max-width:calc(100% - 1rem) !important;
-     }
-
      #detailsModal .modal-badge-strip{
-         max-height:40vh;
-         overflow:auto;
+         /* The profile is already scrollable. Keep a short explanation with
+            its shelf instead of creating a second, constrained scroll area. */
          padding:.6rem;
      }
  }
@@ -3260,11 +3546,13 @@
      transform: none;
  }
 
- .leaderboard table tbody tr.tier-separator {
+ .leaderboard table tbody tr.tier-separator,
+ .flag-section-heading.tier-separator {
      background: var(--surface-muted);
  }
 
- .leaderboard table tbody tr.tier-separator .tier-separator-cell {
+ .leaderboard table tbody tr.tier-separator .tier-separator-cell,
+ .flag-section-heading.tier-separator-cell {
      border-color: var(--border-color);
      color: var(--primary-color);
      font-weight: 700;
@@ -3389,10 +3677,13 @@
      background: var(--surface-muted);
  }
 
+ /* The chosen ranking is a raised, outlined segment as well as an underlined one. */
  .leaderboard-view-switcher input:checked + .view-badge {
      background: var(--card-bg);
      color: var(--primary-color-hover);
-     box-shadow: inset 0 -3px 0 var(--primary-color);
+     box-shadow: inset 0 -3px 0 var(--primary-color), 0 0 0 1px var(--primary-color);
+     position: relative;
+     z-index: 1;
  }
 
  .sidebar-toggle.has-active-state::after,
@@ -3508,11 +3799,67 @@
      }
  }
 
- .leaderboard-selection-summary { margin: 0 0 var(--lwc-space-4); }
- .leaderboard-selection-summary[hidden] { display: none; }
- .leaderboard-selection-heading { display: flex; justify-content: space-between; align-items: center; gap: var(--lwc-space-3); min-height: 44px; }
- #leaderboardResultCount { color: var(--lwc-muted); font-size: var(--lwc-type-sm); font-variant-numeric: tabular-nums; }
- .leaderboard-selection-chips { display: flex; flex-wrap: wrap; gap: var(--lwc-space-2); }
+ /* The controls and their outcome are one panel: pick a ranking, search or
+    filter on top; underneath, what that ranking means, how many athletes
+    match, and every active choice with its own remove button. */
+ .leaderboard-controls {
+     margin: 0 0 var(--lwc-space-4);
+     border: 1px solid var(--lwc-border);
+     border-radius: var(--lwc-radius-lg);
+     background: var(--lwc-surface);
+     box-shadow: var(--lwc-shadow-sm);
+ }
+ .leaderboard-controls .leaderboard-toolbar {
+     margin: 0;
+     padding: var(--lwc-space-3) var(--lwc-space-4);
+     flex-wrap: wrap;
+ }
+ .leaderboard-controls-status {
+     display: flex; flex-wrap: wrap; align-items: center; gap: var(--lwc-space-1) var(--lwc-space-5);
+     /* Tall enough for a row of chips, so applying a filter does not move the results. */
+     box-sizing: content-box; min-height: 44px; padding: var(--lwc-space-2) var(--lwc-space-4);
+     border-top: 1px solid var(--lwc-border);
+     border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+     background: var(--lwc-surface-muted);
+ }
+ /* Let enlarged controls wrap instead of squeezing the search text away. */
+ .leaderboard-controls .leaderboard-view-switcher { min-width: 0; max-width: 100%; }
+ .leaderboard-controls .view-switcher-chips { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+ .leaderboard-controls .search-wrapper { flex-wrap: wrap; min-width: 0; max-width: 100%; gap: .45rem; }
+ .leaderboard-controls .search-container { --search-clear-size: max(44px, 1.5rem); flex: 1 1 10rem; min-width: 0; }
+ .leaderboard-controls #athleteSearch { padding-inline-start: .5rem; }
+ .leaderboard-controls #athleteSearch:placeholder-shown { padding-right: 2.55rem; }
+ .leaderboard-controls .sidebar-toggle {
+     flex-shrink: 0; width: max(44px, 2.75rem); height: max(44px, 2.75rem); padding: 0; box-sizing: border-box;
+ }
+ /* The magnifier is useful for an empty field; once typing, give its space
+    to the query and keep a single, reachable clear action at the end. */
+ .leaderboard-controls #athleteSearch:not(:placeholder-shown) { padding-right: calc(var(--search-clear-size) + .5rem); }
+ .leaderboard-controls #athleteSearch:not(:placeholder-shown) ~ .search-icon { display: none; }
+ .leaderboard-controls .clear-icon { right: .25rem; width: var(--search-clear-size); height: var(--search-clear-size); }
+ .leaderboard-controls .ranking-explanation { flex: 1 1 24rem; min-width: 0; margin: 0; }
+ .leaderboard-controls .leaderboard-selection-summary {
+     display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--lwc-space-2);
+     min-width: 0; margin: 0; margin-inline-start: auto;
+ }
+ .leaderboard-controls .leaderboard-selection-summary[hidden] { display: none; }
+ #leaderboardResultCount {
+     margin-inline-end: var(--lwc-space-2); color: var(--lwc-ink); font-size: var(--lwc-type-sm); font-weight: 700;
+     font-variant-numeric: tabular-nums; white-space: nowrap;
+ }
+ /* Count, chips and Clear all wrap as one line of items, in reading and tab order. */
+ .leaderboard-selection-chips { display: contents; }
+ @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+     .leaderboard-controls { margin-top: var(--lwc-space-2); }
+     .leaderboard-controls .leaderboard-toolbar { padding: var(--lwc-space-3); }
+     .leaderboard-controls-status { padding: var(--lwc-space-2) var(--lwc-space-3); }
+     .leaderboard-controls .ranking-explanation { flex-basis: 100%; }
+     .leaderboard-controls .leaderboard-selection-summary { flex: 1 1 100%; margin-inline-start: 0; }
+     /* Rankings share the row by label length and wrap whole, so narrow
+        screens and enlarged text never split a name mid-word. */
+     .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips { display: flex; flex-wrap: wrap; }
+     .leaderboard-controls .leaderboard-view-switcher .view-badge { flex: 1 1 auto; }
+ }
  .leaderboard-selection-chip,
  .leaderboard-clear-all,
  .sidebar-show-results {
@@ -3530,17 +3877,2442 @@
  .leaderboard-selection-chip:focus-visible,
  .leaderboard-clear-all:focus-visible,
  .sidebar-show-results:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+ @media (max-width: 480px) {
+     .leaderboard-controls .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) {
+         display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; align-items: end;
+     }
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) #leaderboardResultCount { grid-column: 1 / -1; margin: 0; }
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) .leaderboard-selection-chips {
+         display: flex; flex-wrap: wrap; gap: var(--lwc-space-2); min-width: 0;
+     }
+ }
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }
+
+ /* Results rows. Outside the phone grid, rows are a little closer together. */
+ .leaderboard table tbody tr:not(.no-results):not(.tier-separator) > td { padding-block: var(--lwc-space-2); }
+ /* Wide tables read in columns: the athlete column takes the spare width, and
+    inside it every name starts at one edge and every row's badges at another. */
+ @media (min-width: 769px) {
+     /* The four narrow columns ask only for what they hold; when the table
+        narrows, the athlete column gives way before a score or a head wraps. */
+     .leaderboard table thead th:nth-child(1) { width: 4.75rem; }
+     .leaderboard table thead th:nth-child(3) { width: 7rem; }
+     .leaderboard table thead th:nth-child(4) { width: 9.5rem; }
+     .leaderboard table thead th:nth-child(5) { width: 8rem; }
+     .leaderboard table tbody tr:not(.no-results):not(.tier-separator) .athlete-td {
+         display: grid; grid-template-columns: var(--portrait-size) minmax(min-content, 18.5rem) minmax(min-content, 1fr);
+         align-items: center; justify-items: start; column-gap: var(--lwc-space-3);
+     }
+     /* Wide enough for the fullest badge row (badges are sized in pixels), so
+        the badge edge holds even when a narrow table shortens the name column. */
+     .leaderboard table tbody .athlete-td .badge-section { min-width: 144px; }
+     /* Before badge hydration, the auto table needs each name's whole-word
+        intrinsic width; anywhere can shrink that column to a single letter. */
+     .leaderboard table tbody tr.server-rendered-leaderboard-row .athlete-name { overflow-wrap: break-word; }
+ }
+
+ /* Let enlarged headings wrap before they collide with Clear and Close. */
+ .sidebar-heading { flex-wrap: wrap; }
+ .sidebar-heading .sidebar-title { flex: 1 0 auto; max-width: 100%; }
+ .sidebar-heading-actions { display: none; align-items: center; gap: var(--lwc-space-2); flex: 0 0 auto; margin-inline-start: auto; }
+ .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading-actions,
+ .sidebar.expanded .sidebar-heading-actions { display: flex; }
+
+ /* Filter groups: each title stays in view while its choices scroll past, so a
+    long list always says which group it is; a dot marks groups with a choice
+    made, besides the title colour. */
+ .sidebar-filter-list .filter-section { margin-bottom: 0; padding-bottom: var(--lwc-space-3); }
+ .sidebar-filter-list .filter-section:first-child { border-top: 0; }
+ .sidebar-filter-list .filter-section h3 {
+     position: sticky; top: 0; z-index: 1; margin: 0; padding: var(--lwc-space-3) 0 var(--lwc-space-2);
+     background: var(--lwc-surface);
+ }
+ .sidebar-filter-list .filter-section.has-active-filter h3::before {
+     content: ''; flex: 0 0 auto; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor;
+ }
+ .sidebar-filter-list .filter-section ul { gap: 2px; }
+ .sidebar-filter-list { scroll-padding-block-start: 3rem; }
+ .sidebar-filter-list input { scroll-margin-block-start: 3rem; }
+
+ .sidebar-rail { display: none; }
+ .sidebar-panel { display: contents; }
+
+ /* The desktop rail keeps its footprint. A full-width panel slides over the
+    results, so opening never squeezes its controls or reflows every table row. */
+ @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
+     .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; overflow: visible; }
+     .leaderboard > :is(table, .flag-leaderboard) { border-radius: 0 var(--radius-lg, 12px) var(--radius-lg, 12px) 0; overflow: clip; }
+     .leaderboard > table { flex-basis: 0; min-width: 0; }
+     .sidebar { --leaderboard-sidebar-open-width: min(19rem, 336px, 40cqi); --sidebar-motion-duration: 180ms; box-sizing: border-box; z-index: 3; }
+     .sidebar,
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
+         display: grid; grid-template-columns: 50px; grid-template-rows: minmax(0, 1fr); position: relative; top: auto;
+         width: 50px; padding: 0; overflow: visible; scrollbar-gutter: auto; transition: none;
+         /* The rail follows the results; the panel can overlay past a short
+            card without reserving empty space or moving the footer. */
+         height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
+         min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); max-height: none;
+         background: transparent; box-shadow: none;
+     }
+     .sidebar-rail { display: flex; flex-direction: column; align-items: center; grid-area: 1 / 1; align-self: stretch; min-height: 0; background: var(--card-bg); border-radius: inherit; overflow: clip; transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease); }
+     .sidebar-rail-icon { display: grid; place-items: center; position: relative; flex: 0 0 var(--leaderboard-head-height); width: 50px; box-sizing: border-box; border-bottom: 1px solid var(--lwc-border); background: var(--lwc-surface-accent, var(--surface-accent)); color: var(--primary-color); font-size: 2rem; }
+     .sidebar.has-active-state .sidebar-rail-icon::after { content: ''; position: absolute; top: 1rem; right: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--secondary-color); border: 2px solid var(--card-bg); }
+     .sidebar .collapsed-title,
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .collapsed-title { display: block; }
+     .sidebar-panel {
+         --sidebar-panel-open: 0; display: flex; flex-direction: column; grid-area: 1 / 1; align-self: start;
+         position: sticky; top: var(--leaderboard-sidebar-sticky-top); width: var(--leaderboard-sidebar-open-width);
+         min-height: 0; max-height: var(--leaderboard-sidebar-viewport-height); box-sizing: border-box; overflow: hidden;
+         border: 1px solid var(--lwc-border); border-radius: 0 12px 12px 0; background: var(--card-bg); box-shadow: 8px 4px 24px rgba(15,23,42,.12);
+         opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none;
+         transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease), transform var(--sidebar-motion-duration) var(--lwc-ease, ease), visibility 0s linear var(--sidebar-motion-duration);
+     }
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 1; opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 0; }
+     .sidebar .sidebar-heading,
+     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; width: 100%; margin: 0; padding-inline: min(1rem, 16px); }
+     .sidebar .sidebar-title { justify-content: flex-start; }
+     .sidebar .sidebar-title .sidebar-title-text { display: inline-block; }
+     .sidebar .sidebar-heading-actions { display: flex; }
+     .sidebar .sidebar-close, .sidebar .clear-sidebar-filters { display: inline-flex; }
+     .sidebar .filter-section { display: block; }
+     .sidebar .sidebar-filter-list {
+         display: block; flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding: 0 min(var(--lwc-space-4), 16px) var(--lwc-space-4);
+         overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
+         scrollbar-width: thin; scrollbar-color: rgba(0,188,212,.55) transparent;
+     }
+     @media (prefers-reduced-motion: reduce) {
+         .sidebar-panel, .sidebar-rail { transition: none; }
+     }
+     /* Reflow against text size as well as pixels: enlarged results need the
+        full board width instead of being squeezed alongside the filters. */
+     @container leaderboard-results (max-width: 45rem) {
+         .sidebar { --leaderboard-sidebar-open-width: 100cqi; }
+         .sidebar-panel { transition: none; }
+         /* Enlarged text needs room for whole header words, rather than doubled gutters. */
+         .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
+         .leaderboard table th a { padding-inline: 0; }
+         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); }
+         .sidebar.expanded .sidebar-panel { position: static; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); border: 0; border-radius: 0; box-shadow: none; }
+         .sidebar.expanded .sidebar-rail { display: none; }
+         .sidebar.expanded ~ table { flex-basis: 100%; }
+         /* The narrow/text-enlarged layout opens with the button. A transient
+            hover cannot take width from the results and change their height. */
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) {
+             position: relative; top: auto; width: 50px; padding: 0; align-items: center;
+             height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
+             min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
+             max-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); overflow: hidden;
+         }
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 0; opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none; }
+         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 1; }
+     }
+ }
  .sidebar-toggle.has-active-state::after { content: attr(data-filter-count); display: grid; place-items: center; width: 18px; height: 18px; top: -7px; right: -7px; background: var(--lwc-accent); color: var(--lwc-on-accent); font: 700 11px Roboto, sans-serif; border: 2px solid var(--lwc-surface); box-sizing: content-box; }
  @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
      .sidebar,
      .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]),
      .sidebar.expanded { display: flex; flex-direction: column; align-items: stretch; overflow: hidden; padding: var(--lwc-space-4) var(--lwc-space-4) 0; }
-     .sidebar-heading { position: static; flex: 0 0 auto; }
+     .sidebar.expanded { padding-inline: min(var(--lwc-space-4), 16px); }
+     .sidebar-panel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; }
+     .sidebar .sidebar-heading,
+     .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading,
+     .sidebar.expanded .sidebar-heading { position:static; flex:0 0 auto; width:100%; margin:0; padding-inline:0; }
+     .sidebar .sidebar-heading-actions { display:flex; }
      .sidebar-filter-list { display: block; flex: 1 1 auto; min-height: 0; padding-block: var(--lwc-space-2) var(--lwc-space-4); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
      .sidebar.expanded::after { display: none; }
      .sidebar-results { display: block; flex: 0 0 auto; padding: var(--lwc-space-3) 0 max(var(--lwc-space-3), env(safe-area-inset-bottom)); border-top: 1px solid var(--lwc-border); background: var(--lwc-surface); }
      .sidebar-show-results { width: 100%; background: var(--lwc-accent); color: var(--lwc-on-accent); border-color: transparent; }
      .sidebar-show-results:hover { background: var(--lwc-accent-hover); }
  }
+
+ /* =========================
+    Athlete dialog: one document
+    =========================
+    Every block of the profile is the same card on one column: one width, one
+    frame, one gap and one header band. The ranks are the band of the badge
+    card, the clocks are the band of the radar card, and the contact actions
+    are the footer band of the stats card, so the profile reads as a sequence
+    of sections instead of a stack of unrelated boxes. */
+ #detailsModal .modal-content{
+     --athlete-doc-width:640px;
+     --athlete-doc-gap:1.5rem;
+     --athlete-doc-band:rgba(246,244,237,.06);
+     --athlete-doc-band-height:3.5rem;
+     --athlete-doc-rule:rgba(246,244,237,.1);
+     --athlete-doc-radius:var(--lwc-radius-lg, 12px);
+ }
+ #detailsModal #athlete-profile > #athleteRankings,
+ #detailsModal #athlete-profile > #modalBadgeStrip,
+ #detailsModal #athlete-profile > #ageVisualization,
+ #detailsModal #athlete-profile > #athlete-stats,
+ #detailsModal #athlete-profile > .athlete-links,
+ #detailsModal .modal-content > #athlete-biomarkers,
+ #detailsModal .modal-content > #athlete-proofs,
+ #detailsModal .modal-content > .events-embed{
+     position:relative;
+     width:min(100%, var(--athlete-doc-width));
+     max-width:none;
+     box-sizing:border-box;
+     margin:var(--athlete-doc-gap) auto 0;
+     border:1px solid var(--athlete-modal-border);
+     border-radius:var(--athlete-doc-radius);
+     background:var(--athlete-modal-card);
+     box-shadow:none;
+     color:var(--athlete-modal-text);
+ }
+ #detailsModal .modal-content > .events-embed{ margin-bottom:var(--athlete-doc-gap); }
+ #detailsModal .modal-content > #athlete-biomarkers{ margin-bottom:0; }
+
+ /* Hero: portrait, name, then the rank card. */
+ #detailsModal #athleteName{
+     margin:1.6rem 0 0;
+     line-height:1.15;
+ }
+ #detailsModal #athlete-profile > #athleteRankings{
+     display:flex;
+     flex-wrap:wrap;
+     gap:0;
+     margin-top:1.25rem;
+     overflow:hidden;
+     background:linear-gradient(var(--athlete-doc-band), var(--athlete-doc-band)), var(--athlete-modal-card);
+ }
+ #detailsModal #athlete-profile > #athleteRankings[hidden]{ display:none; }
+ /* Tiles share the band and wrap when text is enlarged; each draws its
+    divider on its left and top, and the card clips the ones on its edges. */
+ #detailsModal #athleteRankings a{
+     flex:1 1 7.5rem;
+     min-height:var(--athlete-doc-band-height);
+     padding:.8rem .75rem .85rem;
+     border:0;
+     border-radius:0;
+     background:none;
+     box-shadow:-1px 0 0 var(--athlete-modal-border), 0 -1px 0 var(--athlete-modal-border);
+ }
+ #detailsModal #athleteRankings strong{ font-size:1.75rem; }
+ #detailsModal #athleteRankings a:hover,
+ #detailsModal #athleteRankings a:focus-visible{ background:var(--athlete-modal-card-hover); }
+ #detailsModal #athleteRankings a:focus-visible{ outline-offset:-3px; }
+ /* The badges hang under the ranks as the body of the same card. */
+ #detailsModal #athlete-profile:has(> #modalBadgeStrip:not(:empty)) > #athleteRankings:not([hidden]){
+     border-bottom-left-radius:0;
+     border-bottom-right-radius:0;
+ }
+ #detailsModal #athlete-profile > #athleteRankings:not([hidden]) ~ #modalBadgeStrip{
+     margin-top:0;
+     border-top:0;
+     border-top-left-radius:0;
+     border-top-right-radius:0;
+ }
+ #detailsModal #athlete-profile > #modalBadgeStrip:empty{ display:none; }
+ /* Badge names remain readable when visitors enlarge text. The generic strip's
+    two-line clamp otherwise hides part of the athlete's earned title. */
+ #detailsModal #modalBadgeStrip .modal-badge-name{
+     display:block;
+     -webkit-line-clamp:unset;
+     overflow:visible;
+ }
+
+ /* The why stays an open pull quote: the one unframed voice between the
+    rank card and the data cards, held to the same rhythm. */
+ #detailsModal #athleteBio{
+     margin:calc(var(--athlete-doc-gap) + .25rem) auto 0;
+ }
+
+ /* Radar card: the clock tabs are its band. A lone result without tabs keeps
+    the same inset at the top. */
+ #detailsModal #ageVisualization:not(:has(.age-clock-switch.visible)){ padding-top:1rem; }
+ #detailsModal #ageVisualization .age-clock-switch.visible{
+     border-radius:calc(var(--athlete-doc-radius) - 1px) calc(var(--athlete-doc-radius) - 1px) 0 0;
+     background:var(--athlete-doc-band);
+ }
+
+ /* Stats card: label and value rows on the same grid as Results over time. */
+ #detailsModal #athlete-profile > #athlete-stats{
+     padding:.25rem 0;
+     text-align:left;
+     container-type:inline-size;
+     container-name:athlete-stats;
+ }
+ #detailsModal #athlete-stats .athlete-info-table,
+ #detailsModal #athlete-stats .athlete-info-table tbody{
+     display:block;
+     width:100%;
+     border-spacing:0;
+     font-size:inherit;
+ }
+ #detailsModal #athlete-stats .athlete-info-table tr{
+     display:grid;
+     grid-template-columns:fit-content(48%) minmax(0, 1fr);
+     column-gap:1rem;
+     align-items:baseline;
+     margin:0;
+     padding:.7rem 1rem;
+     border-top:1px solid var(--athlete-doc-rule);
+ }
+ #detailsModal #athlete-stats .athlete-info-table tr[hidden]{ display:none; }
+ #detailsModal #athlete-stats .athlete-info-table tr.athlete-info-group-first{ border-top:0; }
+ #detailsModal #athlete-stats .athlete-info-table th,
+ #detailsModal #athlete-stats .athlete-info-table td{
+     display:block;
+     width:auto;
+     padding:0 !important;
+     border:0 !important;
+     line-height:1.35;
+ }
+ #detailsModal #athlete-stats .athlete-info-table th{
+     font-size:.9rem;
+     font-weight:600;
+ }
+ #detailsModal #athlete-stats .athlete-info-table th > strong{ font-weight:inherit; }
+ #detailsModal #athlete-stats .athlete-info-table td{
+     text-align:right;
+     font-size:1rem;
+     font-variant-numeric:tabular-nums;
+ }
+ /* The profile basics and the age results are two groups of one table. */
+ #detailsModal #athlete-stats .athlete-info-table tr.athlete-info-divider-row{
+     display:block;
+     height:0;
+     padding:0;
+     border-top:2px solid var(--athlete-modal-border);
+ }
+ #detailsModal #athlete-stats .athlete-info-divider-row td{ display:none; }
+ @container athlete-stats (max-width: 15.99em){
+     #detailsModal #athlete-stats .athlete-info-table tr{ grid-template-columns:minmax(0, 1fr); }
+     #detailsModal #athlete-stats .athlete-info-table td{ text-align:left; }
+ }
+
+ /* Contact actions: the footer band of the stats card. */
+ #detailsModal #athlete-profile > #athlete-stats:has(+ .athlete-links){
+     border-bottom:0;
+     border-bottom-left-radius:0;
+     border-bottom-right-radius:0;
+ }
+ #detailsModal #athlete-profile > #athlete-stats + .athlete-links{
+     margin-top:0;
+     border-top-left-radius:0;
+     border-top-right-radius:0;
+ }
+ #detailsModal #athlete-profile > .athlete-links{
+     display:flex;
+     flex-direction:row;
+     flex-wrap:wrap;
+     justify-content:center;
+     gap:.6rem;
+     padding:.85rem 1rem;
+     background:linear-gradient(var(--athlete-doc-band), var(--athlete-doc-band)), var(--athlete-modal-card);
+ }
+ #detailsModal #athlete-profile > .athlete-links > a,
+ #detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper{ flex:1 1 9rem; }
+ #detailsModal #athlete-profile > .athlete-links > a,
+ #detailsModal .athlete-share-wrapper > #shareAthleteProfile{
+     width:100%;
+     justify-content:center;
+     background:var(--athlete-modal-card);
+ }
+
+ /* Lower sections share the band height and inset of the cards above. */
+ #detailsModal .biomarkers-heading,
+ #detailsModal .proofs-heading{
+     min-height:var(--athlete-doc-band-height);
+     background:var(--athlete-doc-band);
+ }
+ #detailsModal .modal-content > #athlete-proofs,
+ #detailsModal .modal-content > .events-embed{ overflow:hidden; }
+
+ /* Loading: the radar card holds its place as a skeleton instead of an empty frame. */
+ #detailsModal .modal-content.is-loading #ageVisualization > *{ visibility:hidden; }
+ #detailsModal .modal-content.is-loading #ageVisualization::before,
+ #detailsModal .modal-content.is-loading #ageVisualization::after{
+     content:"";
+     position:absolute;
+     left:0;
+     right:0;
+     pointer-events:none;
+ }
+ #detailsModal .modal-content.is-loading #ageVisualization::before{
+     top:0;
+     height:var(--athlete-doc-band-height);
+     border-bottom:1px solid var(--athlete-modal-border);
+     border-radius:calc(var(--athlete-doc-radius) - 1px) calc(var(--athlete-doc-radius) - 1px) 0 0;
+     background:var(--athlete-doc-band);
+ }
+ #detailsModal .modal-content.is-loading #ageVisualization::after{
+     top:calc(var(--athlete-doc-band-height) + 1rem);
+     bottom:1rem;
+     left:1rem;
+     right:1rem;
+     border-radius:var(--lwc-radius-md, 8px);
+ }
+
+ /* Failure: the message is a card in the same column, and the radar that
+    cannot be drawn without data leaves no empty frame behind. */
+ #detailsModal #athlete-profile > #athleteLoadError{
+     text-align:start;
+ }
+ #detailsModal #athlete-profile > #athleteLoadError[hidden]{ display:none; }
+ #detailsModal #athlete-profile:has(> #athleteLoadError:not([hidden])) > #ageVisualization{ display:none; }
+
+ /* Sticky header: the close button keeps the place it has at the top of the
+    profile, and the reading progress runs along the header's bottom edge. */
+ #detailsModal .modal-sticky-header{
+     padding:.75rem 1.25rem .75rem 23px;
+     gap:.85rem;
+ }
+ #detailsModal .modal-sticky-header .sticky-close-btn{
+     order:-1;
+     margin:0;
+     width:44px;
+     border-radius:50%;
+ }
+ #detailsModal .modal-sticky-header .sticky-athlete-name{ font-size:1.15rem; }
+ #detailsModal .modal-scroll-progress{
+     top:auto;
+     bottom:-1px;
+     left:0;
+     right:0;
+     height:2px;
+     border-radius:0;
+     background:var(--athlete-modal-accent, #7bdde3);
+     box-shadow:none;
+ }
+
+ @media (max-width: 768px){
+     #detailsModal .modal-content{
+         --athlete-doc-width:100%;
+         --athlete-doc-gap:1.25rem;
+     }
+     #detailsModal .modal-sticky-header{ padding:.65rem 1rem .65rem 17px; }
+     #detailsModal #athleteRankings strong{ font-size:1.5rem; }
+     #detailsModal #athleteRankings a{ padding:.7rem .5rem .75rem; }
+     #detailsModal #athlete-profile > .athlete-links{ padding:.7rem .75rem; }
+ }
+ @media (max-width: 480px){
+     #detailsModal #athlete-profile > .athlete-links{ display:grid; gap:.45rem; }
+ }
+
+ @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+     #detailsModal .modal-sticky-header{ padding-left:10px; }
+ }
+
+/* =========================
+   14) The leaderboard page as one board
+   On /leaderboard the controls, their outcome and the results are a single
+   card: tabs and tools in the header band, the ranking's meaning beneath,
+   then column heads that stay in view while 200+ rows scroll past.
+   The homepage embed keeps its own composition.
+   ========================= */
+main[data-leaderboard-page="full"]{
+    --board-radius:var(--lwc-radius-lg, 12px);
+    --board-sticky-top:var(--site-sticky-height, 52px);
+    --board-head-height:52px;
+}
+
+/* One card: no seam, no second shadow, one outline. */
+main[data-leaderboard-page="full"] .leaderboard-controls{
+    margin:0; border-bottom:0; border-radius:var(--board-radius) var(--board-radius) 0 0; box-shadow:none;
+}
+main[data-leaderboard-page="full"] .leaderboard-controls-status{
+    border-radius:0; border-bottom:1px solid var(--lwc-border);
+    min-height:32px; padding-block:var(--lwc-space-2);
+}
+main[data-leaderboard-page="full"] .leaderboard{
+    border:1px solid var(--lwc-border); border-top:0; border-radius:0 0 var(--board-radius) var(--board-radius);
+    box-shadow:none;
+}
+
+/* Header band: ranking tabs underline on the band's edge; tools sit at the end. */
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
+    align-items:stretch; column-gap:var(--lwc-space-4); row-gap:0; padding:0 var(--lwc-space-4);
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{
+    align-self:stretch; align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-3); max-width:100%;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher .view-switcher-label{
+    align-self:center; margin:0; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
+    align-items:stretch; flex-wrap:wrap; gap:var(--lwc-space-1); min-height:0; padding:0; max-width:100%;
+    background:transparent; border:0; border-radius:0;
+}
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher .view-badge{
+    min-height:60px; padding:0 var(--lwc-space-3); border-radius:0; background:transparent;
+    min-width:min-content; overflow-wrap:normal; word-break:normal;
+    color:var(--lwc-muted); font-size:var(--lwc-type-sm); font-weight:700;
+    box-shadow:inset 0 -3px 0 transparent;
+}
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher .view-badge:hover{
+    background:transparent; color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-border);
+}
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge{
+    background:transparent; color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-accent);
+}
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher input[name="leaderboardView"]:checked + .view-badge.is-clearable::after{
+    background:var(--lwc-accent-soft); color:var(--lwc-accent);
+}
+html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-view-switcher input[name="leaderboardView"]:is(:focus-visible, .is-keyboard-focus) + .view-badge{
+    outline:3px solid var(--lwc-accent); outline-offset:-3px; background:var(--lwc-accent-soft); color:var(--lwc-accent-hover);
+    box-shadow:inset 0 -3px 0 var(--lwc-accent);
+}
+
+/* One control bar. Search, By Flag, Order and Filters are segments of a
+   single bordered tool, so the band reads as "pick a ranking, then narrow
+   it" instead of four loose buttons. The Order composer opens as a strip
+   inside the card, under the bar that opened it, not as a floating card. */
+main:is([data-leaderboard-page="full"], .homepage-main){ --bar-height:max(44px, 2.75rem); --bar-pad:var(--lwc-space-4); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
+    position:relative;
+    display:grid; grid-template-columns:auto minmax(var(--lwc-space-4), 1fr) minmax(12rem, 22rem) repeat(4, auto);
+    align-items:center; gap:0; padding:0 var(--bar-pad);
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls{ container:lwc-bar / inline-size; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.search-wrapper, .leaderboard-actions, .leaderboard-order-tools:not([hidden])){ display:contents; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{ grid-row:1; grid-column:1; display:flex; align-self:stretch; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ grid-row:1; grid-column:3; max-width:none; margin:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-group-switcher{ grid-row:1; grid-column:4; display:flex; align-self:center; margin:0; padding:0; border:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle{ grid-row:1; grid-column:5; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ grid-row:1; grid-column:6; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ grid-row:1; grid-column:7; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-row:2; grid-column:1 / -1; }
+
+/* Segments: one outline, hairline dividers, rounded only at the bar's ends. */
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{
+    position:relative; box-sizing:border-box; height:var(--bar-height); min-height:var(--bar-height); max-width:none; margin:0;
+    border:1px solid var(--lwc-border-strong); border-radius:0; background:var(--lwc-surface);
+    color:var(--lwc-accent); box-shadow:none; transform:none;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch{
+    padding-inline-start:var(--lwc-space-3); border-radius:var(--lwc-radius-md) 0 0 var(--lwc-radius-md);
+    color:var(--lwc-ink);
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ margin-inline-start:-1px; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{
+    gap:var(--lwc-space-2); padding:0 var(--lwc-space-4); color:var(--lwc-ink); font-size:var(--lwc-type-sm); font-weight:700;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge i{ color:var(--lwc-accent); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .sidebar-toggle){
+    display:inline-grid; place-items:center; width:var(--bar-height); padding:0; font-size:1.1rem;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle i{ color:inherit; font-size:1.1rem; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ border-radius:0 var(--lwc-radius-md) var(--lwc-radius-md) 0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ width:var(--bar-height); background:var(--lwc-accent-soft); }
+
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge:hover,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle):hover:enabled{
+    z-index:1; background:var(--lwc-accent-soft); border-color:var(--lwc-accent); color:var(--lwc-accent-hover); transform:none;
+}
+/* On: the segment fills and its outline sits above its neighbours'. */
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:checked + label,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]),
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle:is(.active, .has-active-state),
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch:is(:focus, :not(:placeholder-shown)){
+    z-index:1; border-color:var(--lwc-accent);
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:checked + label,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]),
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle:is(.active, .has-active-state){
+    background:var(--lwc-accent-soft); color:var(--lwc-accent-hover); box-shadow:inset 0 -3px 0 var(--lwc-accent);
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:checked + label i{ color:var(--lwc-accent-hover); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:is(.is-active, [aria-expanded="true"]){ border-radius:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle):focus-visible,
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher input:focus-visible + label{ z-index:2; outline:3px solid var(--lwc-accent); outline-offset:-3px; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle:disabled{ opacity:1; color:var(--lwc-muted); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-icon{ font-size:1rem; color:var(--lwc-muted); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ z-index:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container:focus-within{ z-index:1; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container:focus-within .search-icon{ color:var(--lwc-accent); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container .clear-icon{ z-index:2; }
+
+/* The Order strip: the board's second band, its fields laid out as a sentence. */
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{
+    position:static; z-index:auto; box-sizing:border-box; width:auto; max-width:none !important; max-height:none !important;
+    grid-template-columns:minmax(0, 1fr) var(--bar-height) minmax(0, 1fr); align-items:end; column-gap:var(--lwc-space-3);
+    margin:0 calc(-1 * var(--bar-pad)); padding:var(--lwc-space-3) var(--bar-pad) var(--lwc-space-4);
+    border:0; border-top:1px solid var(--lwc-border); border-radius:0; background:var(--lwc-surface-muted); box-shadow:none;
+    overflow:visible; transform:none;
+}
+/* Preserve the closing paint while returning the board's space immediately. */
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel[data-order-exit][hidden]{
+    position:absolute; z-index:105; inset:auto; margin:0; grid-area:auto;
+    left:var(--order-exit-left); top:var(--order-exit-top);
+    width:var(--order-exit-width); height:var(--order-exit-height);
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-rows{ display:contents; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:1; gap:var(--lwc-space-1); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:3; margin:0; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap{ grid-row:1; grid-column:2; width:var(--bar-height); height:var(--bar-height); justify-self:center; }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap svg{ transform:rotate(90deg); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row label{
+    color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-field{ border-color:var(--lwc-border-strong); border-radius:var(--lwc-radius-md); background:var(--lwc-surface); }
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-select:has(.order-selected-value) select{
+    position:absolute; inset:0; z-index:1; height:100% !important; opacity:0;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) .order-selected-value{
+    display:flex; align-items:center; box-sizing:border-box; min-height:max(44px, 2.75rem);
+    padding:.5rem 2rem .5rem min(.75rem, 12px); font-size:.9rem; line-height:1.25;
+    overflow-wrap:anywhere; pointer-events:none;
+}
+main:is([data-leaderboard-page="full"], .homepage-main) select:disabled + .order-selected-value{ color:var(--lwc-muted); }
+/* The page already reserves the sticky header; leave only focus-ring clearance here. */
+main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-panel :is(select, button){ scroll-margin-block:12px; }
+
+/* Follow the available width and text size: ranking tabs above the tool bar. */
+@container lwc-bar (max-width: 68.75rem){
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{
+        grid-template-columns:minmax(0, 1fr) repeat(4, auto); padding-bottom:var(--lwc-space-3);
+    }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{
+        grid-column:1 / -1; width:auto; max-width:none; margin:0 calc(-1 * var(--bar-pad)) var(--lwc-space-3); padding-inline:var(--bar-pad);
+        border-bottom:1px solid var(--lwc-border);
+    }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ grid-row:2; grid-column:1; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-group-switcher{ grid-row:2; grid-column:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle{ grid-row:2; grid-column:3; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ grid-row:2; grid-column:4; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ grid-row:2; grid-column:5; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-row:3; margin:var(--lwc-space-3) calc(-1 * var(--bar-pad)) calc(-1 * var(--lwc-space-3)); }
+}
+
+/* Phones: no title row. The tabs run edge to edge, the bar keeps By Flag as
+   its flag, and the Order strip stacks its two fields beside one swap. */
+@media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+    main:is([data-leaderboard-page="full"], .homepage-main){ --bar-pad:var(--lwc-space-3); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls{ margin-top:0; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-switcher-label{
+        position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;
+    }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{ padding-inline:var(--lwc-space-1); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-switcher-chips{
+        display:flex; flex:1 1 auto; flex-wrap:wrap; width:100%; gap:0; margin:0; padding:0; border:0;
+    }
+    html body main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher .view-badge{ flex:1 1 0; min-height:52px; padding:0 var(--lwc-space-1); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{ width:var(--bar-height); justify-content:center; padding:0; font-size:0; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge i{ font-size:1.05rem; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-template-columns:var(--bar-height) minmax(0, 1fr); align-items:center; row-gap:var(--lwc-space-3); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap{ grid-row:1 / span 2; grid-column:1; align-self:center; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap svg{ transform:none; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row{ grid-row:1; grid-column:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-row:2; grid-column:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls-status{ padding-inline:var(--bar-pad); }
+}
+/* Enlarged text on a phone: the query gets the whole row and the tools close
+   ranks under it, wrapping rather than pushing the page sideways. */
+@container lwc-bar (max-width: 17.5rem){
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-toolbar{ display:flex; flex-direction:row; flex-wrap:wrap; justify-content:flex-start; align-items:center; row-gap:var(--lwc-space-2); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-view-switcher{ order:0; flex:1 0 100%; box-sizing:border-box; margin-bottom:var(--lwc-space-1); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .search-container{ order:1; flex:1 0 100%; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls #athleteSearch{ border-radius:var(--lwc-radius-md); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-group-switcher{ order:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-toggle{ order:3; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-reset{ order:4; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .sidebar-toggle{ order:5; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ order:6; flex:1 0 calc(100% + 2 * var(--bar-pad)); margin-bottom:calc(-1 * var(--lwc-space-3)); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls :is(.leaderboard-order-toggle, .leaderboard-order-reset, .sidebar-toggle),
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{ width:max(44px, 2.5rem); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-group-switcher .view-badge{ margin-inline-start:0; border-radius:var(--lwc-radius-md) 0 0 var(--lwc-radius-md); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-panel{ grid-template-columns:minmax(0, 1fr); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row{ grid-column:1; grid-row:1; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-row + .leaderboard-order-row{ grid-column:1; grid-row:2; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-controls .leaderboard-order-swap{ grid-column:1; grid-row:3; justify-self:end; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-select{ grid-column:1 / -1; }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-direction{ grid-column:2; border-top:1px solid var(--lwc-border); }
+    main:is([data-leaderboard-page="full"], .homepage-main) .leaderboard-order-clear{ grid-column:3; border-top:1px solid var(--lwc-border); }
+}
+/* Column heads: the site's small uppercase titles, held under the header
+   while the rows scroll, so every score keeps its name. */
+main[data-leaderboard-page="full"] .leaderboard{ --leaderboard-head-height:var(--board-head-height); }
+html body main[data-leaderboard-page="full"] .leaderboard table thead th{
+    position:sticky; top:var(--board-sticky-top); z-index:2;
+    height:var(--board-head-height); padding-block:var(--lwc-space-1);
+    background:var(--lwc-surface-accent); color:var(--lwc-accent-hover);
+    font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; line-height:1.2;
+    box-shadow:inset 0 -1px 0 var(--lwc-border); border-bottom:0;
+}
+main[data-leaderboard-page="full"] .leaderboard table thead th a{ min-height:44px; min-width:min-content; color:inherit; }
+main[data-leaderboard-page="full"] .leaderboard table thead th,
+main[data-leaderboard-page="full"] .leaderboard table thead th :is(a, #leaderboardMetricHeader){ white-space:normal; }
+main[data-leaderboard-page="full"] .leaderboard table thead .sponsor-coming-soon{ display:block; letter-spacing:.02em; text-transform:none; }
+main[data-leaderboard-page="full"] .leaderboard table thead #comingSoon{ font-size:.6875rem; color:var(--lwc-muted); }
+main[data-leaderboard-page="full"] .leaderboard .sidebar-heading{ min-height:var(--board-head-height); }
+@container leaderboard-results (max-width: 45rem){
+    main[data-leaderboard-page="full"] .leaderboard table :is(.sponsor-th, .sponsor-td, .media-contact-th, .media-contact-td){ display:none; }
+    html body main[data-leaderboard-page="full"] .leaderboard table thead th{ text-transform:none; letter-spacing:.02em; }
+}
+
+/* Rows: a steadier rhythm, a little denser, so a laptop screen shows more athletes. */
+@media (min-width: 769px){
+    main[data-leaderboard-page="full"] .leaderboard{ --portrait-size:40px; }
+    main[data-leaderboard-page="full"] .leaderboard table tbody tr:not(.no-results):not(.tier-separator) > td{ padding-block:6px; }
+    main[data-leaderboard-page="full"] .leaderboard table tbody .athlete-name{ min-height:44px; padding-block:.25rem; }
+}
+html body main[data-leaderboard-page="full"] .leaderboard .athlete-name{ text-decoration-color:var(--lwc-border); }
+html body main[data-leaderboard-page="full"] .leaderboard .athlete-name:hover{ text-decoration-color:currentColor; }
+main[data-leaderboard-page="full"] .leaderboard tbody .age-reduction:not(.skeleton-shimmer){ color:var(--lwc-accent); letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+
+/* The league spine: a quiet rail with its name set like the page's other section titles. */
+@media (min-width: 933px), (min-width: 769px) and (min-height: 481px){
+    main[data-leaderboard-page="full"] .sidebar-rail{ background:var(--lwc-surface-muted); box-shadow:inset -1px 0 0 var(--lwc-border); border-radius:0 0 0 var(--board-radius); }
+    main[data-leaderboard-page="full"] .sidebar-rail-icon{ flex-basis:var(--leaderboard-head-height); font-size:1.25rem; }
+    main[data-leaderboard-page="full"] .sidebar .collapsed-title{
+        top:calc(var(--board-sticky-top) + var(--leaderboard-head-height) + var(--lwc-space-4));
+        padding:var(--lwc-space-4) 0; font:700 var(--lwc-type-xs)/1 Roboto, sans-serif; letter-spacing:.22em; word-spacing:.15em;
+        color:var(--lwc-accent); background:none; -webkit-text-fill-color:currentColor;
+    }
+    main[data-leaderboard-page="full"] .leaderboard > :is(table, .flag-leaderboard){ border-radius:0 0 var(--board-radius) 0; }
+}
+
+/* Filters read as the board's own panel: the heading band matches the column heads. */
+main[data-leaderboard-page="full"] .sidebar .sidebar-title{ font-size:1rem; }
+main[data-leaderboard-page="full"] .sidebar .sidebar-title .sidebar-icon{ flex-basis:1.5rem; width:1.5rem; height:1.5rem; font-size:1.15rem; }
+main[data-leaderboard-page="full"] .sidebar .sidebar-title .sidebar-title-text{ font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--lwc-accent-hover); }
+main[data-leaderboard-page="full"] .sidebar-filter-list .filter-section h3{
+    color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    padding-block:var(--lwc-space-4) var(--lwc-space-2);
+}
+main[data-leaderboard-page="full"] .sidebar-filter-list .filter-section.has-active-filter h3{ color:var(--lwc-accent-hover); }
+main[data-leaderboard-page="full"] .sidebar-filter-list .filter-section + .filter-section{ border-top:1px solid var(--lwc-border); }
+main[data-leaderboard-page="full"] .filter-section label{ border-radius:var(--lwc-radius-md); }
+main[data-leaderboard-page="full"] .filter-section label:hover{ background:var(--lwc-surface-muted); border-color:transparent; }
+main[data-leaderboard-page="full"] .filter-section label.active{ background:var(--lwc-accent-soft); border-color:transparent; box-shadow:inset 3px 0 0 var(--lwc-accent); }
+
+/* Empty: one calm card inside the board, the way back as its only action. */
+main[data-leaderboard-page="full"] .leaderboard table tbody tr.no-results,
+main[data-leaderboard-page="full"] .leaderboard table tbody tr.no-results:hover{ background:var(--lwc-surface); box-shadow:none; }
+main[data-leaderboard-page="full"] .leaderboard table tbody tr.no-results td{ padding:var(--lwc-space-7) var(--lwc-space-4); box-shadow:none; border:0; }
+main[data-leaderboard-page="full"] .no-results-empty-state{
+    width:min(100%, 24rem); gap:var(--lwc-space-4); padding:var(--lwc-space-6) var(--lwc-space-5);
+    border:1px dashed var(--lwc-border-strong); border-radius:var(--board-radius); background:var(--lwc-surface-muted); box-shadow:none;
+}
+main[data-leaderboard-page="full"] .no-results-empty-state::before{
+    content:"\f002" / ""; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
+    background:var(--lwc-surface); box-shadow:inset 0 0 0 1px var(--lwc-border); color:var(--lwc-accent);
+    font:900 1.1rem/1 "Font Awesome 6 Free";
+}
+main[data-leaderboard-page="full"] .no-results-empty-state p{ color:var(--lwc-ink); font-weight:700; }
+main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--lwc-radius-md); border-color:var(--lwc-border-strong); color:var(--lwc-accent); }
+
+/* Mid-size phones and tablets get readable rows instead of the small-phone type scale. */
+@media (min-width: 481px) and (max-width: 768px){
+    main[data-leaderboard-page="full"] .leaderboard table td{ font-size:var(--lwc-type-body); }
+    main[data-leaderboard-page="full"] .leaderboard table tbody .athlete-name{ font-size:var(--lwc-type-body); }
+    main[data-leaderboard-page="full"] .leaderboard tbody .age-reduction:not(.skeleton-shimmer){ font-size:1.0625rem; }
+    html body main[data-leaderboard-page="full"] .leaderboard table thead th{ font-size:.6875rem; text-transform:none; letter-spacing:.02em; padding-inline:4px; }
+    main[data-leaderboard-page="full"] .leaderboard table th:nth-child(4),
+    main[data-leaderboard-page="full"] .leaderboard table td.age-reduction-td{ width:8.5rem; min-width:0; }
+    main[data-leaderboard-page="full"] .leaderboard{ --portrait-size:44px; }
+}
+/* Small phones: the flex head row stays in view above the rows. */
+@media (max-width: 480px){
+    html body main[data-leaderboard-page="full"] .leaderboard table thead th{ position:static; height:auto; box-shadow:none; background:none; text-transform:none; letter-spacing:0; }
+    main[data-leaderboard-page="full"] .leaderboard table thead{ position:sticky; top:var(--board-sticky-top); z-index:2; }
+}
+
+/* =========================
+   15) Athlete dialog data: one analytics view
+   =========================
+   Results over time, the proofs and the proof viewer read like one data
+   product: a column-head rule under the section band, numbers on a tabular
+   grid, every trend drawn on the same test timeline, and the change since
+   the first reading under each latest value. */
+#detailsModal .modal-content > #athlete-biomarkers{
+    --result-name-width:38%;
+    --result-trend-width:34%;
+    padding:0;
+    container-type:inline-size;
+    container-name:athlete-results;
+}
+#detailsModal .biomarkers-heading{
+    margin:0;
+    padding:6px 1rem;
+}
+/* The date span is the band's own end, like the proofs toggle on its neighbour. */
+#detailsModal .biomarkers-heading .biomarker-overview-range{
+    margin:0;
+    padding:0;
+    color:var(--athlete-modal-muted);
+    font-size:.78rem;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.02em;
+    white-space:nowrap;
+}
+#detailsModal .biomarkers-heading .biomarker-overview-range:empty{ display:none; }
+#detailsModal #biomarkerResultList{ --result-content-inset:1rem; }
+
+/* Column heads: the site's small uppercase titles on one hairline rule. */
+#detailsModal .biomarker-overview-table > thead > tr > th{
+    padding:.55rem .3rem;
+    border-bottom:1px solid var(--athlete-modal-border);
+    color:var(--athlete-modal-muted);
+    font-size:.68rem;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+}
+#detailsModal .biomarker-overview-table > thead > tr > th:last-child{ padding-right:2.1rem; }
+#detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+#detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{ width:var(--result-name-width); }
+#detailsModal .biomarker-overview-history{ width:var(--result-trend-width); }
+#detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){
+    border-bottom-color:var(--athlete-doc-rule, rgba(246,244,237,.1));
+}
+#detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{ padding-right:2.1rem; }
+
+/* Rows: a hover band and an accent rail on the row in hand. */
+#detailsModal .result-summary > th:first-child{ position:relative; }
+#detailsModal .result-summary > th:first-child::before{
+    content:"";
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:0;
+    width:3px;
+    background:var(--result-accent);
+    opacity:0;
+    transition:opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .result-summary:has(button:enabled):hover,
+#detailsModal .result-summary:has(button:focus-visible),
+#detailsModal .result-summary:has(.clock-history-scroll:focus-visible){ background:rgba(246,244,237,.045); }
+#detailsModal .result-summary.is-expanded{ background:var(--athlete-modal-chart-panel); }
+#detailsModal .result-summary.is-expanded > th:first-child::before,
+#detailsModal .result-summary:has(button:focus-visible) > th:first-child::before{ opacity:1; }
+
+/* The two clocks are the headline figures: a permanent rail and large numbers. */
+#detailsModal .biomarker-overview-table > tbody > .result-clock > :is(th,td){ padding-block:1.05rem; }
+#detailsModal .result-clock > th:first-child::before{ opacity:1; }
+#detailsModal .result-clock button{ font-size:1rem; letter-spacing:.01em; }
+#detailsModal .result-clock .biomarker-overview-current{
+    font-size:1.7rem;
+    font-weight:700;
+    line-height:1.1;
+    letter-spacing:-.01em;
+}
+#detailsModal .result-summary.result-first-biomarker > *{ border-top:1px solid var(--athlete-modal-border); }
+#detailsModal .result-clock + .result-detail-row + .result-first-biomarker > *{ border-top-width:2px; }
+
+/* Biomarker rows: name and unit on one line, the value set as a figure. */
+#detailsModal .biomarker-overview-table > tbody > .result-summary:not(.result-clock) > :is(th,td){ padding-block:.2rem; }
+#detailsModal .result-summary:not(.result-clock) button{ min-height:48px; font-size:.92rem; }
+#detailsModal .result-summary:not(.result-clock) .biomarker-history-unit{ font-size:.72rem; letter-spacing:.01em; }
+#detailsModal .result-summary:not(.result-clock) .biomarker-overview-current{ font-size:1.05rem; font-weight:600; }
+#detailsModal .biomarker-overview-current{ font-variant-numeric:tabular-nums; line-height:1.2; }
+
+/* Change since the first reading: a signed figure under the latest value. */
+#detailsModal .biomarker-overview-change{
+    display:block;
+    margin-top:.15rem;
+    color:var(--athlete-modal-muted);
+    font-size:.72rem;
+    font-weight:500;
+    font-variant-numeric:tabular-nums;
+    line-height:1.2;
+}
+#detailsModal .biomarker-overview-change::before{
+    content:"";
+    display:inline-block;
+    width:0;
+    height:0;
+    margin-right:.3em;
+    border-inline:.3em solid transparent;
+    vertical-align:.1em;
+}
+#detailsModal .biomarker-overview-change[data-direction="up"]::before{ border-bottom:.4em solid currentColor; }
+#detailsModal .biomarker-overview-change[data-direction="down"]::before{ border-top:.4em solid currentColor; }
+#detailsModal .biomarker-overview-change[data-direction="flat"]::before{ display:none; }
+/* Younger is better for both clocks, so their drop carries the clock's own colour. */
+#detailsModal .result-clock .biomarker-overview-change[data-direction="down"]{ color:var(--result-accent); }
+
+/* The disclosure chevron is quieter and turns rather than jumps. */
+#detailsModal .biomarker-overview-arrow{
+    right:.9rem;
+    width:.45rem;
+    height:.45rem;
+    margin-top:-.28rem;
+    opacity:.75;
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+/* Trends: an area under the line in the result's colour, on the shared test timeline. */
+#detailsModal .biomarker-overview-history svg{
+    width:100%;
+    min-width:48px;
+    max-width:150px;
+    height:40px;
+    overflow:visible;
+}
+#detailsModal .result-summary:not(.result-clock) .biomarker-overview-history svg{ height:34px; }
+#detailsModal .biomarker-overview-history line{
+    stroke:var(--result-accent, var(--athlete-modal-chart-pheno));
+    stroke-width:1.75;
+    stroke-linecap:round;
+    opacity:.85;
+}
+#detailsModal .biomarker-overview-history line.sparkline-track,
+#detailsModal .biomarker-overview-history line.sparkline-tick{
+    stroke:var(--athlete-modal-border);
+    stroke-width:1;
+    opacity:.7;
+}
+#detailsModal .biomarker-overview-history .sparkline-area path{
+    fill:var(--result-accent, var(--athlete-modal-chart-pheno));
+    opacity:.14;
+}
+#detailsModal .biomarker-overview-history circle,
+#detailsModal .biomarker-overview-history .is-baseline{
+    fill:var(--athlete-modal-card-strong, #1c2933);
+    stroke:var(--result-accent, var(--athlete-modal-chart-pheno));
+    stroke-width:1.5;
+}
+#detailsModal .biomarker-overview-history circle.is-latest{
+    fill:var(--result-accent, var(--athlete-modal-chart-pheno));
+    stroke:var(--athlete-modal-card-strong, #1c2933);
+    stroke-width:1.5;
+}
+#detailsModal .result-summary:has(button:disabled) .biomarker-overview-history svg{ opacity:.5; }
+
+/* Clock history: the readings sit on one timeline with the latest as a filled node. */
+#detailsModal .clock-history-reading{ gap:.4rem; font-size:.78rem; font-variant-numeric:tabular-nums; }
+#detailsModal .clock-history-reading::before{ width:9px; height:9px; border-width:1.5px; }
+#detailsModal .clock-history-reading:not(:last-child)::after{
+    top:4px;
+    left:calc(50% + 6px);
+    width:calc(100% + var(--clock-history-gap) - 12px);
+    border-top-width:1.5px;
+}
+#detailsModal .clock-history-reading.is-latest::before{ box-shadow:0 0 0 3px rgba(246,244,237,.08); }
+
+/* Expanded result: an inset analytics panel hanging from its row. */
+#detailsModal .result-detail{
+    position:relative;
+    margin:0;
+    padding:1.1rem 1rem 1.2rem;
+    border-bottom:1px solid var(--athlete-modal-border);
+    box-shadow:inset 3px 0 0 var(--result-accent);
+}
+#detailsModal .result-detail h4{
+    margin:0 0 .5rem;
+    font-size:.78rem;
+    font-weight:800;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--athlete-modal-link);
+}
+#detailsModal .result-plot-legend{ gap:.35rem .5rem; }
+#detailsModal .result-plot-legend span{
+    padding:.2rem .55rem;
+    border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:rgba(246,244,237,.04);
+}
+#detailsModal .result-field-count{ margin:.5rem 0 0; font-variant-numeric:tabular-nums; }
+#detailsModal .result-plot{
+    box-sizing:border-box;
+    margin:.75rem 0 1rem;
+    padding:.5rem 0 0;
+    border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    border-radius:var(--lwc-radius-md, 8px);
+    background:rgba(8,10,10,.18);
+}
+/* The dated readings are a ledger: dates muted, values as figures, rows banded. */
+#detailsModal .biomarker-history-table{
+    border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    border-radius:var(--lwc-radius-md, 8px);
+    border-collapse:separate;
+    border-spacing:0;
+    overflow:hidden;
+    font-variant-numeric:tabular-nums;
+}
+#detailsModal .biomarker-history-table th,
+#detailsModal .biomarker-history-table td{
+    padding:.5rem .75rem;
+    border-bottom:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+}
+#detailsModal .biomarker-history-table th:first-child{ padding-left:.75rem; }
+#detailsModal .biomarker-history-table thead th{
+    background:var(--athlete-doc-band, rgba(246,244,237,.06));
+    border-bottom-color:var(--athlete-modal-border);
+    font-size:.68rem;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+}
+#detailsModal .biomarker-history-table tbody th{ color:var(--athlete-modal-muted); }
+#detailsModal .biomarker-history-table tbody td{ font-weight:600; }
+#detailsModal .biomarker-history-table tbody td[aria-label]{ color:var(--athlete-modal-subtle); font-weight:400; }
+#detailsModal .biomarker-history-table tbody tr:nth-child(even) > *{ background:rgba(246,244,237,.03); }
+#detailsModal .biomarker-history-table tbody tr:last-child > *{ border-bottom:0; }
+#detailsModal .biomarker-history-table tbody tr.is-latest td:not([aria-label]){ color:var(--result-accent); }
+
+@media (max-width:600px){
+    #detailsModal .modal-content > #athlete-biomarkers{
+        --result-name-width:44%;
+        --result-trend-width:26%;
+    }
+    #detailsModal #biomarkerResultList{ --result-content-inset:.85rem; }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child,
+    #detailsModal .biomarker-overview-table > thead > tr > th:last-child{ padding-right:1.7rem; }
+    #detailsModal .biomarker-overview-arrow{ right:.6rem; }
+    #detailsModal .result-clock .biomarker-overview-current{ font-size:1.45rem; }
+    #detailsModal .result-detail{ padding-inline:.85rem; }
+}
+@media (max-width:400px){
+    #detailsModal .biomarkers-heading{ padding-inline:.85rem; }
+    #detailsModal .biomarkers-heading .biomarker-overview-range{ font-size:.72rem; }
+}
+@media (max-width:360px){
+    #detailsModal .modal-content > #athlete-biomarkers{
+        --result-name-width:40%;
+        --result-trend-width:28%;
+    }
+    #detailsModal .result-clock .biomarker-overview-current{ font-size:1.25rem; }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child,
+    #detailsModal .biomarker-overview-table > thead > tr > th:last-child{ padding-right:1.35rem; }
+    #detailsModal .biomarker-overview-arrow{ right:.4rem; }
+}
+
+/* Proofs: a contact sheet. Each proof is a whole page on paper, its number
+   rides on the sheet, and the toggle is the band's bordered button. */
+#detailsModal .proofs-gallery{ gap:.75rem; }
+#detailsModal .proof-item{
+    position:relative;
+    padding:0;
+    gap:0;
+    overflow:hidden;
+    border-color:var(--athlete-doc-rule, rgba(246,244,237,.1));
+    background:rgba(246,244,237,.92);
+    transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .proof-item img{
+    box-sizing:border-box;
+    aspect-ratio:4 / 3;
+    padding:.6rem .6rem 2.1rem;
+    border-radius:0;
+    object-fit:contain;
+    object-position:center;
+    background:transparent;
+    transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+#detailsModal .proof-number{
+    position:absolute;
+    left:.5rem;
+    bottom:.5rem;
+    padding:.2rem .55rem;
+    border:1px solid rgba(246,244,237,.22);
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:rgba(12,14,14,.82);
+    color:rgba(255,255,255,.94);
+    font-size:.72rem;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    line-height:1.3;
+    pointer-events:none;
+    white-space:nowrap;
+}
+#detailsModal .proof-item:hover,
+#detailsModal .proof-item:has(img:focus-visible){
+    border-color:var(--athlete-modal-accent, #7bdde3);
+    box-shadow:0 0 0 1px var(--athlete-modal-accent, #7bdde3);
+}
+#detailsModal .proof-item:hover img{ transform:scale(1.03); }
+#detailsModal .proofs-toggle{
+    display:inline-flex;
+    align-items:center;
+    min-height:44px;
+    padding:.35rem .9rem;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:var(--lwc-radius-md, 8px);
+    background:var(--athlete-modal-card);
+    font-weight:600;
+    text-decoration:none;
+    font-variant-numeric:tabular-nums;
+}
+#detailsModal .proofs-toggle:hover{
+    border-color:var(--athlete-modal-accent, #7bdde3);
+    background:var(--athlete-modal-card-hover);
+}
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .proof-item:hover img{ transform:none; }
+}
+@media (max-width:600px){
+    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.6rem; }
+}
+@container athlete-proofs (max-width:14em){
+    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:minmax(0, 1fr); }
+}
+
+/* Proof viewer: the page sits in the middle of its stage, and zoom is one
+   toolbar instead of four loose buttons. */
+.enlarged-portrait.is-proof-gallery:not([hidden]){
+    display:grid;
+    grid-template-rows:minmax(0, 1fr) auto auto;
+    justify-items:center;
+    align-items:stretch;
+    padding:max(4.4rem, calc(env(safe-area-inset-top) + 4.4rem)) max(.75rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left));
+}
+.enlarged-portrait.is-proof-gallery .image-viewer-stage{
+    grid-row:1;
+    min-height:0;
+    width:min(900px, 100%);
+    height:100%;
+    max-height:100%;
+}
+.enlarged-portrait.is-proof-gallery .image-navigation{
+    position:absolute;
+    top:max(16px, env(safe-area-inset-top));
+    left:calc(max(16px, env(safe-area-inset-left)) + 56px);
+    right:max(16px, env(safe-area-inset-right));
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+}
+.enlarged-portrait.is-proof-gallery .image-nav{
+    position:static;
+    flex:0 0 48px;
+    transform:none;
+}
+.enlarged-portrait.is-proof-gallery .image-nav:not(:disabled):hover{ transform:none; }
+.enlarged-portrait.is-proof-gallery .image-position{
+    order:-1;
+    position:static;
+    min-width:0;
+    margin-right:auto;
+    padding:.4rem .5rem;
+    line-height:1.2;
+    transform:none;
+}
+.enlarged-portrait.is-proof-gallery .image-viewer-stage img{ margin:auto; }
+.enlarged-portrait.is-proof-gallery[data-proof-zoom="1"] .image-viewer-stage img{
+    width:auto;
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+}
+.enlarged-portrait.is-proof-gallery .image-zoom-controls{
+    grid-row:3;
+    position:static;
+    transform:none;
+    gap:0;
+    padding:3px;
+    border:1px solid rgba(246,244,237,.26);
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:rgba(12,14,14,.9);
+    box-shadow:0 10px 28px rgba(0,0,0,.38);
+}
+.enlarged-portrait.is-proof-gallery .image-zoom-controls button{
+    min-width:46px;
+    min-height:46px;
+    border:0;
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:transparent;
+}
+.enlarged-portrait.is-proof-gallery .image-zoom-controls button:hover:not(:disabled){ background:rgba(246,244,237,.1); }
+.enlarged-portrait.is-proof-gallery .image-zoom-controls button:disabled{ background:transparent; color:rgba(255,255,255,.4); }
+.enlarged-portrait.is-proof-gallery .image-zoom-fit{
+    margin-left:3px;
+    padding-inline:1rem;
+    box-shadow:-1px 0 0 rgba(246,244,237,.2);
+    border-radius:0 var(--lwc-radius-pill, 999px) var(--lwc-radius-pill, 999px) 0 !important;
+}
+.enlarged-portrait.is-proof-gallery .image-viewer-hint{
+    grid-row:2;
+    position:static;
+    max-width:100%;
+    transform:none;
+    border:1px solid rgba(246,244,237,.16);
+    border-radius:var(--lwc-radius-pill, 999px);
+    padding:.35rem .85rem;
+    color:rgba(255,255,255,.8);
+}
+@media (max-height:320px){
+    .enlarged-portrait.is-proof-gallery .image-viewer-hint{ display:none; }
+}
+@media (max-width:280px){
+    .enlarged-portrait.is-proof-gallery:not([hidden]){ padding:8rem .5rem 1rem; }
+    .enlarged-portrait.is-proof-gallery .image-navigation{
+        top:4.4rem;
+        left:.75rem;
+        right:.75rem;
+        justify-content:space-between;
+    }
+    .enlarged-portrait.is-proof-gallery .image-position{
+        position:absolute;
+        top:-3.4rem;
+        left:3.5rem;
+        right:0;
+        white-space:normal;
+        text-wrap:balance;
+        text-align:center;
+    }
+    .enlarged-portrait.is-proof-gallery .image-viewer-hint{ display:none; }
+    .enlarged-portrait.is-proof-gallery .image-zoom-controls{
+        display:grid;
+        grid-template-columns:46px minmax(0, 1fr) 46px;
+        box-sizing:border-box;
+        width:100%;
+        max-width:100%;
+        border-radius:var(--lwc-radius-md, 8px);
+    }
+    .enlarged-portrait.is-proof-gallery .image-zoom-status{ min-width:0; }
+    .enlarged-portrait.is-proof-gallery .image-zoom-fit{
+        grid-column:1 / -1;
+        margin-left:0;
+        box-shadow:0 -1px 0 rgba(246,244,237,.2);
+        border-radius:0 0 var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) !important;
+    }
+}
+
+/* At enlarged text or the narrowest browser zoom, each trend gets its own line. */
+@container athlete-results (max-width:12em){
+    #detailsModal .biomarkers-heading .biomarker-overview-range{ white-space:normal; text-align:left; }
+    #detailsModal .biomarker-overview-table,
+    #detailsModal .biomarker-overview-table > :is(thead,tbody){ display:block; }
+    #detailsModal .biomarker-overview-table > thead > tr,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary{
+        display:grid;
+        grid-template-columns:minmax(0, 1fr) max-content;
+        align-items:center;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > th:first-child,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > th:first-child{
+        grid-column:1;
+        grid-row:1;
+        width:auto;
+        padding-left:.4rem;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > th:last-child,
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child{
+        grid-column:2;
+        grid-row:1;
+        width:auto;
+        padding-right:1.3rem;
+    }
+    #detailsModal .biomarker-overview-table > thead > tr > .biomarker-overview-history{
+        position:absolute;
+        width:1px;
+        height:1px;
+        padding:0;
+        overflow:hidden;
+        clip-path:inset(50%);
+        white-space:nowrap;
+    }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){ border-bottom:0; }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary > .biomarker-overview-history{
+        grid-column:1 / -1;
+        grid-row:2;
+        width:auto;
+        min-width:0;
+        padding:.35rem .6rem .75rem;
+        border-bottom:1px solid var(--athlete-modal-border);
+    }
+    #detailsModal .result-summary button,
+    #detailsModal .result-measurement-date,
+    #detailsModal .biomarker-history-unit{ white-space:normal; overflow-wrap:anywhere; }
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row:not([hidden]),
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ display:block; }
+    #detailsModal .biomarker-overview-table > tbody > .result-detail-row > td{ width:100%; box-sizing:border-box; }
+}
+
+/* 16) Share sheet: the card a link will unfurl into, one copy action, and the
+   destinations as a row of equal tiles. */
+#detailsModal .athlete-share-menu{
+    width:min(22.5rem, calc(100vw - 2rem));
+    min-width:0;
+    /* Enlarged type needs its space; decorative gaps need not double too. */
+    padding:min(.75rem, 12px);
+    display:flex;
+    flex-direction:column;
+    gap:min(.6rem, 10px);
+    border-radius:var(--lwc-radius-lg);
+    background:var(--athlete-modal-surface);
+    box-sizing:border-box;
+    transform-origin:top left;
+    animation:athlete-share-sheet-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+}
+#detailsModal .athlete-share-menu.is-above{ transform-origin:bottom left; }
+#detailsModal .athlete-share-menu[hidden]{ display:none; }
+#detailsModal .athlete-share-menu > :is(figure, button, div){ flex:0 0 auto; }
+@keyframes athlete-share-sheet-in{
+    from{ opacity:0; transform:translateY(-4px) scale(.98); }
+    to{ opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .athlete-share-menu{ animation:none; }
+}
+#detailsModal .athlete-share-preview{
+    position:relative;
+    margin:0;
+    aspect-ratio:1200 / 630;
+    overflow:hidden;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:var(--lwc-radius-md);
+    background:
+        linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent) 0 0 / 200% 100%,
+        linear-gradient(180deg, #05080b, #15181b);
+    animation:athlete-share-preview-wait 1.4s linear infinite;
+}
+#detailsModal .athlete-share-preview.is-loaded{ animation:none; background:#05080b; }
+#detailsModal .athlete-share-preview[hidden]{ display:none; }
+@keyframes athlete-share-preview-wait{ to{ background-position:-200% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .athlete-share-preview{ animation:none; }
+}
+#detailsModal .athlete-share-preview img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    opacity:0;
+    transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+#detailsModal .athlete-share-preview.is-loaded img{ opacity:1; }
+#detailsModal .athlete-share-menu #copyAthleteProfileLink{
+    justify-content:center;
+    min-height:46px;
+    border:1px solid var(--athlete-modal-border-strong);
+    background:var(--athlete-modal-card);
+    font-weight:700;
+}
+#detailsModal .athlete-share-menu #copyAthleteProfileLink[aria-busy="true"]{ cursor:progress; opacity:.82; }
+#detailsModal .athlete-share-recovery{
+    padding:.7rem .75rem .8rem;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:var(--lwc-radius-md);
+    background:var(--athlete-modal-card);
+}
+#detailsModal .athlete-share-destinations{
+    display:grid;
+    font-size:clamp(.7rem, 2.9vw, .8rem);
+    grid-template-columns:repeat(auto-fit, minmax(min(100%, 5.5em), 1fr));
+    gap:.45rem;
+}
+#detailsModal .athlete-share-menu .athlete-share-destinations a{
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:.35rem;
+    min-height:64px;
+    padding:.55rem .25rem;
+    border:1px solid var(--athlete-modal-border);
+    background:var(--athlete-modal-card);
+    font-size:inherit;
+    font-weight:700;
+    text-align:center;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+#detailsModal .athlete-share-menu .athlete-share-destinations a i{
+    width:auto;
+    flex:0 0 auto;
+    font-size:1.2rem;
+}
+#detailsModal .athlete-share-menu .athlete-share-destinations a:hover,
+#detailsModal .athlete-share-menu .athlete-share-destinations a:focus-visible,
+#detailsModal .athlete-share-menu #copyAthleteProfileLink:hover,
+#detailsModal .athlete-share-menu #copyAthleteProfileLink:focus-visible{
+    border-color:var(--athlete-modal-cream-border);
+    background:var(--athlete-modal-card-hover);
+}
+/* Copy feedback: the Share action itself confirms, with a check in place of the share icon. */
+#detailsModal .athlete-share-wrapper > #shareAthleteProfile.is-copied{
+    border-color:var(--lwc-success, #68c47d);
+    color:var(--athlete-modal-text);
+}
+#detailsModal .athlete-share-wrapper > #shareAthleteProfile.is-copied > i{ color:var(--lwc-success, #68c47d); }
+/* Short viewports need the actions more than the picture. */
+@media (max-height: 560px){
+    #detailsModal .athlete-share-preview{ display:none; }
+}
+@media (max-width: 768px){
+    #detailsModal .athlete-share-menu{ width:auto; }
+}
+
+/* =========================
+   16) By Flag: a nations table
+   The flag view is the athlete table's sibling: the same 57px row rhythm,
+   zebra, hover edge, medal discs, ringed portraits and inline scores. An
+   open team becomes one block whose members hang from its flag, and teams
+   that still need athletes show their empty seats.
+   ========================= */
+main[data-leaderboard-page="full"] .flag-leaderboard{
+    --flag-pad:var(--lwc-space-5); --flag-gap:var(--lwc-space-4); --flag-rank:3rem; --flag-icon:2rem;
+    --flag-score:10.5rem; --flag-toggle:32px; --flag-face:40px; --flag-seat:36px;
+    --flag-zebra:color-mix(in srgb, var(--lwc-surface-muted) 35%, var(--lwc-surface));
+    --flag-open:color-mix(in srgb, var(--lwc-surface-accent) 45%, var(--lwc-surface));
+}
+
+/* Switching from athletes to flags settles the new table into place. */
+@keyframes lwc-flag-board-in{ from{ opacity:0; transform:translateY(6px); } }
+@keyframes lwc-flag-members-in{ from{ opacity:0; transform:translateY(-4px); } }
+@media (scripting: enabled){
+    main[data-leaderboard-page="full"] .leaderboard--flags > .flag-leaderboard{ animation:lwc-flag-board-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+    main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes{ animation:lwc-flag-members-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+}
+
+/* Team rows */
+main[data-leaderboard-page="full"] .flag-team{ position:relative; isolation:isolate; border-bottom:1px solid var(--lwc-border); color:var(--lwc-ink); background:var(--lwc-surface); }
+main[data-leaderboard-page="full"] .flag-team:nth-of-type(even){ background:var(--flag-zebra); }
+main[data-leaderboard-page="full"] .flag-team.tier-amateur{ background:var(--tier-amateur-bg); box-shadow:inset 4px 0 0 rgba(37, 99, 235, .45); }
+main[data-leaderboard-page="full"] .flag-team.tier-amateur:nth-of-type(even){ background:var(--tier-amateur-bg-even); }
+main[data-leaderboard-page="full"] .flag-team summary{
+    grid-template-columns:var(--flag-rank) minmax(0, 1fr) auto var(--flag-score) var(--flag-toggle);
+    gap:var(--flag-gap); min-height:57px; padding:6px var(--flag-pad); background:transparent;
+    transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+main[data-leaderboard-page="full"] .flag-team summary:focus-visible{ outline:3px solid var(--lwc-accent); outline-offset:-3px; border-radius:0; }
+
+main[data-leaderboard-page="full"] .flag-team-rank{
+    justify-self:center; font-family:Orbitron, Roboto, sans-serif; font-size:var(--lwc-type-body); font-weight:700; line-height:1; color:var(--lwc-ink);
+}
+main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){
+    display:inline-grid; place-items:center; width:2rem; aspect-ratio:1; border-radius:50%; color:#17212b; font-size:var(--lwc-type-sm);
+    box-shadow:inset 0 0 0 2px rgba(23, 33, 43, .14);
+}
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="1"]{ background:var(--lwc-gold); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="2"]{ background:var(--lwc-silver); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank="3"]{ background:var(--lwc-bronze); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank=""]{ color:var(--lwc-muted); font-family:Roboto, sans-serif; }
+
+main[data-leaderboard-page="full"] .flag-team-name{ gap:var(--lwc-space-3); font-size:var(--lwc-type-body); font-weight:700; line-height:1.3; }
+main[data-leaderboard-page="full"] .flag-team-icon{ display:grid; place-items:center; flex:0 0 var(--flag-icon); width:var(--flag-icon); font-size:1.5rem; line-height:1; color:var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-team-icon .fi{ width:var(--flag-icon); height:1.5rem; line-height:1.5rem; background-size:cover; border-radius:4px; box-shadow:0 0 0 1px var(--lwc-border); }
+
+/* The team's three faces, ringed like the table's portraits; a missing member is an empty seat. */
+main[data-leaderboard-page="full"] .flag-team-portraits{ display:flex; align-items:center; padding-inline-start:10px; isolation:isolate; }
+/* Score and toggle keep the last two columns even when the faces step aside. */
+main[data-leaderboard-page="full"] .flag-team-score{ grid-column:-3 / -2; }
+main[data-leaderboard-page="full"] .flag-team-chevron{ grid-column:-2 / -1; }
+main[data-leaderboard-page="full"] .flag-team-portraits img,
+main[data-leaderboard-page="full"] .flag-team-portraits::before,
+main[data-leaderboard-page="full"] .flag-team-portraits::after{
+    flex:0 0 auto; width:var(--flag-seat); height:var(--flag-seat); margin-inline-start:-10px; box-sizing:border-box; border-radius:50%;
+}
+main[data-leaderboard-page="full"] .flag-team-portraits img{ border:2px solid var(--lwc-accent); box-shadow:0 0 0 2px var(--lwc-surface); background:var(--lwc-surface-muted); }
+main[data-leaderboard-page="full"] .flag-team-portraits img:nth-child(1){ position:relative; z-index:3; }
+main[data-leaderboard-page="full"] .flag-team-portraits img:nth-child(2){ position:relative; z-index:2; }
+main[data-leaderboard-page="full"] .flag-team-portraits:has(> img:only-child)::before,
+main[data-leaderboard-page="full"] .flag-team-portraits:has(> img:nth-child(2):last-child)::after,
+main[data-leaderboard-page="full"] .flag-team-portraits:has(> img:only-child)::after{
+    content:""; order:1; border:2px dashed var(--lwc-border-strong); background:var(--lwc-surface);
+}
+
+/* Scores read like the table's: one accent figure with its unit beside it. */
+main[data-leaderboard-page="full"] .flag-team-score{ font-size:1.125rem; font-weight:700; line-height:1.2; color:var(--lwc-accent); letter-spacing:-.01em; white-space:nowrap; }
+main[data-leaderboard-page="full"] .flag-team small{ font-family:Roboto, sans-serif; }
+main[data-leaderboard-page="full"] .flag-team-score small{ display:inline; margin:0 0 0 .3rem; color:inherit; font-size:var(--lwc-type-sm); font-weight:500; letter-spacing:0; }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank=""] ~ .flag-team-score{ color:var(--lwc-ink); }
+main[data-leaderboard-page="full"] .flag-team-rank[data-rank=""] ~ .flag-team-score small{ color:var(--lwc-muted); font-weight:400; }
+
+/* The disclosure is drawn, so it reads the same in every font; its ring appears on intent. */
+main[data-leaderboard-page="full"] .flag-team-chevron{
+    position:relative; display:block; width:var(--flag-toggle); height:var(--flag-toggle); border-radius:50%; font-size:0; color:var(--lwc-muted);
+    box-shadow:inset 0 0 0 1px transparent;
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+main[data-leaderboard-page="full"] .flag-team-chevron::before{
+    content:""; position:absolute; left:50%; top:45%; width:.45rem; height:.45rem;
+    border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translate(-50%, -50%) rotate(45deg);
+}
+main[data-leaderboard-page="full"] .flag-team summary:focus-visible .flag-team-chevron,
+main[data-leaderboard-page="full"] .flag-team[open] .flag-team-chevron{ color:var(--lwc-accent); box-shadow:inset 0 0 0 1px var(--lwc-accent); }
+
+/* An open team is one block: tinted, edged in accent, members hanging from the flag. */
+main[data-leaderboard-page="full"] .flag-team[open]{ background:var(--flag-open); box-shadow:inset 3px 0 0 var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-team[open] summary{ background:var(--lwc-surface-accent); box-shadow:inset 3px 0 0 var(--lwc-accent); }
+main[data-leaderboard-page="full"] .flag-team-athletes{
+    --flag-thread:calc(var(--flag-pad) + var(--flag-rank) + var(--flag-gap) + var(--flag-icon) / 2);
+    position:relative; margin:0; padding:var(--lwc-space-2) var(--flag-pad) var(--lwc-space-3);
+    padding-inline-start:calc(var(--flag-pad) + var(--flag-rank) + var(--flag-gap));
+}
+main[data-leaderboard-page="full"] .flag-team-athletes::before{
+    content:""; position:absolute; inset-inline-start:calc(var(--flag-thread) - 1px); top:0; bottom:calc(var(--lwc-space-3) + 28px);
+    width:2px; border-radius:1px; background:var(--lwc-border-strong);
+}
+main[data-leaderboard-page="full"] .flag-team-athletes li + li{ border-top:0; }
+main[data-leaderboard-page="full"] .flag-athlete-link{
+    position:relative; grid-template-columns:var(--flag-icon) var(--flag-face) minmax(0, 1fr) auto; gap:var(--flag-gap);
+    min-height:56px; padding:var(--lwc-space-2) calc(var(--flag-toggle) + var(--flag-gap)) var(--lwc-space-2) 0;
+    border-radius:var(--lwc-radius-md); background:transparent; color:var(--lwc-ink);
+}
+main[data-leaderboard-page="full"] .flag-athlete-link:focus-visible{ outline:3px solid var(--lwc-accent); outline-offset:-3px; }
+main[data-leaderboard-page="full"] .flag-athlete-rank{
+    position:relative; z-index:1; display:grid; place-items:center; justify-self:center; width:1.5rem; aspect-ratio:1; border-radius:50%;
+    background:var(--lwc-surface); box-shadow:inset 0 0 0 2px var(--lwc-border-strong);
+    color:var(--lwc-muted); font:700 var(--lwc-type-xs)/1 Orbitron, Roboto, sans-serif; font-variant-numeric:tabular-nums;
+}
+main[data-leaderboard-page="full"] .flag-athlete-link img{ width:var(--flag-face); height:var(--flag-face); box-sizing:border-box; border:3px solid var(--lwc-accent); background:var(--lwc-surface-muted); }
+main[data-leaderboard-page="full"] .flag-athlete-name{
+    font-weight:700; line-height:1.3; text-decoration:underline; text-decoration-color:var(--lwc-border); text-underline-offset:.2em;
+}
+/* Inline-block keeps the track label out of the name's underline. */
+main[data-leaderboard-page="full"] .flag-athlete-name small{
+    display:inline-block; width:100%; margin-top:.15rem; color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:400; letter-spacing:.02em;
+}
+main[data-leaderboard-page="full"] .flag-athlete-metric{ color:var(--lwc-accent); font-size:1rem; font-weight:700; white-space:nowrap; }
+main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:inline; margin:0 0 0 .3rem; color:inherit; font-size:var(--lwc-type-sm); font-weight:500; }
+
+/* Pointer hover marks the row's leading edge, as in the athlete table; touch taps leave no stuck tint. */
+@media (hover: hover){
+    main[data-leaderboard-page="full"] .flag-team summary:hover{ background:var(--lwc-surface-accent); box-shadow:inset 3px 0 0 var(--lwc-accent); }
+    main[data-leaderboard-page="full"] .flag-team[open] summary:hover{ background:var(--lwc-accent-soft); }
+    main[data-leaderboard-page="full"] .flag-team summary:hover .flag-team-chevron{ color:var(--lwc-accent); box-shadow:inset 0 0 0 1px var(--lwc-accent); }
+    main[data-leaderboard-page="full"] .flag-athlete-link:hover{ background:var(--lwc-surface-accent); }
+    main[data-leaderboard-page="full"] .flag-athlete-link:hover .flag-athlete-rank{ color:var(--lwc-accent); box-shadow:inset 0 0 0 2px var(--lwc-accent); }
+    main[data-leaderboard-page="full"] .flag-athlete-link:hover .flag-athlete-name{ color:var(--lwc-accent-hover); text-decoration-color:currentColor; }
+}
+
+/* Section bands match the table's track separator and stay in view under the header,
+   below the filter panel (z-index 3) that opens over the results. */
+main[data-leaderboard-page="full"] .flag-section-heading{
+    position:sticky; top:var(--board-sticky-top); z-index:1; display:flex; align-items:center; min-height:37px; box-sizing:border-box;
+    padding:var(--lwc-space-2) var(--flag-pad); background:var(--lwc-surface-muted); border-block:1px solid var(--lwc-border);
+    color:var(--lwc-muted); font:700 var(--lwc-type-xs)/1.3 Roboto, sans-serif; letter-spacing:.08em; text-transform:uppercase;
+}
+main[data-leaderboard-page="full"] .flag-section-heading.tier-separator-cell{ color:var(--lwc-accent); box-shadow:inset 4px 0 0 rgba(37, 99, 235, .45); }
+main[data-leaderboard-page="full"] .flag-section-heading .tier-separator-label{ letter-spacing:inherit; }
+
+/* Empty and failed: the same calm card the athlete table uses. */
+main[data-leaderboard-page="full"] .flag-empty{
+    display:grid; justify-items:center; gap:var(--lwc-space-4); box-sizing:border-box;
+    width:min(calc(100% - 2 * var(--lwc-space-4)), 24rem); margin:var(--lwc-space-7) auto; padding:var(--lwc-space-6) var(--lwc-space-5);
+    border:1px dashed var(--lwc-border-strong); border-radius:var(--board-radius); background:var(--lwc-surface-muted);
+    color:var(--lwc-ink); font-weight:700; text-align:center;
+}
+main[data-leaderboard-page="full"] .flag-empty::before{
+    content:"\f024" / ""; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
+    background:var(--lwc-surface); box-shadow:inset 0 0 0 1px var(--lwc-border); color:var(--lwc-accent);
+    font:900 1.1rem/1 "Font Awesome 6 Free";
+}
+main[data-leaderboard-page="full"] .flag-leaderboard > .leaderboard-recovery{
+    width:min(calc(100% - 2 * var(--lwc-space-4)), 24rem); margin:var(--lwc-space-5) auto; box-sizing:border-box;
+}
+
+/* Tablets and narrow boards: faces step aside, the score keeps its unit beneath. */
+@container flag-results (max-width: 42rem){
+    main[data-leaderboard-page="full"] .flag-team{ --flag-pad:var(--lwc-space-4); --flag-gap:var(--lwc-space-3); --flag-rank:2.25rem; --flag-face:36px; }
+    main[data-leaderboard-page="full"] .flag-section-heading{ padding-inline:var(--lwc-space-4); }
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-columns:var(--flag-rank) minmax(0, 1fr) auto var(--flag-toggle); min-height:64px; }
+    main[data-leaderboard-page="full"] .flag-team-portraits{ display:none; }
+    main[data-leaderboard-page="full"] .flag-team-score{ text-align:right; }
+    main[data-leaderboard-page="full"] .flag-team-score small{ display:block; margin:.1rem 0 0; font-size:var(--lwc-type-xs); }
+}
+@container flag-results (max-width: 28rem){
+    main[data-leaderboard-page="full"] .flag-team{ --flag-pad:var(--lwc-space-3); --flag-gap:var(--lwc-space-2); --flag-rank:2rem; --flag-icon:1.75rem; --flag-face:32px; }
+    main[data-leaderboard-page="full"] .flag-section-heading{ padding-inline:var(--lwc-space-3); }
+    main[data-leaderboard-page="full"] .flag-team-icon{ font-size:1.3rem; }
+    main[data-leaderboard-page="full"] .flag-team-icon .fi{ height:1.3rem; line-height:1.3rem; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ font-size:var(--lwc-type-sm); text-align:right; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:block; margin:.1rem 0 0; font-size:var(--lwc-type-xs); }
+}
+/* Small phones: the score moves under the name so long team names keep a full line. */
+@container flag-results (max-width: 22rem){
+    main[data-leaderboard-page="full"] .flag-team{ --flag-pad:12px; }
+    main[data-leaderboard-page="full"] .flag-team summary{
+        grid-template-columns:var(--flag-rank) minmax(0, 1fr) var(--flag-toggle); grid-template-areas:"rank name chevron" ". score score";
+        row-gap:var(--lwc-space-1); padding-block:var(--lwc-space-3);
+    }
+    main[data-leaderboard-page="full"] .flag-team-score{ grid-area:score; text-align:left; padding-inline-start:calc(var(--flag-icon) + var(--lwc-space-3)); }
+    main[data-leaderboard-page="full"] .flag-team-chevron{ grid-area:chevron; }
+    main[data-leaderboard-page="full"] .flag-team-score small{ display:inline; margin:0 0 0 .3rem; }
+    main[data-leaderboard-page="full"] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]){ width:max(24px, 1.5rem); font-size:var(--lwc-type-xs); }
+    main[data-leaderboard-page="full"] .flag-team-name{ flex-wrap:wrap; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ max-width:100%; overflow-wrap:break-word; }
+    main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:var(--flag-icon) var(--flag-face) minmax(0, 1fr); padding-inline-end:var(--lwc-space-2); }
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:3; text-align:left; }
+    main[data-leaderboard-page="full"] .flag-athlete-metric small{ display:inline; margin:0 0 0 .3rem; }
+}
+/* Very large text: every part of a team gets its own line. */
+@container flag-results (max-width: 14rem){
+    main[data-leaderboard-page="full"] .flag-team summary{ grid-template-areas:"rank flag chevron" "name name name" "score score score"; }
+    main[data-leaderboard-page="full"] .flag-team-name{ display:contents; }
+    main[data-leaderboard-page="full"] .flag-team-icon{ grid-area:flag; }
+    main[data-leaderboard-page="full"] .flag-team-name > span:last-child{ grid-area:name; }
+    main[data-leaderboard-page="full"] .flag-team-score{ padding-inline-start:0; }
+    main[data-leaderboard-page="full"] .flag-team-score small{ display:block; margin:.15rem 0 0; }
+    main[data-leaderboard-page="full"] .flag-team-athletes{ padding-inline-start:12px; }
+    main[data-leaderboard-page="full"] .flag-team-athletes::before{ display:none; }
+    main[data-leaderboard-page="full"] .flag-athlete-link{ grid-template-columns:var(--flag-face) minmax(0, 1fr); }
+    main[data-leaderboard-page="full"] .flag-athlete-rank{ display:none; }
+    main[data-leaderboard-page="full"] .flag-athlete-name,
+    main[data-leaderboard-page="full"] .flag-athlete-metric{ grid-column:1 / -1; }
+}
+@media (prefers-reduced-motion: reduce){
+    main[data-leaderboard-page="full"] .leaderboard--flags > .flag-leaderboard,
+    main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes{ animation:none; }
+    main[data-leaderboard-page="full"] :is(.flag-team summary, .flag-team-chevron){ transition:none; }
+}
+
+/* =========================
+   17) Athlete dialog age board
+   =========================
+   The age results read as a scoreboard under the radar: chronological age and
+   the crowd's guess set the reference, then each clock keeps its own column of
+   lowest age, pace and reduction as large figures. The profile basics follow as
+   quiet label rows. Native hidden state drives the same layout before and after
+   hydration; clock pairs reserve their metric row even when a pace is absent. */
+#detailsModal #athlete-profile > #athlete-stats{
+    padding:0;
+    overflow:hidden;
+    container-type:inline-size;
+    container-name:athlete-stats;
+}
+#detailsModal #athlete-stats .athlete-info-table > tbody.athlete-age-board{
+    display:grid;
+    grid-template-columns:repeat(6, minmax(0, 1fr));
+    --age-reference-rows:0;
+    grid-auto-flow:row;
+}
+#detailsModal #athlete-stats .athlete-age-board > tr{
+    --age-tile-span:2;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:.4rem;
+    grid-column:auto / span var(--age-tile-span);
+    min-width:0;
+    margin:0;
+    padding:.9rem 1rem 1rem;
+    border:0;
+    /* Each tile draws its divider on its left and top; the card clips the edges. */
+    box-shadow:-1px 0 0 var(--athlete-modal-border), 0 -1px 0 var(--athlete-modal-border);
+}
+#detailsModal #athlete-stats .athlete-age-board > tr[hidden]{ display:none; }
+#detailsModal #athlete-stats .athlete-age-board > tr > th,
+#detailsModal #athlete-stats .athlete-age-board > tr > th *{
+    color:var(--athlete-modal-muted) !important;
+    font-size:.68rem;
+    font-weight:700;
+    letter-spacing:1px;
+    line-height:1.3;
+    text-align:left;
+    text-transform:uppercase;
+}
+#detailsModal #athlete-stats .athlete-age-board > tr > td{
+    color:var(--athlete-modal-muted) !important;
+    font-size:.82rem;
+    line-height:1.35;
+    text-align:left;
+}
+#detailsModal #athlete-stats .athlete-age-board .age-board-figure{
+    color:var(--athlete-modal-text);
+    font-size:1.75rem;
+    font-weight:700;
+    letter-spacing:-.01em;
+    line-height:1.1;
+    font-variant-numeric:tabular-nums;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+#detailsModal #athlete-stats .athlete-age-board .unit{ font-size:.82rem; }
+#detailsModal #athlete-stats .athlete-age-board td > .detail-muted,
+#detailsModal #athlete-stats .athlete-age-board td > .age-board-share{
+    display:block;
+    margin-top:.15rem;
+    font-size:.78rem;
+    font-variant-numeric:tabular-nums;
+}
+#detailsModal #athlete-stats .athlete-age-board .age-board-share[hidden]{ display:none; }
+#detailsModal #athlete-stats .athlete-age-board .age-board-share .unit{ font-size:inherit; }
+#detailsModal #athlete-stats .athlete-age-board #crowdCount{ color:var(--athlete-modal-text); font-variant-numeric:tabular-nums; }
+#detailsModal #athlete-stats .athlete-age-board #notEmptyCrowdAgeContainer{ display:inline; }
+#detailsModal #athlete-stats .athlete-age-board #notEmptyCrowdAgeContainer[hidden]{ display:none; }
+#detailsModal #athlete-stats .athlete-age-board #yourGuess{
+    max-width:100%;
+    box-sizing:border-box;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+#detailsModal #athlete-stats .athlete-age-board .age-board-guess-note{ display:block; }
+
+/* The lowest age of each clock is the headline: its figure and a rail in the clock's colour. */
+#detailsModal #athlete-stats .athlete-age-board > tr[data-clock="bortz"]{ --age-tile-accent:var(--athlete-modal-chart-bortz); }
+#detailsModal #athlete-stats .athlete-age-board > tr[data-clock="pheno"]{ --age-tile-accent:var(--athlete-modal-chart-pheno); }
+#detailsModal #athlete-stats .athlete-age-board > tr:is(#lowestBortzAgeContainer, #lowestPhenoAgeContainer){
+    box-shadow:-1px 0 0 var(--athlete-modal-border), 0 -1px 0 var(--athlete-modal-border), inset 3px 0 0 var(--age-tile-accent);
+}
+#detailsModal #athlete-stats .athlete-age-board > tr:is(#lowestBortzAgeContainer, #lowestPhenoAgeContainer) .age-board-figure{
+    color:var(--age-tile-accent);
+    font-size:2.1rem;
+}
+
+/* Reference row: chronological age, the crowd and your guess share one line. */
+#detailsModal #athlete-stats .athlete-age-board:has(> tr:not([data-clock]):not([hidden])){ --age-reference-rows:1; }
+#detailsModal #athlete-stats .athlete-age-board > tr:not([data-clock]){ --age-tile-span:6; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(2 of :not([data-clock]):not([hidden]))) > tr:not([data-clock]){ --age-tile-span:3; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(3 of :not([data-clock]):not([hidden]))) > tr:not([data-clock]){ --age-tile-span:2; }
+
+/* Two clocks: Bortz on the left, Pheno on the right, row for row. */
+#detailsModal #athlete-stats .athlete-age-board > :is(#lowestBortzAgeContainer, #lowestPhenoAgeContainer){ --age-metric-row:1; }
+#detailsModal #athlete-stats .athlete-age-board > :is(#bortzPaceOfAgingContainer, #paceOfAgingContainer){ --age-metric-row:2; }
+#detailsModal #athlete-stats .athlete-age-board > :is(#bortzAgeReductionContainer, #ageReductionContainer){ --age-metric-row:3; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock]{
+    --age-tile-span:3;
+    grid-row:calc(var(--age-reference-rows) + var(--age-metric-row));
+}
+#detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock="bortz"]{ grid-column-start:1; }
+#detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock="pheno"]{ grid-column-start:4; }
+/* A single clock without pace has two tiles rather than an empty third. */
+#detailsModal #athlete-stats .athlete-age-board:not(:has(> #bortzPaceOfAgingContainer:not([hidden]), > #paceOfAgingContainer:not([hidden]))) > tr[data-clock]{ --age-tile-span:3; }
+
+/* The profile basics follow under a firmer rule as plain label rows. */
+#detailsModal #athlete-stats .athlete-info-table > tbody.athlete-info-basics{
+    display:block;
+    border-top:2px solid var(--athlete-modal-border);
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr:first-child,
+#detailsModal #athlete-stats .athlete-info-basics > tr[hidden] + tr{ border-top:0; }
+#detailsModal #athlete-stats .athlete-info-basics > tr[hidden]{ display:none; }
+
+/* Phones: two tiles to a row; a lone last tile takes the whole row. */
+@container athlete-stats (max-width: 29.99em){
+    #detailsModal #athlete-stats .athlete-age-board > tr{ --age-tile-span:3; padding:.8rem .9rem .9rem; }
+    #detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(3 of :not([data-clock]):not([hidden]))){ --age-reference-rows:2; }
+    #detailsModal #athlete-stats .athlete-age-board:has(> tr:nth-child(3 of :not([data-clock]):not([hidden]))) > tr:not([data-clock]){ --age-tile-span:3; }
+    #detailsModal #athlete-stats .athlete-age-board > tr:nth-child(3 of :not([data-clock]):not([hidden])),
+    #detailsModal #athlete-stats .athlete-age-board:has(> #lowestBortzAgeContainer[hidden]):has(> #paceOfAgingContainer:not([hidden])) > #ageReductionContainer,
+    #detailsModal #athlete-stats .athlete-age-board:has(> #lowestPhenoAgeContainer[hidden]):has(> #bortzPaceOfAgingContainer:not([hidden])) > #bortzAgeReductionContainer{ --age-tile-span:6; }
+    #detailsModal #athlete-stats .athlete-age-board .age-board-figure{ font-size:1.5rem; }
+    #detailsModal #athlete-stats .athlete-age-board > tr:is(#lowestBortzAgeContainer, #lowestPhenoAgeContainer) .age-board-figure{ font-size:1.8rem; }
+}
+/* Enlarged text in a narrow dialog: one tile per row, in reading order. */
+@container athlete-stats (max-width: 15.99em){
+    #detailsModal #athlete-stats .athlete-age-board > tr,
+    #detailsModal #athlete-stats .athlete-age-board:has(> tr[data-clock="bortz"]:not([hidden])):has(> tr[data-clock="pheno"]:not([hidden])) > tr[data-clock]{ grid-column:1 / -1 !important; grid-row:auto !important; }
+    #detailsModal #athlete-stats .athlete-age-board .age-board-figure{ white-space:normal; }
+}
+
+/* =========================
+   18) Phone and tablet rows on the full board
+   On tablets the rank column stays a rank column instead of a seventh of the row.
+   ========================= */
+@media (min-width: 481px) and (max-width: 768px){
+    main[data-leaderboard-page="full"] .leaderboard table thead th:first-child,
+    main[data-leaderboard-page="full"] .leaderboard table tbody td.rank-td{ width:64px; }
+}
+
+/* =========================
+   19) Athlete dialog frame
+   =========================
+   The frame is a contact card: one chrome row (close on the left, the
+   neighbouring athletes on the right) that the sticky header repeats; the
+   portrait carries the PRO badge and the flag on its rim; the name is
+   followed directly by the athlete's own actions as a row of rings with
+   captions; and phones receive the dialog as a sheet that rises into place. */
+#detailsModal .modal-content{
+    --athlete-frame-control:44px;
+    --athlete-frame-inset:24px;
+    --athlete-frame-ring:3.25rem;
+}
+
+/* Chrome: close and the athlete steps are one family of round controls. */
+#detailsModal .modal-content > .athlete-steps{
+    position:absolute;
+    top:var(--athlete-frame-inset);
+    right:var(--athlete-frame-inset);
+    z-index:60;
+}
+#detailsModal .athlete-steps{
+    display:flex;
+    flex:0 0 auto;
+    gap:.4rem;
+}
+#detailsModal .athlete-steps[hidden],
+#detailsModal .modal-content.guess-mode .athlete-steps{ display:none; }
+#detailsModal #closeAthleteDetailsModal,
+#detailsModal .modal-sticky-header .sticky-close-btn,
+#detailsModal .athlete-step{
+    box-sizing:border-box;
+    width:var(--athlete-frame-control);
+    height:var(--athlete-frame-control);
+    min-width:var(--athlete-frame-control);
+    min-height:var(--athlete-frame-control);
+    margin:0;
+    padding:0;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
+    color:rgba(255,255,255,.78);
+    font-size:1.6rem;
+    line-height:1;
+    box-shadow:none;
+    transform:none;
+    cursor:pointer;
+    transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .athlete-step{
+    appearance:none;
+    -webkit-appearance:none;
+    font-size:1rem;
+}
+#detailsModal .athlete-step:not(:disabled):hover,
+#detailsModal .athlete-step:focus-visible{
+    color:#fff;
+    background:rgba(246,244,237,.16);
+    border-color:rgba(246,244,237,.56);
+    box-shadow:0 0 0 3px rgba(246,244,237,.18);
+    outline:none;
+}
+#detailsModal .athlete-step:disabled{
+    cursor:default;
+    opacity:.32;
+}
+#detailsModal .athlete-step:active:not(:disabled){ background:rgba(246,244,237,.22); }
+
+/* Sticky header: close, a small portrait and the name, then the same steps. */
+#detailsModal .modal-sticky-header{
+    container:athlete-header / inline-size;
+    flex-wrap:wrap;
+    gap:.75rem;
+    padding-left:calc(var(--athlete-frame-inset) - 1px);
+    padding-right:calc(var(--athlete-frame-inset) - 1px);
+}
+#detailsModal .modal-sticky-header .sticky-header-left{ gap:.65rem; }
+#detailsModal .sticky-athlete-portrait{
+    flex:0 0 auto;
+    width:2rem;
+    height:2rem;
+    box-sizing:border-box;
+    border:2px solid rgba(246,244,237,.62);
+    border-radius:50%;
+    object-fit:cover;
+    background:var(--athlete-modal-card-hover);
+}
+#detailsModal .sticky-athlete-portrait[hidden]{ display:none; }
+#detailsModal .modal-sticky-header .athlete-steps{ margin-inline-start:auto; }
+
+/* Compact decorative phone spacing and keep controls usable as text grows.
+   Narrower container layouts below retain ownership of identity placement. */
+@media (max-width:480px){
+    #detailsModal .modal-sticky-header{
+        gap:4px;
+        padding-block:min(.6rem, 10px);
+    }
+    #detailsModal .modal-sticky-header .sticky-header-left{
+        display:grid;
+        grid-template-columns:auto minmax(0, 1fr);
+        column-gap:4px;
+        row-gap:0;
+    }
+    #detailsModal .sticky-athlete-portrait{
+        grid-column:1;
+        grid-row:1 / 3;
+        width:min(2rem, 30px);
+        height:min(2rem, 30px);
+    }
+    #detailsModal .modal-sticky-header .sticky-athlete-name{
+        grid-column:2;
+        grid-row:1;
+        line-height:1.2;
+    }
+    #detailsModal .modal-sticky-header .sticky-pro-badge{
+        grid-column:2;
+        grid-row:2;
+        justify-self:start;
+        line-height:1.2;
+        padding-block:min(.25em, 3px);
+    }
+    #detailsModal .modal-sticky-header .athlete-steps{ gap:min(.4rem, 6px); }
+}
+
+/* Text enlargement can need the same two rows as a narrow zoomed viewport.
+   Query the header in its own ems so controls never compete with the identity. */
+@container athlete-header (max-width:20em){
+    #detailsModal .modal-sticky-header .sticky-header-left{
+        order:2;
+        flex-basis:100%;
+        width:100%;
+        justify-content:center;
+    }
+    #detailsModal .modal-sticky-header .athlete-steps{ order:1; }
+}
+@container athlete-header (max-width:12em){
+    #detailsModal .modal-sticky-header .sticky-header-left{
+        display:grid;
+        grid-template-columns:auto minmax(0,1fr);
+    }
+    #detailsModal .sticky-athlete-portrait{ grid-column:1; grid-row:1; }
+    #detailsModal .modal-sticky-header .sticky-pro-badge{ grid-column:1; grid-row:2; justify-self:center; }
+    #detailsModal .modal-sticky-header .sticky-athlete-name{
+        grid-column:2;
+        grid-row:1 / 3;
+        white-space:normal;
+        overflow-wrap:anywhere;
+    }
+}
+
+/* Portrait: a little smaller, so the name, actions and ranks share the first view. */
+#detailsModal #athlete-profile .portrait-wrapper{
+    width:min(56%, 236px);
+    max-width:236px;
+}
+/* The flag sits on the rim opposite the PRO badge and leads to the flag's team. */
+#detailsModal .portrait-flag{
+    position:absolute;
+    left:4%;
+    bottom:3%;
+    z-index:2;
+    display:inline-flex;
+    min-width:0;
+    min-height:0;
+    padding:0;
+    border:2px solid rgba(246,244,237,.88);
+    border-radius:6px;
+    overflow:hidden;
+    font-size:min(1.9rem, 13cqw);
+    line-height:0;
+    box-shadow:0 6px 16px rgba(0,0,0,.42);
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .portrait-flag[hidden],
+#detailsModal .modal-content.guess-mode .portrait-flag{ display:none; }
+#detailsModal .portrait-flag .portrait-flag-icon{
+    display:block;
+    width:1.3333em;
+    height:1em;
+    line-height:1em;
+    background-size:cover;
+}
+#detailsModal .portrait-flag:hover,
+#detailsModal .portrait-flag:focus-visible{
+    border-color:#fff;
+    transform:rotate(-6deg) scale(1.06);
+    outline:none;
+    box-shadow:0 0 0 3px rgba(246,244,237,.28), 0 6px 16px rgba(0,0,0,.42);
+}
+
+#detailsModal #athleteName{ margin-top:1.35rem; }
+
+/* Actions: rings with captions directly under the name, like a contact card. */
+#detailsModal #athlete-profile > .athlete-links{
+    position:relative;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:flex-start;
+    gap:.35rem 1.25rem;
+    width:min(100%, var(--athlete-doc-width, 640px));
+    margin:1.1rem auto 0;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:none;
+}
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper{
+    position:static;
+    flex:0 0 auto;
+    display:flex;
+}
+#detailsModal #athlete-profile > .athlete-links > a,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile{
+    flex:0 0 auto;
+    width:auto;
+    min-width:5.5rem;
+    max-width:9rem;
+    min-height:0;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:.45rem;
+    padding:.2rem .25rem .35rem;
+    border:0;
+    border-radius:var(--lwc-radius-md);
+    background:none;
+    color:var(--athlete-modal-cream);
+    font-size:.82rem;
+    font-weight:600;
+    line-height:1.2;
+    text-align:center;
+    overflow-wrap:anywhere;
+}
+#detailsModal #athlete-profile > .athlete-links > a > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile > i{
+    flex:0 0 auto;
+    display:grid;
+    place-items:center;
+    width:var(--athlete-frame-ring);
+    height:var(--athlete-frame-ring);
+    box-sizing:border-box;
+    border:1px solid var(--athlete-modal-border);
+    border-radius:50%;
+    background:rgba(246,244,237,.07);
+    color:var(--athlete-modal-link);
+    font-size:1.15rem;
+    transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal #athlete-profile > .athlete-links > a:hover,
+#detailsModal #athlete-profile > .athlete-links > a:focus-visible,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:not(:disabled):hover,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:focus-visible,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile[aria-expanded="true"]{
+    color:#fff;
+    background:none;
+    box-shadow:none;
+    outline:none;
+}
+#detailsModal #athlete-profile > .athlete-links > a:hover > i,
+#detailsModal #athlete-profile > .athlete-links > a:focus-visible > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:not(:disabled):hover > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile:focus-visible > i,
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile[aria-expanded="true"] > i{
+    color:#fff;
+    background:var(--athlete-modal-card-hover);
+    border-color:var(--athlete-modal-cream-border);
+    box-shadow:0 0 0 3px rgba(246,244,237,.18);
+}
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile.is-copied{ border:0; }
+#detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile.is-copied > i{ border-color:var(--lwc-success, #68c47d); }
+/* A contact without a link reads as the athlete's own words under the rings. */
+#detailsModal #athlete-profile > .athlete-links > #mediaContact:not([href]){
+    order:1;
+    flex-basis:100%;
+    max-width:none;
+    padding-top:.25rem;
+    color:var(--athlete-modal-muted);
+    font-weight:400;
+}
+/* The share sheet opens centred under the actions. */
+#detailsModal #athlete-profile > .athlete-links .athlete-share-menu{
+    left:50%;
+    right:auto;
+    margin-left:calc(min(22.5rem, 100vw - 2rem) / -2);
+    transform-origin:top center;
+}
+#detailsModal #athlete-profile > .athlete-links .athlete-share-menu.is-above{ transform-origin:bottom center; }
+#detailsModal #athlete-profile > .athlete-links + #athleteRankings{ margin-top:1.35rem; }
+
+/* Keep the whole card readable during entry. Athlete paging owns its small,
+   interruptible directional motion in athlete-browse-motion.js. */
+@keyframes athlete-frame-in{
+    from{ opacity:var(--athlete-entry-opacity, .94); transform:translateY(var(--athlete-entry-offset, 12px)) scale(var(--athlete-entry-scale, .985)); }
+    to{ opacity:1; transform:none; }
+}
+@keyframes athlete-step-next{
+    from{ opacity:0; transform:translateX(var(--athlete-step-distance, 48px)); }
+    to{ opacity:1; transform:none; }
+}
+@keyframes athlete-step-previous{
+    from{ opacity:0; transform:translateX(calc(-1 * var(--athlete-step-distance, 48px))); }
+    to{ opacity:1; transform:none; }
+}
+#detailsModal .modal-content{
+    /* Release the transform after entry so fixed game celebrations keep the
+       viewport as their containing block. */
+    animation:athlete-frame-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
+}
+@starting-style {
+    /* The card already moves in as a unit. Keep its surface opaque instead of
+       letting the shared overlay fade paint the board through the identity. */
+    #detailsModal.modal:not(.fade-out):not([hidden]){ opacity:1; }
+}
+#detailsModal.fade-out .modal-content{
+    transform:translateY(8px) scale(.99);
+    transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+@media (max-width: 768px){
+    #detailsModal .modal-content{ --athlete-frame-inset:14px; }
+    #detailsModal .modal-content > .athlete-steps{
+        top:max(14px, env(safe-area-inset-top));
+        right:max(14px, env(safe-area-inset-right));
+    }
+    #detailsModal #closeAthleteDetailsModal{
+        top:max(14px, env(safe-area-inset-top));
+        left:max(14px, env(safe-area-inset-left));
+    }
+    /* The chrome row is the sheet's top edge; the portrait starts beneath it. */
+    #detailsModal .modal-content:not(.guess-mode) #athlete-profile{ padding-top:calc(var(--athlete-frame-control) + .1rem); }
+    #detailsModal #athlete-profile .portrait-wrapper{ width:min(44vw, 176px); }
+    #detailsModal #athleteName{ margin-top:1rem; }
+    #detailsModal .modal-sticky-header{ padding:.6rem 14px; }
+    /* Keep one animation name across viewport changes and guess mode, so
+       neither resizing nor leaving a round replays the entrance. */
+    #detailsModal .modal-content{
+        --athlete-entry-opacity:.94;
+        --athlete-entry-offset:6%;
+        --athlete-entry-scale:1;
+    }
+    #detailsModal.fade-out .modal-content{ transform:translateY(4%); }
+}
+@media (max-width: 480px){
+    /* Equal shares of one row; enlarged text wraps whole actions instead of overflowing. */
+    #detailsModal #athlete-profile > .athlete-links{ gap:.35rem .5rem; }
+    #detailsModal #athlete-profile > .athlete-links > a,
+    #detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper{
+        flex:1 1 0;
+        min-width:min-content;
+        max-width:6.5rem;
+    }
+    #detailsModal #athlete-profile > .athlete-links > a,
+    #detailsModal #athlete-profile > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile{
+        width:100%;
+        min-width:min-content;
+        padding-inline:0;
+        font-size:.8rem;
+    }
+    #detailsModal #athlete-profile > .athlete-links > #mediaContact:not([href]){ flex-basis:100%; max-width:none; }
+    #detailsModal #athlete-profile > .athlete-links .athlete-share-menu{ left:0; right:0; margin-left:0; width:auto; }
+}
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
+    #detailsModal .modal-content{ --athlete-frame-inset:12px; }
+    #detailsModal .modal-content > .athlete-steps{ top:12px; right:12px; }
+    #detailsModal .modal-content:not(.guess-mode) #athlete-profile{ padding-top:0; }
+}
+@media (max-width: 280px){
+    /* At browser zoom, keep the portrait/name intact below the control row. */
+    #detailsModal .modal-sticky-header.visible{
+        display:grid;
+        grid-template-columns:44px 1fr auto;
+        column-gap:0;
+        row-gap:.4rem;
+        padding-inline:8px;
+    }
+    #detailsModal .modal-sticky-header .sticky-close-btn{ grid-column:1; grid-row:1; }
+    #detailsModal .modal-sticky-header .athlete-steps{ grid-column:3; grid-row:1; }
+    #detailsModal .modal-sticky-header .sticky-header-left{
+        grid-column:1 / -1;
+        grid-row:2;
+        width:100%;
+        justify-content:center;
+    }
+}
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .modal-content,
+    #detailsModal .modal-content[data-athlete-step] #athlete-profile{ animation:none; }
+    #detailsModal.fade-out .modal-content{ transform:none; transition:none; }
+}
+
+/* A genuine network wait is a compact, closable state. Cached steps hydrate in
+   the same turn and keep the full card; neither path exposes an empty slab. */
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]){
+    height:auto;
+    min-height:9rem;
+}
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]) > :not(#closeAthleteDetailsModal):not(.athlete-steps):not(#athlete-profile){
+    display:none;
+}
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]) #athlete-profile > :not(#athleteName):not(#athleteLoadError){
+    display:none;
+}
+#detailsModal .modal-content:is(.is-loading, .has-load-error):not([data-server-rendered-profile]) #athlete-profile{
+    padding-top:calc(var(--athlete-frame-control) + 1rem);
+    padding-bottom:1rem;
+}
+
+/* 19) Browsing motion (athlete-browse-motion.js): a horizontal swipe on the
+   profile steps between athletes, so it leaves vertical panning to the page,
+   and an age that counts in keeps its real text while an overlay counts. */
+#detailsModal .modal-content:not(.guess-mode) #athlete-profile{ touch-action:pan-y pinch-zoom; }
+
+
+#detailsModal [data-lwc-count]{
+    position:relative;
+    color:transparent !important;
+}
+#detailsModal [data-lwc-count]::after{
+    content:attr(data-lwc-count);
+    content:attr(data-lwc-count) / "";
+    position:absolute;
+    inset:0 auto auto 0;
+    min-width:100%;
+    color:var(--lwc-count-color, currentColor);
+    text-align:inherit;
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+    pointer-events:none;
+}
+
+/* 20) Athlete story (athlete-story.js): the profile unfolds as it is read.
+   Chapters rise in as they scroll into view, badges unlock, the age gap
+   grows out of the calendar age, results trace themselves and the radar
+   blood draws become a scrubbable timeline. Every state here is set by the
+   script only while motion is allowed; without it the profile is static. */
+#detailsModal{
+    --story-enter:var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1));
+    --story-standard:var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+#detailsModal [data-story="wait"]{
+    opacity:0;
+    transform:translateY(26px) scale(.985);
+}
+#detailsModal [data-story="in"]{
+    transition:opacity 340ms var(--story-enter), transform 480ms var(--story-enter);
+}
+
+/* Badges arrive with a small pop and a ring. Their titles stay readable while
+   the stagger waits, including when another profile arrives before it ends. */
+#detailsModal .modal-badge-strip .modal-badge-item[data-unlock]{ position:relative; }
+#detailsModal .modal-badge-item[data-unlock="open"] .badge-class{
+    animation:lwc-story-unlock 640ms var(--story-standard) backwards;
+}
+#detailsModal .modal-badge-item[data-unlock="open"]::after{
+    content:"";
+    position:absolute;
+    top:.5rem;
+    left:50%;
+    width:56px;
+    height:56px;
+    margin-left:-28px;
+    border-radius:50%;
+    border:2px solid var(--athlete-modal-cream, rgba(246,244,237,.92));
+    box-sizing:border-box;
+    pointer-events:none;
+    animation:lwc-story-ring 620ms var(--story-enter) 180ms both;
+}
+@keyframes lwc-story-unlock{
+    0%{ opacity:.94; transform:scale(.96) rotate(-2deg); }
+    45%{ opacity:1; filter:brightness(1.16); transform:scale(1.05) rotate(1deg); }
+    70%{ filter:brightness(1.04); transform:scale(.99); }
+    100%{ opacity:1; filter:none; transform:none; }
+}
+@keyframes lwc-story-ring{
+    0%{ opacity:.7; transform:scale(.7); }
+    100%{ opacity:0; transform:scale(1.65); }
+}
+
+/* The gap gauge: the calendar age is the middle tick; the biological age is
+   the dot, younger to the left, and the span between them is the gap. */
+#detailsModal .age-radar-summary .age-story-gap,
+#detailsModal #ageRadarFallback .age-story-gap{
+    --story-gap:0;
+    position:relative;
+    display:block;
+    flex-basis:100%;
+    height:22px;
+    margin:.15rem .25rem .1rem;
+    color:var(--story-gap-color, var(--athlete-modal-chart-bortz));
+}
+#detailsModal .age-story-gap[hidden]{ display:none; }
+#detailsModal .age-story-gap[data-clock="pheno"]{ color:var(--story-gap-color, var(--athlete-modal-chart-pheno)); }
+#detailsModal .age-story-gap-track{
+    position:absolute;
+    inset:10px 0 auto;
+    height:2px;
+    border-radius:2px;
+    background:linear-gradient(90deg, transparent, var(--athlete-modal-border) 14%, var(--athlete-modal-border) 86%, transparent);
+}
+#detailsModal .age-story-gap-fill{
+    position:absolute;
+    top:9px;
+    left:50%;
+    width:50%;
+    height:4px;
+    border-radius:4px;
+    background:currentColor;
+    box-shadow:0 0 12px currentColor;
+    opacity:.9;
+    transform-origin:0 50%;
+    transform:scaleX(var(--story-gap));
+    transition:transform 820ms var(--story-standard);
+}
+#detailsModal .age-story-gap-chrono{
+    position:absolute;
+    top:2px;
+    left:50%;
+    width:2px;
+    height:18px;
+    margin-left:-1px;
+    border-radius:2px;
+    background:var(--athlete-modal-cream);
+}
+#detailsModal .age-story-gap-bio{
+    position:absolute;
+    top:4px;
+    left:calc(50% + var(--story-gap) * 50%);
+    width:14px;
+    height:14px;
+    margin-left:-7px;
+    border-radius:50%;
+    background:currentColor;
+    box-shadow:0 0 0 3px var(--athlete-modal-card, #1b2530), 0 0 14px currentColor;
+    transition:left 820ms var(--story-standard);
+}
+#detailsModal .age-story-gap[data-direction="even"] .age-story-gap-bio{ background:var(--athlete-modal-cream); }
+#detailsModal .age-story-gap[data-still] .age-story-gap-fill,
+#detailsModal .age-story-gap[data-still] .age-story-gap-bio{ transition:none; }
+
+/* Every blood draw as a timeline under the picker; drag across to scrub. */
+#detailsModal .age-story-timeline{
+    position:relative;
+    width:min(100%, 360px);
+    height:44px;
+    margin:.35rem auto .35rem;
+    cursor:ew-resize;
+    touch-action:pan-y pinch-zoom;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+}
+#detailsModal .age-story-timeline[hidden]{ display:none; }
+#detailsModal .age-story-timeline svg,
+#detailsModal .age-story-timeline-dots{
+    position:absolute;
+    left:0;
+    top:8px;
+    width:100%;
+    height:28px;
+    overflow:visible;
+}
+#detailsModal .age-story-timeline-line{
+    fill:none;
+    stroke:var(--athlete-modal-border-strong);
+    stroke-width:1.25;
+    stroke-linejoin:round;
+    stroke-linecap:round;
+    stroke-dasharray:1;
+    stroke-dashoffset:0;
+}
+#detailsModal .age-story-timeline-dot,
+#detailsModal .age-story-timeline-thumb{
+    position:absolute;
+    border-radius:50%;
+    box-sizing:border-box;
+    transform:translate(-50%, -50%);
+}
+#detailsModal .age-story-timeline-dot{
+    width:8px;
+    height:8px;
+    border:1.5px solid var(--athlete-modal-muted);
+    background:var(--athlete-modal-card, #1b2530);
+    transition:border-color 160ms var(--story-standard);
+}
+#detailsModal .age-story-timeline-dot.is-selected{ border-color:transparent; }
+#ageVisualization[data-story-clock="pheno"] .age-story-timeline-thumb{ background:var(--athlete-modal-chart-pheno); }
+/* The thumb sits in the dots layer coordinates (same box as the dots). */
+#detailsModal .age-story-timeline-thumb{
+    width:16px;
+    height:16px;
+    background:var(--athlete-modal-chart-bortz);
+    box-shadow:0 0 0 4px rgba(123,221,227,.18), 0 2px 10px rgba(0,0,0,.4);
+    pointer-events:none;
+    transition:left 260ms var(--story-standard), top 260ms var(--story-standard), transform 160ms var(--story-standard), box-shadow 160ms;
+}
+@media (hover:hover){
+    #detailsModal .age-story-timeline:hover .age-story-timeline-thumb{ transform:translate(-50%, -50%) scale(1.15); }
+    #detailsModal .age-story-timeline:hover .age-story-timeline-dot{ border-color:var(--athlete-modal-cream); }
+}
+#detailsModal .age-story-timeline.is-scrubbing .age-story-timeline-thumb{
+    transform:translate(-50%, -50%) scale(1.3);
+    box-shadow:0 0 0 7px rgba(123,221,227,.2), 0 2px 12px rgba(0,0,0,.45);
+    transition-duration:120ms;
+}
+#detailsModal .age-story-timeline[data-draw="wait"] .age-story-timeline-line{ stroke-dashoffset:1; }
+#detailsModal .age-story-timeline[data-draw="wait"] .age-story-timeline-dot,
+#detailsModal .age-story-timeline[data-draw="wait"] .age-story-timeline-thumb{ opacity:0; transform:translate(-50%, -50%) scale(.2); }
+#detailsModal .age-story-timeline[data-draw="in"] .age-story-timeline-line{ transition:stroke-dashoffset 700ms var(--story-standard); }
+#detailsModal .age-story-timeline[data-draw="in"] .age-story-timeline-dot{
+    transition:opacity 200ms var(--story-enter), transform 260ms var(--story-standard), border-color 160ms;
+    transition-delay:calc(var(--i) * 60ms + 120ms);
+}
+#detailsModal .age-story-timeline[data-draw="in"] .age-story-timeline-thumb{
+    transition:opacity 200ms 500ms, transform 280ms var(--story-standard) 500ms, left 260ms var(--story-standard), top 260ms var(--story-standard);
+}
+
+/* Results over time trace themselves in, row after row. */
+#detailsModal tr.result-summary[data-draw="wait"] > *{ opacity:0; }
+#detailsModal tr.result-summary[data-draw="in"] > *{ animation:lwc-story-row 360ms var(--story-enter) backwards; }
+#detailsModal tr.result-summary[data-draw="in"] > :nth-child(2){ animation-delay:60ms; }
+#detailsModal tr.result-summary[data-draw="in"] > :nth-child(3){ animation-delay:120ms; }
+@keyframes lwc-story-row{ from{ opacity:0; transform:translateY(10px); } }
+#detailsModal tr.result-summary[data-draw] .biomarker-overview-history svg line[pathLength]{
+    stroke-dasharray:1;
+    stroke-dashoffset:1;
+}
+#detailsModal tr.result-summary[data-draw="in"] .biomarker-overview-history svg line[pathLength]{
+    animation:lwc-story-trace 620ms var(--story-standard) 140ms forwards;
+}
+@keyframes lwc-story-trace{ to{ stroke-dashoffset:0; } }
+#detailsModal tr.result-summary[data-draw] .biomarker-overview-history svg circle{
+    transform-box:fill-box;
+    transform-origin:center;
+}
+#detailsModal tr.result-summary[data-draw="in"] .biomarker-overview-history svg circle{
+    animation:lwc-story-dot 300ms var(--story-standard) backwards;
+    animation-delay:calc(var(--i, 0) * 45ms + 160ms);
+}
+#detailsModal tr.result-summary[data-draw="in"] .sparkline-area{ animation:lwc-story-fade 500ms var(--story-enter) 420ms backwards; }
+@keyframes lwc-story-dot{ 0%{ opacity:0; transform:scale(0); } 70%{ transform:scale(1.35); } }
+@keyframes lwc-story-fade{ from{ opacity:0; } }
+#detailsModal tr.result-summary[data-draw="in"] .clock-history-reading{
+    animation:lwc-story-reading 300ms var(--story-enter) backwards;
+    animation-delay:calc(var(--i, 0) * 55ms + 140ms);
+}
+@keyframes lwc-story-reading{ from{ opacity:0; transform:translateX(-8px); } }
+#detailsModal tr.result-summary[data-draw="in"] .biomarker-overview-change{
+    animation:lwc-story-pop 320ms var(--story-standard) 700ms backwards;
+}
+@keyframes lwc-story-pop{ 0%{ opacity:0; transform:scale(.6); } 70%{ transform:scale(1.12); } }
+
+/* Share and personal links answer hover and press. */
+#detailsModal .athlete-links > a > i,
+#detailsModal .athlete-share-wrapper > button > i{
+    position:relative;
+    transition:transform 200ms var(--story-standard), border-color 160ms var(--story-standard), background-color 160ms var(--story-standard), box-shadow 200ms var(--story-standard), color 160ms;
+}
+#detailsModal .athlete-links > a > i::after,
+#detailsModal .athlete-share-wrapper > button > i::after{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius:inherit;
+    border:2px solid var(--athlete-modal-accent, #7bdde3);
+    opacity:0;
+    pointer-events:none;
+}
+@media (hover:hover){
+    #detailsModal .athlete-links > a:hover > i,
+    #detailsModal .athlete-share-wrapper > button:not(:disabled):hover > i{
+        transform:translateY(-3px);
+        border-color:var(--athlete-modal-accent, #7bdde3);
+        box-shadow:0 8px 18px rgba(0,0,0,.38), 0 0 0 4px rgba(123,221,227,.12);
+    }
+    #detailsModal #personalLink:hover > i::before{ display:inline-block; animation:lwc-story-tilt 420ms var(--story-standard); }
+    #detailsModal #shareAthleteProfile:not(:disabled):hover > i::before{ display:inline-block; animation:lwc-story-spin 460ms var(--story-standard); }
+    #detailsModal #mediaContact:hover > i::before{ display:inline-block; animation:lwc-story-nudge 420ms var(--story-standard); }
+}
+#detailsModal .athlete-links > a:active > i,
+#detailsModal .athlete-share-wrapper > button:not(:disabled):active > i{
+    transform:scale(.9);
+    transition-duration:80ms;
+}
+#detailsModal .athlete-links > a[data-pressed] > i::after,
+#detailsModal .athlete-share-wrapper > button[data-pressed] > i::after{
+    animation:lwc-story-press 480ms var(--story-enter);
+}
+#detailsModal #shareAthleteProfile[aria-expanded="true"] > i{
+    border-color:var(--athlete-modal-accent, #7bdde3);
+    background:rgba(123,221,227,.12);
+}
+@keyframes lwc-story-press{ 0%{ opacity:.85; transform:scale(1); } 100%{ opacity:0; transform:scale(1.6); } }
+@keyframes lwc-story-tilt{ 40%{ transform:rotate(-22deg) scale(1.1); } }
+@keyframes lwc-story-spin{ 50%{ transform:rotate(-30deg) scale(1.12); } }
+@keyframes lwc-story-nudge{ 30%{ transform:translateY(-2px) rotate(-8deg); } 60%{ transform:translateY(1px) rotate(6deg); } }
+
+@media (prefers-reduced-motion: reduce){
+    #detailsModal [data-story],
+    #detailsModal [data-unlock] .badge-class,
+    #detailsModal [data-unlock] .modal-badge-name,
+    #detailsModal tr.result-summary[data-draw] > *{ opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; transition:none !important; }
+    #detailsModal .modal-badge-item[data-unlock]::after{ display:none; }
+    #detailsModal .age-story-gap-fill,
+    #detailsModal .age-story-gap-bio,
+    #detailsModal .age-story-timeline *{ transition:none !important; animation:none !important; }
+    #detailsModal .athlete-links > a > i,
+    #detailsModal .athlete-share-wrapper > button > i,
+    #detailsModal .athlete-links i::before,
+    #detailsModal .athlete-links i::after{ transition:none !important; animation:none !important; transform:none !important; }
+}

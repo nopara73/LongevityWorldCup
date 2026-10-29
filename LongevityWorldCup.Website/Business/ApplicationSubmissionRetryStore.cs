@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using LongevityWorldCup.Website.Tools;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
+using MimeKit;
 
 namespace LongevityWorldCup.Website.Business;
 
@@ -26,16 +27,19 @@ public sealed class ApplicationSubmissionRetryStore
     private readonly string _storageDirectory;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<ApplicationSubmissionRetryStore> _logger;
+    private readonly SubmissionConfirmationStore? _confirmations;
     private readonly ConcurrentDictionary<string, SubmissionLock> _locks = new(StringComparer.Ordinal);
 
     public ApplicationSubmissionRetryStore(
         IMemoryCache cache,
-        ILogger<ApplicationSubmissionRetryStore> logger)
+        ILogger<ApplicationSubmissionRetryStore> logger,
+        SubmissionConfirmationStore confirmations)
         : this(
             cache,
             Path.Combine(EnvironmentHelpers.GetDataDir(), "ApplicationSubmissionResponses"),
             TimeProvider.System,
-            logger)
+            logger,
+            confirmations)
     {
     }
 
@@ -52,7 +56,8 @@ public sealed class ApplicationSubmissionRetryStore
         IMemoryCache cache,
         string storageDirectory,
         TimeProvider timeProvider,
-        ILogger<ApplicationSubmissionRetryStore>? logger = null)
+        ILogger<ApplicationSubmissionRetryStore>? logger = null,
+        SubmissionConfirmationStore? confirmations = null)
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _storageDirectory = string.IsNullOrWhiteSpace(storageDirectory)
@@ -60,6 +65,7 @@ public sealed class ApplicationSubmissionRetryStore
             : Path.GetFullPath(storageDirectory);
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         _logger = logger ?? NullLogger<ApplicationSubmissionRetryStore>.Instance;
+        _confirmations = confirmations;
     }
 
     public async ValueTask<Lease> AcquireAsync(
@@ -154,6 +160,16 @@ public sealed class ApplicationSubmissionRetryStore
             _cache.Remove(cacheKey);
         }
 
+        // New completions and receipts share one durable record. Old response files remain
+        // readable, but are never turned into receipts (no historical backfill).
+        var durable = _confirmations?.Get(submissionId);
+        if (durable is not null && durable.ExpiresAtUtc > _timeProvider.GetUtcNow())
+        {
+            var completed = new CompletedSubmission(durable.RequestFingerprint, durable.Response, durable.ExpiresAtUtc);
+            _cache.Set(cacheKey, completed, completed.ExpiresAtUtc);
+            return completed;
+        }
+
         var path = GetStoragePath(submissionId);
         if (!File.Exists(path))
         {
@@ -196,8 +212,18 @@ public sealed class ApplicationSubmissionRetryStore
         }
     }
 
-    private void Complete(string submissionId, string requestFingerprint, ApplicationSubmissionResponse response)
+    private void Complete(string submissionId, string requestFingerprint, ApplicationSubmissionResponse response, MimeMessage? confirmation)
     {
+        try
+        {
+            _confirmations?.Complete(submissionId, requestFingerprint, response, confirmation, _timeProvider.GetUtcNow());
+        }
+        catch (Exception ex)
+        {
+            // Storage failure must not invalidate a submission already saved for review or
+            // duplicate its invoice. Preserve the existing response-file/memory fallback.
+            _logger.LogError("Could not persist submission confirmation. ExceptionType={ExceptionType}", ex.GetType().Name);
+        }
         var completedSubmission = new CompletedSubmission(
             requestFingerprint,
             response,
@@ -350,7 +376,7 @@ public sealed class ApplicationSubmissionRetryStore
         public bool HasFingerprintConflict { get; }
         public bool ShouldProcess => CachedResponse is null && !HasFingerprintConflict;
 
-        public void Complete(ApplicationSubmissionResponse response)
+        public void Complete(ApplicationSubmissionResponse response, MimeMessage? confirmation = null)
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
             if (!ShouldProcess)
@@ -358,7 +384,7 @@ public sealed class ApplicationSubmissionRetryStore
                 throw new InvalidOperationException("Only a new application submission can be completed.");
             }
 
-            _owner.Complete(_submissionId, _requestFingerprint, response);
+            _owner.Complete(_submissionId, _requestFingerprint, response, confirmation);
         }
 
         public void Dispose()

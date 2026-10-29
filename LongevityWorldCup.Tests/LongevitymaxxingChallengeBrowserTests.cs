@@ -40,7 +40,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal(expectedDay, await page.Locator(".lmx-dashboard-day.today").InnerTextAsync());
         var placeholder = await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content");
         Assert.StartsWith("/assets/content-images/play-athlete-placeholder.webp?v=", placeholder);
-        await Assertions.Expect(page.Locator(".lmx-participant-avatar.placeholder img").First).ToHaveAttributeAsync("src", placeholder!);
+        await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(page.Locator(".lmx-participant-avatar.placeholder img").First, placeholder!);
+        await Assertions.Expect(page.Locator(".lmx-participant-avatar.placeholder img").First).ToHaveAttributeAsync("alt", "");
         var todayCells = await page.Locator(".lmx-category-day.today").AllAsync();
         Assert.Equal(4, todayCells.Count);
         foreach (var cell in todayCells)
@@ -70,7 +71,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.GotoAsync("/longevitymaxxing?token=browser-token");
         await page.Locator(".lmx-habit-history > summary").ClickAsync();
         var history = page.Locator(".lmx-dashboard-scroll");
-        await page.WaitForFunctionAsync("document.querySelector('.lmx-dashboard-scroll').scrollLeft > 0");
+        await page.WaitForFunctionAsync("() => document.querySelector('.lmx-dashboard-scroll').scrollLeft > 0");
         var initial = await history.EvaluateAsync<double>("e => e.scrollLeft");
         await history.FocusAsync();
         await page.Keyboard.PressAsync("ArrowLeft");
@@ -277,7 +278,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
                 page,
                 "#lmxTitlePanel h1",
                 "#lmxHeroCopy",
-                ".lmx-question-preview-label span",
+                ".lmx-habit-question",
                 "#lmxBoardMeta",
                 ".lmx-board-row:not(.header) .lmx-name",
                 ".lmx-board-row:not(.header) .lmx-number",
@@ -519,7 +520,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal(22, await cells.CountAsync());
         Assert.True(await page.Locator("#lmxWeekPager").IsHiddenAsync());
         var timeline = page.Locator("#lmxBoardSection .lmx-board-scroll");
-        await page.WaitForFunctionAsync("document.querySelector('#lmxBoardSection .lmx-board-scroll').scrollLeft > 0");
+        await page.WaitForFunctionAsync("() => document.querySelector('#lmxBoardSection .lmx-board-scroll').scrollLeft > 0");
         var latestPosition = await timeline.EvaluateAsync<double>("e => e.scrollLeft");
         await timeline.HoverAsync();
         await page.Mouse.WheelAsync(-200, 0);
@@ -586,7 +587,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         };
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-card i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question-preview-item i"), "backgroundColor"));
-        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question .lmx-question-icon"), "backgroundColor"));
+        // Unanswered check-in icons are drawn in their habit colour and fill once answered.
+        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question .lmx-question-icon"), "color"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-key i"), "color"));
 
         var cellAndDotColors = await page.EvaluateAsync<string[][]>("""
@@ -797,25 +799,25 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
 
         var remarks = page.Locator("#lmxNotes > article");
         await page.Locator("#lmxCheckinDialogClose").ClickAsync();
-        Assert.Equal(5, await remarks.CountAsync());
+        Assert.Equal(7, await remarks.CountAsync());
 
         var checkInText = await page.Locator("#lmxCheckinList").InnerTextAsync();
         Assert.DoesNotContain("Active discussion", checkInText);
         await Assertions.Expect(page.Locator("#lmxCheckinList [data-discussion-post-participant-id]")).ToHaveCountAsync(0);
-        await Assertions.Expect(remarks.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync(["Fox", "Ari", "Bea", "Cam", "Dee"]);
+        await Assertions.Expect(remarks.Locator(".lmx-discussion-post-author strong")).ToHaveTextAsync(["Fox", "Ari", "Bea", "Cam", "Dee", "Eli", "Private"]);
         var discussionText = await page.Locator("#lmxNotes").InnerTextAsync();
         Assert.Contains("An older post with enough current discussion to rank first.", discussionText);
         Assert.Contains("First recent public remark.", discussionText);
-        Assert.Equal(new[] { "5", "22", "21", "20", "19" }, await remarks.EvaluateAllAsync<string[]>("items => items.map(item => item.dataset.discussionPostChallengeDay)"));
+        Assert.Equal(new[] { "5", "22", "21", "20", "19", "19", "1" }, await remarks.EvaluateAllAsync<string[]>("items => items.map(item => item.dataset.discussionPostChallengeDay)"));
         Assert.DoesNotContain("Fourth older public remark.", checkInText);
         Assert.DoesNotContain("Private participant-only remark.", checkInText);
 
         var replyButtons = remarks.Locator(".lmx-discussion-reply");
-        Assert.Equal(5, await replyButtons.CountAsync());
+        Assert.Equal(7, await replyButtons.CountAsync());
         var replyBox = await replyButtons.First.BoundingBoxAsync();
         Assert.NotNull(replyBox);
         Assert.True(replyBox.Width >= 44 && replyBox.Height >= 44, $"Expected at least a 44px discussion reply target; got {replyBox.Width}x{replyBox.Height}.");
-        var discussionInput = page.Locator(".lmx-checkin-entry > .lmx-field textarea[data-mention-input]").First;
+        var discussionInput = page.Locator(".lmx-checkin-card textarea[data-mention-input]").First;
         Assert.Equal("", await discussionInput.InputValueAsync());
         await discussionInput.FillAsync("Unsaved check-in discussion draft.");
         var unsavedExerciseNo = page.Locator(".lmx-checkin-card .lmx-question[data-key='exercise'] input[value='0']");
@@ -1018,6 +1020,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.True(await closeButton.EvaluateAsync<bool>("button => button === document.activeElement"));
 
         await page.Keyboard.PressAsync("Escape");
+        await page.WaitForFunctionAsync("() => document.getElementById('lmxNotePhotoViewer').getAttribute('aria-hidden') === 'true'");
+        Assert.True(await viewer.EvaluateAsync<bool>("element => element.inert"));
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         Assert.False(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('lmx-photo-viewer-open')"));
         Assert.False(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
@@ -1025,6 +1029,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
 
         await page.GoForwardAsync();
         await page.Locator("#lmxNotePhotoViewer.show").WaitForAsync();
+        Assert.False(await viewer.EvaluateAsync<bool>("element => element.inert"));
         Assert.Equal("Photo 2 of 2", await viewer.Locator(".lmx-photo-viewer-position").InnerTextAsync());
         await page.GoBackAsync();
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
@@ -1295,7 +1300,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         var ariReplyIdentity = foxSurfaces.First
             .Locator("[data-discussion-reply-id='r4'] .lmx-discussion-author-identity");
         Assert.Equal("/athlete/ari-able", await ariReplyIdentity.GetAttributeAsync("href"));
-        Assert.Equal("/assets/content-images/play-athlete-placeholder.jpg", await ariReplyIdentity.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(ariReplyIdentity.Locator("strong")).ToHaveTextAsync("Ari");
+        await PortraitSystemBrowserTests.AssertApprovedArtworkAsync(ariReplyIdentity.Locator("img"),
+            "/assets/content-images/play-athlete-placeholder.jpg");
+        await Assertions.Expect(ariReplyIdentity.Locator("img")).ToHaveAttributeAsync("alt", "Ari profile picture");
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-edit]").CountAsync());
         Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-delete]").CountAsync());
         Assert.Equal(0, await foxSurfaces.First.Locator("[data-discussion-reply-id='r4'] [data-discussion-reply-edit]").CountAsync());
@@ -1325,8 +1333,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             Assert.Equal("Corrected reply for @Ari Able.", json.RootElement.GetProperty("body").GetString());
         }
 
-        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
-        await editedReplies.First.Locator("[data-discussion-reply-delete]").ClickAsync();
+        var confirmDeletion = false;
+        page.Dialog += async (_, dialog) =>
+        {
+            if (confirmDeletion) await dialog.AcceptAsync();
+            else await dialog.DismissAsync();
+        };
+        var deleteButton = editedReplies.First.Locator("[data-discussion-reply-delete]");
+        await deleteButton.ClickAsync();
+        Assert.Null(deletePayload);
+        await Assertions.Expect(editedReplies).ToHaveCountAsync(1);
+        await Assertions.Expect(deleteButton).ToBeFocusedAsync();
+        await Assertions.Expect(deleteButton).ToBeEnabledAsync();
+        confirmDeletion = true;
+        await deleteButton.ClickAsync();
         await Assertions.Expect(page.Locator("[data-discussion-reply-id='r6']")).ToHaveCountAsync(0);
         await Assertions.Expect(foxSurfaces).ToHaveCountAsync(1);
         for (var index = 0; index < await foxSurfaces.CountAsync(); index++)

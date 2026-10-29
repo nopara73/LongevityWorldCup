@@ -27,8 +27,33 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
         Assert.Contains("/js/guess-my-age.js?v=", html);
         Assert.DoesNotContain("window.openAthleteModalBySlug = function", html);
         Assert.DoesNotContain("{{ASSET_", html);
+        if (path == "/about")
+        {
+            Assert.Contains("/js/documentation.js?v=", html);
+            Assert.DoesNotContain("const updateCurrentSection =", html);
+        }
+        if (path == "/events")
+        {
+            var stylesheet = Regex.Match(html, @"/css/highlights-page\.css\?v=[^""']+");
+            Assert.True(stylesheet.Success, "Highlights styles must be versioned independently of the HTML.");
+            using var response = await client.GetAsync(stylesheet.Value);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Contains("immutable", response.Headers.CacheControl!.ToString());
+        }
 
         // Dynamic font URLs still use the same version as the head's preload.
+        Assert.Matches(@"src: url\('/assets/fonts/Roboto-Regular\.woff2\?v=[^']+'\)", html);
+    }
+
+    [Fact]
+    public async Task PrivacyDocument_UsesTheSharedRuntimeWithinItsHtmlBudget()
+    {
+        using var client = factory.CreateClient();
+        var html = await client.GetStringAsync("/privacy");
+        Assert.True(Encoding.UTF8.GetByteCount(html) < 100_000, "Privacy exceeded its 100,000-byte HTML budget.");
+        Assert.Contains("/js/documentation.js?v=", html);
+        Assert.DoesNotContain("const updateCurrentSection =", html);
+        Assert.DoesNotContain("{{ASSET_", html);
         Assert.Matches(@"src: url\('/assets/fonts/Roboto-Regular\.woff2\?v=[^']+'\)", html);
     }
 
@@ -43,7 +68,7 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
             "/js/site-header.js", "/js/site-footer.js", "/js/leaderboard-page.js",
             "/js/leaderboard-embed-listener.js", "/js/guess-my-age.js",
             "/css/site-header.css", "/css/site-footer.css", "/css/leaderboard-content.css",
-            "/css/guess-my-age.css", "/css/age-visualization.css"
+            "/css/guess-my-age.css", "/css/age-visualization.css", "/css/dark-system.css"
         };
         foreach (var path in paths)
         {

@@ -228,6 +228,8 @@ public sealed class BioageMobileUxBrowserTests(
             "#lwc-step-2 .biomarker-card input[type=\"number\"][required]").CountAsync());
 
         var bloodDrawDate = page.Locator("#blood-draw-date");
+        await bloodDrawDate.FillAsync("");
+        await bloodDrawDate.PressAsync("Escape");
         Assert.True(await bloodDrawDate.IsVisibleAsync());
         Assert.Equal("", await bloodDrawDate.InputValueAsync());
         await page.Locator("#glucose").FillAsync("5.2");
@@ -235,10 +237,9 @@ public sealed class BioageMobileUxBrowserTests(
             .ToHaveTextAsync("1 new biomarker · blood draw date required");
         await Assertions.Expect(calculate).ToBeDisabledAsync();
         await page.Locator("#glucose").FillAsync("");
-        await bloodDrawDate.FillAsync(DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
-        Assert.Equal("0 new biomarkers",
-            await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
-        Assert.True(await calculate.IsDisabledAsync());
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await Assertions.Expect(page.Locator(".bioage-biomarker-progress")).ToHaveTextAsync("0 new biomarkers");
+        await Assertions.Expect(calculate).ToBeDisabledAsync();
 
         await page.Locator("#glucose").FillAsync("5.2");
         var updateState = await page.EvaluateAsync<string>(
@@ -393,7 +394,7 @@ public sealed class BioageMobileUxBrowserTests(
             "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
 
         var bloodDrawDate = page.Locator("#blood-draw-date");
-        Assert.Equal("", await bloodDrawDate.InputValueAsync());
+        await Assertions.Expect(page.Locator(".blood-draw-relative-label")).ToHaveTextAsync("Today");
 
         var submittedDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
         await page.Locator("#dob-year").SelectOptionAsync("1980");
@@ -401,7 +402,7 @@ public sealed class BioageMobileUxBrowserTests(
         await page.WaitForFunctionAsync(
             "() => Array.from(document.querySelector('#dob-day')?.options || []).some(option => option.value === '20')");
         await page.Locator("#dob-day").SelectOptionAsync("20");
-        await bloodDrawDate.FillAsync(submittedDate);
+        await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, submittedDate);
         await page.Locator("#lwcToStep2Btn").TapAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");

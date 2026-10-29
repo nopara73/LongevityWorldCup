@@ -1,0 +1,173 @@
+/*
+ * The play flow in motion
+ *
+ * /play is a row of screens: the title, then the track choice or athlete
+ * selection, then the athlete dashboard. play-menu.ts moves between them with a
+ * direction (deeper slides in from the right, back from the left) and deals the
+ * player card onto the table. The complete live card takes input from its first
+ * frame, without a departing copy covering its identity or commands.
+ *
+ * This sheet holds the pieces CSS owns: the card glint, the price
+ * counter, press feedback for the flow's commands, the docked command bar
+ * sliding up, and the search rows leaving. Durations and curves match the
+ * shared motion tokens (90ms press, 140ms state, 200-280ms surfaces).
+ * Reduced motion keeps every state and drops the movement.
+ */
+
+:root {
+    --play-motion-press: var(--lwc-motion-press, 90ms);
+    --play-motion-fast: var(--lwc-motion-fast, 140ms);
+    --play-motion-move: var(--lwc-motion-move, 260ms);
+    --play-ease-standard: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    --play-ease-enter: var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1));
+    --play-ease-pop: var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+}
+
+/* 1) Screen moves keep the arriving card inside the viewport. */
+html.play-panel-transitioning .play-hub-main {
+    position: relative;
+    overflow-x: clip;
+}
+
+html.play-panel-transitioning body {
+    /* The arriving screen starts a little to the side; it must not widen the page. */
+    overflow-x: clip;
+}
+
+/* While the next screen prepares, the current one stays up and usable; the
+   command that started the move breathes so the press visibly registered. */
+body.play-route-pending {
+    cursor: progress;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    body.play-route-pending .play-hub-panel:not([hidden]) .flow-action:focus > i,
+    body.play-route-pending .flow-action-stack--docked .flow-action:focus > i {
+        animation: play-pending-breathe 0.9s var(--play-ease-standard) infinite;
+    }
+}
+
+@keyframes play-pending-breathe {
+    50% {
+        opacity: 0.45;
+        translate: 3px 0;
+    }
+}
+
+/* 2) The player card's glint: a sheen that crosses the card as it lands.
+   play-menu.ts plays it; at rest it is invisible. */
+.play-athlete-card::after,
+.play-dashboard-card::after,
+.play-dashboard-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(105deg,
+        transparent 38%,
+        rgba(255, 255, 255, 0.26) 50%,
+        transparent 62%) 130% 0 / 260% 100% no-repeat;
+}
+
+.play-dashboard-panel {
+    position: relative;
+}
+
+/* 3) The discounted price counts down to what the athlete pays. The real text
+   stays in the button for assistive technology; the counter is only drawn. */
+@property --play-price {
+    syntax: "<integer>";
+    inherits: false;
+    initial-value: 0;
+}
+
+.pro-new-price.play-price-settling {
+    position: relative;
+    display: inline-block;
+    color: transparent;
+    counter-reset: play-price var(--play-price);
+    font-variant-numeric: tabular-nums;
+}
+
+.pro-new-price.play-price-settling::after {
+    content: "$" counter(play-price) / "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: var(--play-price-ink, currentColor);
+    white-space: nowrap;
+}
+
+/* 4) Press feedback: the flow's commands give way under the finger and spring
+   back on release; their arrows lean toward where they lead. */
+@media (prefers-reduced-motion: no-preference) {
+    body.play-flow-route .option-button.flow-action {
+        transition-property: background-color, border-color, color, box-shadow, opacity, scale, translate;
+        transition-duration: var(--play-motion-fast), var(--play-motion-fast), var(--play-motion-fast), var(--play-motion-fast), var(--play-motion-fast), 260ms, var(--play-motion-fast);
+        transition-timing-function: var(--play-ease-standard), var(--play-ease-standard), var(--play-ease-standard), var(--play-ease-standard), var(--play-ease-standard), var(--play-ease-pop), var(--play-ease-standard);
+    }
+
+    body.play-flow-route .option-button.flow-action:not(:disabled, [aria-disabled="true"]):active {
+        scale: 0.965;
+        transition-duration: var(--play-motion-press);
+        transition-timing-function: var(--play-ease-standard);
+    }
+
+    body.play-flow-route .option-button.flow-action > i {
+        transition: translate var(--play-motion-fast) var(--play-ease-standard);
+    }
+
+    body.play-flow-route .option-button.flow-action:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible) > i:is(.fa-arrow-right, .fa-bolt, .fa-rocket) {
+        translate: 3px 0;
+    }
+
+    body.play-flow-route .option-button.flow-action:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible) > i.fa-arrow-left {
+        translate: -3px 0;
+    }
+
+    body.play-flow-route .option-button.flow-action:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible) > i:is(.fa-pen, .fa-calendar-check) {
+        translate: 0 -2px;
+    }
+}
+
+/* 5) The command bar settles inside the screen: its buttons stay visible and
+   clickable throughout. The start menu keeps its own intro (play-menu.css). */
+@media (prefers-reduced-motion: no-preference) {
+    body.play-flow-route:not(.play-start-active) .flow-action-stack.flow-action-stack--docked {
+        transition:
+            opacity var(--play-motion-fast) var(--play-ease-standard),
+            transform var(--play-motion-move) var(--play-ease-enter);
+    }
+
+    body.play-flow-route:not(.play-start-active) .flow-action-stack.flow-action-stack--docked.flow-action-stack--dock-entering {
+        opacity: 1;
+        transform: translateY(6px) !important;
+        /* Establish the first frame immediately; removing the entry class
+           then transitions toward the dock's resting position. */
+        transition: none;
+    }
+}
+
+/* 6) Search rows that stop matching fade out where they were, out of the flow,
+   while the remaining rows slide into place. */
+.autocomplete-items > .autocomplete-item--leaving {
+    position: absolute;
+    margin-top: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.autocomplete-items.autocomplete-items--leaving {
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .play-athlete-card::after,
+    .play-dashboard-card::after,
+    .play-dashboard-panel::after {
+        display: none;
+    }
+}

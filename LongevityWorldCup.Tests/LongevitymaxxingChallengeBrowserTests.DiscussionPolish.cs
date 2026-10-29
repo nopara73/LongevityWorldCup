@@ -109,7 +109,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.DoesNotContain("token", await reply.Locator(".lmx-discussion-permalink").GetAttributeAsync("href"));
         await page.GotoAsync("/longevitymaxxing#discussion/post/p6/19");
         await Assertions.Expect(DiscussionThread(page, "p6", 19)).ToBeFocusedAsync();
-        await Assertions.Expect(page.Locator("#lmxNotes article")).ToHaveCountAsync(6);
+        await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(6);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync(new() { Time = "2026-07-01T10:00:00Z" });
         await page.GotoAsync("/longevitymaxxing" + hash);
-        await page.Locator("#lmxNotes article").First.WaitForAsync();
+        await page.Locator("#lmxNotes > article").First.WaitForAsync();
         return page;
     }
 }

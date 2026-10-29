@@ -15,20 +15,22 @@
         })[window.location.pathname.toLowerCase()] || 'start';
     </script>
     <link rel="stylesheet" href="{{ASSET_PLAY_MENU_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_PLAY_FLOW_MOTION_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="expect" href="#lwc-site-header" blocking="render">
 </head>
 <body class="play-flow-route play-hub-route play-start-active play-start-preintro"
       data-default-headshot-webp="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}"
       data-default-headshot-jpeg="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}">
+    <script>
+        // Only the title screen starts on the night stage. Other entries paint
+        // their own canvas, header and hydration card from the first frame.
+        if (document.documentElement.dataset.playEntry !== 'start') {
+            document.body.classList.remove('play-start-active', 'play-start-preintro');
+            document.body.classList.add('play-route-hydrating');
+        }
+    </script>
     <!--HEADER-->
-    <img src="{{ASSET_FAVICON_DARK_512}}"
-         alt=""
-         class="play-logo-watermark"
-         width="512"
-         height="512"
-         loading="eager"
-         fetchpriority="high"
-         decoding="async"
-         aria-hidden="true">
     <main class="play-hub-main initial-view-main">
         <section id="playStartPanel" class="play-hub-panel play-start-panel">
             <h1 class="visually-hidden">Game menu</h1>
@@ -36,7 +38,18 @@
                 <div class="play-menu-wordmark" aria-label="Just Track It"><span class="play-menu-wordmark__word" aria-hidden="true">JUST</span> <span class="play-menu-wordmark__word" aria-hidden="true">TRACK</span> <span class="play-menu-wordmark__word" aria-hidden="true">IT</span></div>
             </div>
 
-            <div class="options-container play-menu-actions flow-action-stack" data-flow-dock="auto">
+            <div class="play-menu-crest" aria-hidden="true">
+                <img src="{{ASSET_FAVICON_DARK_512}}"
+                     alt=""
+                     class="play-logo-watermark"
+                     width="512"
+                     height="512"
+                     loading="eager"
+                     fetchpriority="high"
+                     decoding="async">
+            </div>
+
+            <div class="options-container play-menu-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-max-height-ratio="0.5" data-flow-dock-fit=".play-start-panel">
                 <button disabled id="newGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">I'm new here</span>
                 </button>
@@ -47,29 +60,33 @@
         </section>
 
         <section id="joinTrackPanel" class="play-hub-panel play-join-panel" hidden>
-            <h1 class="play-join-title">Choose your track</h1>
-            <div class="play-join-intro">
-                To calculate your biological age, get a <strong>blood test</strong>.
-                Your next choice determines which biomarkers need testing:
+            <div class="play-join-head">
+                <h1 class="play-join-title">Choose your track</h1>
+                <div class="play-join-intro">
+                    To calculate your biological age, get a <strong>blood test</strong>.
+                    Your next choice determines which biomarkers need testing:
+                </div>
             </div>
 
             <div class="play-join-cards">
                 <article class="play-join-card">
-                    <h2>
-                        <span class="track-name">Amateur</span>
-                        <span class="track-label">athlete</span>
-                    </h2>
-                    <p class="play-join-tagline">
-                        Ranked after pros in the
-                        <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
-                    </p>
+                    <div class="play-join-card-head">
+                        <h2>
+                            <span class="track-name">Amateur</span>
+                            <span class="track-label">athlete</span>
+                        </h2>
+                        <p class="play-join-tagline">
+                            Ranked after pros in the
+                            <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
+                        </p>
+                    </div>
                     <div class="play-join-details">
                         <dl class="play-join-meta">
-                            <dt>Testing window:</dt>
-                            <dd>unrestricted</dd>
-                            <dt>Entry:</dt>
+                            <dt>Entry</dt>
                             <dd class="join-amateur-entry-cell"><span class="pro-new-price">$10</span></dd>
-                            <dt>Aging clock:</dt>
+                            <dt>Testing window</dt>
+                            <dd>unrestricted</dd>
+                            <dt>Aging clock</dt>
                             <dd>
                                 <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
                                    target="_blank"
@@ -78,7 +95,7 @@
                         </dl>
                         <div class="play-join-biomarkers">
                             <details>
-                                <summary>9 biomarkers needed:</summary>
+                                <summary>9 biomarkers needed</summary>
                                 <ul>
                                     <li>White blood cell count (WBC)</li>
                                     <li>Lymphocytes</li>
@@ -101,29 +118,31 @@
                 </article>
 
                 <article class="play-join-card play-join-card--pro">
-                    <div class="play-join-ribbon-slot" aria-hidden="true">
-                        <span class="play-join-ribbon"><span><i class="fas fa-trophy" aria-hidden="true"></i> Prize money</span></span>
+                    <div class="play-join-card-head">
+                        <div class="play-join-ribbon-slot" aria-hidden="true">
+                            <span class="play-join-ribbon"><span><i class="fas fa-trophy" aria-hidden="true"></i> Prize money</span></span>
+                        </div>
+                        <h2>
+                            <span class="track-name">Professional</span>
+                            <span class="track-label">athlete</span>
+                        </h2>
+                        <p class="play-join-tagline">
+                            Ranked ahead of amateurs in the
+                            <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
+                        </p>
                     </div>
-                    <h2>
-                        <span class="track-name">Professional</span>
-                        <span class="track-label">athlete</span>
-                    </h2>
-                    <p class="play-join-tagline">
-                        Ranked ahead of amateurs in the
-                        <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
-                    </p>
                     <div class="play-join-details">
                         <dl class="play-join-meta">
-                            <dt>Testing window:</dt>
-                            <dd>2026</dd>
-                            <dt>Entry:</dt>
+                            <dt>Entry</dt>
                             <dd class="join-pro-entry-cell">
                                 <span id="joinProEntryPrice">$100</span>
                                 <div id="joinProDiscountNote" class="pro-discount-box" aria-live="polite" style="display:none">
                                     <p id="joinProDiscountBreakdown" class="pro-discount-breakdown"></p>
                                 </div>
                             </dd>
-                            <dt>Aging clocks:</dt>
+                            <dt>Testing window</dt>
+                            <dd>2026</dd>
+                            <dt>Aging clocks</dt>
                             <dd>
                                 <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
                                    target="_blank"
@@ -133,12 +152,12 @@
                                    target="_blank"
                                    rel="noopener">Bortz Age</a>
                             </dd>
-                            <dt>Bonus:</dt>
+                            <dt>Bonus</dt>
                             <dd>Coupon for 10% off all merch</dd>
                         </dl>
                         <div class="play-join-biomarkers">
                             <details>
-                                <summary>22 biomarkers needed:</summary>
+                                <summary>22 biomarkers needed</summary>
                                 <ul>
                                     <li>White blood cell count (WBC)</li>
                                     <li>Lymphocytes</li>
@@ -174,38 +193,42 @@
                 </article>
             </div>
 
-            <p class="play-join-challenge-note">
-                Not ready for a blood test yet?
-                <a id="joinStartChallengeLink" href="/longevitymaxxing">Try our longevitymaxxing lifestyle challenge instead</a>
-            </p>
-
-            <div class="options-container play-join-actions flow-action-stack" data-flow-dock="auto">
-                <button disabled id="joinMobileStartAmateurBtn" type="button" class="option-button grey flow-action flow-action--secondary play-join-mobile-track-action">
-                    <span class="flow-action__label">Start amateur</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
-                </button>
-                <button disabled id="joinMobileGoProButton" type="button" class="option-button green flow-action play-join-mobile-track-action">
-                    <span class="flow-action__label">Go pro</span><i class="fas fa-bolt" aria-hidden="true"></i>
-                </button>
-                <button disabled id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
-                </button>
+            <div class="play-join-foot">
+                <div class="options-container play-join-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-max-height-ratio="0.5">
+                    <button disabled id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" aria-label="Back">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
+                    </button>
+                    <button disabled id="joinMobileStartAmateurBtn" type="button" class="option-button grey flow-action flow-action--secondary play-join-mobile-track-action">
+                        <span class="flow-action__label">Start amateur</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+                    <button disabled id="joinMobileGoProButton" type="button" class="option-button green flow-action play-join-mobile-track-action">
+                        <span class="flow-action__label">Go pro</span><i class="fas fa-bolt" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <p class="play-join-challenge-note">
+                    Not ready for a blood test yet?
+                    <a id="joinStartChallengeLink" href="/longevitymaxxing">Try our longevitymaxxing lifestyle challenge instead</a>
+                </p>
             </div>
         </section>
 
         <section id="athleteSelectionPanel" class="play-hub-panel play-athlete-panel" hidden>
-            <h1 id="athleteSelectionTitle" class="play-athlete-title">Athlete selection</h1>
             <div class="play-athlete-visual">
-                <div id="athleteSelectionPicture" class="athlete-picture-frame">
-                    <picture>
-                        <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
-                        <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
-                        <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="1024" loading="eager" decoding="async">
-                    </picture>
+                <div class="play-athlete-card">
+                    <h1 id="athleteSelectionTitle" class="play-athlete-title">Athlete selection</h1>
+                    <div id="athleteSelectionPicture" class="athlete-picture-frame">
+                        <picture>
+                            <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
+                            <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
+                            <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="1024" loading="eager" decoding="async">
+                        </picture>
+                    </div>
                 </div>
             </div>
             <div class="play-autocomplete-wrapper">
                 <div class="play-autocomplete-container">
-                    <label for="playAthleteInput" class="field-label">Athlete name</label>
+                    <label for="playAthleteInput" class="visually-hidden">Athlete name</label>
+                    <span class="play-athlete-search-icon fas fa-search" aria-hidden="true"></span>
                     <input type="search"
                            id="playAthleteInput"
                            name="athlete-search"
@@ -230,18 +253,20 @@
         </section>
 
         <section id="athleteDashboardPanel" class="play-hub-panel play-dashboard-panel" hidden>
-            <h1 id="athleteDashboardTitle" class="play-dashboard-title">Athlete dashboard</h1>
             <div class="play-dashboard-visual">
-                <div id="athleteDashboardPicture" class="athlete-picture-frame">
-                    <picture>
-                        <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
-                        <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
-                        <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="1024" loading="eager" decoding="async">
-                    </picture>
+                <div class="play-dashboard-card">
+                    <h1 id="athleteDashboardTitle" class="play-dashboard-title">Athlete dashboard</h1>
+                    <div id="athleteDashboardPicture" class="athlete-picture-frame">
+                        <picture>
+                            <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" type="image/webp">
+                            <source srcset="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" type="image/jpeg">
+                            <img src="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="1024" loading="eager" decoding="async">
+                        </picture>
+                    </div>
                 </div>
             </div>
             <div id="athleteDashboardDiscounts" class="play-dashboard-discounts" aria-live="polite"></div>
-            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-unless="body.play-route-hydrating">
+            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-back-first data-flow-dock-unless="body.play-route-hydrating" data-flow-dock-max-height-ratio="0.4">
                 <button type="button" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/edit-profile'">
                     <span class="dashboard-action-label flow-action__label">Edit profile</span><i class="fas fa-pen" aria-hidden="true"></i>
                 </button>

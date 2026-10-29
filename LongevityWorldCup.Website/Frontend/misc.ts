@@ -160,6 +160,8 @@ window.slugifyName = function (name, encode) {
 const GUESS_MY_AGE_STORAGE_KEY = 'gmaAllGuesses';
 let guessStateMemoryStore: Record<string, unknown> = {};
 let guessStateStorageUnavailable = false;
+let guessSkipAll = false;
+let guessPromptSeen = false;
 
 interface GuessStateIdentity {
     readonly canonicalSlug: string;
@@ -370,6 +372,30 @@ function migrateGuessState(
 }
 
 window.LwcGuessState = {
+    shouldSkipAll() {
+        try {
+            guessSkipAll = guessSkipAll || localStorage.getItem('gmaSkipAll') === 'true';
+        } catch (_) { /* Optional persistence; keep the current page's choice. */ }
+        return guessSkipAll;
+    },
+    skipAll() {
+        guessSkipAll = true;
+        try {
+            localStorage.setItem('gmaSkipAll', 'true');
+        } catch (_) { /* The preference still applies to this page. */ }
+    },
+    hasSeenPrompt() {
+        try {
+            guessPromptSeen = guessPromptSeen || !!sessionStorage.getItem('gmaSeen');
+        } catch (_) { /* The prompt does not require session storage. */ }
+        return guessPromptSeen;
+    },
+    markPromptSeen() {
+        guessPromptSeen = true;
+        try {
+            sessionStorage.setItem('gmaSeen', 'true');
+        } catch (_) { /* Retain the shorter replay for the current page. */ }
+    },
     getAthleteSlug(athleteOrSlug) {
         return getGuessStateIdentity(athleteOrSlug).canonicalSlug;
     },
@@ -993,10 +1019,26 @@ async function fetchWithApplicationTimeout(
     const timeoutController = typeof AbortController !== 'undefined' && !init.signal
         ? new AbortController()
         : null;
-    const timeoutId = window.setTimeout(() => timeoutController?.abort(), timeoutMs);
+    let timeoutId: number | undefined;
 
     try {
-        return await fetch(input, timeoutController ? { ...init, signal: timeoutController.signal } : init);
+        return await Promise.race([
+            (async () => {
+                const response = await fetch(input, timeoutController ? { ...init, signal: timeoutController.signal } : init);
+                // Application receipts are small. Keep the deadline through the
+                // body transfer, then leave it readable by the existing readers.
+                const body = await response.arrayBuffer();
+                return new Response(response.body === null ? null : body, {
+                    status: response.status, statusText: response.statusText, headers: response.headers
+                });
+            })(),
+            new Promise<Response>((_, reject) => {
+                timeoutId = window.setTimeout(() => {
+                    timeoutController?.abort();
+                    reject(new Error('Request timed out'));
+                }, timeoutMs);
+            })
+        ]);
     } catch (error) {
         if (timeoutController?.signal.aborted) {
             throw new Error('Request timed out');

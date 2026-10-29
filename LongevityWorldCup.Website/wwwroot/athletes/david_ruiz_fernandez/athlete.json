@@ -23,5 +23,14 @@
   "Division": "Men's",
   "Flag": "Netherlands",
   "Why": "The endless possibilities that lie in future.",
-  "PersonalLink": "https://www.instagram.com/ddmeridius"
+  "PersonalLink": "https://www.instagram.com/ddmeridius",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@ddmeridius",
+      "EvidenceUrls": [
+        "https://www.instagram.com/ddmeridius/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

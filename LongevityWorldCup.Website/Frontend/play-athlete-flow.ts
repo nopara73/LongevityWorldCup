@@ -187,6 +187,24 @@ function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
     return true;
 }
 
+function createAthleteOptionThumb(athlete: PlayAthlete): HTMLImageElement {
+    const thumb = document.createElement("img");
+    thumb.className = "athlete-option-thumb";
+    thumb.dataset["athleteName"] = athlete.DisplayName || athlete.Name || "";
+    thumb.alt = "";
+    thumb.width = 40;
+    thumb.height = 40;
+    thumb.loading = "lazy";
+    thumb.decoding = "async";
+    const inspectLoadedImage = watchAthleteImageLoad(thumb, () => {});
+    const source = athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || getDefaultHeadshotJpeg();
+    thumb.dataset["lwcImageRole"] = source === getDefaultHeadshotJpeg() || source === getDefaultHeadshotWebp()
+        ? "illustration" : "athlete";
+    thumb.src = source;
+    if (thumb.complete) inspectLoadedImage();
+    return thumb;
+}
+
 function createDefaultAthletePicture(): HTMLPictureElement {
     const picture = document.createElement("picture");
     const webpSource = document.createElement("source");
@@ -248,9 +266,9 @@ function shouldUseDefaultForLoadedAthleteImage(image: HTMLImageElement | null | 
 }
 
 function setDefaultAthleteImageSource(image: HTMLImageElement | null | undefined): boolean {
-    if (!image || isDefaultHeadshotSrc(image.currentSrc || image.src)) {
-        return false;
-    }
+    if (!image) return false;
+    image.dataset["lwcImageRole"] = "illustration";
+    if (isDefaultHeadshotSrc(image.currentSrc || image.src)) return false;
 
     image.classList.add("athlete-picture-placeholder");
     image.src = getDefaultHeadshotJpeg();
@@ -313,14 +331,6 @@ function watchAthleteImageLoad(image: HTMLImageElement, onLoaded: () => void): (
     return handleImageLoad;
 }
 
-function waitForNextPaint<T>(value: T): Promise<T> {
-    return new Promise<T>(resolve => {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => resolve(value));
-        });
-    });
-}
-
 function waitForImageElementReady(image: HTMLImageElement): Promise<HTMLImageElement | void> {
     const loaded = image.complete
         ? Promise.resolve()
@@ -335,14 +345,15 @@ function waitForImageElementReady(image: HTMLImageElement): Promise<HTMLImageEle
             image.addEventListener("error", done);
         });
 
-    return loaded
-        .then(() => {
-            if (typeof image.decode === "function" && image.complete && image.naturalWidth > 0) {
-                return image.decode().catch(() => {});
-            }
-            return undefined;
-        })
-        .then(() => waitForNextPaint(image));
+    // Decoding is the readiness gate. These frames often belong to a hidden
+    // destination panel; waiting for paints here adds idle frames before it
+    // can be shown and can stall it entirely in a backgrounded document.
+    return loaded.then(() => {
+        if (typeof image.decode === "function" && image.complete && image.naturalWidth > 0) {
+            return image.decode().catch(() => {});
+        }
+        return undefined;
+    });
 }
 
 function waitForAthletePictureFrameReady(frame: HTMLElement | null): Promise<unknown> {
@@ -369,7 +380,7 @@ function transitionAthletePicture(frame: HTMLElement, image: HTMLImageElement, s
     let hasFinished = false;
 
     function finishReady(): void {
-        waitForNextPaint(image).then(() => resolveReady(image));
+        resolveReady(image);
     }
 
     function finishImageSwap(): void {
@@ -449,7 +460,7 @@ function replaceAthletePictureImmediately(frame: HTMLElement, image: HTMLImageEl
             }
 
             frame.replaceChildren(image);
-            waitForNextPaint(image).then(() => resolveReady(image));
+            resolveReady(image);
         });
     }
 
@@ -517,6 +528,27 @@ function appendHighlightedText(container: HTMLElement, text: string, terms: stri
     }
 }
 
+const SEARCH_ENTER_MS = 180;
+const SEARCH_EXIT_MS = 100;
+const SEARCH_MOVE_MS = 200;
+const SEARCH_EASE_ENTER = "cubic-bezier(0, 0, 0, 1)";
+const SEARCH_EASE_EXIT = "cubic-bezier(0.3, 0, 1, 1)";
+const SEARCH_EASE_STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+
+function searchMotionAllowed(): boolean {
+    return typeof Element.prototype.animate === "function"
+        && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+function animateAthleteSearch(element: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions): Animation | null {
+    if (!searchMotionAllowed()) return null;
+    try {
+        return element.animate(keyframes, options);
+    } catch (_) {
+        return null;
+    }
+}
+
 function createAthleteSelectionController(
     options: AthleteSelectionControllerOptions
 ): AthleteSelectionController {
@@ -535,8 +567,11 @@ function createAthleteSelectionController(
     let currentFocus = -1;
     let athleteAutocompleteReady = false;
     let athleteLoadPromise: Promise<PlayAthlete[]> | null = null;
+    let athleteLoadController: AbortController | null = null;
+    let resumeAthleteLoad = false;
     let isBound = false;
     let hasUserEditedInput = false;
+    const geometryObserver = new ResizeObserver(positionAthleteMatches);
 
     const autocompleteListId = `${input.id}-autocomplete-list`;
     input.setAttribute("role", "combobox");
@@ -545,13 +580,102 @@ function createAthleteSelectionController(
     input.setAttribute("aria-expanded", "false");
 
     function closeAllLists(): void {
-        document.getElementById(autocompleteListId)?.remove();
+        geometryObserver.disconnect();
+        const list = document.getElementById(autocompleteListId);
+        if (list) dismissAthleteMatches(list);
+        input.closest(".play-athlete-panel")?.classList.remove("athlete-search-open");
         currentFocus = -1;
         input.setAttribute("aria-expanded", "false");
         input.removeAttribute("aria-activedescendant");
     }
 
-    function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
+    function dismissAthleteMatches(list: HTMLElement): void {
+        // The closed list leaves the accessibility tree and stops taking input
+        // at once; only its picture fades out.
+        list.removeAttribute("id");
+        list.removeAttribute("role");
+        list.setAttribute("aria-hidden", "true");
+        list.inert = true;
+        list.classList.add("autocomplete-items--leaving");
+        list.querySelectorAll("[id], [role]").forEach(item => {
+            item.removeAttribute("id");
+            item.removeAttribute("role");
+        });
+        const exit = animateAthleteSearch(list, [
+                { opacity: 1, transform: "none" },
+                { opacity: 0, transform: "translateY(-4px)" }
+            ], { duration: SEARCH_EXIT_MS, easing: SEARCH_EASE_EXIT, fill: "forwards" });
+        if (!exit) {
+            list.remove();
+            return;
+        }
+        exit.finished.catch(() => {}).finally(() => list.remove());
+    }
+
+    function getMatchOptions(list: HTMLElement | null): HTMLDivElement[] {
+        return list ? Array.from(list.querySelectorAll<HTMLDivElement>(":scope > [role=option]")) : [];
+    }
+
+    function positionAthleteMatches(): void {
+        const list = document.getElementById(autocompleteListId);
+        const parent = input.parentElement;
+        if (!list || !parent) return;
+
+        const viewport = window.visualViewport;
+        const gap = 8;
+        const visibleTop = (viewport?.offsetTop ?? 0) + gap;
+        let visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight) - gap;
+        const dock = document.querySelector(".flow-action-stack--docked")?.getBoundingClientRect();
+        if (dock && dock.height > 0 && dock.bottom > visibleTop && dock.top < visibleBottom) {
+            visibleBottom = dock.top - gap;
+        }
+
+        let inputBox = input.getBoundingClientRect();
+        if (document.activeElement === input && inputBox.bottom > visibleBottom) {
+            window.scrollBy({ top: inputBox.bottom - visibleBottom + gap, behavior: "instant" });
+            inputBox = input.getBoundingClientRect();
+        }
+        list.style.maxHeight = "";
+        const preferredHeight = list.getBoundingClientRect().height;
+        const desiredHeight = Math.min(preferredHeight,
+            Math.max(0, visibleBottom - visibleTop - inputBox.height - gap * 2));
+        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const currentAbove = Math.max(0, inputBox.top - Math.max(visibleTop, headerBottom + gap) - gap);
+        const currentBelow = Math.max(0, visibleBottom - inputBox.bottom - gap);
+        if (document.activeElement === input && Math.max(currentAbove, currentBelow) + 1 < desiredHeight) {
+            // Keep the preferred result space when the viewport can provide it,
+            // rather than settling for a sliver above or below the field.
+            const clearance = Math.min(desiredHeight - currentBelow, inputBox.top - visibleTop);
+            if (clearance > 1) {
+                window.scrollBy({ top: Math.ceil(clearance), behavior: "instant" });
+                inputBox = input.getBoundingClientRect();
+            }
+        }
+        const settledHeaderBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const listTop = Math.max(visibleTop, settledHeaderBottom + gap);
+        const parentBox = parent.getBoundingClientRect();
+        const above = Math.max(0, inputBox.top - listTop - gap);
+        const below = Math.max(0, visibleBottom - inputBox.bottom - gap);
+        const openAbove = below < preferredHeight && above > below;
+        list.style.maxHeight = Math.min(preferredHeight, openAbove ? above : below) + "px";
+        const inputTop = inputBox.top - parentBox.top - parent.clientTop + parent.scrollTop;
+        list.style.top = openAbove ? "auto" : inputTop + inputBox.height + gap + "px";
+        list.style.bottom = openAbove ? parent.clientHeight - inputTop + gap + "px" : "auto";
+        keepActiveOptionVisible(list);
+    }
+
+    function keepActiveOptionVisible(list: HTMLElement): void {
+        const activeItem = list.querySelector<HTMLElement>('[aria-selected="true"]');
+        if (!activeItem) return;
+        const itemBox = activeItem.getBoundingClientRect();
+        const listBox = list.getBoundingClientRect();
+        const top = listBox.top + list.clientTop;
+        const bottom = top + list.clientHeight;
+        if (itemBox.top < top) list.scrollTop -= top - itemBox.top;
+        else if (itemBox.bottom > bottom) list.scrollTop += itemBox.bottom - bottom;
+    }
+
+    function addActive(items: ArrayLike<HTMLDivElement> | null): void {
         if (!items) return;
         removeActive(items);
         if (currentFocus >= items.length) currentFocus = 0;
@@ -561,10 +685,10 @@ function createAthleteSelectionController(
         activeItem.classList.add("autocomplete-active");
         activeItem.setAttribute("aria-selected", "true");
         input.setAttribute("aria-activedescendant", activeItem.id);
-        activeItem.scrollIntoView({ block: "nearest" });
+        if (activeItem.parentElement) keepActiveOptionVisible(activeItem.parentElement);
     }
 
-    function removeActive(items: HTMLCollectionOf<HTMLDivElement>): void {
+    function removeActive(items: ArrayLike<HTMLDivElement>): void {
         Array.from(items).forEach((item: HTMLDivElement) => {
             item.classList.remove("autocomplete-active");
             item.setAttribute("aria-selected", "false");
@@ -611,6 +735,7 @@ function createAthleteSelectionController(
         athlete: PlayAthlete,
         selectionOptions: AthleteSelectionRenderOptions = {}
     ): void {
+        closeAllLists();
         renderSelectedAthletePreview(athlete, selectionOptions.transition === undefined ? { transition: true } : selectionOptions);
         if (typeof options.onAthleteSelected === "function") {
             options.onAthleteSelected(athlete, api);
@@ -631,69 +756,186 @@ function createAthleteSelectionController(
         errorElement.classList.remove("athlete-search-empty");
     }
 
+    function createAthleteMatch(athlete: PlayAthlete): HTMLDivElement {
+        const item = document.createElement("div");
+        item.setAttribute("role", "option");
+        item.setAttribute("aria-selected", "false");
+        const name = document.createElement("span");
+        name.className = "athlete-option-name";
+        item.append(createAthleteOptionThumb(athlete), name);
+        item.dataset.value = athlete.Name;
+        if (typeof athlete.ProfilePic === "string") {
+            item.dataset.profilePic = athlete.ProfilePic;
+        }
+
+        item.addEventListener("mousedown", event => {
+            event.preventDefault();
+            if (!item.hasAttribute("role")) return;
+            selectAthlete(athlete);
+            closeAllLists();
+            if (options.focusConfirmAfterSelection !== false) {
+                focusWithoutScrolling(confirmButton);
+            }
+        });
+        return item;
+    }
+
     function renderAthleteMatches(): boolean {
         const query = normalizeAthleteSearch(input.value.trim());
         const terms = query.split(/\s+/).filter(term => term);
         clearCurrentAthleteSelectionIfInputChanged(input.value);
 
         clearSearchFeedback();
-        closeAllLists();
-        if (!athleteAutocompleteReady) return false;
-        if (currentAthlete && isAthleteInputValue(currentAthlete, input.value)) return false;
-        if (!terms.length) return false;
+        const existingList = document.getElementById(autocompleteListId);
+        const closeMatches = (): false => {
+            closeAllLists();
+            return false;
+        };
+        if (!athleteAutocompleteReady) return closeMatches();
+        if (currentAthlete && isAthleteInputValue(currentAthlete, input.value)) return closeMatches();
+        if (!terms.length) return closeMatches();
 
-        const list = document.createElement("div");
-        list.setAttribute("id", autocompleteListId);
-        list.setAttribute("class", "autocomplete-items");
-        list.setAttribute("role", "listbox");
-        list.setAttribute("aria-label", "Athlete suggestions");
-        input.parentNode?.appendChild(list);
+        const matches: PlayAthlete[] = [];
+        for (const athlete of athletes) {
+            if (matches.length >= maxItems) break;
+            if (!getAthleteCanonicalName(athlete)) continue;
+            if (terms.every(term => getAthleteSearchText(athlete).includes(term))) matches.push(athlete);
+        }
 
-        let count = 0;
-        athletes.forEach((athlete: PlayAthlete) => {
-            if (count >= maxItems) return;
-            if (!getAthleteCanonicalName(athlete)) return;
-            const searchText = getAthleteSearchText(athlete);
-            if (terms.every(term => searchText.includes(term))) {
-                const displayName = getAthleteDisplayName(athlete);
-                const item = document.createElement("div");
-                item.id = `${autocompleteListId}-option-${count}`;
-                item.setAttribute("role", "option");
-                item.setAttribute("aria-selected", "false");
-                appendHighlightedText(item, displayName, terms);
-                item.dataset.value = athlete.Name;
-                if (typeof athlete.ProfilePic === "string") {
-                    item.dataset.profilePic = athlete.ProfilePic;
-                }
-
-                item.addEventListener("mousedown", event => {
-                    event.preventDefault();
-                    selectAthlete(athlete);
-                    closeAllLists();
-                    if (options.focusConfirmAfterSelection !== false) {
-                        focusWithoutScrolling(confirmButton);
-                    }
-                });
-
-                list.appendChild(item);
-                count++;
-            }
-        });
-
-        if (count === 0) {
-            list.remove();
-            input.setAttribute("aria-expanded", "false");
+        if (matches.length === 0) {
+            closeAllLists();
             errorElement.classList.add("athlete-search-empty");
             errorElement.setAttribute("role", "status");
             errorElement.textContent = "No matching athlete.";
             return false;
         }
 
+        // Keep the open list and its rows across keystrokes: rows that still
+        // match slide to their new place, new rows fade in, and rows that no
+        // longer match fade out where they were instead of the list redrawing.
+        const animate = searchMotionAllowed();
+        currentFocus = -1;
+        input.removeAttribute("aria-activedescendant");
+        const list = existingList || document.createElement("div");
+        const isNewList = !existingList;
+        if (isNewList) {
+            list.setAttribute("id", autocompleteListId);
+            list.setAttribute("class", "autocomplete-items");
+            list.setAttribute("role", "listbox");
+            list.setAttribute("aria-label", "Athlete suggestions");
+            input.parentNode?.appendChild(list);
+        }
+
+        const previous = new Map<string, HTMLDivElement>();
+        const previousTops = new Map<HTMLDivElement, number>();
+        const previousBoxes = new Map<HTMLDivElement, { top: number; left: number; width: number; height: number }>();
+        getMatchOptions(list).forEach(item => {
+            previous.set(item.dataset.value || "", item);
+            item.getAnimations?.().forEach(animation => animation.cancel());
+            if (animate) {
+                previousTops.set(item, item.offsetTop);
+                previousBoxes.set(item, { top: item.offsetTop, left: item.offsetLeft, width: item.offsetWidth, height: item.offsetHeight });
+            }
+        });
+        list.querySelectorAll(".autocomplete-item--leaving").forEach(item => item.remove());
+
+        const ordered = matches.map((athlete, index) => {
+            const item = previous.get(athlete.Name) || createAthleteMatch(athlete);
+            previous.delete(athlete.Name);
+            item.id = `${autocompleteListId}-option-${index}`;
+            item.classList.remove("autocomplete-active");
+            item.setAttribute("aria-selected", "false");
+            const name = item.querySelector<HTMLElement>(".athlete-option-name");
+            if (name) {
+                name.replaceChildren();
+                appendHighlightedText(name, getAthleteDisplayName(athlete), terms);
+            }
+            return item;
+        });
+
+        const leaving = Array.from(previous.values());
+        // Only current options determine the popup's size and sibling spacing.
+        // Departing rows may animate inside that content, never extend its scroll area.
+        leaving.forEach(item => item.remove());
+        ordered.forEach(item => list.appendChild(item));
         input.setAttribute("aria-expanded", "true");
-        return count > 0;
+        input.closest(".play-athlete-panel")?.classList.add("athlete-search-open");
+        positionAthleteMatches();
+        const contentTop = ordered[0]?.offsetTop ?? 0;
+        const last = ordered[ordered.length - 1];
+        const contentBottom = last ? last.offsetTop + last.offsetHeight : contentTop;
+        leaving.forEach(item => {
+            item.removeAttribute("role");
+            item.removeAttribute("id");
+            item.removeAttribute("aria-selected");
+            item.setAttribute("aria-hidden", "true");
+            item.inert = true;
+            const box = previousBoxes.get(item);
+            if (!animate || !box || box.top < contentTop || box.top + box.height > contentBottom
+                || box.left + box.width > list.clientWidth) return;
+            item.classList.add("autocomplete-item--leaving");
+            item.style.top = `${box.top}px`;
+            item.style.left = `${box.left}px`;
+            item.style.width = `${box.width}px`;
+            list.appendChild(item);
+            const exit = animateAthleteSearch(item, [
+                { opacity: 1, transform: "none" },
+                { opacity: 0, transform: "translateX(-10px) scale(0.98)" }
+            ], { duration: SEARCH_EXIT_MS, easing: SEARCH_EASE_EXIT, fill: "forwards" });
+            if (exit) exit.finished.catch(() => {}).finally(() => item.remove());
+            else item.remove();
+        });
+
+        if (animate) {
+            let entering = 0;
+            ordered.forEach(item => {
+                const before = previousTops.get(item);
+                if (before === undefined) {
+                    animateAthleteSearch(item, [
+                        { opacity: 0, transform: "translateY(-6px)" },
+                        { opacity: 1, transform: "none" }
+                    ], { duration: SEARCH_ENTER_MS, delay: (isNewList ? 0 : 60) + Math.min(entering, 4) * 28, easing: SEARCH_EASE_ENTER, fill: "backwards" });
+                    entering += 1;
+                    return;
+                }
+                // A retained row can move only within the new content bounds;
+                // its old position may be below a now much shorter popup.
+                const startTop = Math.max(contentTop, Math.min(before, contentBottom - item.offsetHeight));
+                const shift = startTop - item.offsetTop;
+                if (Math.abs(shift) < 1) return;
+                animateAthleteSearch(item, [
+                    { transform: `translateY(${shift}px)` },
+                    { transform: "none" }
+                ], { duration: SEARCH_MOVE_MS, easing: SEARCH_EASE_STANDARD });
+            });
+        }
+
+        geometryObserver.observe(input);
+        geometryObserver.observe(input.parentElement || input);
+        const panel = input.closest(".play-athlete-panel");
+        if (panel) geometryObserver.observe(panel);
+        const visual = panel?.querySelector(".play-athlete-visual");
+        if (visual) geometryObserver.observe(visual);
+        document.querySelectorAll(".flow-action-stack, .flow-action-dock-placeholder").forEach(element => {
+            geometryObserver.observe(element);
+        });
+        positionAthleteMatches();
+        if (isNewList && animate) {
+            const opensAbove = list.style.bottom !== "auto" && list.style.bottom !== "";
+            animateAthleteSearch(list, [
+                { opacity: 0, transform: `translateY(${opensAbove ? 6 : -6}px)` },
+                { opacity: 1, transform: "none" }
+            ], { duration: SEARCH_ENTER_MS, easing: SEARCH_EASE_ENTER, fill: "backwards" });
+        }
+        return true;
+    }
+
+    function parentForMatches(): Element {
+        return input.parentElement || input;
     }
 
     function renderAthleteLoadError(): void {
+        closeAllLists();
         clearSearchFeedback();
         errorElement.replaceChildren();
         errorElement.setAttribute("role", "alert");
@@ -718,9 +960,12 @@ function createAthleteSelectionController(
         if (athleteLoadPromise) return athleteLoadPromise;
         errorElement.replaceChildren();
         errorElement.setAttribute("role", "status");
-        athleteLoadPromise = fetch(athleteApiPath)
+        const controller = new AbortController();
+        athleteLoadController = controller;
+        const request = fetch(athleteApiPath, { signal: controller.signal })
             .then(response => response.ok ? response.json() : Promise.reject(new Error("Athlete list request failed")))
             .then((data: unknown) => {
+                if (controller.signal.aborted) return athletes;
                 if (!Array.isArray(data)) {
                     throw new Error("Athlete list response was invalid");
                 }
@@ -742,14 +987,18 @@ function createAthleteSelectionController(
                 return athletes;
             })
             .catch((error: unknown) => {
+                // Only our own page-lifecycle cancellation is quiet. Transport
+                // and data errors on the active page still expose Retry.
+                if (controller.signal.aborted) return athletes;
                 console.error("Error fetching athletes:", error);
                 renderAthleteLoadError();
                 throw error;
             })
             .finally(() => {
-                athleteLoadPromise = null;
+                if (athleteLoadPromise === request) athleteLoadPromise = null;
+                if (athleteLoadController === controller) athleteLoadController = null;
             });
-
+        athleteLoadPromise = request;
         return athleteLoadPromise;
     }
 
@@ -762,6 +1011,17 @@ function createAthleteSelectionController(
     function bind(): AthleteSelectionController {
         if (isBound) return api;
         isBound = true;
+        window.addEventListener('pagehide', () => {
+            resumeAthleteLoad = athleteLoadController !== null;
+            athleteLoadController?.abort();
+            closeAllLists();
+        });
+        window.addEventListener('pageshow', event => {
+            if (!event.persisted || !resumeAthleteLoad) return;
+            resumeAthleteLoad = false;
+            if (athleteLoadPromise) void athleteLoadPromise.then(retryAthleteLoad, retryAthleteLoad);
+            else retryAthleteLoad();
+        });
 
         input.addEventListener("focus", () => {
             retryAthleteLoad();
@@ -783,7 +1043,7 @@ function createAthleteSelectionController(
                 renderAthleteMatches();
             }
             const listElement = document.getElementById(autocompleteListId);
-            const list = listElement?.getElementsByTagName("div") ?? null;
+            const list = listElement ? getMatchOptions(listElement) : null;
             if (event.key === "ArrowDown") {
                 event.preventDefault();
                 currentFocus++;
@@ -821,6 +1081,12 @@ function createAthleteSelectionController(
                 && event.target.closest(autocompleteRootSelector)) return;
             closeAllLists();
         });
+        window.addEventListener("resize", positionAthleteMatches);
+        window.addEventListener("scroll", event => {
+            if (event.target !== document.getElementById(autocompleteListId)) positionAthleteMatches();
+        }, true);
+        window.visualViewport?.addEventListener("resize", positionAthleteMatches);
+        window.visualViewport?.addEventListener("scroll", positionAthleteMatches);
 
         return api;
     }

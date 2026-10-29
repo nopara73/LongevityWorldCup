@@ -27,6 +27,8 @@ public sealed partial class NewAthleteOnboardingBrowserTests
             await page.Locator("#nextButton").ClickAsync();
             await Assertions.Expect(page.Locator("h1")).ToBeFocusedAsync();
             await page.Keyboard.PressAsync("Tab");
+            await Assertions.Expect(page.Locator("#backButton")).ToBeFocusedAsync();
+            await page.Keyboard.PressAsync("Tab");
             await Assertions.Expect(page.Locator("#nextButton")).ToBeFocusedAsync();
             await page.Keyboard.PressAsync("Enter");
             await Assertions.Expect(page.Locator("#uploadButton")).ToBeFocusedAsync();
@@ -215,14 +217,19 @@ public sealed partial class NewAthleteOnboardingBrowserTests
     {
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
+            await page.Context.RouteAsync("**/cropperjs@2.3.1/dist/cropper.min.js", route =>
+            {
+                return route.FulfillAsync(new()
+                {
+                    Path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cropper.min.js"),
+                    Headers = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = "*" },
+                    ContentType = "application/javascript"
+                });
+            });
             await page.GotoAsync("/apply");
             await FillApplicationIdentityDraftAsync(page);
             await page.EvaluateAsync("""
                 () => {
-                    window.Cropper = class {
-                        destroy() {}
-                        getCroppedCanvas() { const canvas = document.createElement('canvas'); canvas.width = 20; canvas.height = 20; return canvas; }
-                    };
                     currentStage = 4; goToStage(4);
                 }
                 """);

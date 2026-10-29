@@ -24,5 +24,14 @@
   "Flag": "United States",
   "Why": "To travel the world and especially to visit Italy",
   "PersonalLink": "https://www.instagram.com/anzzeo54",
-  "PodcastLink": "https://youtu.be/AY_ZgRqApCE"
+  "PodcastLink": "https://youtu.be/AY_ZgRqApCE",
+  "SocialProfiles": {
+    "Threads": {
+      "Url": "https://www.threads.com/@anzzeo54",
+      "EvidenceUrls": [
+        "https://www.instagram.com/anzzeo54/"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

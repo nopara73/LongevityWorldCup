@@ -296,7 +296,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="/css/error-system.css?v=20260905-1">
+  <link rel="stylesheet" href="/css/error-system.css?v=20261024-1">
 </head>
 <body>
   <main class="error-card" aria-labelledby="page-title">
@@ -310,6 +310,8 @@
       <div class="code">502 Bad Gateway</div>
     </div>
 
+    <span class="retry-meter" aria-hidden="true"></span>
+
     <div class="card-body">
       <figure class="visual">
         <img src="/error/herold.png" alt="Herold waiting through a temporary outage" width="1024" height="1536" decoding="async">
@@ -320,10 +322,91 @@
         <p class="joke">Brief pause. No retirement.</p>
         <p class="note">A fresh version is deploying. Please try again in a moment.</p>
         <div class="actions">
-          <button type="button" onclick="window.location.reload()">Try again</button>
+          <button type="button" data-retry>Try again</button>
         </div>
       </section>
     </div>
   </main>
+  <script>
+    // Keep this inline: these pages must recover while application assets are unavailable.
+    (function () {
+      var card = document.querySelector(".error-card");
+      var button = document.querySelector("button[data-retry]");
+      var meter = document.querySelector(".retry-meter");
+      if (!card || !button) return;
+      if (!window.fetch || !window.AbortController) {
+        button.addEventListener("click", function () { window.location.reload(); });
+        return;
+      }
+      var timer = 0;
+      var deadline = 0;
+      var probe = null;
+      var active = true;
+      function stop() {
+        clearTimeout(timer);
+        clearTimeout(deadline);
+        var previous = probe;
+        probe = null;
+        if (previous) previous.abort();
+        button.removeAttribute("aria-busy");
+        card.removeAttribute("data-retry");
+        if (meter) meter.classList.remove("is-running");
+      }
+      function schedule() {
+        clearTimeout(timer);
+        if (!active || document.visibilityState !== "visible" || probe) return;
+        if (meter) {
+          meter.classList.remove("is-running");
+          void meter.offsetWidth;
+          meter.classList.add("is-running");
+        }
+        timer = setTimeout(check, 20000);
+      }
+      async function check() {
+        if (probe || !active || document.visibilityState !== "visible") return;
+        var controller = new AbortController();
+        probe = controller;
+        clearTimeout(timer);
+        if (meter) meter.classList.remove("is-running");
+        card.setAttribute("data-retry", "checking");
+        button.setAttribute("aria-busy", "true");
+        var recovered = false;
+        deadline = setTimeout(function () { controller.abort(); }, 8000);
+        try {
+          var response = await fetch(window.location.href, {
+            method: "HEAD", cache: "no-store", signal: controller.signal
+          });
+          // A recovered route may legitimately deny access or be missing.
+          recovered = response.status > 0 && response.status < 500;
+        } catch (_) {
+          // Offline, timeout and server failures all leave the control retryable.
+        } finally {
+          if (probe === controller) clearTimeout(deadline);
+        }
+        if (probe !== controller) return;
+        // The probe owns readiness; decorative motion must not delay recovery.
+        if (recovered) {
+          card.setAttribute("data-retry", "back");
+          window.location.reload();
+        } else {
+          probe = null;
+          button.removeAttribute("aria-busy");
+          card.setAttribute("data-retry", "still");
+          schedule();
+        }
+      }
+      button.addEventListener("click", check);
+      card.addEventListener("animationend", function (event) {
+        if (event.animationName === "outage-still" && card.getAttribute("data-retry") === "still")
+          card.removeAttribute("data-retry");
+      });
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") schedule(); else stop();
+      });
+      window.addEventListener("pagehide", function () { active = false; stop(); });
+      window.addEventListener("pageshow", function () { active = true; schedule(); });
+      schedule();
+    })();
+  </script>
 </body>
 </html>

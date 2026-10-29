@@ -50,5 +50,21 @@
   "Why": "Getting as much quality time with my son as I can",
   "PersonalLink": "https://www.klaustownsend.com",
   "PodcastLink": "https://youtu.be/hdgapJX4r5M",
-  "DisplayName": null
+  "DisplayName": null,
+  "SocialProfiles": {
+    "X": {
+      "Url": "https://x.com/klaus_townsend",
+      "EvidenceUrls": [
+        "https://klaustownsend.com/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    },
+    "Instagram": {
+      "Url": "https://www.instagram.com/klaustownsendofficial",
+      "EvidenceUrls": [
+        "https://klaustownsend.com/"
+      ],
+      "VerifiedOn": "2026-10-22"
+    }
+  }
 }

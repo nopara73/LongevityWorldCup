@@ -14,7 +14,7 @@ public sealed class InitialViewRouteCoverageBrowserTests(PlaywrightBrowserFixtur
     // profile, Challenge and calculator browser suites.
     public static IEnumerable<object[]> Documents =>
         from path in new[] {
-            "/", "/contribute", "/leaderboard", "/events", "/longevitymaxxing", "/helstab-kihivas",
+            "/", "/contribute", "/leaderboard", "/events", "/longevitymaxxing",
             "/media", "/about", "/history", "/rejuvenation-olympics", "/ruleset", "/privacy",
             "/play", "/join", "/apply", "/review", "/proofs", "/select-athlete", "/dashboard", "/edit-profile",
             "/unsubscribe", "/pheno-age", "/bortz-age",

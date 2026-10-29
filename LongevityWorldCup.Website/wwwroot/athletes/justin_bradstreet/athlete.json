@@ -37,5 +37,15 @@
   "Division": "Men's",
   "Flag": "Australia",
   "Why": "Making my 18yr old daughter proud",
-  "PersonalLink": "https://www.facebook.com/justin.bradstreet"
+  "PersonalLink": "https://www.facebook.com/justin.bradstreet",
+  "SocialProfiles": {
+    "Instagram": {
+      "Url": "https://www.instagram.com/justin.bradstreet/",
+      "EvidenceUrls": [
+        "https://www.instagram.com/justin.bradstreet/",
+        "https://www.facebook.com/justin.bradstreet"
+      ],
+      "VerifiedOn": "2026-10-23"
+    }
+  }
 }

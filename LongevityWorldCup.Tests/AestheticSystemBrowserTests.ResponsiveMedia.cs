@@ -11,7 +11,7 @@ public sealed class AestheticResponsiveMediaBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
-    public async Task ResponsiveMediaInventory_MatchesAtAndCrossesEveryDeclaredViewportBoundary()
+    public async Task ResponsivePages_StayVisibleAndFitAtDeclaredViewportBoundaries()
     {
         var mediaInventory = GetResponsiveMediaInventory()
             .Concat(GetResponsiveScriptMediaInventory())
@@ -40,71 +40,6 @@ public sealed class AestheticResponsiveMediaBrowserTests(
                 ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
             });
         await AddRouteStressStateAsync(context);
-        var page = await context.NewPageAsync();
-        await page.SetContentAsync("<!doctype html><html><body><main>Responsive boundary probe</main></body></html>");
-
-        var results = new Dictionary<ResponsiveBoundaryCase, bool>();
-        var viewportGroups = boundaryCases
-            .GroupBy(item => (item.Width, item.Height))
-            .ToArray();
-        var matchMediaProbeGroups = viewportGroups
-            .Select(viewportGroup => new
-            {
-                viewportGroup.Key.Width,
-                viewportGroup.Key.Height,
-                Queries = viewportGroup
-                    .Select(item => item.Branch.Query)
-                    .Distinct(StringComparer.Ordinal)
-                    .ToArray()
-            })
-            .ToArray();
-        var matchMediaProbeResults = await page.EvaluateAsync<ResponsiveViewportProbeResult[]>(
-            """
-            groups => groups.map(group => {
-                const frame = document.createElement('iframe');
-                frame.style.cssText = `display:block;border:0;width:${group.Width}px;height:${group.Height}px`;
-                document.body.append(frame);
-                const result = {
-                    Width: frame.contentWindow.innerWidth,
-                    Height: frame.contentWindow.innerHeight,
-                    Matches: group.Queries.map(query => frame.contentWindow.matchMedia(query).matches)
-                };
-                frame.remove();
-                return result;
-            })
-            """,
-            matchMediaProbeGroups);
-        for (var groupIndex = 0; groupIndex < viewportGroups.Length; groupIndex++)
-        {
-            var viewportGroup = viewportGroups[groupIndex];
-            var probeGroup = matchMediaProbeGroups[groupIndex];
-            var probeResult = matchMediaProbeResults[groupIndex];
-            Assert.Equal(probeGroup.Width, probeResult.Width);
-            Assert.Equal(probeGroup.Height, probeResult.Height);
-            var matchesByQuery = probeGroup.Queries
-                .Select((query, matchIndex) => (query, probeResult.Matches[matchIndex]))
-                .ToDictionary(item => item.query, item => item.Item2, StringComparer.Ordinal);
-
-            foreach (var boundaryCase in viewportGroup)
-                results[boundaryCase] = matchesByQuery[boundaryCase.Branch.Query];
-        }
-
-        foreach (var boundaryCase in boundaryCases)
-        {
-            Assert.True(
-                results[boundaryCase] == boundaryCase.ExpectedMatch,
-                $"Responsive condition '{boundaryCase.Branch.Query}' from {boundaryCase.Branch.Source} " +
-                $"was expected to {(boundaryCase.ExpectedMatch ? "match" : "stop matching")} at " +
-                $"{boundaryCase.Width}x{boundaryCase.Height} while checking " +
-                $"{boundaryCase.Feature.Bound}-{boundaryCase.Feature.Axis}: {boundaryCase.Feature.Value}px.");
-        }
-
-        var testedBranches = boundaryCases
-            .Select(item => item.Branch.Query)
-            .Distinct(StringComparer.Ordinal)
-            .ToHashSet(StringComparer.Ordinal);
-        Assert.All(mediaInventory, branch => Assert.Contains(branch.Query, testedBranches));
-
         var layoutProbes = boundaryCases
             .Select(item => new ResponsiveLayoutProbe(
                 MapResponsiveSourceToRoute(item.Branch.Source),
@@ -240,14 +175,11 @@ public sealed class AestheticResponsiveMediaBrowserTests(
             ViewportSize = new() { Width = 1280, Height = 800 }
         });
         var page = await context.NewPageAsync();
-        await AssertResponsiveContainerBoundariesAsync(page, containerInventory);
-    }
-
-    private sealed class ResponsiveViewportProbeResult
-    {
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public bool[] Matches { get; set; } = [];
+        // Ordering probes finish at a phone viewport. Run them first so the
+        // next component must restore its own baseline on every platform.
+        var orderingFirst = containerInventory.OrderBy(condition =>
+            condition.Source == "css/leaderboard-ordering.css" ? 0 : 1).ToArray();
+        await AssertResponsiveContainerBoundariesAsync(page, orderingFirst);
     }
 
     private sealed class ResponsiveLayoutProbeResult

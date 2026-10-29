@@ -18,6 +18,8 @@ body.play-flow-route #site-sticky-header {
     max-width: 760px;
     margin: 0 auto;
     padding: 0 1rem;
+    /* Panel margins stay inside, so hydrating and ready columns start alike. */
+    display: flow-root;
 }
 
 body.play-start-active {
@@ -48,86 +50,141 @@ body.play-start-active #site-sticky-header {
     pointer-events: none !important;
 }
 
-.play-logo-watermark {
-    display: none;
+/* ===== Start: one title screen =====
+   The wordmark, the phoenix crest and the menu are one centred lockup on the
+   night stage, in that order, with an even rhythm between them. On phones the
+   menu waits where the dock will hold it, so docking never moves the lockup. */
+.play-start-panel {
+    --play-crest-size: min(30dvh, 17rem);
+    --play-lockup-gap: clamp(1.25rem, 4.5dvh, 2.5rem);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--play-lockup-gap);
+    min-height: 100dvh;
+    padding-block: clamp(1.5rem, 6dvh, 3.5rem);
+    box-sizing: border-box;
 }
 
-body.play-start-active .play-logo-watermark {
-    --play-fitted-logo-size: min(86vw, 38dvh, 560px);
-    display: block;
-    position: fixed;
-    top: min(
-        55dvh,
-        calc(100dvh - var(--flow-action-dock-height, 132px) - (var(--play-fitted-logo-size) / 2) - 1.25rem)
-    );
-    left: 50%;
-    width: var(--play-fitted-logo-size);
-    max-width: none;
-    height: auto;
-    z-index: 0;
+.play-menu-crest {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: var(--play-crest-size);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle closest-side,
+        rgba(25, 195, 209, 0.16) 0%,
+        rgba(25, 195, 209, 0.06) 55%,
+        rgba(25, 195, 209, 0) 100%);
     pointer-events: none;
-    transform: translate(-50%, -50%);
-    opacity: 0.17;
     user-select: none;
 }
 
-@media (min-width: 769px) {
-    body.play-start-active .play-logo-watermark {
-        --play-fitted-logo-size: min(38dvh, 29vmin, 560px);
-        top: min(
-            51dvh,
-            calc(100dvh - var(--flow-action-dock-height, 132px) - (var(--play-fitted-logo-size) / 2) - 1.25rem)
-        );
-    }
+.play-menu-crest::before,
+.play-menu-crest::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.play-menu-crest::before {
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.play-menu-crest::after {
+    inset: 7%;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.play-logo-watermark {
+    position: relative;
+    display: block;
+    width: 74%;
+    max-width: none;
+    height: auto;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 0.3;
+    pointer-events: none;
+    user-select: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
     body.play-start-active.play-start-intro {
         --play-intro-beat: var(--lwc-duration-fast, 140ms);
-        --play-intro-phase: calc(var(--lwc-duration-normal, 220ms) + var(--lwc-duration-normal, 220ms));
-        --play-logo-settle-duration: calc(var(--play-intro-phase) + var(--lwc-duration-normal, 220ms));
-        --play-wordmark-settle-duration: var(--play-intro-phase);
-        --play-action-settle-duration: var(--lwc-duration-normal, 220ms);
-    }
-
-    body.play-start-active.play-start-preintro .play-logo-watermark {
-        opacity: 0.14;
-        transform: translate(-50%, -50%) scale(0.985);
-    }
-
-    body.play-start-active.play-start-preintro .play-menu-wordmark {
-        opacity: 0.84;
-        transform: translate3d(0, 0.18rem, 0);
+        --play-word-duration: calc(var(--lwc-duration-normal, 220ms) * 2);
+        --play-word-stagger: 90ms;
+        --play-crest-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 2);
+        --play-rule-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 2 + var(--lwc-duration-normal, 220ms));
+        --play-action-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 3 + var(--lwc-duration-normal, 220ms));
     }
 
     body.play-start-active.play-start-preintro .play-menu-wordmark__word {
-        opacity: 1;
-        transform: none;
+        opacity: 0.6;
+        transform: translate3d(0, 0.32em, 0) scale(1.04);
+    }
+
+    body.play-start-active.play-start-preintro .play-menu-hero::after {
+        transform: scaleX(0);
+    }
+
+    body.play-start-active.play-start-preintro .play-menu-crest {
+        opacity: 0.7;
+        transform: scale(0.92);
+    }
+
+    body.play-start-active.play-start-preintro .play-logo-watermark {
+        opacity: 0.12;
     }
 
     body.play-start-active.play-start-preintro .play-menu-actions .flow-action {
-        opacity: 0.92;
-        transform: translate3d(0, 0.12rem, 0);
+        opacity: 0.86;
+        transform: translate3d(0, 0.35rem, 0);
+    }
+
+    body.play-start-active.play-start-intro .play-menu-wordmark__word {
+        animation: play-word-rise var(--play-word-duration) var(--lwc-ease, ease) var(--play-intro-beat) both;
+        will-change: opacity, transform;
+    }
+
+    body.play-start-active.play-start-intro .play-menu-wordmark__word:nth-child(2) {
+        animation-delay: calc(var(--play-intro-beat) + var(--play-word-stagger));
+    }
+
+    body.play-start-active.play-start-intro .play-menu-wordmark__word:nth-child(3) {
+        animation-delay: calc(var(--play-intro-beat) + var(--play-word-stagger) * 2);
+    }
+
+    body.play-start-active.play-start-intro .play-menu-hero::after {
+        animation: play-rule-draw var(--play-word-duration) var(--lwc-ease, ease) var(--play-rule-delay) both;
+    }
+
+    body.play-start-active.play-start-intro .play-menu-crest {
+        animation: play-crest-settle calc(var(--play-word-duration) + var(--lwc-duration-normal, 220ms)) var(--lwc-ease, ease) var(--play-crest-delay) both;
+        will-change: opacity, transform;
     }
 
     body.play-start-active.play-start-intro .play-logo-watermark {
-        animation: play-logo-settle var(--play-logo-settle-duration) var(--lwc-ease, ease) both;
-        will-change: opacity, transform;
-    }
-
-    body.play-start-active.play-start-intro .play-menu-wordmark {
-        animation: play-wordmark-settle var(--play-wordmark-settle-duration) var(--lwc-ease, ease) var(--play-intro-beat) both;
-        will-change: opacity, transform;
+        animation: play-logo-settle calc(var(--play-word-duration) + var(--lwc-duration-normal, 220ms)) var(--lwc-ease, ease) var(--play-crest-delay) both;
     }
 
     body.play-start-active.play-start-intro .play-menu-actions .flow-action {
-        --play-action-delay: var(--play-intro-phase);
-        animation: play-action-settle var(--play-action-settle-duration) var(--lwc-ease, ease) var(--play-action-delay) both;
+        animation: play-action-settle var(--play-word-duration) var(--lwc-ease, ease) var(--play-action-delay) both;
         will-change: opacity, transform;
     }
 
     body.play-start-active.play-start-intro .play-menu-actions .flow-action:nth-child(2) {
-        --play-action-delay: calc(var(--play-intro-phase) + var(--play-intro-beat));
+        animation-delay: calc(var(--play-action-delay) + var(--play-word-stagger));
     }
 }
 
@@ -153,6 +210,7 @@ body.play-route-hydrating .play-hub-panel {
 
 html[data-play-entry="selection"]:not(.play-route-ready) .play-hub-main::before,
 html[data-play-entry="dashboard"]:not(.play-route-ready) .play-hub-main::before,
+html[data-play-entry="join"][data-initial-view="pending"] .play-hub-main::before,
 body.play-route-hydrating .play-hub-main::before {
     content: "";
     display: block;
@@ -170,6 +228,15 @@ body.play-route-hydrating .play-hub-main::before {
     box-sizing: border-box;
 }
 
+/* While a hub entry resolves, its hidden panel keeps its layout; the card
+   floats over it instead of a lone spinner, centred on the column. */
+html[data-initial-view="pending"]:not([data-play-entry="start"]) .play-hub-main::before {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% 0;
+}
+
 body.play-start-active .flow-action-stack.flow-action-stack--docked {
     border-top: 0;
 }
@@ -177,19 +244,19 @@ body.play-start-active .flow-action-stack.flow-action-stack--docked {
 body.play-start-active .play-menu-actions.flow-action-stack--docked {
     border-top: 0;
     background: linear-gradient(180deg,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(21, 21, 21, 0.62) 34%,
-        rgba(18, 18, 18, 0.98) 100%);
+        rgba(16, 24, 32, 0) 0%,
+        rgba(16, 24, 32, 0.62) 34%,
+        rgba(16, 24, 32, 0.98) 100%);
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     animation: none !important;
     transform: translateY(0) !important;
-}
-
-.play-start-panel {
-    position: relative;
-    isolation: isolate;
+    /* The intro already animates the buttons. Docking must keep their common
+       container readable from its first frame, including the entering state. */
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
 }
 
 .play-start-panel::before {
@@ -204,25 +271,42 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 }
 
 .play-menu-hero {
-    min-height: clamp(430px, 64dvh, 760px);
+    container-type: inline-size;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 0.9rem;
+    width: 100%;
+    min-height: 0;
+    padding: 0;
     text-align: center;
-    padding: clamp(2rem, 6vh, 4rem) 1rem clamp(6rem, 18vh, 12rem);
     background: transparent;
 }
 
+/* The accent rule underlines the title the way active tabs are underlined. */
+.play-menu-hero::after {
+    content: "";
+    display: block;
+    width: min(26%, 7rem);
+    height: 4px;
+    border-radius: 999px;
+    background: var(--lwc-accent-bright, #19c3d1);
+    transform-origin: 50% 50%;
+}
+
 .play-menu-wordmark {
+    --play-wordmark-size: 5.65rem;
     position: relative;
     display: inline-flex;
     align-items: baseline;
     justify-content: center;
     gap: 0.2em;
     color: #fff;
-    font-size: 5.65rem;
+    max-width: 100%;
+    font-size: min(var(--play-wordmark-size), 14cqi);
     font-weight: 700;
     font-style: italic;
+    font-synthesis: style;
     line-height: 1;
     letter-spacing: 0;
     text-transform: uppercase;
@@ -255,38 +339,58 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
     transform-origin: 50% 70%;
 }
 
-@keyframes play-logo-settle {
+@keyframes play-word-rise {
     0% {
-        opacity: 0.14;
-        transform: translate(-50%, -50%) scale(0.985);
+        opacity: 0.6;
+        transform: translate3d(0, 0.32em, 0) scale(1.04);
+    }
+
+    60% {
+        opacity: 1;
     }
 
     100% {
-        opacity: 0.17;
-        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
     }
 }
 
-@keyframes play-wordmark-settle {
+@keyframes play-rule-draw {
     0% {
-        opacity: 0.84;
-        transform: translate3d(0, 0.18rem, 0);
+        transform: scaleX(0);
     }
 
-    70% {
-        opacity: 1;
+    100% {
+        transform: scaleX(1);
+    }
+}
+
+@keyframes play-crest-settle {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.92);
     }
 
     100% {
         opacity: 1;
-        transform: translate3d(0, 0, 0);
+        transform: scale(1);
+    }
+}
+
+@keyframes play-logo-settle {
+    0% {
+        opacity: 0.12;
+    }
+
+    100% {
+        opacity: 0.3;
     }
 }
 
 @keyframes play-action-settle {
     0% {
-        opacity: 0.92;
-        transform: translate3d(0, 0.12rem, 0);
+        opacity: 0.86;
+        transform: translate3d(0, 0.35rem, 0);
     }
 
     100% {
@@ -297,19 +401,19 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 
 @media (max-width: 768px) {
     .play-menu-wordmark {
-        font-size: 3.35rem;
+        --play-wordmark-size: 3.35rem;
     }
 }
 
 @media (max-width: 420px) {
     .play-menu-wordmark {
-        font-size: 2.9rem;
+        --play-wordmark-size: 2.9rem;
     }
 }
 
 @media (max-width: 340px) {
     .play-menu-wordmark {
-        font-size: 2.5rem;
+        --play-wordmark-size: 2.5rem;
     }
 }
 
@@ -322,22 +426,6 @@ body.play-start-active .play-menu-actions.flow-action-stack--docked {
 
 .play-hub-panel[hidden] {
     display: none !important;
-}
-
-html.play-panel-transitioning .play-hub-panel--entering {
-    animation: play-panel-enter var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
-}
-
-@keyframes play-panel-enter {
-    from {
-        opacity: 0.86;
-        transform: translateY(4px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .play-athlete-panel,
@@ -360,29 +448,34 @@ html.play-panel-transitioning .play-hub-panel--entering {
     overflow-wrap: anywhere;
 }
 
-.play-hub-main--wide {
+/* The join track is wide; its route holds that column while it hydrates,
+   so the card does not slide sideways when the track arrives. */
+.play-hub-main--wide,
+html[data-play-entry="join"]:not(.play-route-ready) .play-hub-main {
     max-width: 1100px;
 }
 
+/* A lead line under the title, not a boxed notice. */
 .play-join-intro {
-    width: min(100%, 760px);
-    margin: 0 auto 1.25rem;
-    padding: 0.85rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--lwc-border, #d7e0e6);
-    background: var(--lwc-surface-muted, #f8f9fa);
+    width: min(100%, 48rem);
+    margin: 0 auto 1.5rem;
+    padding: 0;
     color: var(--lwc-ink, #17212b);
-    font-size: 0.95rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
     text-align: center;
+    text-wrap: balance;
     box-sizing: border-box;
 }
 
+/* Side by side while both cards have room; enlarged text stacks them instead of splitting words. */
 .play-join-cards {
+    container: play-track / inline-size;
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
     gap: 1.5rem;
-    align-items: start;
+    align-items: stretch;
 }
 
 .play-join-card {
@@ -408,7 +501,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-join-ribbon-slot {
     grid-row: 1;
-    position: relative;
+    position: static;
     width: 100%;
     height: 0;
     min-height: 0;
@@ -417,8 +510,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-join-ribbon {
     position: absolute;
-    top: -1.5rem;
-    right: -1.5rem;
+    top: 0;
+    right: 0;
     overflow: hidden;
     width: 128px;
     height: 128px;
@@ -479,22 +572,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
     color: var(--lwc-muted, #526373);
 }
 
+/* Label and value share a row; a value drops under its label when enlarged text leaves no room. */
 .play-join-meta {
-    display: grid;
-    grid-template-columns: minmax(7em, auto) 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.45rem 1rem;
     align-items: baseline;
-    margin: 0;
+    margin: 0 0 1.25rem;
     padding: 0;
     color: var(--lwc-muted, #526373);
 }
 
 .play-join-meta dt {
+    flex: 0 0 7.5em;
     font-weight: 700;
     color: var(--lwc-muted, #526373);
 }
 
 .play-join-meta dd {
+    flex: 1 1 calc(100% - 7.5em - 1rem);
+    min-width: 5.5em;
     margin: 0;
     color: var(--lwc-ink, #1e293b);
     font-variant-numeric: tabular-nums;
@@ -505,7 +602,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.35rem;
-    min-width: 0;
+    min-width: min(100%, 10rem);
 }
 
 .play-join-card--pro .play-join-details {
@@ -519,20 +616,19 @@ html.play-panel-transitioning .play-hub-panel--entering {
     flex-direction: column;
 }
 
+/* Biomarkers sit just above the card's action, so both cards line up row for row. */
 .play-join-biomarkers {
-    margin-top: 0.75rem;
-    padding: 0.72rem 0.9rem 0.85rem;
-    border-radius: var(--lwc-radius-md);
-    border: 1px solid var(--lwc-border, #e2e8f0);
-    border-left: 3px solid var(--lwc-muted, #526373);
-    background: var(--lwc-surface-muted, #f8fafc);
+    margin-top: auto;
+    padding: 0;
+    border: 0;
+    border-block: 1px solid var(--lwc-border, #e2e8f0);
+    border-radius: 0;
+    background: transparent;
     box-shadow: none;
 }
 
 .play-join-card--pro .play-join-biomarkers {
-    border-color: var(--lwc-border);
-    border-left-color: var(--lwc-success);
-    background: var(--lwc-surface-muted);
+    border-color: color-mix(in srgb, var(--lwc-success, #2e7d32) 35%, transparent);
 }
 
 .play-join-biomarkers details {
@@ -544,15 +640,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    min-height: 44px;
+    min-height: 48px;
+    padding-block: 0.35rem;
+    border-radius: 6px;
     cursor: pointer;
     list-style: none;
-    font-size: var(--lwc-type-sm);
+    font-size: 1rem;
     font-weight: 700;
     text-transform: none;
     letter-spacing: 0;
-    color: var(--lwc-muted, #526373);
-    line-height: 1.5;
+    color: var(--lwc-ink, #17212b);
+    line-height: 1.4;
+}
+
+.play-join-biomarkers summary:hover {
+    color: var(--lwc-accent-hover, #0f6d7a);
+}
+
+.play-join-biomarkers summary:focus-visible {
+    outline: 3px solid var(--lwc-accent, #087685);
+    outline-offset: 2px;
 }
 
 .play-join-card--pro .play-join-biomarkers summary {
@@ -568,7 +675,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     flex: 0 0 auto;
     width: 0.55rem;
     height: 0.55rem;
-    margin-right: 0.15rem;
+    margin-right: 0.35rem;
     border-right: 2px solid currentColor;
     border-bottom: 2px solid currentColor;
     transform: rotate(45deg);
@@ -576,19 +683,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-join-biomarkers details[open] summary {
-    margin-bottom: 0.55rem;
+    margin-bottom: 0.25rem;
 }
 
 .play-join-biomarkers details[open] summary::after {
     transform: rotate(-135deg);
 }
 
+/* Two columns once the card is wide enough, so 22 biomarkers stay short. */
 .play-join-biomarkers ul {
     margin: 0;
-    padding-left: 1.1rem;
+    padding: 0 0 0.85rem 1.1rem;
+    columns: 2 13rem;
+    column-gap: 2rem;
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
     color: var(--lwc-ink, #334155);
+}
+
+.play-join-biomarkers li {
+    break-inside: avoid;
 }
 
 .play-join-card--pro .play-join-biomarkers ul {
@@ -598,8 +712,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-join-card-actions {
     width: 100%;
     max-width: none;
-    margin-top: auto;
-    padding-top: 1rem;
+    padding-top: 1.25rem;
 }
 
 .play-join-card-actions .flow-action {
@@ -650,6 +763,25 @@ html.play-panel-transitioning .play-hub-panel--entering {
     font-size: 0.95rem;
 }
 
+.play-join-actions #joinTrackBackBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding-inline: 0.65rem;
+}
+
+.play-join-actions #joinTrackBackBtn > i {
+    position: static;
+    width: auto;
+    transform: none;
+}
+
+.play-join-actions #joinTrackBackBtn .flow-action__label {
+    width: auto;
+    margin: 0;
+}
+
 @media (min-width: 960px) and (max-height: 820px) {
     .play-join-panel {
         padding-top: 1.25rem;
@@ -660,8 +792,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-intro {
-        margin-bottom: 0.85rem;
-        padding-block: 0.65rem;
+        margin-bottom: 1rem;
     }
 
     .play-join-card {
@@ -678,11 +809,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
     .play-join-meta {
         gap: 0.32rem 0.85rem;
-    }
-
-    .play-join-biomarkers {
-        margin-top: 0.55rem;
-        padding: 0.55rem 0.75rem 0.65rem;
+        margin-bottom: 0.9rem;
     }
 
     .play-join-card-actions {
@@ -731,23 +858,64 @@ html.play-panel-transitioning .play-hub-panel--entering {
     font-size: 1.2rem;
     width: min(100%, 408px);
     max-width: 408px;
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
 }
 
+    /* The athlete search is the page's main control: as tall as the actions
+       beneath it, led by the same magnifier as the leaderboard search. */
+    .play-athlete-search-icon {
+        grid-area: 1 / 1;
+        align-self: center;
+        justify-self: start;
+        margin-left: 1.05rem;
+        z-index: 1;
+        color: var(--lwc-muted, #526373);
+        font-family: "Font Awesome 6 Free";
+        font-size: 1.05rem;
+        font-weight: 900;
+        line-height: 1;
+        pointer-events: none;
+    }
+
+    .play-autocomplete-container:focus-within .play-athlete-search-icon {
+        color: var(--primary-color, #00bcd4);
+    }
+
     .play-autocomplete-container input {
+        grid-area: 1 / 1;
         appearance: none;
+        min-width: 0;
         width: 100%;
-        min-height: 44px;
-        padding: 0.65rem 1rem;
+        min-height: var(--play-search-height, 56px);
+        padding: 0.8rem 1rem 0.8rem 2.9rem;
         border: 1px solid var(--lwc-border-strong, #71808d);
         border-radius: var(--radius-md, 8px);
-        font-size: 1rem;
+        background: var(--lwc-surface, #fff);
+        font-size: 1.08rem;
         line-height: 1.3;
         transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         box-sizing: border-box;
+    }
+
+    #playAthleteError {
+        grid-area: 2 / 1;
+    }
+
+        .play-autocomplete-container #playAthleteInput {
+            min-height: var(--play-search-height, 56px);
+        }
+
+    /* Short landscape screens keep the compact field so it stays above the dock. */
+    @media (max-height: 480px) {
+        .play-autocomplete-container {
+            --play-search-height: 44px;
+        }
+
+        .play-autocomplete-container #playAthleteInput {
+            padding-block: 0.55rem;
+            font-size: 1rem;
+        }
     }
 
         .play-autocomplete-container input:focus {
@@ -804,31 +972,9 @@ html.play-panel-transitioning .play-hub-panel--entering {
             color: var(--lwc-accent-hover, #0f5965);
         }
 
-.error-message.athlete-search-empty:not(:empty) {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--lwc-muted);
-    font-weight: 400;
-}
-
+/* Filled errors use the shared field-error style (aesthetic-system.css). */
 .error-message {
     display: none;
-}
-
-.error-message:not(:empty) {
-    display: block;
-    margin-top: 0.55rem;
-    padding: 0.55rem 0.7rem;
-    border: 0;
-    border-inline-start: 4px solid var(--lwc-danger, #b4233b);
-    border-radius: 8px;
-    background: var(--lwc-surface-muted, rgba(254, 242, 242, 0.94));
-    color: var(--lwc-ink, #17212b);
-    font-size: 0.9rem;
-    font-weight: 700;
-    line-height: 1.35;
-    box-sizing: border-box;
 }
 
 .athlete-load-retry {
@@ -868,8 +1014,9 @@ html.play-panel-transitioning .play-hub-panel--entering {
 }
 
 .play-dashboard-actions.flow-action-stack--docked {
-    display: grid;
-    grid-template-columns: 3.5rem repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 0.55rem;
     align-items: stretch;
     justify-content: center;
@@ -881,26 +1028,38 @@ html.play-panel-transitioning .play-hub-panel--entering {
 
 .play-dashboard-actions.flow-action-stack--docked .flow-action {
     order: 1;
-    width: 100%;
-    max-width: none;
+    flex: 1 1 max-content;
+    flex-wrap: wrap;
+    gap: 0.45em;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    margin-inline: 0;
     min-height: 44px;
-    padding-block: 0.45rem;
-    padding: 0.45rem 2rem 0.45rem 0.65rem;
+    padding: 0.45rem 0.65rem;
     font-size: 0.88rem;
     line-height: 1.12;
+    overflow-wrap: normal;
+}
+
+.play-dashboard-actions.flow-action-stack--docked .flow-action__label {
+    flex: 1 0 auto;
+    width: auto;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 
 .play-dashboard-actions.flow-action-stack--docked .flow-action__icon,
 .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-    right: 0.65rem;
+    position: static;
     display: inline-block;
-}
-
-.play-dashboard-actions.flow-action-stack--docked #athleteDashboardDynamicActions .flow-action:nth-of-type(2) {
-    grid-column: 2;
+    flex: none;
+    width: 1.25em;
+    transform: none;
 }
 
 .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn {
+    flex: 0 0 min(3.5rem, 56px);
     order: 0;
     justify-self: start;
     width: 100%;
@@ -911,7 +1070,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
 .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn > i {
     position: static;
     display: inline-block;
-    width: 1.25rem;
+    width: 1.25em;
     transform: none;
 }
 
@@ -1060,11 +1219,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
         padding-inline: 1.35rem;
     }
 
-    .play-menu-hero {
-        min-height: clamp(330px, 57dvh, 560px);
-        padding: clamp(1.5rem, 5vh, 3rem) 0 clamp(6rem, 18vh, 10rem);
-    }
-
     .play-menu-actions,
     .play-join-actions,
     .play-athlete-actions,
@@ -1072,14 +1226,26 @@ html.play-panel-transitioning .play-hub-panel--entering {
         margin-top: 1.15rem;
     }
 
-    .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding-right: 1.65rem;
-        padding-left: 0.45rem;
-        font-size: 0.78rem;
+    /* Keep each glyph in the layout so labels and enlarged text can reflow
+       without colliding with an absolutely positioned icon. */
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) {
+        flex-wrap: wrap;
+        gap: 0.45em;
+        padding-inline: min(0.75rem, 12px);
     }
 
-    .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-        right: 0.5rem;
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+        flex: 1 0 auto;
+        width: auto;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .play-dashboard-actions .flow-action:not(#playDashboardBackBtn) > i {
+        position: static;
+        display: inline-block;
+        flex: none;
+        transform: none;
     }
 
     .play-athlete-panel,
@@ -1105,7 +1271,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-card {
-        padding: 1.35rem;
+        padding: 1.35rem min(1.35rem, 22px);
     }
 
     .play-join-card-actions {
@@ -1176,7 +1342,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-meta {
-        grid-template-columns: minmax(6.5em, auto) 1fr;
         gap: 0.4rem 0.8rem;
     }
 
@@ -1194,23 +1359,23 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     @supports selector(:has(*)) {
-        .play-athlete-panel:has(#playAthleteInput:focus) {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) {
             padding-top: 1.25rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-athlete-title {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-athlete-title {
             margin-bottom: 0.6rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-athlete-visual {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-athlete-visual {
             margin-bottom: 0.7rem;
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .athlete-picture-frame {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .athlete-picture-frame {
             width: min(100%, 360px);
         }
 
-        .play-athlete-panel:has(#playAthleteInput:focus) .play-autocomplete-wrapper {
+        .play-athlete-panel:has(:where(#playAthleteInput):focus) .play-autocomplete-wrapper {
             margin-bottom: 0.7rem;
         }
 
@@ -1279,8 +1444,6 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-ribbon {
-        top: -1.25rem;
-        right: -1.25rem;
         width: 108px;
         height: 108px;
     }
@@ -1319,15 +1482,13 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-dashboard-actions.flow-action-stack--docked {
-        grid-template-columns: minmax(7.5rem, 9rem) repeat(4, minmax(0, 13.5rem));
-        grid-template-rows: 44px;
         gap: 0.7rem;
         padding-top: 0.3rem;
         padding-bottom: calc(0.3rem + env(safe-area-inset-bottom));
     }
 
     .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        grid-row: 1;
+        max-width: 13.5rem;
         min-height: 44px;
     }
 
@@ -1347,26 +1508,21 @@ html.play-panel-transitioning .play-hub-panel--entering {
         box-shadow: none;
     }
 
+    /* The command bar is one centred group led by Change athlete; the generic
+       dock's auto margin would pin Back to the edge and leave a hole. */
     .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn {
-        grid-column: 1;
-        grid-row: 1;
+        flex-basis: max-content;
+        max-width: none;
+        width: auto;
+        margin-inline: 0;
         padding-right: 0.7rem;
-        padding-left: 2rem;
+        padding-left: max(2.55rem, 2.55em);
         border-right: 1px solid rgba(96, 125, 139, 0.18);
         border-radius: 0;
     }
 
-    .play-dashboard-actions.flow-action-stack--docked #athleteDashboardDynamicActions .flow-action:nth-of-type(2) {
-        grid-column: auto;
-    }
-
     .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding-inline: 2rem;
-    }
-
-    .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-        right: 0.8rem;
-        display: inline-block;
+        padding-inline: 0.85rem;
     }
 
     .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn > i {
@@ -1374,26 +1530,29 @@ html.play-panel-transitioning .play-hub-panel--entering {
         top: 50%;
         right: auto;
         left: 0.8rem;
-        width: 1.25rem;
+        width: 1.25em;
         transform: translateY(-50%);
     }
 
     .play-dashboard-actions.flow-action-stack--docked #playDashboardBackBtn .flow-action__label {
         display: block;
+        white-space: nowrap;
     }
 
 }
 
-@media (min-width: 761px) and (max-width: 959px) {
-    .play-dashboard-actions.flow-action-stack--docked .flow-action {
-        padding: 0.45rem 1.5rem 0.45rem 0.3rem;
-        font-size: 0.78rem;
+@media (max-width: 760px) {
+    /* The enlarged-text fallback stays in the document and reserves real icon space. */
+    .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action {
+        padding-inline: min(0.5rem, 16px) 2.85rem;
     }
 
-    .play-dashboard-actions.flow-action-stack--docked .flow-action > i {
-        right: 0.45rem;
+    .play-dashboard-actions:not(.flow-action-stack--docked) #playDashboardBackBtn {
+        width: 100%;
+        max-width: 100%;
+        padding-inline: 2.85rem min(0.5rem, 16px);
+        overflow-wrap: normal;
     }
-
 }
 
 @media (min-width: 761px) and (max-height: 820px) {
@@ -1417,7 +1576,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
         width: min(100%, clamp(326px, 44.5dvh, 368px));
     }
 
-    .play-dashboard-panel .athlete-picture-frame {
+    .play-dashboard-panel .play-dashboard-card {
         width: min(100%, clamp(326px, 46dvh, 382px));
     }
 
@@ -1437,8 +1596,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-intro {
-        margin-bottom: 0.85rem;
-        padding-block: 0.65rem;
+        margin-bottom: 1rem;
     }
 
     .play-join-card {
@@ -1453,9 +1611,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
         margin-bottom: 0.7rem;
     }
 
-    .play-join-biomarkers {
-        margin-top: 0.55rem;
-        padding: 0.55rem 0.75rem 0.65rem;
+    .play-join-meta {
+        margin-bottom: 0.9rem;
     }
 
     .play-join-biomarkers summary {
@@ -1470,29 +1627,14 @@ html.play-panel-transitioning .play-hub-panel--entering {
         width: min(100%, clamp(292px, 41dvh, 326px));
     }
 
-    .play-dashboard-panel .athlete-picture-frame {
+    .play-dashboard-panel .play-dashboard-card {
         width: min(100%, clamp(312px, 45dvh, 352px));
     }
 }
 
 @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-    body.play-start-active .play-logo-watermark {
-        --play-fitted-logo-size: min(30dvh, 120px);
-        top: 58dvh;
-    }
-
-    .play-menu-hero {
-        min-height: calc(100dvh - 62px);
-        padding: 1rem 1rem 10rem;
-    }
-
-    .play-start-panel > .flow-action-dock-placeholder {
-        height: 1px !important;
-        margin: 0;
-    }
-
     .play-menu-wordmark {
-        font-size: 3.4rem;
+        --play-wordmark-size: 3.4rem;
     }
 
     .play-menu-actions.flow-action-stack--docked {
@@ -1524,7 +1666,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-cards {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
         gap: 1rem;
     }
 
@@ -1585,8 +1727,12 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-meta {
-        grid-template-columns: 1fr;
         gap: 0.15rem;
+    }
+
+    .play-join-meta dt,
+    .play-join-meta dd {
+        flex-basis: 100%;
     }
 
     .play-athlete-visual,
@@ -1594,7 +1740,8 @@ html.play-panel-transitioning .play-hub-panel--entering {
         margin-bottom: 0.65rem;
     }
 
-    .athlete-picture-frame {
+    .athlete-picture-frame,
+    .play-dashboard-panel .play-dashboard-card {
         width: min(100%, 240px);
     }
 
@@ -1642,9 +1789,119 @@ html.play-panel-transitioning .play-hub-panel--entering {
     body.play-route-hydrating .play-hub-main::before {
         animation: none;
     }
+}
 
-    html.play-panel-transitioning .play-hub-panel--entering {
-        animation: none;
+/* Keep enlarged phone text from spending its available width on gutters. */
+@media (max-width: 600px) {
+    .play-hub-main:has(.play-join-panel:not([hidden])) {
+        padding-inline: min(1.35rem, 22px);
+    }
+}
+
+/* The corner ribbon becomes a badge when text no longer fits beside it. */
+@container play-track (max-width: 18rem) {
+    .play-join-card h2 {
+        padding-right: 0;
+    }
+
+    .play-join-card .track-name {
+        font-size: min(1.6rem, 15cqi);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .play-join-ribbon-slot {
+        height: auto;
+        margin-bottom: 0.75rem;
+    }
+
+    .play-join-ribbon {
+        position: static;
+        display: inline-block;
+        width: auto;
+        height: auto;
+        border-radius: 4px;
+    }
+
+    .play-join-ribbon > span {
+        position: static;
+        width: auto;
+        padding: 0.3em 0.6em;
+        font-size: 0.75rem;
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+.play-join-card .pro-discount-line {
+    flex-wrap: wrap;
+}
+
+.play-join-card .pro-discount-text {
+    flex: 1 1 6em;
+}
+
+/* Intrinsic action widths keep words readable when enlarged text needs more rows. */
+@media (max-width: 600px), (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .play-join-actions.flow-action-stack--docked {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .play-join-actions.flow-action-stack--docked .flow-action {
+        flex: 1 1 max-content;
+        width: auto;
+        margin-inline: 0;
+        padding-inline: min(0.65rem, 12px);
+        overflow-wrap: normal;
+    }
+
+    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn {
+        flex: 0 0 auto;
+        width: auto;
+        order: -1;
+    }
+
+    .play-join-actions.flow-action-stack--docked #joinTrackBackBtn .flow-action__label {
+        margin: 0;
+    }
+}
+
+/* Keep the compact phone row only while its width leaves enough room for the text. */
+@media (max-width: 600px) {
+    .play-join-actions .flow-action {
+        padding-inline: min(0.65rem, 12px);
+    }
+
+    .play-join-actions .play-join-mobile-track-action > i {
+        display: none;
+    }
+
+    .play-join-actions.flow-action-stack--docked {
+        container: play-join-actions / inline-size;
+    }
+
+    @container play-join-actions (min-width: 17rem) {
+        .play-join-actions.flow-action-stack--docked #joinTrackBackBtn {
+            flex: 0 0 min(3.5rem, 56px);
+            justify-content: center;
+            padding: 0.5rem;
+        }
+
+        .play-join-actions.flow-action-stack--docked #joinTrackBackBtn > i {
+            width: 1.25rem;
+            margin: 0;
+        }
+
+        .play-join-actions.flow-action-stack--docked #joinTrackBackBtn .flow-action__label {
+            display: none;
+        }
+
+        .play-join-actions.flow-action-stack--docked .play-join-mobile-track-action {
+            flex: 1 1 0;
+            min-width: min-content;
+        }
     }
 }
 
@@ -1656,4 +1913,1233 @@ html.play-panel-transitioning .play-hub-panel--entering {
     outline: 3px solid var(--lwc-accent);
     outline-offset: 3px;
     border-radius: var(--lwc-radius-sm);
+}
+
+/* Athlete search: show who each match is, and let the results own the screen while they are open. */
+.autocomplete-items div {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 52px;
+    padding: 0.4rem 0.6rem;
+}
+
+.autocomplete-items .athlete-option-thumb {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--lwc-radius-pill, 999px);
+    border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
+    background: var(--lwc-surface-muted, #eef2f5);
+    object-fit: cover;
+    object-position: center 20%;
+}
+
+.autocomplete-items .athlete-option-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.autocomplete-items {
+    max-height: min(17.5rem, 42vh);
+    /* Popup fitting reads its preferred size before applying the viewport limit. */
+    transition: none;
+}
+
+.play-athlete-panel.athlete-search-open .play-autocomplete-wrapper {
+    margin-bottom: calc(1.2rem + min(17.5rem, 42vh));
+}
+
+.play-athlete-panel.athlete-search-open .play-athlete-title {
+    margin-bottom: 0.6rem;
+}
+
+.play-athlete-panel.athlete-search-open .play-athlete-visual {
+    margin-bottom: 0.75rem;
+}
+
+.play-athlete-panel.athlete-search-open .athlete-picture-frame {
+    width: min(100%, 136px);
+    border-radius: var(--lwc-radius-pill, 999px);
+}
+
+@media (max-height: 700px) {
+    .autocomplete-items {
+        max-height: min(17.5rem, 33vh);
+    }
+
+    .play-athlete-panel.athlete-search-open .play-autocomplete-wrapper {
+        margin-bottom: calc(1rem + min(17.5rem, 33vh));
+    }
+
+    .play-athlete-panel.athlete-search-open .athlete-picture-frame {
+        width: min(100%, 96px);
+    }
+}
+
+@media (max-height: 480px) {
+    .play-athlete-panel.athlete-search-open .play-athlete-visual {
+        display: none;
+    }
+}
+
+/* Dashboard athlete card: the athlete's name is the caption of their portrait. */
+.play-dashboard-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 408px);
+    margin-inline: auto;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.play-dashboard-card .athlete-picture-frame {
+    grid-area: 1 / 1;
+    width: 100%;
+}
+
+.play-dashboard-card .play-dashboard-title {
+    position: relative;
+    grid-area: 1 / 1;
+    align-self: end;
+    z-index: 2;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to top, rgba(6, 12, 18, 0.94), rgba(6, 12, 18, 0.82));
+    color: #ffffff;
+    font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2.25rem);
+    line-height: 1.08;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+
+.play-dashboard-card .play-dashboard-title::before {
+    content: "";
+    position: absolute;
+    inset: auto 0 100%;
+    height: 2rem;
+    background: linear-gradient(to top, rgba(6, 12, 18, 0.82), transparent);
+}
+
+.play-dashboard-panel .play-dashboard-visual {
+    margin-bottom: 1rem;
+}
+
+/* Keep "Change athlete" on one line in the inline action grid. */
+@media (min-width: 761px) {
+    .play-dashboard-actions:not(.flow-action-stack--docked) #playDashboardBackBtn {
+        width: auto;
+        min-width: 11rem;
+        max-width: 100%;
+        padding-inline: 3rem 1.5rem;
+        white-space: nowrap;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .play-dashboard-card .play-dashboard-title {
+        font-size: 1.15rem;
+        padding: 0.55rem 0.6rem;
+    }
+}
+
+/* Athlete selection reads as the same player card as the dashboard: the
+   name is the caption of the portrait. The card keeps its shape while the
+   reader searches, easing smaller to make room for the suggestions instead
+   of jumping from a square to a circle and back. */
+.play-athlete-panel .play-athlete-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 408px);
+    margin-inline: auto;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: var(--lwc-shadow-sm);
+    transition: width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+.play-athlete-panel .play-athlete-card .athlete-picture-frame {
+    grid-area: 1 / 1;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.play-athlete-panel .play-athlete-card .play-athlete-title {
+    position: relative;
+    grid-area: 1 / 1;
+    align-self: end;
+    z-index: 2;
+    margin: 0;
+    padding: 0.7rem 1rem;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to top, rgba(6, 12, 18, 0.94), rgba(6, 12, 18, 0.82));
+    color: #ffffff;
+    font-size: clamp(1.35rem, 1rem + 1.2vw, 2rem);
+    line-height: 1.08;
+    overflow-wrap: break-word;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.play-athlete-panel .play-athlete-card .play-athlete-title::before {
+    content: "";
+    position: absolute;
+    inset: auto 0 100%;
+    height: 2rem;
+    background: linear-gradient(to top, rgba(6, 12, 18, 0.82), transparent);
+}
+
+.play-athlete-panel.athlete-search-open .play-athlete-card {
+    width: min(100%, 136px);
+}
+
+.play-athlete-panel.athlete-search-open .play-athlete-card .play-athlete-title {
+    position: absolute;
+    inset: auto 0 0;
+    opacity: 0;
+}
+
+/* Let actual text enlargement widen Back before wrapping the action row. */
+.play-athlete-actions.flow-action-stack.flow-action-stack--docked.flow-action-stack--back-primary-action > .back-button.flow-action--icon-left {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: min(100%, 6.25rem);
+    max-width: 100%;
+}
+
+@media (max-width: 760px) {
+    .play-athlete-panel.athlete-search-open .play-athlete-card {
+        width: min(100%, 128px);
+    }
+}
+
+/* Shorter desktops: the card follows the viewport height so the field and
+   actions stay inline; it no longer needs room for a heading above it. */
+@media (min-width: 761px) and (max-height: 820px) {
+    .play-athlete-panel .play-athlete-card {
+        width: min(100%, clamp(340px, 50dvh, 408px));
+    }
+
+    .play-athlete-panel:not(.athlete-search-open) .play-athlete-visual {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (min-width: 761px) and (max-height: 740px) {
+    .play-athlete-panel .play-athlete-card {
+        width: min(100%, clamp(300px, 46dvh, 360px));
+    }
+}
+
+@media (max-height: 700px) {
+    .play-athlete-panel.athlete-search-open .play-athlete-card {
+        width: min(100%, 104px);
+    }
+}
+
+@media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .play-athlete-panel .play-athlete-card {
+        width: min(100%, 40dvh, 240px);
+    }
+
+    .play-athlete-panel .play-athlete-card .play-athlete-title {
+        font-size: 1.15rem;
+        padding: 0.55rem 0.6rem;
+    }
+}
+
+@media (max-height: 480px) {
+    /* Free the search space while keeping its heading in the accessibility tree. */
+    .play-athlete-panel.athlete-search-open .play-athlete-visual {
+        display: block;
+        height: 0;
+        margin-bottom: 0;
+    }
+
+    .play-athlete-panel.athlete-search-open .play-athlete-card {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        clip-path: inset(50%);
+        overflow: hidden;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* The suggestion space collapses in step with the card, so the step
+       never briefly overflows and docks its actions. */
+    .play-athlete-panel .play-athlete-card,
+    .play-athlete-panel .play-athlete-card .play-athlete-title,
+    .play-athlete-panel .play-autocomplete-wrapper {
+        transition: none;
+    }
+}
+
+
+/* ===== The player card =====
+   On tablets and desktops, athlete selection and the athlete dashboard are each
+   one card: a wide portrait is the card's header with the name as its caption,
+   and the screen's own controls (search, discounts, commands) are the card's
+   body, instead of separate pieces floating under a tall square picture. The
+   wider, shorter portrait leaves room for the commands to stay in the card
+   rather than spilling into a docked bar. */
+@media (min-width: 761px) and (min-height: 600px) {
+    .play-athlete-panel,
+    .play-dashboard-panel {
+        --play-card-pad: 1.35rem;
+        --play-card-radius: 16px;
+    }
+
+    .play-athlete-panel:not([hidden]),
+    .play-dashboard-panel:not([hidden]) {
+        box-sizing: border-box;
+        width: min(100%, 560px);
+        margin: clamp(1rem, 4dvh, 2.25rem) auto 1.5rem;
+        padding: 0 0 var(--play-card-pad);
+        border: 1px solid var(--lwc-border);
+        border-radius: var(--play-card-radius);
+        background: var(--lwc-surface);
+        box-shadow: var(--lwc-shadow-md, 0 18px 40px rgba(15, 23, 42, 0.12));
+    }
+
+    .play-athlete-panel .play-athlete-visual,
+    .play-dashboard-panel .play-dashboard-visual {
+        width: 100%;
+        margin: 0 0 var(--play-card-pad);
+    }
+
+    .play-athlete-panel .play-athlete-card,
+    .play-dashboard-panel .play-dashboard-card {
+        container: play-player-card / inline-size;
+        width: 100%;
+        margin: 0;
+        border-radius: calc(var(--play-card-radius) - 1px) calc(var(--play-card-radius) - 1px) 0 0;
+        box-shadow: none;
+    }
+
+    .play-athlete-panel .play-athlete-card .athlete-picture-frame,
+    .play-athlete-panel .play-athlete-card .play-athlete-title,
+    .play-dashboard-panel .play-dashboard-card .athlete-picture-frame,
+    .play-dashboard-panel .play-dashboard-card .play-dashboard-title {
+        border-radius: 0;
+    }
+
+    .play-athlete-panel:not([hidden]) .play-athlete-card,
+    .play-dashboard-panel:not([hidden]) .play-dashboard-card,
+    .play-athlete-panel:not([hidden]) .athlete-picture-frame,
+    .play-dashboard-panel:not([hidden]) .athlete-picture-frame {
+        width: 100%;
+        max-width: none;
+    }
+
+    .play-athlete-panel:not([hidden]) .athlete-picture-frame,
+    .play-dashboard-panel:not([hidden]) .athlete-picture-frame {
+        aspect-ratio: 16 / 10;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .play-athlete-panel:not([hidden]) .athlete-picture-frame img.illustration,
+    .play-dashboard-panel:not([hidden]) .athlete-picture-frame img.illustration {
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .play-athlete-panel .play-autocomplete-wrapper,
+    .play-dashboard-panel .play-dashboard-discounts,
+    .play-athlete-panel .play-athlete-actions:not(.flow-action-stack--docked),
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+        margin-inline: 0;
+        padding-inline: var(--play-card-pad);
+    }
+
+    .play-athlete-panel .play-autocomplete-container {
+        width: 100%;
+        max-width: none;
+    }
+
+    .play-dashboard-panel .play-dashboard-discounts {
+        margin-top: 0;
+        margin-bottom: var(--play-card-pad);
+    }
+
+    .play-athlete-panel .play-autocomplete-wrapper {
+        margin-bottom: var(--play-card-pad);
+    }
+
+    /* Inline commands fill the card's body as an even two-column grid. */
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.5rem), 1fr));
+        gap: 0.65rem;
+    }
+
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action {
+        min-height: 52px;
+    }
+
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) {
+        flex-wrap: wrap;
+        gap: 0.45em;
+        padding-inline: 0.75rem;
+    }
+
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+        flex: 1 1 min-content;
+        width: auto;
+        overflow-wrap: anywhere;
+    }
+
+    .play-dashboard-panel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+        position: static;
+        flex: none;
+        width: 1.25em;
+        transform: none;
+    }
+
+    /* Selection: Back and Select share one row at the card's foot. */
+    .play-athlete-panel .play-athlete-actions:not(.flow-action-stack--docked) {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.65rem;
+    }
+
+    .play-athlete-panel .play-athlete-actions:not(.flow-action-stack--docked) #playSelectionBackBtn {
+        grid-column: 1;
+        grid-row: 1;
+        width: auto;
+        margin: 0;
+    }
+
+    .play-athlete-panel .play-athlete-actions:not(.flow-action-stack--docked) #playConfirmAthleteBtn {
+        grid-column: 2;
+        grid-row: 1;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+    }
+
+    /* While searching, the card keeps its width; the portrait becomes a
+       thumbnail at its top instead of the whole card collapsing. */
+    .play-athlete-panel.athlete-search-open:not([hidden]) .play-athlete-card {
+        width: min(100%, 136px);
+        margin: var(--play-card-pad) auto 0;
+        border-radius: 12px;
+    }
+
+    .play-athlete-panel.athlete-search-open:not([hidden]) .athlete-picture-frame {
+        aspect-ratio: 1;
+    }
+
+    /* Enlarged captions get their own row so the athlete's face stays visible. */
+    @container play-player-card (max-width: 20em) {
+        .play-athlete-panel .play-athlete-card .play-athlete-title,
+        .play-dashboard-panel .play-dashboard-card .play-dashboard-title {
+            grid-area: 2 / 1;
+        }
+
+        .play-athlete-panel .play-athlete-card .play-athlete-title::before,
+        .play-dashboard-panel .play-dashboard-card .play-dashboard-title::before {
+            display: none;
+        }
+    }
+}
+
+
+/* ===== Onboarding: the start screen and the track choice as one moment =====
+   The start screen's night stage carries into the track choice as its header
+   band, the same dark caption the player card puts under the athlete's name.
+   On tablets and desktops the whole choice is one card like the player card:
+   band, the two tracks, and a foot with Back and the lifestyle detour. Each
+   track is a tile with its own head (name, rank) and a spec list beneath. */
+
+/* Start: the second door is an outlined button on the night stage instead of
+   a pale slab competing with the primary. */
+body.play-start-active > .play-hub-main {
+    padding-inline: min(1rem, 16px);
+}
+
+body.play-start-active .play-menu-actions .flow-action {
+    padding-inline: min(1rem, 16px);
+}
+
+body.play-start-active .play-menu-actions .option-button.grey.flow-action--secondary {
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    box-shadow: none;
+}
+
+body.play-start-active .play-menu-actions .option-button.grey.flow-action--secondary:hover {
+    border-color: rgba(255, 255, 255, 0.56);
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+body.play-start-active .play-menu-actions .option-button.grey.flow-action--secondary:focus-visible {
+    outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+    outline-offset: 2px;
+}
+
+/* The menu: one column of even doors under the crest on every screen, the
+   same column the phone dock holds. */
+body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    width: min(100%, 22rem);
+    max-width: 22rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-action {
+    width: 100%;
+    max-width: none;
+    min-height: 58px;
+    margin: 0;
+}
+
+/* Reserve the actual dock, including its padding, without flex shrinking it. */
+.play-start-panel > .flow-action-dock-placeholder {
+    flex: none;
+    min-height: var(--flow-action-dock-height, 0px);
+}
+
+/* Phones: the free space falls evenly above the title, between the title and
+   the crest, and below the crest; the menu waits at the foot of the stage. */
+@media (max-width: 760px) {
+    .play-start-panel {
+        --play-crest-size: min(68vw, 34dvh, 18rem);
+        justify-content: flex-start;
+        gap: 0;
+        padding-block: clamp(1rem, 4dvh, 2rem) calc(0.58rem + env(safe-area-inset-bottom));
+    }
+
+    .play-start-panel > .play-menu-hero {
+        margin-top: auto;
+    }
+
+    .play-start-panel > .play-menu-crest {
+        margin-block: auto;
+    }
+
+    .play-start-panel > .flow-action-dock-placeholder {
+        margin: 0;
+    }
+
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) {
+        width: min(100%, 408px);
+        max-width: 408px;
+        gap: 0.55rem;
+    }
+}
+
+/* Short landscape screens: a smaller crest and the doors side by side. */
+@media (max-height: 480px) {
+    .play-start-panel {
+        --play-crest-size: min(68vw, 26dvh, 7.5rem);
+        --play-lockup-gap: clamp(0.6rem, 3dvh, 1rem);
+        justify-content: center;
+        gap: var(--play-lockup-gap);
+        padding-block: 0.75rem;
+    }
+
+    .play-menu-wordmark {
+        --play-wordmark-size: 3.4rem;
+    }
+}
+
+@media (min-width: 480px) and (max-height: 480px) {
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked),
+    body.play-start-active .play-menu-actions.flow-action-stack--docked {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: min(100%, 36rem);
+        max-width: 36rem;
+    }
+
+    body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-action,
+    body.play-start-active .play-menu-actions.flow-action-stack--docked .flow-action {
+        width: 100%;
+        max-width: none;
+        min-height: 48px;
+    }
+}
+
+/* ===== Join: one entry stage =====
+   The track choice opens on the start screen's night stage: the same italic
+   title with its accent rule and the crest's halo. The two tracks rise out of
+   the stage's lower edge as tiles, each led by its entry price. Back and the lifestyle detour share the
+   muted foot band the apply card uses. */
+.play-hub-main .play-join-head {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding: 1.75rem 1.5rem 4.5rem;
+    border: 0;
+    border-radius: 0;
+    background:
+        radial-gradient(ellipse 34rem 15rem at 50% 0%,
+            rgba(25, 195, 209, 0.18) 0%,
+            rgba(25, 195, 209, 0.06) 55%,
+            rgba(25, 195, 209, 0) 100%),
+        var(--play-track-it-bg, #101820);
+    color: #ffffff;
+    text-align: center;
+    box-sizing: border-box;
+    box-shadow: none;
+}
+
+.play-hub-main .play-join-head .play-join-title {
+    margin: 0;
+    color: #ffffff;
+    font-size: 2.45rem;
+    font-weight: 700;
+    font-style: italic;
+    font-synthesis: style;
+    line-height: 1.05;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    text-shadow: 0 3px 10px rgba(0, 0, 0, 0.42);
+}
+
+/* The start screen's accent rule, under the title. */
+.play-hub-main .play-join-head .play-join-title::after {
+    content: "";
+    display: block;
+    width: 5.5rem;
+    height: 4px;
+    margin: 0.8rem auto 0.85rem;
+    border-radius: 999px;
+    background: var(--lwc-accent-bright, #19c3d1);
+}
+
+.play-hub-main .play-join-head .play-join-intro {
+    width: min(100%, 44rem);
+    margin: 0 auto;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 1rem;
+}
+
+.play-hub-main .play-join-head .play-join-intro strong {
+    color: #ffffff;
+}
+
+/* The tiles overlap the stage's lower edge. */
+.play-hub-main .play-join-cards {
+    position: relative;
+    z-index: 1;
+    margin-top: -3rem;
+}
+
+/* Each track: head, the price-led spec rows, then the biomarker list and the
+   action at the tile's foot. */
+.play-hub-main .play-join-card {
+    padding: 0;
+    border-radius: 12px;
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-md);
+}
+
+.play-hub-main .play-join-card--pro {
+    border-color: var(--lwc-success, #1f7a38);
+    box-shadow: 0 0 0 1px var(--lwc-success, #1f7a38), var(--lwc-shadow-md);
+}
+
+.play-join-card-head {
+    padding: 1.25rem min(1.35rem, 22px) 1rem;
+    border-bottom: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-muted);
+}
+
+.play-join-card--pro .play-join-card-head {
+    border-bottom-color: color-mix(in srgb, var(--lwc-success, #1f7a38) 35%, transparent);
+    background: var(--lwc-success-soft);
+}
+
+.play-hub-main .play-join-card-head .play-join-tagline {
+    margin: 0.2rem 0 0;
+}
+
+.play-hub-main .play-join-card .play-join-details {
+    padding: 0.35rem min(1.35rem, 22px) 1.35rem;
+}
+
+.play-hub-main .play-join-card .play-join-meta {
+    display: grid;
+    grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+    gap: 0;
+    align-items: stretch;
+    margin: 0 0 1rem;
+}
+
+.play-hub-main .play-join-card .play-join-meta dt,
+.play-hub-main .play-join-card .play-join-meta dd {
+    padding-block: 0.6rem;
+    border-top: 1px solid var(--lwc-border);
+    line-height: 1.5rem;
+}
+
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type,
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type + dd {
+    border-top: 0;
+}
+
+.play-hub-main .play-join-card .play-join-meta dt {
+    min-width: 0;
+    padding-right: 0.75rem;
+    box-sizing: border-box;
+    font-size: var(--lwc-type-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.play-hub-main .play-join-card .play-join-meta dd {
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+/* The entry price leads each tile as its headline figure; its label sits on
+   the price line even when a discount note follows the price. */
+.play-hub-main .play-join-card {
+    --join-price-size: 2.35rem;
+    --join-price-pad: 0.85rem;
+}
+
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type,
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type + dd {
+    padding-block: var(--join-price-pad) calc(var(--join-price-pad) + 0.1rem);
+}
+
+.play-hub-main .play-join-card .play-join-meta dt:first-of-type {
+    display: flex;
+    align-items: center;
+    align-self: start;
+    min-height: calc(var(--join-price-size) * 1.05 + var(--join-price-pad) * 2 + 0.1rem);
+}
+
+.play-hub-main .play-join-card .join-amateur-entry-cell > .pro-new-price,
+.play-hub-main .play-join-card #joinProEntryPrice {
+    display: inline-block;
+    min-width: 0;
+    color: var(--lwc-ink);
+    font-size: var(--join-price-size);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+.play-hub-main .play-join-card #joinProEntryPrice {
+    color: var(--lwc-success, #1f7a38);
+}
+
+.play-hub-main .play-join-card #joinProEntryPrice .pro-new-price {
+    font-weight: inherit;
+}
+
+.play-hub-main .play-join-card #joinProEntryPrice .pro-old-price {
+    color: var(--lwc-muted);
+    font-size: 0.5em;
+    font-weight: 600;
+    vertical-align: 0.35em;
+}
+
+/* The tagline clears the corner ribbon; once the ribbon turns into a badge
+   (cards at or under 18rem) the clearance collapses to nothing. */
+.play-hub-main .play-join-card--pro .play-join-tagline {
+    padding-right: min(3.75rem, max(0px, (100cqi - 18rem) * 1000));
+}
+
+.play-hub-main .play-join-card--pro .play-join-meta dt,
+.play-hub-main .play-join-card--pro .play-join-meta dd {
+    border-top-color: color-mix(in srgb, var(--lwc-success, #1f7a38) 22%, var(--lwc-border));
+}
+
+.play-hub-main .play-join-card .join-pro-entry-cell {
+    gap: 0.5rem;
+}
+
+.play-hub-main .play-join-card .pro-discount-box {
+    margin: 0.1rem 0 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 8px;
+    font-weight: 400;
+}
+
+.play-hub-main .play-join-card .play-join-biomarkers {
+    border: 1px solid var(--lwc-border);
+    border-radius: 8px;
+    background: var(--lwc-surface);
+}
+
+.play-hub-main .play-join-card--pro .play-join-biomarkers {
+    border-color: color-mix(in srgb, var(--lwc-success, #1f7a38) 35%, transparent);
+}
+
+.play-hub-main .play-join-card .play-join-biomarkers summary {
+    padding-inline: 0.9rem 0.6rem;
+}
+
+.play-hub-main .play-join-card .play-join-biomarkers ul {
+    padding: 0.15rem 0.9rem 0.9rem 2rem;
+}
+
+.play-hub-main .play-join-card .play-join-card-actions {
+    padding-top: 1rem;
+}
+
+/* Share the comparison rows as well as the actions. A discount belongs to the
+   entry row, so it must not push every following Pro spec out of alignment.
+   Query the track area instead of containing each tile; tiles need intrinsic
+   row sizes for subgrid. Tiles below 18rem only occur in the stacked layout. */
+@supports (grid-template-rows: subgrid) {
+    .play-hub-main .play-join-card {
+        display: grid;
+        grid-row: span 7;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        display: grid;
+        grid-row: span 6;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta {
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+    }
+
+    .play-hub-main .play-join-card .play-join-biomarkers {
+        margin-top: 0;
+        align-self: start;
+    }
+
+    .play-hub-main .play-join-card .play-join-card-actions {
+        align-self: end;
+    }
+}
+
+.play-hub-main .play-join-foot {
+    width: 100%;
+}
+
+/* Tablets and desktops: one card with the stage as its head and the apply
+   card's muted foot band. */
+@media (min-width: 761px) and (min-height: 600px) {
+    .play-hub-main .play-join-panel:not([hidden]) {
+        --join-pad: 1.5rem;
+        width: min(100%, 1040px);
+        margin: clamp(1rem, 3.5dvh, 2rem) auto 1.5rem;
+        padding: 0;
+        align-items: stretch;
+        overflow: hidden;
+        border: 1px solid var(--lwc-border);
+        border-radius: 16px;
+        background: var(--lwc-surface);
+        box-shadow: var(--lwc-shadow-md);
+        box-sizing: border-box;
+    }
+
+    .play-hub-main .play-join-head {
+        padding: 1.5rem var(--join-pad) 4.25rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-intro {
+        width: min(100%, 54rem);
+    }
+
+    .play-hub-main .play-join-head .play-join-title::after {
+        margin-block: 0.65rem 0.7rem;
+    }
+
+    .play-hub-main .play-join-cards {
+        margin-top: -2.85rem;
+    }
+
+    .play-hub-main .play-join-card {
+        --join-price-pad: 0.6rem;
+    }
+
+    .play-hub-main .play-join-card-head {
+        padding-block: 1rem 0.85rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        padding-bottom: 1.15rem;
+    }
+
+    .play-hub-main .play-join-cards {
+        gap: 1.25rem;
+        padding: 0 var(--join-pad) var(--join-pad);
+        box-sizing: border-box;
+    }
+
+    .play-hub-main .play-join-foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem 1.25rem;
+        padding: 0.9rem var(--join-pad);
+        border-top: 1px solid var(--lwc-border);
+        background: var(--lwc-surface-muted);
+        box-sizing: border-box;
+    }
+
+    .play-hub-main .play-join-foot .flow-action-stack.play-join-actions:not(.flow-action-stack--docked),
+    .play-hub-main .play-join-foot > .flow-action-dock-placeholder {
+        width: auto;
+        min-width: 9rem;
+        margin: 0;
+    }
+
+    .play-hub-main .play-join-foot .play-join-actions:not(.flow-action-stack--docked) #joinTrackBackBtn {
+        background: var(--lwc-surface);
+    }
+
+    .play-hub-main .play-join-foot .play-join-challenge-note {
+        flex: 1 1 18rem;
+        width: auto;
+        margin: 0;
+        text-align: right;
+    }
+}
+
+/* Shorter desktops keep both track actions and Back in the first screen. */
+@media (min-width: 761px) and (min-height: 600px) and (max-height: 820px) {
+    .play-hub-main .play-join-panel:not([hidden]) {
+        --join-pad: 1.1rem;
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .play-hub-main .play-join-head {
+        padding-block: 1rem 3.4rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-title {
+        font-size: 2.05rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-title::after {
+        margin-block: 0.5rem 0.55rem;
+    }
+
+    .play-hub-main .play-join-cards {
+        gap: 1rem;
+        margin-top: -2.4rem;
+    }
+
+    .play-hub-main .play-join-card-head {
+        padding-block: 0.8rem 0.65rem;
+    }
+
+    .play-hub-main .play-join-card .track-name {
+        font-size: 1.85rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        padding-bottom: 1.1rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta dt,
+    .play-hub-main .play-join-card .play-join-meta dd {
+        padding-block: 0.3rem;
+    }
+
+    .play-hub-main .play-join-card {
+        --join-price-size: 2rem;
+        --join-price-pad: 0.45rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta {
+        margin-bottom: 0.7rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-biomarkers summary {
+        min-height: 44px;
+    }
+
+    .play-hub-main .play-join-card .play-join-card-actions {
+        padding-top: 0.7rem;
+    }
+
+    .play-hub-main .play-join-foot {
+        padding-block: 0.6rem;
+    }
+
+    .play-hub-main .play-join-foot .play-join-actions .flow-action {
+        min-height: 44px;
+    }
+}
+
+/* Phones and short landscape screens: the stage runs edge to edge under the
+   site header and the tiles stack out of it. The band paints past the page
+   gutters with a spread shadow clipped to its own height, so it never adds
+   horizontal scroll. */
+@media (max-width: 760px), (max-height: 599px) {
+    .play-hub-main .play-join-panel:not([hidden]) {
+        padding-top: 0;
+    }
+
+    .play-hub-main .play-join-head {
+        padding: 1.5rem 0.25rem 3.75rem;
+        /* The halo fades out by the band's own edges, so it meets the painted
+           gutters without a seam. */
+        background:
+            radial-gradient(ellipse 50% 100% at 50% 0%,
+                rgba(25, 195, 209, 0.18) 0%,
+                rgba(25, 195, 209, 0.06) 55%,
+                rgba(25, 195, 209, 0) 100%),
+            var(--play-track-it-bg, #101820);
+        box-shadow: 0 0 0 100vmax var(--play-track-it-bg, #101820);
+        clip-path: inset(0 -100vmax);
+    }
+
+    .play-hub-main .play-join-head .play-join-intro {
+        font-size: 0.95rem;
+    }
+
+    .play-hub-main .play-join-cards {
+        margin-top: -2.5rem;
+    }
+
+    /* The detour reads right under the tracks; the dock's reserve follows it. */
+    .play-hub-main .play-join-foot {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .play-hub-main .play-join-foot .play-join-challenge-note {
+        margin-top: 1.1rem;
+    }
+
+    .play-hub-main .play-join-foot:has(> .flow-action-dock-placeholder:not([hidden])) .play-join-challenge-note {
+        order: -1;
+    }
+}
+
+@media (max-width: 600px) {
+    .play-hub-main .play-join-head {
+        padding: 1.35rem 0 3.5rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-title {
+        font-size: 2rem;
+    }
+
+    .play-hub-main .play-join-head .play-join-title::after {
+        width: 4.5rem;
+        margin-block: 0.65rem 0.7rem;
+    }
+
+    .play-hub-main .play-join-card-head {
+        padding: 1.1rem min(1rem, 16px) 0.9rem;
+    }
+
+    .play-hub-main .play-join-card .play-join-details {
+        padding: 0.25rem min(1rem, 16px) 1rem;
+    }
+
+    .play-hub-main .play-join-card {
+        --join-price-size: 2rem;
+    }
+}
+
+/* Pair each term with its value when a narrow tile or enlarged text needs
+   another line. The divider belongs to the pair, not both stacked cells. */
+@container play-track (max-width: 18rem) {
+    .play-hub-main .play-join-card,
+    .play-hub-main .play-join-card .play-join-details {
+        display: flex;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta {
+        grid-template-columns: minmax(0, 1fr);
+        /* Label/value pairs use separate rows once the cards stack narrowly. */
+        grid-template-rows: none;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta dt {
+        padding-bottom: 0.15rem;
+        padding-right: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta dd {
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    .play-hub-main .play-join-card .play-join-meta dt:first-of-type {
+        min-height: 0;
+    }
+}
+
+/* ===== Join in motion =====
+   Entering: the title rises on the stage, its accent rule draws, then the two
+   tracks rise out of the stage's edge one after the other. The foot only
+   fades, so the action dock always measures it in place. Hover lifts a track,
+   pressing its action gives way, and the chosen track holds the ring while the
+   other steps back as the apply flow takes over. */
+.play-hub-main .play-join-card {
+    transition:
+        transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.play-hub-main .play-join-card .play-join-card-actions .flow-action {
+    transition:
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)),
+        box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.play-hub-main .play-join-card .play-join-card-actions .flow-action > i {
+    transition: transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .play-hub-main .play-join-panel:not([data-join-choice]) .play-join-card:hover {
+        transform: translate3d(0, -4px, 0);
+        box-shadow: 0 0 0 1px var(--lwc-accent, #087685), 0 16px 36px rgba(15, 23, 42, 0.16);
+    }
+
+    .play-hub-main .play-join-panel:not([data-join-choice]) .play-join-card--pro:hover {
+        box-shadow: 0 0 0 2px var(--lwc-success, #1f7a38), 0 16px 36px rgba(15, 23, 42, 0.16);
+    }
+
+    .play-hub-main .play-join-card:hover .play-join-card-actions .flow-action:not(:disabled) > i {
+        transform: translate3d(3px, 0, 0);
+    }
+}
+
+.play-hub-main .play-join-card .play-join-card-actions .flow-action:not(:disabled):active,
+.play-hub-main .play-join-actions .play-join-mobile-track-action:not(:disabled):active {
+    transform: scale(0.97);
+}
+
+/* The choice is made: the chosen track keeps the ring, the other steps back. */
+.play-hub-main .play-join-panel[data-join-choice] .play-join-card {
+    pointer-events: none;
+}
+
+.play-hub-main .play-join-panel[data-join-choice="amateur"] .play-join-card:not(.play-join-card--pro),
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card--pro {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: 0 0 0 2px var(--lwc-accent, #087685), 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card--pro {
+    box-shadow: 0 0 0 3px var(--lwc-success, #1f7a38), 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.play-hub-main .play-join-panel[data-join-choice="amateur"] .play-join-card--pro,
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card:not(.play-join-card--pro) {
+    box-shadow: var(--lwc-shadow-sm);
+    transform: scale(0.98);
+}
+
+/* The tile's surface stays solid over the stage; only its contents fade. */
+.play-hub-main .play-join-card > * {
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.play-hub-main .play-join-panel[data-join-choice="amateur"] .play-join-card--pro > *,
+.play-hub-main .play-join-panel[data-join-choice="pro"] .play-join-card:not(.play-join-card--pro) > * {
+    opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .play-join-panel:not([hidden]) .play-join-head .play-join-title {
+        animation: play-join-title-rise 300ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-head .play-join-title::after {
+        animation: play-rule-draw 260ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 100ms both;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-head .play-join-intro {
+        animation: play-join-fade 240ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 80ms both;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-card {
+        animation: play-join-tile-rise 300ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 90ms backwards;
+    }
+
+    .play-join-panel:not([hidden]) .play-join-card--pro {
+        animation-delay: 150ms;
+    }
+
+    /* The footer stays readable and stationary while its actions are measured
+       and moved into the shared dock. The title and track tiles own arrival. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .play-hub-main .play-join-card,
+    .play-hub-main .play-join-card > *,
+    .play-hub-main .play-join-card .play-join-card-actions .flow-action,
+    .play-hub-main .play-join-card .play-join-card-actions .flow-action > i {
+        transition: none;
+    }
+
+    .play-hub-main .play-join-panel[data-join-choice] .play-join-card,
+    .play-hub-main .play-join-panel:not([data-join-choice]) .play-join-card:hover,
+    .play-hub-main .play-join-card:hover .play-join-card-actions .flow-action:not(:disabled) > i,
+    .play-hub-main .play-join-card .play-join-card-actions .flow-action:active,
+    .play-hub-main .play-join-actions .play-join-mobile-track-action:active {
+        transform: none;
+    }
+}
+
+@keyframes play-join-title-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 0.35em, 0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes play-join-tile-rise {
+    from {
+        transform: translate3d(0, 28px, 0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes play-join-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }

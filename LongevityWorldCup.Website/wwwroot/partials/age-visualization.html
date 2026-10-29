@@ -7,6 +7,21 @@
             <button type="button" role="tab" id="ageTabPheno" aria-selected="false" aria-controls="ageRadarWrapper">Pheno Age</button>
         </div>
     </div>
+    <div class="age-result-picker" id="ageResultPicker" hidden>
+        <button type="button" class="age-result-step" id="ageResultEarlier" aria-label="Earlier result" aria-controls="ageRadarWrapper">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
+        </button>
+        <div class="age-result-choice">
+            <select id="ageResultSelect" aria-label="Blood test result" aria-controls="ageRadarWrapper"></select>
+            <div class="age-result-current" id="ageResultCurrent">
+                <time id="ageResultDate"></time>
+                <svg class="age-result-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+            </div>
+        </div>
+        <button type="button" class="age-result-step" id="ageResultLater" aria-label="Later result" aria-controls="ageRadarWrapper">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg>
+        </button>
+    </div>
     <div class="age-radar-wrapper" id="ageRadarWrapper">
         <canvas id="ageRadarChart" role="img" aria-label="Domain percentile radar chart"></canvas>
     </div>

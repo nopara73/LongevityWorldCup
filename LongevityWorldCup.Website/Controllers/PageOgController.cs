@@ -25,7 +25,9 @@ public sealed class PageOgController(PageOgImageService pageOgImages) : Controll
         if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
             return NotFound();
 
-        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        Response.Headers.CacheControl = Request.Query["v"] == payload.Signature
+            ? "public, max-age=31536000, immutable"
+            : "public, max-age=0, must-revalidate";
         return PhysicalFile(path, "image/png");
     }
 }

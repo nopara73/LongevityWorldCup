@@ -15,6 +15,7 @@ interface Window {
     const documentRoot = document.documentElement;
     let deadline = 0;
     let recoveryObserver: MutationObserver | null = null;
+    let revealTimer = 0;
 
     function hold(): void {
         window.clearTimeout(deadline);
@@ -24,6 +25,8 @@ interface Window {
     }
 
     function prepare(): void {
+        window.clearTimeout(revealTimer);
+        delete documentRoot.dataset.lwcRevealed;
         documentRoot.dataset.initialView = 'pending';
         document.querySelectorAll<HTMLElement>('.initial-view-main').forEach(view => {
             view.setAttribute('aria-busy', 'true');
@@ -37,8 +40,27 @@ interface Window {
         deadline = window.setTimeout(fail, 15000);
     }
 
+    // A resolved task fades in over its placeholder instead of replacing it in
+    // one frame. Input is never blocked; reduced motion skips the handover.
+    function reveal(): void {
+        window.clearTimeout(revealTimer);
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        documentRoot.dataset.lwcRevealed = '';
+        const style = getComputedStyle(documentRoot);
+        const duration = parseFloat(style.getPropertyValue('--lwc-duration-normal')) || 220;
+        const easing = style.getPropertyValue('--lwc-ease').trim() || 'ease';
+        // Animations compose over each panel's own CSS motion without restarting it.
+        document.querySelectorAll<HTMLElement>('.initial-view-main > :not(.initial-view-recovery, .play-start-panel, [hidden])').forEach(panel => {
+            panel.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration, easing });
+        });
+        revealTimer = window.setTimeout(() => {
+            delete documentRoot.dataset.lwcRevealed;
+        }, duration + 80);
+    }
+
     function complete(): void {
         hold();
+        if (documentRoot.dataset.initialView === 'pending') reveal();
         delete documentRoot.dataset.initialView;
         document.querySelectorAll<HTMLElement>('.initial-view-main').forEach(view => {
             view.setAttribute('aria-busy', 'false');

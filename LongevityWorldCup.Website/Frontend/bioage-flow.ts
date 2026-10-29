@@ -37,6 +37,7 @@ type BioageUnitDisplayValue = (
 
 interface BioageResultRevealOptions {
     instant?: boolean;
+    userInitiated?: boolean;
 }
 
 interface BioageResultAnimationOptions {
@@ -47,6 +48,8 @@ interface BioageResultAnimationState {
     detailTimers: number[];
     frame: number;
     generation: number;
+    rankRevealCleanup: (() => void) | null;
+    revealScrollTop: number | null;
     settleTimer: number;
     startTimer: number;
 }
@@ -65,6 +68,7 @@ interface BioageBiomarkerEntryResult {
 
 interface BioageDraftField {
     checked?: boolean;
+    customDate?: boolean;
     selectedIndex?: number;
     value: string;
 }
@@ -94,7 +98,19 @@ interface BioageBiomarkerEntryController {
     step: 1 | 2;
 }
 
+interface BioageLiveInstrumentOptions {
+    clock: BioageClock;
+    calculate: () => void;
+    hide: () => void;
+    getStep: () => number;
+}
+
 interface LwcBioageFlowApi {
+    beginCalculation: () => void;
+    flushLiveInstrument: () => boolean;
+    canAutoCorrectUnit: (select: HTMLSelectElement) => boolean;
+    bindLiveInstrument: (options: BioageLiveInstrumentOptions) => void;
+    isLiveInstrumentBound: () => boolean;
     announceBioageResult: (
         resultElement: HTMLElement | null,
         announcement: string
@@ -641,6 +657,9 @@ interface Window {
             if (!control.id || (isUpdate && control.id.startsWith('dob-'))) return;
 
             const field: BioageDraftField = { value: control.value };
+            if (control.id === 'blood-draw-date') {
+                field.customDate = control.value === '';
+            }
             if (control instanceof HTMLInputElement && control.type === 'checkbox') {
                 field.checked = control.checked;
             }
@@ -735,6 +754,7 @@ interface Window {
         const draft = readBioageDraft(controller.clock, controller.athleteName);
         if (!draft) return false;
 
+        controller.draftFields = draft.fields;
         controller.hasPersistedDraft = true;
         controller.restoring = true;
         try {
@@ -759,10 +779,6 @@ interface Window {
                 });
             }
 
-            const negativeCrp = controller.form.querySelector<HTMLInputElement>('#crp-negative');
-            if (negativeCrp?.checked) {
-                negativeCrp.dispatchEvent(new Event('change', { bubbles: true }));
-            }
             controller.step = draft.step;
             return true;
         } finally {
@@ -777,26 +793,11 @@ interface Window {
             ?.querySelector<HTMLInputElement>('input[type="number"]') || null;
     }
 
-    function setBiomarkerCardExpanded(card: HTMLElement, expanded: boolean): void {
-        const header = card.querySelector<HTMLElement>('.biomarker-card-header');
-        const icon = header?.querySelector<HTMLElement>('.toggle-icon');
-        const content = card.querySelector<HTMLElement>('.biomarker-card-content');
-
-        card.classList.toggle('active', expanded);
-        header?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        if (icon) icon.textContent = expanded ? '−' : '+';
-        if (content) {
-            content.style.maxHeight = expanded ? `${content.scrollHeight}px` : '0';
-            content.style.paddingTop = expanded ? '0.75rem' : '0';
-            content.style.paddingBottom = expanded ? '0.75rem' : '0';
-        }
-    }
-
     function expandBiomarkerCard(field: string | Element | null | undefined): void {
         const input = getBiomarkerInput(field);
-        const card = input?.closest<HTMLElement>('.biomarker-card');
-        if (!card || card.classList.contains('active')) return;
-        setBiomarkerCardExpanded(card, true);
+        // Keep the existing restoration API, but the sheet's size and visibility
+        // belong to CSS. Focus and errors must never revive accordion controls.
+        input?.closest<HTMLElement>('.biomarker-card')?.classList.add('active');
     }
 
     function getBiomarkerLabel(input: HTMLInputElement): string {
@@ -840,32 +841,227 @@ interface Window {
         const error = getOrCreateBiomarkerError(input);
         if (error.hidden !== !visible) {
             error.hidden = !visible;
-            const card = input.closest<HTMLElement>('.biomarker-card');
-            if (card?.classList.contains('active')) setBiomarkerCardExpanded(card, true);
         }
         input.setAttribute('aria-invalid', visible ? 'true' : 'false');
+        document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`)
+            ?.classList.toggle('bioage-domain-pip--invalid', visible);
     }
 
-    function ensureBiomarkerVisible(input: HTMLInputElement): void {
+    // Each domain title carries one pip per biomarker, so a long panel shows
+    // where the gaps are without reading the rows.
+    function getOrCreateDomainPip(input: HTMLInputElement): HTMLElement | null {
+        const existing = document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`);
+        if (existing) return existing;
+        const legend = input.closest<HTMLFieldSetElement>('fieldset')?.querySelector<HTMLLegendElement>(':scope > legend');
+        if (!legend) return null;
+        let tally = legend.querySelector<HTMLElement>('.bioage-domain-tally');
+        if (!tally) {
+            tally = document.createElement('span');
+            tally.className = 'bioage-domain-tally';
+            tally.setAttribute('aria-hidden', 'true');
+            legend.appendChild(tally);
+        }
+        const pip = document.createElement('span');
+        pip.className = 'bioage-domain-pip';
+        pip.dataset.bioagePip = input.id;
+        tally.appendChild(pip);
+        return pip;
+    }
+
+    const primedBiomarkerControllers = new WeakSet<BioageBiomarkerEntryController>();
+    function syncDomainTallies(controller: BioageBiomarkerEntryController): void {
+        const domains = new Map<HTMLFieldSetElement, boolean>();
+        controller.inputs.forEach(input => {
+            const isComplete = input.dataset.bioageComplete === 'true';
+            getOrCreateDomainPip(input)?.classList.toggle('bioage-domain-pip--complete', isComplete);
+            const domain = input.closest<HTMLFieldSetElement>('fieldset');
+            if (domain) domains.set(domain, (domains.get(domain) ?? true) && isComplete);
+        });
+        domains.forEach((complete, domain) => {
+            const wasComplete = domain.classList.contains('bioage-domain--complete');
+            domain.classList.toggle('bioage-domain--complete', complete);
+            if (complete && !wasComplete && !controller.isUpdate && !controller.restoring && primedBiomarkerControllers.has(controller)) pulseClass(domain, 'bioage-domain--sealed', 720);
+        });
+        syncDomainWake(controller, domains);
+    }
+
+    // Domains wake one at a time: the panel being filled and the next one are
+    // fully lit, later ones wait slightly dimmed (still usable) until reached.
+    function syncDomainWake(
+        controller: BioageBiomarkerEntryController,
+        domains: Map<HTMLFieldSetElement, boolean>
+    ): void {
+        const ordered = Array.from(domains.keys());
+        if (controller.isUpdate || ordered.length < 3) {
+            ordered.forEach(domain => delete domain.dataset.bioageWake);
+            return;
+        }
+
+        const firstIncomplete = ordered.findIndex(domain => !domains.get(domain));
+        const frontier = firstIncomplete < 0 ? ordered.length : firstIncomplete;
+        ordered.forEach((domain, index) => {
+            const hasValue = Array.from(domain.querySelectorAll<HTMLInputElement>('input[type="number"]'))
+                .some(input => input.value.trim() !== '');
+            const awake = index <= frontier + 1 || domains.get(domain) || hasValue;
+            const next = awake ? 'awake' : 'dormant';
+            if (domain.dataset.bioageWake === 'dormant' && next === 'awake') {
+                domain.classList.add('bioage-domain--waking');
+                window.setTimeout(() => domain.classList.remove('bioage-domain--waking'), 520);
+            }
+            domain.dataset.bioageWake = next;
+        });
+    }
+
+    // A value far from the lab's usual range for the chosen unit is usually a
+    // unit mix-up, so the field nudges its unit cap instead of scolding.
+    const BIOAGE_FAR_RANGE_FACTOR: Record<string, number> = { crp: 60 };
+    function isBiomarkerValueFarFromExample(input: HTMLInputElement): boolean {
+        const raw = input.value.trim();
+        if (raw === '') return false;
+        const value = Number(raw);
+        if (!Number.isFinite(value)) return false;
+        if (value < 0) return true;
+        const example = Number.parseFloat(input.placeholder || '');
+        if (!Number.isFinite(example) || example <= 0 || value === 0) return false;
+        const factor = BIOAGE_FAR_RANGE_FACTOR[input.id] ?? 10;
+        const ratio = value / example;
+        return ratio > factor || ratio < 1 / factor;
+    }
+
+    function pulseClass(element: Element, className: string, durationMs: number): void {
+        if (prefersReducedBioageResultMotion()) return;
+        element.classList.remove(className);
+        // Restart the animation when the same reaction repeats.
+        void (element as HTMLElement).offsetWidth;
+        element.classList.add(className);
+        window.setTimeout(() => element.classList.remove(className), durationMs);
+    }
+
+    function syncBiomarkerFieldFeel(card: HTMLElement, input: HTMLInputElement, justCompleted: boolean): void {
+        const far = isBiomarkerValueFarFromExample(input);
+        const wasFar = card.dataset.bioageRange === 'far';
+        if (far) card.dataset.bioageRange = 'far';
+        else delete card.dataset.bioageRange;
+
+        if (far && !wasFar) {
+            pulseClass(card, 'bioage-card--nudge', 560);
+        } else if (justCompleted && !far) {
+            pulseClass(card, 'bioage-card--settled', 620);
+            const pip = document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`);
+            if (pip) pulseClass(pip, 'bioage-domain-pip--pop', 420);
+        }
+    }
+
+    // Section bands stick below whichever fixed site bars are showing.
+    let sectionBandOffsetFrame = 0;
+    function syncSectionBandOffset(): void {
+        sectionBandOffsetFrame = 0;
+        let top = 0;
+        ['site-sticky-header', 'site-sticky-progress'].forEach(id => {
+            const bar = document.getElementById(id);
+            if (!bar) return;
+            const style = getComputedStyle(bar);
+            if (style.position !== 'fixed' || style.visibility === 'hidden') return;
+            const rect = bar.getBoundingClientRect();
+            // The progress row starts at the header's bottom, not at zero.
+            if (rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) top = Math.max(top, rect.bottom);
+        });
+        const offset = `${Math.ceil(top)}px`;
+        if (document.documentElement.style.getPropertyValue('--bioage-band-top') !== offset) {
+            document.documentElement.style.setProperty('--bioage-band-top', offset);
+        }
+    }
+
+    function watchSectionBandOffset(): void {
+        if (document.documentElement.dataset.bioageBandOffset === 'true') return;
+        document.documentElement.dataset.bioageBandOffset = 'true';
+        const schedule = () => {
+            if (!sectionBandOffsetFrame) sectionBandOffsetFrame = window.requestAnimationFrame(syncSectionBandOffset);
+        };
+        const bars = ['site-sticky-header', 'site-sticky-progress']
+            .map(id => document.getElementById(id))
+            .filter((bar): bar is HTMLElement => bar !== null);
+        // Font loading, progress visibility and header reflow can change these
+        // bounds without a scroll or viewport resize. Observe only the bars;
+        // writing the form's offset cannot feed back into this observer.
+        const sizeObserver = new ResizeObserver(schedule);
+        const visibilityObserver = new MutationObserver(schedule);
+        let watching = false;
+        const start = () => {
+            if (watching) return;
+            watching = true;
+            bars.forEach(bar => {
+                sizeObserver.observe(bar);
+                visibilityObserver.observe(bar, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
+            });
+            window.addEventListener('scroll', schedule, { passive: true });
+            window.addEventListener('resize', schedule, { passive: true });
+            schedule();
+        };
+        const stop = () => {
+            watching = false;
+            sizeObserver.disconnect();
+            visibilityObserver.disconnect();
+            window.removeEventListener('scroll', schedule);
+            window.removeEventListener('resize', schedule);
+            window.cancelAnimationFrame(sectionBandOffsetFrame);
+            sectionBandOffsetFrame = 0;
+        };
+        window.addEventListener('pagehide', stop);
+        window.addEventListener('pageshow', start);
+        start();
+    }
+
+    function ensureBioageControlVisible(input: HTMLInputElement | HTMLSelectElement, immediate = false): void {
         const reveal = () => {
+            if (document.activeElement !== input || !input.isConnected) return;
             const dock = getFlowActionDock();
             dock?.refreshNow?.();
-            dock?.ensureClear?.(input, { margin: 16, behavior: 'auto' });
+            // The instrument controller may still be queued when a date receives
+            // focus. Read the fixed bars now, before relying on their observer.
+            if (immediate) {
+                window.cancelAnimationFrame(sectionBandOffsetFrame);
+                syncSectionBandOffset();
+            }
+            dock?.ensureClear?.(input, { margin: 16, behavior: immediate ? 'instant' : 'auto' });
 
             const visualViewport = window.visualViewport;
             const top = visualViewport?.offsetTop || 0;
             const bottom = top + (visualViewport?.height || window.innerHeight);
+            const band = input.closest('fieldset')?.querySelector<HTMLElement>(':scope > legend');
+            const bandHeight = band && getComputedStyle(band).position === 'sticky'
+                ? band.getBoundingClientRect().height : 0;
+            const rootStyle = getComputedStyle(document.documentElement);
+            const fixedBottom = parseFloat(rootStyle.getPropertyValue('--bioage-band-top')) || 0;
+            const clearTop = Math.max(top, fixedBottom) + bandHeight + 16;
+            const dockHeight = parseFloat(rootStyle.getPropertyValue('--flow-action-dock-height')) || 0;
+            const clearBottom = bottom - (immediate ? dockHeight : 0) - 16;
             const rect = input.getBoundingClientRect();
-            if (rect.bottom > bottom - 16 || rect.top < top + 16) {
+            const label = immediate ? input.labels?.item(0) : null;
+            const labelRect = label?.getBoundingClientRect();
+            // Keep the date caption with its control when the pair fits. Very
+            // tall labels stay reachable in the surrounding scroll surface.
+            const includeLabel = labelRect && labelRect.bottom <= rect.top + 1
+                && rect.bottom - labelRect.top <= clearBottom - clearTop;
+            const upperEdge = includeLabel ? Math.min(rect.top, labelRect.top) : rect.top;
+            if (upperEdge < clearTop) {
+                window.scrollBy({ top: Math.floor(upperEdge - clearTop), behavior: immediate ? 'instant' : 'auto' });
+            } else if (rect.bottom > clearBottom) {
                 input.scrollIntoView({
                     block: 'center',
                     inline: 'nearest',
-                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+                    behavior: immediate ? 'instant'
+                        : window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
                 });
             }
         };
 
-        window.requestAnimationFrame(() => window.requestAnimationFrame(reveal));
+        if (immediate) reveal();
+        const initialScroll = window.scrollY;
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+            // A new focus or deliberate scroll supersedes a pending correction.
+            if (!immediate || Math.abs(window.scrollY - initialScroll) <= 1) reveal();
+        }));
     }
 
     function syncFixedUnitPresentation(input: HTMLInputElement): void {
@@ -888,28 +1084,18 @@ interface Window {
         input.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
     }
 
+    // Every biomarker stays open, so headers are plain labels with a completion dot.
     function syncBiomarkerHeaderSemantics(controller: BioageBiomarkerEntryController): void {
-        const isMobile = bioageMobileMedia.matches;
         controller.form.querySelectorAll<HTMLElement>('.biomarker-card-header').forEach(header => {
-            const card = header.closest<HTMLElement>('.biomarker-card');
             const icon = header.querySelector<HTMLElement>('.toggle-icon');
             header.style.pointerEvents = '';
             header.style.cursor = '';
             header.removeAttribute('aria-disabled');
+            header.removeAttribute('role');
+            header.removeAttribute('tabindex');
+            header.removeAttribute('aria-expanded');
             icon?.setAttribute('aria-hidden', 'true');
-
-            if (isMobile) {
-                header.removeAttribute('role');
-                header.removeAttribute('tabindex');
-                header.removeAttribute('aria-expanded');
-                if (icon) icon.textContent = '';
-                return;
-            }
-
-            header.setAttribute('role', 'button');
-            header.tabIndex = 0;
-            header.setAttribute('aria-expanded', card?.classList.contains('active') ? 'true' : 'false');
-            if (icon) icon.textContent = card?.classList.contains('active') ? '−' : '+';
+            if (icon) icon.textContent = '';
         });
     }
 
@@ -918,9 +1104,13 @@ interface Window {
         const incompleteInputs: HTMLInputElement[] = [];
         controller.inputs.forEach(input => {
             const isComplete = isCompleteBiomarkerInput(input);
+            const wasComplete = input.dataset.bioageComplete === 'true';
             input.dataset.bioageComplete = isComplete ? 'true' : 'false';
-            input.closest<HTMLElement>('.biomarker-card')
-                ?.classList.toggle('biomarker-card--complete', isComplete);
+            const card = input.closest<HTMLElement>('.biomarker-card');
+            card?.classList.toggle('biomarker-card--complete', isComplete);
+            if (card && !controller.isUpdate && !controller.restoring) {
+                syncBiomarkerFieldFeel(card, input, primedBiomarkerControllers.has(controller) && isComplete && !wasComplete);
+            }
             if (isComplete) {
                 completed += 1;
                 setBiomarkerError(input, false);
@@ -929,6 +1119,7 @@ interface Window {
             }
             if (!isComplete) incompleteInputs.push(input);
         });
+        syncDomainTallies(controller);
         controller.inputs.forEach((input, index) => {
             const hasOtherIncompleteInput = incompleteInputs.some(candidate => candidate !== input);
             input.enterKeyHint = (controller.isUpdate
@@ -948,6 +1139,8 @@ interface Window {
             ? `${completed} new biomarker${completed === 1 ? '' : 's'}${completed > 0 && !hasBloodDrawDate ? ' · blood draw date required' : ''}`
             : `${completed} of ${total} biomarkers entered`;
         controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
+        primedBiomarkerControllers.add(controller);
+        controller.form.style.setProperty('--bioage-entry-progress', `${total > 0 ? Math.round(completed / total * 100) : 0}%`);
 
         // The flow dock portals the action stack out of the form on small screens.
         const calculateButton = document.querySelector<HTMLButtonElement>('.bioage-calculate-button');
@@ -969,7 +1162,7 @@ interface Window {
     function focusBiomarkerInput(input: HTMLInputElement): void {
         expandBiomarkerCard(input);
         input.focus();
-        ensureBiomarkerVisible(input);
+        ensureBioageControlVisible(input);
     }
 
     function getFollowingBiomarkerInput(
@@ -1001,23 +1194,6 @@ interface Window {
     }
 
     function bindBiomarkerEntry(controller: BioageBiomarkerEntryController): void {
-        controller.form.querySelectorAll<HTMLElement>('.biomarker-card-header').forEach(header => {
-            if (header.dataset.bioageEntryBound === 'true') return;
-            header.dataset.bioageEntryBound = 'true';
-
-            const toggle = () => {
-                if (bioageMobileMedia.matches) return;
-                const card = header.closest<HTMLElement>('.biomarker-card');
-                if (card) setBiomarkerCardExpanded(card, !card.classList.contains('active'));
-            };
-            header.addEventListener('click', toggle);
-            header.addEventListener('keydown', event => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                toggle();
-            });
-        });
-
         const recordDraftInput = (event: Event) => {
             if (!controller.restoring) clearStoredBiomarkerHandoff();
             captureBioageDraftEdit(controller, event.target);
@@ -1031,8 +1207,10 @@ interface Window {
 
             input.addEventListener('focus', () => {
                 expandBiomarkerCard(input);
-                ensureBiomarkerVisible(input);
+                ensureBioageControlVisible(input);
             });
+            const unit = controller.form.querySelector<HTMLSelectElement>(`#${input.id}Unit`);
+            unit?.addEventListener('focus', () => ensureBioageControlVisible(unit));
             window.LwcFieldValidation.bind(input, {
                 validate: () => {
                     const valid = isCompleteBiomarkerInput(input)
@@ -1062,7 +1240,7 @@ interface Window {
                 }
                 if (!isCompleteBiomarkerInput(input)) {
                     setBiomarkerError(input, true);
-                    ensureBiomarkerVisible(input);
+                    ensureBioageControlVisible(input);
                     return;
                 }
                 moveToNextBiomarker(controller, input);
@@ -1084,7 +1262,7 @@ interface Window {
             setBiomarkerError(input, true);
             window.requestAnimationFrame(() => {
                 input.focus();
-                ensureBiomarkerVisible(input);
+                ensureBioageControlVisible(input);
             });
             window.setTimeout(() => {
                 controller.invalidBatchActive = false;
@@ -1095,7 +1273,48 @@ interface Window {
             syncBiomarkerHeaderSemantics(controller);
             getFlowActionDock()?.refresh?.();
         });
-        window.addEventListener('pagehide', () => saveBioageDraft(controller));
+        window.addEventListener('pagehide', () => {
+            saveBioageDraft(controller);
+            // Update views reload on cached return. Late commits from their
+            // calculated DOM must not replace the raw draft while inactive.
+            if (controller.isUpdate) controller.restoring = true;
+        });
+    }
+
+    function initializeBloodDrawDate(form: HTMLFormElement, defaultToToday: boolean): void {
+        const input = form.querySelector<HTMLInputElement>('#blood-draw-date');
+        const control = input?.closest<HTMLElement>('.blood-draw-date-control');
+        const label = control?.querySelector<HTMLElement>('.blood-draw-relative-label');
+        if (!input || !control || !label) return;
+
+        const localDate = (daysAgo: number) => {
+            const date = new Date();
+            date.setDate(date.getDate() - daysAgo);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        };
+        if (!input.value && defaultToToday) input.value = localDate(0);
+
+        const sync = () => {
+            input.max = localDate(0);
+            label.textContent = input.value === localDate(0) ? 'Today'
+                : input.value === localDate(1) ? 'Yesterday' : '';
+            label.hidden = !label.textContent;
+            control.classList.toggle('has-relative-date', !!label.textContent);
+        };
+        const openPicker = () => {
+            if (typeof input.showPicker === 'function' && !input.disabled) {
+                try { input.showPicker(); } catch (_) { }
+            }
+        };
+
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
+        input.addEventListener('click', openPicker);
+        window.addEventListener('pageshow', sync);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) sync();
+        });
+        sync();
     }
 
     function initializeBiomarkerEntry(options: BioageBiomarkerEntryOptions): BioageBiomarkerEntryResult {
@@ -1145,12 +1364,17 @@ interface Window {
             step: 1
         };
 
+        // Update drafts own raw values and units. Native history restoration
+        // must not reapply calculation-filled controls after that draft loads.
+        if (controller.isUpdate) options.form.autocomplete = 'off';
         options.form.classList.add('bioage-biomarker-entry-ready');
         biomarkerEntryControllers.set(options.clock, controller);
         bindBiomarkerEntry(controller);
         syncBiomarkerHeaderSemantics(controller);
+        watchSectionBandOffset();
 
         const restoredDraft = options.restoreDraft !== false && restoreBioageDraft(controller);
+        initializeBloodDrawDate(controller.form, !restoredDraft || controller.draftFields['blood-draw-date']?.customDate !== true);
         controller.draftFields = serializeDraftFields(controller.form, controller.isUpdate);
         syncBiomarkerExamplePlaceholders(options.form);
         syncBiomarkerCompletion(controller);
@@ -1173,6 +1397,15 @@ interface Window {
         if (!controller) return;
         controller.step = step === 2 ? 2 : 1;
         scheduleBioageDraftSave(controller);
+        if (isLiveInstrumentBound()) {
+            if (step === 1) {
+                cancelLiveCalculation();
+                liveInstrumentOptions?.hide();
+                syncLiveReadout(0);
+            } else if (liveResultValues.has(getLiveResultElement()!)) {
+                scheduleLiveInstrument(true);
+            }
+        }
     }
 
     function isUpdateMode(search?: string): boolean {
@@ -1338,6 +1571,8 @@ interface Window {
             detailTimers: [],
             frame: 0,
             generation: 0,
+            rankRevealCleanup: null,
+            revealScrollTop: null,
             settleTimer: 0,
             startTimer: 0
         };
@@ -1352,6 +1587,8 @@ interface Window {
     function clearBioageResultAnimation(resultElement: HTMLElement): BioageResultAnimationState {
         const state = getBioageResultAnimationState(resultElement);
         state.generation += 1;
+        state.rankRevealCleanup?.();
+        state.revealScrollTop = null;
         if (state.frame) {
             window.cancelAnimationFrame(state.frame);
             state.frame = 0;
@@ -1369,6 +1606,7 @@ interface Window {
 
         const container = getBioageResultValueContainer(resultElement);
         container?.classList.remove(
+            'bioage-result-reveal--live',
             'bioage-result-reveal--waiting',
             'bioage-result-reveal--counting',
             'bioage-result-reveal--settling');
@@ -1466,12 +1704,39 @@ interface Window {
             return;
         }
         if (!Number.isFinite(finalAge)) {
+            liveResultValues.delete(resultElement);
+            syncLiveReadout(0);
             visualValue.textContent = '';
             container.dataset.bioageRevealState = 'idle';
             return;
         }
 
         const finalText = formatBioageResultVisualValue(finalAge);
+        container.style.setProperty('--bioage-result-characters', String(finalText.length));
+        const previousValue = liveResultValues.get(resultElement);
+        liveResultValues.set(resultElement, finalAge);
+        if (isLiveInstrumentBound()) {
+            syncGapMeter(resultElement);
+            // Place an explicitly requested live result before its number reveal
+            // starts; a smooth scroll can outlast the bounded animation start and
+            // race the instant alignment performed by that animation.
+            if (!liveRunActive) scheduleBioageResultReveal(resultElement, { instant: true });
+        }
+        syncLiveReadout(previousValue === undefined || finalAge >= previousValue ? 1 : -1);
+        if (liveRunActive && !animationOptions.instant && !prefersReducedBioageResultMotion()) {
+            const arriving = liveFirstArrival || previousValue === undefined || !Number.isFinite(previousValue);
+            const from = arriving ? Math.max(0, finalAge - Math.min(18, Math.abs(finalAge))) : previousValue;
+            container.classList.add('bioage-result-reveal--live');
+            container.dataset.bioageRevealState = 'complete';
+            setBioageResultStage(resultElement, arriving ? 'age' : 'rank');
+            if (!arriving) pulseClass(container, 'bioage-result-reveal--nudge', 520);
+            visualValue.textContent = formatBioageResultVisualValue(from);
+            tweenRollingValue(visualValue, from, finalAge, state, generation, () => {
+                if (arriving) scheduleBioageResultDetails(resultElement, state, generation);
+            });
+            return;
+        }
+        container.classList.remove('bioage-result-reveal--live');
         setBioageResultStage(resultElement, 'age');
         if (animationOptions.instant || prefersReducedBioageResultMotion()) {
             visualValue.textContent = finalText;
@@ -1662,7 +1927,10 @@ interface Window {
     function getBioageResultRevealScrollTop(resultElement: HTMLElement): number {
         const rect = resultElement.getBoundingClientRect();
         const viewportBounds = getBioageResultViewportBounds();
-        const targetTop = rect.height >= viewportBounds.height
+        // Align a pending rank near the top rather than centring its temporary
+        // loading state. Later reader movement must retain its own position.
+        const rankPending = resultElement.querySelector('[data-bioage-result-rank][aria-busy="true"]');
+        const targetTop = rankPending || rect.height >= viewportBounds.height
             ? viewportBounds.top
             : viewportBounds.top + ((viewportBounds.height - rect.height) / 2);
 
@@ -1675,15 +1943,64 @@ interface Window {
     ): void {
         if (!resultElement) return;
 
+        // An explicit reveal must measure the settled card. Sampling its arrival
+        // transform would leave the label behind the header once the card lands.
+        resultElement.getAnimations().forEach(animation => {
+            if (animation instanceof CSSAnimation && animation.animationName === 'bioage-card-settle') {
+                animation.finish();
+            }
+        });
+
         getFlowActionDock()?.refreshNow?.();
 
-        if (isBioageResultComfortablyVisible(resultElement)) return;
+        const state = getBioageResultAnimationState(resultElement);
+        if (revealOptions.userInitiated) {
+            state.rankRevealCleanup?.();
+            state.revealScrollTop = null;
+        }
+        if (state.revealScrollTop !== null && Math.abs(window.scrollY - state.revealScrollTop) > 2) return;
+        const rankPending = resultElement.querySelector('[data-bioage-result-rank][aria-busy="true"]');
+        if (!rankPending && isBioageResultComfortablyVisible(resultElement)) return;
 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const targetScrollTop = getBioageResultRevealScrollTop(resultElement);
+        const maxScrollTop = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - window.innerHeight;
+        // Large-text forms can require several screens of travel. Avoid racing
+        // that long smooth scroll with the result animation's bounded start.
+        const longScroll = Math.abs(targetScrollTop - window.scrollY) > window.innerHeight;
+        const instant = prefersReducedMotion || revealOptions.instant || longScroll;
         window.scrollTo({
-            top: getBioageResultRevealScrollTop(resultElement),
-            behavior: prefersReducedMotion || revealOptions.instant ? 'auto' : 'smooth',
+            top: targetScrollTop,
+            behavior: instant ? 'instant' : 'smooth',
         });
+        if (instant) state.revealScrollTop = window.scrollY;
+
+        // The loading card can leave too little document below it to reach the
+        // target yet. Finish that initial scroll once, when rank loading ends,
+        // only if the reader has not moved or interacted in the meantime.
+        if (rankPending && targetScrollTop > maxScrollTop + 2) {
+            state.rankRevealCleanup?.();
+            const generation = state.generation;
+            const expectedScroll = Math.max(0, maxScrollTop);
+            const inputEvents = ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const;
+            const cleanup = (): void => {
+                observer.disconnect();
+                inputEvents.forEach(event => window.removeEventListener(event, cleanup));
+                state.rankRevealCleanup = null;
+            };
+            const observer = new MutationObserver(() => {
+                if (rankPending.getAttribute('aria-busy') === 'true') return;
+                cleanup();
+                window.setTimeout(() => {
+                    if (state.generation !== generation || getShownBioageResultElement() !== resultElement) return;
+                    if (Math.abs(window.scrollY - expectedScroll) > 2) return;
+                    revealBioageResult(resultElement, { instant: true });
+                }, prefersReducedMotion ? 0 : BIOAGE_RESULT_SCROLL_SETTLE_MS);
+            });
+            state.rankRevealCleanup = cleanup;
+            inputEvents.forEach(event => window.addEventListener(event, cleanup, { passive: true, once: true }));
+            observer.observe(rankPending, { attributes: true, attributeFilter: ['aria-busy'] });
+        }
 
         window.setTimeout(
             () => getFlowActionDock()?.refresh?.(),
@@ -1705,6 +2022,7 @@ interface Window {
         revealOptions: BioageResultRevealOptions = {}
     ): void {
         if (!resultElement) return;
+        if (isLiveRevealSuppressed()) return;
         pendingResultRevealElement = resultElement;
         pendingResultRevealInstant ||= !!revealOptions.instant;
         if (resultRevealFrame) return;
@@ -1783,7 +2101,366 @@ interface Window {
         if (wizardNav) wizardNav.hidden = true;
     }
 
+    // ---- Live instrument -------------------------------------------------
+    // Once the panel is complete the result follows every edit: the age rolls
+    // to its new value, the gap meter glides, and nothing scrolls the page
+    // away from the field being typed in.
+    const BIOAGE_LIVE_INPUT_IDLE_MS = 420;
+    const BIOAGE_LIVE_COMMIT_IDLE_MS = 90;
+    const BIOAGE_LIVE_GAP_SPAN_YEARS = 12;
+    let liveInstrumentOptions: BioageLiveInstrumentOptions | null = null;
+    let liveRunActive = false;
+    let liveFirstArrival = false;
+    let liveRevealSuppressed = false;
+    let liveTimer = 0;
+    let liveReadout: HTMLButtonElement | null = null;
+    let liveResultVisible = true;
+    const liveResultValues = new WeakMap<HTMLElement, number>();
+    const manuallySelectedUnits = new WeakSet<HTMLSelectElement>();
+
+    function canAutoCorrectUnit(select: HTMLSelectElement): boolean {
+        return !isLiveInstrumentBound() || !manuallySelectedUnits.has(select);
+    }
+
+    function cancelLiveCalculation(): void {
+        if (liveTimer) window.clearTimeout(liveTimer);
+        liveTimer = 0;
+    }
+
+    function beginCalculation(): void {
+        if (!isLiveInstrumentBound()) return;
+        cancelLiveCalculation();
+        if (!liveRunActive) liveRevealSuppressed = false;
+        getLiveResultElement()?.classList.remove('bioage-result--stale');
+        const next = document.querySelector<HTMLButtonElement>('#continueButton');
+        if (next) next.disabled = true;
+    }
+
+    // A handoff must use one validated reading of the current fields, even when
+    // invoked before input/change debounce or outside the button's click path.
+    function flushLiveInstrument(): boolean {
+        if (!isLiveInstrumentBound()) return true;
+        cancelLiveCalculation();
+        return runLiveInstrument(true);
+    }
+
+    function isLiveInstrumentBound(): boolean {
+        return !!liveInstrumentOptions && !isUpdateMode();
+    }
+
+    function isLiveRevealSuppressed(): boolean {
+        return liveRunActive || liveRevealSuppressed;
+    }
+
+    function getLiveResultElement(): HTMLElement | null {
+        if (!liveInstrumentOptions) return null;
+        return document.getElementById(liveInstrumentOptions.clock === 'pheno' ? 'phenoAgeResult' : 'bortzAgeResult');
+    }
+
+    // Each character is its own cell; a changed digit rolls in from below when
+    // the value rises and from above when it falls. The old digit is drawn by
+    // ::before from data-roll-from, so textContent always reads the new value.
+    function renderRollingText(element: HTMLElement, text: string, direction: number): void {
+        const previous = element.textContent ?? '';
+        if (prefersReducedBioageResultMotion() || previous === text) {
+            if (element.textContent !== text) element.textContent = text;
+            return;
+        }
+
+        const offset = text.length - previous.length;
+        const fragment = document.createDocumentFragment();
+        Array.from(text).forEach((character, index) => {
+            const cell = document.createElement('span');
+            cell.className = 'bioage-roll';
+            cell.textContent = character;
+            const before = previous[index - offset] ?? '';
+            if (before !== character && /\d/.test(character)) {
+                cell.dataset.rollFrom = /\d/.test(before) ? before : '';
+                cell.classList.add(direction >= 0 ? 'bioage-roll--up' : 'bioage-roll--down');
+            }
+            fragment.appendChild(cell);
+        });
+        element.replaceChildren(fragment);
+    }
+
+    function tweenRollingValue(
+        element: HTMLElement,
+        from: number,
+        to: number,
+        state: BioageResultAnimationState,
+        generation: number,
+        onDone?: () => void
+    ): void {
+        const direction = to >= from ? 1 : -1;
+        const distance = Math.abs(to - from);
+        const duration = Math.min(820, 300 + distance * 45);
+        const startedAt = window.performance.now();
+        let lastWrite = 0;
+        const step = (now: number): void => {
+            if (state.generation !== generation) return;
+            const progress = Math.min(1, (now - startedAt) / duration);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            if (progress >= 1) {
+                state.frame = 0;
+                renderRollingText(element, formatBioageResultVisualValue(to), direction);
+                onDone?.();
+                return;
+            }
+            // Writes are spaced so each digit's roll is readable, not a blur.
+            if (now - lastWrite >= 55) {
+                lastWrite = now;
+                renderRollingText(element, formatBioageResultVisualValue(from + (to - from) * eased), direction);
+            }
+            state.frame = window.requestAnimationFrame(step);
+        };
+        state.frame = window.requestAnimationFrame(step);
+    }
+
+    function readResultGap(resultElement: HTMLElement): number | null {
+        const text = resultElement.querySelector<HTMLElement>('[data-bioage-result-difference]')?.textContent || '';
+        const match = text.match(/([+-])\s*(\d+(?:\.\d+)?)/);
+        if (!match) return /years/.test(text) ? 0 : null;
+        const magnitude = Number(match[2]);
+        return match[1] === '-' ? -magnitude : magnitude;
+    }
+
+    function ensureGapMeter(resultElement: HTMLElement): HTMLElement | null {
+        const difference = resultElement.querySelector<HTMLElement>('[data-bioage-result-difference]');
+        if (!difference) return null;
+        let meter = resultElement.querySelector<HTMLElement>('.bioage-gap-meter');
+        if (!meter) {
+            meter = document.createElement('div');
+            meter.className = 'bioage-gap-meter';
+            meter.setAttribute('aria-hidden', 'true');
+            ['track', 'fill', 'origin', 'needle'].forEach(part => {
+                const piece = document.createElement('span');
+                piece.className = `bioage-gap-meter__${part}`;
+                meter?.appendChild(piece);
+            });
+            difference.insertAdjacentElement('afterend', meter);
+        }
+        return meter;
+    }
+
+    function syncGapMeter(resultElement: HTMLElement): void {
+        const meter = ensureGapMeter(resultElement);
+        const gap = readResultGap(resultElement);
+        if (!meter || gap === null) return;
+        const ratio = Math.max(-1, Math.min(1, gap / BIOAGE_LIVE_GAP_SPAN_YEARS));
+        meter.style.setProperty('--bioage-gap-start', `${50 + Math.min(0, ratio) * 50}%`);
+        meter.style.setProperty('--bioage-gap-size', `${Math.abs(ratio) * 50}%`);
+        meter.style.setProperty('--bioage-gap-needle', `${50 + ratio * 50}%`);
+        meter.dataset.bioageGapTone = gap < -2 ? 'excellent' : gap < 0 ? 'good' : 'average';
+    }
+
+    function ensureLiveReadout(): HTMLButtonElement {
+        if (liveReadout) return liveReadout;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'bioage-live-readout';
+        button.hidden = true;
+        const value = document.createElement('span');
+        value.className = 'bioage-live-readout__value';
+        const gap = document.createElement('span');
+        gap.className = 'bioage-live-readout__gap';
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-arrow-down';
+        icon.setAttribute('aria-hidden', 'true');
+        gap.append(icon, document.createElement('span'));
+        button.append(value, gap);
+        button.addEventListener('click', () => {
+            const resultElement = getShownBioageResultElement();
+            if (resultElement) revealBioageResult(resultElement, { userInitiated: true });
+        });
+        document.body.appendChild(button);
+        liveReadout = button;
+        return button;
+    }
+
+    function syncLiveReadout(direction: number): void {
+        if (!isLiveInstrumentBound()) return;
+        const resultElement = getShownBioageResultElement();
+        const readout = ensureLiveReadout();
+        const age = resultElement ? liveResultValues.get(resultElement) : undefined;
+        const gap = resultElement ? readResultGap(resultElement) : null;
+        const shouldShow = !!resultElement && age !== undefined && Number.isFinite(age) && !liveResultVisible
+            && !resultElement.classList.contains('bioage-result--stale')
+            && liveInstrumentOptions?.getStep() === 2;
+        readout.classList.toggle('bioage-live-readout--shown', shouldShow);
+        readout.inert = !shouldShow;
+        if (shouldShow) readout.hidden = false;
+        else if (!readout.hidden) {
+            // Leave the exit transition time to run before removing it.
+            window.setTimeout(() => {
+                if (!readout.classList.contains('bioage-live-readout--shown')) readout.hidden = true;
+            }, 260);
+        }
+        if (!resultElement || age === undefined || !Number.isFinite(age)) return;
+
+        const valueText = formatBioageResultVisualValue(age);
+        const valueElement = readout.querySelector<HTMLElement>('.bioage-live-readout__value');
+        if (valueElement) renderRollingText(valueElement, valueText, direction);
+        const gapText = readout.querySelector<HTMLElement>('.bioage-live-readout__gap span');
+        const gapIcon = readout.querySelector<HTMLElement>('.bioage-live-readout__gap i');
+        if (gapText && gap !== null) renderRollingText(gapText, Math.abs(gap).toFixed(1), direction);
+        if (gapIcon) gapIcon.className = `fas ${gap !== null && gap > 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`;
+        readout.dataset.bioageGapTone = gap === null ? 'good' : gap < -2 ? 'excellent' : gap < 0 ? 'good' : 'average';
+        readout.setAttribute('aria-label', `${valueText} (${gap !== null && gap > 0 ? '+' : '-'}${Math.abs(gap ?? 0).toFixed(1)})`);
+    }
+
+    function watchLiveResultVisibility(resultElement: HTMLElement): void {
+        if (typeof IntersectionObserver !== 'function' || resultElement.dataset.bioageLiveWatched === 'true') return;
+        resultElement.dataset.bioageLiveWatched = 'true';
+        const target = resultElement.querySelector<HTMLElement>('.bio-age-number-container') || resultElement;
+        const observer = new IntersectionObserver(entries => {
+            const entry = entries[entries.length - 1];
+            liveResultVisible = !!entry?.isIntersecting;
+            syncLiveReadout(0);
+        }, { threshold: 0.35 });
+        observer.observe(target);
+    }
+
+    function morphUnitSelect(select: HTMLSelectElement, automatic: boolean): void {
+        const group = select.closest<HTMLElement>('.input-group');
+        const input = group?.querySelector<HTMLInputElement>('input[type="number"]');
+        if (prefersReducedBioageResultMotion() || !group) return;
+        const easing = 'cubic-bezier(0.2, 0, 0, 1)';
+        select.animate([
+            { transform: 'translateY(55%)', opacity: 0 },
+            { transform: 'translateY(0)', opacity: 1 }
+        ], { duration: 240, easing });
+        input?.animate([
+            { transform: 'scale(0.96)', opacity: 0.35, filter: 'blur(1.5px)' },
+            { transform: 'scale(1)', opacity: 1, filter: 'blur(0)' }
+        ], { duration: 280, easing });
+        pulseClass(group, automatic ? 'bioage-unit--auto' : 'bioage-unit--morph', 700);
+    }
+
+    function readUnitValues(form: HTMLFormElement): Map<HTMLSelectElement, string> {
+        const values = new Map<HTMLSelectElement, string>();
+        form.querySelectorAll<HTMLSelectElement>('#lwc-step-2 select[id$="Unit"]').forEach(select => values.set(select, select.value + '|' + select.selectedIndex));
+        return values;
+    }
+
+    function isLivePanelReady(controller: BioageBiomarkerEntryController): boolean {
+        const form = controller.form;
+        const year = form.querySelector<HTMLSelectElement>('#dob-year');
+        const drawDate = form.querySelector<HTMLInputElement>('#blood-draw-date');
+        const month = Number(form.querySelector<HTMLSelectElement>('#dob-month')?.value || 12);
+        const day = Number(form.querySelector<HTMLSelectElement>('#dob-day')?.value || 31);
+        const birth = new Date(Number(year?.value), month - 1, day);
+        const draw = new Date(`${drawDate?.value}T00:00:00`);
+        return !!year?.value && year.validity.valid
+            && !!drawDate?.value && drawDate.validity.valid
+            && Number.isFinite(birth.getTime()) && Number.isFinite(draw.getTime())
+            && birth <= draw
+            && (controller.clock !== 'bortz' || Number(form.querySelector<HTMLInputElement>('#wbc')?.value) > 0)
+            && controller.inputs.length > 0
+            && controller.inputs.every(isCompleteBiomarkerInput);
+    }
+
+    function runLiveInstrument(commit: boolean): boolean {
+        liveTimer = 0;
+        const options = liveInstrumentOptions;
+        if (!options || isUpdateMode() || options.getStep() !== 2) return false;
+        const controller = biomarkerEntryControllers.get(options.clock);
+        const resultElement = getLiveResultElement();
+        if (!controller || !resultElement) return false;
+
+        const shown = resultElement.classList.contains('show');
+        if (!isLivePanelReady(controller)) {
+            if (!shown) return false;
+            if (commit) {
+                resultElement.classList.remove('bioage-result--stale');
+                options.hide();
+            } else {
+                resultElement.classList.add('bioage-result--stale');
+            }
+            syncLiveReadout(0);
+            return false;
+        }
+
+        resultElement.classList.remove('bioage-result--stale');
+        const unitsBefore = readUnitValues(controller.form);
+        liveRunActive = true;
+        liveFirstArrival = !shown;
+        liveRevealSuppressed = true;
+        try {
+            options.calculate();
+        } finally {
+            liveRunActive = false;
+        }
+        unitsBefore.forEach((before, select) => {
+            if (select.value + '|' + select.selectedIndex !== before) morphUnitSelect(select, true);
+        });
+        if (!shown && resultElement.classList.contains('show')) {
+            resultElement.classList.add('bioage-result--arrived');
+            window.setTimeout(() => resultElement.classList.remove('bioage-result--arrived'), 900);
+        }
+        const next = document.querySelector<HTMLButtonElement>('#continueButton');
+        return !!next && next.classList.contains('show') && !next.disabled
+            && Number.isFinite(liveResultValues.get(resultElement));
+    }
+
+    function scheduleLiveInstrument(commit: boolean): void {
+        cancelLiveCalculation();
+        clearScheduledBioageResultReveals();
+        const next = document.querySelector<HTMLButtonElement>('#continueButton');
+        if (next) next.disabled = true;
+        const result = getLiveResultElement();
+        if (result?.classList.contains('show')) result.classList.add('bioage-result--stale');
+        if (liveInstrumentOptions?.getStep() !== 2) {
+            liveInstrumentOptions?.hide();
+            syncLiveReadout(0);
+            return;
+        }
+        syncLiveReadout(0);
+        liveTimer = window.setTimeout(
+            () => runLiveInstrument(commit),
+            commit ? BIOAGE_LIVE_COMMIT_IDLE_MS : BIOAGE_LIVE_INPUT_IDLE_MS);
+    }
+
+    function bindLiveInstrument(options: BioageLiveInstrumentOptions): void {
+        if (isUpdateMode()) return;
+        liveInstrumentOptions = options;
+        const controller = biomarkerEntryControllers.get(options.clock);
+        const resultElement = getLiveResultElement();
+        if (!controller || !resultElement) return;
+
+        controller.form.classList.add('bioage-live-instrument');
+        ensureGapMeter(resultElement);
+        watchLiveResultVisibility(resultElement);
+        controller.form.addEventListener('input', event => {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) scheduleLiveInstrument(false);
+        });
+        controller.form.addEventListener('change', event => {
+            if (event.target instanceof HTMLSelectElement && /Unit$/.test(event.target.id)) {
+                manuallySelectedUnits.add(event.target);
+                morphUnitSelect(event.target, false);
+            }
+            scheduleLiveInstrument(true);
+        });
+        controller.form.addEventListener('focusout', event => {
+            if (liveTimer && event.target instanceof HTMLInputElement) scheduleLiveInstrument(true);
+        });
+    }
+
+    // This module blocks parsing before the form. Capture date focus from the
+    // first interactive frame, independently of the later instrument setup.
+    document.addEventListener('focus', event => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement || input instanceof HTMLSelectElement)
+            || !input.matches('#dob-year, #dob-month, #dob-day, #blood-draw-date')
+            || !input.closest('form.bioageform')) return;
+        ensureBioageControlVisible(input, true);
+    }, true);
+
     window.LwcBioageFlow = {
+        beginCalculation,
+        flushLiveInstrument,
+        canAutoCorrectUnit,
+        bindLiveInstrument,
+        isLiveInstrumentBound,
         announceBioageResult,
         animateBioageResult,
         bindBiomarkerComparison,

@@ -10,6 +10,18 @@
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <style>
         @font-face {
+            font-family: "Roboto";
+            src: url("{{ASSET_ROBOTO_REGULAR}}") format("woff2");
+            font-weight: 400;
+        }
+
+        @font-face {
+            font-family: "Roboto";
+            src: url("{{ASSET_ROBOTO_BOLD}}") format("woff2");
+            font-weight: 700;
+        }
+
+        @font-face {
             font-family: "Poppins";
             src: url("{{ASSET_POPPINS_REGULAR}}") format("truetype");
             font-weight: 400;
@@ -21,15 +33,26 @@
             font-weight: 700;
         }
 
+        /* Same internal-dashboard language as site statistics: header strip,
+           uppercase section titles, one card, one row and one button style.
+           The black canvas and pink action colour are this tool's own. */
         :root {
+            color-scheme: dark;
             --text: #f5f5f5;
             --muted: rgba(255,255,255,0.68);
+            --dim: rgba(255,255,255,0.56);
             --pink: #ff4081;
+            --pink-soft: rgba(255,64,129,0.14);
             --panel: rgba(255,255,255,0.04);
             --panel-border: rgba(255,255,255,0.1);
+            --line-strong: rgba(255,255,255,0.2);
             --chip: rgba(255,255,255,0.08);
+            --well: rgba(0,0,0,0.32);
             --ok: #67d393;
             --warn: #ffcf5d;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --pad: 18px;
         }
 
         * { box-sizing: border-box; }
@@ -37,43 +60,75 @@
         body {
             margin: 0;
             min-height: 100vh;
-            padding: 20px;
-            font-family: "Poppins", sans-serif;
+            padding: 24px;
+            font-family: "Roboto", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.45;
             color: var(--text);
             background:
                 radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08), transparent 22%),
                 linear-gradient(135deg, #090909, #000000 60%);
         }
 
+        :focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+
         .page {
             max-width: 1380px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: minmax(340px, 430px) minmax(600px, 1fr);
-            gap: 18px;
+            grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+            gap: 20px;
             align-items: start;
             min-width: 0;
         }
 
         .panel {
-            border-radius: 18px;
+            min-width: 0;
+            border-radius: var(--radius);
             border: 1px solid var(--panel-border);
             background: var(--panel);
             backdrop-filter: blur(10px);
-            padding: 16px;
+            padding: 0 var(--pad) var(--pad);
             display: grid;
-            gap: 12px;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
             align-content: start;
+        }
+
+        h1, h2 { margin: 0; font-weight: 700; }
+
+        h1 { font-size: 22px; line-height: 1.2; letter-spacing: -0.2px; }
+
+        /* Section titles: uppercase, letter-spaced, like every dashboard card. */
+        h2 {
+            font-size: 12px;
+            line-height: 1.3;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        /* ---------- Editor column ---------- */
+        .editor-panel { gap: 0; padding-bottom: 0; }
+
+        .panel-head {
+            display: flex;
+            align-items: center;
+            min-height: 64px;
+            margin: 0 calc(-1 * var(--pad));
+            padding: 16px var(--pad);
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .editor-section {
+            display: grid;
+            gap: 14px;
+            margin: 0 calc(-1 * var(--pad));
+            padding: 18px var(--pad);
+            border-bottom: 1px solid var(--panel-border);
             min-width: 0;
         }
 
-        h1, h2 {
-            margin: 0;
-            font-weight: 700;
-        }
-
-        h1 { font-size: 22px; }
-        h2 { font-size: 16px; }
+        .editor-section:last-child { border-bottom: 0; }
 
         label {
             display: grid;
@@ -81,35 +136,55 @@
             font-size: 13px;
         }
 
+        .field-label,
+        label > span:first-child {
+            color: var(--dim);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
         input[type="text"], input[type="password"], textarea {
             width: 100%;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 14px;
-            background: rgba(0,0,0,0.32);
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
+            background: var(--well);
             color: var(--text);
             font: inherit;
-            padding: 11px 13px;
+            padding: 10px 12px;
             outline: none;
+            transition: border-color 140ms ease, box-shadow 140ms ease;
+        }
+
+        input[type="text"]:hover, input[type="password"]:hover, textarea:hover { border-color: var(--muted); }
+
+        input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+            border-color: var(--pink);
+            box-shadow: 0 0 0 3px var(--pink-soft);
         }
 
         textarea {
             min-height: 170px;
             resize: vertical;
-            line-height: 1.5;
+            line-height: 1.55;
         }
 
+        /* Formatting toolbar: one segmented strip. */
         .format-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
         }
 
         .tool-btn {
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            background: rgba(255,255,255,0.06);
-            color: var(--text);
+            min-height: 36px;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            color: var(--muted);
             font: inherit;
             font-size: 12px;
             font-weight: 700;
@@ -117,32 +192,29 @@
             cursor: pointer;
         }
 
-        .tool-btn:hover {
-            background: rgba(255,255,255,0.1);
-        }
+        .tool-btn + .tool-btn { border-left: 1px solid var(--panel-border); }
+        .tool-btn:hover { background: var(--chip); color: var(--text); }
 
         .mention-suggestions {
             position: static;
             z-index: 20;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 14px;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
             background: rgba(9,9,9,0.96);
             box-shadow: 0 10px 30px rgba(0,0,0,0.35);
             max-height: 220px;
             overflow-y: auto;
-            padding: 6px;
-            margin-top: 6px;
+            padding: 4px;
+            margin-top: -6px;
             width: 100%;
         }
 
-        .mention-suggestions[hidden] {
-            display: none;
-        }
+        .mention-suggestions[hidden] { display: none; }
 
         .mention-option {
             width: 100%;
             border: 0;
-            border-radius: 10px;
+            border-radius: 6px;
             background: transparent;
             color: var(--text);
             padding: 8px 10px;
@@ -155,12 +227,10 @@
         }
 
         .mention-option:hover,
-        .mention-option.is-active {
-            background: rgba(255,255,255,0.1);
-        }
+        .mention-option.is-active { background: var(--pink-soft); }
 
         .mention-option-slug {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text);
             text-align: left;
@@ -171,29 +241,82 @@
         }
 
         .mention-option-name {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--muted);
             text-align: right;
             white-space: nowrap;
         }
 
+        /* Destinations: an even grid of toggle chips. */
         .checks {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
         }
 
         .check {
-            display: inline-grid;
-            grid-template-columns: auto 1fr;
+            display: flex;
             align-items: center;
             gap: 8px;
+            min-height: 44px;
             padding: 8px 10px;
-            border-radius: 14px;
-            background: var(--chip);
-            border: 1px solid rgba(255,255,255,0.08);
-            font-size: 12px;
+            border-radius: var(--radius-sm);
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            font-size: 13px;
+            cursor: pointer;
+            transition: border-color 140ms ease, background-color 140ms ease;
         }
+
+        .check:hover { border-color: var(--line-strong); }
+
+        .check input {
+            flex: 0 0 auto;
+            appearance: none;
+            display: inline-grid;
+            place-content: center start;
+            width: 40px;
+            height: 24px;
+            margin: 0;
+            padding: 2px;
+            border: 1px solid var(--line-strong);
+            border-radius: 999px;
+            background: var(--well);
+            cursor: pointer;
+        }
+
+        /* This standalone tool deliberately keeps its own visual system. */
+        .check input::before {
+            content: "";
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--muted);
+            translate: 0 0;
+        }
+
+        .check input:checked { background: var(--pink); border-color: var(--pink); }
+        .check input:checked::before { background: var(--text); translate: 16px 0; }
+        .check input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .check input { transition: background-color 140ms ease, border-color 140ms ease; }
+            .check input::before { transition: translate 140ms ease, background-color 140ms ease; }
+        }
+
+        @media (forced-colors: active) {
+            .check input { background: Canvas; border-color: ButtonText; }
+            .check input::before { background: ButtonText; }
+            .check input:checked { background: Highlight; border-color: Highlight; }
+            .check input:checked::before { background: HighlightText; }
+        }
+
+        .check:has(input:checked) {
+            border-color: rgba(255,64,129,0.6);
+            background: var(--pink-soft);
+        }
+
+        .check span { min-width: 0; overflow-wrap: anywhere; }
 
         .badge {
             padding: 4px 7px;
@@ -203,12 +326,8 @@
         }
 
         .payload-box {
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: rgba(0,0,0,0.26);
-            padding: 12px;
             display: grid;
-            gap: 10px;
+            gap: 12px;
             min-width: 0;
         }
 
@@ -220,6 +339,10 @@
         }
 
         .validation-hint {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            background: rgba(255,64,129,0.08);
+            box-shadow: inset 3px 0 0 #ffb7c9;
             font-size: 12px;
             color: #ffb7c9;
             line-height: 1.4;
@@ -232,90 +355,131 @@
             color: var(--muted);
         }
 
-        .post-status.is-success {
-            color: var(--ok);
-        }
-
-        .post-status.is-error {
-            color: #ffb7c9;
-        }
+        .post-status:empty { display: none; }
+        .post-status.is-success { color: var(--ok); }
+        .post-status.is-error { color: #ffb7c9; }
 
         button {
-            border: 0;
-            border-radius: 10px;
+            min-height: 36px;
+            border: 1px solid var(--pink);
+            border-radius: var(--radius-sm);
             background: var(--pink);
             color: white;
             font: inherit;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
-            padding: 8px 12px;
+            padding: 7px 14px;
             cursor: pointer;
+            transition: border-color 140ms ease, background-color 140ms ease, opacity 140ms ease;
         }
 
         button.secondary {
-            background: rgba(255,255,255,0.1);
+            border-color: var(--line-strong);
+            background: transparent;
+            color: var(--text);
         }
+
+        button.secondary:hover:not(:disabled) { border-color: var(--muted); background: var(--chip); }
 
         button:disabled {
             cursor: not-allowed;
-            opacity: 0.48;
+            opacity: 0.42;
         }
 
+        #postEventBtn { min-width: 132px; }
+
+        /* Generated hash / SQL / command: code wells. */
         .token {
             width: 100%;
-            min-height: 110px;
+            min-height: 96px;
             resize: vertical;
+            font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: rgba(255,255,255,0.86);
+            background: rgba(0,0,0,0.5);
+            word-break: break-all;
         }
+
+        details.payload-box { gap: 0; }
 
         details.payload-box summary {
+            display: flex;
+            align-items: center;
+            min-height: 52px;
+            margin: -18px calc(-1 * var(--pad));
+            padding: 14px var(--pad);
+            list-style: none;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
+        details.payload-box summary:hover { background: var(--panel); }
+        details.payload-box summary::-webkit-details-marker { display: none; }
+
+        details.payload-box summary::after {
+            content: "";
+            width: 7px;
+            height: 7px;
+            margin-left: auto;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
+            transform: rotate(45deg) translateY(-2px);
+        }
+
+        details.payload-box[open] summary { margin-bottom: 0; }
+        details.payload-box[open] summary::after { transform: rotate(225deg) translate(-2px, -1px); }
+        details.payload-box[open] > :not(summary) { margin-top: 14px; }
+
         .live-checklist {
-            margin: 12px 0 0;
-            padding-left: 20px;
+            margin: 0;
+            padding-left: 22px;
             color: var(--muted);
-            font-size: 12px;
-            line-height: 1.55;
+            font-size: 13px;
+            line-height: 1.6;
             min-width: 0;
         }
 
+        .live-checklist li + li { margin-top: 4px; }
+
         .live-checklist code {
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: var(--chip);
             color: var(--text);
+            font-size: 12px;
             overflow-wrap: anywhere;
             word-break: break-word;
         }
 
+        .copy-state { font-size: 12px; color: var(--muted); }
+
+        /* ---------- Preview column: full-width cards with one header strip ---------- */
         .preview-stack {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+            display: grid;
             gap: 16px;
             min-width: 0;
         }
 
+        .preview-stack:empty { display: none; }
+
         .preview-warning {
-            width: fit-content;
-            max-width: min(560px, calc(100vw - 180px));
-            padding: 10px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 184, 0, 0.35);
-            background: rgba(255, 122, 0, 0.12);
+            padding: 12px 14px 12px 18px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 184, 0, 0.3);
+            background: rgba(255, 122, 0, 0.1);
+            box-shadow: inset 4px 0 0 var(--warn);
             color: #ffd89a;
-            font-size: 12px;
+            font-size: 13px;
             line-height: 1.45;
         }
 
         .preview-block {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-            width: fit-content;
-            max-width: 100%;
-            justify-self: start;
+            width: 100%;
+            min-width: 0;
         }
 
         .preview-title {
@@ -323,28 +487,30 @@
             align-items: center;
             gap: 10px;
             justify-content: space-between;
-            width: 100%;
+            min-height: 54px;
+            margin: 0 calc(-1 * var(--pad)) 4px !important;
+            padding: 10px var(--pad);
+            border-bottom: 1px solid var(--panel-border);
         }
 
-        .preview-title h2 {
-            min-width: 0;
-        }
+        .preview-title h2 { min-width: 0; }
 
         .preview-copy-btn {
-            padding: 6px 10px;
-            border-radius: 9px;
-            background: rgba(255,255,255,0.08);
+            min-height: 32px;
+            padding: 5px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
+            background: transparent;
             color: rgba(255,255,255,0.88);
-            font-size: 11px;
+            font-size: 12px;
             line-height: 1.2;
         }
 
-        .preview-copy-btn:hover {
-            background: rgba(255,255,255,0.14);
-        }
+        .preview-copy-btn:hover { border-color: var(--muted); background: var(--chip); }
 
         .preview-copy-btn.is-copied {
-            background: rgba(103, 211, 147, 0.22);
+            border-color: rgba(103, 211, 147, 0.6);
+            background: rgba(103, 211, 147, 0.18);
             color: #dff7e7;
         }
 
@@ -360,18 +526,15 @@
         }
 
         .preview-surface {
-            border-radius: 14px;
+            border-radius: var(--radius-sm);
             border: 1px solid rgba(255,255,255,0.08);
             background: rgba(0,0,0,0.22);
             padding: 14px;
-            width: fit-content;
+            width: 100%;
             max-width: 100%;
         }
 
-        .preview-surface.fit-content {
-            width: fit-content;
-            max-width: 100%;
-        }
+        .preview-surface.fit-content { width: 100%; max-width: 100%; }
 
         .formatted strong { font-weight: 700; }
         .formatted .strong { color: #ff4081; font-weight: 700; }
@@ -382,8 +545,8 @@
         .slack-text a:hover { text-decoration: underline; }
 
         .webpage-surface {
-            width: fit-content;
-            max-width: min(560px, calc(100vw - 180px));
+            width: 100%;
+            max-width: 640px;
             font-family: Arial, Helvetica, sans-serif;
         }
 
@@ -446,15 +609,8 @@
             padding: 10px 0;
         }
 
-        .badge.text {
-            color: #0a2918;
-            background: var(--ok);
-        }
-
-        .badge.image {
-            color: #3b2600;
-            background: var(--warn);
-        }
+        .badge.text { color: #0a2918; background: var(--ok); }
+        .badge.image { color: #3b2600; background: var(--warn); }
 
         .post-head {
             display: flex;
@@ -463,10 +619,7 @@
             gap: 10px;
         }
 
-        .post-title {
-            font-size: 14px;
-            font-weight: 700;
-        }
+        .post-title { font-size: 14px; font-weight: 700; }
 
         .instagram-post {
             width: 560px;
@@ -491,10 +644,11 @@
         .instagram-caption { padding: 8px 14px 16px; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
 
         .x-post {
-            display: inline-flex;
+            display: grid;
+            grid-template-columns: 40px minmax(0, 1fr);
             gap: 10px;
-            align-items: flex-start;
-            width: fit-content;
+            align-items: start;
+            width: 100%;
             max-width: 100%;
         }
 
@@ -517,21 +671,10 @@
             place-items: center;
         }
 
-        .platform-avatar-x {
-            background: #000000;
-        }
-
-        .platform-avatar-threads {
-            background: #101010;
-        }
-
-        .platform-avatar-facebook {
-            background: #1877f2;
-        }
-
-        .platform-avatar-slack {
-            background: #4a154b;
-        }
+        .platform-avatar-x { background: #000000; }
+        .platform-avatar-threads { background: #101010; }
+        .platform-avatar-facebook { background: #1877f2; }
+        .platform-avatar-slack { background: #4a154b; }
 
         .platform-avatar svg {
             width: 60%;
@@ -541,11 +684,10 @@
 
         .x-main {
             min-width: 0;
-            flex: 0 1 auto;
             display: grid;
             gap: 8px;
-            width: fit-content;
-            max-width: min(560px, calc(100vw - 180px));
+            width: 100%;
+            max-width: 560px;
         }
 
         .x-head {
@@ -566,8 +708,7 @@
             line-height: 1.5;
             font-size: 15px;
             color: #e7e9ea;
-            width: fit-content;
-            max-width: min(560px, calc(100vw - 180px));
+            max-width: 100%;
         }
 
         .x-actions {
@@ -584,7 +725,8 @@
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.10);
             background: rgba(255,255,255,0.04);
-            width: min(560px, calc(100vw - 180px));
+            width: 100%;
+            max-width: 560px;
         }
 
         .og-card-media {
@@ -639,9 +781,7 @@
             text-transform: none;
         }
 
-        .og-card-media-fallback-domain {
-            opacity: 0.9;
-        }
+        .og-card-media-fallback-domain { opacity: 0.9; }
 
         .og-card-body {
             padding: 10px 12px;
@@ -692,7 +832,8 @@
             background: #0f1419;
             border: 1px solid #2f3336;
             align-self: start;
-            width: min(560px, calc(100vw - 180px));
+            width: 100%;
+            max-width: 560px;
         }
 
         .image-stage-frame {
@@ -720,6 +861,7 @@
             justify-content: center;
             overflow: hidden;
             background: #050505;
+            color: var(--muted);
         }
 
         .custom-event-image-frame img {
@@ -755,10 +897,12 @@
             pointer-events: none;
         }
 
+        /* The artwork keeps the generated image's Poppins. */
         .image-text {
             position: relative;
             width: 100%;
             text-align: center;
+            font-family: "Poppins", sans-serif;
             font-size: 28px;
             line-height: 1.36;
             letter-spacing: 0.02em;
@@ -767,8 +911,9 @@
         }
 
         .slack-shell {
-            width: min(720px, calc(100vw - 180px));
-            border-radius: 14px;
+            width: 100%;
+            max-width: 720px;
+            border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.06);
             background: #1b1d21;
             color: #f8f8f8;
@@ -809,11 +954,7 @@
             line-height: 1.1;
         }
 
-        .slack-author {
-            font-size: 15px;
-            font-weight: 700;
-            color: #ffffff;
-        }
+        .slack-author { font-size: 15px; font-weight: 700; color: #ffffff; }
 
         .slack-app-badge {
             display: inline-flex;
@@ -829,11 +970,7 @@
             text-transform: uppercase;
         }
 
-        .slack-timestamp {
-            font-size: 12px;
-            font-weight: 500;
-            color: #a8adb4;
-        }
+        .slack-timestamp { font-size: 12px; font-weight: 500; color: #a8adb4; }
 
         .slack-text {
             font-size: 15px;
@@ -843,54 +980,76 @@
             word-break: break-word;
         }
 
-        .slack-text strong {
-            font-weight: 700;
-            color: #ffffff;
+        .slack-text strong { font-weight: 700; color: #ffffff; }
+        .slack-text em { font-style: italic; }
+
+        .push-preview {
+            max-width: 440px;
+            display: flex;
+            align-items: start;
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius);
+            background: rgba(0,0,0,0.22);
         }
 
-        .slack-text em {
-            font-style: italic;
-        }
+        .push-preview-body-wrap { min-width: 0; overflow-wrap: anywhere; }
+        .push-preview-icon { width: 22px; height: 22px; flex: 0 0 22px; margin-top: 4px; fill: #087685; }
+        .push-preview-domain { margin-bottom: 6px; color: var(--dim); font-size: 12px; }
+        .push-preview-body { white-space: pre-wrap; margin: 6px 0 0; color: var(--muted); }
 
         @media (max-width: 1080px) {
-            .page { grid-template-columns: 1fr; }
-            .preview-stack { align-items: stretch; }
-            .preview-warning,
-            .preview-block,
-            .preview-surface,
-            .webpage-surface { width: 100%; max-width: 100%; }
+            .page { grid-template-columns: minmax(0, 1fr); }
+            .checks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 720px) {
+            :root { --pad: 16px; }
+            body { padding: 16px; }
+            .checks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .preview-title { min-height: 50px; }
         }
 
         @media (max-width: 640px) {
-            .slack-shell,
-            .x-post,
-            .x-main,
-            .x-text,
-            .og-card,
-            .x-media {
-                width: 100%;
-                max-width: 100%;
-            }
-
-            .x-post {
-                display: grid;
-                grid-template-columns: 40px minmax(0, 1fr);
-            }
-
             .og-card-media-fallback-badge,
             .og-card-media-fallback-domain {
                 max-width: calc(100% - 24px);
                 overflow-wrap: anywhere;
                 text-align: center;
             }
+
+            .payload-actions > button { flex: 1 1 auto; }
+        }
+
+        @media (pointer: coarse) {
+            .tool-btn, button, .check { min-height: 44px; }
+            input[type="text"], input[type="password"], textarea { font-size: 16px; }
+        }
+
+        @media (max-width: 280px) {
+            :root { --pad: 10px; }
+            body { padding: 8px; }
+            h1, h2, button, .x-name, .x-handle, .x-meta, .slack-author { overflow-wrap: anywhere; }
+            .format-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .checks { grid-template-columns: minmax(0, 1fr); }
+            .preview-title { flex-wrap: wrap; }
+            .preview-copy-btn { max-width: 100%; }
+            .payload-actions > button { min-width: 0; max-width: 100%; }
+            .x-post, .slack-message { grid-template-columns: minmax(0, 1fr); }
+            .x-actions, .instagram-head { flex-wrap: wrap; }
+            .instagram-head .x-name { min-width: 0; flex: 1; }
+            .instagram-menu { margin-left: 0; }
+            .preview-surface, .slack-shell, .push-preview { padding: 8px; }
         }
     </style>
 </head>
 <body>
     <div class="page initial-view-main">
-        <div class="panel">
-            <h1>Social Post Manager</h1>
+        <div class="panel editor-panel">
+            <header class="panel-head"><h1>Social Post Manager</h1></header>
 
+            <section class="editor-section" aria-label="Post">
             <div class="format-toolbar">
                 <button id="insertBoldBtn" class="tool-btn" type="button">Bold</button>
                 <button id="insertStrongBtn" class="tool-btn" type="button">Strong</button>
@@ -913,25 +1072,26 @@
             </label>
 
             <div id="mentionSuggestions" class="mention-suggestions" hidden></div>
+            </section>
 
-            <div>
-                <div style="margin-bottom:6px;font-size:13px;">Send to</div>
+            <section class="editor-section">
+                <div class="field-label">Send to</div>
                 <div class="checks">
-                    <label class="check"><input id="sendWebpage" type="checkbox" checked /><span>Webpage</span></label>
-                    <label class="check"><input id="sendSlack" type="checkbox" checked /><span>Slack</span></label>
-                    <label class="check"><input id="sendX" type="checkbox" checked /><span>X</span></label>
-                    <label class="check"><input id="sendThreads" type="checkbox" /><span>Threads</span></label>
-                    <label class="check"><input id="sendFacebook" type="checkbox" /><span>Facebook</span></label>
-                    <label class="check"><input id="sendMastodon" type="checkbox" /><span>Mastodon</span></label>
-                    <label class="check"><input id="sendNostr" type="checkbox" /><span>Nostr</span></label>
-                    <label class="check"><input id="sendReddit" type="checkbox" /><span>Reddit</span></label>
-                    <label class="check"><input id="sendBluesky" type="checkbox" /><span>Bluesky</span></label>
-                    <label class="check"><input id="sendWebPush" type="checkbox" /><span>Website push</span></label>
-                    <label class="check"><input id="sendInstagram" type="checkbox" /><span>Instagram</span></label>
+                    <label class="check"><input id="sendWebpage" type="checkbox" role="switch" checked /><span>Webpage</span></label>
+                    <label class="check"><input id="sendSlack" type="checkbox" role="switch" checked /><span>Slack</span></label>
+                    <label class="check"><input id="sendX" type="checkbox" role="switch" checked /><span>X</span></label>
+                    <label class="check"><input id="sendThreads" type="checkbox" role="switch" /><span>Threads</span></label>
+                    <label class="check"><input id="sendFacebook" type="checkbox" role="switch" /><span>Facebook</span></label>
+                    <label class="check"><input id="sendMastodon" type="checkbox" role="switch" /><span>Mastodon</span></label>
+                    <label class="check"><input id="sendNostr" type="checkbox" role="switch" /><span>Nostr</span></label>
+                    <label class="check"><input id="sendReddit" type="checkbox" role="switch" /><span>Reddit</span></label>
+                    <label class="check"><input id="sendBluesky" type="checkbox" role="switch" /><span>Bluesky</span></label>
+                    <label class="check"><input id="sendWebPush" type="checkbox" role="switch" /><span>Website push</span></label>
+                    <label class="check"><input id="sendInstagram" type="checkbox" role="switch" /><span>Instagram</span></label>
                 </div>
-            </div>
+            </section>
 
-            <div class="payload-box">
+            <section class="editor-section payload-box">
                 <h2>Direct Queue</h2>
                 <label>
                     <span>Secret</span>
@@ -950,9 +1110,9 @@
                 </div>
                 <textarea id="cleanupCommandOutput" class="token" aria-label="Generated cleanup SQL" readonly hidden></textarea>
                 <div id="postValidationHint" class="validation-hint" hidden>Title and at least one destination are required before queueing.</div>
-            </div>
+            </section>
 
-            <details class="payload-box">
+            <details class="editor-section payload-box">
                 <summary>Live test checklist</summary>
                 <ol class="live-checklist">
                     <li>Generate a config hash from a temporary secret and set <code>CustomEventDesignerSecretHash</code> in the published Linux config.</li>
@@ -963,12 +1123,12 @@
                 </ol>
             </details>
 
-            <details class="payload-box">
+            <details class="editor-section payload-box">
                 <summary>Manual server command fallback</summary>
                 <textarea id="commandOutput" class="token" aria-label="Generated server command" readonly></textarea>
                 <div class="payload-actions">
                     <button id="copyCommandBtn" class="secondary" type="button">Copy Command</button>
-                    <div id="copyState" style="font-size:12px;color:var(--muted);"></div>
+                    <div id="copyState" class="copy-state"></div>
                 </div>
                 <div id="commandValidationHint" class="validation-hint" hidden>Title is required before the command can be generated or copied.</div>
             </details>
@@ -1652,7 +1812,9 @@
 
                 const item = {
                     name: String(athlete?.DisplayName || athlete?.Name || "").trim(),
-                    mediaContact: String(athlete?.MediaContact || "").trim()
+                    mediaContact: athlete?.MediaContact,
+                    personalLink: athlete?.PersonalLink,
+                    socialProfiles: athlete?.SocialProfiles || {}
                 };
                 index.set(slug, item);
                 athleteMentionItems.push({ slug, name: item.name });
@@ -1796,42 +1958,40 @@
             renderMentionSuggestions(matches);
         }
 
-        function extractMentionHandle(mediaContact, platformKey) {
-            const value = String(mediaContact || "").trim();
-            if (!value) {
+        function extractMentionHandle(mediaContact, platformKey, allowBareHandle = false) {
+            const value = typeof mediaContact === "string" ? mediaContact.trim() : "";
+            if (!value || !["x", "threads", "instagram"].includes(platformKey)) {
                 return "";
             }
 
-            if (value.startsWith("@")) {
-                if (platformKey === "x" || platformKey === "threads") {
-                    return value;
-                }
-
-                return "";
+            const normalize = handle => {
+                const normalized = handle.trim().replace(/^@/, "");
+                const valid = platformKey === "x" ? /^[a-z0-9_]{1,15}$/i : /^[a-z0-9_.]{1,30}$/i;
+                return valid.test(normalized) && !normalized.startsWith(".")
+                    && !normalized.endsWith(".") && !normalized.includes("..") ? `@${normalized}` : "";
+            };
+            // Unqualified legacy media contacts identify X only. A stored,
+            // platform-specific profile may explicitly supply a bare handle.
+            if ((allowBareHandle && !value.includes("/") && !value.includes(":"))
+                || (platformKey === "x" && value.startsWith("@"))) {
+                return normalize(value);
             }
 
             try {
-                const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+                const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(value) ? value : `https://${value}`);
+                if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.port) return "";
                 const host = url.hostname.toLowerCase();
-                const isHostOrSubdomain = domain => host === domain || host.endsWith(`.${domain}`);
+                const isSupportedHost = domain => [domain, `www.${domain}`, `mobile.${domain}`, `m.${domain}`].includes(host);
+                const domains = platformKey === "x" ? ["x.com", "twitter.com"]
+                    : platformKey === "threads" ? ["threads.com", "threads.net"] : ["instagram.com"];
+                if (!domains.some(isSupportedHost)) return "";
                 const path = url.pathname.replace(/^\/+|\/+$/g, "");
-                if (!path) {
-                    return "";
-                }
-
                 const firstSegment = path.split("/").find(Boolean) || "";
-                const normalizedSegment = firstSegment.replace(/^@+/, "");
-                if (!normalizedSegment) {
-                    return "";
-                }
-
-                if (platformKey === "x" && (isHostOrSubdomain("x.com") || isHostOrSubdomain("twitter.com"))) {
-                    return `@${normalizedSegment}`;
-                }
-
-                if (platformKey === "threads" && isHostOrSubdomain("threads.com")) {
-                    return `@${normalizedSegment}`;
-                }
+                const reserved = ["share", "search", "explore", "home", "notifications", "messages",
+                    "settings", "tos", "privacy", "login", "signup",
+                    ...(platformKey === "x" ? ["i", "intent"] : ["accounts", "p", "reel", "reels", "stories"])];
+                if (reserved.includes(firstSegment.toLowerCase())) return "";
+                return normalize(firstSegment);
             } catch {
             }
 
@@ -1849,7 +2009,10 @@
                 return humanizeSlug(key) || key;
             }
 
-            const mention = extractMentionHandle(athlete.mediaContact, platformKey);
+            const profileKey = { x: "X", threads: "Threads", instagram: "Instagram" }[platformKey];
+            const mention = extractMentionHandle(athlete.socialProfiles[profileKey]?.Url, platformKey, true)
+                || extractMentionHandle(athlete.mediaContact, platformKey)
+                || extractMentionHandle(athlete.personalLink, platformKey);
             if (mention) {
                 return mention;
             }
@@ -2330,7 +2493,7 @@
                 : postText;
             return `
                 <div class="panel preview-block">
-                    <div class="preview-title" style="margin-bottom:8px;">
+                    <div class="preview-title">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
                         <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
@@ -2358,7 +2521,7 @@
             const ogCardHtml = renderOgCard(ogPreviewUrl);
             return `
                 <div class="panel preview-block">
-                    <div class="preview-title" style="margin-bottom:8px;">
+                    <div class="preview-title">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
                         <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
@@ -2409,7 +2572,7 @@
 
             if (platformKey === "instagram") {
                 return `<div class="panel preview-block">
-                    <div class="preview-title" style="margin-bottom:8px;">
+                    <div class="preview-title">
                         <h2>Instagram Preview</h2>
                         <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
@@ -2430,7 +2593,7 @@
 
             return `
                 <div class="panel preview-block">
-                    <div class="preview-title" style="margin-bottom:8px;">
+                    <div class="preview-title">
                         <h2>${escapeHtml(meta.label)} Preview</h2>
                         <button type="button" class="preview-copy-btn" data-copy-key="${escapeHtml(copyKey)}">Copy Text</button>
                     </div>
@@ -2482,12 +2645,12 @@
             if (!sendWebPush.checked) return "";
             return `<div class="panel preview-block" id="webPushPreview">
                 <div class="preview-title"><h2>Website push Preview</h2></div>
-                <div class="push-preview" style="max-width:440px;display:flex;align-items:start;gap:14px;padding:16px;border:1px solid var(--lwc-border,#b7c7cd);border-radius:14px;">
-                    <i class="fas fa-bell" aria-hidden="true" style="color:var(--secondary-color,#087685);font-size:22px;margin-top:4px;"></i>
-                    <div style="min-width:0;overflow-wrap:anywhere;">
-                        <div style="font-size:12px;opacity:.7;margin-bottom:6px;">longevityworldcup.com</div>
+                <div class="push-preview">
+                    <svg class="push-preview-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2a2 2 0 0 0-2 2v.35A6 6 0 0 0 6 10v5l-2 3v1h16v-1l-2-3v-5a6 6 0 0 0-4-5.65V4a2 2 0 0 0-2-2Zm-3 19a3 3 0 0 0 6 0Z"/></svg>
+                    <div class="push-preview-body-wrap">
+                        <div class="push-preview-domain">longevityworldcup.com</div>
                         <strong class="push-preview-title">${escapeHtml(pushPreviewText(titleRaw, 100, 512))}</strong>
-                        <p class="push-preview-body" style="white-space:pre-wrap;margin:6px 0 0;">${escapeHtml(pushPreviewText(contentRaw, 200, 1400))}</p>
+                        <p class="push-preview-body">${escapeHtml(pushPreviewText(contentRaw, 200, 1400))}</p>
                     </div>
                 </div>
             </div>`;

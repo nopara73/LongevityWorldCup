@@ -25,7 +25,10 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var notifications = CountContextNotifications(fixture, childId);
         fixture.Service.SubmitDiscussionReply(request, now.AddMinutes(3));
         Assert.Equal(notifications, CountContextNotifications(fixture, childId));
-        Assert.Equal(1, notifications);
+        // Mention and participation relevance are independent; only the mention sends email.
+        Assert.Equal(2, notifications);
+        Assert.Equal(1, CountContextNotifications(fixture, childId, inAppOnly: false));
+        Assert.Equal(1, CountContextNotifications(fixture, childId, inAppOnly: true));
 
         var page = fixture.Service.GetDiscussionReplyPage(new(author, participantId, 12, null, null, post));
         var child = page.Replies.Single(reply => reply.Id == childId);
@@ -89,11 +92,12 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal(1, CountContextNotifications(fixture, replyId));
     }
 
-    private static long CountContextNotifications(TestChallengeFixture fixture, string replyId) => fixture.Db.Run(sqlite =>
+    private static long CountContextNotifications(TestChallengeFixture fixture, string replyId, bool? inAppOnly = null) => fixture.Db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
-        cmd.CommandText = "SELECT (SELECT COUNT(*) FROM LongevitymaxxingDiscussionNotifications WHERE SourceReplyId = @id) + (SELECT COUNT(*) FROM LongevitymaxxingDiscussionSystemPostNotifications WHERE SourceReplyId = @id);";
+        cmd.CommandText = "SELECT (SELECT COUNT(*) FROM LongevitymaxxingDiscussionNotifications WHERE SourceReplyId = @id AND (@inAppOnly IS NULL OR InAppOnly = @inAppOnly)) + (SELECT COUNT(*) FROM LongevitymaxxingDiscussionSystemPostNotifications WHERE SourceReplyId = @id AND (@inAppOnly IS NULL OR InAppOnly = @inAppOnly));";
         cmd.Parameters.AddWithValue("@id", replyId);
+        cmd.Parameters.AddWithValue("@inAppOnly", inAppOnly is null ? DBNull.Value : inAppOnly.Value ? 1 : 0);
         return (long)cmd.ExecuteScalar()!;
     });
 }

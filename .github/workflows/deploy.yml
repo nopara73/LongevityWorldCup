@@ -189,7 +189,12 @@ jobs:
               -C "$deploy_source/LongevityWorldCup.Website/wwwroot"
             frontend_manifest "$deploy_source/LongevityWorldCup.Website/wwwroot/js" > "$source_manifest"
             test -s "$source_manifest"
-            dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false
+            # The isolated source tree has no .git metadata to stamp the assembly.
+            dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false -p:SourceRevisionId="$verified_sha"
+            if ! grep -a -Fq "$verified_sha" "$publish_output/LongevityWorldCup.Website.dll"; then
+              echo "Published assembly is missing the verified revision." >&2
+              exit 1
+            fi
             frontend_manifest "$publish_output/wwwroot/js" > "$published_manifest"
             if ! cmp -s "$source_manifest" "$published_manifest"; then
               echo "Published frontend assets differ from the verified artifact." >&2
@@ -214,6 +219,8 @@ jobs:
               "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
             sudo rsync -a --checksum --delete --no-owner --no-group \
               "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
+            sudo sh "$deploy_source/LongevityWorldCup.Website/Scripts/sync-owned-web-assets.sh" \
+              "$publish_output/wwwroot" "$publish_root/wwwroot"
             sudo_frontend_manifest "$publish_root/wwwroot/js" > "$live_manifest"
             if ! cmp -s "$published_manifest" "$live_manifest"; then
               echo "Live frontend assets differ from the verified published assets." >&2
@@ -359,4 +366,6 @@ jobs:
             fi
 
             sudo systemctl status longevityworldcup.service --no-pager
+            sudo sh "$deploy_source/LongevityWorldCup.Website/Scripts/sync-outage-assets.sh" \
+              "$publish_output/wwwroot" /var/www/longevityworldcup-errors /etc/nginx/snippets/lwc-error-page.conf
             deploy_succeeded=1

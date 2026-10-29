@@ -1,4 +1,5 @@
 .lmx-page,
+.lmx-advice-story-dialog,
 .lmx-quote-dialog,
 .lmx-checkin-dialog-panel,
 .lmx-discussion-time-tooltip {
@@ -254,10 +255,9 @@
 }
 
 .lmx-life-strip {
-    display: grid;
-    /* Four across while the labels still fit (about 30.5rem), otherwise two by two instead of overlapping. */
-    grid-template-columns: repeat(auto-fit, minmax(max(7.25rem, min(50% - 0.45rem, (30.5rem - 100%) * 999)), 1fr));
-    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
     gap: 0.45rem;
     margin-top: 0.9rem;
     padding: 0.65rem;
@@ -266,15 +266,26 @@
     border: 1px solid var(--lmx-border);
 }
 
+.lmx-life-pair {
+    /* Wrap pairs, then their tiles, using the actual label and icon widths. */
+    display: flex;
+    flex: 1 1 max-content;
+    flex-wrap: wrap;
+    gap: inherit;
+    min-width: 0;
+}
+
 .lmx-life-strip strong {
     margin-right: 0.2rem;
     color: var(--lmx-ink);
 }
 
 .lmx-life-strip span {
+    flex: 1 1 max-content;
     min-width: 0;
+    max-width: 100%;
     min-height: 2rem;
-    padding: 0 0.4rem;
+    padding: 0 0.125rem;
     border-radius: 8px;
     display: inline-flex;
     align-items: center;
@@ -285,7 +296,13 @@
     font-size: 0.75rem;
     font-weight: 800;
     color: var(--lmx-ink);
-    white-space: nowrap;
+    white-space: normal;
+    text-align: left;
+    text-wrap: balance;
+}
+
+.lmx-life-strip i {
+    flex-shrink: 0;
 }
 
 .lmx-life-strip em {
@@ -698,7 +715,8 @@
 }
 
 .lmx-category-day.practice {
-    box-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.16);
+    --lmx-practice-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.16);
+    box-shadow: var(--lmx-practice-shadow);
 }
 
 .lmx-card {
@@ -804,42 +822,58 @@
 }
 
 .lmx-identity-field {
+    min-width: 0;
     margin: 0;
-    padding: 0.65rem;
+    padding: 0;
     display: grid;
     gap: 0.6rem;
+    border: 0;
+}
+
+.lmx-identity-field legend {
+    float: left;
+    width: 100%;
+    margin-bottom: 0.3rem;
+    padding: 0;
+    color: var(--lmx-ink);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    line-height: 1.375rem;
+}
+
+/* The yes/no answer shares the access tabs' inset track. */
+.lmx-identity-options {
+    clear: both;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr));
+    gap: 0.28rem;
+    padding: 0.28rem;
     border: 1px solid var(--lmx-border);
     border-radius: 8px;
     background: var(--lmx-surface-muted);
 }
 
-.lmx-identity-field legend {
-    padding: 0 0.2rem;
-    color: var(--lmx-ink);
-    font-size: 0.9rem;
-    font-weight: 850;
-}
-
-.lmx-identity-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem;
-}
-
 .lmx-identity-options label {
+    min-width: 0;
     min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    padding: 0 0.65rem;
-    border: 1px solid var(--lmx-border-strong);
-    border-radius: 8px;
-    background: var(--lmx-surface);
-    color: var(--lmx-ink);
+    padding: 0 0.35rem;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--lmx-muted);
     font-weight: 850;
+    white-space: nowrap;
     cursor: pointer;
-    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.lmx-identity-options label:hover {
+    color: var(--lmx-ink);
+    background: var(--lmx-surface);
 }
 
 .lmx-identity-options input {
@@ -856,16 +890,16 @@
 }
 
 .lmx-identity-options label:has(input:checked) {
-    border-color: var(--lmx-ink);
     background: var(--lmx-inverse-surface);
-    color: #ffffff;
+    color: var(--lmx-on-inverse);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
 }
 
 .lmx-identity-options label::before {
     content: '';
     width: 0.8rem;
     height: 0.8rem;
-    flex: 0 0 0.8rem;
+    flex: 0 1 0.8rem;
 }
 
 .lmx-identity-options label:has(input:checked)::before {
@@ -876,12 +910,86 @@
 .lmx-identity-options label::after {
     content: '';
     width: 0.8rem;
-    flex: 0 0 0.8rem;
+    flex: 0 1 0.8rem;
 }
 
 .lmx-identity-options label:focus-within {
-    outline: 3px solid rgba(0, 188, 212, 0.24);
+    outline: 3px solid rgba(0, 188, 212, 0.32);
     outline-offset: 2px;
+}
+
+/* Sign-up steps hang from one rail; each marker fills once its step is answered. */
+#lmxSignupForm {
+    --lmx-step-size: 1.375rem;
+    --lmx-step-gutter: 2.15rem;
+    gap: 1.1rem;
+    padding-left: var(--lmx-step-gutter);
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field, button[type="submit"]) {
+    position: relative;
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field, button[type="submit"])::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: calc(-1 * var(--lmx-step-gutter));
+    width: var(--lmx-step-size);
+    height: var(--lmx-step-size);
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--lmx-border-strong);
+    border-radius: 999px;
+    background: var(--lmx-surface);
+    color: var(--lwc-on-accent, #ffffff);
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field)::after {
+    content: '';
+    position: absolute;
+    top: calc(var(--lmx-step-size) + 0.3rem);
+    bottom: -0.8rem;
+    left: calc(var(--lmx-step-size) / 2 - 1px - var(--lmx-step-gutter));
+    width: 2px;
+    border-radius: 2px;
+    background: var(--lmx-border);
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+#lmxSignupForm > button[type="submit"]::before {
+    top: calc(50% - var(--lmx-step-size) / 2);
+}
+
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail[data-complete="true"]:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName[data-complete="true"]:enabled:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))::before,
+#lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::before,
+#lmxSignupForm:has(#lmxSignupEmail[data-complete="true"]:valid):has(#lmxSignupTimeZone:valid):is(:has(#lmxSignupName[data-complete="true"]:enabled:valid), :has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))) > button[type="submit"]::before {
+    content: '\2713';
+    border-color: var(--lmx-accent);
+    background: var(--lmx-accent);
+}
+
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail[data-complete="true"]:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName[data-complete="true"]:enabled:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))::after,
+#lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::after {
+    background: var(--lmx-accent);
+}
+
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field):has([aria-invalid="true"], :user-invalid)::before {
+    border-color: var(--lmx-danger);
+}
+
+#lmxSignupForm > .lmx-field > :is(label, .lmx-label) {
+    line-height: 1.375rem;
 }
 
 .lmx-field label,
@@ -1021,7 +1129,7 @@
 
 .lmx-note-photo-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(6.5rem, 100%), 1fr));
     gap: 0.45rem;
     margin-top: 0.45rem;
 }
@@ -1060,7 +1168,7 @@
 .lmx-reply-photos {
     max-width: 32rem;
     margin-bottom: var(--lwc-space-2);
-    margin-left: var(--lmx-discussion-indent);
+    margin-left: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-reply-item [data-discussion-reply-body]:empty {
@@ -1383,12 +1491,14 @@
     font-size: 0.9rem;
 }
 
-.lmx-athlete-search input,
-.lmx-athlete-search input:focus {
+/* Outrank the site-wide input border and focus outline; the search shell owns both. */
+.lmx-field .lmx-athlete-picker .lmx-athlete-search input[type="search"],
+.lmx-field .lmx-athlete-picker .lmx-athlete-search input[type="search"]:focus {
     appearance: none;
     min-height: 44px;
     padding: 0;
     border: 0;
+    border-radius: 0;
     outline: 0;
     box-shadow: none;
     background: transparent;
@@ -1893,7 +2003,13 @@
 }
 
 .lmx-access-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.lmx-access-tabs .lmx-tab {
+    flex: 1 1 0;
+    min-width: max-content;
 }
 
 .lmx-tab {
@@ -1958,43 +2074,86 @@
 
 .lmx-access-loading {
     min-width: 0;
-    min-height: 7.5rem;
-    padding: 1rem;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.75rem;
-    align-items: center;
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
+    gap: 1.5rem;
 }
 
-.lmx-access-loading i {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--lmx-inverse-surface);
-    color: #ffffff;
+.lmx-loading-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
-.lmx-access-loading span {
+.lmx-loading-progress {
+    height: 2px;
+    overflow: hidden;
+    background: var(--lmx-border);
+}
+
+.lmx-loading-progress::before {
+    content: "";
+    display: block;
+    width: 25%;
+    height: 100%;
+    background: var(--lmx-accent);
+    animation: lmx-loading-progress 1.8s ease-in-out infinite alternate;
+}
+
+.lmx-loading-rows {
+    display: grid;
+}
+
+.lmx-loading-row {
     min-width: 0;
     display: grid;
-    gap: 0.25rem;
+    grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 45%);
+    align-items: center;
+    gap: 1rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--lmx-border);
 }
 
-.lmx-access-loading strong {
-    min-width: 0;
-    overflow-wrap: anywhere;
+.lmx-loading-avatar,
+.lmx-loading-name {
+    display: block;
+    background: var(--lmx-border);
+    opacity: 0.65;
 }
 
-.lmx-access-loading strong {
-    color: var(--lmx-ink);
-    font-size: 1.05rem;
-    line-height: 1.2;
+.lmx-loading-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+}
+
+.lmx-loading-name {
+    width: min(70%, 10rem);
+    height: 0.625rem;
+    border-radius: 2px;
+}
+
+.lmx-loading-row:nth-child(even) .lmx-loading-name {
+    width: min(55%, 7rem);
+}
+
+.lmx-loading-days {
+    height: 0.625rem;
+    background: repeating-linear-gradient(90deg, var(--lmx-border) 0 1.5rem, transparent 1.5rem 2rem);
+    opacity: 0.5;
+}
+
+@keyframes lmx-loading-progress {
+    to { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lmx-loading-progress::before {
+        animation: none;
+    }
 }
 
 .lmx-button {
@@ -2135,11 +2294,6 @@ body.lmx-checkin-dialog-open {
 .lmx-participant-actions.lmx-checkin-dialog-panel {
     align-content: start;
     gap: 0;
-}
-
-.lmx-checkin-dialog-panel .lmx-checkin-card {
-    padding: 0;
-    border: 0;
 }
 
 .lmx-checkin-dialog-panel .lmx-checkin-card > h3 {
@@ -2556,9 +2710,47 @@ body.lmx-checkin-dialog-open {
     container-type: inline-size;
 }
 
+/* On phones a post's and a reply's text run under the author row instead of
+   hanging beside the avatar column, so replies read at nearly full width. */
+@media (max-width: 600px) {
+    .lmx-note {
+        --lmx-discussion-body-indent: 0px;
+    }
+}
+
 .lmx-note:focus-within {
     position: relative;
     z-index: 1;
+}
+
+.lmx-note.lmx-announcement {
+    border-left: 3px solid var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-announcement-icon {
+    display: grid;
+    place-items: center;
+    color: var(--lmx-accent);
+}
+
+.lmx-announcement-content {
+    margin-top: var(--lwc-space-2);
+    padding-left: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
+    overflow-wrap: anywhere;
+    max-width: 76ch;
+    line-height: 1.5;
+}
+
+.lmx-note .lmx-announcement-content p {
+    padding-left: 0;
+    margin: 0 0 var(--lwc-space-3);
+}
+
+@media (max-width: 480px) {
+    .lmx-announcement-content {
+        padding-left: 0;
+    }
 }
 
 .lmx-discussion-post-header {
@@ -2808,11 +3000,11 @@ a.lmx-discussion-author-identity:focus-visible {
     scroll-margin-block: 6rem;
 }
 
-.lmx-discussion-target {
+.lmx-discussion-target:focus-visible,
+.lmx-discussion-reply-item:focus-visible {
     outline: 2px solid var(--lmx-accent-hover);
     outline-offset: 4px;
     border-radius: var(--lwc-radius-sm);
-    background: var(--lmx-surface-accent);
 }
 
 .lmx-discussion-author-identity strong {
@@ -2856,6 +3048,13 @@ a.lmx-discussion-author-identity:focus-visible {
     margin: var(--lwc-space-4) 0 0 1.125rem;
     padding-left: var(--lwc-space-4);
     border-left: 1px solid var(--lmx-border);
+}
+
+@media (max-width: 600px) {
+    .lmx-discussion-replies {
+        margin-left: 0.5rem;
+        padding-left: 0.75rem;
+    }
 }
 
 .lmx-discussion-replies-toggle {
@@ -3023,7 +3222,7 @@ a.lmx-discussion-author-identity:focus-visible {
     align-items: center;
     flex-wrap: wrap;
     gap: var(--lwc-space-1);
-    margin-left: var(--lmx-discussion-indent);
+    margin-left: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-quiet-action {
@@ -3070,7 +3269,7 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-copy-feedback.error {
-    margin: var(--lwc-space-2) 0 var(--lwc-space-2) var(--lmx-discussion-indent);
+    margin: var(--lwc-space-2) 0 var(--lwc-space-2) var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
     color: var(--lmx-muted);
     font-size: var(--lwc-type-sm);
 }
@@ -3164,7 +3363,7 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-item p {
     display: block;
-    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
     color: var(--lmx-ink);
     font-size: var(--lwc-type-body);
     line-height: 1.5;
@@ -3180,11 +3379,11 @@ a.lmx-discussion-author-identity:focus-visible {
 
 .lmx-discussion-reply-editor-slot:not([hidden]) {
     display: block;
-    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-reply-status:not(:empty) {
-    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-1) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
     color: var(--lmx-ink);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -3196,11 +3395,12 @@ a.lmx-discussion-author-identity:focus-visible {
 }
 
 .lmx-discussion-reply-slot:not(:empty) {
-    margin: var(--lwc-space-4) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-4) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-discussion-reply-composer {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     box-sizing: border-box;
     max-width: 44rem;
     gap: var(--lwc-space-2);
@@ -3316,6 +3516,10 @@ a.lmx-discussion-author-identity:focus-visible {
 .lmx-discussion-context-link i { flex-shrink: 0; }
 .lmx-discussion-context[hidden] { display: none; }
 .lmx-discussion-context-link { margin-top: var(--lwc-space-1); width: fit-content; max-width: 100%; }
+@container (max-width: 12rem) {
+    .lmx-discussion-context-link.unavailable { display: block; overflow-wrap: anywhere; }
+    .lmx-discussion-context-link.unavailable > i { margin-right: var(--lwc-space-2); }
+}
 a.lmx-discussion-context-link { color: var(--lmx-accent-hover); text-decoration: none; }
 a.lmx-discussion-context-link:hover { text-decoration: underline; }
 .lmx-discussion-context-link:focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 3px; }
@@ -3374,9 +3578,14 @@ a.lmx-discussion-context-link:hover { text-decoration: underline; }
 }
 
 .lmx-discussion-reply-actions {
-    display: grid;
-    grid-template-columns: minmax(min-content, 1fr) auto auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: var(--lwc-space-2);
+}
+
+.lmx-discussion-reply-actions > .lmx-discussion-compose-tools {
+    flex: 1 1 auto;
 }
 
 .lmx-discussion-discard i {
@@ -3561,7 +3770,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-inactive-toggle {
-    min-height: 2rem;
+    min-height: 44px;
     padding: 0 0.15rem;
     border: 0;
     background: transparent;
@@ -3709,10 +3918,8 @@ a.lmx-note-mention:focus-visible {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0 7px 7px 0;
-    box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface),
-        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    border-radius: 0;
+    box-shadow: var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface);
 }
 
 .lmx-board-row.header > .lmx-name,
@@ -3726,9 +3933,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-board-row.header > .lmx-number {
-    box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-surface-muted),
-        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    box-shadow: var(--lmx-sticky-gap-cover) 0 0 var(--lmx-surface-muted);
 }
 
 .lmx-board-row:not(.header):nth-child(even) > .lmx-name,
@@ -3741,9 +3946,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-board-row:not(.header):nth-child(even) > .lmx-number {
-    box-shadow:
-        var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface),
-        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    box-shadow: var(--lmx-sticky-gap-cover) 0 0 var(--lmx-row-surface);
 }
 
 .lmx-board-row.lmx-roster-row > .lmx-name {
@@ -4025,33 +4228,47 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-checkin-switcher {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr));
+    gap: 0.28rem;
+    padding: 0.28rem;
+    border: 1px solid var(--lmx-border);
+    border-radius: 8px;
+    background: var(--lmx-surface-muted);
 }
 
 .lmx-checkin-switcher button {
+    min-width: 0;
     min-height: 54px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0.1rem 0.45rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: start;
+    gap: 0 0.3rem;
     align-items: center;
     text-align: left;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--lmx-border-strong);
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
+    padding: 0.4rem 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
     color: var(--lmx-ink);
     font: inherit;
     cursor: pointer;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.lmx-checkin-switcher button:hover:not([aria-pressed="true"]) {
+    background: var(--lmx-surface);
 }
 
 .lmx-checkin-switcher strong {
+    flex: 1 0 auto;
+    max-width: 100%;
     font-weight: 900;
 }
 
 .lmx-checkin-switcher span {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    flex: 0 0 100%;
+    min-width: 0;
+    order: 2;
     color: var(--lmx-muted);
     font-size: var(--lwc-type-sm);
     font-weight: 400;
@@ -4059,11 +4276,14 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-switcher em {
-    grid-row: 1;
-    grid-column: 2;
-    padding: 0.18rem 0.45rem;
+    flex: 0 0 auto;
+    max-width: 100%;
+    margin-left: auto;
+    order: 1;
+    padding: 0 0.4rem;
     border-radius: 999px;
-    background: var(--lmx-surface-muted);
+    background: var(--lmx-surface);
+    border: 1px solid var(--lmx-border);
     color: var(--lmx-ink);
     font-size: var(--lwc-type-xs);
     font-style: normal;
@@ -4076,6 +4296,7 @@ a.lmx-note-mention:focus-visible {
     background: var(--lmx-inverse-surface);
     border-color: var(--lmx-inverse-surface);
     color: var(--lmx-on-inverse);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
 }
 
 .lmx-checkin-switcher button[aria-pressed="true"] span {
@@ -4099,10 +4320,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-card {
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    padding: 0.8rem;
-    background: var(--lmx-surface);
+    min-width: 0;
 }
 
 .lmx-checkin-card h3 {
@@ -4119,21 +4337,36 @@ a.lmx-note-mention:focus-visible {
 .lmx-checkin-entry {
     min-width: 0;
     container: lmx-checkin / inline-size;
+    display: flex;
+    flex-direction: column;
+    max-height: max(264px, calc(100dvh - 8rem));
+}
+
+/* Keep the inline Save row inside the viewport when the site bar wraps. */
+.lmx-participant-actions:not(.lmx-checkin-dialog-panel) .lmx-checkin-entry {
+    max-height: max(264px, calc(100dvh - max(8rem, calc(var(--site-sticky-height, 0px) + 4.5rem))));
+}
+
+/* Reserve the Save row's space so it never paints over remarks or photos. */
+.lmx-checkin-fields {
+    min-height: 0;
+    overflow-y: auto;
+    scroll-padding-block: var(--lwc-space-2);
 }
 
 .lmx-checkin-actions {
-    position: sticky;
-    bottom: 0;
+    flex: 0 0 auto;
+    position: relative;
     z-index: 2;
-    margin: var(--lwc-space-2) -0.8rem 0;
-    padding: var(--lwc-space-2) 0.8rem;
+    margin: var(--lwc-space-2) -1rem 0;
+    padding: var(--lwc-space-2) 1rem;
     border-top: 1px solid var(--lmx-border);
     background: var(--lmx-surface);
 }
 
 .lmx-checkin-save-row {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-end;
     gap: var(--lwc-space-2);
 }
@@ -4142,6 +4375,7 @@ a.lmx-note-mention:focus-visible {
     flex: 1;
     min-width: 0;
     display: grid;
+    align-content: center;
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
     color: var(--lmx-muted);
@@ -4153,11 +4387,12 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-save-row > .lmx-checkin-reset {
-    width: 44px;
-    padding-inline: 0;
+    min-width: 44px;
+    padding-inline: var(--lwc-space-2);
     font-size: var(--lwc-type-xs);
 }
 
+.lmx-checkin-progress:empty,
 .lmx-checkin-actions .lmx-status:empty,
 .lmx-checkin-reset[hidden] {
     display: none;
@@ -4267,20 +4502,39 @@ a.lmx-note-mention:focus-visible {
     --lmx-habit-deep: var(--lmx-category-deep, var(--lmx-sleep-deep));
     --lmx-habit-soft: var(--lmx-category-soft, var(--lmx-sleep-soft));
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(12.25rem, 46%);
+    grid-template-columns: 3.25rem minmax(0, 1fr) minmax(12.25rem, 46%);
+    grid-template-areas: "plant label answers";
     align-items: center;
-    gap: var(--lwc-space-2);
-    margin: var(--lwc-space-1) 0;
-    padding: var(--lwc-space-1) var(--lwc-space-2);
+    gap: var(--lwc-space-1) var(--lwc-space-2);
+    margin: 0;
+    padding: var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-2) calc(var(--lwc-space-2) + 2px);
     border: 1px solid var(--lmx-border);
-    border-radius: var(--lwc-radius-lg);
+    border-top-width: 0;
+    border-radius: 0;
     background:
         radial-gradient(circle at 0 0, rgba(var(--lmx-habit-soft), 0.07), transparent 34%),
         var(--lmx-surface);
-    box-shadow: none;
+    box-shadow: inset 4px 0 0 rgba(var(--lmx-habit-soft), 0.22);
+    transition: box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+.lmx-question:first-child {
+    border-top-width: 1px;
+    border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+}
+
+.lmx-question:not(:has(+ .lmx-question)) {
+    margin-bottom: var(--lwc-space-3);
+    border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+}
+
+.lmx-question:has(.lmx-answer-input:checked) {
+    box-shadow: inset 4px 0 0 var(--lmx-habit-accent);
 }
 
 .lmx-question-label {
+    grid-area: label;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: var(--lwc-space-2);
@@ -4288,6 +4542,11 @@ a.lmx-note-mention:focus-visible {
     font-size: var(--lwc-type-sm);
     font-weight: 700;
     line-height: 1.3;
+}
+
+.lmx-question-label > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .lmx-question-label i,
@@ -4320,22 +4579,22 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-growth-control {
-    display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr);
-    gap: var(--lwc-space-1);
-    align-items: center;
-    padding: 0;
+    display: contents;
 }
 
 .lmx-plant {
     --lmx-plant-scale: 0.75;
     --lmx-plant-stem-width: 3;
+    grid-area: plant;
+    align-self: stretch;
     min-width: 0;
     min-height: 0;
     display: grid;
     place-items: center;
     margin: 0;
     padding: 0;
+    border-radius: var(--lwc-radius-md);
+    background: radial-gradient(ellipse at 50% 78%, rgba(var(--lmx-habit-soft), 0.14), transparent 68%);
 }
 
 .lmx-plant-visual {
@@ -4455,13 +4714,14 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-answer-options {
+    grid-area: answers;
     min-width: 0;
     min-height: 44px;
     display: grid;
     grid-template-columns:
-        minmax(2.75rem, 0.64fr)
-        minmax(2.75rem, 0.82fr)
-        minmax(2.75rem, 1fr);
+        minmax(44px, 0.64fr)
+        minmax(44px, 0.82fr)
+        minmax(44px, 1fr);
     gap: 0.35rem;
     align-self: stretch;
 }
@@ -4511,10 +4771,15 @@ a.lmx-note-mention:focus-visible {
     }
 }
 
-.lmx-answer-input {
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input {
     position: absolute;
-    width: 1px;
-    height: 1px;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    min-height: 0;
+    padding: 0;
+    border: 0;
     margin: 0;
     opacity: 0;
     pointer-events: none;
@@ -4550,8 +4815,35 @@ a.lmx-note-mention:focus-visible {
 /* Size the shared check-in by its form width, including the narrow desktop sidebar. */
 @container lmx-checkin (max-width: 28rem) {
     .lmx-question {
+        grid-template-columns: min(3rem, 16%) minmax(0, 1fr);
+        column-gap: min(var(--lwc-space-2), 2cqw);
+        grid-template-areas:
+            "plant label"
+            "plant answers";
+    }
+}
+
+/* Phone widths keep the full question line above the plant and answers. */
+@container lmx-checkin (max-width: 22rem) {
+    .lmx-question {
+        grid-template-areas:
+            "label label"
+            "plant answers";
+    }
+
+    .lmx-plant {
+        align-self: center;
+    }
+}
+
+@container lmx-checkin (max-width: 240px) {
+    .lmx-question {
         grid-template-columns: minmax(0, 1fr);
-        gap: var(--lwc-space-1);
+        grid-template-areas: "label" "plant" "answers";
+    }
+
+    .lmx-answer-options {
+        grid-template-columns: minmax(44px, 1fr);
     }
 }
 
@@ -4620,7 +4912,8 @@ a.lmx-note-mention:focus-visible {
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
 }
 
-.lmx-feed-button:focus-visible {
+.lmx-feed-button:focus-visible,
+.lmx-feed-caught-up:focus-visible {
     outline: 3px solid rgba(0, 188, 212, 0.25);
     outline-offset: 2px;
 }
@@ -4716,7 +5009,7 @@ a.lmx-note-mention:focus-visible {
 
 .lmx-note > p,
 .lmx-note > .lmx-note-photo-grid {
-    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-indent);
+    margin: var(--lwc-space-2) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-note > p,
@@ -4726,12 +5019,12 @@ a.lmx-note-mention:focus-visible {
 
 @media (max-width: 480px) {
     .lmx-note {
-        padding: var(--lwc-space-3);
+        padding: min(var(--lwc-space-3), 12px);
     }
 
     .lmx-discussion-replies {
-        margin-left: var(--lwc-space-2);
-        padding-left: var(--lwc-space-3);
+        margin-left: min(var(--lwc-space-2), 8px);
+        padding-left: min(var(--lwc-space-3), 12px);
     }
 
     .lmx-discussion-reply-slot:not(:empty) {
@@ -4763,12 +5056,37 @@ a.lmx-note-mention:focus-visible {
         grid-column: 1;
         grid-row: 1;
         min-height: 44px;
-        padding-left: 2.5rem;
+        padding-left: min(2.5rem, 40px);
     }
 
-    .lmx-discussion-post-header .lmx-discussion-author-avatar {
-        width: 2rem;
-        height: 2rem;
+    .lmx-discussion-post-header .lmx-discussion-author-avatar,
+    .lmx-discussion-reply-meta .lmx-discussion-author-avatar,
+    .lmx-discussion-quick-avatar,
+    .lmx-discussion-quick-avatar .lmx-discussion-author-avatar {
+        width: min(2rem, 32px);
+        height: min(2rem, 32px);
+        flex-basis: min(2rem, 32px);
+    }
+
+    .lmx-discussion-reply-item {
+        --lmx-discussion-indent: min(2.5rem, 40px);
+    }
+
+    .lmx-discussion-quick-reply {
+        gap: min(var(--lwc-space-3), 12px);
+        padding: min(var(--lwc-space-2), 8px);
+    }
+
+    .lmx-discussion-quick-reply > i {
+        flex-basis: min(1rem, 16px);
+    }
+
+    .lmx-discussion-reply-owner-actions {
+        flex-wrap: wrap;
+    }
+
+    .lmx-discussion-reply-owner-actions button {
+        white-space: nowrap;
     }
 
     .lmx-discussion-post-author small {
@@ -4804,11 +5122,51 @@ a.lmx-note-mention:focus-visible {
     }
 }
 
+/* Give names the full row when enlarged text leaves little room beside the actions. */
+@container (max-width: 280px) and (max-width: 12rem) {
+    .lmx-discussion-post-author > .lmx-discussion-author-identity {
+        grid-column: 1 / -1;
+    }
+
+    .lmx-discussion-post-author small {
+        grid-row: 2 / span 2;
+    }
+
+    .lmx-discussion-post-actions .lmx-discussion-reply {
+        grid-row: 2;
+    }
+
+    .lmx-discussion-post-actions .lmx-discussion-copy-link {
+        grid-row: 3;
+    }
+}
+
 .lmx-hidden {
     display: none !important;
 }
 
 /* Keep the first paint neutral until the public or private view is resolved. */
+.lmx-page[aria-busy="true"] {
+    min-height: 100svh;
+}
+
+.lmx-page[aria-busy="true"] .lmx-hero {
+    grid-template-columns: 1fr !important;
+}
+
+/* Neutral, but in place: the panel keeps its padding and border width, so the
+   title does not jump when the resolved view draws the card around it. */
+.lmx-page[aria-busy="true"] #lmxTitlePanel,
+.lmx-page[aria-busy="true"] .lmx-action-card {
+    border-color: transparent;
+    box-shadow: none;
+    background: transparent;
+}
+
+.lmx-page[aria-busy="true"] .lmx-action-card {
+    position: static;
+}
+
 .lmx-page[aria-busy="true"] #lmxTitlePanel > :not(.lmx-title-row),
 .lmx-page[aria-busy="true"] #lmxAccessTabs,
 .lmx-page[aria-busy="true"] #lmxSignupPanel,
@@ -4878,7 +5236,7 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-inactive-toggle {
-        min-height: 2.5rem;
+        min-height: max(44px, 2.5rem);
     }
 
     .lmx-board-wrap {
@@ -4887,7 +5245,7 @@ a.lmx-note-mention:focus-visible {
 
     .lmx-week-pager {
         display: grid;
-        grid-template-columns: minmax(4.75rem, auto) minmax(0, 1fr) minmax(4.75rem, auto);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.35rem;
         align-items: stretch;
         margin: 0.7rem 0.55rem 0;
@@ -4898,14 +5256,16 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-week-pager button {
+        min-width: 0;
         min-height: 2.75rem;
-        padding: 0 0.65rem;
+        padding: 0.25rem 0.35rem;
         border: 1px solid var(--lmx-border);
         border-radius: var(--lwc-radius-md);
         background: var(--lmx-surface);
         color: var(--lmx-ink);
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         display: inline-flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: center;
         gap: 0.42rem;
@@ -4936,6 +5296,8 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-week-label {
+        grid-column: 1 / -1;
+        grid-row: 1;
         min-width: 0;
         display: inline-flex;
         align-items: center;
@@ -5084,8 +5446,8 @@ a.lmx-note-mention:focus-visible {
 }
 
 @media (max-width: 620px) {
-    .lmx-life-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .lmx-life-pair {
+        flex-basis: 100%;
     }
 }
 
@@ -5158,19 +5520,15 @@ a.lmx-note-mention:focus-visible {
     }
 
     .lmx-life-strip {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: stretch;
         gap: 0.4rem;
         padding: 0.55rem;
     }
 
     .lmx-life-strip span {
         min-height: 2.35rem;
-        padding-inline: 0.55rem;
+        padding-inline: min(0.55rem, 1.5vw);
         gap: 0.28rem;
         font-size: clamp(0.75rem, 3.2vw, 0.82rem);
-        white-space: nowrap;
     }
 
     .lmx-question-preview {
@@ -5214,13 +5572,12 @@ a.lmx-note-mention:focus-visible {
 
 @media (max-width: 360px) {
     .lmx-title-row h1 {
-        font-size: clamp(1.58rem, 9vw, 1.85rem);
+        font-size: clamp(1.8rem, 9vw, 1.85rem);
         overflow-wrap: normal;
         word-break: keep-all;
     }
 
     .lmx-life-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.25rem;
         padding: 0.35rem;
     }
@@ -5256,4 +5613,1740 @@ a.lmx-note-mention:focus-visible {
 #lmxProfilePictureStatus:empty,
 #lmxEditStatus:empty {
     display: none;
+}
+
+/* Leaderboard: an empty board is one message, not a row of blank days. */
+.lmx-board .lmx-board-row.lmx-empty-row {
+    --lmx-row-surface: var(--lmx-surface);
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 3.25rem;
+    background: var(--lmx-row-surface);
+}
+
+.lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+    width: max-content;
+    background: transparent;
+    box-shadow: none;
+}
+
+.lmx-board .lmx-board-row.lmx-empty-row .lmx-empty-name {
+    color: var(--lmx-muted);
+    font-weight: 700;
+}
+
+/* Wide boards: days scrolling under the frozen Participant and Score columns
+   fade out at their edge instead of showing a sliver of a cut-off day. */
+.lmx-board-row > .lmx-number::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(100% + var(--lmx-sticky-gap-cover));
+    width: 1.1rem;
+    pointer-events: none;
+    background: linear-gradient(to right, var(--lmx-row-surface) 70%, transparent);
+}
+
+.lmx-board-row.header > .lmx-number::after {
+    background: linear-gradient(to right, var(--lmx-surface-muted) 70%, transparent);
+}
+
+@media (max-width: 760px) {
+    .lmx-board-row > .lmx-number::after {
+        content: none;
+    }
+
+    /* Phones: rank, athlete and score read on one line and the days follow.
+       The score wraps under the name only when enlarged text needs the room. */
+    .lmx-board .lmx-board-row:not(.header):not(.lmx-roster-row):not(.lmx-empty-row) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem 0.75rem;
+    }
+
+    .lmx-board .lmx-board-row:not(.header):not(.lmx-roster-row):not(.lmx-empty-row) > .lmx-name {
+        /* Let the actual name choose when the score wraps, before shrinking its label. */
+        flex: 1 1 max-content;
+        min-width: 0;
+    }
+
+    .lmx-board .lmx-board-row:not(.header):not(.lmx-roster-row):not(.lmx-empty-row) > .lmx-cell-strip {
+        flex: 1 1 100%;
+    }
+
+    .lmx-board .lmx-board-row:not(.lmx-roster-row) > .lmx-number {
+        flex: 0 0 auto;
+        margin-left: auto;
+        align-self: center;
+        justify-items: end;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        font-size: 1.15rem;
+        line-height: 1.1;
+        text-align: right;
+    }
+
+    .lmx-board .lmx-board-row:not(.lmx-roster-row) > .lmx-number::before {
+        font-size: 0.6rem;
+    }
+
+    .lmx-board .lmx-board-row.lmx-empty-row,
+    .lmx-board .lmx-board-row.lmx-roster-row.lmx-empty-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+        grid-column: 1 / -1;
+        width: auto;
+    }
+}
+
+/* Replies keep their context and actions on the name row, so the text follows the name directly. */
+.lmx-discussion-reply-meta .lmx-discussion-author-avatar {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.lmx-discussion-reply-meta .lmx-discussion-context-link {
+    margin-top: 0;
+    gap: var(--lwc-space-1);
+    font-size: var(--lwc-type-sm);
+}
+
+.lmx-discussion-reply-meta {
+    flex-wrap: wrap;
+}
+
+/* Name, time and reply context wrap among themselves; the actions stay at the row's end. */
+.lmx-discussion-reply-byline {
+    display: flex;
+    flex: 1 1 10rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 0.45rem;
+    min-width: 0;
+}
+
+.lmx-discussion-reply-meta .lmx-discussion-reply-footer {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.lmx-discussion-reply-item p {
+    margin-top: 0.15rem;
+}
+
+/* Narrow replies with several actions keep them under the text, where there is room for all of them. */
+@media (max-width: 480px) {
+    .lmx-discussion-reply-item > .lmx-discussion-reply-footer {
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+}
+
+/* Nobody to rank: drop the day columns and their pager, and let the message
+   be the board instead of a header row of dates over a blank line. */
+.lmx-board-wrap--empty #lmxWeekPager,
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.header {
+    display: none !important;
+}
+
+.lmx-board-wrap--empty .lmx-board-scroll {
+    overflow: visible;
+}
+
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row {
+    display: grid;
+    place-items: center;
+    min-height: 7rem;
+    margin: 0.25rem 0 0.5rem;
+    border: 1px dashed var(--lmx-border, var(--lwc-border));
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lmx-surface-muted, var(--lwc-surface-muted));
+}
+
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+    width: auto;
+    justify-self: center;
+    padding-inline: 0.25rem !important;
+    text-align: center;
+}
+
+.lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row .lmx-empty-name {
+    font-size: 1.05rem;
+}
+
+.lmx-board-wrap--empty .lmx-board {
+    width: auto !important;
+    min-width: 0 !important;
+}
+
+/* ==========================================================================
+   Page system
+   One rhythm for the whole page: cards share a radius, border and shadow;
+   card titles sit in header bands; hero sections share one left-aligned
+   section heading; lists are single divided boxes instead of nested tiles;
+   the discussion reads as one divided feed.
+   ========================================================================== */
+
+.lmx-page {
+    --lmx-gap: var(--lwc-space-5);
+    --lmx-card-radius: var(--lwc-radius-lg);
+    --lmx-card-shadow: var(--lwc-shadow-md);
+    --lmx-pad: clamp(1rem, 2.4vw, 1.5rem);
+}
+
+.lmx-page .lmx-shell,
+.lmx-page .lmx-hero {
+    gap: var(--lmx-gap);
+}
+
+.lmx-page .lmx-panel,
+.lmx-page .lmx-card,
+.lmx-page .lmx-board-wrap {
+    border-radius: var(--lmx-card-radius);
+    box-shadow: var(--lmx-card-shadow);
+}
+
+/* --- Hero ----------------------------------------------------------------- */
+
+.lmx-page .lmx-title-panel {
+    padding: var(--lmx-pad);
+}
+
+.lmx-page .lmx-hero-copy {
+    margin-top: var(--lwc-space-2);
+    color: var(--lmx-muted);
+    font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+}
+
+/* Compatibility: one left-aligned row of outline tags. */
+.lmx-page .lmx-life-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: var(--lwc-space-4);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-life-pair {
+    gap: 0.4rem;
+}
+
+.lmx-page .lmx-life-strip span {
+    min-height: 2rem;
+    padding: 0 0.2rem;
+    gap: 0.4rem;
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lmx-surface);
+    color: var(--lmx-ink);
+    font-size: var(--lwc-type-xs);
+    font-weight: 700;
+}
+
+.lmx-page .lmx-life-strip i {
+    color: var(--lmx-accent);
+}
+
+/* Every hero section opens with the same heading: small, tracked, left-aligned, ruled. */
+.lmx-page .lmx-habit-heading,
+.lmx-page .lmx-question-preview h2,
+.lmx-page .lmx-dashboard-head h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-3);
+    margin: var(--lwc-space-6) 0 var(--lwc-space-3);
+    padding: 0;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.lmx-page .lmx-habit-heading::after,
+.lmx-page .lmx-question-preview h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--lmx-border);
+}
+
+.lmx-page .lmx-dashboard-head h2 {
+    margin: 0;
+}
+
+.lmx-page .lmx-dashboard-head {
+    align-items: center;
+    margin-top: var(--lwc-space-5);
+    margin-bottom: var(--lwc-space-3);
+}
+
+/* Agencies: four even tiles, each keyed by its habit colour. */
+.lmx-page .lmx-habit-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+    gap: var(--lwc-space-3);
+    margin-top: 0;
+}
+
+.lmx-page .lmx-habit-card {
+    position: relative;
+    min-height: 0;
+    padding: var(--lwc-space-4) var(--lwc-space-3) var(--lwc-space-3);
+    justify-items: start;
+    gap: var(--lwc-space-3);
+    overflow: hidden;
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-habit-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--lmx-category-accent);
+}
+
+.lmx-page .lmx-habit-card i {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--lwc-radius-md);
+}
+
+.lmx-page .lmx-habit-card span {
+    color: var(--lmx-ink);
+    font-size: var(--lwc-type-body);
+    font-weight: 800;
+}
+
+/* Daily checkins: one divided list on the same edges as the tiles above. */
+.lmx-page .lmx-question-preview {
+    margin-top: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-question-preview-list {
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-question-preview-item,
+.lmx-page .lmx-question-preview-item:nth-child(n) {
+    margin: 0;
+    padding: var(--lwc-space-3) var(--lwc-space-4);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-question-preview-item + .lmx-question-preview-item {
+    border-top: 1px solid var(--lmx-border);
+}
+
+.lmx-page .lmx-question-preview-label {
+    gap: var(--lwc-space-3);
+    font-size: var(--lwc-type-body);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.lmx-page .lmx-question-preview-label i {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--lwc-radius-md);
+}
+
+/* Signed-in stats read as competition marks. */
+.lmx-page .lmx-benefit-strip.lmx-ops-strip {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: var(--lwc-space-3);
+    margin-top: var(--lwc-space-5);
+    padding: var(--lwc-space-4) 0;
+    border-block: 1px solid var(--lmx-border);
+}
+
+.lmx-page .lmx-ops-tile {
+    flex: 1 1 max-content;
+}
+
+.lmx-page .lmx-ops-tile > .lmx-ops-label {
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lmx-page .lmx-ops-tile strong {
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+/* --- Action card ---------------------------------------------------------- */
+
+.lmx-page .lmx-action-card {
+    /* Keep the check-in console at its original width so day buttons never rewrap. */
+    --lmx-pad: var(--lwc-space-4);
+    padding: 0 var(--lmx-pad) var(--lmx-pad);
+    gap: var(--lwc-space-4);
+}
+
+/* Both tab sets use the site's accent-underline tabs, flush with the card top. */
+.lmx-page .lmx-tabs,
+.lmx-page .lmx-access-tabs,
+.lmx-page #lmxParticipantTabs {
+    gap: 0;
+    margin: 0 calc(-1 * var(--lmx-pad));
+    padding: 0 var(--lwc-space-2);
+    border: 0;
+    border-bottom: 1px solid var(--lmx-border);
+    border-radius: var(--lmx-card-radius) var(--lmx-card-radius) 0 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-tabs .lmx-tab,
+.lmx-page #lmxParticipantTabs .lmx-tab {
+    min-height: 3.25rem;
+    border-radius: 0;
+    background: transparent;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    box-shadow: none;
+}
+
+/* Let whole icon-and-word actions wrap before their targets become too narrow. */
+.lmx-page #lmxParticipantTabs {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.lmx-page #lmxParticipantTabs .lmx-tab {
+    flex: 1 1 max-content;
+}
+
+.lmx-page .lmx-tabs .lmx-tab:hover,
+.lmx-page .lmx-tabs .lmx-tab:focus-visible {
+    background: transparent;
+    color: var(--lmx-ink);
+}
+
+.lmx-page .lmx-tabs .lmx-tab[aria-selected="true"],
+.lmx-page #lmxParticipantTabs .lmx-tab[aria-selected="true"] {
+    background: transparent;
+    color: var(--lmx-accent-hover);
+    font-weight: 800;
+    box-shadow: inset 0 -3px 0 var(--lmx-accent);
+}
+
+/* --- Header bands: Leaderboard and Discussion ----------------------------- */
+
+.lmx-page .lmx-board-header,
+.lmx-page .lmx-notes-header {
+    min-height: 3.25rem;
+    margin: 0;
+    padding: var(--lwc-space-2) var(--lmx-pad);
+    border-bottom: 1px solid var(--lmx-border);
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-page .lmx-board-header h2,
+.lmx-page .lmx-notes-header h2 {
+    margin: 0;
+    color: var(--lmx-accent-hover);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    line-height: 1.2;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.lmx-page .lmx-board-meta {
+    margin-top: var(--lwc-space-1);
+    font-size: var(--lwc-type-xs);
+}
+
+.lmx-page .lmx-board-legend .lmx-habit-key {
+    box-shadow: none;
+}
+
+/* --- Discussion: one divided feed ----------------------------------------- */
+
+.lmx-page #lmxNotesPanel {
+    padding: 0;
+    overflow: clip;
+}
+
+.lmx-page .lmx-notes {
+    gap: 0;
+}
+
+.lmx-page .lmx-note {
+    --lmx-discussion-indent: 3rem;
+    padding: var(--lwc-space-5) var(--lmx-pad);
+    border: 0;
+    border-radius: 0;
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-note + .lmx-note {
+    border-top: 1px solid var(--lmx-border);
+}
+
+.lmx-page .lmx-note.lmx-announcement {
+    border-left: 0;
+    box-shadow: inset 4px 0 0 var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-page .lmx-discussion-post-header .lmx-discussion-author-avatar {
+    width: min(2.5rem, 40px);
+    height: min(2.5rem, 40px);
+    flex-basis: min(2.5rem, 40px);
+    top: 0;
+}
+
+@container (max-width: 280px) {
+    .lmx-page .lmx-discussion-post-header .lmx-discussion-author-avatar {
+        width: min(2rem, 32px);
+        height: min(2rem, 32px);
+        flex-basis: min(2rem, 32px);
+    }
+}
+
+.lmx-page .lmx-note .lmx-discussion-post-author strong {
+    font-size: var(--lwc-type-body);
+    line-height: 1.3;
+    overflow-wrap: break-word;
+}
+
+.lmx-page .lmx-discussion-post-header {
+    flex-wrap: wrap;
+}
+
+.lmx-page .lmx-discussion-post-author {
+    gap: 0;
+    min-width: min-content;
+    max-width: 100%;
+}
+
+.lmx-page .lmx-note > p,
+.lmx-page .lmx-announcement-content p {
+    font-size: var(--lwc-type-body);
+    line-height: 1.55;
+}
+
+/* The post-level Reply reads as a quiet action like the reply-level ones. */
+.lmx-page .lmx-discussion-reply {
+    border-color: transparent;
+    background: transparent;
+}
+
+.lmx-page .lmx-discussion-reply:hover,
+.lmx-page .lmx-discussion-reply[aria-expanded="true"] {
+    border-color: transparent;
+    background: var(--lmx-surface-accent);
+}
+
+/* Replies hang from a thread line under the author's avatar. */
+.lmx-page .lmx-discussion-replies {
+    margin: var(--lwc-space-3) 0 0 1.25rem;
+    padding-left: calc(var(--lmx-discussion-indent) - 1.25rem - 2px);
+    border-left: 2px solid var(--lmx-border);
+}
+
+.lmx-page .lmx-discussion-reply-item {
+    --lmx-discussion-indent: 2.5rem;
+}
+
+/* "Write a reply…" lines up with the post text as a light pill. */
+.lmx-page .lmx-discussion-quick-reply {
+    width: calc(100% - var(--lmx-discussion-body-indent, var(--lmx-discussion-indent)));
+    min-height: 44px;
+    margin: var(--lwc-space-3) 0 0 var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
+    padding: var(--lwc-space-1) var(--lwc-space-3) var(--lwc-space-1) var(--lwc-space-1);
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-discussion-quick-avatar,
+.lmx-page .lmx-discussion-quick-avatar .lmx-discussion-author-avatar {
+    flex-basis: 2rem;
+    width: 2rem;
+    height: 2rem;
+}
+
+/* A single photo shows at a readable size; several form an even grid. */
+.lmx-page .lmx-note > .lmx-note-photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
+    max-width: 30rem;
+    gap: var(--lwc-space-2);
+}
+
+.lmx-page .lmx-note > .lmx-note-photo-grid:has(> .lmx-note-photo:only-child) {
+    grid-template-columns: minmax(0, 20rem);
+}
+
+.lmx-page .lmx-note-photo,
+.lmx-page .lmx-discussion-video {
+    border-radius: var(--lwc-radius-md);
+}
+
+.lmx-page .lmx-feed-footer {
+    padding: var(--lwc-space-4) var(--lmx-pad) var(--lwc-space-5);
+    border-top: 1px solid var(--lmx-border);
+}
+
+@media (max-width: 760px) {
+    .lmx-page .lmx-habit-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
+        gap: var(--lwc-space-2);
+    }
+
+    .lmx-page .lmx-habit-card {
+        justify-items: center;
+        padding: var(--lwc-space-3) var(--lwc-space-1) var(--lwc-space-2);
+        gap: var(--lwc-space-2);
+        text-align: center;
+    }
+
+    .lmx-page .lmx-habit-card span {
+        font-size: var(--lwc-type-sm);
+    }
+}
+
+@media (max-width: 600px) {
+    /* Text runs under the author row here, so the avatar column only needs the avatar. */
+    .lmx-page .lmx-note {
+        --lmx-discussion-indent: min(3rem, 48px);
+    }
+
+    .lmx-page .lmx-discussion-replies {
+        margin-left: 0.5rem;
+        padding-left: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .lmx-page #lmxNotesPanel {
+        --lmx-pad: min(var(--lwc-space-3), 12px);
+    }
+
+    .lmx-page .lmx-discussion-replies {
+        margin-left: min(var(--lwc-space-2), 8px);
+        padding-left: min(var(--lwc-space-3), 12px);
+    }
+}
+
+@media (max-width: 520px) {
+    .lmx-page {
+        --lmx-gap: var(--lwc-space-4);
+        --lmx-pad: min(var(--lwc-space-4), 16px);
+    }
+
+    .lmx-page .lmx-card {
+        padding: var(--lmx-pad);
+    }
+
+    .lmx-page .lmx-action-card {
+        padding-top: 0;
+    }
+
+    .lmx-page #lmxNotesPanel {
+        padding: 0;
+    }
+
+    .lmx-page .lmx-note {
+        padding: min(var(--lwc-space-4), 16px) var(--lmx-pad);
+    }
+
+    .lmx-page .lmx-notes-header {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .lmx-page .lmx-life-strip span {
+        min-height: 2.25rem;
+        padding-inline: min(0.35rem, 1.5vw);
+        font-size: clamp(0.75rem, 3.2vw, 0.82rem);
+    }
+
+    .lmx-page .lmx-question-preview-item,
+    .lmx-page .lmx-question-preview-item:nth-child(n) {
+        padding: var(--lwc-space-3);
+    }
+
+    .lmx-page .lmx-question-preview-label {
+        font-size: var(--lwc-type-sm);
+    }
+
+    .lmx-page .lmx-question-preview-label i {
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .lmx-page .lmx-habit-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+    }
+
+    .lmx-page .lmx-life-strip {
+        gap: 0.25rem;
+    }
+
+    .lmx-page .lmx-life-pair {
+        gap: 0.25rem;
+    }
+
+    .lmx-page .lmx-life-strip span {
+        padding-inline: 0.3rem;
+        gap: 0.2rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* The shared skin also draws a 3px border under the current access tab; keep one underline. */
+html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
+    box-shadow: none;
+}
+
+.lmx-advice-story-dialog {
+    color: var(--lmx-ink);
+    background: var(--lmx-surface);
+    border: 1px solid var(--lmx-border);
+    border-radius: 8px;
+    width: min(32rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 1.25rem;
+    box-shadow: var(--lwc-shadow-md);
+    overflow: auto;
+    box-sizing: border-box;
+}
+.lmx-advice-story-dialog::backdrop { background: rgb(15 23 42 / .35); }
+.lmx-advice-story-dialog form { display: grid; gap: .75rem; }
+.lmx-advice-story-dialog h2 { text-align: left; font-size: 1.35rem; line-height: 1.3; margin: 0; padding: 0; text-shadow: none; }
+.lmx-advice-story-dialog p { margin: 0; color: var(--lmx-muted); }
+.lmx-advice-story-input { position: relative; min-width: 0; }
+.lmx-advice-story-dialog textarea { display: block; box-sizing: border-box; width: 100%; min-height: 8rem; max-height: 40dvh; resize: vertical; border: 1px solid var(--lmx-border-strong); border-radius: 5px; padding: .75rem .75rem 1.75rem; font: inherit; line-height: 1.5; color: var(--lmx-ink); background: var(--lmx-surface); }
+.lmx-advice-story-dialog :focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 2px; }
+.lmx-advice-story-dialog textarea:focus-visible { outline-offset: -1px; }
+.lmx-advice-story-count { position: absolute; bottom: .5rem; right: 1.25rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
+.lmx-advice-story-actions { display: flex; align-items: center; justify-content: flex-end; }
+.lmx-advice-story-actions [data-advice-change-scores] { margin-inline-end: auto; }
+.lmx-advice-story-actions [hidden] { display: none; }
+.lmx-advice-story-dialog .lmx-button { min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--lmx-accent); border-radius: 5px; background: var(--lmx-accent); color: white; font: inherit; font-weight: 700; }
+.lmx-advice-story-dialog .lmx-button:disabled { opacity: .5; cursor: default; }
+.lmx-advice-badge { display: inline-flex; margin-right: .6rem; color: var(--lmx-accent); font-size: .75rem; font-weight: 700; }
+.lmx-page .lmx-note.lmx-needs-advice { background: color-mix(in srgb, var(--lmx-warning-soft) 60%, var(--lmx-surface)); border-color: color-mix(in srgb, var(--lmx-warning) 30%, var(--lmx-border)); }
+.lmx-needs-advice .lmx-advice-badge { color: var(--lmx-warning); }
+.lmx-advice-story { padding-top: .75rem; }
+.lmx-advice-story > p { font-size: 1.05rem; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
+.lmx-advice-context { margin-bottom: 1rem; color: var(--lmx-muted); font-size: .9rem; }
+.lmx-advice-context summary, .lmx-advice-archive summary { cursor: pointer; min-height: 44px; align-content: center; }
+.lmx-page .lmx-advice-replies { margin: 0; padding: 0; border: 0; }
+.lmx-advice-entry-slot:not(:empty) { margin-block: .75rem; }
+.lmx-advice-composer .lmx-mention-field { position: relative; }
+.lmx-advice-composer textarea { padding-bottom: 1.75rem; }
+.lmx-advice-composer [data-reply-count] { position: absolute; bottom: .5rem; right: 1.15rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
+.lmx-advice-composer [data-reply-count].over-limit { color: var(--lmx-danger); }
+.lmx-page .lmx-unread-link { font-weight: 700; color: var(--lmx-accent); }
+.lmx-unread-link::before, .lmx-unread-marker { content: ""; display: inline-block; inline-size: .4rem; block-size: .4rem; border-radius: 50%; background: var(--lmx-accent); vertical-align: middle; flex: 0 0 auto; }
+.lmx-unread-link::before { margin-inline-end: .4rem; }
+.lmx-unread-marker { margin-inline-start: .15rem; }
+.lmx-unread-message { background: var(--lmx-surface-accent); border-radius: var(--lwc-radius-sm); cursor: pointer; }
+.lmx-advice-branch { min-width: 0; }
+.lmx-advice-branch + .lmx-advice-branch { border-top: 1px solid var(--lmx-border); margin-top: .25rem; padding-top: 0; }
+.lmx-advice-rank { color: var(--lmx-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.lmx-advice-branch.is-active .lmx-advice-rank { color: var(--lmx-accent); }
+.lmx-advice-conversation > .lmx-discussion-reply-item,
+.lmx-advice-archive > .lmx-discussion-reply-item { margin: .75rem 0 0 .95rem; padding-left: 1.25rem; border-left: 1px solid var(--lmx-border); }
+.lmx-advice-compose-slot:not(:empty) { margin-top: .75rem; }
+.lmx-advice-archive { color: var(--lmx-muted); font-size: .9rem; }
+.lmx-advice-archive[open] > summary { min-height: 32px; }
+.lmx-advice-archive > .lmx-discussion-reply-item { color: var(--lmx-ink); font-size: 1rem; }
+.lmx-advice-archive-content { color: var(--lmx-ink); font-size: 1rem; }
+.lmx-advice-archive-content > .lmx-discussion-reply-item { padding-top: 0; }
+.lmx-advice-replies > .lmx-discussion-reply-list { display: block; }
+.lmx-advice-story-dialog .lmx-status:empty { display: none; }
+.lmx-advice-story > p { max-width: 65ch; }
+.lmx-advice-story-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
+.lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; margin-top: .75rem; }
+.lmx-advice-story-editor textarea { width: 100%; box-sizing: border-box; padding: .75rem; font: inherit; color: var(--lmx-ink); background: var(--lmx-surface); border: 1px solid var(--lmx-border-strong); border-radius: 6px; }
+.lmx-advice-post .lmx-discussion-reply { width: auto; max-width: 100%; padding-inline: .75rem; white-space: normal; }
+.lmx-advice-post .lmx-discussion-reply > span { display: inline; }
+.lmx-advice-post .lmx-discussion-post-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.lmx-advice-post .lmx-discussion-post-author { min-width: 0; }
+.lmx-advice-branch :focus-visible, .lmx-advice-archive :focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 2px; }
+@container (max-width: 420px) or (max-width: 20rem) {
+    .lmx-advice-post .lmx-discussion-post-header { padding-left: 0; row-gap: 0; }
+    .lmx-advice-post .lmx-discussion-post-author { display: contents; }
+    .lmx-advice-post .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1; grid-row: 1; min-height: 44px; padding-left: min(2.5rem, 40px); }
+    .lmx-advice-post .lmx-discussion-post-author small { grid-column: 1 / -1; grid-row: 2; margin-left: min(2.5rem, 40px); }
+    .lmx-advice-post .lmx-discussion-post-actions { display: inline-flex; grid-column: 2; grid-row: 1; }
+    .lmx-advice-post .lmx-discussion-post-header .lmx-discussion-author-avatar { width: min(2rem, 32px); height: min(2rem, 32px); }
+}
+@container (max-width: 280px) {
+    .lmx-advice-post .lmx-discussion-post-author small { margin-left: 0; }
+}
+@container (max-width: 20rem) {
+    .lmx-advice-post .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1 / -1; min-height: min(2rem, 32px); }
+    .lmx-advice-post .lmx-discussion-post-author small { grid-column: 1 / -1; grid-row: 2; line-height: 1.4; }
+    .lmx-advice-post .lmx-discussion-post-actions { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
+    .lmx-needs-advice .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1; min-height: 44px; }
+    .lmx-needs-advice .lmx-discussion-post-actions { grid-column: 2; grid-row: 1; }
+}
+@container (max-width: 12rem) {
+    .lmx-needs-advice .lmx-discussion-post-author > .lmx-discussion-author-identity { grid-column: 1 / -1; }
+    .lmx-needs-advice .lmx-discussion-post-actions { grid-column: 1 / -1; grid-row: 3; }
+}
+@media (max-width: 480px) {
+    .lmx-advice-conversation > .lmx-discussion-reply-item,
+    .lmx-advice-archive > .lmx-discussion-reply-item { margin-left: .5rem; padding-left: .75rem; }
+}
+
+/* ==========================================================================
+   Signed-in system
+   The daily check-in reads as one ritual in the dialog and in the card:
+   habit icons fill as each question is answered, the three faces sit in one
+   inset track, and the Save bar's rail lights a segment per habit. The
+   personal dashboard, day switcher, profile and the participant's own
+   leaderboard row reuse the same habit colours, labels and cards.
+   ========================================================================== */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card {
+    --lmx-rail-sleep: var(--lmx-surface-muted);
+    --lmx-rail-exercise: var(--lmx-surface-muted);
+    --lmx-rail-nutrition: var(--lmx-surface-muted);
+    --lmx-rail-vices: var(--lmx-surface-muted);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="sleep"] .lmx-answer-input:checked) {
+    --lmx-rail-sleep: var(--lmx-sleep-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="exercise"] .lmx-answer-input:checked) {
+    --lmx-rail-exercise: var(--lmx-exercise-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="nutrition"] .lmx-answer-input:checked) {
+    --lmx-rail-nutrition: var(--lmx-nutrition-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="vices"] .lmx-answer-input:checked) {
+    --lmx-rail-vices: var(--lmx-vices-accent);
+}
+
+/* --- Day heading: the date is a tracked kicker beside a large day ------- */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card > h3 {
+    align-items: baseline;
+    gap: var(--lwc-space-2);
+    color: var(--lmx-ink);
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card > h3 > .lmx-phase {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* --- Questions: one divided list, each row keyed by its habit ------------ */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question {
+    background: var(--lmx-surface);
+    box-shadow: inset 3px 0 0 rgba(var(--lmx-habit-soft), 0.28);
+    transition:
+        background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question:has(.lmx-answer-input:checked) {
+    background: rgba(var(--lmx-habit-soft), 0.06);
+    box-shadow: inset 3px 0 0 var(--lmx-habit-accent);
+}
+
+/* Unanswered habits show an outlined icon; answering fills it. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question-icon {
+    box-sizing: border-box;
+    border: 1.5px solid rgba(var(--lmx-habit-soft), 0.55);
+    background: transparent;
+    color: var(--lmx-habit-accent);
+    transition:
+        background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        border-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question:has(.lmx-answer-input:checked) .lmx-question-icon {
+    border-color: var(--lmx-habit-accent);
+    background: var(--lmx-habit-accent);
+    color: #ffffff;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-plant {
+    background: radial-gradient(ellipse at 50% 82%, rgba(var(--lmx-habit-soft), 0.12), transparent 70%);
+}
+
+/* --- Answers: three faces in one inset track ------------------------------ */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-options {
+    gap: 2px;
+    padding: 0;
+    border: 1px solid var(--lmx-border);
+    border-radius: 9px;
+    background: var(--lmx-surface-muted);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face {
+    border-color: transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lmx-subtle);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option:hover > .lmx-answer-face {
+    border-color: transparent;
+    background: var(--lmx-surface);
+    color: var(--lmx-answer-deep);
+    transform: none;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face {
+    border-color: var(--lmx-answer-accent);
+    background: var(--lmx-surface);
+    color: var(--lmx-answer-deep);
+    box-shadow:
+        inset 0 0 0 1px var(--lmx-answer-accent),
+        0 1px 3px rgba(15, 23, 42, 0.14);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face .lmx-answer-face-icon {
+    animation: lmx-answer-pop var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+@keyframes lmx-answer-pop {
+    50% { transform: scale(1.14); }
+}
+
+/* --- Remarks: a section label, one quiet photo action, one focus ring ----- */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-note-head > label {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-discussion-add-photo {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+    color: var(--lmx-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-discussion-add-photo:hover:not(:disabled) {
+    border-color: var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-character-count {
+    color: var(--lmx-subtle);
+    font-size: var(--lwc-type-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea {
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+    box-shadow: none;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea:focus,
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea:focus-visible {
+    border-color: var(--lmx-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.22);
+}
+
+/* Pending photos: square thumbnails with a small corner remove mark. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-grid.pending {
+    grid-template-columns: repeat(auto-fill, minmax(min(5.5rem, 100%), 1fr));
+    gap: var(--lwc-space-2);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-pending-photo .lmx-note-photo {
+    aspect-ratio: 1;
+    border-radius: var(--lwc-radius-md);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-pending-photo .lmx-note-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove {
+    top: 0;
+    right: 0;
+    background: transparent;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    box-sizing: border-box;
+    border: 2px solid var(--lmx-surface);
+    border-radius: 999px;
+    background: var(--lmx-inverse-surface);
+    transform: translate(-50%, -50%);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove > i {
+    position: relative;
+    font-size: 0.75rem;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-pending-photo figcaption {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- Save bar: its top rail lights one segment per answered habit -------- */
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions {
+    border-top: 0;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions::before {
+    content: "";
+    display: block;
+    height: 4px;
+    margin-bottom: var(--lwc-space-2);
+    border-radius: 999px;
+    background:
+        linear-gradient(90deg,
+            var(--lmx-rail-sleep) 0 calc(25% - 2px), transparent 0 25%,
+            var(--lmx-rail-exercise) 0 calc(50% - 2px), transparent 0 50%,
+            var(--lmx-rail-nutrition) 0 calc(75% - 2px), transparent 0 75%,
+            var(--lmx-rail-vices) 0 100%);
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-progress {
+    color: var(--lmx-muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-save-row > .lmx-button[type="submit"] {
+    min-width: min(7.5rem, 50%);
+}
+
+@container lmx-checkin (max-width: 14rem) {
+    .lmx-checkin-save-row {
+        flex-wrap: wrap;
+    }
+
+    .lmx-checkin-progress:not(:empty):not(.visually-hidden) {
+        flex-basis: 100%;
+    }
+}
+
+/* --- Dialog frame ---------------------------------------------------------- */
+
+.lmx-checkin-dialog-panel .lmx-checkin-dialog-close {
+    border-color: var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+    color: var(--lmx-muted);
+    font-size: 1.5rem;
+}
+
+.lmx-checkin-dialog-panel .lmx-checkin-dialog-close:hover {
+    outline: none;
+    color: var(--lmx-ink);
+}
+
+/* --- Catch-up day switcher: bordered cards; the open day is accent-ruled --- */
+
+.lmx-page .lmx-checkin-switcher {
+    gap: var(--lwc-space-2);
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-checkin-switcher button {
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-checkin-switcher button:hover:not([aria-pressed="true"]) {
+    border-color: var(--lmx-border-strong);
+    background: var(--lmx-surface);
+}
+
+#lmxCheckinList .lmx-checkin-switcher button[aria-pressed="true"] {
+    border-color: var(--lmx-accent);
+    background: var(--lmx-surface-accent);
+    color: var(--lmx-ink);
+    box-shadow: inset 0 -3px 0 var(--lmx-accent);
+}
+
+.lmx-page .lmx-checkin-switcher button[aria-pressed="true"] span {
+    color: var(--lmx-muted);
+}
+
+.lmx-page .lmx-checkin-switcher button[data-saved="true"]:not(.has-draft) em {
+    border-color: transparent;
+    background: var(--lmx-success-soft);
+    color: var(--lmx-success);
+}
+
+/* --- Personal dashboard ---------------------------------------------------- */
+
+.lmx-page .lmx-title-panel .lmx-track {
+    margin-top: var(--lwc-space-3);
+}
+
+/* The habits heading is ruled like the hero's other section headings. */
+.lmx-page .lmx-title-panel .lmx-dashboard-head {
+    margin-top: 0;
+}
+
+.lmx-page .lmx-title-panel .lmx-dashboard-head h2 {
+    flex: 1;
+}
+
+.lmx-page .lmx-title-panel .lmx-dashboard-head h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--lmx-border);
+}
+
+.lmx-page .lmx-habit-summary {
+    gap: var(--lwc-space-3);
+}
+
+.lmx-page .lmx-habit-summary .lmx-dashboard-category,
+.lmx-page .lmx-dashboard-row .lmx-dashboard-category {
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+    column-gap: var(--lwc-space-2);
+}
+
+/* Habit icons use the check-in's tile so both views share one key. */
+.lmx-page .lmx-dashboard-category i {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--lwc-radius-md);
+    background: rgba(var(--lmx-category-soft), 0.12);
+    color: var(--lmx-category-accent);
+    font-size: 0.8rem;
+}
+
+.lmx-page .lmx-dashboard-category strong {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 700;
+}
+
+.lmx-page .lmx-dashboard-category .lmx-dashboard-bar {
+    height: 6px;
+    background: rgba(var(--lmx-category-soft), 0.12);
+}
+
+@media (max-width: 280px) {
+    .lmx-page :is(.lmx-habit-summary, .lmx-dashboard-row) .lmx-dashboard-category {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .lmx-page .lmx-dashboard-category i {
+        grid-row: 1;
+    }
+
+    .lmx-page .lmx-dashboard-category span {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .lmx-page .lmx-dashboard-category strong {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .lmx-page .lmx-dashboard-category .lmx-dashboard-bar {
+        grid-column: 1 / -1;
+    }
+}
+
+/* History cells sit beside their habit label, so the row carries its colours. */
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.sleep) {
+    --lmx-category-accent: var(--lmx-sleep-accent);
+    --lmx-category-soft: var(--lmx-sleep-soft);
+}
+
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.exercise) {
+    --lmx-category-accent: var(--lmx-exercise-accent);
+    --lmx-category-soft: var(--lmx-exercise-soft);
+}
+
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.nutrition) {
+    --lmx-category-accent: var(--lmx-nutrition-accent);
+    --lmx-category-soft: var(--lmx-nutrition-soft);
+}
+
+.lmx-page .lmx-dashboard-row:has(> .lmx-dashboard-category.vices) {
+    --lmx-category-accent: var(--lmx-vices-accent);
+    --lmx-category-soft: var(--lmx-vices-soft);
+}
+
+/* History cells fill with their habit colour: full, half, outlined miss. */
+.lmx-page .lmx-category-day {
+    border-radius: 5px;
+}
+
+.lmx-page .lmx-category-day.full {
+    background: var(--lmx-category-accent);
+}
+
+.lmx-page .lmx-category-day.partial {
+    background: linear-gradient(0deg, var(--lmx-category-accent) 0 50%, rgba(var(--lmx-category-soft), 0.16) 50% 100%);
+}
+
+.lmx-page .lmx-category-day.missed {
+    border: 1.5px solid rgba(var(--lmx-category-soft), 0.45);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-category-day.empty {
+    border: 1px dashed var(--lmx-border);
+    background: transparent;
+}
+
+.lmx-page .lmx-category-day.today {
+    box-shadow:
+        var(--lmx-practice-shadow, inset 0 0 0 0 transparent),
+        0 0 0 2px var(--lmx-surface),
+        0 0 0 3.5px var(--lmx-accent);
+}
+
+.lmx-page .lmx-dashboard-day.today {
+    border-radius: 5px;
+}
+
+/* --- Profile and Home tabs -------------------------------------------------- */
+
+.lmx-page #lmxEditForm .lmx-label {
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lmx-page #lmxEditForm .lmx-label > span {
+    margin-left: var(--lwc-space-1);
+    color: var(--lmx-subtle);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.lmx-page #lmxEditForm .lmx-profile-identity,
+.lmx-page #lmxEditForm .lmx-profile-upload {
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+}
+
+.lmx-page #lmxParticipantTools {
+    display: grid;
+}
+
+.lmx-page #lmxParticipantTools .lmx-button {
+    justify-content: center;
+    min-height: 48px;
+}
+
+/* --- Leaderboard: the signed-in participant's own row ---------------------- */
+
+.lmx-page .lmx-board .lmx-board-row.lmx-board-row--self,
+.lmx-page .lmx-board .lmx-board-row.lmx-board-row--self:not(.header):nth-child(even) {
+    --lmx-row-surface: var(--lmx-surface-accent);
+    background: var(--lmx-row-surface);
+    box-shadow: inset 0 0 0 1px var(--lmx-accent-soft);
+}
+
+.lmx-page .lmx-board .lmx-board-row.lmx-board-row--self > .lmx-name {
+    box-shadow:
+        inset 3px 0 0 var(--lmx-accent),
+        var(--lmx-board-gap) 0 0 var(--lmx-row-surface);
+}
+
+@media (max-width: 760px) {
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--self,
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--self:not(.header):nth-child(even) {
+        border-color: var(--lmx-accent);
+        box-shadow: inset 3px 0 0 var(--lmx-accent);
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--self > .lmx-name {
+        box-shadow: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face .lmx-answer-face-icon {
+        animation: none;
+    }
+}
+
+/* ==========================================================================
+   Landing and board system
+   Signed out, each habit tile carries its own daily question, so the hero
+   names the four habits once. The board reads as one divided list: missed
+   days are quiet dots, day numbers are plain, resting rows step back, and an
+   empty board shows who is resting behind the toggle.
+   ========================================================================== */
+
+/* --- Habit tiles: icon, name and question in one card --------------------- */
+
+.lmx-page .lmx-habit-grid {
+    /* Two tiles a row while a question has room to read; one under enlarged text. */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem, calc(50% - var(--lwc-space-3)))), 1fr));
+}
+
+.lmx-page .lmx-habit-card {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    grid-template-rows: minmax(2.25rem, auto) auto;
+    align-content: start;
+    align-items: center;
+    column-gap: var(--lwc-space-3);
+    row-gap: var(--lwc-space-1);
+    padding: var(--lwc-space-4);
+}
+
+.lmx-page .lmx-habit-card i {
+    grid-row: 1 / span 2;
+    align-self: start;
+}
+
+.lmx-page .lmx-habit-card span {
+    font-size: var(--lwc-type-lg, 1.125rem);
+    line-height: 1.2;
+}
+
+.lmx-page .lmx-habit-question {
+    grid-column: 2;
+    align-self: start;
+    margin: 0;
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-sm);
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+    .lmx-page .lmx-habit-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem, calc(50% - var(--lwc-space-3)))), 1fr));
+    }
+
+    .lmx-page .lmx-habit-card {
+        justify-items: start;
+        padding: var(--lwc-space-4);
+        gap: var(--lwc-space-1) var(--lwc-space-3);
+        text-align: left;
+    }
+
+    .lmx-page .lmx-habit-card span {
+        font-size: var(--lwc-type-body);
+    }
+}
+
+@media (max-width: 520px) {
+    .lmx-page .lmx-habit-grid {
+        gap: var(--lwc-space-2);
+    }
+
+    .lmx-page .lmx-habit-card {
+        padding: var(--lwc-space-3) var(--lwc-space-4);
+    }
+}
+
+/* The narrowest phones stack the icon over the name so long names keep their room. */
+@media (max-width: 340px) {
+    .lmx-page .lmx-habit-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lmx-page .lmx-habit-card i {
+        grid-row: auto;
+    }
+
+    .lmx-page .lmx-habit-question {
+        grid-column: 1;
+    }
+}
+
+/* --- Board: one divided list ---------------------------------------------- */
+
+@media (min-width: 761px) {
+    .lmx-page .lmx-board .lmx-board-row:not(.header) {
+        border-radius: 0;
+    }
+
+    .lmx-page .lmx-board .lmx-board-row:not(.header):not(.lmx-full-marks):not(.lmx-board-row--self) {
+        --lmx-row-surface: var(--lmx-surface);
+        background: var(--lmx-row-surface);
+    }
+
+    /* Dividers are drawn, not bordered, so every row keeps the same height. */
+    .lmx-page .lmx-board .lmx-board-row:not(.header) + .lmx-board-row:not(.header):not(.lmx-board-row--self) {
+        box-shadow: inset 0 1px 0 var(--lmx-border);
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.lmx-roster-row:not(.header) > .lmx-name {
+        box-shadow:
+            var(--lmx-board-gap) 0 0 var(--lmx-surface),
+            0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.header {
+        border-radius: var(--lwc-radius-md);
+    }
+
+    /* Day numbers read as plain column labels, not as boxes above the boxes. */
+    .lmx-page .lmx-board .lmx-header-days .lmx-cell {
+        height: 1.6rem;
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
+        color: var(--lmx-muted);
+        font-size: 0.72rem;
+    }
+}
+
+.lmx-page .lmx-board .lmx-board-row.lmx-full-marks {
+    --lmx-row-surface: var(--lmx-surface-accent);
+    background: var(--lmx-row-surface);
+}
+
+/* A missed day is a quiet dot, so the days that were checked in stand out. */
+.lmx-page .lmx-board .lmx-cell.empty:not(.lmx-reporting-open) {
+    border-color: transparent;
+    background: radial-gradient(circle, color-mix(in srgb, var(--lmx-border-strong) 42%, transparent) 0 0.16rem, transparent 0.19rem);
+    box-shadow: none;
+}
+
+.lmx-page .lmx-rank.lmx-rank--podium {
+    border-color: var(--lmx-accent);
+    background: var(--lmx-accent-soft);
+    color: var(--lmx-accent-hover);
+}
+
+.lmx-page .lmx-board-row.inactive .lmx-participant-avatar {
+    filter: grayscale(1);
+}
+
+/* Phones: a row with nothing to show in this window keeps just its name line. */
+@media (max-width: 760px) {
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--quiet > .lmx-cell-strip {
+        display: none;
+    }
+
+    .lmx-page .lmx-board .lmx-board-row.lmx-board-row--quiet {
+        padding-block: 0.5rem;
+    }
+}
+
+/* --- Empty board: the message over the resting crew's faces --------------- */
+
+.lmx-page .lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row {
+    min-height: 9rem;
+    margin: var(--lwc-space-2) 0;
+    border: 0;
+    background: transparent;
+}
+
+.lmx-page .lmx-board-wrap--empty .lmx-board .lmx-board-row.lmx-empty-row > .lmx-name {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--lwc-space-3);
+    background: transparent;
+}
+
+.lmx-page .lmx-resting-faces {
+    display: inline-flex;
+    align-items: center;
+    padding-left: 0.6rem;
+}
+
+.lmx-page .lmx-resting-faces > .lmx-participant-avatar,
+.lmx-page .lmx-resting-faces > .lmx-resting-more {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-left: -0.6rem;
+    border: 3px solid var(--lmx-surface);
+    flex: none;
+    border-radius: 999px;
+    box-shadow: none;
+    filter: grayscale(1);
+    opacity: 0.85;
+}
+
+.lmx-page .lmx-resting-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    background: var(--lmx-surface-muted);
+    color: var(--lmx-muted);
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+/* Resting rows keep the rank column, so names stay on one edge. */
+.lmx-rank-slot {
+    min-width: 2.25rem;
+}
+
+/* ==========================================================================
+   Ritual motion
+   The daily check-in answers every tap at once: a face gives way under the
+   finger and fills with its answer colour, the Save rail fills segment by
+   segment, and the fourth answer gets one short ready moment. Saving is
+   optimistic (the check draws in at once), a failed save nudges Retry, and
+   undo rewinds the answers it changes. Timings follow the shared motion
+   tokens (90ms press to 280ms surface), falling back to the same values.
+   Everything here is off under prefers-reduced-motion.
+   ========================================================================== */
+
+@property --lmx-rail-sleep { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-rail-exercise { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-rail-nutrition { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-rail-vices { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --lmx-fill-sleep { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lmx-fill-exercise { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lmx-fill-nutrition { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lmx-fill-vices { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="sleep"] .lmx-answer-input:checked) { --lmx-fill-sleep: 1; }
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="exercise"] .lmx-answer-input:checked) { --lmx-fill-exercise: 1; }
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="nutrition"] .lmx-answer-input:checked) { --lmx-fill-nutrition: 1; }
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card:has(.lmx-question[data-key="vices"] .lmx-answer-input:checked) { --lmx-fill-vices: 1; }
+
+/* Each segment fills from its left edge in its habit colour. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions::before {
+    transform-origin: 50% 50%;
+    background:
+        linear-gradient(90deg,
+            var(--lmx-rail-sleep) 0 calc((25% - 2px) * var(--lmx-fill-sleep)), var(--lmx-surface-muted) 0 calc(25% - 2px), transparent 0 25%,
+            var(--lmx-rail-exercise) 0 calc(25% + (25% - 2px) * var(--lmx-fill-exercise)), var(--lmx-surface-muted) 0 calc(50% - 2px), transparent 0 50%,
+            var(--lmx-rail-nutrition) 0 calc(50% + (25% - 2px) * var(--lmx-fill-nutrition)), var(--lmx-surface-muted) 0 calc(75% - 2px), transparent 0 75%,
+            var(--lmx-rail-vices) 0 calc(75% + 25% * var(--lmx-fill-vices)), var(--lmx-surface-muted) 0 100%);
+}
+
+/* The chosen face fills with a soft wash of its answer colour. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face {
+    position: relative;
+    isolation: isolate;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    z-index: -1;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--lmx-answer-accent) 14%, transparent);
+    opacity: 0;
+    transform: scale(0.35);
+    pointer-events: none;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face::before {
+    opacity: 1;
+    transform: none;
+}
+
+/* Saving is optimistic: the locked card keeps its full colour instead of dimming. */
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-optimistic] .lmx-answer-option {
+    cursor: default;
+}
+
+:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-optimistic] .lmx-checkin-save-row > .lmx-button[type="submit"]:disabled {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-actions {
+        transition:
+            --lmx-fill-sleep var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-fill-exercise var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-fill-nutrition var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-fill-vices var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-sleep var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-exercise var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-nutrition var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            --lmx-rail-vices var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face {
+        transition:
+            border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            box-shadow var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+            scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    }
+
+    /* Press: the face gives way under the finger and springs back on release. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option:has(.lmx-answer-input:not(:disabled)):active > .lmx-answer-face {
+        scale: 0.9;
+        transition-duration: var(--lwc-motion-press, 90ms);
+        transition-timing-function: var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-option > .lmx-answer-face::before {
+        transition:
+            opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1)),
+            transform var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, cubic-bezier(0.3, 0, 1, 1));
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-answer-input:checked + .lmx-answer-face::before {
+        transition:
+            opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)),
+            transform var(--lwc-motion-move, 260ms) var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    }
+
+    /* Undo walks answers back on the slower, decelerating curve. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-question[data-lmx-rewind] .lmx-answer-face::before {
+        transition-duration: var(--lwc-motion-slow, 280ms);
+    }
+
+    /* Ready: the fourth answer lifts the rail once and springs Save. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="complete"] .lmx-checkin-actions::before {
+        animation: lmx-rail-ready 620ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) both;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="complete"] .lmx-checkin-save-row > .lmx-button[type="submit"] {
+        animation: lmx-save-ready 380ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) calc(var(--lmx-moment-offset, 0ms) + 120ms) backwards;
+    }
+
+    /* Saved: the check draws in, the rail glows and the card breathes once. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="saved"] .lmx-checkin-save-row > .lmx-button[type="submit"] > .fa-check {
+        animation: lmx-check-in 380ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) backwards;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="saved"] .lmx-checkin-actions::before {
+        animation: lmx-rail-ready 820ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) both;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="saved"] {
+        animation: lmx-card-saved 900ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) var(--lmx-moment-offset, 0ms) backwards;
+    }
+
+    /* Rollback: Retry nudges once and the reason slides in under it. */
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="rollback"] .lmx-checkin-save-row > .lmx-button[type="submit"] {
+        animation: lmx-retry-nudge 360ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) backwards;
+    }
+
+    :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card[data-lmx-moment="rollback"] [data-checkin-status] {
+        animation: lmx-status-in var(--lwc-motion-base, 200ms) var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
+    }
+}
+
+@keyframes lmx-rail-ready {
+    35% {
+        transform: scaleY(1.75);
+        filter: saturate(1.35) brightness(1.1);
+    }
+}
+
+@keyframes lmx-save-ready {
+    45% {
+        transform: scale(1.06);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--lmx-accent) 24%, transparent);
+    }
+}
+
+@keyframes lmx-check-in {
+    from {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.25);
+        opacity: 1;
+    }
+}
+
+@keyframes lmx-card-saved {
+    30% {
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--lmx-accent) 18%, transparent);
+    }
+}
+
+@keyframes lmx-retry-nudge {
+    20% { transform: translateX(-4px); }
+    45% { transform: translateX(4px); }
+    70% { transform: translateX(-2px); }
+}
+
+@keyframes lmx-status-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
 }

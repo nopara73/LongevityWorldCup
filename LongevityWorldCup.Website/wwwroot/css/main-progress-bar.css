@@ -1,6 +1,6 @@
 /* In-page progress: numbered, connected steps with all three labels (full journey) */
 .progress-container {
-    width: calc(100% - 30px);
+    width: 100%;
     max-width: 800px;
     margin: var(--lwc-space-5, 1.5rem) auto var(--lwc-space-4, 1rem);
     position: relative;
@@ -16,7 +16,7 @@
     justify-content: center;
     align-items: flex-start;
     gap: 0;
-    width: min(100%, 15rem);
+    width: min(100%, 15em);
     margin-inline: auto;
     position: relative;
     counter-reset: lwc-stage;
@@ -26,7 +26,9 @@
     position: relative;
     text-align: center;
     z-index: 2;
-    min-width: 0;
+    /* Keep each journey word intact when zoom leaves narrow columns. */
+    min-width: min-content;
+    padding-inline: 0.125rem;
     flex: 1 1 0;
     /* Completed checks still count toward the following numbered steps. */
     counter-increment: lwc-stage;
@@ -95,7 +97,7 @@
     width: 100%;
     margin-top: 0.375rem;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     text-align: center;
     color: var(--lwc-muted, #526373);
     font-family: 'Roboto', system-ui, sans-serif;

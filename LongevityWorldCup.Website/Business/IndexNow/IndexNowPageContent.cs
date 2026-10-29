@@ -98,7 +98,7 @@ public sealed class IndexNowPageContent(IWebHostEnvironment environment, string?
             "html" => !path.Contains('.') || path == "/swagger/index.html",
             "ranking" => IsRankingPage(path),
             "events" => path is "/" or "/events" || path.StartsWith("/athlete/", StringComparison.Ordinal),
-            "challenge" => path is "/longevitymaxxing" or "/helstab-kihivas",
+            "challenge" => path == "/longevitymaxxing",
             "pheno" => path == "/pheno-age" || IsRankingPage(path),
             "bortz" => path == "/bortz-age" || IsRankingPage(path),
             "api" => path.StartsWith("/swagger", StringComparison.Ordinal),

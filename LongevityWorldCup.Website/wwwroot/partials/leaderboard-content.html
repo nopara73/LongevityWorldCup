@@ -1,5 +1,6 @@
 <!--LEADERBOARD-STYLES-START-->
 <link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_ORDERING_CSS}}">
 <!--LEADERBOARD-STYLES-END-->
 
 <div id="athleteDialogRuntime"
@@ -33,6 +34,7 @@
 <!--LEADERBOARD-PODIUM-END-->
         </div>
 
+        <div class="leaderboard-controls">
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
                 <span class="view-switcher-label" id="leaderboardViewLabel">Ranking</span>
@@ -58,35 +60,86 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
+                <div class="leaderboard-group-switcher">
+                    <input type="checkbox" id="group-flags" aria-label="By Flag" value="flags">
+                    <label for="group-flags" class="view-badge"><i class="fas fa-flag" aria-hidden="true"></i> By Flag</label>
+                </div>
+                <div class="leaderboard-actions">
+                <div class="leaderboard-order-tools">
+                    <button type="button" class="leaderboard-order-toggle" id="leaderboardOrderToggle" aria-label="Order athletes" title="Order athletes" aria-controls="leaderboardOrderPanel" aria-expanded="false" disabled>
+                        <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="leaderboard-order-reset" id="leaderboardOrderReset" hidden disabled aria-label="Clear ordering" title="Clear ordering">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg>
+                    </button>
+                    <div id="leaderboardOrderPanel" class="leaderboard-order-panel" role="group" aria-label="Order athletes" hidden>
+                        <button type="button" id="leaderboardOrderSwap" class="leaderboard-order-swap" aria-label="Swap order by and then by" title="Swap order by and then by" disabled>
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 16V4m-3 3 3-3 3 3m5-3v12m-3-3 3 3 3-3" /></svg>
+                        </button>
+                        <div class="leaderboard-order-rows">
+                        <div class="leaderboard-order-row">
+                            <label for="leaderboardOrderPrimary">Order by</label>
+                            <div class="leaderboard-order-field">
+                                <span class="leaderboard-order-select">
+                                    <select id="leaderboardOrderPrimary"><!--ORDER-PRIMARY-START--><option value="rank">Official rank</option><!--ORDER-PRIMARY-END--></select>
+                                    <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
+                                </span>
+                                <button type="button" id="leaderboardOrderDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse primary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                                <button type="button" id="leaderboardOrderPrimaryClear" class="leaderboard-order-clear" aria-label="Clear both ordering fields" title="Clear both ordering fields" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg></button>
+                            </div>
+                        </div>
+                        <div class="leaderboard-order-row">
+                            <label for="leaderboardOrderSecondary">Then by</label>
+                            <div class="leaderboard-order-field">
+                                <span class="leaderboard-order-select">
+                                    <select id="leaderboardOrderSecondary" disabled><!--ORDER-SECONDARY-START--><option value="">None</option><!--ORDER-SECONDARY-END--></select>
+                                    <svg class="order-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
+                                </span>
+                                <button type="button" id="leaderboardThenDirection" class="leaderboard-order-direction" data-direction="asc" aria-label="Reverse secondary order" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4" /></svg></button>
+                                <button type="button" id="leaderboardOrderSecondaryClear" class="leaderboard-order-clear" aria-label="Clear then by" title="Clear then by" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg></button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
                 <button class="sidebar-toggle" aria-label="Show league filters" aria-controls="leaderboardFilters" aria-expanded="false" title="Show league filters" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
                     <i class="fa fa-sliders-h"></i>
                 </button>
+                </div>
             </div>
         </div>
 
+        <div class="leaderboard-controls-status">
         <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
+        <span id="leaderboardOrderStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
         <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection" hidden>
-            <div class="leaderboard-selection-heading">
-                <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
-                <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>
-            </div>
+            <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
             <div class="leaderboard-selection-chips" id="leaderboardSelectionChips"></div>
+            <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>
         </section>
+        </div>
+        </div>
 
-        <div class="leaderboard">
+        <div class="leaderboard" id="athleteLeaderboard">
             <div class="sidebar" id="leaderboardFilters">
+                <div class="sidebar-rail" aria-hidden="true">
+                    <div class="sidebar-rail-icon"><i class="fa fa-trophy"></i></div>
+                    <div class="collapsed-title">ULTIMATE LEAGUE</div>
+                </div>
+                <div class="sidebar-panel" inert>
                 <div class="sidebar-heading">
-                <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <h2 class="sidebar-title">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
+                <div class="sidebar-heading-actions">
                 <button type="button" class="clear-sidebar-filters" id="clearSidebarFiltersBtn" title="Clear filters" tabindex="-1" aria-hidden="true">
                     <i class="fa fa-undo clear-sidebar-filters-icon" aria-hidden="true"></i>
                     <span>Clear filters</span>
                 </button>
                 <button class="sidebar-close" aria-label="Hide league filters" title="Hide league filters"><i class="fa fa-times"></i></button>
                 </div>
-                <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
+                </div>
                 <div class="sidebar-filter-list">
                 <div class="filter-section" id="aging-clock-filter-section">
                     <h3>Aging clocks</h3>
@@ -125,34 +178,36 @@
                 </div>
                 <div class="filter-section" id="league-track-filter-section">
                     <h3>Tracks</h3>
-                    <ul></ul> <!-- This will be populated dynamically -->
+                    <ul></ul>
                 </div>
-                <div class="filter-section" id="division-filter-section" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <div class="filter-section" id="division-filter-section">
                     <h3>Divisions</h3>
-                    <ul></ul> <!-- This will be populated dynamically -->
+                    <ul></ul>
                 </div>
 
                 <div class="filter-section" id="generation-filter-section">
                     <h3>Generations</h3>
-                    <ul></ul> <!-- This will be populated dynamically -->
+                    <ul></ul>
                 </div>
                 <div class="filter-section" id="exclusive-filter-section">
                     <h3>Exclusive</h3>
-                    <ul></ul> <!-- This will be populated dynamically -->
+                    <ul></ul>
                 </div>
                 <div class="filter-section" id="flag-filter-section">
                     <h3>Flags</h3>
-                    <ul></ul> <!-- This will be populated dynamically -->
+                    <ul></ul>
                 </div>
                 </div>
                 <div class="sidebar-results"><button type="button" class="sidebar-show-results" id="showLeaderboardResults">Show results</button></div>
+                </div>
             </div>
             <div id="leaderboardStatus" class="leaderboard-status" role="status" aria-live="polite" aria-atomic="true">Loading leaderboard...</div>
+            <div id="flagLeaderboard" class="flag-leaderboard" aria-label="Flag rankings"><!--FLAG-LEADERBOARD--></div>
             <table>
                 <thead>
                 <tr>
-                    <th>Rank</th>
-                    <th>Athlete</th>
+                    <!--ORDER-RANK-HEADER-START--><th>Rank</th><!--ORDER-RANK-HEADER-END-->
+                    <!--ORDER-NAME-HEADER-START--><th>Athlete</th><!--ORDER-NAME-HEADER-END-->
                     <th class="sponsor-th">
                         Sponsor<br />
                         <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" class="sponsor-coming-soon">
@@ -161,11 +216,12 @@
                                 </span>
                         </a>
                     </th>
-                    <th>
+                    <!--ORDER-METRIC-HEADER-START--><th>
                         <a href="/ruleset#point-system-ranking" class="leaderboard-metric-link">
                             <span id="leaderboardMetricHeader">Age reduction</span>
                         </a>
-                    </th>
+                    </th><!--ORDER-METRIC-HEADER-END-->
+                    <!--ORDER-EXTRA-HEADERS-->
                     <th class="media-contact-th">Media contact</th>
                 </tr>
                 </thead>
@@ -237,17 +293,26 @@
         </div>
 
 <!--ATHLETE-DIALOG-START-->
-        <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="athleteName">
+        <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="athleteName" tabindex="-1">
             <div class="modal-content">
                 <div class="modal-sticky-header" id="modalStickyHeader">
                     <div class="modal-scroll-progress" id="modalScrollProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scroll progress"></div>
                     <div class="sticky-header-left">
+                        <img class="sticky-athlete-portrait" id="stickyAthletePortrait" alt="" aria-hidden="true" hidden>
                         <span class="sticky-athlete-name" id="stickyAthleteName"></span>
                         <span class="sticky-pro-badge" id="stickyProBadge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </div>
                     <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
+                    <div class="athlete-steps" role="group" aria-label="Browse athletes" hidden>
+                        <button type="button" class="athlete-step" data-step="previous" aria-label="Previous athlete" disabled><i class="fa fa-chevron-left" aria-hidden="true"></i></button>
+                        <button type="button" class="athlete-step" data-step="next" aria-label="Next athlete" disabled><i class="fa fa-chevron-right" aria-hidden="true"></i></button>
+                    </div>
                 </div>
                 <button type="button" id="closeAthleteDetailsModal" class="close" aria-label="Close athlete details">&times;</button>
+                <div class="athlete-steps" role="group" aria-label="Browse athletes" hidden>
+                    <button type="button" class="athlete-step" data-step="previous" aria-label="Previous athlete" disabled><i class="fa fa-chevron-left" aria-hidden="true"></i></button>
+                    <button type="button" class="athlete-step" data-step="next" aria-label="Next athlete" disabled><i class="fa fa-chevron-right" aria-hidden="true"></i></button>
+                </div>
 
                 <div class="athlete-profile" id="athlete-profile">
                     <span class="portrait-wrapper">
@@ -257,8 +322,38 @@
                              class="illustration"
                              loading="lazy" />
                         <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                        <a id="modalFlagMark" class="portrait-flag" href="#" hidden></a>
                     </span>
                     <h2 id="athleteName"></h2>
+                    <div class="athlete-links">
+                        <div class="athlete-share-wrapper">
+                            <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile" aria-haspopup="dialog" aria-expanded="false" aria-controls="athleteShareMenu" aria-describedby="athleteShareStatus">
+                                <i class="fa fa-share-nodes"></i> Share
+                            </button>
+                            <span id="athleteShareStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
+                            <div id="athleteShareMenu" class="athlete-share-menu" role="dialog" aria-label="Share athlete profile" hidden>
+                                <figure class="athlete-share-preview" aria-hidden="true"><img id="athleteSharePreview" alt=""></figure>
+                                <button id="copyAthleteProfileLink" type="button"><i class="fa fa-link"></i> Copy link</button>
+                                <div id="athleteShareRecovery" class="athlete-share-recovery" hidden>
+                                    <p id="athleteShareCopyHelp" role="status" aria-live="polite">Copy the link below or try again.</p>
+                                    <label for="athleteShareLink">Profile link</label>
+                                    <input id="athleteShareLink" type="text" readonly aria-describedby="athleteShareCopyHelp" spellcheck="false">
+                                </div>
+                                <div class="athlete-share-destinations">
+                                    <a id="shareAthleteProfileX" href="#" target="_blank" rel="noopener" aria-label="Share on X"><i class="fa-brands fa-x-twitter"></i> Post</a>
+                                    <a id="shareAthleteProfileFacebook" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-facebook"></i> Facebook</a>
+                                    <a id="shareAthleteProfileLinkedIn" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-linkedin"></i> LinkedIn</a>
+                                    <a id="shareAthleteProfileEmail" href="#"><i class="fa fa-envelope"></i> Email</a>
+                                </div>
+                            </div>
+                        </div>
+                        <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
+                            <i class="fa fa-link"></i> Personal page
+                        </a>
+                        <a id="mediaContact" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Contact the athlete">
+                            <i class="fa fa-envelope"></i> Media contact
+                        </a>
+                    </div>
                     <nav id="athleteRankings" aria-label="Competition rankings" hidden></nav>
                     <div id="athleteLoadError" role="alert" hidden>
                         <p>We could not load this profile. Try again, or close the panel and come back later.</p>
@@ -271,124 +366,85 @@
                     <p id="athleteBio"></p>
                     <!--AGE-VISUALIZATION-->
                     <div class="athlete-info" id="athlete-stats">
-                        <table class="athlete-info-table">
-                            <tbody>
-                            <tr>
-                                <th scope="row"><strong>Best rank:</strong></th>
-                                <td><span id="athleteRank"></span></td>
+                        <table class="athlete-info-table" role="table" aria-label="Athlete ages and profile details">
+                            <tbody class="athlete-age-board" role="rowgroup">
+                            <tr role="row" id="chronologicalAgeContainer">
+                                <th role="rowheader" scope="row"><strong>Chronological age</strong></th>
+                                <td role="cell"><span id="chronologicalAge" class="age-board-figure"></span> <span class="unit">years old</span></td>
                             </tr>
-                            <tr>
-                                <th scope="row"><strong>Division:</strong></th>
-                                <td><span id="athleteDivision"></span></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><strong>Generation:</strong></th>
-                                <td><span id="athleteGeneration"></span></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><strong>Flag:</strong></th>
-                                <td><span id="athleteFlag"></span></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><strong>Chronological age:</strong></th>
-                                <td><span id="chronologicalAge"></span> <span class="unit">years old</span></td>
-                            </tr>
-                            <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
-                                <td colspan="2"><span class="athlete-info-divider"></span></td>
-                            </tr>
-                            <tr id="crowdAgeContainer" style="display:none;">
-                                <th scope="row"><strong>Crowd Age:</strong></th>
-                                <td>
-                                    <span id="notEmptyCrowdAgeContainer" style="display:none;">
-            <span id="crowdAge">0</span> <span class="unit">years</span>, <span id="crowdCount">0</span> <span class="detail-muted">guesses</span>
+                            <tr role="row" id="crowdAgeContainer" hidden>
+                                <th role="rowheader" scope="row"><strong>Crowd Age</strong></th>
+                                <td role="cell">
+                                    <span id="notEmptyCrowdAgeContainer" hidden>
+            <span id="crowdAge" class="age-board-figure">0</span> <span class="unit">years</span>, <span id="crowdCount">0</span> <span class="detail-muted">guesses</span>
           </span>
                                 </td>
                             </tr>
 
-
-                            <tr id="yourGuessContainer" style="display:none;">
-                                <th scope="row"><strong>Your guess:</strong></th>
-                                <td><span id="yourGuess"></span></td>
+                            <tr role="row" id="yourGuessContainer" hidden>
+                                <th role="rowheader" scope="row"><strong>Your guess</strong></th>
+                                <td role="cell"><span id="yourGuess"></span></td>
                             </tr>
 
-                            <tr id="lowestBortzAgeContainer" style="display:none;">
-                                <th scope="row"><strong>Lowest Bortz Age:</strong></th>
-                                <td><span id="lowestBortzAge"></span> <span class="unit">years</span></td>
+                            <tr role="row" id="lowestBortzAgeContainer" data-clock="bortz" hidden>
+                                <th role="rowheader" scope="row"><strong>Lowest Bortz Age</strong></th>
+                                <td role="cell"><span id="lowestBortzAge" class="age-board-figure"></span> <span class="unit">years</span></td>
                             </tr>
 
-                            <tr id="lowestPhenoAgeContainer">
-                                <th scope="row"><strong>Lowest Pheno Age:</strong></th>
-                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span></td>
+                            <tr role="row" id="lowestPhenoAgeContainer" data-clock="pheno" hidden>
+                                <th role="rowheader" scope="row"><strong>Lowest Pheno Age</strong></th>
+                                <td role="cell"><span id="lowestPhenoAge" class="age-board-figure"></span> <span class="unit">years</span></td>
                             </tr>
 
-
-                            <tr id="bortzPaceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row"><strong>Bortz pace of aging:</strong></th>
-                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></td>
+                            <tr role="row" id="bortzPaceOfAgingContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row"><strong>Bortz pace of aging</strong></th>
+                                <td role="cell"><span id="bortzPaceOfAging" class="age-board-figure"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></td>
                             </tr>
 
-                            <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row"><strong>Pheno pace of aging:</strong></th>
-                                <td><span id="paceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></td>
+                            <tr role="row" id="paceOfAgingContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row"><strong>Pheno pace of aging</strong></th>
+                                <td role="cell"><span id="paceOfAging" class="age-board-figure"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></td>
                             </tr>
 
-                            <tr id="bortzAgeReductionContainer" title="Derived from the lowest biological age of the season" style="display:none;">
-                                <th scope="row">
-                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz Age reduction:</span></strong>
+                            <tr role="row" id="bortzAgeReductionContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row">
+                                    <strong><span id="bortzAgeReductionAccelerationLabel">Bortz Age reduction</span></strong>
                                 </th>
-                                <td>
-                                    <span id="bortzAgeReduction"></span> <span class="unit">years</span>
-                                    (<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)
+                                <td role="cell">
+                                    <span id="bortzAgeReduction" class="age-board-figure"></span> <span class="unit">years</span>
+                                    <span id="bortzAgeReductionShare" class="age-board-share">(<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)</span>
                                 </td>
                             </tr>
 
-                            <tr id="ageReductionContainer" title="Derived from the lowest biological age of the season">
-                                <th scope="row">
-                                    <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction:</span></strong>
+                            <tr role="row" id="ageReductionContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden>
+                                <th role="rowheader" scope="row">
+                                    <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction</span></strong>
                                 </th>
-                                <td>
-                                    <span id="ageReduction"></span> <span class="unit">years</span>
-                                    (<span id="ageReductionPercent"></span><span class="unit">%</span>)
+                                <td role="cell">
+                                    <span id="ageReduction" class="age-board-figure"></span> <span class="unit">years</span>
+                                    <span id="ageReductionShare" class="age-board-share">(<span id="ageReductionPercent"></span><span class="unit">%</span>)</span>
                                 </td>
                             </tr>
                             </tbody>
+                            <tbody class="athlete-info-basics" role="rowgroup">
+                            <tr role="row" id="athleteRankContainer">
+                                <th role="rowheader" scope="row"><strong>Best rank:</strong></th>
+                                <td role="cell"><span id="athleteRank"></span></td>
+                            </tr>
+                            <tr role="row">
+                                <th role="rowheader" scope="row"><strong>Division:</strong></th>
+                                <td role="cell"><span id="athleteDivision"></span></td>
+                            </tr>
+                            <tr role="row">
+                                <th role="rowheader" scope="row"><strong>Generation:</strong></th>
+                                <td role="cell"><span id="athleteGeneration"></span></td>
+                            </tr>
+                            <tr role="row">
+                                <th role="rowheader" scope="row"><strong>Flag:</strong></th>
+                                <td role="cell"><span id="athleteFlag"></span></td>
+                            </tr>
+                            </tbody>
                         </table>
-                    </div>
-                    <div class="athlete-links">
-                        <div class="athlete-share-wrapper">
-                            <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile" aria-haspopup="dialog" aria-expanded="false" aria-controls="athleteShareMenu" aria-describedby="athleteShareStatus">
-                                <i class="fa fa-share-nodes"></i> Share
-                            </button>
-                            <span id="athleteShareStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
-                            <div id="athleteShareMenu" class="athlete-share-menu" role="dialog" aria-label="Share athlete profile" hidden>
-                                <button id="copyAthleteProfileLink" type="button">
-                                    <i class="fa fa-link"></i> Copy link
-                                </button>
-                                <div id="athleteShareRecovery" class="athlete-share-recovery" hidden>
-                                    <p id="athleteShareCopyHelp" role="status" aria-live="polite">Copy the link below or try again.</p>
-                                    <label for="athleteShareLink">Profile link</label>
-                                    <input id="athleteShareLink" type="text" readonly aria-describedby="athleteShareCopyHelp" spellcheck="false">
-                                </div>
-                                <a id="shareAthleteProfileX" href="#" target="_blank" rel="noopener" aria-label="Share on X">
-                                    <i class="fa-brands fa-x-twitter"></i> Post
-                                </a>
-                                <a id="shareAthleteProfileFacebook" href="#" target="_blank" rel="noopener">
-                                    <i class="fa-brands fa-facebook"></i> Facebook
-                                </a>
-                                <a id="shareAthleteProfileLinkedIn" href="#" target="_blank" rel="noopener">
-                                    <i class="fa-brands fa-linkedin"></i> LinkedIn
-                                </a>
-                                <a id="shareAthleteProfileEmail" href="#">
-                                    <i class="fa fa-envelope"></i> Email
-                                </a>
-                            </div>
-                        </div>
-                        <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
-                            <i class="fa fa-link"></i> Personal page
-                        </a>
-                        <a id="mediaContact" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Contact the athlete">
-                            <i class="fa fa-envelope"></i> Media contact
-                        </a>
                     </div>
                 </div>
 
@@ -431,22 +487,19 @@
 <template id="athleteModalDeferredSectionsTemplate">
     <div class="biomarkers-section" id="athlete-biomarkers">
         <div class="biomarkers-heading">
-            <h3>Biomarkers over time</h3>
-            <div class="biomarker-history-tabs" role="tablist" aria-label="Biomarker history view">
-                <button type="button" role="tab" id="biomarkerChartTab" aria-controls="biomarkerChartPanel" aria-selected="true" disabled>Chart</button>
-                <button type="button" role="tab" id="biomarkerTableTab" aria-controls="biomarkerTablePanel" aria-selected="false" tabindex="-1" disabled>Table</button>
-            </div>
+            <h3>Results over time</h3>
+            <p class="biomarker-overview-range"></p>
         </div>
-        <div class="biomarker-chart-controls" hidden>
-            <select id="biomarkerOverlaySelect" aria-label="Compare biomarker"></select>
-        </div>
-        <div id="biomarkerChartPanel" role="tabpanel" aria-labelledby="biomarkerChartTab">
-            <canvas id="biomarkerChart" role="img" aria-label="Biological ages and biomarkers over time. Exact dates and values are available in Table." style="width: 100%; height: 300px;"></canvas>
-        </div>
-        <div id="biomarkerTablePanel" role="tabpanel" aria-labelledby="biomarkerTableTab" hidden>
-            <table class="biomarker-history-table">
+        <div id="biomarkerResultList">
+            <table class="biomarker-overview-table" role="table">
                 <caption></caption>
-                <thead></thead>
+                <thead>
+                    <tr>
+                        <th scope="col">Result</th>
+                        <th scope="col" class="biomarker-overview-history">History</th>
+                        <th scope="col">Latest</th>
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -457,12 +510,10 @@
             <h3>Proofs</h3>
             <button type="button" class="proofs-toggle" hidden aria-expanded="false" aria-controls="proofsGallery">Show all proofs</button>
         </div>
-        <div class="proofs-gallery" id="proofsGallery">
-            <!-- Proof images will be inserted here -->
-        </div>
+        <div class="proofs-gallery" id="proofsGallery"></div>
     </div>
 
-    <div class="events-embed" style="margin-top:16px">
+    <div class="events-embed">
         <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
     </div>
 </template>
@@ -478,7 +529,10 @@
                 <img src="" alt="" class="portrait" loading="lazy">
                 <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
             </a>
-            <a class="athlete-name" title="View stats"></a>
+            <div class="athlete-identity">
+                <a class="athlete-name" title="View stats"></a>
+                <span class="athlete-name-links"></span>
+            </div>
             <div class="badge-section"></div>
         </td>
         <td data-label="Sponsor" class="sponsor-td"></td>
@@ -491,6 +545,10 @@
 </div>
 
 <!--LEADERBOARD-RUNTIME-SCRIPTS-START-->
+<script type="application/json" id="leaderboardOrderCatalog"><!--ORDER-CATALOG--></script>
+<script src="{{ASSET_LEADERBOARD_ORDERING_JS}}"></script>
 <script src="{{ASSET_LEADERBOARD_PAGE_JS}}" data-default-profile-pic="{{ASSET_HD_LOGO_THUMB_SM}}"></script>
+<script src="{{ASSET_ATHLETE_BROWSE_MOTION_JS}}"></script>
+<script src="{{ASSET_ATHLETE_STORY_JS}}"></script>
 
 <script src="{{ASSET_LEADERBOARD_EMBED_LISTENER_JS}}"></script>

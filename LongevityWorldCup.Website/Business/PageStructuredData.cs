@@ -58,12 +58,30 @@ public sealed class PageStructuredData(AthleteDataService athletes)
                 .Where(bySlug.ContainsKey).Select(slug => bySlug[slug]).ToList();
             var proSlugs = athletes.GetLeagueSlugsInRankOrder("bortz").ToHashSet(StringComparer.OrdinalIgnoreCase);
             var selected = Filter(ordered, snapshot, filters, proSlugs);
-            var items = selected.Select((athlete, index) => new Dictionary<string, object>
+            var selectionUrl = SelectionUrl(view, filters);
+            var byFlag = string.Equals(query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase);
+            if (byFlag) selectionUrl += (selectionUrl.Contains('?') ? "&" : "?") + "group=flags";
+            var ordering = LeaderboardOrderState.Parse(query);
+            selectionUrl = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(selectionUrl, LeaderboardOrdering.Query(ordering));
+            if (ordering.IsCustom && !byFlag)
+                selected = new PublicLeaderboardSnapshot(athletes.GetAthletesSnapshot(), DateTime.UtcNow.Date).Select(requestPath, query)
+                    .Snapshot.Rows.Select(row => bySlug[row.Slug]);
+            var items = byFlag
+                ? new PublicLeaderboardSnapshot(athletes.GetAthletesSnapshot(), DateTime.UtcNow.Date).Select(requestPath, query).FlagTeams
+                    .Select((team, index) => new Dictionary<string, object>
+                    {
+                        ["@type"] = "ListItem", ["position"] = index + 1,
+                        ["item"] = new Dictionary<string, object>
+                        {
+                            ["@type"] = "Thing", ["name"] = team.Flag.Name,
+                            ["url"] = selectionUrl + "#flag-team-" + team.Flag.Slug
+                        }
+                    }).ToArray()
+                : selected.Select((athlete, index) => new Dictionary<string, object>
             {
                 ["@type"] = "ListItem", ["position"] = index + 1,
                 ["item"] = Person(Text(athlete, "AthleteSlug"), DisplayName(athlete))
             }).ToArray();
-            var selectionUrl = SelectionUrl(view, filters);
             subject = new Dictionary<string, object>
             {
                 ["@type"] = "ItemList", ["@id"] = selectionUrl + "#ranking", ["url"] = selectionUrl,

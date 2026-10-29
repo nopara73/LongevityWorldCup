@@ -8,8 +8,11 @@
     <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_FIELD_VALIDATION_JS}}"></script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="expect" href="#lwc-site-header" blocking="render">
+    <link rel="stylesheet" href="{{ASSET_APPLY_FLOW_FEEL_CSS}}">
+    <script src="{{ASSET_APPLY_FLOW_FEEL_JS}}" defer></script>
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -26,9 +29,7 @@
 
         #applicationDraftStatus {
             margin: var(--space-2) 0;
-            color: var(--lwc-danger);
             font-size: var(--type-sm);
-            line-height: 1.5;
         }
 
         /* Responsive adjustments */
@@ -58,24 +59,9 @@
             display: none;
         }
 
-        .error-message:not(:empty) {
-            display: block;
-            margin-top: 0.55rem;
-            padding: 0.55rem 0.7rem;
-            border: 0;
-            border-inline-start: 4px solid var(--lwc-danger, #b4233b);
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, #f4f7f9);
-            color: var(--lwc-ink, #17212b);
-            font-size: 0.9rem;
-            font-weight: 700;
-            line-height: 1.35;
-            box-sizing: border-box;
-        }
-
         .char-counter {
             font-size: 0.9rem;
-            color: green;
+            color: var(--lwc-success);
             position: absolute;
             bottom: 10px;
             right: 10px;
@@ -104,6 +90,12 @@
             scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
             overscroll-behavior: contain;
             scroll-padding-block: var(--lwc-space-1);
+        }
+
+        .lwc-flag-suggestions--inline {
+            position: static;
+            /* Keep the focused field visible above the list at enlarged text sizes. */
+            max-height: min(14rem, 42vh, max(48px, calc(100dvh - var(--flow-action-dock-height, 0px) - 6rem)));
         }
 
             .autocomplete-items .autocomplete-active {
@@ -153,42 +145,6 @@
             cursor: pointer;
         }
 
-        .convergence-upload-guidance {
-            width: min(100%, 408px);
-            margin: 0.75rem auto 1.2rem;
-            padding: 0.85rem 1rem 0.85rem 2.25rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            box-sizing: border-box;
-            color: var(--lwc-ink, #334155);
-            line-height: 1.55;
-        }
-
-        .convergence-upload-guidance li + li {
-            margin-top: 0.25rem;
-        }
-
-        .convergence-upload-action {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1rem auto 0;
-        }
-
-        #profileUploadSection .convergence-upload-action .option-button,
-        #proofUploadSection .convergence-upload-action .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
         #proofUploadSection .camera-capture-action {
             display: none;
         }
@@ -218,63 +174,6 @@
             background: var(--lwc-border, rgba(100, 116, 139, 0.22));
         }
 
-        .convergence-upload-action .option-button i {
-            margin-right: 0.45rem;
-        }
-
-        .convergence-crop-preview {
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 0.75rem auto 0;
-            padding: 0.45rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface, #fff);
-            box-shadow: none;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .convergence-crop-preview #cropperImage {
-            display: block;
-            max-width: 100%;
-            max-height: 320px;
-            height: auto;
-            margin: 0 auto;
-            border-radius: 6px;
-            background: var(--lwc-surface-muted, #f8fafc);
-        }
-
-        .convergence-crop-preview .cropper-container {
-            max-width: 100%;
-            margin: 0 auto;
-            border-radius: 6px;
-        }
-
-        #biomarker-checklist {
-            width: min(100%, 408px);
-            max-width: 408px;
-            margin: 1.25rem auto 1.35rem;
-            padding: 0.9rem 1.05rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            box-shadow: none;
-            box-sizing: border-box;
-            color: var(--lwc-ink, #222);
-        }
-
-        #biomarker-checklist h4 {
-            margin: 0 0 0.35rem !important;
-            color: var(--lwc-ink, #111827);
-        }
-
-        #biomarker-checklist p {
-            margin: 0 !important;
-            color: var(--lwc-muted, #526373);
-            line-height: 1.35;
-        }
-
         /* Must use important because back button styles applied later. Without important it doesn't overwrite it. */
         .back-button {
             margin-right: auto !important;
@@ -284,227 +183,6 @@
         .convergence-main [data-aos]:not(.aos-animate) {
             opacity: 1;
             transform: none;
-        }
-
-        .convergence-actions {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-            margin: 1.4rem auto 0;
-        }
-
-        .convergence-actions .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        .convergence-actions .option-button:disabled {
-            background: var(--lwc-surface-muted, #eef2f7) !important;
-            border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
-            color: var(--lwc-muted, #526373);
-            box-shadow: none !important;
-            cursor: not-allowed;
-            opacity: 1;
-            transform: none;
-        }
-
-        .convergence-actions .option-button:disabled:hover {
-            background: var(--lwc-surface-muted, #eef2f7) !important;
-            border-color: var(--lwc-border, rgba(100, 116, 139, 0.16));
-            color: var(--lwc-muted, #526373);
-            box-shadow: none !important;
-            transform: none;
-        }
-
-        .convergence-actions .back-button {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-
-        .convergence-helper-text {
-            margin: 0.75rem 0 0;
-            padding: 0.8rem 0.9rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            color: var(--lwc-ink, #334155);
-            line-height: 1.48;
-            box-sizing: border-box;
-        }
-
-        .convergence-helper-text + label {
-            margin-top: 1.5rem;
-        }
-
-        .convergence-helper-text a,
-        .convergence-application-copy a {
-            font-weight: 700;
-        }
-
-        .convergence-stage-copy {
-            max-width: 32rem;
-            margin: 1.1rem auto 0;
-            padding: 0.95rem 1rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            color: var(--lwc-ink, #334155);
-            line-height: 1.5;
-            text-align: left;
-            box-sizing: border-box;
-        }
-
-        .convergence-stage-copy p {
-            margin: 0.65rem 0 0;
-        }
-
-        .convergence-stage-copy p:first-child {
-            margin-top: 0;
-        }
-
-        .convergence-stage-copy strong {
-            color: var(--lwc-ink, #1f2937);
-        }
-
-        .convergence-stage-copy em {
-            color: var(--lwc-ink, #1f2937);
-        }
-
-        .convergence-visual {
-            width: 100%;
-            text-align: center;
-        }
-
-        body[data-convergence-stage="1"] #descriptionForm {
-            display: none !important;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #inputForm {
-            margin-top: 0.75rem;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #personalDetails {
-            margin-top: 0;
-            padding-block: 0.95rem;
-        }
-
-        body[data-convergence-stage="1"].flow-action-dock-active #personalDetails > label:first-of-type {
-            margin-top: 0.45rem;
-        }
-
-        @media (min-width: 960px) and (max-height: 780px) {
-            body[data-convergence-stage="1"] #mainProgressBar {
-                margin: 1.6rem auto 1.8rem;
-                padding: 0.9rem 0 1.55rem;
-            }
-
-            body[data-convergence-stage="1"] .convergence-main > h1 {
-                margin: 0.6rem 0 0.9rem;
-                font-size: 2.35rem;
-                line-height: 1.05;
-            }
-
-        }
-
-        @media (min-width: 960px) and (max-height: 720px) {
-            body[data-convergence-stage="1"] #mainProgressBar {
-                margin-block: 1.15rem 1.2rem;
-                padding-block: 0.75rem 1.3rem;
-            }
-
-            body[data-convergence-stage="1"] .convergence-main > h1 {
-                margin-block: 0.4rem 0.55rem;
-                font-size: 2.18rem;
-            }
-
-        }
-
-        #profileImage.illustration {
-            width: 100%;
-            max-width: 408px;
-            aspect-ratio: 4 / 3;
-            object-fit: contain;
-        }
-
-        .convergence-application-copy {
-            margin: 0.75rem 0 1.1rem;
-            padding: 0.85rem 0.95rem;
-            border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.22));
-            border-radius: 8px;
-            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.08));
-            color: var(--lwc-ink, #2d3748);
-            line-height: 1.5;
-            box-sizing: border-box;
-        }
-
-        #whyField textarea {
-            margin-bottom: 0;
-        }
-
-        #whyField .char-counter {
-            position: static;
-            display: flex;
-            width: fit-content;
-            min-height: 28px;
-            align-items: center;
-            margin: 0.55rem 0 0 auto;
-            padding: 0.25rem 0.65rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
-            border-radius: 999px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.96));
-            box-sizing: border-box;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--lwc-muted, #526373);
-            box-shadow: none;
-        }
-
-        @media (max-width: 600px) {
-            .convergence-actions {
-                width: min(100%, 408px);
-                margin-top: 1.25rem;
-            }
-
-            #descriptionForm {
-                padding: 0.9rem;
-            }
-
-            #descriptionForm .illustration {
-                width: min(100%, 290px);
-                max-height: 218px;
-                border-width: 3px;
-                margin-bottom: 1rem;
-            }
-
-            #descriptionForm #illustrationImage.illustration {
-                object-fit: cover;
-            }
-
-            #descriptionForm #profileImage.illustration {
-                object-fit: contain;
-            }
-
-            #descriptionForm .sub-progress-container {
-                margin-bottom: 1rem;
-                padding-inline: 12px;
-            }
-
-            .convergence-upload-guidance,
-            .convergence-upload-action,
-            .convergence-crop-preview {
-                width: min(100%, 408px);
-            }
-
-            #biomarker-checklist {
-                margin: 1.05rem auto 1.1rem;
-            }
         }
 
         @media (pointer: coarse) {
@@ -518,184 +196,902 @@
             }
         }
 
+        /* Every stage is the same card: banner, step meter and title, story, then the task. */
+        body[data-convergence-stage] {
+            --convergence-page-pad: var(--space-5, 1.5rem);
+        }
+
+        .convergence-main {
+            padding-inline: var(--convergence-page-pad);
+        }
+
+        @media (max-width: 640px) {
+            body[data-convergence-stage] {
+                --convergence-page-pad: max(var(--space-4, 1rem), env(safe-area-inset-left, 0px));
+            }
+        }
+
+        .convergence-stage-layout {
+            --convergence-card-pad: clamp(16px, 4vw, 28px);
+            width: min(100%, 640px);
+            max-width: calc(100vw - 2rem);
+            margin: 0.5rem auto 2rem;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+        }
+
+        .convergence-stage-layout > .bioageform {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .convergence-stage-layout > #descriptionForm {
+            display: block;
+            padding: 0 0 var(--convergence-card-pad);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+            text-align: left;
+        }
+
+        .convergence-stage-layout > #inputForm {
+            padding: var(--convergence-card-pad);
+        }
+
+        /* Banner */
+        .convergence-visual {
+            position: relative;
+            width: 100%;
+            line-height: 0;
+        }
+
+        #illustrationPicture {
+            display: block;
+            border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        #illustrationPicture:is([data-banner-state="loading"], [data-banner-state="failed"]) > img {
+            visibility: hidden;
+        }
+
+        #descriptionForm #illustrationImage.illustration {
+            display: block;
+            width: 100%;
+            max-width: none;
+            height: auto;
+            aspect-ratio: var(--convergence-banner-aspect, 3 / 1);
+            max-height: none;
+            margin: 0;
+            border: 0;
+            border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: none;
+            object-fit: cover;
+            object-position: var(--convergence-banner-position, center 35%);
+        }
+
+        /* Focal positions belong to the image, independently of banner size.
+           A stage may also set --convergence-banner-position-phone. */
+        body[data-convergence-stage="1"] { --convergence-banner-position: center 35%; --convergence-banner-aspect: 2170 / 725; }
+        body[data-convergence-stage="2"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="3"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="4"] { --convergence-banner-position: center top; }
+        body[data-convergence-stage="5"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="6"] { --convergence-banner-position: center 35%; }
+        body[data-convergence-stage="7"] { --convergence-banner-position: center 35%; }
+
+        @media (max-width: 600px) {
+            #descriptionForm #illustrationImage.illustration {
+                object-position: var(--convergence-banner-position-phone, var(--convergence-banner-position));
+            }
+        }
+
+        /* The saved portrait sits on the banner's lower edge, like a profile header. */
+        #descriptionForm #profileImage.illustration {
+            position: absolute;
+            left: var(--convergence-card-pad);
+            bottom: -48px;
+            display: block;
+            width: 112px;
+            height: 112px;
+            max-width: none;
+            max-height: none;
+            margin: 0;
+            border: 4px solid var(--lwc-surface, #fff);
+            border-radius: 50%;
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+            object-fit: cover;
+            aspect-ratio: 1;
+        }
+
+        /* Step meter and title */
+        .convergence-stage-head {
+            padding: min(var(--convergence-card-pad), 22px) var(--convergence-card-pad) 0;
+        }
+
+        body.convergence-has-portrait[data-convergence-stage="4"] .convergence-stage-head {
+            padding-top: calc(48px + var(--convergence-card-pad));
+        }
+
+        .convergence-stage-head h1 {
+            margin: 0.7rem 0 0;
+            color: var(--lwc-ink, #17212b);
+            font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2.15rem);
+            line-height: 1.12;
+            text-align: left;
+            overflow-wrap: break-word;
+        }
+
+        .convergence-stage-head h1:focus {
+            outline: none;
+        }
+
+        .convergence-stage-head h1:focus-visible {
+            outline: 3px solid var(--lwc-accent, #087685);
+            outline-offset: 4px;
+            border-radius: var(--lwc-radius-sm, 4px);
+        }
+
+        /* Story */
+        #descriptionForm .convergence-stage-copy {
+            max-width: none;
+            margin: 0.85rem var(--convergence-card-pad) 0;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: none;
+            color: var(--lwc-muted, #52606d);
+            font-size: 1.0625rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .convergence-stage-copy p {
+            margin: 0.7rem 0 0;
+        }
+
+        .convergence-stage-copy p:first-child {
+            margin-top: 0;
+        }
+
+        .convergence-stage-copy strong,
+        .convergence-stage-copy em {
+            color: var(--lwc-ink, #17212b);
+        }
+
+        .convergence-stage-copy .smaller-text {
+            display: block;
+            margin-top: 0.6rem;
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        .convergence-stage-copy > p:first-child:has(> strong:only-child) {
+            color: var(--lwc-ink, #17212b);
+            font-size: 1.15rem;
+            line-height: 1.4;
+        }
+
+        /* Task fields sit directly below the story. */
+        #inputForm.bioageform > fieldset {
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        #inputForm.bioageform > fieldset > :first-child {
+            margin-top: 0;
+        }
+
+        #inputForm.bioageform > fieldset > label:first-of-type {
+            margin-top: 0.35rem;
+        }
+
+        #privacyDetails p {
+            margin: 0;
+            color: var(--lwc-ink, #17212b);
+            line-height: 1.55;
+        }
+
+        #privacyDetails p + p {
+            margin-top: 0.5rem;
+        }
+
+        #privacyDetails .smaller-text {
+            color: var(--lwc-muted, #52606d);
+            font-size: var(--lwc-type-sm, 0.875rem);
+        }
+
+        /* Notes share one shape: a muted panel with a coloured rail. */
+        .convergence-upload-guidance,
+        .convergence-application-copy {
+            width: 100%;
+            max-width: none;
+            margin: 0.75rem 0 0;
+            padding: 0.8rem 1rem;
+            border: 0;
+            border-inline-start: 3px solid var(--lwc-border-strong, #71808d);
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: none;
+            box-sizing: border-box;
+            color: var(--lwc-ink, #17212b);
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .convergence-application-copy {
+            margin: 0.25rem 0 1rem;
+            border-inline-start-color: var(--lwc-success, #1f7a38);
+            font-size: 1rem;
+        }
+
+        .convergence-application-copy a {
+            font-weight: 700;
+        }
+
+        .convergence-upload-guidance {
+            padding-inline-start: 2.1rem;
+        }
+
+        .convergence-upload-guidance li + li {
+            margin-top: 0.2rem;
+        }
+
+        #uploadPart > p {
+            margin: 0.35rem 0 0;
+        }
+
+        /* Field hints read as plain text under their field. */
+        .convergence-helper-text {
+            margin: 0.4rem 0 0;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: var(--lwc-muted, #52606d);
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        .convergence-helper-text .smaller-text {
+            font-size: inherit;
+        }
+
+        .convergence-helper-text a {
+            font-weight: 700;
+        }
+
+        .convergence-helper-text + label {
+            margin-top: 1.25rem;
+        }
+
+        /* The proof tracker card is shared with result uploads; it spans the stage column. */
+        #biomarker-checklist {
+            width: 100%;
+            margin: 1rem 0 0;
+        }
+
+        #biomarker-checklist:empty {
+            display: none;
+        }
+
+        /* Upload controls fill the task column on both upload stages. */
+        .convergence-upload-action {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.6rem;
+            margin: 1rem 0 0;
+        }
+
+        .convergence-upload-action .option-button,
+        .convergence-upload-action .option-button.flow-action {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .convergence-upload-action .option-button.flow-action {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: min(0.75rem, 12px);
+            padding-inline: min(1.25rem, 20px);
+        }
+
+        .convergence-upload-action .flow-action__label {
+            text-align: left;
+            overflow-wrap: normal;
+        }
+
+        .convergence-upload-action .option-button.flow-action > i {
+            position: static;
+            width: min(1.25rem, 24px);
+            margin: 0;
+            font-size: min(1.12rem, 24px);
+            transform: none;
+        }
+
+        #proofImageContainer:not(:empty) {
+            margin-top: 1rem;
+        }
+
+        .convergence-crop-preview {
+            width: 100%;
+            max-width: none;
+            margin: 0.35rem 0 0;
+            padding: 0.4rem;
+            border: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .convergence-crop-preview #cropperImage {
+            display: block;
+            max-width: 100%;
+            max-height: 320px;
+            height: auto;
+            margin: 0 auto;
+            border-radius: var(--lwc-radius-sm, 4px);
+        }
+
+        .convergence-crop-stage {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .convergence-crop-preview .cropper-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Motivation */
+        #whyField textarea {
+            display: block;
+            margin-bottom: 0;
+        }
+
+        #whyField .char-counter {
+            position: static;
+            display: flex;
+            width: fit-content;
+            min-height: 26px;
+            align-items: center;
+            margin: 0.45rem 0 0 auto;
+            padding: 0.2rem 0.6rem;
+            border: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: var(--lwc-radius-pill, 999px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-sizing: border-box;
+            color: var(--lwc-muted, #52606d);
+            font-size: var(--lwc-type-xs, 0.75rem);
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: none;
+        }
+
+        #whyField .char-counter.hidden {
+            display: none;
+        }
+
+        /* Actions close the card on one full-width row. */
+        .convergence-actions {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.6rem;
+            margin: 1.5rem 0 0;
+            padding-top: var(--convergence-card-pad);
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+        }
+
+        .convergence-stage-layout .flow-action-dock-placeholder {
+            width: 100%;
+            max-width: none;
+            margin: 1.5rem 0 0;
+        }
+
+        .convergence-actions.flow-action-stack--docked {
+            padding-top: 0.55rem;
+        }
+
+        .convergence-actions .option-button {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .convergence-actions .back-button {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        #applicationDraftStatus:not([hidden]) {
+            margin: 1rem 0 0;
+        }
+
+        @media (min-width: 769px) {
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .flow-action {
+                width: auto;
+                min-width: 9.5rem;
+            }
+
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > #nextButton {
+                order: 2;
+                min-width: 14rem;
+            }
+        }
+
+        /* Short desktops keep the full scene and all identity fields above the actions. */
+        @media (min-width: 769px) and (max-height: 800px) {
+            .convergence-main #mainProgressBar {
+                margin-block: 0 0.5rem;
+            }
+
+            .convergence-stage-layout {
+                --convergence-card-pad: 18px;
+                margin-top: 0.25rem;
+            }
+
+            .convergence-stage-layout > #descriptionForm {
+                padding-bottom: 12px;
+            }
+
+            .convergence-stage-layout > #inputForm {
+                padding-top: 12px;
+            }
+
+            #inputForm {
+                container-type: inline-size;
+            }
+
+            @container (min-width: 35rem) {
+                #inputForm #personalDetails {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    grid-template-areas:
+                        "name-label division-label flag-label"
+                        "name-input division-input flag-input"
+                        "name-error division-error flag-input";
+                    column-gap: 1rem;
+                    align-items: start;
+                }
+
+                #personalDetails > label[for="name"] { grid-area: name-label; }
+                #personalDetails > #name { grid-area: name-input; }
+                #personalDetails > #nameError { grid-area: name-error; }
+                #personalDetails > label[for="division"] { grid-area: division-label; }
+                #personalDetails > #division { grid-area: division-input; }
+                #personalDetails > #divisionError { grid-area: division-error; }
+                #personalDetails > label[for="flag"] { grid-area: flag-label; }
+                #personalDetails > .autocomplete-container { grid-area: flag-input; }
+            }
+
+            #inputForm.bioageform > fieldset > label {
+                margin-top: 0.45rem;
+            }
+
+            .convergence-stage-layout .flow-action-dock-placeholder {
+                margin: 0.7rem 0 0;
+            }
+
+            .convergence-stage-head h1 {
+                margin-top: 0.45rem;
+                font-size: 1.6rem;
+            }
+
+            #descriptionForm .convergence-stage-copy {
+                margin-top: 0.6rem;
+            }
+
+            .convergence-actions {
+                margin-top: 0.7rem;
+                padding-top: 0.7rem;
+            }
+        }
+
+        /* Reserve dock clearance outside the card at every width, including
+           overflow docking on tablets and short desktop windows. */
+        html.flow-action-dock-active .convergence-main {
+            padding-bottom: calc(var(--flow-action-dock-height, 0px) + 0.25rem);
+        }
+
+        html.flow-action-dock-active .convergence-stage-layout .flow-action-dock-placeholder {
+            height: 1px !important;
+            margin: 0 !important;
+        }
+
+        @media (max-width: 760px) {
+            .convergence-stage-layout {
+                max-width: calc(100vw - 1.5rem);
+                margin-block: 0.25rem 1rem;
+            }
+
+        }
+
+        /* One journey foot. The actions close every stage in the same muted band as the
+           /review card. When the window is too short, the dock pins that same band to
+           the card's column, so Back and Next keep their place, size and look between stages. */
+        .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) {
+            width: calc(100% + 2 * var(--convergence-card-pad));
+            max-width: none;
+            margin: 1.5rem calc(-1 * var(--convergence-card-pad)) calc(-1 * var(--convergence-card-pad));
+            padding: 0.55rem var(--convergence-card-pad);
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: 0 0 calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+            border-top: 1px solid var(--lwc-border, #d7e0e6);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        /* Phones: the full-width dock lines its actions up with the card's fields. */
+        @media (max-width: 760px) {
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                --convergence-card-pad: clamp(16px, 4vw, 28px);
+                padding-inline: calc(max(var(--convergence-page-pad), (100% - 640px) / 2) + 1px + var(--convergence-card-pad));
+            }
+        }
+
+        .convergence-stage-layout .convergence-actions .option-button.flow-action.back-button,
+        body[data-convergence-stage] > .convergence-actions .option-button.flow-action.back-button {
+            background: var(--lwc-surface, #fff);
+        }
+
+        .convergence-actions .option-button.flow-action.back-button:hover {
+            border-color: var(--lwc-border-strong, #71808d);
+        }
+
+        @media (max-width: 240px) {
+            .convergence-stage-layout {
+                --convergence-card-pad: 8px;
+                max-width: calc(100vw - 1rem);
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                --convergence-card-pad: 8px;
+            }
+
+            #division { padding-inline: 0.5rem; }
+
+            .convergence-upload-action .flow-action {
+                flex-direction: column;
+                gap: 0.3em;
+                padding-inline: 0.5rem;
+                overflow-wrap: normal;
+            }
+
+            .convergence-upload-action .flow-action > i {
+                position: static;
+                width: auto;
+                transform: none;
+            }
+        }
+
+        @media (width > 760px) {
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                --convergence-card-pad: 28px;
+                left: calc(50% - 320px) !important;
+                right: auto !important;
+                width: 640px !important;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                gap: 0.75rem;
+                padding: 0.55rem var(--convergence-card-pad) calc(0.55rem + env(safe-area-inset-bottom));
+                border: 1px solid var(--lwc-border, #d7e0e6);
+                border-bottom: 0;
+                box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.08);
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .flow-action,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .flow-action {
+                flex: 0 0 9.5rem;
+                width: auto;
+                min-width: 0;
+                max-width: none;
+                min-height: 3rem;
+                margin: 0;
+                padding-block: 0.55rem;
+                padding-inline: 1.25rem 2.85rem;
+                font-size: 1.05rem;
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > #nextButton,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > #nextButton {
+                flex: 1 1 min-content;
+                order: 2;
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .back-button.flow-action--icon-left,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .back-button.flow-action--icon-left {
+                flex: 0 0 auto !important;
+                order: 1;
+                width: 8.5rem !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                justify-content: center;
+                gap: 0.5em;
+                padding-inline: 1.35rem !important;
+            }
+
+            @media (min-width: 769px) and (max-height: 800px) {
+                body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked {
+                    --convergence-card-pad: 18px;
+                }
+            }
+
+            body[data-convergence-stage] > .convergence-actions.flow-action-stack--docked > .back-button.flow-action--icon-left > i,
+            .convergence-stage-layout .convergence-actions:not(.flow-action-stack--docked) > .back-button.flow-action--icon-left > i {
+                position: static;
+                width: auto;
+                transform: none;
+                flex: none;
+            }
+        }
+
+        /* The stage decision reads as a note in the same shape as the upload guidance. */
+        #inputForm > #privacyDetails {
+            padding: 0.8rem 1rem;
+            border-inline-start: 3px solid var(--lwc-accent, #087685);
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+        }
+
+        #inputForm > #privacyDetails p + p {
+            margin-top: 0.35rem;
+        }
+
+        #inputForm > #privacyDetails .smaller-text {
+            display: block;
+            font-size: var(--lwc-type-sm, 0.875rem);
+            line-height: 1.5;
+        }
+
+        /* Next and Back travel: the new stage slides in from the side it is heading toward. */
+        @media (prefers-reduced-motion: no-preference) {
+            .convergence-stage-enter .convergence-stage-head h1,
+            .convergence-stage-enter #descriptionForm .convergence-stage-copy {
+                animation: convergence-stage-forward 340ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+            }
+
+            .convergence-stage-enter #descriptionForm .convergence-stage-copy {
+                animation-delay: 50ms;
+            }
+
+            .convergence-stage-enter[data-convergence-direction="back"] .convergence-stage-head h1,
+            .convergence-stage-enter[data-convergence-direction="back"] #descriptionForm .convergence-stage-copy {
+                animation-name: convergence-stage-back;
+            }
+
+            .convergence-stage-enter .convergence-visual .illustration {
+                animation: convergence-banner-in 480ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+            }
+        }
+
+        @keyframes convergence-stage-forward {
+            from { opacity: 0.8; transform: translateX(18px); }
+        }
+
+        @keyframes convergence-stage-back {
+            from { opacity: 0.8; transform: translateX(-18px); }
+        }
+
+        @keyframes convergence-banner-in {
+            from { opacity: 0.25; }
+        }
     </style>
 </head>
 <body class="play-flow-route" data-convergence-stage="1">
     <!--HEADER-->
     <main class="convergence-main initial-view-main">
         <!--MAIN-PROGRESS-BAR-->
-        <h1 tabindex="-1" data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
-        <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <div class="convergence-visual">
-                <picture id="illustrationPicture" style="display:''">
-                    <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
-                    <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
-                    <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
-                </picture>
-                <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
-                <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
-            </div>
-            <!--SUB-PROGRESS-BAR-->
-            <div id="privacyText" class="convergence-stage-copy" style="display:none">
-                <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
-                <p>
-                    Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
-                </p>
-                <p>
-                    So, does he lack privacy? <strong>No</strong>, he made a decision to selectively reveal himself to the world.
-                </p>
-            </div>
-
-            <div id="profilePicText" class="convergence-stage-copy" style="display:none">
-                <p>Next, provide your profile picture. Smiling is optional!</p>
-            </div>
-
-            <div id="proofText" class="convergence-stage-copy" style="display:none">
-                <p id="mainProofInstructions"></p>
-                <span id="subProofInstructions" class="smaller-text"></span>
-            </div>
-
-            <div id="finalDetailsText" style="display:none"></div>
-        </form>
-
-        <form id="inputForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
-            <fieldset id="personalDetails">
-                <legend>Athlete details</legend>
-
-                <!-- Name Field -->
-                <label for="name">Name <span class="field-requirement">(required)</span></label>
-                <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
-                <span id="nameError" class="error-message" aria-live="polite"></span>
-
-                <!-- Division Field -->
-                <label for="division">Division <span class="field-requirement">(required)</span></label>
-                <select id="division" name="division" required aria-required="true" aria-describedby="divisionError">
-                    <!-- Options will be populated dynamically -->
-                </select>
-                <span id="divisionError" class="error-message" aria-live="polite"></span>
-
-                <!-- Flag Field with Autocomplete -->
-                <label for="flag">Flag <span class="field-requirement">(required)</span></label>
-                <div class="autocomplete-container">
-                    <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flag-autocomplete-list">
-                    <span id="flagError" class="error-message" aria-live="polite"></span>
+        <div class="convergence-stage-layout">
+            <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+                <div class="convergence-visual">
+                    <picture id="illustrationPicture" style="display:''">
+                        <source type="image/webp" srcset="../assets/content-images/apply-arena.webp">
+                        <source type="image/jpeg" srcset="../assets/content-images/apply-arena.jpg">
+                        <img id="illustrationImage" src="../assets/content-images/apply-arena.jpg" alt="Hooded applicant enters a sunlit stadium with longevity athletes" class="illustration" width="2170" height="725" loading="eager" fetchpriority="high" decoding="async">
+                    </picture>
+                    <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
                 </div>
-            </fieldset>
-            <fieldset id="privacyDetails">
-                <legend>Visibility choice</legend>
-                <p>
-                    <strong>It's now your turn to make that decision.</strong>
-                </p>
-                <p>
-                    <span class="smaller-text">
-                        Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.
-                    </span>
-                </p>
-            </fieldset>
-            <fieldset id="profileUploadSection">
-                <legend>Profile photo</legend>
-                <div id="uploadPart" style="display:block">
-                    <p><strong>Upload a clear headshot:</strong></p>
-                    <ol class="smaller-text convergence-upload-guidance">
-                        <li>It must be you.</li>
-                        <li>Face the camera directly.</li>
-                        <li>Include head and shoulders.</li>
-                    </ol>
+                <div class="convergence-stage-head">
+                    <!--SUB-PROGRESS-BAR-->
+                    <h1 id="applicationStageTitle" tabindex="-1">Enter the arena</h1>
+                </div>
+                <div id="privacyText" class="convergence-stage-copy" style="display:none">
+                    <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
+                    <p>
+                        Cristiano Ronaldo is one of the greatest football players of all time. Put yourself into his boots. You must work hard, of course, but your job doesn't end with honing your skills. You also need to display them in front of millions of people. <em>There’s no sport without spectators.</em>
+                    </p>
+                    <p>
+                        So, does he lack privacy? <strong>No</strong>, he made a decision to selectively reveal himself to the world.
+                    </p>
+                </div>
+    
+                <div id="profilePicText" class="convergence-stage-copy" style="display:none">
+                    <p>Next, provide your profile picture. Smiling is optional!</p>
+                </div>
+    
+                <div id="proofText" class="convergence-stage-copy" style="display:none">
+                    <p id="mainProofInstructions"></p>
+                    <span id="subProofInstructions" class="smaller-text"></span>
+                </div>
+    
+                <div id="finalDetailsText" style="display:none"></div>
+            </form>
+    
+            <form id="inputForm" class="bioageform" aria-labelledby="applicationStageTitle" data-aos="fade" data-aos-duration="700" data-aos-delay="500">
+                <fieldset id="personalDetails">
+    
+                    <!-- Name Field -->
+                    <label for="name">Name <span class="field-requirement">(required)</span></label>
+                    <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
+                    <span id="nameError" class="error-message" aria-live="polite"></span>
+    
+                    <!-- Division Field -->
+                    <label for="division">Division <span class="field-requirement">(required)</span></label>
+                    <select id="division" name="division" required aria-required="true" aria-describedby="divisionError">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                    <span id="divisionError" class="error-message" aria-live="polite"></span>
+    
+                    <!-- Flag Field with Autocomplete -->
+                    <label for="flag">Flag <span class="field-requirement">(required)</span></label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flag-autocomplete-list">
+                        <span id="flagError" class="error-message" aria-live="polite"></span>
+                    </div>
+                </fieldset>
+                <fieldset id="privacyDetails">
+                    <p>
+                        <strong>It's now your turn to make that decision.</strong>
+                    </p>
+                    <p>
+                        <span class="smaller-text">
+                            Top-ranked longevity athletes will occasionally be asked to give an interview before their results are posted. Declining means no spot on the leaderboard. By proceeding, you agree to this.
+                        </span>
+                    </p>
+                </fieldset>
+                <fieldset id="profileUploadSection">
+                    <div id="uploadPart" style="display:block">
+                        <p><strong>Upload a clear headshot:</strong></p>
+                        <ol class="smaller-text convergence-upload-guidance">
+                            <li>It must be you.</li>
+                            <li>Face the camera directly.</li>
+                            <li>Include head and shoulders.</li>
+                        </ol>
+                        <div class="convergence-upload-action flow-action-stack">
+                            <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
+                            <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
+                            <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
+                            </button>
+                            <span class="upload-choice-divider" aria-hidden="true">or</span>
+                            <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Upload profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="croppingPart" style="display:none">
+                        <div class="convergence-crop-preview">
+                            <div class="convergence-crop-stage">
+                                <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                            </div>
+                        </div>
+                        <div class="convergence-upload-action flow-action-stack">
+                            <button type="button" id="cropButton" class="option-button flow-action">
+                                <span class="flow-action__label">Crop and save</span>
+                            </button>
+                            <button type="button" id="cancelProfileCropButton" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Cancel</span>
+                            </button>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset id="proofUploadSection">
                     <div class="convergence-upload-action flow-action-stack">
-                        <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
-                        <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
-                        <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
+                        <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
+                        <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
+                        <button type="button" id="takeProofPhotoButton" class="option-button grey flow-action flow-action--secondary camera-capture-action">
+                            <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
                         </button>
                         <span class="upload-choice-divider" aria-hidden="true">or</span>
-                        <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Upload profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
+                        <button type="button" id="uploadProofButton" class="option-button grey flow-action flow-action--secondary">
+                            <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
                         </button>
                     </div>
-                </div>
-                <div id="croppingPart" style="display:none">
-                    <div class="convergence-crop-preview">
-                        <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
+                    <!-- Proof Image Container -->
+                    <div id="proofImageContainer"></div>
+                    <div id="biomarker-checklist"></div>
+                </fieldset>
+                <fieldset id="finalDetails">
+    
+                    <!-- Link to Personal Page (Optional) -->
+                    <label for="personalLink">Link <span class="field-requirement">(optional)</span></label>
+                    <input type="text" id="personalLink" name="personalLink" aria-describedby="personalLinkError" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
+                    <span id="personalLinkError" class="error-message" aria-live="polite"></span>
+                    <p class="convergence-helper-text">
+                        Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
+                    </p>
+    
+                    <!-- Media Contact (Required) -->
+                    <label for="mediaContact">Media contact <span class="field-requirement">(required)</span></label>
+                    <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" aria-describedby="mediaContactError" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
+                    <span id="mediaContactError" class="error-message" aria-live="polite"></span>
+    
+                    <p class="convergence-helper-text">
+                        <span class="smaller-text">
+                            Please provide a media contact. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
+                        </span>
+                    </p>
+                </fieldset>
+                <fieldset id="applyDetails">
+                    <!-- Email Field -->
+                    <div id="congratsText" class="convergence-application-copy" style="display:none">
+                        <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
                     </div>
-                    <div class="convergence-upload-action flow-action-stack">
-                        <button type="button" id="cropButton" class="option-button flow-action">
-                            <span class="flow-action__label">Crop and save</span>
-                        </button>
-                        <button type="button" id="cancelProfileCropButton" class="option-button grey flow-action flow-action--secondary">
-                            <span class="flow-action__label">Cancel</span>
-                        </button>
-                    </div>
-                </div>
-            </fieldset>
-            <fieldset id="proofUploadSection">
-                <legend>Proof upload</legend>
-                <div class="convergence-upload-action flow-action-stack">
-                    <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
-                    <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
-                    <button type="button" id="takeProofPhotoButton" class="option-button grey flow-action flow-action--secondary camera-capture-action">
-                        <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
+                    <label for="accountEmail">Email address <span class="field-requirement">(required)</span></label>
+                    <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" aria-describedby="accountEmailError" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
+                    <span id="accountEmailError" class="error-message" aria-live="polite"></span>
+                </fieldset>
+    
+                <!-- WHY Field (Initially Hidden) -->
+                <fieldset id="whyField" style="display: none; position: relative;">
+                    <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
+                    <textarea id="why" name="why" rows="5" required aria-required="true" aria-describedby="whyError whyCharCounter" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
+                    <div id="whyCharCounter" class="char-counter">0/250</div>
+                    <span id="whyError" class="error-message" aria-live="polite"></span>
+                </fieldset>
+    
+                <p id="applicationDraftStatus" role="status" hidden></p>
+                <div class="options-container convergence-actions flow-action-stack" data-flow-dock="auto">
+                    <button type="button" class="option-button green flow-action" id="nextButton" aria-label="Proceed to the next stage" disabled>
+                        <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </button>
-                    <span class="upload-choice-divider" aria-hidden="true">or</span>
-                    <button type="button" id="uploadProofButton" class="option-button grey flow-action flow-action--secondary">
-                        <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
+                    <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" id="backButton">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                     </button>
                 </div>
-                <!-- Proof Image Container -->
-                <div id="proofImageContainer"></div>
-                <div id="biomarker-checklist"></div>
-            </fieldset>
-            <fieldset id="finalDetails">
-                <legend>Public profile</legend>
-
-                <!-- Link to Personal Page (Optional) -->
-                <label for="personalLink">Link (optional)</label>
-                <input type="text" id="personalLink" name="personalLink" aria-describedby="personalLinkError" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
-                <span id="personalLinkError" class="error-message" aria-live="polite"></span>
-                <p class="convergence-helper-text">
-                    Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
-                </p>
-
-                <!-- Media Contact (Required) -->
-                <label for="mediaContact">Media contact (required)</label>
-                <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" aria-describedby="mediaContactError" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
-                <span id="mediaContactError" class="error-message" aria-live="polite"></span>
-
-                <p class="convergence-helper-text">
-                    <span class="smaller-text">
-                        Please provide a media contact email. Be cautious about using your personal email address. It is recommended to create a dedicated email (e.g.: <a href="https://protonmail.com" target="_blank" rel="noopener">ProtonMail</a>) or use a social media account like Instagram or Twitter if your messages are open to the public.
-                    </span>
-                </p>
-            </fieldset>
-            <fieldset id="applyDetails">
-                <!-- Email Field -->
-                <legend>Contact email</legend>
-                <div id="congratsText" class="convergence-application-copy" style="display:none">
-                    <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
-                </div>
-                <label for="accountEmail">Email address <span class="field-requirement">(required)</span></label>
-                <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" aria-describedby="accountEmailError" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
-                <span id="accountEmailError" class="error-message" aria-live="polite"></span>
-            </fieldset>
-
-            <!-- WHY Field (Initially Hidden) -->
-            <fieldset id="whyField" style="display: none; position: relative;">
-                <legend>Motivation</legend>
-                <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
-                <textarea id="why" name="why" rows="5" required aria-required="true" aria-describedby="whyError whyCharCounter" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
-                <div id="whyCharCounter" class="char-counter">0/250</div>
-                <span id="whyError" class="error-message" aria-live="polite"></span>
-            </fieldset>
-
-            <p id="applicationDraftStatus" role="status" hidden></p>
-            <div class="options-container convergence-actions flow-action-stack" data-flow-dock="auto">
-                <button type="button" class="option-button green flow-action" id="nextButton" aria-label="Proceed to the next stage" disabled>
-                    <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" id="backButton">
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </main>
     <!--FOOTER-->
     <!-- JavaScript -->
@@ -751,6 +1147,8 @@
         let applicationDraftUnsaved = false;
         let applicationDraftEdited = false;
         let applicationProfilePending = false;
+        let resumeProfileUpload = null;
+        let refreshProfileCrop = null;
 
         function saveApplicationDraft(event) {
             if (isFake || applicationDraftCompleted) return;
@@ -1481,14 +1879,34 @@
         }
 
         // Function to update the UI based on the current stage
+        // Each stage enters from the side it is travelling toward, so Next and Back read as one journey.
+        let stageEntranceTimer = 0;
+        let hasShownFirstStage = false;
+        let stageIllustrationVersion = 0;
+        const stageEntranceMotion = window.matchMedia('(prefers-reduced-motion: no-preference)');
+        function cancelStageEntrance() {
+            window.clearTimeout(stageEntranceTimer);
+            document.querySelector('.convergence-stage-layout')?.classList.remove('convergence-stage-enter');
+        }
+        stageEntranceMotion.addEventListener('change', cancelStageEntrance);
+        function playStageEntrance(previousStage, stage) {
+            const card = document.querySelector('.convergence-stage-layout');
+            const isFirstStage = !hasShownFirstStage;
+            hasShownFirstStage = true;
+            cancelStageEntrance();
+            if (!card || isFirstStage || previousStage === stage || !stageEntranceMotion.matches) return;
+            card.dataset.convergenceDirection = stage > previousStage ? 'forward' : 'back';
+            card.classList.remove('convergence-stage-enter');
+            void card.offsetWidth;
+            card.classList.add('convergence-stage-enter');
+            stageEntranceTimer = window.setTimeout(cancelStageEntrance, 600);
+        }
+
         function goToStage(stage, { focus = false } = {}) {
+            const previousStage = Number(document.body.dataset.convergenceStage) || 0;
+            const finishStageMotion = window.LwcApplyFeel?.beginStage(previousStage, stage);
             document.body.dataset.convergenceStage = String(stage);
             document.getElementById('descriptionForm').style.display = '';
-
-            // Clear out any lingering click‐handlers on the illustration
-            const oldImg = document.getElementById('illustrationImage');
-            const newImg = oldImg.cloneNode(true);
-            oldImg.parentNode.replaceChild(newImg, oldImg);
 
             // Clear visibility on all main form sections
             document.getElementById('privacyText').style.display = 'none';
@@ -1510,17 +1928,40 @@
             const illustrationImage = document.getElementById('illustrationImage');
             const illustrationPicture = document.getElementById('illustrationPicture');
             illustrationPicture.style.display = '';
-            const proofUploadSymbol = document.getElementById('onboardingProofSymbol');
-            proofUploadSymbol.hidden = true;
             const profileImage = document.getElementById('profileImage');
             profileImage.style.display = 'none';
+            document.body.classList.remove('convergence-has-portrait');
             const webpSource = illustrationPicture.querySelector('source[type="image/webp"]');
             const jpegSource = illustrationPicture.querySelector('source[type="image/jpeg"]');
 
-            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage) {
+            function updateIllustration(imageName, format, webpSource, jpegSource, illustrationImage, width = 2172, height = 724) {
+                const source = `../assets/content-images/${imageName}.${format}`;
+                if (illustrationImage.getAttribute('src') === source && illustrationPicture.dataset.bannerState === 'ready') return;
+                const version = ++stageIllustrationVersion;
+                illustrationPicture.dataset.bannerState = 'loading';
+                // Keep the same node and its listeners. Hide old pixels until the current
+                // stage's image decodes; a late completion must not reveal another stage.
+                const reveal = async () => {
+                    try {
+                        await illustrationImage.decode();
+                        if (version === stageIllustrationVersion) illustrationPicture.dataset.bannerState = 'ready';
+                    } catch (_) {
+                        if (version === stageIllustrationVersion && illustrationImage.complete && !illustrationImage.naturalWidth) {
+                            illustrationPicture.dataset.bannerState = 'failed';
+                        }
+                    }
+                };
+                illustrationImage.onload = reveal;
+                illustrationImage.onerror = () => {
+                    if (version === stageIllustrationVersion) illustrationPicture.dataset.bannerState = 'failed';
+                };
+                illustrationImage.loading = 'eager';
                 webpSource.srcset = `../assets/content-images/${imageName}.webp`;
                 jpegSource.srcset = `../assets/content-images/${imageName}.${format}`;
-                illustrationImage.src = `../assets/content-images/${imageName}.${format}`;
+                illustrationImage.src = source;
+                illustrationImage.width = width;
+                illustrationImage.height = height;
+                reveal();
             }
 
             const nextButton = document.getElementById('nextButton');
@@ -1534,13 +1975,11 @@
             switch (stage) {
                 case 1:
                     // Stage 1: Enter the Arena
-                    document.querySelector('h1').innerHTML = "1. Enter the arena";
-                    updateIllustration("enter-arena", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Longevity World Cup logo";
-                    illustrationImage.loading = "lazy";
+                    document.querySelector('h1').textContent = "Enter the arena";
+                    updateIllustration("apply-arena", "jpg", webpSource, jpegSource, illustrationImage, 2170, 725);
+                    illustrationImage.alt = "Hooded applicant enters a sunlit stadium with longevity athletes";
                     document.getElementById('personalDetails').style.display = '';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(1);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
@@ -1557,13 +1996,11 @@
                     break;
                 case 2:
                     // Stage 2: Finding Your Why
-                    document.querySelector('h1').innerHTML = "2. Finding your why";
-                    updateIllustration("why", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Eye";
-                    illustrationImage.loading = "lazy";
+                    document.querySelector('h1').textContent = "Finding your why";
+                    updateIllustration("apply-encouragement", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Dave Pascoe offers a helping hand to the hooded applicant";
                     document.getElementById('whyField').style.display = 'block';
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(2);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
@@ -1578,15 +2015,13 @@
                     break;
                 case 3:
                     // Stage 3: The price of glory
-                    document.querySelector('h1').innerHTML = "3. The price of glory";
-                    updateIllustration("cr7v2", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Cristiano Ronaldo";
-                    illustrationImage.loading = "lazy";
+                    document.querySelector('h1').textContent = "The price of glory";
+                    updateIllustration("apply-interview", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "Siim Land and Wong join the hooded applicant for a press interview";
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(3);
                     nextButton.innerHTML = '<span class="flow-action__label">Bring it on!</span>';
 
                     // Enable Next button
@@ -1594,27 +2029,25 @@
                     break;
                 case 4:
                     // Stage 4: Almost There
-                    document.querySelector('h1').innerHTML = "4/a. Almost there";
-                    updateIllustration("headshot", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Headshot";
-                    illustrationImage.loading = "lazy";
+                    document.querySelector('h1').textContent = "Almost there";
+                    updateIllustration("apply-reveal", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant lifts their hood to reveal their identity";
                     document.getElementById('profilePicText').style.display = '';
                     document.getElementById('profileUploadSection').style.display = '';
 
                     illustrationImage.classList.add('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
-                    updateSubProgress(4);
 
                     // Disable Next button initially
                     nextButton.disabled = true;
 
                     // Check if there is a profile picture in the global variable
                     if (profilePic) {
-                        illustrationPicture.style.display = 'none';
                         profileImage.style.display = '';
+                        document.body.classList.add('convergence-has-portrait');
                         profileImage.src = profilePic;
                         // Enable Next button if profile picture exists
-                        nextButton.disabled = false;
+                        nextButton.disabled = applicationProfilePending;
                     }
                     updateUploadButtons();
 
@@ -1623,12 +2056,11 @@
                     break;
                 case 5:
                     // Stage 5: Don't Trust, Verify
-                    document.querySelector('h1').innerHTML = "4/b. Don't trust, verify";
-                    illustrationPicture.style.display = 'none';
-                    proofUploadSymbol.hidden = false;
+                    document.querySelector('h1').textContent = "Don't trust, verify";
+                    updateIllustration("apply-bloodwork", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "A surprised judge examines the applicant's bloodwork";
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
-                    updateSubProgress(4);
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1653,13 +2085,11 @@
                     break;
                 case 6:
                     // Stage 6: Final Details
-                    document.querySelector('h1').innerHTML = "5. Final details";
-                    updateIllustration("finishv2", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Finish line";
-                    illustrationImage.loading = "lazy";
+                    document.querySelector('h1').textContent = "Final details";
+                    updateIllustration("apply-daydream", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant imagines a trophy victory alongside longevity athletes";
                     document.getElementById('finalDetailsText').style.display = '';
                     document.getElementById('finalDetails').style.display = '';
-                    updateSubProgress(5);
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1679,19 +2109,14 @@
                     break;
                 case 7:
                     // Stage 7: Application
-                    document.getElementById('descriptionForm').style.display = 'none';
-                    document.getElementById('illustrationPicture').style.display = 'none';
-
                     document.querySelector('h1').textContent = "Application";
-                    updateIllustration("account-creation", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Application";
-                    illustrationImage.loading = "lazy";
+                    updateIllustration("apply-first-step", "jpg", webpSource, jpegSource, illustrationImage);
+                    illustrationImage.alt = "The applicant takes a first step across the stadium's painted field line";
                     document.getElementById('congratsText').style.display = '';
                     document.getElementById('applyDetails').style.display = '';
 
                     illustrationImage.classList.remove('clickable');
                     setNextButtonToApply();
-                    updateSubProgress(99);
 
                     const accountEmailInput = document.getElementById('accountEmail');
                     prefillAccountEmailFromMediaContact();
@@ -1704,7 +2129,11 @@
                     console.error('Unknown stage:', stage);
             }
 
+            updateSubProgress(stage);
+            playStageEntrance(previousStage, stage);
+            finishStageMotion?.();
             updateUploadButtons();
+            refreshProfileCrop?.();
             window.LwcFlowActionDock?.refresh();
             saveApplicationDraft();
             if (focus) {
@@ -1712,16 +2141,12 @@
                     1: 'name', 2: 'why', 4: 'uploadButton',
                     5: 'uploadProofButton', 6: 'personalLink', 7: 'accountEmail'
                 }[stage];
-                const target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
+                let target = targetId ? document.getElementById(targetId) : document.querySelector('h1');
+                if (stage === 4 && document.getElementById('croppingPart').style.display !== 'none') {
+                    const cropButton = document.getElementById('cropButton');
+                    target = cropButton.disabled ? document.querySelector('h1') : cropButton;
+                }
                 target?.focus({ preventScroll: true });
-            }
-        }
-
-        async function waitForPageModules() {
-            try {
-                await Promise.resolve(window.modulesReady || undefined);
-            } catch (error) {
-                console.error('Page modules failed to load:', error);
             }
         }
 
@@ -1768,7 +2193,7 @@
         const applicationFieldValidation = new Map();
         // Flag Autocomplete Implementation
         document.addEventListener('DOMContentLoaded', () => window.LwcInitialView.run(async function () {
-            await waitForPageModules();
+            await window.modulesReady;
 
             const pendingSubmission = window.getPendingApplicationSubmission('full-application');
             if (pendingSubmission) {
@@ -1788,6 +2213,11 @@
 
             // Initialize the first stage
             initializeApplicationFieldValidation();
+            window.visualViewport?.addEventListener('resize', () => {
+                if (currentStage === 2 && document.activeElement?.id === 'why') {
+                    window.requestAnimationFrame(checkFormValidityStage2);
+                }
+            });
             goToStage(currentStage);
             applyFakeDataIfNeeded();
 
@@ -1820,7 +2250,8 @@
                 .then(([flags, athletes]) => {
                     const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);
                     window.LwcFlags.bindAutocomplete(document.getElementById('flag'), {
-                        getOptions: () => flagOptions
+                        getOptions: () => flagOptions,
+                        inline: true
                     });
                 });
 
@@ -1875,10 +2306,11 @@
 
             applyProofInstructionCopy();
 
-            // catch Enter anywhere in the inputForm (but not in the textarea)
+            // Advance text fields with Enter while preserving each control's native activation.
             const inputForm = document.getElementById('inputForm');
             inputForm.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing && e.target.tagName !== 'TEXTAREA') {
+                if (e.key === 'Enter' && !e.defaultPrevented && !e.isComposing
+                    && !e.target.closest('button, a, textarea, select, input[type="file"], input[type="checkbox"], input[type="radio"], [role="button"]')) {
                     e.preventDefault();                     // prevent native submit/newline
                     document.getElementById('nextButton').click();
                 }
@@ -1948,19 +2380,18 @@
                 // remember this athlete for next time
                 setLocalItem('selectedAthleteName', applicantData.name);
 
-                // Disable the Apply button and change its text
                 const applyButton = nextButton;
+                const submissionWait = window.LwcWait?.start(applyButton, { message: 'Submitting...' });
                 isApplicationSubmitting = true;
                 applyButton.disabled = true;
-                accountEmailInput.setAttribute("disabled", "true");
-                applyButton.textContent = 'Submitting...';
-                showLoading();
+                if (!submissionWait) { applyButton.textContent = 'Submitting...'; showLoading(); }
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(attempt => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
+                        else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishFullApplicationSubmission(attempt.submitResult, {
                                 submissionId: submissionId,
@@ -1999,7 +2430,8 @@
                         }
                     })
                     .catch(error => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait('error');
+                        else hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
                         const alertMessage = `Your connection was interrupted. Your application may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;
                         void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
@@ -2051,6 +2483,7 @@
             const illustrationImage = document.getElementById('illustrationImage');
             if (illustrationImage && !illustrationImage.hasAttribute('data-listener')) {
                 illustrationImage.addEventListener('click', function () {
+                    if (currentStage !== 4) return;
                     document.getElementById('profilePicInput').click();
                 });
                 illustrationImage.setAttribute('data-listener', 'true');
@@ -2059,8 +2492,88 @@
             // Handle the image upload and initialize Cropper.js
             const profilePicInput = document.getElementById('profilePicInput');
             const profileCameraInput = document.getElementById('profileCameraInput');
+            if (profilePicInput?.hasAttribute('data-listener')) {
+                resumeProfileUpload?.();
+                return;
+            }
             let cropper; // Declare Cropper instance at a higher scope
-            let isProfileCropProcessing = false;
+            let encodingCropper = null;
+            let pendingProfileSource = null;
+            let profileReadVersion = 0;
+
+            function syncProfileCropLayout() {
+                document.getElementById('cropButton').disabled = !!encodingCropper || !cropper?.ready;
+                document.getElementById('cancelProfileCropButton').disabled = !!encodingCropper;
+                if (!cropper?.ready) return;
+                if (currentStage !== 4 || cropper === encodingCropper) {
+                    cropper.disable();
+                    return;
+                }
+                cropper.enable();
+                const width = document.querySelector('.convergence-crop-stage').clientWidth;
+                if (width > 0 && Math.abs(cropper.getContainerData().width - width) > 1) cropper.resize();
+            }
+            refreshProfileCrop = syncProfileCropLayout;
+            if ('ResizeObserver' in window) {
+                const observer = new ResizeObserver(syncProfileCropLayout);
+                observer.observe(document.querySelector('.convergence-crop-stage'));
+            }
+
+            function failProfileUpload(version) {
+                if (version !== profileReadVersion) return;
+                const failedVersion = ++profileReadVersion;
+                applicationProfilePending = false;
+                pendingProfileSource = null;
+                document.getElementById('cropperImage').onerror = null;
+                if (cropper) {
+                    try { cropper.destroy(); } catch (_) { }
+                    cropper = null;
+                }
+                document.getElementById('uploadPart').style.display = '';
+                document.getElementById('croppingPart').style.display = 'none';
+                if (currentStage === 4) document.getElementById('nextButton').disabled = !profilePic;
+                updateUploadButtons();
+                customAlert('Profile picture upload failed. Please try another image.')
+                    .then(() => { if (failedVersion === profileReadVersion && currentStage === 4) uploadButton?.focus(); });
+            }
+
+            function showProfileCrop(source) {
+                const version = profileReadVersion;
+                const nextButton = document.getElementById('nextButton');
+                try {
+                    nextButton.disabled = true;
+                    document.getElementById('cropButton').disabled = true;
+                    updateUploadButtons();
+                    if (cropper) cropper.destroy();
+                    cropper = null;
+                    const image = document.getElementById('cropperImage');
+                    // Reading bytes successfully does not mean the browser can decode them.
+                    image.onerror = () => failProfileUpload(version);
+                    image.src = source;
+                    document.getElementById('uploadPart').style.display = 'none';
+                    document.getElementById('croppingPart').style.display = 'block';
+                    cropper = new LwcPortraitCropper(document.getElementById('cropperImage'), {
+                        maxHeight: 320,
+                        error: () => failProfileUpload(version),
+                        ready() {
+                            if (version !== profileReadVersion) return;
+                            image.onerror = null;
+                            window.requestAnimationFrame(syncProfileCropLayout);
+                        },
+                        minCropBoxWidth: 200,
+                        minCropBoxHeight: 150,
+                    });
+                } catch (_) {
+                    failProfileUpload(version);
+                }
+            }
+
+            resumeProfileUpload = () => {
+                if (!pendingProfileSource) return;
+                const source = pendingProfileSource;
+                pendingProfileSource = null;
+                showProfileCrop(source);
+            };
 
             function handleProfileUploadChange(event) {
                 const input = event.target;
@@ -2075,55 +2588,18 @@
                     }
 
                     applicationProfilePending = true;
+                    if (currentStage === 4) document.getElementById('nextButton').disabled = true;
+                    const version = ++profileReadVersion;
+                    pendingProfileSource = null;
                     const reader = new FileReader();
                     reader.onload = function (e) {
-                        const nextButton = document.getElementById('nextButton');
-                        try {
-                            // Disable "Next" button while cropping
-                            nextButton.disabled = true;
-                            updateUploadButtons();
-
-                            if (cropper) {
-                                cropper.destroy();
-                                cropper = null;
-                            }
-
-                            document.getElementById('cropperImage').src = e.target.result;
-
-                            document.getElementById('uploadPart').style.display = 'none';
-                            document.getElementById('croppingPart').style.display = 'block';
-
-                            cropper = new Cropper(document.getElementById('cropperImage'), {
-                                aspectRatio: 1,
-                                viewMode: 1,
-                                autoCropArea: 1,
-                                movable: true,
-                                zoomable: true,
-                                rotatable: false,
-                                scalable: false,
-                                cropBoxResizable: true,
-                                minCropBoxWidth: 200,
-                                minCropBoxHeight: 150,
-                            });
-                        } catch (_) {
-                            applicationProfilePending = false;
-                            if (cropper) {
-                                try { cropper.destroy(); } catch (_) { }
-                                cropper = null;
-                            }
-                            document.getElementById('uploadPart').style.display = '';
-                            document.getElementById('croppingPart').style.display = 'none';
-                            nextButton.disabled = !profilePic;
-                            updateUploadButtons();
-                            customAlert('Profile picture upload failed. Please try another image.')
-                                .then(() => uploadButton?.focus());
-                        }
+                        if (version !== profileReadVersion) return;
+                        // A file may finish reading after Back. Keep it for the photo
+                        // stage instead of disabling another stage or sizing a hidden cropper.
+                        if (currentStage === 4) showProfileCrop(e.target.result);
+                        else pendingProfileSource = e.target.result;
                     };
-                    reader.onerror = function () {
-                        applicationProfilePending = false;
-                        customAlert('Profile picture upload failed. Please try another image.')
-                            .then(() => uploadButton?.focus());
-                    };
+                    reader.onerror = () => failProfileUpload(version);
                     reader.onabort = reader.onerror;
                     reader.readAsDataURL(file);
                 }
@@ -2136,23 +2612,28 @@
                 // Add the crop button event listener once
                 cropButton.addEventListener('click', async function () {
                     const activeCropper = cropper;
-                    if (isProfileCropProcessing || !activeCropper) return;
+                    if (encodingCropper || !activeCropper?.ready) return;
+                    const version = profileReadVersion;
 
-                    isProfileCropProcessing = true;
+                    encodingCropper = activeCropper;
                     cropButton.disabled = true;
                     cancelProfileCropButton.disabled = true;
                     try {
-                        const croppedCanvas = activeCropper.getCroppedCanvas({
+                        activeCropper.disable();
+                        const croppedCanvas = await activeCropper.toCanvas({
                             width: 1024,
                             height: 768,
                         });
-                        if (!croppedCanvas) {
+                        if (version !== profileReadVersion || cropper !== activeCropper) return;
+                        if (!croppedCanvas || croppedCanvas.width <= 0 || croppedCanvas.height <= 0) {
                             customAlert('Profile picture crop failed. Please try another image.')
                                 .then(() => cropButton.focus());
                             return;
                         }
 
                         const raw = croppedCanvas.toDataURL('image/png');
+                        // Canvas encoding can fail without throwing.
+                        if (!raw.startsWith('data:image/png;base64,')) throw new Error('Portrait encoding failed.');
                         let croppedImageDataURL = raw;
                         try {
                             const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
@@ -2160,12 +2641,17 @@
                         } catch {
                             croppedImageDataURL = raw;
                         }
-                        document.getElementById('illustrationPicture').style.display = 'none';
-                        document.getElementById('profileImage').style.display = '';
-                        document.getElementById('profileImage').src = croppedImageDataURL;
+                        if (version !== profileReadVersion) return;
+                        if (currentStage === 4) {
+                            document.getElementById('profileImage').style.display = '';
+                            document.body.classList.add('convergence-has-portrait');
+                            document.getElementById('profileImage').src = croppedImageDataURL;
+                        }
 
                         profilePic = croppedImageDataURL;
                         applicationProfilePending = false;
+                        pendingProfileSource = null;
+                        ++profileReadVersion;
 
                         try { activeCropper.destroy(); } catch (_) { }
                         if (cropper === activeCropper) {
@@ -2176,21 +2662,24 @@
                         document.getElementById('croppingPart').style.display = 'none';
 
                         const nextButton = document.getElementById('nextButton');
-                        nextButton.disabled = false;
+                        if (currentStage === 4) nextButton.disabled = false;
                         updateUploadButtons();
                     } catch (_) {
+                        if (version !== profileReadVersion || cropper !== activeCropper) return;
                         customAlert('Profile picture crop failed. Please try another image.')
                             .then(() => cropButton.focus());
                     } finally {
-                        isProfileCropProcessing = false;
-                        cropButton.disabled = false;
-                        cancelProfileCropButton.disabled = false;
+                        encodingCropper = null;
+                        syncProfileCropLayout();
                     }
                 });
 
                 cancelProfileCropButton.addEventListener('click', function () {
-                    if (isProfileCropProcessing) return;
+                    if (encodingCropper) return;
                     applicationProfilePending = false;
+                    pendingProfileSource = null;
+                    ++profileReadVersion;
+                    document.getElementById('cropperImage').onerror = null;
                     if (cropper) {
                         try { cropper.destroy(); } catch (_) { }
                         cropper = null;
@@ -2202,6 +2691,7 @@
                     const nextButton = document.getElementById('nextButton');
                     nextButton.disabled = !profilePic;
                     updateUploadButtons();
+                    if (currentStage === 4) uploadButton?.focus({ preventScroll: true });
                 });
 
                 profilePicInput.setAttribute('data-listener', 'true');
@@ -2291,10 +2781,10 @@
                 charCounter.style.color = 'var(--lwc-muted)';
             } else if (charCount <= 250) {
                 charCounter.textContent = charCount + '/250';
-                charCounter.style.color = 'green';
+                charCounter.style.color = 'var(--lwc-success)';
             } else {
                 charCounter.textContent = charCount + '/250';
-                charCounter.style.color = 'red';
+                charCounter.style.color = 'var(--lwc-danger)';
             }
 
             // Enable or disable the Next button based on validity
@@ -2302,6 +2792,12 @@
                 nextButton.disabled = false;
             } else {
                 nextButton.disabled = true;
+            }
+
+            // A paste can grow the field and dock the actions in the same edit.
+            // Reconcile their final layout before clearing the focused field.
+            if (document.activeElement === whyInput) {
+                window.LwcFlowActionDock?.ensureClear?.(whyInput, { behavior: 'auto', includeNextVisibleSibling: true });
             }
         }
 
@@ -2421,6 +2917,7 @@
             return { valid: true };
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@2.3.1/dist/cropper.min.js" integrity="sha384-q877KRoDGCc9TE0/aHg20sWS2aLAr60y01aKWeVzpJhbJh90PH+lt1GmABR1GOdz" crossorigin="anonymous" defer></script>
+    <script src="{{ASSET_PORTRAIT_CROPPER_JS}}" defer></script>
 </body>
 </html>

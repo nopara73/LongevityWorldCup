@@ -34,6 +34,7 @@ namespace LongevityWorldCup.Website
 
         public static void Main(string[] args)
         {
+            if (RecoveryBackupCommand.TryRun(args)) return;
             InitializeDefaultConfig(); // Ensure default config file is created
 
             var builder = WebApplication.CreateBuilder(args);
@@ -211,8 +212,16 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddSingleton<AssetVersionProvider>();
             builder.Services.AddSingleton<DatabaseManager>();
+            builder.Services.AddSingleton(sp => new RecoveryBackupService(
+                sp.GetRequiredService<DatabaseManager>(),
+                sp.GetRequiredService<IWebHostEnvironment>().ContentRootPath,
+                sp.GetRequiredService<IWebHostEnvironment>().WebRootPath ??
+                    Path.Combine(sp.GetRequiredService<IWebHostEnvironment>().ContentRootPath, "wwwroot"),
+                sp.GetRequiredService<TimeProvider>()));
             builder.Services.AddSingleton<CrowdAgeGuessRateLimiter>();
+            builder.Services.AddSingleton<AthleteDataCorrections>();
             builder.Services.AddSingleton<AthleteDataService>();
+            builder.Services.AddSingleton<ProofPreviewService>();
             builder.Services.AddSingleton<IAthleteSnapshotProvider>(sp => sp.GetRequiredService<AthleteDataService>());
             builder.Services.AddSingleton<EventDataService>();
             builder.Services.AddSingleton<SeasonFinalizerService>();
@@ -229,6 +238,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();
             builder.Services.AddSingleton<LeaderboardFactsService>();
+            builder.Services.AddSingleton<PublicStandingsService>();
             builder.Services.AddSingleton(sp => new ContentRevisionStore(Path.Combine(
                 Path.GetDirectoryName(sp.GetRequiredService<DatabaseManager>().DbPath)!, "public-content-revisions.json")));
             builder.Services.AddSingleton<PublicContentFreshness>();
@@ -247,6 +257,11 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<SiteStatisticsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
             builder.Services.AddSingleton<ApplicationSubmissionRetryStore>();
+            builder.Services.AddSingleton<SubmissionConfirmationStore>();
+            builder.Services.AddSingleton<ISubmissionConfirmationSender, SmtpSubmissionConfirmationSender>();
+            builder.Services.AddSingleton<SubmissionConfirmationDispatcher>();
+            if (builder.Configuration.GetValue("EnableSubmissionConfirmations", builder.Environment.IsProduction()))
+                builder.Services.AddHostedService<SubmissionConfirmationWorker>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
@@ -463,8 +478,8 @@ namespace LongevityWorldCup.Website
                     var request = ctx.Context.Request;
                     var hasVersion = request.Query.ContainsKey("v");
                     var path = request.Path.Value ?? "";
-                    if (path.StartsWith("/research/mortality-age", StringComparison.OrdinalIgnoreCase))
-                        ctx.Context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
+                    if (path == "/assets/media-kit/MediaKit.zip")
+                        ctx.Context.Response.ContentType = "application/zip";
                     if (path == "/js/web-push-worker.js")
                     {
                         ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";

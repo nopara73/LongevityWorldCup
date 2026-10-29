@@ -341,17 +341,17 @@ public sealed class SiteStatisticsDashboardBrowserTests(
 
         var visibleText = await page.Locator("body").InnerTextAsync();
         Assert.Contains("Site Statistics", visibleText);
-        Assert.Contains("Decision Brief", visibleText);
-        Assert.Contains("Noisy sessions", visibleText);
-        Assert.Contains("Page views", visibleText);
-        Assert.DoesNotContain("Unique visitors", visibleText);
-        Assert.Contains("Challenge signups", visibleText);
+        Assert.Contains("Decision Brief", visibleText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Noisy sessions", visibleText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Page views", visibleText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Unique visitors", visibleText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Challenge signups", visibleText, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Signup accepted", visibleText);
         Assert.Contains("prefilled / initial", onboardingDetailText);
         Assert.Contains("AUTO", onboardingDetailText);
-        Assert.Contains("Identity", applicationStageText);
-        Assert.Contains("Motivation", applicationStageText);
-        Assert.Contains("Stopped before next", applicationStageText);
+        Assert.Contains("Identity", applicationStageText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Motivation", applicationStageText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Stopped before next", applicationStageText, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("baseline pending", visibleText);
         Assert.Contains("S-", visibleText);
         Assert.DoesNotContain("ResizeObserver loop completed", visibleText);
@@ -401,8 +401,8 @@ public sealed class SiteStatisticsDashboardBrowserTests(
 
         var visibleText = await page.Locator("body").InnerTextAsync();
         Assert.Contains("Join track selection bottleneck", visibleText);
-        Assert.Contains("Noisy sessions", visibleText);
-        Assert.Contains("Page views", visibleText);
+        Assert.Contains("Noisy sessions", visibleText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Page views", visibleText, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("burst x30", visibleText);
         Assert.Equal("4", pageViewsValue);
         Assert.Contains("baseline pending", visibleText);

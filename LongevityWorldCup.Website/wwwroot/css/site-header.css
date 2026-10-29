@@ -47,7 +47,30 @@
     --gma-gold-shine: #f8e473;
 }
 
-/* Roboto Font Faces */
+/* Local fallback faces can be cached with the shared stylesheet. Versioned
+   network font URLs remain inline alongside the document's preloads. */
+@font-face {
+    font-family: 'Roboto Fallback';
+    font-weight: 300 400;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('Arimo');
+    /* Match regular widths as well as bold, keeping mixed-weight line breaks
+       steady during font loading. Preserve the effective vertical metrics. */
+    size-adjust: 100.5%;
+    ascent-override: 92.31%;
+    descent-override: 24.30%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'Roboto Fallback';
+    font-weight: 700;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('Arimo Bold');
+    /* Match Roboto's bold widths so staggered regular/bold downloads do not
+       rewrap mixed-weight paragraphs twice. Keep the vertical metrics aligned. */
+    size-adjust: 96%;
+    ascent-override: 96.64%;
+    descent-override: 25.43%;
+    line-gap-override: 0%;
+}
 
 /* Orbitron Font Face */
 
@@ -61,7 +84,7 @@
 }
 
 body {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Roboto', 'Roboto Fallback', sans-serif;
     margin: 0;
     padding: 0;
     background: var(--header-to-body-bg);
@@ -210,10 +233,7 @@ h2 {
 }
 
 .scrolled-button {
-    position: fixed;
-    top: 7px;
-    bottom: auto;
-    right: 24px;
+    position: relative;
     transform: none;
     z-index: 1000;
     margin-top: 0;
@@ -440,49 +460,178 @@ button.option-button:disabled {
     display: none;
 }
 
+#custom-alert {
+    z-index: 10051;
+}
+
+/* One alert for every flow: a tone medallion, the message, one full-width OK.
+   The tone is inferred from the caller's own wording, so no copy changes. */
 .custom-alert-panel {
-    border: none;
-    border-radius: 15px;
-    padding: 20px;
-    max-width: 400px;
-    width: 90%;
-    max-height: calc(100dvh - 1.5rem);
+    --alert-tone: var(--lwc-accent);
+    --alert-tone-soft: var(--lwc-accent-soft);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(100%, 26rem);
+    max-height: calc(100dvh - 2.5rem);
     overflow: auto;
-    background: var(--card-bg);
-    color: var(--dark-text-color);
+    box-sizing: border-box;
+    padding: clamp(1rem, 5dvh, 2rem) clamp(1.25rem, 5vw, 1.75rem) clamp(1.25rem, 5vw, 1.5rem);
+    padding-left: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1.25rem, 5vw, 1.75rem), env(safe-area-inset-right));
+    border: 1px solid var(--lwc-border);
+    border-top: 4px solid var(--alert-tone);
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    color: var(--lwc-ink);
     text-align: center;
     font-family: 'Roboto', sans-serif;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    animation: fadeInDialog var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    box-shadow: var(--lwc-shadow-md);
+    animation: customAlertIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+#custom-alert[data-tone="success"] .custom-alert-panel {
+    --alert-tone: var(--lwc-success);
+    --alert-tone-soft: var(--lwc-success-soft);
+}
+
+#custom-alert[data-tone="warning"] .custom-alert-panel {
+    --alert-tone: var(--lwc-warning);
+    --alert-tone-soft: var(--lwc-warning-soft);
+}
+
+#custom-alert[data-tone="danger"] .custom-alert-panel {
+    --alert-tone: var(--lwc-danger);
+    --alert-tone-soft: var(--lwc-danger-soft);
+}
+
+.custom-alert-mark {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 0 1rem;
+    border-radius: var(--lwc-radius-pill);
+    background: var(--alert-tone-soft);
+    color: var(--alert-tone);
+    font-size: 1.45rem;
+    box-shadow: 0 0 0 6px var(--lwc-surface), 0 0 0 7px var(--alert-tone-soft);
+    animation: customAlertMarkIn 420ms var(--lwc-ease, ease) both;
+}
+
+/* Success gets a small burst of the podium colours around the medallion. */
+#custom-alert[data-tone="success"] .custom-alert-mark::before,
+#custom-alert[data-tone="success"] .custom-alert-mark::after {
+    content: "";
+    position: absolute;
+    inset: -22px -34px;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, var(--lwc-gold) 0 3px, transparent 3.5px) 6% 30% / 14px 14px no-repeat,
+        radial-gradient(circle, var(--lwc-accent-bright) 0 2.5px, transparent 3px) 16% 88% / 12px 12px no-repeat,
+        radial-gradient(circle, var(--lwc-success) 0 2px, transparent 2.5px) 26% 4% / 10px 10px no-repeat,
+        radial-gradient(circle, var(--lwc-bronze) 0 2.5px, transparent 3px) 78% 2% / 12px 12px no-repeat,
+        radial-gradient(circle, var(--lwc-gold) 0 2px, transparent 2.5px) 96% 52% / 10px 10px no-repeat,
+        radial-gradient(circle, var(--lwc-accent-bright) 0 3px, transparent 3.5px) 84% 94% / 14px 14px no-repeat;
+    animation: customAlertBurst 640ms var(--lwc-ease, ease) both;
+}
+
+#custom-alert[data-tone="success"] .custom-alert-mark::after {
+    inset: -12px -20px;
+    background:
+        linear-gradient(var(--lwc-gold), var(--lwc-gold)) 0 70% / 7px 3px no-repeat,
+        linear-gradient(var(--lwc-accent-bright), var(--lwc-accent-bright)) 100% 22% / 7px 3px no-repeat,
+        linear-gradient(var(--lwc-success), var(--lwc-success)) 50% 100% / 3px 7px no-repeat;
+    animation-delay: 60ms;
 }
 
     #custom-alert p {
-        margin-bottom: 1rem;
-        font-size: 1rem;
-        line-height: 1.5;
+        width: 100%;
+        max-width: 22rem;
+        margin: 0 0 1.5rem;
+        color: var(--lwc-ink);
+        font-size: 1.0625rem;
+        line-height: 1.55;
         overflow-wrap: anywhere;
-        word-break: break-word;
+        word-break: normal;
+        text-align: center;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+
+    #custom-alert-message:focus-visible {
+        outline: 2px solid var(--lwc-accent);
+        outline-offset: 4px;
+    }
+
+    .custom-alert-lead,
+    .custom-alert-detail {
+        white-space: pre-line;
+    }
+
+    /* Server detail after a blank line reads as a quiet note under the lead. */
+    .custom-alert-detail {
+        display: block;
+        margin-top: 0.85rem;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid var(--lwc-border);
+        border-radius: var(--lwc-radius-md);
+        background: var(--lwc-surface-muted);
+        color: var(--lwc-muted);
+        font-size: var(--lwc-type-sm);
+        line-height: 1.5;
         text-align: left;
     }
 
+    .custom-alert-id {
+        display: inline-block;
+        max-width: 100%;
+        margin: 0.2rem 0;
+        padding: 0.1rem 0.45rem;
+        border: 1px solid var(--lwc-border);
+        border-radius: var(--lwc-radius-sm);
+        background: var(--lwc-surface-muted);
+        color: var(--lwc-ink);
+        font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+        font-size: 0.82em;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+        user-select: all;
+        -webkit-user-select: all;
+    }
+
     #custom-alert button {
-        display: block;
-        margin: 0 auto;
-        padding: 0.7rem 1.5rem;
-        min-height: 44px;
-        font-size: 1rem;
-        background: var(--main-action-color);
-        color: var(--light-text-color);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        width: 100%;
+        min-height: 48px;
+        margin: 0;
+        padding: 0.75rem 1.5rem;
         border: none;
-        border-radius: 25px;
+        border-radius: var(--lwc-radius-md);
+        background: var(--lwc-accent);
+        color: var(--lwc-on-accent);
+        font-size: 1.0625rem;
+        font-weight: 700;
         cursor: pointer;
-        transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: none;
+        transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
         #custom-alert button:hover {
-            background: var(--main-action-selected-color);
-            transform: scale(1.05);
+            background: var(--lwc-accent-hover);
+            transform: none;
+        }
+
+        #custom-alert button:focus-visible {
+            outline: 3px solid var(--lwc-accent);
+            outline-offset: 3px;
         }
 
 @keyframes fadeInDialog {
@@ -497,9 +646,100 @@ button.option-button:disabled {
     }
 }
 
-@media (max-width: 480px) {
+@keyframes customAlertIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes customAlertMarkIn {
+    0% {
+        transform: scale(0.4);
+    }
+
+    60% {
+        transform: scale(1.12);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes customAlertBurst {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Phones: the alert rises as a bottom sheet, with OK under the thumb. */
+@media (max-width: 600px) {
+    #custom-alert {
+        align-items: flex-end;
+        padding: max(12px, env(safe-area-inset-top)) 0 0;
+    }
+
     .custom-alert-panel {
-        width: calc(100% - 2rem);
+        width: 100%;
+        max-height: calc(100dvh - 1.5rem);
+        padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 1rem));
+        border-right: 0;
+        border-bottom: 0;
+        border-left: 0;
+        border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+        animation-name: customAlertSheetIn;
+    }
+
+    #custom-alert p {
+        max-width: 30rem;
+    }
+}
+
+@keyframes customAlertSheetIn {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: none;
+    }
+}
+
+@media (max-height: 400px) {
+    .custom-alert-panel {
+        max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+        padding-block: min(0.75rem, 3dvh);
+        padding-bottom: max(min(0.75rem, 3dvh), env(safe-area-inset-bottom));
+    }
+
+    .custom-alert-mark {
+        display: none;
+    }
+
+    #custom-alert p {
+        margin-bottom: min(0.75rem, 3dvh);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-alert-panel,
+    .loading-dialog-panel,
+    .custom-alert-mark,
+    #custom-alert[data-tone="success"] .custom-alert-mark::before,
+    #custom-alert[data-tone="success"] .custom-alert-mark::after {
+        animation: none;
     }
 }
 
@@ -542,27 +782,49 @@ button.option-button:disabled {
     }
 }
 
-/* LOADING DIALOG */
+/* LOADING DIALOG: the alert's panel and medallion, with the medallion's ring turning. */
 .loading-dialog-panel {
-    border: none;
-    border-radius: 15px;
-    padding: 2rem;
-    max-width: 200px;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: min(100%, 9.5rem);
+    min-width: 0;
     max-height: calc(100dvh - 1.5rem);
-    background: var(--card-bg);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    text-align: center;
-    animation: fadeInDialog var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    padding: min(2.25rem, 8dvh) min(2.5rem, 10vw);
+    border: 1px solid var(--lwc-border);
+    border-top: 4px solid var(--lwc-accent);
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    color: var(--lwc-ink);
+    box-shadow: var(--lwc-shadow-md);
+    animation: customAlertIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
-.loader {
-    border: 4px solid rgba(0,0,0,0.1);
-    border-left-color: var(--primary-color);
-    border-radius: 50%;
-    width: 3rem;
-    height: 3rem;
-    animation: spin 1s linear infinite;
-    margin: 0 auto;
+.loading-dialog-panel:focus {
+    outline: none;
+}
+
+.loader,
+#detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
+    display: block;
+    box-sizing: border-box;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0;
+    border: 4px solid var(--lwc-accent-soft);
+    border-top-color: var(--lwc-accent);
+    border-radius: var(--lwc-radius-pill);
+    background: color-mix(in srgb, var(--lwc-accent-soft) 45%, var(--lwc-surface));
+    box-shadow: 0 0 0 6px var(--lwc-surface), 0 0 0 7px var(--lwc-accent-soft);
+    animation: spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading-dialog-panel,
+    .loader,
+    #detailsModal .modal-content[data-server-rendered-loading].is-loading::after {
+        animation: none;
+    }
 }
 
 @keyframes spin {
@@ -580,15 +842,34 @@ button.option-button:disabled {
     z-index: 999;
     background: var(--background-color);
     color: var(--light-text-color);
-    padding: 0.25rem 1rem;
+    padding: calc(0.25rem + env(safe-area-inset-top, 0px)) 1rem 0.25rem;
     display: none;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 .site-sticky-header.visible {
     display: flex;
+}
+/* Paint the same binary handoff in the scroll compositor, before its scroll
+   event reaches script. No fade or intermediate half-visible navigation. */
+@supports (animation-timeline: scroll(root block)) and (animation-range: 0px 1px) {
+    .site-sticky-header[data-scroll-handoff] {
+        display: flex;
+        opacity: 0;
+        pointer-events: none;
+        will-change: opacity;
+        animation: site-sticky-presence steps(1, end) both;
+        /* A scroll range has no clock duration, including with reduced motion. */
+        animation-duration: auto !important;
+        animation-timeline: scroll(root block);
+        animation-range: 0px var(--site-sticky-threshold);
+    }
+    .site-sticky-header[data-scroll-handoff].visible { pointer-events: auto; }
+}
+@keyframes site-sticky-presence {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 .site-sticky-header.visible::before {
     content: '';
@@ -661,8 +942,6 @@ button.option-button:disabled {
     }
 
     .scrolled-button {
-        top: max(0.35rem, env(safe-area-inset-top, 0px));
-        right: max(0.5rem, env(safe-area-inset-right, 0px));
         min-width: 4.25rem;
         padding: 0.55rem 0.85rem;
         font-size: 0.95rem;
@@ -672,12 +951,6 @@ button.option-button:disabled {
     .site-sticky-header {
         justify-content: flex-start;
         padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-        padding-right: calc(max(0.5rem, env(safe-area-inset-right, 0px)) + 5.25rem);
-    }
-
-    header:not(:has(.join-game.scrolled-button)) + .site-sticky-header,
-    header:has(.join-game.scrolled-button[style*="display: none"]) + .site-sticky-header {
-        padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
     }
 
     .site-sticky-header-link {
@@ -703,14 +976,9 @@ button.option-button:disabled {
 
 @media (max-width: 300px) {
     .scrolled-button {
-        right: max(0.45rem, env(safe-area-inset-right, 0px));
         min-width: 3.55rem;
         padding: 0.5rem 0.65rem;
         font-size: 0.86rem;
-    }
-
-    .site-sticky-header {
-        padding-right: calc(max(0.45rem, env(safe-area-inset-right, 0px)) + 4.05rem);
     }
 
     .site-sticky-header-link {
@@ -787,7 +1055,9 @@ body {
     background: var(--header-to-body-bg);
     color: var(--dark-text-color);
     line-height: 1.5;
-    text-rendering: optimizeLegibility;
+    /* Preserve fractional glyph widths: Linux hinting otherwise rounds away
+       the fallback's size adjustment and rewraps text as each weight arrives. */
+    text-rendering: geometricPrecision;
     font-synthesis: none;
 }
 
@@ -893,10 +1163,6 @@ header[role="banner"] .tagline {
     right: max(var(--space-5), env(safe-area-inset-right, 0px));
 }
 
-.scrolled-button {
-    top: max(var(--space-1), env(safe-area-inset-top, 0px));
-}
-
 .join-game::before,
 .scrolled-button::before {
     content: '';
@@ -955,8 +1221,7 @@ header[role="banner"] .tagline {
 }
 
 .option-button,
-.back-button,
-#custom-alert button {
+.back-button {
     border-radius: var(--radius-md);
     box-shadow: none;
     transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
@@ -968,15 +1233,13 @@ header[role="banner"] .tagline {
 }
 
 .option-button:hover,
-.option-button.green:hover,
-#custom-alert button:hover {
+.option-button.green:hover {
     background: var(--primary-color-hover);
     box-shadow: none;
     transform: translateY(-1px);
 }
 
-.option-button.green,
-#custom-alert button {
+.option-button.green {
     background: var(--main-action-color);
 }
 
@@ -1019,13 +1282,6 @@ body.play-flow-route .option-button.green:not(:disabled):not([aria-disabled="tru
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: none;
-}
-
-.custom-alert-panel,
-.loading-dialog-panel {
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
 }
 
 #custom-alert,
@@ -1240,7 +1496,7 @@ textarea:focus-visible {
     }
 
     header[role="banner"] .join-game:not(.scrolled-button) {
-        position: static;
+        position: relative;
         right: auto;
         display: inline-flex;
         flex: 0 0 auto;
@@ -1285,12 +1541,6 @@ textarea:focus-visible {
         color: var(--dark-text-color);
         border-color: var(--border-color);
     }
-
-    .custom-alert-panel,
-    .loading-dialog-panel {
-        background: var(--card-bg);
-        color: var(--dark-text-color);
-    }
 }
 
 @media (forced-colors: active) {
@@ -1312,5 +1562,1046 @@ textarea:focus-visible {
 /* Match the sticky link's 2.75rem height plus its header's vertical padding,
    including when readers enlarge the text. Reserve it before the bar appears. */
 html {
-    scroll-padding-top: 3.25rem;
+    scroll-padding-top: max(3.25rem, var(--site-sticky-height, 0px));
 }
+
+/* Let text, rather than a reserved button width, determine compact rows. */
+@media (max-width: 932px) {
+    header[role="banner"] .bannertext {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: normal;
+        word-break: normal;
+        min-width: min-content;
+    }
+
+    header[role="banner"] .join-game {
+        flex-wrap: wrap;
+        justify-content: center;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+    header[role="banner"] .join-game > * {
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: keep-all;
+    }
+
+    :where(body:not(.home-page)) header[role="banner"] {
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    :where(body:not(.home-page)) header[role="banner"] .header-link {
+        flex: 1 1 min-content;
+        min-width: min-content;
+        max-width: none;
+    }
+
+    :where(body:not(.home-page)) header[role="banner"] .join-game:not(.scrolled-button) {
+        position: relative;
+        right: auto;
+        flex: 0 0 auto;
+        margin-left: auto;
+    }
+}
+
+.site-sticky-header {
+    box-sizing: border-box;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.site-sticky-header-link {
+    flex: 1 1 min-content;
+    min-width: min-content;
+}
+
+.site-sticky-header-link:focus-visible,
+.scrolled-button:focus-visible {
+    outline-offset: -3px;
+}
+
+.site-sticky-header-title {
+    white-space: normal;
+    line-height: 1.1;
+    overflow: visible;
+    text-overflow: clip;
+    min-width: min-content;
+}
+
+:root .documentation-nav {
+    --documentation-nav-offset: max(4.25rem, calc(var(--site-sticky-height, 0px) + 1rem));
+}
+
+/* ==========================================================================
+   Site chrome system
+   One dark band frames every page: the header, its sticky bar and the footer
+   share a surface, a hairline edge and the same content column, so the brand
+   and the Play invitation line up with the page they introduce.
+   ========================================================================== */
+:root {
+    --chrome-surface: #101820;
+    --chrome-surface-image: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
+    --chrome-line: rgba(255, 255, 255, 0.09);
+    --chrome-line-strong: rgba(255, 255, 255, 0.16);
+    --chrome-ink-soft: #cbd5e1;
+    --chrome-column: 1152px;
+    --chrome-gutter: max(var(--space-5), calc((100% - var(--chrome-column)) / 2));
+}
+
+header[role="banner"],
+:where(body.home-page) header[role="banner"] {
+    box-sizing: border-box;
+    min-height: 76px;
+    padding-top: max(var(--space-3), env(safe-area-inset-top, 0px));
+    padding-bottom: var(--space-3);
+    padding-left: max(var(--chrome-gutter), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
+    flex-direction: row;
+    justify-content: space-between;
+    gap: var(--space-5);
+    background: var(--chrome-surface) var(--chrome-surface-image);
+    border-bottom: 1px solid var(--chrome-line);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18), 0 8px 18px -16px rgba(2, 12, 18, 0.55);
+}
+
+/* The lockup: mark, a hairline, then the wordmark over its tagline. */
+header[role="banner"] .header-link,
+:where(body.home-page) header[role="banner"] .header-link {
+    display: grid;
+    grid-template-columns: auto 1px auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    align-content: center;
+    column-gap: var(--space-4);
+    row-gap: 0;
+    justify-content: start;
+    padding: 0 var(--space-2) 0 0;
+    text-align: left;
+}
+
+header[role="banner"] .header-link::before {
+    content: '';
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    width: 1px;
+    min-height: 2.25rem;
+    background: var(--chrome-line-strong);
+}
+
+header[role="banner"] .header-link > .main-logo-image,
+:where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 46px;
+    height: 46px;
+    margin: 0;
+    transition: transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+header[role="banner"] .header-link:hover > .main-logo-image {
+    transform: rotate(-6deg) scale(1.04);
+}
+
+header[role="banner"] .bannertext,
+:where(body.home-page) header[role="banner"] .bannertext {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+    font-size: clamp(1.2rem, 1.9vw, 1.45rem);
+    line-height: 1.1;
+    letter-spacing: 0.005em;
+    text-align: left;
+}
+
+header[role="banner"] .tagline {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: start;
+    margin: 0.3rem 0 0;
+    color: var(--chrome-ink-soft);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.82;
+}
+
+/* Without a visible tagline the wordmark sits on the mark's centre line. */
+header[role="banner"] .header-link:not(:has(.tagline)) .bannertext {
+    grid-row: 1 / span 2;
+    align-self: center;
+}
+
+@media (min-width: 641px) and (max-width: 932px) {
+    header[role="banner"] .tagline {
+        display: block;
+    }
+}
+
+@media (max-width: 640px) {
+    header[role="banner"] .bannertext {
+        grid-row: 1 / span 2;
+        align-self: center;
+    }
+}
+
+header[role="banner"] .join-game:not(.scrolled-button),
+:where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+    position: relative;
+    right: auto;
+    flex: 0 0 auto;
+    margin-left: auto;
+    min-height: 46px;
+    padding: var(--space-3) var(--space-5);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+}
+
+header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+    display: inline-block;
+}
+
+/* The front door keeps a taller band and a larger lockup. */
+:where(body.home-page) header[role="banner"] {
+    min-height: 104px;
+    padding-top: max(var(--space-5), env(safe-area-inset-top, 0px));
+    padding-bottom: var(--space-5);
+}
+
+:where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+    width: 60px;
+    height: 60px;
+}
+
+:where(body.home-page) header[role="banner"] .bannertext {
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+
+:where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+    min-height: 50px;
+    font-size: 1rem;
+}
+
+/* Sticky bar: the same lockup, compacted and aligned to the same column. */
+.site-sticky-header {
+    padding-left: max(var(--chrome-gutter), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--chrome-gutter), env(safe-area-inset-right, 0px));
+    justify-content: flex-start;
+    background: rgba(16, 24, 32, 0.94) var(--chrome-surface-image);
+    border-bottom: 1px solid var(--chrome-line);
+    box-shadow: 0 8px 22px -14px rgba(2, 12, 18, 0.85);
+}
+
+.site-sticky-header.visible::before {
+    display: none;
+}
+
+/* The compact navigation and PLAY share one stable bar after scrolling. */
+.scrolled-button {
+    transition:
+        background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.site-sticky-header-link {
+    gap: var(--space-3);
+    padding-left: 0;
+    justify-content: flex-start;
+}
+
+.site-sticky-header-logo {
+    width: 30px;
+    height: 30px;
+}
+
+/* The logo image is inverted, so the hairline belongs to the title. */
+.site-sticky-header-title {
+    padding-left: var(--space-3);
+    border-left: 1px solid var(--chrome-line-strong);
+    font-size: 1.05rem;
+    letter-spacing: 0.005em;
+    text-shadow: none;
+}
+
+.scrolled-button {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: clamp(8px, 3vw, 16px);
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+}
+
+@media (min-width: 769px) {
+    .site-sticky-header {
+        padding-left: max(var(--chrome-gutter), env(safe-area-inset-left, 0px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .site-sticky-header,
+    .site-sticky-header.visible,
+    .scrolled-button {
+        transform: none;
+        translate: none;
+        transition: none;
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        transition: none;
+    }
+}
+
+/* Tablets keep the lockup and the complete invitation on one row. */
+@media (max-width: 932px) {
+    header[role="banner"],
+    :where(body.home-page) header[role="banner"] {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        row-gap: var(--space-3);
+    }
+
+    header[role="banner"] .header-link,
+    :where(body.home-page) header[role="banner"] .header-link {
+        flex: 0 1 auto;
+        max-width: none;
+    }
+
+    :where(body.home-page) header[role="banner"] {
+        min-height: 88px;
+        padding-top: max(var(--space-4), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-4);
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+        width: 52px;
+        height: 52px;
+    }
+
+    :where(body.home-page) header[role="banner"] .bannertext {
+        font-size: clamp(1.3rem, 3.4vw, 1.6rem);
+    }
+}
+
+/* Phones: a compact bar with the mark, the wordmark and the Play chip. */
+@media (max-width: 640px) {
+    header[role="banner"] {
+        --chrome-gutter: var(--space-4);
+        min-height: 64px;
+        padding-top: max(var(--space-2), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-2);
+        gap: var(--space-3);
+    }
+
+    header[role="banner"] .header-link {
+        column-gap: var(--space-3);
+        padding-right: 0;
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        width: 38px;
+        height: 38px;
+    }
+
+    header[role="banner"] .header-link::before {
+        min-height: 1.75rem;
+    }
+
+    header[role="banner"] .bannertext {
+        font-size: clamp(1.02rem, 4.6vw, 1.2rem);
+    }
+
+    header[role="banner"] .join-game:not(.scrolled-button) {
+        min-height: 44px;
+        padding-inline: var(--space-4);
+        font-size: 0.9rem;
+    }
+
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+        display: none;
+    }
+
+    /* The homepage stacks its lockup over a full-width invitation. */
+    :where(body.home-page) header[role="banner"] {
+        min-height: 0;
+        padding-top: max(var(--space-4), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-4);
+        flex-direction: column;
+        align-items: stretch;
+        row-gap: var(--space-4);
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link {
+        align-self: center;
+        justify-content: center;
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+        width: 44px;
+        height: 44px;
+    }
+
+    :where(body.home-page) header[role="banner"] .bannertext {
+        font-size: clamp(1.25rem, 6vw, 1.5rem);
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+        width: 100%;
+        max-width: 26rem;
+        align-self: center;
+        margin-left: 0;
+        min-height: 48px;
+        box-sizing: border-box;
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+        display: inline-block;
+    }
+
+    .site-sticky-header {
+        --chrome-gutter: var(--space-4);
+    }
+
+    .site-sticky-header-logo {
+        width: 26px;
+        height: 26px;
+    }
+
+    .site-sticky-header-title {
+        padding-left: var(--space-2);
+    }
+
+    .site-sticky-header-link {
+        gap: var(--space-2);
+    }
+
+}
+
+@media (min-width: 440px) and (max-width: 640px) {
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+    header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
+        display: inline-block;
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+@media (max-width: 360px) {
+    header[role="banner"] .header-link {
+        column-gap: var(--space-2);
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    header[role="banner"],
+    :where(body.home-page) header[role="banner"] {
+        min-height: 64px;
+        padding-top: max(var(--space-2), env(safe-area-inset-top, 0px));
+        padding-bottom: var(--space-2);
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link {
+        align-self: center;
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+        width: 40px;
+        height: 40px;
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+        width: auto;
+        margin-left: auto;
+        align-self: center;
+    }
+}
+
+/* Full zoom can leave a phone only 160 CSS pixels: keep the complete brand readable. */
+@media (max-width: 280px) {
+    header[role="banner"] {
+        flex-direction: column;
+        align-items: stretch;
+        padding-inline: min(1rem, 5vw);
+    }
+
+    header[role="banner"] .header-link {
+        flex: 0 1 auto;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 1px auto;
+        justify-items: center;
+        row-gap: var(--space-2);
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    header[role="banner"] .header-link > .main-logo-image {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    header[role="banner"] .header-link::before {
+        grid-column: 1;
+        grid-row: 2;
+        width: 2.25rem;
+        height: 1px;
+        min-height: 0;
+    }
+
+    header[role="banner"] .bannertext,
+    header[role="banner"] .header-link:not(:has(.tagline)) .bannertext {
+        grid-column: 1;
+        grid-row: 3;
+        min-width: 0;
+        padding: 0;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    header[role="banner"] .join-game:not(.scrolled-button) {
+        align-self: center;
+        max-width: 100%;
+        margin-inline: 0;
+    }
+}
+
+/* ==========================================================================
+   Getting around
+   One menu toggle in the band and its sticky bar opens the footer's pages
+   and platforms: a sheet under the thumb on phones, a panel dropped from the
+   toggle elsewhere. The sticky bar keeps PLAY and navigation available
+   while tracing how far down the page the reader is.
+   ========================================================================== */
+:root {
+    --site-nav-accent: var(--primary-color-bright, #19c3d1);
+    --site-nav-toggle: 44px;
+}
+
+.site-menu-toggle {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: var(--site-nav-toggle);
+    height: var(--site-nav-toggle);
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--chrome-line-strong);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Pages without the footer have nothing for the menu to carry. */
+body:not(:has(.footer)) .site-menu-toggle {
+    display: none;
+}
+
+.site-menu-toggle:hover {
+    border-color: rgba(25, 195, 209, 0.55);
+    background: rgba(25, 195, 209, 0.1);
+}
+
+.site-menu-toggle:active {
+    scale: var(--lwc-motion-press-scale, 0.97);
+}
+
+.site-menu-toggle-bars {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 14px;
+}
+
+.site-menu-toggle-bars > span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transform-origin: center;
+    transition:
+        transform var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease),
+        opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        width var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease);
+}
+
+.site-menu-toggle-bars > span:nth-child(1) { top: 0; }
+.site-menu-toggle-bars > span:nth-child(2) { top: 6px; width: 70%; left: auto; right: 0; }
+.site-menu-toggle-bars > span:nth-child(3) { top: 12px; }
+
+.site-menu-toggle:hover .site-menu-toggle-bars > span:nth-child(2) {
+    width: 100%;
+}
+
+/* The bars fold into a close mark while the menu is open. */
+.site-menu-toggle[aria-expanded="true"] .site-menu-toggle-bars > span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.site-menu-toggle[aria-expanded="true"] .site-menu-toggle-bars > span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0.2);
+}
+
+.site-menu-toggle[aria-expanded="true"] .site-menu-toggle-bars > span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
+/* The band keeps the invitation and the toggle together on the right. */
+header[role="banner"] {
+    position: relative;
+}
+
+header[role="banner"] > .site-menu-toggle {
+    margin-left: calc(var(--space-2) - var(--space-5));
+}
+
+/* PLAY and Menu share alignment and corners; only PLAY gets the green glow. */
+.site-sticky-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: stretch;
+    gap: var(--space-2);
+    margin-left: auto;
+    max-width: 100%;
+}
+
+:is(.site-header-actions, .site-sticky-actions) > .site-menu-toggle {
+    align-self: center;
+}
+
+.site-sticky-header-link,
+.site-sticky-menu-toggle {
+    transition:
+        background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        border-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        outline-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        outline-offset var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease);
+}
+
+/* Reading progress: a hairline along the bar's lower edge. */
+@supports (animation-timeline: scroll()) {
+    .site-sticky-header::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(25, 195, 209, 0.35), var(--site-nav-accent));
+        transform-origin: left center;
+        transform: scaleX(0);
+        animation: site-nav-progress linear both;
+        animation-timeline: scroll(root block);
+        pointer-events: none;
+    }
+
+}
+
+@keyframes site-nav-progress {
+    to { transform: scaleX(1); }
+}
+
+/* Focus travels: chrome controls carry a resting, invisible ring that pulls
+   in when focused, so each Tab lands with one quick settle. */
+:is(header[role="banner"] .header-link, header[role="banner"] .join-game, .scrolled-button, .site-menu-toggle, .site-sticky-header-link, .footer-link, .back-button) {
+    outline: 3px solid transparent;
+    outline-offset: 9px;
+}
+
+:is(header[role="banner"] .header-link, header[role="banner"] .join-game, .scrolled-button, .site-menu-toggle, .site-sticky-header-link, .footer-link, .back-button):focus-visible {
+    outline: 3px solid var(--site-nav-accent);
+    outline-offset: 3px;
+    transition:
+        outline-offset var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease),
+        outline-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+}
+
+.site-sticky-header-link:focus-visible,
+.scrolled-button:focus-visible {
+    outline-offset: -3px;
+}
+
+/* Back affordances lean the way they lead. */
+.back-button > i:first-child {
+    transition: translate var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease);
+}
+
+.back-button:is(:hover, :focus-visible) > i:first-child {
+    translate: -4px 0;
+}
+
+.back-button:active > i:first-child {
+    translate: -7px 0;
+    transition-duration: var(--lwc-motion-press, 90ms);
+}
+
+/* --------------------------------------------------------------------------
+   The menu surface
+   -------------------------------------------------------------------------- */
+.site-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 1002;
+}
+
+.site-menu[hidden] {
+    display: none;
+}
+
+body.site-menu-open {
+    overflow: hidden;
+}
+
+.site-menu-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 12, 18, 0.5);
+    opacity: 0;
+    transition: opacity var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease-in);
+}
+
+.site-menu[data-layout="panel"] .site-menu-backdrop {
+    background: rgba(2, 12, 18, 0.18);
+}
+
+.site-menu.is-open .site-menu-backdrop {
+    opacity: calc(1 - var(--site-menu-drag, 0));
+    transition: opacity var(--lwc-motion-slow, 280ms) var(--lwc-ease-enter, ease-out);
+}
+
+.site-menu-panel {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    color: var(--light-text-color);
+    background: var(--chrome-surface) var(--chrome-surface-image);
+    border: 1px solid var(--chrome-line-strong);
+    box-shadow: 0 24px 48px -20px rgba(2, 12, 18, 0.85), 0 2px 0 rgba(255, 255, 255, 0.03) inset;
+    outline: none;
+}
+
+.site-menu-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Wider screens: a panel hung from the toggle. */
+.site-menu[data-layout="panel"] .site-menu-panel {
+    top: var(--site-menu-top, 80px);
+    right: var(--site-menu-right, 16px);
+    width: min(26rem, calc(100vw - 2rem));
+    max-height: calc(100vh - var(--site-menu-top, 80px) - 1rem);
+    padding: var(--space-4);
+    border-radius: var(--lwc-radius-lg, 12px);
+    transform-origin: calc(100% - var(--site-menu-origin, 22px)) 0;
+    opacity: 0;
+    scale: 0.94;
+    translate: 0 -8px;
+    transition:
+        opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-exit, ease-in),
+        scale var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease-in),
+        translate var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease-in);
+}
+
+.site-menu[data-layout="panel"] .site-menu-panel::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    right: calc(var(--site-menu-origin, 22px) - 6px);
+    width: 12px;
+    height: 12px;
+    background: #0e151c;
+    border-top: 1px solid var(--chrome-line-strong);
+    border-left: 1px solid var(--chrome-line-strong);
+    rotate: 45deg;
+}
+
+.site-menu[data-layout="panel"].is-open .site-menu-panel {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+    transition:
+        opacity var(--lwc-motion-fast, 140ms) var(--lwc-ease-enter, ease-out),
+        scale var(--lwc-motion-slow, 280ms) var(--lwc-ease-pop, ease-out),
+        translate var(--lwc-motion-slow, 280ms) var(--lwc-ease-enter, ease-out);
+}
+
+/* Phones: a sheet that rises from the bottom edge under the thumb. */
+.site-menu[data-layout="sheet"] .site-menu-panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: min(86vh, calc(100dvh - 3.5rem));
+    padding: var(--space-3) var(--space-4) max(var(--space-5), env(safe-area-inset-bottom, 0px));
+    border-width: 1px 0 0;
+    border-radius: 20px 20px 0 0;
+    translate: 0 105%;
+    transition: translate var(--lwc-motion-base, 200ms) var(--lwc-ease-exit, ease-in);
+    touch-action: auto;
+}
+
+.site-menu[data-layout="sheet"].is-open .site-menu-panel {
+    translate: 0 0;
+    transition: translate var(--lwc-motion-slow, 280ms) var(--lwc-ease-enter, ease-out);
+}
+
+.site-menu[data-layout="sheet"] .site-menu-panel.is-dragging {
+    transition: none;
+}
+
+.site-menu[data-layout="sheet"] .site-menu-body {
+    touch-action: pan-y;
+}
+
+.site-menu-grip {
+    display: none;
+}
+
+.site-menu[data-layout="sheet"] .site-menu-grip {
+    display: block;
+    flex: 0 0 auto;
+    align-self: center;
+    width: 40px;
+    height: 5px;
+    margin: 0 0 var(--space-1);
+    border-radius: 999px;
+    background: var(--chrome-line-strong);
+    box-shadow: 0 0 0 10px transparent;
+    cursor: grab;
+}
+
+/* The pages, as a ruled two-column table (the footer's phone layout). */
+#site-menu .site-menu-pages {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    overflow: visible;
+    flex-shrink: 0;
+    border: 1px solid var(--chrome-line);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+#site-menu .site-menu-pages .footer-link {
+    justify-content: flex-start;
+    min-height: 3.5rem;
+    padding: 0.5rem 1rem;
+    border: 0;
+    font-size: 1rem;
+}
+
+#site-menu .site-menu-pages .footer-link:nth-of-type(odd) {
+    border-right: 1px solid var(--chrome-line);
+}
+
+#site-menu .site-menu-pages .footer-link:nth-of-type(n + 3) {
+    border-top: 1px solid var(--chrome-line);
+}
+
+#site-menu .site-menu-follow {
+    --footer-icon-size: 44px;
+    width: 100%;
+    justify-content: center;
+}
+
+#site-menu .site-menu-follow .footer-follow-links--primary {
+    --footer-icon-size: 52px;
+    gap: var(--space-4);
+}
+
+/* The panel carries its links together, so its first visible frame already
+   contains readable actions rather than empty tiles awaiting a stagger. */
+.site-menu.is-open .site-menu-body .footer-link {
+    animation: none;
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion: everything arrives and leaves at once.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .site-menu-toggle-bars > span,
+    .site-menu-backdrop,
+    .site-menu.is-open .site-menu-backdrop,
+    .site-menu-panel,
+    .site-menu[data-layout] .site-menu-panel,
+    .site-menu[data-layout].is-open .site-menu-panel,
+    .site-sticky-header-link,
+    .site-sticky-menu-toggle,
+    .back-button > i:first-child,
+    :is(header[role="banner"] .header-link, header[role="banner"] .join-game, .scrolled-button, .site-menu-toggle, .site-sticky-header-link, .footer-link, .back-button):focus-visible {
+        transition: none;
+    }
+
+    .site-menu.is-open .site-menu-body .footer-link,
+    header[role="banner"],
+    header[role="banner"] .header-link {
+        animation: none;
+    }
+
+    .back-button:is(:hover, :focus-visible, :active) > i:first-child {
+        translate: none;
+    }
+}
+
+@media (max-width: 640px) {
+    :root {
+        --site-nav-toggle: 44px;
+    }
+
+    /* Allow the brand and actions to wrap instead of overlapping enlarged text. */
+    header[role="banner"] { flex-wrap: wrap; gap: var(--space-2); }
+    header[role="banner"] > .site-menu-toggle { margin-left: 0; }
+    :where(body.home-page) header[role="banner"] > .site-menu-toggle {
+        position: static;
+        align-self: center;
+        margin: 0;
+    }
+
+}
+
+@media (forced-colors: active) {
+    .site-menu-toggle,
+    .site-menu-panel {
+        border-color: CanvasText;
+    }
+}
+
+/* The sheet's indicator lands with the items, not ahead of them. */
+.site-menu.is-open .nav-glide.is-shown {
+    animation: site-menu-glide-in var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out) backwards;
+    animation-delay: 160ms;
+}
+
+@keyframes site-menu-glide-in {
+    from { opacity: 0; }
+}
+
+/* The travelling tint supplements the focused link's own visible outline. */
+.has-nav-glide > .footer-link.footer-link:focus-visible {
+    outline-color: var(--site-nav-accent);
+    outline-offset: -3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .site-menu.is-open .nav-glide.is-shown {
+        animation: none;
+    }
+
+    .site-sticky-header-link {
+        transition: none;
+    }
+}
+
+/* Native modality and a reachable close action on every layout. */
+.site-menu {
+    width: 100vw; height: 100dvh; max-width: none; max-height: none;
+    margin: 0; padding: 0; border: 0; background: transparent; overflow: clip;
+}
+.site-menu::backdrop { background: transparent; }
+.site-menu-toggle[hidden] { display: none; }
+.site-menu-toolbar { display: flex; align-items: center; justify-content: flex-end; flex: 0 0 auto; position: relative; }
+.site-menu-close {
+    display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px;
+    padding: 0; margin: 0; border: 1px solid var(--chrome-line-strong); border-radius: 50%;
+    background: rgba(255,255,255,.04); color: #fff; cursor: pointer;
+}
+.site-menu-close > span { position: relative; width: 18px; height: 18px; }
+.site-menu-close > span::before,
+.site-menu-close > span::after { content: ''; position: absolute; left: 0; top: 8px; width: 18px; height: 2px; background: currentColor; transform: rotate(45deg); }
+.site-menu-close > span::after { transform: rotate(-45deg); }
+.site-menu-close:hover { background: rgba(25,195,209,.1); border-color: var(--site-nav-accent); }
+.site-menu-close:focus-visible { outline: 3px solid var(--site-nav-accent); outline-offset: 2px; }
+.site-menu[data-layout="sheet"] .site-menu-grip {
+    position: absolute; left: 50%; top: 0; width: 64px; height: 44px; margin: 0;
+    transform: translateX(-50%); background: transparent; box-shadow: none; touch-action: none;
+}
+.site-menu-grip::after {
+    content: ''; position: absolute; width: 40px; height: 5px; top: 19px; left: 12px;
+    border-radius: 999px; background: var(--chrome-line-strong);
+}
+.site-menu-body { padding: 3px; margin: -3px; container-type: inline-size; flex: 0 1 auto; }
+#site-menu .site-menu-pages .footer-link { min-width: 0; overflow-wrap: anywhere; }
+#site-menu .site-menu-follow { flex-shrink: 0; --footer-ink-soft: #cbd5e1; --footer-accent: #19c3d1; --footer-line-strong: var(--chrome-line-strong); }
+@container (max-width: 16em) {
+    #site-menu .site-menu-pages { grid-template-columns: minmax(0, 1fr); }
+    #site-menu .site-menu-pages .footer-link { border-right: 0; }
+    #site-menu .site-menu-pages .footer-link + .footer-link { border-top: 1px solid var(--chrome-line); }
+}
+.site-menu[data-layout="sheet"] .site-menu-panel {
+    padding-inline: max(var(--space-4), env(safe-area-inset-left, 0px)) max(var(--space-4), env(safe-area-inset-right, 0px));
+}
+.site-menu[data-layout="panel"] .site-menu-panel { max-height: calc(100dvh - var(--site-menu-top, 80px) - 12px); }
+@media (max-width: 280px) {
+    header[role="banner"] > .site-menu-toggle { align-self: center; }
+    .site-menu[data-layout="sheet"] .site-menu-grip { left: calc((100% - 52px) / 2); }
+}
+@media (forced-colors: active) {
+    .site-menu-close { border-color: ButtonText; }
+    .has-nav-glide > .footer-link.footer-link:focus-visible { outline-color: Highlight; }
+}
+
+/* Group PLAY and Menu, wrapping the controls only when their row cannot fit. */
+.site-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); flex: 0 1 auto; min-width: 0; max-width: 100%; margin-left: auto; }
+header[role="banner"] { flex-wrap: wrap; }
+header[role="banner"] .site-header-actions .join-game { margin: 0; }
+@media (min-width: 281px) and (max-width: 932px) {
+    :where(body:not(.home-page)) header[role="banner"] .header-link { flex: 1 1 min-content; }
+}
+@media (max-width: 640px) {
+    :where(body.home-page) header[role="banner"] .site-header-actions { align-self: center; width: 100%; max-width: calc(26rem + 52px); margin: 0; }
+    :where(body.home-page) header[role="banner"] .site-header-actions .join-game { flex: 1 1 auto; min-width: 0; width: auto; }
+}
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    :where(body.home-page) header[role="banner"] .site-header-actions { width: auto; margin-left: auto; }
+}
+
+
+html:has(#site-menu[open]) { overflow: hidden; }
+html:has(#site-menu[open][data-page-scrollbar]) { scrollbar-gutter: stable; }
+.site-menu.is-open .site-menu-body .footer-link:focus-visible { animation: none; }
+#site-menu .site-menu-follow .footer-link { scroll-margin-block: 3rem; }
+#site-menu .site-menu-follow .footer-link-label {
+    box-sizing: border-box;
+    max-width: calc(100cqw - 8px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    transform: translateX(var(--footer-label-shift, 0px));
+}
+#site-menu .site-menu-follow .footer-link-label.is-below { bottom: auto; top: calc(100% + 0.55rem); }

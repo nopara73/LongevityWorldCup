@@ -265,8 +265,9 @@ public sealed class InstagramIntegrationTests
             if (path.EndsWith("/media"))
             {
                 using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
-                Assert.Contains(fixture.Athletes.GetAthletesForX().Single(x => x.Slug == "benjamin_garden").Name,
+                Assert.Equal("A sport for time\n\n@the_longevityathlete keeps competing.",
                     body.RootElement.GetProperty("caption").GetString());
+                Assert.Contains("Benjamin Garden", body.RootElement.GetProperty("alt_text").GetString());
                 Assert.StartsWith("https://longevityworldcup.com/generated/instagram/", body.RootElement.GetProperty("image_url").GetString());
                 return Json("""{"id":"222"}""");
             }

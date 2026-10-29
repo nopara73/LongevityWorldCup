@@ -4,6 +4,7 @@
     <title>Longevity World Cup - Proof Upload</title>
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_INITIAL_VIEW_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_PLAY_FLOW_MOTION_CSS}}">
     <script src="{{ASSET_INITIAL_VIEW_JS}}"></script>
     <script>window.LwcInitialView.prepare();</script>
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
@@ -155,27 +156,9 @@
         }
 
         #biomarker-checklist {
-            width: min(100%, 408px);
-            max-width: 408px;
+            width: min(100%, 640px);
+            max-width: 640px;
             margin: 1.25rem auto 1.35rem;
-            padding: 0.9rem 1.05rem;
-            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
-            border-radius: 8px;
-            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
-            box-shadow: none;
-            box-sizing: border-box;
-            color: var(--lwc-ink, #222);
-        }
-
-        #biomarker-checklist h4 {
-            margin: 0 0 0.35rem !important;
-            color: var(--lwc-ink, #111827);
-        }
-
-        #biomarker-checklist p {
-            margin: 0 !important;
-            color: var(--lwc-muted, #526373);
-            line-height: 1.35;
         }
 
         body:not(.proof-upload-has-proofs) #biomarker-checklist {
@@ -297,7 +280,6 @@
 
             #biomarker-checklist {
                 margin: 1rem auto 1.1rem;
-                padding: 0.8rem 0.95rem;
             }
         }
 
@@ -473,7 +455,6 @@
             #biomarker-checklist {
                 grid-column: 1 / -1;
                 margin: 0.75rem auto;
-                padding: 0.65rem 0.8rem;
             }
         }
 
@@ -490,33 +471,183 @@
             text-align: left;
             line-height: 1.5;
         }
+
+        /* One start card: what to upload and who will see it, with the upload controls as its footer. */
+        .proof-upload-start {
+            width: min(100%, 560px);
+            margin: 0 auto;
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.16));
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface, #fff);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .proof-upload-intro {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.1rem;
+            padding: 1.25rem;
+            box-sizing: border-box;
+        }
+
+        .proof-upload-start .options-container.proof-upload-primary-action {
+            width: auto;
+            max-width: none;
+            margin: 0;
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-sizing: border-box;
+        }
+
+        .proof-upload-intro .proof-upload-copy.smaller-text::before {
+            content: "\f06e" / "";
+            margin-right: 0.45rem;
+            color: var(--lwc-accent, #087685);
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+        }
+
+        .proof-upload-intro .proof-upload-visual {
+            flex: 0 0 auto;
+            margin: 0;
+        }
+
+        .proof-upload-intro-copy {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .proof-upload-intro .proof-upload-copy,
+        .proof-upload-intro .proof-upload-copy.smaller-text {
+            width: auto;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .proof-upload-intro .proof-upload-copy.smaller-text {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
+        }
+
+        .proof-upload-workspace {
+            display: contents;
+        }
+
+        @media (max-width: 600px) {
+            .proof-upload-intro {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.85rem;
+                padding: min(1rem, 16px);
+            }
+
+            .proof-upload-start .options-container.proof-upload-primary-action {
+                padding: min(1rem, 16px);
+            }
+
+            .proof-upload-intro .proof-upload-visual {
+                align-self: center;
+            }
+
+            .proof-upload-main {
+                padding-inline: min(1.35rem, 22px);
+            }
+        }
+
+        /* Keep every tracker item in the page's scroll flow, including short windows and enlarged text. */
+        @media (min-width: 960px) {
+            body.proof-upload-has-proofs .proof-upload-main {
+                max-width: 1080px;
+            }
+
+            /* Wraps the tracker below the pages when enlarged text leaves no room beside them. */
+            body.proof-upload-has-proofs .proof-upload-workspace {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                gap: 1.5rem;
+                width: 100%;
+                margin-top: var(--lwc-space-5, 1.5rem);
+            }
+
+            body.proof-upload-has-proofs .proof-upload-workspace #proofImageContainer {
+                flex: 1 1 32rem;
+                width: auto;
+                margin: 0;
+            }
+
+            body.proof-upload-has-proofs .proof-upload-workspace .proof-page-grid {
+                grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+            }
+
+            body.proof-upload-has-proofs .proof-upload-workspace #biomarker-checklist {
+                flex: 1 0 17rem;
+                width: auto;
+                max-width: 20rem;
+                margin: 0;
+            }
+        }
+
+        /* Landscape phones keep their existing compact grid. */
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .proof-upload-start,
+            .proof-upload-intro,
+            .proof-upload-intro-copy {
+                display: contents;
+            }
+
+            .proof-upload-start .options-container.proof-upload-primary-action {
+                padding: 0;
+                border: 0;
+                background: none;
+            }
+
+            .proof-upload-workspace {
+                display: block;
+                grid-column: 1 / -1;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="proof-upload-main initial-view-main">
         <h1 id="character-title" class="proof-upload-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Upload proofs and results</h1>
-        <div class="proof-upload-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <div class="proof-upload-symbol" aria-hidden="true"><i class="fas fa-file-medical"></i></div>
+        <div class="proof-upload-start">
+            <div class="proof-upload-intro">
+                <div class="proof-upload-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                    <div class="proof-upload-symbol" aria-hidden="true"><i class="fas fa-file-medical"></i></div>
+                </div>
+                <div class="proof-upload-intro-copy">
+                    <p id="mainProofInstructions" class="proof-upload-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350"></p>
+                    <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
+                </div>
+            </div>
+
+            <div class="options-container proof-upload-primary-action flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+                <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
+                <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
+                <button type="button" id="takeProofPhotoButton" class="option-button flow-action flow-action--secondary camera-capture-action">
+                    <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
+                </button>
+                <span class="upload-choice-divider" aria-hidden="true">or</span>
+                <button type="button" id="uploadProofButton" class="option-button green flow-action">
+                    <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
+                </button>
+            </div>
         </div>
-        <p id="mainProofInstructions" class="proof-upload-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350"></p>
-        <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
 
-        <div class="options-container proof-upload-primary-action flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
-            <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
-            <button type="button" id="takeProofPhotoButton" class="option-button flow-action flow-action--secondary camera-capture-action">
-                <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
-            </button>
-            <span class="upload-choice-divider" aria-hidden="true">or</span>
-            <button type="button" id="uploadProofButton" class="option-button green flow-action">
-                <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
-            </button>
+        <div class="proof-upload-workspace">
+            <fieldset id="proofImageContainer"></fieldset>
+
+            <div id="biomarker-checklist"></div>
         </div>
-
-        <fieldset id="proofImageContainer"></fieldset>
-
-        <div id="biomarker-checklist"></div>
 
         <div class="options-container proof-upload-final-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-flow-dock-when="body.proof-upload-has-proofs" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <button id="submitButton" type="submit" class="option-button green flow-action"><span class="flow-action__label">Submit new results</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
@@ -1057,18 +1188,19 @@
                     accountEmail: applicantData.accountEmail
                 });
 
+                const submissionWait = window.LwcWait?.start(submitButton, { message: 'Submitting...' });
                 isResultUploadSubmitting = true;
                 submitButton.disabled = true;
                 uploadProofButton.disabled = true;
                 if (takeProofPhotoButton) takeProofPhotoButton.disabled = true;
-                submitButton.textContent = 'Submitting...';
-                showLoading();
+                if (!submissionWait) { submitButton.textContent = 'Submitting...'; showLoading(); }
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(attempt => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
+                        else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishResultSubmission(attempt.submitResult, {
                                 submissionId: submissionId,
@@ -1108,7 +1240,8 @@
                         }
                     })
                     .catch(error => {
-                        hideLoading();
+                        if (submissionWait) void submissionWait('error');
+                        else hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
                         const alertMessage = `Your connection was interrupted. Your results may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;
                         void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {

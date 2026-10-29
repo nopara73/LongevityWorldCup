@@ -10,6 +10,8 @@
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <link rel="preload" href="{{ASSET_BIOAGEFORM_CSS}}" as="style">
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="expect" href="#lwc-site-header" blocking="render">
     <style>
         /* Match join-game biological age intro styling; align width with .bioageform */
         .lab-reassurance {
@@ -32,7 +34,7 @@
             max-width: calc(100vw - 2rem);
             padding: 1.1rem 1.15rem 1rem;
             box-sizing: border-box;
-            border-radius: 8px;
+            border-radius: var(--lwc-radius-lg, 12px);
             border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.22));
             background: var(--lwc-surface, #ffffff);
             color: var(--lwc-ink, #2d3748);
@@ -246,10 +248,6 @@
                 min-width: 0 !important;
             }
 
-            .biomarker-card-content .input-group input.bioage-input-has-comparison {
-                padding-right: 7.8rem;
-            }
-
         .bioage-input-comparison-chip {
             position: static;
             align-self: flex-end;
@@ -305,10 +303,6 @@
             }
 
         @media (max-width: 420px) {
-            .biomarker-card-content .input-group input.bioage-input-has-comparison {
-                padding-right: 6.6rem;
-            }
-
             .bioage-input-comparison-chip {
                 max-width: 100%;
                 font-size: 0.68rem;
@@ -333,7 +327,7 @@
             padding: 1.5rem;
             color: var(--dark-text-color);
             box-shadow: none;
-            border-radius: 8px;
+            border-radius: var(--lwc-radius-lg, 12px);
             font-size: 1.5rem;
             opacity: 0;
             transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
@@ -495,7 +489,7 @@
             #bortzAgeResult {
                 padding: 2.5rem 1.5rem;
                 margin: 1.5rem auto;
-                border-radius: 18px;
+                border-radius: var(--lwc-radius-lg, 12px);
             }
 
             .bio-age-number-container {
@@ -527,93 +521,6 @@
                 animation: none !important;
                 transition: none !important;
             }
-        }
-
-        .crp-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-bottom: 0;
-        }
-
-        .label-toggle-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.85rem;
-            padding: 0.65rem 0.75rem;
-            border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
-            border-radius: 8px;
-            background: var(--lwc-surface, #fff);
-        }
-
-            .label-toggle-group label {
-                font-size: 1rem;
-                color: var(--lwc-ink, #333);
-            }
-
-        .negative-toggle {
-            display: flex;
-            align-items: center;
-            flex: 0 0 auto;
-            min-height: 44px;
-        }
-
-        .toggle-label {
-            position: relative;
-            display: inline-block;
-            width: 52px;
-            height: 44px;
-            margin-right: 0rem;
-        }
-
-            .toggle-label input {
-                opacity: 0;
-                width: 0;
-                height: 0;
-            }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 6px;
-            left: 0;
-            right: 0;
-            bottom: 6px;
-            background-color: var(--lwc-border-strong, #71808d);
-            transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-            border-radius: 999px;
-        }
-
-            .slider:before {
-                position: absolute;
-                content: "";
-                height: 24px;
-                width: 24px;
-                left: 4px;
-                bottom: 4px;
-                background-color: var(--lwc-surface, white);
-            transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-                border-radius: 50%;
-            }
-
-        .toggle-label input:focus-visible + .slider {
-            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
-        }
-
-        .toggle-label input:checked + .slider {
-            background-color: var(--lwc-danger, #b4233b);
-        }
-
-            .toggle-label input:checked + .slider:before {
-                transform: translateX(20px);
-            }
-
-        .bioageform-toggle-text {
-            font-size: 1rem;
-            color: var(--lwc-ink, #2d3748);
-            font-weight: 600;
-            line-height: 1.3;
         }
 
         /* Mini-card container */
@@ -751,7 +658,7 @@
         /* --- LWC 2-step wizard --- */
         .lwc-steps-shell {
             position: relative;
-            width: calc(100vw - 2rem);
+            width: calc(100vw - min(2rem, 32px));
             max-width: 780px;
             margin: 0 auto;
             box-sizing: border-box;
@@ -889,14 +796,15 @@
                             <option value="" disabled selected>Select day</option>
                         </select>
 
-                        <p class="privacy-note" id="privacyNote">Privacy: keep December 31 to hide month/day; it may make you appear younger and slightly disadvantage you.</p>
+                        <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
                     </fieldset>
 
                     <!-- Blood Draw Details -->
                     <fieldset>
                         <legend>Blood draw date:</legend>
-                        <div class="input-group lwc-date-flex">
+                        <div class="input-group lwc-date-flex blood-draw-date-control">
                             <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" aria-label="Blood draw date" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
+                            <span class="blood-draw-relative-label" aria-hidden="true" hidden></span>
                         </div>
                     </fieldset>
                     <div id="lwcStepOneActions" class="lwc-step-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body:not(.bioage-result-ready)">
@@ -917,9 +825,9 @@
                         <legend><i class="fas fa-virus category-icon" aria-hidden="true"></i>Immune</legend>
                         <!-- White Blood Cell Count (from pheno age page) -->
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">
+                            <div class="biomarker-card-header">
                                 White blood cell count (WBC)
-                                <span class="toggle-icon">+</span>
+                                <span class="toggle-icon" aria-hidden="true"></span>
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
@@ -934,7 +842,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Lymphocytes <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Lymphocytes <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="lymphocyte_percentage" name="lymphocyte_percentage" step="any" required aria-required="true" aria-label="Lymphocytes" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -949,7 +857,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Neutrophils <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Neutrophils <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="neutrophil_percentage" name="neutrophil_percentage" step="any" required aria-required="true" aria-label="Neutrophils" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -964,7 +872,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Monocytes <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Monocytes <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="monocyte_percentage" name="monocyte_percentage" step="any" required aria-required="true" aria-label="Monocytes" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -979,7 +887,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Red blood cell count (RBC) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Red blood cell count (RBC) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="rbc" name="rbc" step="any" required aria-required="true" aria-label="Red blood cell count (RBC)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -993,7 +901,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Mean corpuscular volume (MCV) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Mean corpuscular volume (MCV) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" aria-label="Mean corpuscular volume (MCV)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1006,7 +914,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Mean corpuscular hemoglobin (MCH) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Mean corpuscular hemoglobin (MCH) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="mch" name="mch" step="any" required aria-required="true" aria-label="Mean corpuscular hemoglobin (MCH)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1019,7 +927,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Red cell distribution width (RDW, RDW-CV) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Red cell distribution width (RDW, RDW-CV) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="rdw" name="rdw" step="any" required aria-required="true" aria-label="Red cell distribution width (RDW, RDW-CV)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1035,7 +943,7 @@
                     <fieldset>
                         <legend><i class="fas fa-droplet category-icon" aria-hidden="true"></i>Liver</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Albumin <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Albumin <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" aria-label="Albumin" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1049,7 +957,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Alanine aminotransferase (ALT, ALAT) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Alanine aminotransferase (ALT, ALAT) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="alt" name="alt" step="any" required aria-required="true" aria-label="Alanine aminotransferase (ALT, ALAT)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1063,7 +971,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Alkaline phosphatase (ALP) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Alkaline phosphatase (ALP) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="alp" name="alp" step="any" required aria-required="true" aria-label="Alkaline phosphatase (ALP)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1077,7 +985,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Gamma-glutamyl transferase (GGT) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Gamma-glutamyl transferase (GGT) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="ggt" name="ggt" step="any" required aria-required="true" aria-label="Gamma-glutamyl transferase (GGT)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1094,7 +1002,7 @@
                     <fieldset>
                         <legend><i class="fas fa-toilet category-icon" aria-hidden="true"></i>Kidney</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Urea/BUN <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Urea/BUN <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="urea" name="urea" step="any" required aria-required="true" aria-label="Urea or blood urea nitrogen (BUN)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1109,7 +1017,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Creatinine <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Creatinine <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" aria-label="Creatinine" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1123,7 +1031,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Cystatin C <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Cystatin C <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="cystatin_c" name="cystatin_c" step="any" required aria-required="true" aria-label="Cystatin C" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1140,7 +1048,7 @@
                     <fieldset>
                         <legend><i class="fas fa-fire category-icon" aria-hidden="true"></i>Metabolism</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Glucose <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Glucose <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" aria-label="Glucose" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1154,7 +1062,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Hemoglobin A1c (HbA1c) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Hemoglobin A1c (HbA1c) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="hba1c" name="hba1c" step="any" required aria-required="true" aria-label="Hemoglobin A1c (HbA1c)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1170,7 +1078,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Total cholesterol <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Total cholesterol <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="cholesterol" name="cholesterol" step="any" required aria-required="true" aria-label="Total cholesterol" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1184,7 +1092,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Apolipoprotein A1 (ApoA1) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Apolipoprotein A1 (ApoA1) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="apoa1" name="apoa1" step="any" required aria-required="true" aria-label="Apolipoprotein A1 (ApoA1)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1201,26 +1109,15 @@
                     <fieldset>
                         <legend><i class="fas fa-temperature-three-quarters category-icon" aria-hidden="true"></i>Inflammation</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">C-reactive protein (CRP) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">C-reactive protein (CRP) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
-                                <div class="crp-container">
-                                    <div class="label-toggle-group">
-                                        <span class="bioageform-toggle-text">Set if negative:</span>
-                                        <div class="negative-toggle">
-                                            <label for="crp-negative" class="toggle-label">
-                                                <input type="checkbox" id="crp-negative" aria-label="Set CRP as below the detection limit" onchange="toggleCRPInput()">
-                                                <span class="slider"></span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="input-group">
-                                        <input type="number" id="crp" name="crp" step="any" required aria-required="true" aria-label="C-reactive protein (CRP)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
-                                        <label for="crpUnit" class="visually-hidden">CRP unit</label>
-                                        <select id="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
-                                            <option value="1">mg/L</option>
-                                            <option value="0.1">mg/dL</option>
-                                        </select>
-                                    </div>
+                                <div class="input-group">
+                                    <input type="number" id="crp" name="crp" step="any" required aria-required="true" aria-label="C-reactive protein (CRP)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <label for="crpUnit" class="visually-hidden">CRP unit</label>
+                                    <select id="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <option value="1">mg/L</option>
+                                        <option value="0.1">mg/dL</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -1229,7 +1126,7 @@
                     <fieldset>
                         <legend><i class="fas fa-capsules category-icon" aria-hidden="true"></i>Hormones</legend>
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Sex hormone-binding globulin (SHBG) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Sex hormone-binding globulin (SHBG) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="shbg" name="shbg" step="any" required aria-required="true" aria-label="Sex hormone-binding globulin (SHBG)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1243,7 +1140,7 @@
                         </div>
 
                         <div class="biomarker-card">
-                            <div class="biomarker-card-header" aria-expanded="false">Vitamin D (25-OH) <span class="toggle-icon">+</span></div>
+                            <div class="biomarker-card-header">Vitamin D (25-OH) <span class="toggle-icon" aria-hidden="true"></span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
                                     <input type="number" id="vitamin_d" name="vitamin_d" step="any" required aria-required="true" aria-label="Vitamin D (25-OH)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
@@ -1270,6 +1167,7 @@
             </form>
         </div>
         <div id="bortzAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400" inert aria-hidden="true">
+            <button type="button" class="lwc-share-trigger bioage-result-share" data-lwc-share data-share-url="/bortz-age" aria-label="Share" aria-haspopup="dialog" aria-expanded="false"><i class="fa fa-share-nodes lwc-share-trigger__share" aria-hidden="true"></i><i class="fa fa-check lwc-share-trigger__done" aria-hidden="true"></i></button>
             <div id="validAgeInput">
                 <div>bortz age:</div>
                 <div class="bio-age-number-container">
@@ -1697,25 +1595,6 @@
                     removeLocalItem(BORTZ_LAB_GEO_CACHE_KEY);
                 }
             };
-        }
-
-        if (bloodDrawDateInput) {
-            const todayLocal = new Date();
-            todayLocal.setHours(0, 0, 0, 0);
-            const y = todayLocal.getFullYear();
-            const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
-            const d = String(todayLocal.getDate()).padStart(2, '0');
-            const todayStr = `${y}-${m}-${d}`;
-            bloodDrawDateInput.max = todayStr;
-
-            // Open the native picker on focus/click (only when supported)
-            const lwcOpenDatePickerGuarded = () => {
-                if (typeof bloodDrawDateInput.showPicker === 'function' && !bloodDrawDateInput.disabled) {
-                    try { bloodDrawDateInput.showPicker(); } catch (_) { /* ignore */ }
-                }
-            };
-            bloodDrawDateInput.addEventListener('focus', lwcOpenDatePickerGuarded);
-            bloodDrawDateInput.addEventListener('click', lwcOpenDatePickerGuarded);
         }
 
         function overwriteBortzFormFromUrlParams() {
@@ -2161,13 +2040,14 @@
         }
 
         function calculateResultIfResultAlreadyCalculated() {
-            if (isResultCalculated) hideCalculatedResult();
+            // The live instrument recalculates (or dims) the result itself.
+            if (isResultCalculated && !bioageFlow.isLiveInstrumentBound()) hideCalculatedResult();
         }
 
         function correctCorrectableUnits() {
             const parse = (el) => (el ? parseFloat(el.value) : NaN);
             const setUnit = (unitEl, val) => {
-                if (!unitEl) return;
+                if (!unitEl || !bioageFlow.canAutoCorrectUnit(unitEl)) return;
 
                 unitEl.value = String(val);
                 bioageFlow.updateBiomarkerExamplePlaceholder(unitEl);
@@ -2314,6 +2194,9 @@
         }
 
         function calculateResult() {
+            bioageFlow.beginCalculation();
+            lastCalculatedBortzAge = NaN;
+            isResultCalculated = false;
             syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
 
             // Fill missing biomarker fields on update
@@ -2594,6 +2477,8 @@
 
             // Check if the result is not infinite
             if (!isFinite(bortzAge)) {
+                document.getElementById('continueButton').classList.remove('show');
+                updateCalculateButton();
                 resultElement.classList.add('show');
                 bioageFlow.syncBioageResultVisibility();
                 bioageFlow.animateBioageResult(resultElement, bortzAge, { instant: true });
@@ -2660,6 +2545,7 @@
             renderBortzRankPreview();
 
             document.getElementById('continueButton').classList.add('show');
+            document.getElementById('continueButton').disabled = false;
             updateCalculateButton();
             bioageFlow.animateBioageResult(resultElement, bortzAge);
 
@@ -2732,12 +2618,7 @@
                     active.classList.add('lwc-step--visible');
                     active.style.pointerEvents = 'auto';
 
-                    // ensure any pre-expanded biomarker cards get correct heights
-                    // once the step is actually visible (covers fake=1 prefill case)
                     if (step === 2) {
-                        recalcOpenBiomarkerHeightsLwc();
-                        // run again on next tick to catch late layout/ fonts
-                        setTimeout(recalcOpenBiomarkerHeightsLwc, 60);
                         if (shouldFocus && window.matchMedia(
                             '(max-width: 760px), (max-width: 1024px) and (max-height: 600px) and (orientation: landscape)'
                         ).matches) {
@@ -2770,21 +2651,6 @@
             }
         }
 
-
-        function recalcOpenBiomarkerHeightsLwc() {
-            document
-                .querySelectorAll('.biomarker-card.active .biomarker-card-content')
-                .forEach(content => {
-                    // remove any inline maxHeight to measure natural size
-                    content.style.maxHeight = 'none';
-                    const full = content.scrollHeight;
-                    // re-apply the correct height so transition rules remain intact
-                    content.style.maxHeight = full + 'px';
-                    // make sure vertical padding is present for visible cards
-                    content.style.paddingTop = '0.75rem';
-                    content.style.paddingBottom = '0.75rem';
-                });
-        }
 
         function lwcValidateStep1(silent) {
             // validate DOB year + blood draw date (reuse existing validation)
@@ -2922,8 +2788,6 @@
                 const el = document.getElementById(fieldId);
                 if (el) el.dispatchEvent(new Event('input'));
             });
-            // Also honor CRP-negative checkbox state
-            document.getElementById('crp-negative').dispatchEvent(new Event('change'));
 
             updateModeFormInitializerUnique();
             applyBortzSubmittedBiomarkerPlaceholders();
@@ -2941,6 +2805,12 @@
                 form: document.getElementById('bortzAgeForm'),
                 isUpdate,
                 restoreDraft: !isFake && !hasExplicitBiomarkerPrefill
+            });
+            bioageFlow.bindLiveInstrument({
+                clock: 'bortz',
+                calculate: calculateResult,
+                hide: hideCalculatedResult,
+                getStep: () => lwcCurrentStep
             });
 
             if (isUpdate && hasSelectedAthlete) {
@@ -2992,17 +2862,9 @@
                 document.getElementById(bioId).value = '';
             });
 
-            // collapse every card
+            // Clear the previous entry's highlight; fields stay open in the sheet.
             document.querySelectorAll('.biomarker-card.active').forEach(card => {
-                const hdr = card.querySelector('.biomarker-card-header');
-                const icn = hdr.querySelector('.toggle-icon');
-                const cnt = card.querySelector('.biomarker-card-content');
                 card.classList.remove('active');
-                hdr.setAttribute('aria-expanded', 'false');
-                icn.style.display = '';
-                cnt.style.maxHeight = '0';
-                cnt.style.paddingTop = '0';
-                cnt.style.paddingBottom = '0';
             });
 
             // cos this shitty function wiped it all
@@ -3086,6 +2948,7 @@
         }
 
         function proceedToNextPage() {
+            if (!bioageFlow.flushLiveInstrument()) return;
             syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
 
             if (isUpdate && touchedBiomarkers.size === 0) {
@@ -3322,26 +3185,6 @@
 
         document.getElementById('dob-year').addEventListener('change', updateDays);
         document.getElementById('dob-month').addEventListener('change', updateDays);
-
-        function toggleCRPInput() {
-            const crpInput = document.getElementById('crp');
-            const crpUnit = document.getElementById('crpUnit');
-            const crpNegativeCheckbox = document.getElementById('crp-negative');
-
-            if (crpNegativeCheckbox.checked) {
-                crpInput.value = 1; // 1 mg/L (below detection)
-                crpUnit.value = 1; // mg/L
-                crpInput.disabled = true; // Disable input field
-                crpUnit.disabled = true; // Disable unit selector
-                touchedBiomarkers.add('crp');
-            } else {
-                crpInput.disabled = false; // Enable input field
-                crpUnit.disabled = false; // Enable unit selector
-            }
-
-            bioageFlow.updateBiomarkerExamplePlaceholder(crpUnit);
-            calculateResultIfResultAlreadyCalculated();
-        }
 
         // Hide month/day & privacy note when age < 18
         function checkMinor() {
