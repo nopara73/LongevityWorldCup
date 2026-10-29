@@ -244,23 +244,47 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Equal("Proof attachment is required.", badRequest.Value);
     }
 
-    [Fact]
-    public async Task FullApplicationMissingProfilePictureReturnsBadRequestBeforeProcessing()
+    [Theory]
+    [InlineData(null, "missing_profile_picture")]
+    [InlineData("data:,", "invalid_profile_image")]
+    [InlineData("data:image/png;base64,%%%", "profile_image_parse_failed")]
+    [InlineData("data:image/png;base64,AA==", "profile_image_processing_failed")]
+    public async Task FullApplicationInvalidProfilePictureIdentifiesTheRecoverableField(string? picture, string code)
     {
         var factory = sharedFactory;
         var controller = CreateController(factory);
 
-        var result = await controller.Application(new ApplicantData
-        {
-            Name = "Applicant Ada",
-            AccountEmail = "athlete@example.test",
-            DateOfBirth = new DateOfBirthData { Year = 1980, Month = 1, Day = 2 },
-            Biomarkers = [new BiomarkerData()],
-            ProofPics = ["data:image/png;base64,AA=="]
-        }, CancellationToken.None);
+        var application = CreateValidFullApplication();
+        application.ProfilePic = picture;
+        var result = await controller.Application(application, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Profile picture is required.", badRequest.Value);
+        var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal(400, problem.Status);
+        Assert.Equal("profilePic", problem.Extensions["field"]);
+        Assert.Equal(code, problem.Extensions["code"]);
+        Assert.False(string.IsNullOrWhiteSpace(problem.Detail));
+    }
+
+    [Theory]
+    [InlineData("data:,", "invalid_profile_image")]
+    [InlineData("data:image/png;base64,%%%", "profile_image_parse_failed")]
+    [InlineData("data:image/png;base64,AA==", "profile_image_processing_failed")]
+    public async Task EditRequestInvalidProfilePictureIdentifiesTheRecoverableField(string picture, string code)
+    {
+        var application = CreateValidFullApplication();
+        application.Name = sharedFactory.Services.GetRequiredService<IAthleteSnapshotProvider>()
+            .GetAthletesSnapshot().OfType<System.Text.Json.Nodes.JsonObject>()
+            .Select(athlete => athlete["Name"]!.GetValue<string>()).OrderBy(name => name, StringComparer.Ordinal).First();
+        application.ProfilePic = picture;
+        application.DateOfBirth = null;
+        application.Biomarkers = null;
+        application.ProofPics = null;
+        var result = await CreateController(sharedFactory).Application(application, CancellationToken.None);
+        var problem = Assert.IsType<ProblemDetails>(Assert.IsType<BadRequestObjectResult>(result).Value);
+        Assert.Equal(400, problem.Status);
+        Assert.Equal("profilePic", problem.Extensions["field"]);
+        Assert.Equal(code, problem.Extensions["code"]);
     }
 
     [Fact]

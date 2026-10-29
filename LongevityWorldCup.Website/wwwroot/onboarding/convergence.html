@@ -1005,10 +1005,11 @@
                                 <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
                             </button>
                             <span class="upload-choice-divider" aria-hidden="true">or</span>
-                            <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary">
+                            <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary" aria-describedby="profilePictureError">
                                 <span class="flow-action__label">Upload profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
                             </button>
                         </div>
+                        <span id="profilePictureError" class="error-message" aria-live="polite" hidden></span>
                     </div>
                     <div id="croppingPart" style="display:none">
                         <div class="convergence-crop-preview">
@@ -1251,6 +1252,23 @@
                 }
                 if (cropAndSaveButton) cropAndSaveButton.classList.remove('green');
             }
+        }
+
+        function recoverApplicationProfilePicture() {
+            isApplicationSubmitting = false;
+            profilePic = null;
+            applicationProfilePending = false;
+            document.getElementById('profilePicInput').value = '';
+            document.getElementById('profileCameraInput').value = '';
+            document.getElementById('accountEmail').disabled = false;
+            document.body.classList.remove('convergence-has-portrait');
+            const error = document.getElementById('profilePictureError');
+            error.textContent = 'Please choose your photo again.';
+            error.hidden = false;
+            currentStage = 4;
+            goToStage(4);
+            const upload = document.getElementById('uploadButton');
+            void window.focusProfileImageRecovery(upload, error);
         }
 
         function addStageListenerOnce(element, type, listener, key) {
@@ -2042,7 +2060,7 @@
                     nextButton.disabled = true;
 
                     // Check if there is a profile picture in the global variable
-                    if (profilePic) {
+                    if (window.isProfileImageDataUrl(profilePic)) {
                         profileImage.style.display = '';
                         document.body.classList.add('convergence-has-portrait');
                         profileImage.src = profilePic;
@@ -2331,6 +2349,10 @@
                 currentStage++;
                 goToStage(currentStage, { focus: true });
             } else {
+                if (!window.isProfileImageDataUrl(profilePic)) {
+                    recoverApplicationProfilePicture();
+                    return;
+                }
                 const identityValidationResult = validateApplicationIdentity();
                 if (!identityValidationResult.valid) {
                     customAlert(identityValidationResult.error).then(() => {
@@ -2389,8 +2411,8 @@
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
-                    .then(attempt => {
-                        if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
+                    .then(async attempt => {
+                        if (submissionWait) await submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
                         else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
                             finishFullApplicationSubmission(attempt.submitResult, {
@@ -2402,7 +2424,12 @@
                             const response = attempt.response;
                             const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
                             const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
-                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
+                            window.readApplicationError(response).catch(() => ({ message: fallbackError, field: null })).then(problem => {
+                                const badResponse = problem.message;
+                                if (problem.field === 'profilePic') {
+                                    recoverApplicationProfilePicture();
+                                    return;
+                                }
                                 if (isSubmissionAcceptedPaymentFailure(badResponse)) {
                                     void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
                                         type: `HTTP ${responseStatus}`,
@@ -2625,13 +2652,15 @@
                             height: 768,
                         });
                         if (version !== profileReadVersion || cropper !== activeCropper) return;
-                        if (!croppedCanvas) {
+                        if (!croppedCanvas || croppedCanvas.width <= 0 || croppedCanvas.height <= 0) {
                             customAlert('Profile picture crop failed. Please try another image.')
                                 .then(() => cropButton.focus());
                             return;
                         }
 
                         const raw = croppedCanvas.toDataURL('image/png');
+                        // Canvas encoding can fail without throwing.
+                        if (!raw.startsWith('data:image/png;base64,')) throw new Error('Portrait encoding failed.');
                         let croppedImageDataURL = raw;
                         try {
                             const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
@@ -2639,6 +2668,7 @@
                         } catch {
                             croppedImageDataURL = raw;
                         }
+                        if (!window.isProfileImageDataUrl(croppedImageDataURL)) throw new Error('Portrait encoding failed.');
                         if (version !== profileReadVersion) return;
                         if (currentStage === 4) {
                             document.getElementById('profileImage').style.display = '';
@@ -2647,6 +2677,8 @@
                         }
 
                         profilePic = croppedImageDataURL;
+                        document.getElementById('profilePictureError').textContent = '';
+                        document.getElementById('profilePictureError').hidden = true;
                         applicationProfilePending = false;
                         pendingProfileSource = null;
                         ++profileReadVersion;

@@ -132,6 +132,42 @@ public sealed partial class AthleteDialogFrameBrowserTests
         Assert.InRange(await page.EvaluateAsync<double>("scrollY"), scroll - 2, scroll + 2);
     }
 
+    [Theory]
+    [InlineData(390, 844, true)]
+    [InlineData(390, 844, false)]
+    [InlineData(1280, 860, true)]
+    [InlineData(1280, 860, false)]
+    public async Task DirectoryHydration_PreservesTheDialogOpenerForItsReturn(int width, int height, bool dark)
+    {
+        await using var context = await NewContextAsync(width, height, dark);
+        var page = await context.NewPageAsync();
+        var releaseDirectory = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await releaseDirectory.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/");
+            var opener = page.Locator(".leaderboard tbody tr[data-athlete-name]:visible .athlete-name").Last;
+            var openedPath = await opener.EvaluateAsync<string>("link => new URL(link.href).pathname");
+            await opener.EvaluateAsync("link => link.scrollIntoView({ block: 'center', behavior: 'instant' })");
+            await opener.ClickAsync();
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+            releaseDirectory.TrySetResult();
+            await WaitForProfileAsync(page);
+            await page.WaitForFunctionAsync("() => !document.querySelector('.leaderboard tbody').hasAttribute('data-server-rendered')");
+            await page.Keyboard.PressAsync("Escape");
+            await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+            await Assertions.Expect(page.Locator($".leaderboard .athlete-name[href='{openedPath}']")).ToBeFocusedAsync();
+        }
+        finally
+        {
+            releaseDirectory.TrySetResult();
+        }
+    }
+
     [Fact]
     public async Task Steps_AdvancePendingIntentAndClosedRequestsCannotReopenTheDialog()
     {

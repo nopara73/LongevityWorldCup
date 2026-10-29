@@ -17,8 +17,10 @@ internal class Program
     private static readonly HashSet<string> ProfileImageExtensions =
         new([".webp", ".png", ".jpg", ".jpeg"], StringComparer.OrdinalIgnoreCase);
 
-    private static async Task Main()
+    private static async Task Main(string[] args)
     {
+        if (args.Length != 0 && !args.SequenceEqual(new[] { "--preview-only" }))
+            throw new ArgumentException("Usage: ApplicationReviewer [--preview-only]");
         // get back up to your solution folder
         var solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
         // now point at the Website's wwwroot/athletes folder
@@ -28,6 +30,7 @@ internal class Program
         var configuration = typeof(Program).Assembly
             .GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration ?? "Debug";
         await WebsitePreview.EnsureReadyAsync(solutionRoot, new Uri(serverUrl), configuration);
+        if (args.Length != 0) return;
 
         // -- now proceed to unzip & open URLs as before --
         var athletesFolder = Path.Combine(solutionRoot,

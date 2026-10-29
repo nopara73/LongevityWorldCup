@@ -467,18 +467,37 @@ public sealed class PlayFlowMotionBrowserTests(
     }
 
     [Theory]
-    [InlineData(1280, 800, true)]
-    [InlineData(1440, 900, false)]
-    [InlineData(390, 844, false)]
-    public async Task Dashboard_CardIsDealtAndThePriceSettlesWithoutChangingItsText(int width, int height, bool dark)
+    [InlineData(1280, 800, true, false)]
+    [InlineData(1440, 900, false, false)]
+    [InlineData(390, 844, false, false)]
+    [InlineData(1280, 800, true, true)]
+    public async Task Dashboard_CardIsDealtAndThePriceSettlesWithoutChangingItsText(int width, int height, bool dark, bool personalLink)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = height },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
+        // Filesystem/API order does not select a fixed discount breakdown. A
+        // second discount legitimately makes the short desktop card need its dock.
+        const string athleteName = "Motion Test Athlete";
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = System.Text.Json.JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    Name = athleteName, DisplayName = athleteName,
+                    DateOfBirth = new { Year = 1980, Month = 5, Day = 20 },
+                    Biomarkers = Array.Empty<object>(),
+                    PersonalLink = personalLink ? "https://example.test/motion-athlete" : ""
+                }
+            })
+        }));
         var page = await OpenAsync(context, "/select-athlete");
-        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        await SelectAthleteAsync(page, athleteName);
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('.play-price-settling')");
 
@@ -510,10 +529,19 @@ public sealed class PlayFlowMotionBrowserTests(
 
         if (width >= 1280)
         {
-            // The deal must not trick the dock into treating the card's commands as off-screen.
-            Assert.False(await page.EvaluateAsync<bool>("() => document.getElementById('athleteDashboardActions').classList.contains('flow-action-stack--docked')"),
-                $"{width}x{height}: the dashboard's commands should stay in the card after it lands.");
+            var docked = await page.EvaluateAsync<bool>("() => document.getElementById('athleteDashboardActions').classList.contains('flow-action-stack--docked')");
+            if (personalLink)
+                Assert.True(docked, "The additional discount should keep the taller card's commands in the viewport dock.");
+            else
+                // The deal must not trick the dock into treating the card's commands as off-screen.
+                Assert.False(docked, $"{width}x{height}: the dashboard's commands should stay in the card after it lands.");
         }
+        Assert.True(await page.Locator("#athleteDashboardActions .flow-action").EvaluateAllAsync<bool>("""
+            actions => actions.every(action => {
+                const rect = action.getBoundingClientRect();
+                return rect.top >= 0 && rect.bottom <= innerHeight;
+            })
+            """), "Every dashboard command should remain fully inside the viewport after landing.");
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 

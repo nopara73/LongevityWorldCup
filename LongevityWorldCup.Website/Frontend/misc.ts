@@ -1228,7 +1228,33 @@ window.submitApplicationWithRecovery = async function (applicantData: unknown, t
 window.APPLICATION_SUBMISSION_TIMEOUT_MS = 310000;
 window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS = 2500;
 
-window.readApplicationErrorMessage = async function (response) {
+window.isProfileImageDataUrl = function (value: unknown): value is string {
+    return typeof value === 'string' && /^data:image\/[^;,]+;base64,.+$/s.test(value);
+};
+
+window.focusProfileImageRecovery = async function (control, feedback) {
+    control.focus({ preventScroll: true });
+    let interrupted = false;
+    const cancel = () => { interrupted = true; };
+    const events = ['pointerdown', 'wheel', 'keydown', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, cancel, { once: true, passive: true }));
+    try {
+        // Stage transitions and the feedback animation can change the scroll
+        // range. Reveal the replacement control after their final layout.
+        await Promise.allSettled(document.getAnimations()
+            .filter(animation => animation.effect?.getComputedTiming().endTime !== Infinity)
+            .map(animation => animation.finished));
+        if (interrupted || document.activeElement !== control || feedback.hidden || !control.isConnected) return;
+        feedback.scrollIntoView({ block: 'center', behavior: 'instant' });
+        window.LwcFlowActionDock?.ensureClear?.(control.parentElement, {
+            includeNextVisibleSibling: true, margin: 16, behavior: 'auto'
+        });
+    } finally {
+        events.forEach(event => window.removeEventListener(event, cancel));
+    }
+};
+
+window.readApplicationError = async function (response) {
     const fallback = response && response.statusText
         ? response.statusText
         : response && Number.isFinite(response.status)
@@ -1238,9 +1264,18 @@ window.readApplicationErrorMessage = async function (response) {
     try {
         text = response ? await response.text() : '';
     } catch (_) {
-        return fallback;
+        return { message: fallback, field: null };
     }
-    return window.extractApplicationErrorMessage(text, fallback);
+    let field: 'profilePic' | null = null;
+    try {
+        const problem: unknown = JSON.parse(text);
+        if (response?.status === 400 && isRecord(problem) && problem.field === 'profilePic') field = 'profilePic';
+    } catch (_) { }
+    return { message: window.extractApplicationErrorMessage(text, fallback), field };
+};
+
+window.readApplicationErrorMessage = async function (response) {
+    return (await window.readApplicationError(response)).message;
 };
 
 window.extractApplicationErrorMessage = function (text, fallback) {
