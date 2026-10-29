@@ -81,6 +81,33 @@ public sealed class ApplicationReviewerPreviewTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => WebsitePreview.ValidateAsync(client, ServerUrl));
     }
 
+    [Theory]
+    [InlineData("current")]
+    [InlineData("old-bytes")]
+    [InlineData("old-version")]
+    public async Task Preview_VerifiesAssetContentsAndBrowserCacheVersions(string scenario)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "lwc-assets-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "css"));
+        Directory.CreateDirectory(Path.Combine(root, "js"));
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(root, "css", "homepage.css"), "asset");
+            await File.WriteAllTextAsync(Path.Combine(root, "js", "homepage.js"), scenario == "old-bytes" ? "new asset" : "asset");
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData("asset"u8.ToArray()))[..16].ToLowerInvariant();
+            var page = ValidPage.Replace("123", hash).Replace("456", scenario == "old-version" ? "outdated" : hash);
+            using var client = new HttpClient(new PreviewHandler(page));
+            var verify = () => WebsitePreview.ValidateAsync(client, ServerUrl, root);
+            if (scenario == "current") await verify();
+            else
+            {
+                var error = await Assert.ThrowsAsync<InvalidOperationException>(verify);
+                Assert.Contains("outdated contents or a stale cache version", error.Message);
+            }
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
     private sealed class PreviewHandler(
         string html,
         string? badPath = null,

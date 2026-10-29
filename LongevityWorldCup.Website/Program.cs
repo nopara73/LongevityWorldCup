@@ -518,6 +518,22 @@ namespace LongevityWorldCup.Website
                 ResponseWriter = WriteHealthCheckResponse
             });
 
+            if (app.Environment.IsDevelopment())
+            {
+                app.MapGet("/api/local-preview", (HttpContext context) =>
+                {
+                    var address = context.Connection.RemoteIpAddress;
+                    if (address is null || !System.Net.IPAddress.IsLoopback(address))
+                        return (IResult)Results.NotFound();
+                    context.Response.Headers.CacheControl = "no-store";
+                    return Results.Json(new
+                    {
+                        moduleVersionId = typeof(Program).Assembly.ManifestModule.ModuleVersionId,
+                        contentRoot = Path.GetFullPath(app.Environment.ContentRootPath)
+                    });
+                }).ExcludeFromDescription();
+            }
+
             app.Run();
         }
 

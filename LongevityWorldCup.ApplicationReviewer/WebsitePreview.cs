@@ -2,6 +2,10 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
 
 namespace LongevityWorldCup.ApplicationReviewer;
 
@@ -40,17 +44,30 @@ internal static class WebsitePreview
 
     internal static async Task EnsureReadyAsync(string solutionRoot, Uri serverUrl, string configuration)
     {
+        var revision = await RepositoryFreshness.EnsureCurrentAsync(solutionRoot);
+        // Rebuild even when a server exists: local source edits must not be silently ignored.
+        // A locked stale build fails before extraction and can be restarted explicitly.
+        await BuildAsync(solutionRoot, configuration);
+        var afterBuild = await RepositoryFreshness.GitAsync(solutionRoot, "rev-parse", "HEAD");
+        if (afterBuild.ExitCode != 0 || afterBuild.Output.Trim() != revision)
+            throw InvalidPreview(serverUrl, "the checkout changed while building; rerun the reviewer");
+        var assemblyPath = Path.Combine(solutionRoot, "LongevityWorldCup.Website", "bin", configuration,
+            "net10.0", "LongevityWorldCup.Website.dll");
+        using var assembly = File.OpenRead(assemblyPath);
+        using var pe = new PEReader(assembly);
+        var metadata = pe.GetMetadataReader();
+        var moduleId = metadata.GetGuid(metadata.GetModuleDefinition().Mvid);
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
         if (await IsListeningAsync(client, serverUrl))
         {
             // Never restart a server owned by somebody else, or accept a 200 from stale middleware.
-            await ValidateAsync(client, serverUrl);
+            await ValidateIdentityAsync(client, serverUrl, solutionRoot, moduleId);
+            await ValidateAsync(client, serverUrl, Path.Combine(solutionRoot, "LongevityWorldCup.Website", "wwwroot"));
             return;
         }
 
-        Console.WriteLine($"Building and starting the {configuration} website preview...");
-        await BuildAsync(solutionRoot, configuration);
+        Console.WriteLine($"Starting the verified {configuration} website preview...");
         using var server = Process.Start(CreateServerStartInfo(solutionRoot, configuration))
             ?? throw new InvalidOperationException("Could not start the website preview.");
         try
@@ -63,7 +80,8 @@ internal static class WebsitePreview
 
                 if (await IsListeningAsync(client, serverUrl))
                 {
-                    await ValidateAsync(client, serverUrl);
+                    await ValidateIdentityAsync(client, serverUrl, solutionRoot, moduleId);
+                    await ValidateAsync(client, serverUrl, Path.Combine(solutionRoot, "LongevityWorldCup.Website", "wwwroot"));
                     return;
                 }
 
@@ -80,6 +98,24 @@ internal static class WebsitePreview
         }
     }
 
+    internal sealed record PreviewIdentity(Guid ModuleVersionId, string ContentRoot);
+
+    internal static async Task ValidateIdentityAsync(HttpClient client, Uri serverUrl, string solutionRoot, Guid moduleId)
+    {
+        PreviewIdentity? identity;
+        try { identity = await client.GetFromJsonAsync<PreviewIdentity>(new Uri(serverUrl, "/api/local-preview")); }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or NotSupportedException)
+        {
+            throw InvalidPreview(serverUrl, "the running server cannot identify its build; it may be outdated");
+        }
+        var expectedRoot = Path.GetFullPath(Path.Combine(solutionRoot, "LongevityWorldCup.Website"));
+        if (identity is null || identity.ModuleVersionId != moduleId ||
+            !string.Equals(identity.ContentRoot, expectedRoot,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            throw InvalidPreview(serverUrl, "the running server is from another checkout or an outdated build");
+        Console.WriteLine($"Verified running preview build {moduleId} at {expectedRoot}.");
+    }
+
     private static async Task BuildAsync(string solutionRoot, string configuration)
     {
         using var build = Process.Start(CreateBuildStartInfo(solutionRoot, configuration))
@@ -92,7 +128,7 @@ internal static class WebsitePreview
             await build.WaitForExitAsync(timeout.Token);
             await Task.WhenAll(stdout, stderr);
             if (build.ExitCode != 0)
-                throw new InvalidOperationException($"Website build failed (exit code {build.ExitCode}). No application files have been processed. See the build output above.");
+                throw new InvalidOperationException($"Website build failed (exit code {build.ExitCode}). No application files have been processed. See the build output above; if a running preview locks the build, stop it and rerun the reviewer.");
         }
         catch
         {
@@ -102,7 +138,7 @@ internal static class WebsitePreview
         }
     }
 
-    internal static async Task ValidateAsync(HttpClient client, Uri serverUrl)
+    internal static async Task ValidateAsync(HttpClient client, Uri serverUrl, string? webRoot = null)
     {
         using var page = await client.GetAsync(serverUrl);
         if (!page.IsSuccessStatusCode || page.Content.Headers.ContentType?.MediaType != "text/html")
@@ -132,6 +168,19 @@ internal static class WebsitePreview
                 : mediaType is "text/javascript" or "application/javascript";
             if (!response.IsSuccessStatusCode || !correctType)
                 throw InvalidPreview(serverUrl, $"{asset.AbsolutePath} is missing or has the wrong content type");
+            if (webRoot is not null)
+            {
+                var root = Path.GetFullPath(webRoot) + Path.DirectorySeparatorChar;
+                var file = Path.GetFullPath(Path.Combine(root, Uri.UnescapeDataString(asset.AbsolutePath).TrimStart('/')));
+                if (!file.StartsWith(root, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+                    || !File.Exists(file))
+                    throw InvalidPreview(serverUrl, $"{asset.AbsolutePath} is not an asset in this checkout");
+                var expected = SHA256.HashData(await File.ReadAllBytesAsync(file));
+                var served = SHA256.HashData(await response.Content.ReadAsByteArrayAsync());
+                var version = Regex.Match(asset.Query, @"(?:[?&])v=([^&]+)").Groups[1].Value;
+                if (!expected.SequenceEqual(served) || version != Convert.ToHexString(expected)[..16].ToLowerInvariant())
+                    throw InvalidPreview(serverUrl, $"{asset.AbsolutePath} has outdated contents or a stale cache version");
+            }
         }
     }
 
