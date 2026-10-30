@@ -480,6 +480,7 @@
     function init(): void {
         wireControls();
         readUrlState();
+        wireFeel();
         renderTabs();
         window.LwcInitialView.complete();
         loadDashboard();
@@ -489,6 +490,7 @@
         for (const id of ["statsRange", "statsFlow", "statsDevice", "statsSource"] as const) {
             el(id).addEventListener("change", () => {
                 if (id === "statsFlow") state.flow = el(id).value;
+                markActiveFilters();
                 updateUrl();
                 loadDashboard();
             });
@@ -602,9 +604,13 @@
             state.generatedAtUtc = payload.generatedAtUtc || null;
             state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
             state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
-            setDashboardLoading(false);
-            renderLoadedStatus();
-            renderAll();
+            const morph = captureMorph();
+            travel(() => {
+                setDashboardLoading(false);
+                renderLoadedStatus();
+                renderAll();
+                playMorph(morph);
+            });
         } catch (error) {
             if (generation !== loadGeneration) return;
             state.events = [];
@@ -690,6 +696,7 @@
     }
 
     function renderAll(): void {
+        markActiveFilters();
         renderTabs();
         renderPageMode();
         renderTrafficOverview();
@@ -843,11 +850,12 @@
             } else delta = "No activity in the previous period";
         }
         const formatted = formatNumber(current);
-        return `<div class="traffic-metric" data-wide-value="${formatted.length > 8}"><span>${esc(label)}</span><strong>${esc(formatted)}</strong><em>${esc(delta)}</em></div>`;
+        const trend = previous > 0 && current !== previous ? (current > previous ? "up" : "down") : "flat";
+        return `<div class="traffic-metric" data-wide-value="${formatted.length > 8}"><span>${esc(label)}</span><strong data-morph="metric:${escAttr(label)}" data-value="${current}">${esc(formatted)}</strong>${delta ? `<em data-trend="${trend}">${esc(delta)}</em>` : ""}</div>`;
     }
 
     function trafficOutcome(label: string, value: number, detail: string): string {
-        return `<div class="traffic-outcome"><div><span>${esc(label)}</span><small>${esc(detail)}</small></div><strong>${formatNumber(value)}</strong></div>`;
+        return `<div class="traffic-outcome"><div><span>${esc(label)}</span><small>${esc(detail)}</small></div><strong data-morph="outcome:${escAttr(label)}" data-value="${value}">${formatNumber(value)}</strong></div>`;
     }
 
     function trafficOtherOutcomes(outcomes: TrafficOutcomes): string {
@@ -886,7 +894,7 @@
     function trafficRankedList(title: string, unit: string, rows: { label: string; value: number }[], key: string): string {
         const maxValue = Math.max(1, ...rows.map(row => numberValue(row.value)));
         const list = (items: typeof rows): string => `<div class="traffic-ranked-list">${items.map(row => `
-            <div class="traffic-ranked-row"><span>${esc(row.label)}</span><span class="traffic-meter" aria-hidden="true"><i style="width:${barWidth(row.value, maxValue)}%"></i></span><span>${formatNumber(row.value)}</span></div>`).join("")}</div>`;
+            <div class="traffic-ranked-row" data-morph-row="${escAttr(key)}:${escAttr(row.label)}"><span>${esc(row.label)}</span><span class="traffic-meter" aria-hidden="true"><i style="width:${barWidth(row.value, maxValue)}%"></i></span><span>${formatNumber(row.value)}</span></div>`).join("")}</div>`;
         return `<section class="traffic-ranked-panel"><div class="traffic-list-heading"><h2>${esc(title)}</h2><span class="traffic-caption">${esc(unit)}</span></div>
             ${rows.length ? list(rows.slice(0, 4)) : empty("No traffic for the active filters.")}
             ${rows.length > 4 ? `<details class="traffic-more" data-traffic-disclosure="${escAttr(key)}"><summary>${formatNumber(rows.length - 4)} more ${esc(key)}</summary>${list(rows.slice(4))}</details>` : ""}
@@ -956,8 +964,12 @@
         const selectDay = (day: string): void => {
             const point = points.find(item => item.day === day);
             if (!point) return;
+            const changedDay = selectedTrafficDay !== day;
             selectedTrafficDay = day;
             select.value = day;
+            if (changedDay && feelMotion()) el("trafficDayDetail").animate(
+                [{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
+                { duration: 180, easing: morphEase });
             el("trafficDayDetail").textContent = `${formatTrafficDay(day)} · ${formatNumber(point.sessions)} sessions · ${formatNumber(point.pageViews)} page views${isPartialTrafficDay(day) ? " · partial day" : ""}`;
             svg.querySelectorAll<SVGRectElement>("[data-day]").forEach(bar => bar.classList.toggle("is-selected", bar.dataset.day === day));
         };
@@ -970,7 +982,13 @@
             const point = points[Math.min(points.length - 1, Math.floor((x - 44) / (bounds.width - 56) * points.length))];
             if (point) selectDay(point.day);
         });
+        let drawnWidth = -1;
         const draw = (): void => {
+            // The observer's first call repeats the synchronous draw; skip it so
+            // morphing bars are not replaced mid-flight.
+            const width = svg.parentElement?.clientWidth || 0;
+            if (width === drawnWidth) return;
+            drawnWidth = width;
             drawTrafficChart(svg, points);
             if (selectedTrafficDay) selectDay(selectedTrafficDay);
         };
@@ -1556,6 +1574,172 @@
         el("drilldownTitle").scrollIntoView({ block: "nearest" });
     }
 
+    // ---------------------------------------------------------------- feel layer
+    // A filter change moves what changed instead of replaying the whole
+    // dashboard: figures count on from their old value, bars and meters
+    // stretch from their old size, and ranked rows slide to their new place.
+
+    interface MorphSnapshot {
+        figures: Map<string, number>;
+        meters: Map<string, number>;
+        rows: Map<string, number>;
+        bars: Map<string, number>;
+    }
+
+    const reducedFeel = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const morphEase = "cubic-bezier(0.2, 0, 0, 1)";
+
+    function feelMotion(): boolean {
+        return !reducedFeel.matches;
+    }
+
+    function captureMorph(): MorphSnapshot | null {
+        const host = el("trafficOverview");
+        if (!feelMotion() || host.hidden || !host.firstElementChild) return null;
+        const snapshot: MorphSnapshot = { figures: new Map(), meters: new Map(), rows: new Map(), bars: new Map() };
+        host.querySelectorAll<HTMLElement>("[data-morph]").forEach(figure => {
+            snapshot.figures.set(figure.dataset["morph"] || "", Number(figure.dataset["value"]));
+        });
+        host.querySelectorAll<HTMLElement>("[data-morph-row]").forEach(row => {
+            const key = row.dataset["morphRow"] || "";
+            const meter = row.querySelector<HTMLElement>(".traffic-meter > i");
+            if (row.offsetParent) snapshot.rows.set(key, row.getBoundingClientRect().top);
+            if (meter) snapshot.meters.set(key, parseFloat(meter.style.width) || 0);
+        });
+        host.querySelectorAll<SVGRectElement>("rect[data-day]").forEach(bar => {
+            snapshot.bars.set(bar.dataset["day"] || "", bar.height.baseVal.value);
+        });
+        return snapshot;
+    }
+
+    function playMorph(snapshot: MorphSnapshot | null): void {
+        const page = document.querySelector<HTMLElement>(".stats-page");
+        // The first render assembles the page once; every later render morphs.
+        if (page && !page.hasAttribute("data-stats-settled")) {
+            window.setTimeout(() => page.setAttribute("data-stats-settled", ""), 900);
+        }
+        const host = el("trafficOverview");
+        if (!snapshot || host.hidden || !feelMotion()) return;
+
+        // charts.js counts a figure on from data-lwc-number and leaves a draw
+        // alone once it is claimed, so the shared helpers continue instead of restarting.
+        host.querySelectorAll<HTMLElement>("[data-morph]").forEach(figure => {
+            const previous = snapshot.figures.get(figure.dataset["morph"] || "");
+            if (previous === undefined || !Number.isFinite(previous)) return;
+            figure.dataset["lwcNumber"] = String(previous);
+            const next = Number(figure.dataset["value"]);
+            if (next !== previous) figure.dataset["morphTrend"] = next > previous ? "up" : "down";
+        });
+
+        const claim = (element: HTMLElement | SVGElement): void => {
+            element.dataset["lwcDraw"] = "morph";
+            window.setTimeout(() => {
+                if (element.dataset["lwcDraw"] === "morph") delete element.dataset["lwcDraw"];
+            }, 700);
+        };
+
+        host.querySelectorAll<HTMLElement>("[data-morph-row]").forEach((row, index) => {
+            const key = row.dataset["morphRow"] || "";
+            const meterHost = row.querySelector<HTMLElement>(".traffic-meter");
+            const meter = meterHost?.querySelector<HTMLElement>("i");
+            if (meterHost) claim(meterHost);
+            const oldWidth = snapshot.meters.get(key);
+            const newWidth = meter ? parseFloat(meter.style.width) || 0 : 0;
+            if (meter && newWidth > 0 && Math.abs((oldWidth ?? 0) - newWidth) > 0.2) {
+                meter.animate([{ transform: `scaleX(${(oldWidth ?? 0) / newWidth})` }, { transform: "none" }],
+                    { duration: 320, easing: morphEase });
+            }
+            if (!row.offsetParent) return;
+            const oldTop = snapshot.rows.get(key);
+            if (oldTop === undefined) {
+                row.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }],
+                    { duration: 220, delay: Math.min(index, 6) * 24, easing: morphEase, fill: "backwards" });
+                return;
+            }
+            const shift = oldTop - row.getBoundingClientRect().top;
+            if (Math.abs(shift) > 1) row.animate([{ transform: `translateY(${shift}px)` }, { transform: "none" }],
+                { duration: 300, easing: morphEase });
+        });
+
+        const svg = document.getElementById("trafficDailyChart");
+        if (svg instanceof SVGSVGElement && snapshot.bars.size) {
+            claim(svg);
+            const bars = Array.from(svg.querySelectorAll<SVGRectElement>("rect[data-day]"));
+            bars.forEach((bar, index) => {
+                const oldHeight = snapshot.bars.get(bar.dataset["day"] || "");
+                const newHeight = bar.height.baseVal.value;
+                const delay = Math.round(index / Math.max(1, bars.length) * 90);
+                if (oldHeight === undefined) {
+                    bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay, easing: morphEase, fill: "backwards" });
+                } else if (newHeight > 0 && Math.abs(oldHeight - newHeight) > 0.5) {
+                    bar.animate([{ transform: `scaleY(${Math.max(0, oldHeight / newHeight)})` }, { transform: "none" }],
+                        { duration: 320, delay, easing: morphEase, fill: "backwards" });
+                }
+            });
+        }
+    }
+
+    // Overview and diagnostics sit side by side: when a render crosses between
+    // them, the page slides that way while the header and switcher hold still.
+    function travel(paint: () => void): void {
+        const showingOverview = !el("trafficOverview").hidden;
+        const toOverview = state.tab === trafficOverviewTab;
+        if (showingOverview === toOverview || !feelMotion() || !document.startViewTransition) {
+            paint();
+            return;
+        }
+        const root = document.documentElement;
+        root.dataset["statsTravel"] = toOverview ? "back" : "forward";
+        document.startViewTransition(paint).finished.finally(() => delete root.dataset["statsTravel"]);
+    }
+
+    function markActiveFilters(): void {
+        const defaults: Record<string, string> = { statsRange: defaultRange, statsFlow: "all", statsDevice: "all", statsSource: "all" };
+        let active = state.tab !== trafficOverviewTab;
+        for (const [id, value] of Object.entries(defaults)) {
+            const select = el(id) as HTMLSelectElement;
+            const changed = select.value !== value;
+            select.closest("label")?.toggleAttribute("data-filter-active", changed);
+            active ||= changed;
+        }
+        el("statsReset").toggleAttribute("data-idle", !active);
+    }
+
+    function placeTabIndicator(): void {
+        const host = el("statsTabs");
+        const target = host.querySelector<HTMLElement>(state.tab === trafficOverviewTab
+            ? ":scope > .stats-tab"
+            : ".stats-diagnostics-toggle");
+        if (!target) return;
+        const hostBox = host.getBoundingClientRect();
+        const box = target.getBoundingClientRect();
+        if (!box.width) return;
+        const chevron = target.matches("summary") ? 16 : 0;
+        host.style.setProperty("--stats-tab-x", `${box.left - hostBox.left + 14}px`);
+        host.style.setProperty("--stats-tab-w", `${Math.max(0, box.width - 28 - chevron)}px`);
+        host.dataset["indicator"] = "ready";
+    }
+
+    function wireFeel(): void {
+        // The filter band tucks into a slim bar once the page scrolls.
+        const header = document.querySelector<HTMLElement>(".stats-header");
+        if (header) {
+            let ticking = false;
+            const update = (): void => {
+                ticking = false;
+                header.toggleAttribute("data-condensed", window.scrollY > 24);
+            };
+            window.addEventListener("scroll", () => {
+                if (ticking) return;
+                ticking = true;
+                requestAnimationFrame(update);
+            }, { passive: true });
+            update();
+        }
+        window.addEventListener("resize", placeTabIndicator, { passive: true });
+        void document.fonts?.ready.then(placeTabIndicator);
+    }
+
     function renderTabs(): void {
         const host = el("statsTabs");
         const previousPicker = host.querySelector<HTMLDetailsElement>("details");
@@ -1588,15 +1772,17 @@
                 if (tab === onboardingDiagnosticsTab && state.selectedFlow === "challenge") state.selectedFlow = "pheno";
                 state.selectedEventName = null;
                 state.selectedLabel = `${tab} / all events`;
+                placeTabIndicator();
                 if (needsDiagnosticEventReload()) loadDashboard();
-                else {
+                else travel(() => {
                     renderLoadedStatus();
                     renderAll();
-                }
+                });
             });
             (tab === trafficOverviewTab ? host : diagnosticTabs).appendChild(button);
         });
         host.appendChild(picker);
+        placeTabIndicator();
         if (focusedTab) {
             Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find(button => button.dataset.tab === focusedTab)?.focus({ preventScroll: true });
         }
