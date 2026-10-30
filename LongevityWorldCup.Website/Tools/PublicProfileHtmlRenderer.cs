@@ -17,6 +17,9 @@ public static class PublicProfileHtmlRenderer
 
     public static string Render(string html, PublicLeaderboardSnapshot snapshot, PublicAthlete athlete, DateTime today)
     {
+        // Populate the same inert fragments the client activates. Unavailable
+        // facts remain templates, rather than contradictory CSS-hidden text.
+        html = RestoreInactiveContent(html);
         var row = athlete.Row;
         var stats = athlete.Stats;
         html = html.Replace("id=\"detailsModal\" class=\"modal\"", "id=\"detailsModal\" class=\"modal\" style=\"display: block;\"", StringComparison.Ordinal);
@@ -40,6 +43,11 @@ public static class PublicProfileHtmlRenderer
         {
             html = html.Replace("class=\"athlete-profile\" id=\"athlete-profile\"", "class=\"athlete-profile is-pro\" id=\"athlete-profile\"", StringComparison.Ordinal);
             html = html.Replace("class=\"modal-sticky-header\"", "class=\"modal-sticky-header is-pro\"", StringComparison.Ordinal);
+            foreach (var id in new[] { "profileProBadge", "stickyProBadge" })
+            {
+                html = SetContent(html, id, "PRO");
+                html = html.Replace($"id=\"{id}\"", $"id=\"{id}\" aria-label=\"Pro track\" title=\"Professional longevity athlete\"", StringComparison.Ordinal);
+            }
         }
 
         // Match the existing title rule: Ultimate rank in the title unless a
@@ -114,8 +122,17 @@ public static class PublicProfileHtmlRenderer
             html = SetContent(html, "crowdAge", PublicHtmlFormat.Fixed(crowdAge, 0));
             html = SetContent(html, "crowdCount", stats.CrowdCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
-        return html;
+        return DeferHiddenContent(html);
     }
+
+    private static string RestoreInactiveContent(string html) => Regex.Replace(html,
+        "<template data-profile-inactive>(.*?)</template>", "$1", RegexOptions.Singleline);
+
+    private static string DeferHiddenContent(string html) => Regex.Replace(html,
+        "(?<opening><(?<tag>tr|div)\\b[^>]*\\bid=\"(?:athleteLoadError|chronologicalAgeContainer|crowdAgeContainer|yourGuessContainer|lowestBortzAgeContainer|lowestPhenoAgeContainer|bortzPaceOfAgingContainer|paceOfAgingContainer|bortzAgeReductionContainer|ageReductionContainer|athleteRankContainer)\"[^>]*\\bhidden(?=[\\s>])[^>]*>)(?<content>.*?)(?<closing></\\k<tag>>)",
+        match => match.Groups["opening"].Value + "<template data-profile-inactive>" +
+            match.Groups["content"].Value + "</template>" + match.Groups["closing"].Value,
+        RegexOptions.Singleline);
 
     public static string SetContent(string html, string id, string content) => Regex.Replace(html,
         $"(?<opening><(?<tag>[a-z][a-z0-9]*)\\b[^>]*\\bid=\"{Regex.Escape(id)}\"[^>]*>).*?(?<closing></\\k<tag>>)",

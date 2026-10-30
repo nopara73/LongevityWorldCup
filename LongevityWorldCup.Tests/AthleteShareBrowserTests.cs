@@ -217,6 +217,9 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
         await share.PressAsync("Enter");
         Assert.Equal(1, await page.EvaluateAsync<int>("() => window.__nativeCalls.length"));
         await OpenSecondProfileAsync(page);
+        // Entry focus is applied on the next animation frame. Observe the new
+        // dialog after that handoff before testing the stale share completion.
+        await Assertions.Expect(page.Locator("#closeAthleteDetailsModal")).ToBeFocusedAsync();
         var focus = await page.EvaluateAsync<string>("() => document.activeElement?.id || document.activeElement?.tagName");
         await CompleteAsync(page, "native", fail);
         await Assertions.Expect(share).ToHaveTextAsync("Share");
