@@ -51,6 +51,21 @@ public sealed class ProofUploadLayoutBrowserTests(
         var badge = (await icon.BoundingBoxAsync())!;
         var drawing = (await icon.Locator("svg").BoundingBoxAsync())!;
         var hint = (await preview.Locator(".proof-page-edit-hint").BoundingBoxAsync())!;
+        if (width == 320)
+        {
+            var uploadOverlap = await page.Locator("#uploadProofButton").EvaluateAsync<bool>("""
+                button => {
+                    const label = button.querySelector('.flow-action__label');
+                    const icon = button.querySelector('i').getBoundingClientRect();
+                    const range = document.createRange();
+                    range.selectNodeContents(label);
+                    return [...range.getClientRects()].some(text =>
+                        Math.min(text.right, icon.right) - Math.max(text.left, icon.left) > 0.5
+                        && Math.min(text.bottom, icon.bottom) - Math.max(text.top, icon.top) > 0.5);
+                }
+                """);
+            Assert.False(uploadOverlap, "The enlarged upload label must not overlap its icon.");
+        }
         Assert.True(badge.Width > originalWidth * 1.2 && drawing.Width >= 32);
         Assert.True(drawing.X >= badge.X + 8 && drawing.X + drawing.Width <= badge.X + badge.Width - 8);
         Assert.True(drawing.Y >= badge.Y + 8 && drawing.Y + drawing.Height <= badge.Y + badge.Height - 8);
