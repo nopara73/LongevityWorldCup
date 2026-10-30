@@ -11,6 +11,56 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
     [Theory]
     [InlineData(1280)]
     [InlineData(390)]
+    public async Task ProfileText_ContainsOnlyTheCurrentAthletesAvailableFacts(int width)
+    {
+        await using (var context = await NewContextAsync(Browser, App, new()
+        {
+            JavaScriptEnabled = false, ViewportSize = new() { Width = width, Height = 844 }
+        }))
+        {
+            var page = await context.NewPageAsync();
+            foreach (var (slug, pro) in new[] { ("michael-lustgarten", false), ("benjamin-garden", true) })
+            {
+                await page.GotoAsync("/athlete/" + slug);
+                await AssertReadableProfile(page, pro);
+            }
+        }
+
+        await using var interactive = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        await interactive.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
+        var live = await interactive.NewPageAsync();
+        await live.GotoAsync("/athlete/michael-lustgarten");
+        await live.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').hasAttribute('data-server-rendered-profile') && document.querySelector('#modalProfilePic').hasAttribute('data-full-src')");
+        await AssertReadableProfile(live, false);
+        foreach (var (slug, pro) in new[] { ("benjamin-garden", true), ("michael-lustgarten", false), ("benjamin-garden", true) })
+        {
+            await live.EvaluateAsync("slug => window.openAthleteModalBySlug(slug)", slug);
+            await AssertReadableProfile(live, pro);
+        }
+    }
+
+    private static async Task AssertReadableProfile(IPage page, bool pro)
+    {
+        // textContent deliberately ignores CSS. Inert template contents are not
+        // page text; a hidden element alone still publishes its dormant copy.
+        var text = await page.Locator("#detailsModal").TextContentAsync();
+        Assert.DoesNotContain("We could not load this profile", text);
+        Assert.DoesNotContain("My real age is:", text);
+        var badges = await page.Locator("#detailsModal .pro-badge, #stickyProBadge")
+            .EvaluateAllAsync<string[]>("badges => badges.map(badge => badge.textContent.trim())");
+        Assert.All(badges, value => Assert.Equal(pro ? "PRO" : "", value));
+        var unavailable = await page.Locator(".athlete-info-table tr[hidden]")
+            .EvaluateAllAsync<string[]>("rows => rows.map(row => row.textContent.trim())");
+        Assert.All(unavailable, value => Assert.Empty(value));
+        Assert.Equal(pro, await page.Locator("#lowestBortzAgeContainer").IsVisibleAsync());
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
     public async Task DirectProfile_NeverPaintsTheGuessGameDuringHydration(int width)
     {
         await using var context = await NewContextAsync(Browser, App, new()
@@ -146,10 +196,15 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
     }
 
-    [Fact]
-    public async Task ProfileFailure_KeepsReadableDetails_AndRetryPreservesTheHomepage()
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task ProfileFailure_KeepsReadableDetails_AndRetryPreservesTheHomepage(int width)
     {
-        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ReducedMotion = ReducedMotion.Reduce, ViewportSize = new() { Width = width, Height = 844 }
+        });
         await context.AddInitScriptAsync("""
             Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
             Object.defineProperty(navigator, 'clipboard', { value: {
@@ -172,6 +227,7 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         await page.Locator("#retryAthleteLoad").ClickAsync();
         await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').hasAttribute('data-server-rendered-profile') && document.querySelector('#modalProfilePic').hasAttribute('data-full-src')");
         await Assertions.Expect(page.Locator("#athleteLoadError")).ToBeHiddenAsync();
+        await AssertReadableProfile(page, false);
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeEnabledAsync();
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
         await page.Locator("#closeAthleteDetailsModal").ClickAsync();
@@ -235,7 +291,7 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         "scores => scores.map(score => { const value = getComputedStyle(score); const label = getComputedStyle(score.parentElement); return [value.fontSize, value.color, label.fontSize, label.color].join('|'); })");
 
     private static Task<string[]> ProfileFacts(IPage page) => page.EvaluateAsync<string[]>(
-        "() => ['athleteName', 'athleteRankings', 'athleteBio', 'chronologicalAge', 'lowestPhenoAge', 'lowestBortzAge', 'ageReduction', 'ageReductionPercent', 'bortzAgeReduction', 'bortzAgeReductionPercent'].map(id => document.getElementById(id).textContent.trim())");
+        "() => ['athleteName', 'athleteRankings', 'athleteBio', 'chronologicalAge', 'lowestPhenoAge', 'lowestBortzAge', 'ageReduction', 'ageReductionPercent', 'bortzAgeReduction', 'bortzAgeReductionPercent'].map(id => document.getElementById(id)?.textContent.trim() ?? '')");
 
     private static async Task CaptureProfile(IPage page, string name)
     {

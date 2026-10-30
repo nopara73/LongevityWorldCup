@@ -9,6 +9,18 @@ const gmaSliderWrap = gmaCard.querySelector('.gma-slider-wrap');
 
 const heading = gmaCard.querySelector('.gma-heading');
 const chronoHeading = gmaCard.querySelector('.chrono-age-heading');
+function setGmaChronoHeadingVisible(visible) {
+    chronoHeading.style.display = visible ? 'inline-block' : 'none';
+    const saved = chronoHeading.querySelector('template[data-gma-result-heading]');
+    if (visible) {
+        if (saved) saved.replaceWith(saved.content);
+    } else if (!saved) {
+        const template = document.createElement('template');
+        template.setAttribute('data-gma-result-heading', '');
+        template.content.append(...chronoHeading.childNodes);
+        chronoHeading.append(template);
+    }
+}
 const gmaStatus = document.getElementById('gmaStatus');
 
 const modalContent = document.querySelector('#detailsModal .modal-content');
@@ -130,7 +142,7 @@ const resetObserver = new MutationObserver(mutations => {
         cancelGmaPresentation();
         setGuessMyAgeParam(true);
         // hide the chrono prompt again
-        chronoHeading.style.display = 'none';
+        setGmaChronoHeadingVisible(false);
         // restore the original prompt
         heading.style.display = '';
         chronoHeading.classList.remove('is-revealing');
@@ -363,7 +375,7 @@ if (typeof ResizeObserver === 'function') {
 
 function startGmaResultPrelude(presentation) {
     heading.style.display = 'none';
-    chronoHeading.style.display = 'inline-block';
+    setGmaChronoHeadingVisible(true);
     chronoHeading.classList.remove('is-revealing');
     void chronoHeading.offsetWidth;
     chronoHeading.classList.add('is-revealing');
@@ -1520,7 +1532,7 @@ function restoreGuessControls(message, focusTarget) {
     gmaCard.removeAttribute('aria-busy');
     gmaCard.classList.remove('is-submitting', 'is-revealing');
     heading.style.display = '';
-    chronoHeading.style.display = 'none';
+    setGmaChronoHeadingVisible(false);
     chronoHeading.classList.remove('is-revealing');
     gmaStatus.classList.remove('gma-status--semantic');
     gmaStatus.hidden = !message;

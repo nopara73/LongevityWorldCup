@@ -1866,6 +1866,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 const row = template.content.firstElementChild.cloneNode(true);
 
                 row.classList.add('tier-' + tier);
+                setProfileProBadge(row.querySelector('.pro-badge'), isPro);
                 row.setAttribute('data-tier', tier);
                 row.setAttribute('data-rank', athlete.rank);
 
@@ -2993,6 +2994,48 @@ window.ensureChartJs = window.ensureChartJs || function () {
     return window.__chartJsPromise;
 };
 
+// An inactive state is not page text. Keep its original nodes in a template
+// until needed, retaining IDs and controls for the existing dialog lifecycle.
+function restoreInactiveProfileContent(root) {
+    if (!root) return;
+    let template;
+    while ((template = root.querySelector('template[data-profile-inactive]'))) {
+        template.replaceWith(template.content);
+    }
+}
+
+function deferInactiveProfileContent(element) {
+    if (!element || element.querySelector(':scope > template[data-profile-inactive]')) return;
+    const template = document.createElement('template');
+    template.setAttribute('data-profile-inactive', '');
+    template.content.append(...element.childNodes);
+    element.append(template);
+}
+
+function hideAthleteLoadError() {
+    const error = document.getElementById('athleteLoadError');
+    if (!error) return;
+    error.hidden = true;
+    deferInactiveProfileContent(error);
+}
+
+function deferUnavailableProfileFacts() {
+    document.querySelectorAll('.athlete-info-table tr[hidden]').forEach(deferInactiveProfileContent);
+}
+
+function setProfileProBadge(badge, isPro) {
+    if (!badge) return;
+    badge.textContent = isPro ? 'PRO' : '';
+    badge.hidden = !isPro;
+    if (isPro) {
+        badge.setAttribute('aria-label', 'Pro track');
+        badge.title = 'Professional longevity athlete';
+    } else {
+        badge.removeAttribute('aria-label');
+        badge.removeAttribute('title');
+    }
+}
+
 function ensureAthleteModalDeferredSections() {
     if (document.getElementById('events-frame') && document.getElementById('athlete-biomarkers') && document.getElementById('athlete-proofs')) {
         return;
@@ -3065,8 +3108,7 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
         modalContent.classList.add('is-loading');
         modal.style.display = 'block';
         document.getElementById('shareAthleteProfile').disabled = true;
-        const loadError = document.getElementById('athleteLoadError');
-        if (loadError) loadError.hidden = true;
+        hideAthleteLoadError();
         activateAthleteModal();
         return modalContent;
     }
@@ -3077,8 +3119,8 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     modalContent.dataset.athleteSlug = athleteSlug;
     delete modalContent.dataset.profileImageId;
 
-    const loadError = document.getElementById('athleteLoadError');
-    if (loadError) loadError.hidden = true;
+    hideAthleteLoadError();
+    document.querySelectorAll('#detailsModal .pro-badge, #stickyProBadge').forEach(badge => setProfileProBadge(badge, false));
 
     const stickyHeader = document.getElementById('modalStickyHeader');
     if (stickyHeader) {
@@ -5964,7 +6006,10 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
     const profilePic = document.getElementById('modalProfilePic');
     if (profilePic && !preserveServerProfile) profilePic.alt = '';
     const loadError = document.getElementById('athleteLoadError');
-    if (loadError) loadError.hidden = false;
+    if (loadError) {
+        restoreInactiveProfileContent(loadError);
+        loadError.hidden = false;
+    }
     const retryButton = document.getElementById('retryAthleteLoad');
     if (retryButton) {
         const retryOptions = options
@@ -6341,9 +6386,11 @@ function populateProfilePace(id, lowestAge, chronologicalAge, orderedAthletes, n
 }
 
 function populateModal(fullAthleteData, athleteData, rankSummary) {
+    restoreInactiveProfileContent(document.querySelector('.athlete-info-table'));
     const ultimateRank = rankSummary ? rankSummary.ultimateRank : athleteData.rank;
     const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
     const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
+    document.querySelectorAll('#detailsModal .pro-badge, #stickyProBadge').forEach(badge => setProfileProBadge(badge, isPro));
     const shareSlugSource = String(fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName).replace(/_/g, '-');
     const shareAthleteSlug = window.slugifyName(shareSlugSource, true);
     const athleteNameElement = document.getElementById('athleteName');
@@ -6435,6 +6482,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     populateProfilePace('bortzPaceOfAging', athleteData.lowestBortzAge, athleteData.chronoAtLowestBortzAge, athletesOrderedByBortzPace, athleteData.name);
     populateProfilePace('paceOfAging', athleteData.lowestPhenoAge, athleteData.chronoAtLowestPhenoAge, athletesOrderedByPace, athleteData.name);
     updateAthleteInfoGrouping();
+
+    deferUnavailableProfileFacts();
 
     // Personal Link
     const personalLinkElement = document.getElementById('personalLink');
@@ -7884,6 +7933,7 @@ function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
 
 function updateCrowdContainer(crowdAge, crowdCount) {
     const crowdContainer = document.getElementById('crowdAgeContainer');
+    restoreInactiveProfileContent(crowdContainer);
     const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
     const hasCrowdAge = Number.isFinite(crowdAge) && Number.isFinite(crowdCount) && crowdCount > 0;
 
@@ -7898,10 +7948,12 @@ function updateCrowdContainer(crowdAge, crowdCount) {
         document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
         document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
     }
+    if (crowdContainer.hidden) deferInactiveProfileContent(crowdContainer);
 }
 
 function updateYourGuess() {
     const yourGuessContainer = document.getElementById('yourGuessContainer');
+    restoreInactiveProfileContent(yourGuessContainer);
     const yourGuessSpan = document.getElementById('yourGuess');
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const guessData = window.LwcGuessState?.get({
@@ -7915,7 +7967,7 @@ function updateYourGuess() {
 
         // grab the displayed chrono & crowd ages
         const chrono = parseInt(document.getElementById('chronologicalAge').textContent, 10);
-        const crowd = parseFloat(document.getElementById('crowdAge').textContent);
+        const crowd = parseFloat(document.getElementById('crowdAge')?.textContent);
 
         // compute how far you and the crowd are from the true age
         const diffYou = Math.abs(guess - chrono);
@@ -7945,6 +7997,7 @@ function updateYourGuess() {
         // hide if no guess
         yourGuessContainer.hidden = true;
     }
+    if (yourGuessContainer.hidden) deferInactiveProfileContent(yourGuessContainer);
     updateAthleteInfoGrouping();
 }
 

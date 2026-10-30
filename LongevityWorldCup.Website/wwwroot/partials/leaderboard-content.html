@@ -300,7 +300,7 @@
                     <div class="sticky-header-left">
                         <img class="sticky-athlete-portrait" id="stickyAthletePortrait" alt="" aria-hidden="true" hidden>
                         <span class="sticky-athlete-name" id="stickyAthleteName"></span>
-                        <span class="sticky-pro-badge" id="stickyProBadge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                        <span class="sticky-pro-badge" id="stickyProBadge"></span>
                     </div>
                     <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
                     <div class="athlete-steps" role="group" aria-label="Browse athletes" hidden>
@@ -321,7 +321,7 @@
                              alt="Athlete profile picture"
                              class="illustration"
                              loading="lazy" />
-                        <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                        <span class="pro-badge" id="profileProBadge"></span>
                         <a id="modalFlagMark" class="portrait-flag" href="#" hidden></a>
                     </span>
                     <h2 id="athleteName"></h2>
@@ -355,10 +355,10 @@
                         </a>
                     </div>
                     <nav id="athleteRankings" aria-label="Competition rankings" hidden></nav>
-                    <div id="athleteLoadError" role="alert" hidden>
+                    <div id="athleteLoadError" role="alert" hidden><template data-profile-inactive>
                         <p>We could not load this profile. Try again, or close the panel and come back later.</p>
                         <button id="retryAthleteLoad" type="button" class="modal-link">Try again</button>
-                    </div>
+                    </template></div>
 
                     <!--GUESS-MY-AGE-->
 
@@ -372,41 +372,41 @@
                                 <th role="rowheader" scope="row"><strong>Chronological age</strong></th>
                                 <td role="cell"><span id="chronologicalAge" class="age-board-figure"></span> <span class="unit">years old</span></td>
                             </tr>
-                            <tr role="row" id="crowdAgeContainer" hidden>
+                            <tr role="row" id="crowdAgeContainer" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row"><strong>Crowd Age</strong></th>
                                 <td role="cell">
                                     <span id="notEmptyCrowdAgeContainer" hidden>
             <span id="crowdAge" class="age-board-figure">0</span> <span class="unit">years</span>, <span id="crowdCount">0</span> <span class="detail-muted">guesses</span>
           </span>
                                 </td>
-                            </tr>
+                            </template></tr>
 
-                            <tr role="row" id="yourGuessContainer" hidden>
+                            <tr role="row" id="yourGuessContainer" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row"><strong>Your guess</strong></th>
                                 <td role="cell"><span id="yourGuess"></span></td>
-                            </tr>
+                            </template></tr>
 
-                            <tr role="row" id="lowestBortzAgeContainer" data-clock="bortz" hidden>
+                            <tr role="row" id="lowestBortzAgeContainer" data-clock="bortz" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row"><strong>Lowest Bortz Age</strong></th>
                                 <td role="cell"><span id="lowestBortzAge" class="age-board-figure"></span> <span class="unit">years</span></td>
-                            </tr>
+                            </template></tr>
 
-                            <tr role="row" id="lowestPhenoAgeContainer" data-clock="pheno" hidden>
+                            <tr role="row" id="lowestPhenoAgeContainer" data-clock="pheno" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row"><strong>Lowest Pheno Age</strong></th>
                                 <td role="cell"><span id="lowestPhenoAge" class="age-board-figure"></span> <span class="unit">years</span></td>
-                            </tr>
+                            </template></tr>
 
-                            <tr role="row" id="bortzPaceOfAgingContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden>
+                            <tr role="row" id="bortzPaceOfAgingContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row"><strong>Bortz pace of aging</strong></th>
                                 <td role="cell"><span id="bortzPaceOfAging" class="age-board-figure"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></td>
-                            </tr>
+                            </template></tr>
 
-                            <tr role="row" id="paceOfAgingContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden>
+                            <tr role="row" id="paceOfAgingContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row"><strong>Pheno pace of aging</strong></th>
                                 <td role="cell"><span id="paceOfAging" class="age-board-figure"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></td>
-                            </tr>
+                            </template></tr>
 
-                            <tr role="row" id="bortzAgeReductionContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden>
+                            <tr role="row" id="bortzAgeReductionContainer" data-clock="bortz" title="Derived from the lowest biological age of the season" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row">
                                     <strong><span id="bortzAgeReductionAccelerationLabel">Bortz Age reduction</span></strong>
                                 </th>
@@ -414,9 +414,9 @@
                                     <span id="bortzAgeReduction" class="age-board-figure"></span> <span class="unit">years</span>
                                     <span id="bortzAgeReductionShare" class="age-board-share">(<span id="bortzAgeReductionPercent"></span><span class="unit">%</span>)</span>
                                 </td>
-                            </tr>
+                            </template></tr>
 
-                            <tr role="row" id="ageReductionContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden>
+                            <tr role="row" id="ageReductionContainer" data-clock="pheno" title="Derived from the lowest biological age of the season" hidden><template data-profile-inactive>
                                 <th role="rowheader" scope="row">
                                     <strong><span id="ageReductionAccelerationLabel">Pheno Age reduction</span></strong>
                                 </th>
@@ -424,7 +424,7 @@
                                     <span id="ageReduction" class="age-board-figure"></span> <span class="unit">years</span>
                                     <span id="ageReductionShare" class="age-board-share">(<span id="ageReductionPercent"></span><span class="unit">%</span>)</span>
                                 </td>
-                            </tr>
+                            </template></tr>
                             </tbody>
                             <tbody class="athlete-info-basics" role="rowgroup">
                             <tr role="row" id="athleteRankContainer">
@@ -527,7 +527,7 @@
         <td data-label="Athlete" class="athlete-td">
             <a class="portrait-wrapper athlete-profile-link" aria-label="View athlete profile">
                 <img src="" alt="" class="portrait" loading="lazy">
-                <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                <span class="pro-badge"></span>
             </a>
             <div class="athlete-identity">
                 <a class="athlete-name" title="View stats"></a>
