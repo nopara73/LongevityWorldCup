@@ -2238,10 +2238,14 @@ public sealed partial class EventDataService : IDisposable
 
     public void ReloadIntoCache()
     {
-        var arr = new JsonArray();
-        foreach (var e in GetEvents(visibleOnWebsite: true))
-            arr.Add(e.ToJson());
-        Events = arr;
+        // Keep publication in the read's gate so an older refresh cannot replace a newer snapshot.
+        _db.Run(_ =>
+        {
+            var arr = new JsonArray();
+            foreach (var e in GetEvents(visibleOnWebsite: true))
+                arr.Add(e.ToJson());
+            Events = arr;
+        });
     }
 
     private static EventItem Map(SqliteDataReader r)
