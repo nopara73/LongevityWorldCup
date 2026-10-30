@@ -881,6 +881,7 @@
             overflow: hidden;
         }
     </style>
+    <link rel="stylesheet" href="{{ASSET_PORTRAIT_CROP_CSS}}">
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
@@ -1016,6 +1017,7 @@
         <div class="profile-crop-stage">
             <img id="changeProfileCropperImage" src="" alt="Profile picture crop preview">
         </div>
+        <div id="changeProfileCropPreviews" class="lwc-crop-previews" aria-hidden="true"></div>
         <div class="options-container flow-action-stack flow-action-stack--flush">
             <button type="button" id="changeProfileCropButton" class="option-button green flow-action">
                 <span class="flow-action__label">Crop and save</span>
@@ -1886,6 +1888,7 @@
                     // expose globally so crop/cancel buttons can access it
                     window.changeProfileCropper = new LwcPortraitCropper(cropperImage, {
                         error: failProfilePicture,
+                        previews: document.getElementById('changeProfileCropPreviews'),
                         // The stage observer handles viewport and text reflow,
                         // preserving image coordinates across aspect changes.
                         ready() {
@@ -1946,6 +1949,7 @@
                 if (!window.isProfileImageDataUrl(newSrc)) throw new Error('Portrait encoding failed.');
                 if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
                 const imgEl = document.querySelector('.edit-profile-visual .illustration');
+                const cropWindow = activeCropper.windowRect();
                 setProfilePictureValue(newSrc);
                 imgEl.alt = getAthleteDisplayName() + ' headshot';
                 athlete.ProfilePic = newSrc;
@@ -1954,6 +1958,7 @@
                 // enable the “Submit Change Request” button now that there’s a new image
                 updateSubmitButtonState(changeProfileBtn);
                 closeChangeProfileCropperDialog();
+                LwcPortraitCropper.land(cropWindow, newSrc, imgEl);
             } catch (_) {
                 if (version !== profilePictureReadVersion || window.changeProfileCropper !== activeCropper) return;
                 closeChangeProfileCropperDialog({ restoreFocus: false });

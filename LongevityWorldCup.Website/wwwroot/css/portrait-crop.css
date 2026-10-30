@@ -1,0 +1,347 @@
+/* Portrait crop: the picture is framed the way the site shows it, as a circle.
+ * Shared by the application photo step and the edit-profile crop dialog.
+ *
+ * Stage: the photo sits on a blurred, dimmed copy of itself instead of a
+ *   checkerboard, so letterboxing reads as part of the photo.
+ * Window: a round cut-out inside Cropper's square selection; corner brackets
+ *   and edge pills replace the 5px blue dots.
+ * Previews: three live circles at the sizes the portrait is shown across the
+ *   site (profile, leaderboard row, small avatar).
+ * Motion: the photo develops in, the window draws in, thirds appear only while
+ *   adjusting, and Crop and save flies the circle into the page's portrait. */
+
+[data-lwc-crop-stage] {
+    --crop-dim: rgb(8 12 18 / 0.62);
+    --crop-line: rgb(255 255 255 / 0.96);
+    --crop-soft-line: rgb(255 255 255 / 0.34);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: #101820;
+}
+
+/* Ambient copy of the photo behind the letterbox. */
+[data-lwc-crop-stage] > .lwc-crop-ambient {
+    position: absolute;
+    inset: -12%;
+    z-index: 0;
+    width: 124%;
+    height: 124%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    object-fit: cover;
+    filter: blur(28px) brightness(0.42) saturate(1.25);
+    transform: scale(1.04);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 420ms var(--lwc-ease-enter, ease-out);
+}
+
+[data-lwc-crop-stage][data-state="ready"] > .lwc-crop-ambient {
+    opacity: 1;
+}
+
+[data-lwc-crop-stage] cropper-canvas {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+}
+
+/* The photo develops: soft and grey, then sharp. */
+[data-lwc-crop-stage] cropper-image {
+    transition: filter 460ms var(--lwc-ease-enter, ease-out);
+}
+
+[data-lwc-crop-stage]:not([data-state="ready"]) cropper-image {
+    filter: blur(10px) grayscale(1) brightness(1.15);
+}
+
+/* Cropper's square shade is replaced by the round window's own shadow. */
+[data-lwc-crop-stage] cropper-shade {
+    display: none;
+}
+
+[data-lwc-crop-stage] cropper-selection {
+    outline: 1px solid var(--crop-soft-line);
+    outline-offset: 0;
+}
+
+.lwc-crop-ring {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 1.5px var(--crop-line),
+        0 0 0 200vmax var(--crop-dim);
+    pointer-events: none;
+    transition:
+        box-shadow 200ms var(--lwc-ease-standard, ease),
+        transform 200ms var(--lwc-ease-standard, ease);
+}
+
+[data-lwc-crop-stage]:not([data-state="ready"]) .lwc-crop-ring {
+    box-shadow:
+        0 0 0 1.5px transparent,
+        0 0 0 200vmax rgb(8 12 18 / 0.2);
+    transform: scale(1.14);
+}
+
+[data-lwc-crop-stage][data-state="ready"] .lwc-crop-ring {
+    transition:
+        box-shadow 420ms var(--lwc-ease-enter, ease-out),
+        transform 520ms var(--lwc-ease-pop, ease-out);
+}
+
+/* Rule-of-thirds guides, clipped to the circle, only while adjusting. */
+[data-lwc-crop-stage] cropper-grid {
+    border-radius: 50%;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 180ms var(--lwc-ease-standard, ease);
+    --theme-color: rgb(255 255 255 / 0.45) !important;
+}
+
+[data-lwc-crop-stage][data-adjusting] cropper-grid {
+    opacity: 1;
+}
+
+[data-lwc-crop-stage][data-adjusting] .lwc-crop-ring {
+    box-shadow:
+        0 0 0 2.5px var(--crop-line),
+        0 0 0 200vmax rgb(8 12 18 / 0.72);
+}
+
+[data-lwc-crop-stage] cropper-crosshair {
+    display: none;
+}
+
+[data-lwc-crop-stage] cropper-handle.cropper-face {
+    --theme-color: transparent !important;
+    background: transparent;
+    cursor: grab;
+}
+
+[data-lwc-crop-stage][data-adjusting] cropper-handle.cropper-face {
+    cursor: grabbing;
+}
+
+/* Resize handles: larger hit areas, drawn as brackets and pills. */
+[data-lwc-crop-stage] cropper-handle[action$="-resize"] {
+    --theme-color: transparent !important;
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+}
+
+[data-lwc-crop-stage] cropper-handle[action$="-resize"]::after {
+    background: none;
+    transition: transform 160ms var(--lwc-ease-standard, ease), opacity 200ms ease;
+}
+
+[data-lwc-crop-stage]:not([data-state="ready"]) cropper-handle[action$="-resize"]::after {
+    opacity: 0;
+}
+
+[data-lwc-crop-stage] cropper-handle:is([action="n-resize"], [action="s-resize"]) {
+    width: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+[data-lwc-crop-stage] cropper-handle[action="n-resize"] { top: -16px; }
+[data-lwc-crop-stage] cropper-handle[action="s-resize"] { bottom: -16px; }
+
+[data-lwc-crop-stage] cropper-handle:is([action="e-resize"], [action="w-resize"]) {
+    height: 56px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+[data-lwc-crop-stage] cropper-handle[action="e-resize"] { right: -16px; }
+[data-lwc-crop-stage] cropper-handle[action="w-resize"] { left: -16px; }
+
+[data-lwc-crop-stage] cropper-handle:is([action="n-resize"], [action="s-resize"])::after {
+    width: 22px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--crop-line);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+}
+
+[data-lwc-crop-stage] cropper-handle:is([action="e-resize"], [action="w-resize"])::after {
+    width: 4px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--crop-line);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+}
+
+[data-lwc-crop-stage] cropper-handle:is([action="ne-resize"], [action="nw-resize"], [action="se-resize"], [action="sw-resize"]) {
+    transform: none;
+}
+
+[data-lwc-crop-stage] cropper-handle[action="nw-resize"] { top: -16px; left: -16px; }
+[data-lwc-crop-stage] cropper-handle[action="ne-resize"] { top: -16px; right: -16px; left: auto; }
+[data-lwc-crop-stage] cropper-handle[action="sw-resize"] { bottom: -16px; left: -16px; top: auto; }
+[data-lwc-crop-stage] cropper-handle[action="se-resize"] { bottom: -16px; right: -16px; top: auto; left: auto; }
+
+[data-lwc-crop-stage] cropper-handle:is([action="ne-resize"], [action="nw-resize"], [action="se-resize"], [action="sw-resize"])::after {
+    width: 16px;
+    height: 16px;
+    border: 0 solid var(--crop-line);
+    border-radius: 3px;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
+}
+
+[data-lwc-crop-stage] cropper-handle[action="nw-resize"]::after { border-width: 3.5px 0 0 3.5px; translate: 4px 4px; }
+[data-lwc-crop-stage] cropper-handle[action="ne-resize"]::after { border-width: 3.5px 3.5px 0 0; translate: -4px 4px; }
+[data-lwc-crop-stage] cropper-handle[action="sw-resize"]::after { border-width: 0 0 3.5px 3.5px; translate: 4px -4px; }
+[data-lwc-crop-stage] cropper-handle[action="se-resize"]::after { border-width: 0 3.5px 3.5px 0; translate: -4px -4px; }
+
+@media (hover: hover) {
+    [data-lwc-crop-stage] cropper-handle[action$="-resize"]:hover::after {
+        transform: translate(-50%, -50%) scale(1.25);
+    }
+}
+
+/* ===== Live previews ===== */
+.lwc-crop-previews {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.9rem, 4vw, 1.6rem);
+    padding: 0.95rem 1rem;
+    background:
+        radial-gradient(120% 140% at 50% 0%, var(--lwc-surface-accent, transparent), transparent 70%),
+        var(--lwc-surface);
+}
+
+.lwc-crop-previews canvas {
+    display: block;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--lwc-surface-muted);
+    box-shadow:
+        0 0 0 2px var(--lwc-surface),
+        0 0 0 3px var(--lwc-border-strong, var(--lwc-border)),
+        var(--lwc-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.12));
+    opacity: 0;
+    transform: scale(0.6);
+    transition:
+        opacity 260ms var(--lwc-ease-enter, ease-out),
+        transform 420ms var(--lwc-ease-pop, ease-out),
+        box-shadow 200ms var(--lwc-ease-standard, ease);
+}
+
+.lwc-crop-previews[data-state="ready"] canvas {
+    opacity: 1;
+    transform: none;
+}
+
+.lwc-crop-previews[data-state="ready"] canvas:nth-child(2) { transition-delay: 70ms, 70ms, 0ms; }
+.lwc-crop-previews[data-state="ready"] canvas:nth-child(3) { transition-delay: 140ms, 140ms, 0ms; }
+
+.lwc-crop-previews[data-adjusting] canvas {
+    box-shadow:
+        0 0 0 2px var(--lwc-surface),
+        0 0 0 4px var(--lwc-accent),
+        var(--lwc-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.12));
+}
+
+/* ===== Landing: the cut-out flies into the page portrait ===== */
+.lwc-crop-flight {
+    position: fixed;
+    z-index: 10050;
+    border-radius: 50%;
+    background-position: center;
+    background-size: cover;
+    box-shadow:
+        0 0 0 2px #fff,
+        0 18px 40px rgb(0 0 0 / 0.38);
+    pointer-events: none;
+    will-change: transform;
+}
+
+@keyframes lwc-crop-land {
+    0% { transform: scale(1.1); box-shadow: 0 0 0 0 var(--lwc-accent); }
+    45% { transform: scale(0.97); box-shadow: 0 0 0 6px color-mix(in srgb, var(--lwc-accent) 55%, transparent); }
+    100% { transform: none; box-shadow: 0 0 0 14px transparent; }
+}
+
+.lwc-crop-landed {
+    animation: lwc-crop-land 460ms var(--lwc-ease-standard, ease) both;
+}
+
+/* ===== Application step: the crop card ===== */
+.convergence-crop-preview:has([data-lwc-crop-stage]) {
+    padding: 0;
+    overflow: hidden;
+    background: var(--lwc-surface);
+}
+
+.convergence-crop-preview:has([data-lwc-crop-stage]) .lwc-crop-previews {
+    border-top: 1px solid var(--lwc-border);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #croppingPart:not([style*="none"]) .convergence-crop-preview,
+    #uploadPart:not([style*="none"]) > * {
+        transition:
+            opacity 260ms var(--lwc-ease-enter, ease-out),
+            translate 320ms var(--lwc-ease-enter, ease-out);
+
+        @starting-style {
+            opacity: 0;
+            translate: 0 10px;
+        }
+    }
+
+    #uploadPart:not([style*="none"]) > :nth-child(2) { transition-delay: 40ms; }
+    #uploadPart:not([style*="none"]) > :nth-child(3) { transition-delay: 80ms; }
+}
+
+/* ===== Edit-profile dialog ===== */
+#changeProfileCropperModal .profile-crop-stage {
+    height: min(52dvh, 400px);
+}
+
+#changeProfileCropperModal .lwc-crop-previews {
+    border-top: 1px solid var(--lwc-border);
+}
+
+#changeProfileCropperModal .options-container {
+    background: var(--lwc-surface);
+}
+
+@media (max-width: 600px) {
+    #changeProfileCropperModal .profile-crop-stage {
+        height: min(46dvh, 360px);
+    }
+
+    .lwc-crop-previews {
+        padding-block: 0.75rem;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    #changeProfileCropperModal .lwc-crop-previews {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-lwc-crop-stage] *,
+    [data-lwc-crop-stage] > .lwc-crop-ambient,
+    .lwc-crop-previews canvas,
+    .lwc-crop-ring {
+        transition: none !important;
+    }
+
+    .lwc-crop-landed {
+        animation: none;
+    }
+}
