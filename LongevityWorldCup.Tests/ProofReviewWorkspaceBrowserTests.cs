@@ -159,6 +159,7 @@ public sealed class ProofReviewWorkspaceBrowserTests(PlaywrightBrowserFixture br
         await UploadAsync(page, CreatePages(4));
         var sources = await page.Locator("#proofImageContainer img").EvaluateAllAsync<string[]>("images => images.map(image => image.src)");
         await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ProofReviewBrowserTests.ApplyDraftForReviewAsync(page);
         var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Review attached proofs" });
         await dialog.WaitForAsync();
 
@@ -197,6 +198,7 @@ public sealed class ProofReviewWorkspaceBrowserTests(PlaywrightBrowserFixture br
         while (await page.Locator(".proof-page-remove").CountAsync() > 1)
             await page.Locator(".proof-page-remove").First.ClickAsync();
         await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ProofReviewBrowserTests.ApplyDraftForReviewAsync(page);
         await Assertions.Expect(dialog.Locator(".proof-review-filmstrip")).ToBeHiddenAsync();
         await Assertions.Expect(dialog.Locator(".proof-review-position")).ToHaveTextAsync("1 / 1");
     }

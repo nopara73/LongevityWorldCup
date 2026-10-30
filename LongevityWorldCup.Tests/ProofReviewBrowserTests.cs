@@ -28,6 +28,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, files);
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
         await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ApplyDraftForReviewAsync(page);
         var title = page.Locator(".proof-review-toolbar h2");
         await Assertions.Expect(title).ToHaveTextAsync(files[0].Name);
         Assert.True(await title.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1"),
@@ -244,6 +245,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, await CreatePagesAsync(3));
         var sources = await ReadSourcesAsync(page);
         await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ApplyDraftForReviewAsync(page);
         var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Review attached proofs" });
         await dialog.WaitForAsync();
         Assert.True(await dialog.GetByRole(AriaRole.Button, new() { Name = "← Previous", Exact = true }).IsDisabledAsync());
@@ -271,7 +273,8 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.Keyboard.PressAsync("Escape");
         await page.WaitForFunctionAsync("() => !document.body.classList.contains('proof-review-open')");
         Assert.False(await dialog.IsVisibleAsync());
-        Assert.True(await page.Locator(".proof-page-preview").First.EvaluateAsync<bool>("e => e === document.activeElement"));
+        // Apply replaces the gallery cards; return to the page last inspected.
+        await Assertions.Expect(page.Locator(".proof-page-preview").Nth(2)).ToBeFocusedAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.body.classList.contains('proof-review-open')"));
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
@@ -369,7 +372,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Equal(original, await ReadSourcesAsync(page));
         await page.Locator(".proof-page-preview").Nth(1).TapAsync();
         await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
-        Assert.Equal(original[1], await page.Locator(".proof-review-dialog img").GetAttributeAsync("src"));
+        await Assertions.Expect(page.Locator(".proof-edit-sheet img")).ToHaveAttributeAsync("src", original[1]);
     }
 
     [Theory]
@@ -517,7 +520,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.True(await page.Locator("#proofPicInput").IsEnabledAsync());
         Assert.True(await page.Locator("#submitButton").IsEnabledAsync());
         await page.Locator(".proof-page-preview").Last.ClickAsync();
-        Assert.Equal(sources[1], await page.Locator(".proof-review-dialog img").GetAttributeAsync("src"));
+        await Assertions.Expect(page.Locator(".proof-edit-sheet img")).ToHaveAttributeAsync("src", sources[1]);
     }
 
     [Fact]
@@ -563,6 +566,17 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Equal(original, await ReadSourcesAsync(page));
         await UploadAsync(page, files);
         Assert.Equal(original, await ReadSourcesAsync(page));
+    }
+
+    internal static async Task ApplyDraftForReviewAsync(IPage page)
+    {
+        // Uploaded pages open ready to edit; inspection follows a real Apply.
+        var stage = page.Locator(".proof-edit-stage");
+        await Assertions.Expect(stage).ToBeFocusedAsync();
+        await page.Locator(".proof-edit-sheet:not([hidden])").WaitForAsync();
+        await stage.PressAsync("Enter");
+        await page.Locator(".proof-edit-apply").ClickAsync();
+        await Assertions.Expect(stage).ToHaveCountAsync(0);
     }
 
     internal static async Task<IPage> PrepareAsync(IBrowserContext context, bool onboarding)

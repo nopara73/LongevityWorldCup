@@ -978,14 +978,14 @@ class ProofReview {
             }
             const preview = this.button('', 'proof-page-preview', () => this.open(index, preview));
             preview.disabled = Boolean(this.progress);
-            preview.setAttribute('aria-label', `Review proof page ${index + 1}${this.labels.has(source) ? `: ${this.labels.get(source)}` : ''}`);
+            preview.setAttribute('aria-label', `Hide details on proof page ${index + 1}${this.labels.has(source) ? `: ${this.labels.get(source)}` : ''}`);
             const image = document.createElement('img');
             image.src = source;
             image.alt = `Proof image ${index + 1}`;
             const previewLabel = document.createElement('span');
-            previewLabel.textContent = 'Review page';
+            previewLabel.textContent = 'Hide details';
             const hint = document.createElement('i');
-            hint.className = 'fas fa-magnifying-glass-plus proof-page-zoom-hint';
+            hint.className = 'fas fa-pen-to-square proof-page-zoom-hint';
             hint.setAttribute('aria-hidden', 'true');
             preview.append(image, previewLabel, hint);
             const caption = document.createElement('div');
@@ -1190,6 +1190,7 @@ class ProofReview {
         // Measure the filmstrip after the dialog has a layout, including when
         // opening directly on a page at the end of a long report.
         this.updateViewer();
+        this.startEdit();
     }
 
     // Every page as a thumbnail under the viewer, so a long report can be crossed in one tap.
@@ -1319,8 +1320,7 @@ class ProofReview {
     private cancelEdit(): void {
         if (this.editor?.busy) return;
         this.endEdit();
-        this.updateViewer();
-        this.dialog?.querySelector<HTMLButtonElement>('.proof-review-hide')?.focus();
+        this.dialog?.close();
     }
 
     private async applyEdit(): Promise<void> {

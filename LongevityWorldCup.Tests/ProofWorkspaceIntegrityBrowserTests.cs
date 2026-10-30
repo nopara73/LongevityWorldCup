@@ -152,6 +152,7 @@ public sealed class ProofWorkspaceIntegrityBrowserTests(PlaywrightBrowserFixture
         await UploadAsync(page, CreatePages(3));
         if (enlargedText) await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
         await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ProofReviewBrowserTests.ApplyDraftForReviewAsync(page);
         for (var index = 0; index < 3; index++)
         {
             await page.Locator(".proof-review-thumb").Nth(index).ClickAsync();

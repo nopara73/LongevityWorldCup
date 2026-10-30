@@ -1393,12 +1393,12 @@ body.proof-review-open { overflow: hidden; }
 .proof-review-steps.is-compact .proof-review-step-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .proof-review-dialog.is-compact-title .proof-review-close-label,
 .proof-review-dialog.is-compact-height .proof-review-close-label { display: none; }
-.proof-review-dialog.is-editing.is-compact-title h2 { visibility: hidden; }
-.proof-review-dialog.is-compact-title:not(.is-editing) .proof-review-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-.proof-review-dialog.is-compact-title:not(.is-editing) .proof-review-title { display: contents; }
-.proof-review-dialog.is-compact-title:not(.is-editing) .proof-review-position { justify-self: start; }
-.proof-review-dialog.is-compact-title:not(.is-editing) h2 { grid-column: 1 / -1; grid-row: 2; }
-.proof-review-dialog.is-compact-title:not(.is-editing) .proof-review-close { grid-column: 2; grid-row: 1; }
+/* Keep the filename visible while editing, even when enlarged text needs its own row. */
+.proof-review-dialog.is-compact-title .proof-review-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.proof-review-dialog.is-compact-title .proof-review-title { display: contents; }
+.proof-review-dialog.is-compact-title .proof-review-position { justify-self: start; }
+.proof-review-dialog.is-compact-title h2 { grid-column: 1 / -1; grid-row: 2; }
+.proof-review-dialog.is-compact-title .proof-review-close { grid-column: 2; grid-row: 1; }
 /* Fit the controls to the measured space, including enlarged text and short
    windows. The dialog can still scroll when the controls need more room. */
 .proof-review-dialog.is-compact-height[open] { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(64px, 1fr) auto; }

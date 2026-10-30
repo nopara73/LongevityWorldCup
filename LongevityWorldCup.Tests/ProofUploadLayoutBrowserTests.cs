@@ -325,7 +325,7 @@ public sealed class ProofUploadLayoutBrowserTests(
             """);
         Assert.False(overflow, "Captions, including the complete source filename, should remain inside their tiles.");
         await Assertions.Expect(page.Locator(".proof-page-preview").First)
-            .ToHaveAccessibleNameAsync($"Review proof page 1: {files[0].Name}");
+            .ToHaveAccessibleNameAsync($"Hide details on proof page 1: {files[0].Name}");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

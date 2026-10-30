@@ -30,11 +30,15 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await page.Locator(".proof-page-remove").Last.ClickAsync();
         await UploadAsync(page, files);
         await page.Locator(".proof-page-preview").First.ClickAsync();
-        await StartAsync(page);
+        await ReadyAsync(page);
+        await Assertions.Expect(page.Locator(".proof-edit-stage")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator(".proof-review-hide")).ToBeHiddenAsync();
         await DrawAsync(page, 50, 170, 600, 170);
         await page.Locator(".proof-review-close").ClickAsync(); // Cancel all drafts.
+        await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
         Assert.Equal(original, await SourcesAsync(page));
-        await StartAsync(page);
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
         await DrawAsync(page, 50, 170, 600, 170);
         await page.Locator(".proof-review-thumb").Nth(1).ClickAsync();
         await ReadyAsync(page);
@@ -64,7 +68,6 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await SaveEvidenceAsync(page, $"{(onboarding ? "apply" : "proofs")}-{(pdf ? "pdf" : "image")}-applied");
         await StartAsync(page);
         await DrawAsync(page, 700, 900, 160, 80);
-        await page.Locator(".proof-review-close").ClickAsync();
         await page.Locator(".proof-review-close").ClickAsync();
         await Assertions.Expect(page.Locator(".proof-page-preview").Nth(1)).ToBeFocusedAsync();
 
@@ -117,7 +120,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         var original = await SourcesAsync(page);
         await page.Locator(".biomarker-checkbox").First.CheckAsync();
         await page.Locator(".proof-page-preview").First.ClickAsync();
-        await StartAsync(page);
+        await ReadyAsync(page);
         await DrawAsync(page, 50, 170, 600, 170);
         await page.Locator(".proof-review-thumb").Last.ClickAsync();
         await ReadyAsync(page);
@@ -158,13 +161,20 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         var page = await PrepareAsync(context, false);
         await UploadAsync(page, await ReportsAsync(page, false));
         await page.Locator(".proof-page-preview").First.TapAsync();
-        await StartAsync(page);
+        await ReadyAsync(page);
         if (largeText)
         {
             // Reflow while the editor is open, as well as opening at native zoom below.
             await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
-            if (width == 320) await Assertions.Expect(page.Locator(".proof-review-dialog h2")).ToBeHiddenAsync();
         }
+        var filename = page.Locator(".proof-review-dialog h2");
+        await Assertions.Expect(filename).ToBeVisibleAsync();
+        await Assertions.Expect(filename).ToContainTextAsync("Synthetic report 1.png");
+        await page.Locator(".proof-review-thumb").Nth(1).TapAsync();
+        await Assertions.Expect(filename).ToContainTextAsync("Synthetic report 2.png");
+        await Assertions.Expect(filename).ToBeVisibleAsync();
+        await page.Locator(".proof-review-thumb").First.TapAsync();
+        await ReadyAsync(page);
         var stage = page.Locator(".proof-edit-stage");
         await Assertions.Expect(page.Locator(".proof-edit-move")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator(".proof-edit-delete")).ToBeHiddenAsync();
@@ -256,8 +266,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator(".proof-review-close")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(page.Locator(".proof-review-hide")).ToBeFocusedAsync();
-        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
         await cdp.DetachAsync();
     }
@@ -290,7 +299,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
             await UploadAsync(page, await ReportsAsync(page, false));
             var original = await SourcesAsync(page);
             await page.Locator(".proof-page-preview").First.ClickAsync();
-            await StartAsync(page);
+            await ReadyAsync(page);
             var cdp = await context.NewCDPSessionAsync(page);
             var metrics = (await cdp.SendAsync("Page.getLayoutMetrics"))!.Value;
             Assert.Equal(2, metrics.GetProperty("cssVisualViewport").GetProperty("zoom").GetDouble(), 4);
