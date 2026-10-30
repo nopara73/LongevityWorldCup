@@ -370,48 +370,63 @@ const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
 
 interface ProofArea { x: number; y: number; width: number; height: number; }
 interface ProofEditPage {
+    original: string;
+    current: string;
     areas: ProofArea[];
+    committedAreas: ProofArea[];
     undo: ProofArea[][];
+    revision: number;
+    savedRevision: number;
+    failed: boolean;
     selected: number;
     scale: number;
     x: number;
     y: number;
 }
 
-// Drafts contain only geometry. Applying flattens all edited pages before the
-// owner atomically replaces submission bytes and its duplicate/removal caches.
+// Editable originals live only in this tab's working state. Upload/submission
+// arrays and duplicate caches contain the flattened current images.
+const proofEdits = new WeakMap<string[], Map<string, ProofEditPage>>();
+
 class ProofRedaction {
     readonly element = document.createElement('div');
     readonly controls = document.createElement('div');
-    readonly pages = new Map<number, ProofEditPage>();
-    busy = false;
     private image = document.createElement('img');
     private sheet = document.createElement('div');
     private overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     private page: ProofEditPage | null = null;
     private index = -1;
     private tool: 'hide' | 'move' = 'hide';
+    private spacePan = false;
+    private releasePan = (): void => {
+        if (!this.spacePan) return;
+        this.spacePan = false;
+        this.render();
+    };
+    private keyup = (event: KeyboardEvent): void => {
+        if (event.code === 'Space') this.releasePan();
+    };
     private pointers = new Map<number, { x: number; y: number }>();
     private gesture: { kind: string; x: number; y: number; before: ProofArea[]; area: ProofArea | null; corner: string } | null = null;
     private pinch: { distance: number; scale: number; x: number; y: number } | null = null;
     private lastFit = 0;
     private observer: ResizeObserver;
     private status = document.createElement('span');
-    private applyButton: HTMLButtonElement;
+    private retryButton: HTMLButtonElement;
     private undoButton: HTMLButtonElement;
     private deleteButton: HTMLButtonElement;
     private moveButton: HTMLButtonElement;
     private fitButton: HTMLButtonElement;
-    private apply: () => Promise<void>;
+    private changed: (page: ProofEditPage) => void;
 
-    constructor(apply: () => Promise<void>) {
-        this.apply = apply;
+    constructor(changed: (page: ProofEditPage) => void, retry: () => void) {
+        this.changed = changed;
         this.element.className = 'proof-edit-stage';
         this.element.setAttribute('data-lwc-no-gesture', '');
         this.element.tabIndex = 0;
         this.element.setAttribute('role', 'region');
         this.element.setAttribute('aria-label', 'Hide details on proof page');
-        this.element.setAttribute('aria-description', 'Drag to hide an area. Enter adds an area. Page Up and Page Down select areas. Arrow keys move the selection; Shift and arrows resize it; Alt makes fine adjustments. Delete removes it. Escape deselects. Control Z undoes. Plus and minus zoom. With no selection, arrows pan.');
+        this.element.setAttribute('aria-description', 'Drag to hide an area. Scroll to zoom at the pointer. Hold Space or the middle mouse button and drag to pan. Enter adds an area. Page Up and Page Down select areas. Arrow keys move the selection; Shift and arrows resize it; Alt makes fine adjustments. Delete removes it. Escape deselects. Control Z undoes. Plus and minus zoom. With no selection, arrows pan.');
         this.image.alt = '';
         this.image.draggable = false;
         this.sheet.className = 'proof-edit-sheet';
@@ -446,8 +461,9 @@ class ProofRedaction {
         const into = this.button('+', 'proof-edit-zoom-in', () => this.zoom(1.4));
         into.setAttribute('aria-label', 'Zoom in');
         zoom.append(out, this.fitButton, into);
-        this.applyButton = this.button('Apply', 'proof-edit-apply', () => { void this.apply(); });
-        actions.append(tools, zoom, this.applyButton);
+        this.retryButton = this.button('Retry', 'proof-edit-retry', retry);
+        this.retryButton.hidden = true;
+        actions.append(tools, zoom, this.retryButton);
         this.status.className = 'proof-edit-status';
         this.status.setAttribute('role', 'status');
         this.controls.append(actions, this.status);
@@ -459,19 +475,37 @@ class ProofRedaction {
         // This surface owns touch drawing/panning. Suppress the compatibility
         // mouse gesture so the next tap can activate a toolbar control directly.
         for (const type of ['touchstart', 'touchmove']) this.element.addEventListener(type, event => {
-            if (this.page && !this.busy && !this.deleteButton.contains(event.target as Node)) event.preventDefault();
+            if (this.page && !this.deleteButton.contains(event.target as Node)) event.preventDefault();
         }, { passive: false });
         this.element.addEventListener('keydown', event => this.keydown(event));
+        // A drag can start immediately after using a zoom button. Track Space
+        // there too, without taking away ordinary keyboard button activation.
+        this.controls.addEventListener('keydown', event => {
+            if (event.code === 'Space' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                this.spacePan = true;
+                this.render();
+            }
+        });
+        window.addEventListener('keyup', this.keyup);
+        this.element.addEventListener('blur', this.releasePan);
+        window.addEventListener('blur', this.releasePan);
+        this.element.addEventListener('auxclick', event => {
+            if (event.button === 1) event.preventDefault();
+        });
         this.element.addEventListener('wheel', event => {
             // Browser zoom remains native, including Ctrl+wheel at 200%.
-            if (!this.page || this.busy || event.ctrlKey) return;
+            if (!this.page || event.ctrlKey) return;
             event.preventDefault();
-            this.page.x -= event.deltaX;
-            this.page.y -= event.deltaY;
+            if (this.pointers.size || !event.deltaY) return;
+            const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
+                : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? this.element.clientHeight : 1;
+            const delta = Math.max(-240, Math.min(240, event.deltaY * unit));
+            const point = this.point(event);
+            this.zoomAt(this.page.scale * Math.exp(-delta * .003), point.x, point.y);
             this.render();
         }, { passive: false });
         this.observer = new ResizeObserver(() => {
-            if (!this.page || this.busy) return;
+            if (!this.page) return;
             if (Math.abs(this.page.scale - this.lastFit) < .001) this.fit();
             else this.render();
         });
@@ -483,7 +517,7 @@ class ProofRedaction {
         button.type = 'button';
         button.className = name;
         button.textContent = label;
-        button.addEventListener('click', () => { if (!this.busy) action(); });
+        button.addEventListener('click', action);
         return button;
     }
 
@@ -501,31 +535,30 @@ class ProofRedaction {
         return button;
     }
 
-    async show(index: number, source: string): Promise<void> {
+    async show(index: number, page: ProofEditPage): Promise<void> {
         if (index === this.index) return;
         this.finishGesture(true);
         this.pointers.clear();
         this.pinch = null;
+        this.spacePan = false;
         this.index = index;
         this.page = null;
         this.deleteButton.hidden = true;
         this.sheet.hidden = true;
-        this.image.src = source;
+        this.image.src = page.original;
         this.status.textContent = 'Loading page…';
         try {
             await this.image.decode();
             if (this.index !== index || !this.element.isConnected) return;
-            const existing = this.pages.get(index);
-            this.page = existing || { areas: [], undo: [], selected: -1, scale: 1, x: 0, y: 0 };
-            this.pages.set(index, this.page);
+            this.page = page;
+            page.selected = -1;
             this.sheet.style.width = `${this.image.naturalWidth}px`;
             this.sheet.style.height = `${this.image.naturalHeight}px`;
             this.overlay.setAttribute('viewBox', `0 0 ${this.image.naturalWidth} ${this.image.naturalHeight}`);
             this.sheet.hidden = false;
-            if (existing) this.render();
-            else this.fit();
+            this.fit();
         } catch (_) {
-            if (this.index === index) this.status.textContent = 'This page could not be opened. Cancel and try again.';
+            if (this.index === index) this.status.textContent = 'This page could not be opened. Close and try again.';
         }
     }
 
@@ -535,7 +568,7 @@ class ProofRedaction {
     }
 
     private fit(): void {
-        if (!this.page || this.busy) return;
+        if (!this.page) return;
         this.finishGesture(true);
         this.tool = 'hide';
         this.page.scale = Math.max(.01, this.fitScale());
@@ -563,7 +596,7 @@ class ProofRedaction {
         this.page.scale = next;
     }
 
-    private point(event: PointerEvent): { x: number; y: number } {
+    private point(event: MouseEvent): { x: number; y: number } {
         const bounds = this.element.getBoundingClientRect();
         return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
     }
@@ -575,7 +608,7 @@ class ProofRedaction {
     }
 
     private pointerDown(event: PointerEvent): void {
-        if (!this.page || this.busy || event.button > 0 || this.deleteButton.contains(event.target as Node)) return;
+        if (!this.page || event.button > 1 || this.deleteButton.contains(event.target as Node)) return;
         if (event.pointerType !== 'touch') event.preventDefault();
         this.element.focus({ preventScroll: true });
         this.element.setPointerCapture(event.pointerId);
@@ -596,7 +629,7 @@ class ProofRedaction {
         const area = this.page.areas[index];
         const corner = target?.getAttribute('data-corner') || '';
         const before = this.copyAreas();
-        if (this.tool === 'move') {
+        if (this.tool === 'move' || this.spacePan || event.button === 1) {
             this.gesture = { kind: 'pan', ...point, before, area: null, corner };
         } else if (area) {
             this.page.selected = index;
@@ -669,6 +702,7 @@ class ProofRedaction {
             this.page.selected = -1;
         } else if (JSON.stringify(g.before) !== JSON.stringify(this.page.areas)) {
             this.page.undo.push(g.before);
+            this.changed(this.page);
         }
     }
 
@@ -676,7 +710,7 @@ class ProofRedaction {
         if (!this.page) return;
         this.finishGesture(true);
         const areas = this.page.undo.pop();
-        if (areas) { this.page.areas = areas; this.page.selected = -1; }
+        if (areas) { this.page.areas = areas; this.page.selected = -1; this.changed(this.page); }
         this.render();
     }
 
@@ -685,14 +719,25 @@ class ProofRedaction {
         this.page.undo.push(this.copyAreas());
         this.page.areas.splice(this.page.selected, 1);
         this.page.selected = -1;
+        this.changed(this.page);
         this.render();
     }
 
     private keydown(event: KeyboardEvent): void {
-        if (!this.page || this.busy || event.target !== this.element) return;
+        if (!this.page || event.target !== this.element) return;
         // Keep browser zoom and tab-navigation shortcuts native. Only Undo is
         // owned by the editor when a platform command modifier is held.
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() !== 'z') return;
+        if (event.code === 'Space' && !event.altKey) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!event.repeat) {
+                this.finishGesture(true);
+                this.spacePan = true;
+                this.render();
+            }
+            return;
+        }
         const page = this.page;
         const area = page.areas[page.selected];
         const arrows = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
@@ -729,6 +774,7 @@ class ProofRedaction {
             page.areas.push({ x: Math.max(0, Math.min(this.image.naturalWidth - width, center.x - width / 2)),
                 y: Math.max(0, Math.min(this.image.naturalHeight - height, center.y - height / 2)), width, height });
             this.tool = 'hide';
+            this.changed(page);
         } else if (area && this.tool === 'hide') {
             if (!event.repeat) page.undo.push(this.copyAreas());
             const step = event.altKey ? 1 : Math.max(1, Math.round(5 / page.scale));
@@ -741,6 +787,7 @@ class ProofRedaction {
                 area.x = Math.max(0, Math.min(this.image.naturalWidth - area.width, area.x + dx));
                 area.y = Math.max(0, Math.min(this.image.naturalHeight - area.height, area.y + dy));
             }
+            this.changed(page);
         } else {
             page.x += event.key === 'ArrowLeft' ? 80 : event.key === 'ArrowRight' ? -80 : 0;
             page.y += event.key === 'ArrowUp' ? 80 : event.key === 'ArrowDown' ? -80 : 0;
@@ -757,7 +804,8 @@ class ProofRedaction {
         page.x = w <= this.element.clientWidth - 32 ? (this.element.clientWidth - w) / 2 : Math.max(this.element.clientWidth - w - 16, Math.min(16, page.x));
         page.y = h <= this.element.clientHeight - 32 ? (this.element.clientHeight - h) / 2 : Math.max(this.element.clientHeight - h - 16, Math.min(16, page.y));
         this.sheet.style.transform = `translate(${page.x}px, ${page.y}px) scale(${page.scale})`;
-        this.element.dataset.tool = this.tool;
+        const moving = this.tool === 'move' || this.spacePan || this.gesture?.kind === 'pan';
+        this.element.dataset.tool = moving ? 'move' : 'hide';
         let shapeIndex = 0;
         const shape = (tag: string, attributes: Record<string, string | number>): SVGElement => {
             const previous = this.overlay.children.item(shapeIndex++);
@@ -776,7 +824,7 @@ class ProofRedaction {
         };
         page.areas.forEach((area, index) => {
             shape('rect', { ...area, fill: '#000', 'data-area': index });
-            if (index !== page.selected || this.tool === 'move') return;
+            if (index !== page.selected || moving) return;
             shape('rect', { ...area, fill: 'none', stroke: '#fff', 'stroke-width': 3 / page.scale, 'pointer-events': 'none' });
             shape('rect', { ...area, fill: 'none', stroke: '#087f8c', 'stroke-width': 1.5 / page.scale, 'pointer-events': 'none' });
             for (const [corner, x, y] of [['nw', area.x, area.y], ['ne', area.x + area.width, area.y], ['sw', area.x, area.y + area.height], ['se', area.x + area.width, area.y + area.height]] as const) {
@@ -787,9 +835,9 @@ class ProofRedaction {
         while (this.overlay.children.length > shapeIndex) this.overlay.lastElementChild?.remove();
         this.moveButton.hidden = !canPan;
         this.moveButton.setAttribute('aria-pressed', String(this.tool === 'move'));
-        this.undoButton.disabled = this.busy || !page.undo.length;
+        this.undoButton.disabled = !page.undo.length;
         const selected = page.areas[page.selected];
-        this.deleteButton.hidden = this.busy || !selected || !!this.gesture || !!this.pinch || this.tool === 'move';
+        this.deleteButton.hidden = !selected || !!this.gesture || !!this.pinch || moving;
         if (!this.deleteButton.hidden && selected) {
             const width = this.element.clientWidth, height = this.element.clientHeight;
             const x = page.x + selected.x * page.scale, y = page.y + selected.y * page.scale;
@@ -805,61 +853,52 @@ class ProofRedaction {
             this.deleteButton.style.top = `${position[1]}px`;
             this.deleteButton.hidden = right < 0 || bottom < 0 || x > width || y > height;
         }
-        const count = [...this.pages.values()].reduce((sum, draft) => sum + draft.areas.length, 0);
-        this.applyButton.disabled = this.busy || !count;
-        this.applyButton.textContent = this.busy ? 'Applying…' : 'Apply';
-        this.applyButton.setAttribute('aria-label', this.busy ? 'Applying hidden areas' : `Apply${count ? ` (${count})` : ''}`);
+        this.retryButton.hidden = !page.failed;
+        this.element.dataset.saveState = page.failed ? 'failed' : page.revision !== page.savedRevision ? 'saving' : 'saved';
         this.element.setAttribute('aria-label', `Hide details on proof page${page.selected >= 0 ? `, area ${page.selected + 1} of ${page.areas.length} selected` : ''}`);
         const keyboard = this.element.matches(':focus-visible');
         // Do not reflow the page underneath an active finger or pointer.
-        if (!this.gesture && !this.pinch) this.status.textContent = this.busy ? 'Saving hidden areas…' : page.selected >= 0
+        if (!this.gesture && !this.pinch) this.status.textContent = page.failed ? 'Could not save. Retry to continue.'
+            : page.revision !== page.savedRevision ? 'Saving…' : page.selected >= 0
             ? keyboard ? 'Arrows: move · Shift: resize · Delete: remove' : 'Drag to adjust'
             : keyboard ? page.areas.length ? 'Enter: add · Page ↑ / ↓: select · Arrows: pan' : 'Enter: add area · Arrows: pan · + / −: zoom'
-                : this.tool === 'hide' ? 'Drag to hide' : 'Drag to move page';
-        this.element.dispatchEvent(new Event('proof-edit-change', { bubbles: true }));
+                : moving ? 'Drag to move page' : 'Drag to hide';
     }
-
-    async flatten(images: readonly string[]): Promise<Map<string, string>> {
-        this.finishGesture(false);
-        const replacements = new Map<string, string>();
-        for (const [index, page] of this.pages) {
-            if (!page.areas.length) continue;
-            const source = images[index];
-            if (!source) throw new Error('Proof page no longer available.');
-            const image = new Image();
-            image.src = source;
-            await image.decode();
-            const canvas = document.createElement('canvas');
-            canvas.width = image.naturalWidth;
-            canvas.height = image.naturalHeight;
-            try {
-                const context = canvas.getContext('2d');
-                if (!context) throw new Error('Canvas unavailable.');
-                context.drawImage(image, 0, 0);
-                context.fillStyle = '#000';
-                for (const area of page.areas) {
-                    // Round outward to cover the entire chosen area with opaque pixels.
-                    const x = Math.floor(area.x), y = Math.floor(area.y);
-                    context.fillRect(x, y, Math.ceil(area.x + area.width) - x, Math.ceil(area.y + area.height) - y);
-                }
-                // Encode the flattened canvas directly: no original-image fallback.
-                replacements.set(source, await encodeProofCanvas(canvas));
-            } finally { canvas.width = canvas.height = 0; image.src = ''; }
-        }
-        return replacements;
-    }
-
-    error(): void { this.status.textContent = 'Could not apply. Your selections are kept; try again.'; }
 
     dispose(): void {
+        this.finishGesture(true);
+        window.removeEventListener('keyup', this.keyup);
+        window.removeEventListener('blur', this.releasePan);
         this.observer.disconnect();
         this.index = -1;
         this.page = null;
-        this.pages.clear();
         this.image.removeAttribute('src');
         this.element.remove();
         this.controls.remove();
     }
+}
+
+async function flattenProofAreas(original: string, areas: readonly ProofArea[]): Promise<string> {
+    // Restoring the original requires the athlete to explicitly remove/undo all
+    // areas. Reopening, navigation and duplicate uploads never clear geometry.
+    if (!areas.length) return original;
+    const image = new Image();
+    image.src = original;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    try {
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Canvas unavailable.');
+        context.drawImage(image, 0, 0);
+        context.fillStyle = '#000';
+        for (const area of areas) {
+            const x = Math.floor(area.x), y = Math.floor(area.y);
+            context.fillRect(x, y, Math.ceil(area.x + area.width) - x, Math.ceil(area.y + area.height) - y);
+        }
+        return await encodeProofCanvas(canvas);
+    } finally { canvas.width = canvas.height = 0; image.src = ''; }
 }
 
 class ProofReview {
@@ -869,9 +908,11 @@ class ProofReview {
     private progress: { label: string; completed: number; total: number } | null = null;
     private dialog: HTMLDialogElement | null = null;
     private viewerIndex = 0;
-    private opener: HTMLElement | null = null;
-    private zoomed = false;
+    private opener: Element | null = null;
     private editor: ProofRedaction | null = null;
+    private editPages: Map<string, ProofEditPage>;
+    private saveTask: Promise<void> | null = null;
+    private editingPending: (pending: boolean) => void;
     private replaceSources: (replacements: Map<string, string>) => Promise<void>;
     // Pages already on screen; anything new is revealed as it arrives.
     private shown = new Set<string>();
@@ -888,12 +929,15 @@ class ProofReview {
     };
 
     constructor(container: HTMLElement, images: string[], changed: () => void, hasUnsubmittedProofs: () => boolean,
-        replaceSources: (replacements: Map<string, string>) => Promise<void>) {
+        replaceSources: (replacements: Map<string, string>) => Promise<void>, editingPending: (pending: boolean) => void) {
         this.container = container;
         this.images = images;
         this.changed = changed;
         this.hasUnsubmittedProofs = hasUnsubmittedProofs;
         this.replaceSources = replaceSources;
+        this.editingPending = editingPending;
+        this.editPages = proofEdits.get(images) || new Map();
+        proofEdits.set(images, this.editPages);
         images.forEach(image => this.shown.add(image));
         container.classList.add('proof-review-panel');
     }
@@ -976,18 +1020,24 @@ class ProofReview {
                     this.arrivals.delete(source);
                 }
             }
-            const preview = this.button('', 'proof-page-preview', () => this.open(index, preview));
+            const preview = this.button('', 'proof-page-preview', () => this.open(index));
             preview.disabled = Boolean(this.progress);
             preview.setAttribute('aria-label', `Hide details on proof page ${index + 1}${this.labels.has(source) ? `: ${this.labels.get(source)}` : ''}`);
             const image = document.createElement('img');
             image.src = source;
             image.alt = `Proof image ${index + 1}`;
             const previewLabel = document.createElement('span');
-            previewLabel.textContent = 'Hide details';
-            const hint = document.createElement('i');
-            hint.className = 'fas fa-pen-to-square proof-page-zoom-hint';
+            previewLabel.textContent = 'Click to censor';
+            previewLabel.className = 'proof-page-edit-hint';
+            previewLabel.setAttribute('aria-hidden', 'true');
+            const hint = document.createElement('span');
+            hint.className = 'proof-page-zoom-hint';
+            hint.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/><path d="M11 20h9"/></svg>';
             hint.setAttribute('aria-hidden', 'true');
-            preview.append(image, previewLabel, hint);
+            const affordance = document.createElement('span');
+            affordance.className = 'proof-page-edit-affordance';
+            affordance.append(hint, previewLabel);
+            preview.append(image, affordance);
             const caption = document.createElement('div');
             caption.className = 'proof-page-caption';
             const title = document.createElement('strong');
@@ -1060,15 +1110,18 @@ class ProofReview {
         }
         this.container.appendChild(grid);
 
-        if (this.notice || this.removed.length) {
+        const pending = this.pendingPages();
+        const failed = pending.some(page => page.failed);
+        if (this.notice || this.removed.length || pending.length) {
             const status = document.createElement('div');
             status.className = 'proof-review-feedback';
             const message = document.createElement('span');
             message.className = 'proof-upload-notice';
             message.setAttribute('role', 'status');
-            message.textContent = this.notice;
-            status.classList.toggle('has-notice', Boolean(this.notice));
+            message.textContent = failed ? 'Hidden areas could not be saved.' : pending.length ? 'Saving hidden areas…' : this.notice;
+            status.classList.toggle('has-notice', Boolean(message.textContent));
             status.appendChild(message);
+            if (failed) status.appendChild(this.button('Retry', 'proof-save-retry', () => { void this.savePending(); }));
             if (this.removed.length) {
                 const undo = this.button('Undo removal', 'proof-undo', () => {
                     const removed = this.removed.pop();
@@ -1104,96 +1157,68 @@ class ProofReview {
         return button;
     }
 
-    private open(index: number, opener: HTMLElement): void {
-        this.opener = opener;
+    private open(index: number): void {
         this.viewerIndex = index;
-        this.zoomed = false;
         if (!this.dialog) {
             const dialog = document.createElement('dialog');
-            dialog.className = 'proof-review-dialog';
-            dialog.setAttribute('aria-label', 'Review attached proofs');
-            dialog.innerHTML = `<div class="proof-review-toolbar"><div class="proof-review-title"><span class="proof-review-position" role="status"></span><h2></h2></div><button type="button" class="proof-review-close" aria-label="Close proof review"><span class="proof-review-close-label">Close </span><span aria-hidden="true">×</span></button></div>
-                <div class="proof-review-stage" tabindex="0" role="region" aria-label="Proof page"><img alt=""></div>
-                <div class="proof-review-filmstrip" role="group" aria-label="Proof pages"></div>
-                <div class="proof-review-navigation"><div class="proof-review-steps"><button type="button" class="proof-review-previous"><span>←</span> <span class="proof-review-step-label">Previous</span></button><button type="button" class="proof-review-next"><span class="proof-review-step-label">Next</span> <span>→</span></button></div><button type="button" class="proof-review-zoom"><span class="proof-review-zoom-label">Zoom in</span></button><button type="button" class="proof-review-hide">Hide details</button></div>`;
-            dialog.querySelector('.proof-review-close')?.addEventListener('click', () => this.editor ? this.cancelEdit() : dialog.close());
-            dialog.querySelector('.proof-review-hide')?.addEventListener('click', () => this.startEdit());
-            dialog.querySelector('.proof-review-previous')?.addEventListener('click', () => this.navigate(-1));
-            dialog.querySelector('.proof-review-next')?.addEventListener('click', () => this.navigate(1));
-            dialog.querySelector('.proof-review-zoom')?.addEventListener('click', () => { this.zoomed = !this.zoomed; this.updateViewer(); });
+            dialog.className = 'proof-review-dialog is-editing';
+            dialog.setAttribute('aria-label', 'Hide details');
+            dialog.innerHTML = `<div class="proof-review-toolbar"><div class="proof-review-title"><span class="proof-review-position" role="status"></span><h2></h2></div><button type="button" class="proof-review-close" aria-label="Close proof editor">Close</button></div><div class="proof-review-filmstrip" role="group" aria-label="Proof pages"></div>`;
+            dialog.querySelector('.proof-review-close')!.addEventListener('click', () => dialog.close());
             dialog.addEventListener('keydown', event => {
                 const inFilmstrip = document.activeElement?.closest('.proof-review-filmstrip');
                 if (event.key === 'Tab') {
                     const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]')).filter(control => control.getClientRects().length > 0);
-                    const first = controls[0];
-                    const last = controls[controls.length - 1];
+                    const first = controls[0], last = controls[controls.length - 1];
                     if ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
                         event.preventDefault();
                         (event.shiftKey ? last : first)?.focus();
                     }
                 }
-                if (this.editor && !inFilmstrip) return;
-                if (this.zoomed && !inFilmstrip && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+                if (!inFilmstrip) return;
+                if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
                     event.preventDefault();
-                    const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
-                    const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
-                    const distance = (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1) * 120;
-                    stage.scrollBy({ left: horizontal ? distance : 0, top: horizontal ? 0 : distance, behavior: 'instant' });
-                    return;
-                }
-                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                    event.preventDefault();
-                    this.navigate(event.key === 'ArrowLeft' ? -1 : 1);
-                    if (inFilmstrip) dialog.querySelector<HTMLButtonElement>('.proof-review-thumb[aria-current="true"]')?.focus({ preventScroll: true });
-                } else if (inFilmstrip && (event.key === 'Home' || event.key === 'End')) {
-                    event.preventDefault();
-                    this.viewerIndex = event.key === 'Home' ? 0 : this.images.length - 1;
-                    this.zoomed = false;
+                    const index = event.key === 'Home' ? 0 : event.key === 'End' ? this.images.length - 1
+                        : this.viewerIndex + (event.key === 'ArrowLeft' ? -1 : 1);
+                    this.viewerIndex = Math.max(0, Math.min(this.images.length - 1, index));
                     this.updateViewer();
                     dialog.querySelector<HTMLButtonElement>('.proof-review-thumb[aria-current="true"]')?.focus({ preventScroll: true });
                 }
             });
-            dialog.addEventListener('cancel', event => {
-                if (!this.editor) return;
-                event.preventDefault();
-                this.cancelEdit();
-            });
             dialog.addEventListener('click', event => {
                 if (event.target !== dialog) return;
                 const box = dialog.getBoundingClientRect();
-                if (!this.editor && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) dialog.close();
+                if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
             });
             dialog.addEventListener('close', () => {
-                // Native close events are queued: the user may already have
-                // moved focus or reopened this same dialog before delivery.
                 if (dialog.open) return;
-                this.endEdit();
+                this.editor?.dispose();
+                this.editor = null;
                 document.body.classList.remove('proof-review-open');
                 const active = document.activeElement;
-                if (!active || active === document.body || dialog.contains(active)) {
-                    const opener = this.opener?.isConnected ? this.opener : this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.viewerIndex];
-                    opener?.focus({ preventScroll: true });
+                if (!active || active === document.body || active === this.opener || dialog.contains(active)) {
+                    this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.viewerIndex]?.focus({ preventScroll: true });
                 }
             });
             this.dialog = dialog;
             document.body.appendChild(dialog);
-            const steps = dialog.querySelector<HTMLElement>('.proof-review-steps')!;
-            const viewerResize = new ResizeObserver(() => this.fitNavigation());
-            viewerResize.observe(steps);
-            viewerResize.observe(dialog);
-            viewerResize.observe(dialog.querySelector<HTMLElement>('.proof-review-toolbar')!);
+            const resize = new ResizeObserver(() => this.fitNavigation());
+            resize.observe(dialog);
+            resize.observe(dialog.querySelector<HTMLElement>('.proof-review-toolbar')!);
             void document.fonts.ready.then(() => this.fitNavigation());
         }
+        this.editor?.dispose();
+        this.editor = new ProofRedaction(page => this.queueSave(page), () => { void this.savePending(); });
+        this.dialog.querySelector('.proof-review-toolbar')!.after(this.editor.element);
+        this.dialog.append(this.editor.controls);
         this.buildFilmstrip();
         document.body.classList.add('proof-review-open');
+        this.opener = document.activeElement;
         this.dialog.showModal();
-        // Measure the filmstrip after the dialog has a layout, including when
-        // opening directly on a page at the end of a long report.
         this.updateViewer();
-        this.startEdit();
+        this.editor.element.focus({ preventScroll: true });
     }
 
-    // Every page as a thumbnail under the viewer, so a long report can be crossed in one tap.
     private buildFilmstrip(): void {
         const strip = this.dialog?.querySelector<HTMLElement>('.proof-review-filmstrip');
         if (!strip) return;
@@ -1202,7 +1227,6 @@ class ProofReview {
         this.images.forEach((source, index) => {
             const thumb = this.button('', 'proof-review-thumb', () => {
                 this.viewerIndex = index;
-                this.zoomed = false;
                 this.updateViewer();
             });
             thumb.setAttribute('aria-label', `Proof page ${index + 1}`);
@@ -1214,32 +1238,13 @@ class ProofReview {
         });
     }
 
-    private navigate(direction: number): void {
-        if (this.editor?.busy) return;
-        this.viewerIndex = Math.max(0, Math.min(this.images.length - 1, this.viewerIndex + direction));
-        this.zoomed = false;
-        this.updateViewer();
-    }
-
     private fitNavigation(): void {
         if (!this.dialog?.open) return;
         const dialog = this.dialog;
-        dialog.classList.remove('is-compact-title', 'is-compact-height');
+        dialog.classList.remove('is-compact-title');
         const title = dialog.querySelector<HTMLElement>('h2')!;
         dialog.classList.toggle('is-compact-title', title.clientWidth < parseFloat(getComputedStyle(title).fontSize) * 3);
-        const toolbar = dialog.querySelector<HTMLElement>('.proof-review-toolbar')!;
         const strip = dialog.querySelector<HTMLElement>('.proof-review-filmstrip')!;
-        const navigation = dialog.querySelector<HTMLElement>('.proof-review-navigation')!;
-        const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
-        const requiredHeight = toolbar.offsetHeight + strip.offsetHeight + navigation.offsetHeight
-            + parseFloat(getComputedStyle(stage).minHeight);
-        dialog.classList.toggle('is-compact-height', !this.editor && requiredHeight > dialog.clientHeight);
-        const steps = dialog.querySelector<HTMLElement>('.proof-review-steps')!;
-        steps.classList.remove('is-compact');
-        const buttons = Array.from(steps.querySelectorAll('button'));
-        const overflow = steps.scrollWidth > steps.clientWidth + 1
-            || buttons.some(button => button.scrollWidth > button.clientWidth + 1);
-        steps.classList.toggle('is-compact', overflow);
         const current = strip.querySelector<HTMLElement>('[aria-current="true"]');
         if (current && strip.scrollWidth > strip.clientWidth) {
             const left = strip.scrollLeft + current.getBoundingClientRect().left
@@ -1255,114 +1260,98 @@ class ProofReview {
         const title = dialog.querySelector('h2')!;
         title.textContent = this.labels.get(source) || `Proof page ${this.viewerIndex + 1}`;
         title.title = title.textContent;
-        const image = dialog.querySelector('img')!;
-        image.src = source;
-        image.alt = `Proof page ${this.viewerIndex + 1} of ${this.images.length}`;
         dialog.querySelector('.proof-review-position')!.textContent = `${this.viewerIndex + 1} / ${this.images.length}`;
-        dialog.querySelector<HTMLButtonElement>('.proof-review-previous')!.disabled = this.viewerIndex === 0;
-        dialog.querySelector<HTMLButtonElement>('.proof-review-next')!.disabled = this.viewerIndex === this.images.length - 1;
-        const zoom = dialog.querySelector<HTMLButtonElement>('.proof-review-zoom')!;
-        zoom.querySelector<HTMLElement>('.proof-review-zoom-label')!.textContent = this.zoomed ? 'Fit page' : 'Zoom in';
-        zoom.setAttribute('aria-pressed', String(this.zoomed));
-        dialog.classList.toggle('is-zoomed', this.zoomed);
-        const stage = dialog.querySelector<HTMLElement>('.proof-review-stage')!;
-        stage.scrollTo(0, 0);
-        const strip = dialog.querySelector<HTMLElement>('.proof-review-filmstrip');
-        strip?.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
+        dialog.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
             const current = index === this.viewerIndex;
             thumb.tabIndex = current ? 0 : -1;
             if (current) thumb.setAttribute('aria-current', 'true');
             else thumb.removeAttribute('aria-current');
         });
         this.fitNavigation();
-        if (this.editor) void this.editor.show(this.viewerIndex, source);
-    }
-
-    private startEdit(): void {
-        if (!this.dialog || this.editor) return;
-        this.editor = new ProofRedaction(() => this.applyEdit());
-        this.zoomed = false;
-        this.editor.element.addEventListener('proof-edit-change', () => {
-            this.dialog?.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
-                const count = this.editor?.pages.get(index)?.areas.length || 0;
-                thumb.classList.toggle('has-edits', count > 0);
-                thumb.setAttribute('aria-label', `Proof page ${index + 1}${count ? `, ${count} hidden ${count === 1 ? 'area' : 'areas'} pending` : ''}`);
-            });
-        });
-        this.dialog.classList.add('is-editing');
-        this.dialog.classList.remove('is-zoomed');
-        this.dialog.querySelector('.proof-review-stage')!.after(this.editor.element);
-        this.dialog.append(this.editor.controls);
-        this.dialog.setAttribute('aria-label', 'Hide details');
-        const close = this.dialog.querySelector<HTMLButtonElement>('.proof-review-close')!;
-        close.textContent = 'Cancel';
-        close.setAttribute('aria-label', 'Cancel hiding details');
-        this.updateViewer();
-        this.editor.element.focus({ preventScroll: true });
-    }
-
-    private endEdit(): void {
-        this.editor?.dispose();
-        this.editor = null;
-        this.dialog?.classList.remove('is-editing');
-        this.dialog?.setAttribute('aria-label', 'Review attached proofs');
-        this.dialog?.querySelectorAll<HTMLButtonElement>('.proof-review-thumb').forEach((thumb, index) => {
-            thumb.classList.remove('has-edits');
-            thumb.setAttribute('aria-label', `Proof page ${index + 1}`);
-        });
-        const close = this.dialog?.querySelector<HTMLButtonElement>('.proof-review-close');
-        if (close) {
-            close.innerHTML = '<span class="proof-review-close-label">Close </span><span aria-hidden="true">×</span>';
-            close.setAttribute('aria-label', 'Close proof review');
+        let page = this.editPages.get(source);
+        if (!page) {
+            page = { original: source, current: source, areas: [], committedAreas: [], undo: [], revision: 0, savedRevision: 0,
+                failed: false, selected: -1, scale: 1, x: 0, y: 0 };
+            this.editPages.set(source, page);
         }
+        if (this.editor) void this.editor.show(this.viewerIndex, page);
     }
 
-    private cancelEdit(): void {
-        if (this.editor?.busy) return;
-        this.endEdit();
-        this.dialog?.close();
+    private pendingPages(): ProofEditPage[] {
+        return [...new Set(this.editPages.values())].filter(page => page.revision !== page.savedRevision);
     }
 
-    private async applyEdit(): Promise<void> {
-        const editor = this.editor;
-        if (!editor || editor.busy || !this.dialog) return;
-        editor.busy = true;
-        editor.render();
-        const buttons = Array.from(this.dialog.querySelectorAll<HTMLButtonElement>('button'));
-        const disabled = buttons.map(button => button.disabled);
-        buttons.forEach(button => button.disabled = true);
-        editor.element.inert = true;
-        let failed = false;
-        try {
-            const replacements = await editor.flatten(this.images);
-            await this.replaceSources(replacements);
-            for (const [source, replacement] of replacements) {
-                for (let i = 0; i < this.images.length; i++) if (this.images[i] === source) this.images[i] = replacement;
-                for (const removed of this.removed) if (removed.image === source) removed.image = replacement;
-                const label = this.labels.get(source);
-                this.labels.delete(source);
-                if (label) this.labels.set(replacement, label);
-                this.shown.delete(source);
-                this.shown.add(replacement);
-                this.arrivals.delete(source);
+    private queueSave(page: ProofEditPage): void {
+        page.revision++;
+        page.committedAreas = page.areas.map(area => ({ ...area }));
+        page.failed = false;
+        // Disable progression synchronously, before the first encoder await.
+        this.editingPending(true);
+        if (!this.saveTask) this.render();
+        void this.savePending();
+    }
+
+    private savePending(): Promise<void> {
+        if (this.saveTask) return this.saveTask;
+        this.pendingPages().forEach(page => page.failed = false);
+        this.editor?.render();
+        this.saveTask = Promise.resolve().then(async () => {
+            while (this.pendingPages().length) {
+                const batch = this.pendingPages().map(page => ({ page, source: page.current,
+                    revision: page.revision, areas: page.committedAreas.map(area => ({ ...area })) }));
+                try {
+                    const replacements = new Map<string, string>();
+                    for (const item of batch) replacements.set(item.source, await flattenProofAreas(item.page.original, item.areas));
+                    // Keep editing responsive during encoding; obsolete work must
+                    // never replace a newer selection or briefly enable submission.
+                    if (batch.some(item => item.page.revision !== item.revision)) continue;
+                    await this.replaceSources(replacements);
+                    for (const item of batch) {
+                        const replacement = replacements.get(item.source)!;
+                        for (let i = 0; i < this.images.length; i++) if (this.images[i] === item.source) this.images[i] = replacement;
+                        for (const removed of this.removed) if (removed.image === item.source) removed.image = replacement;
+                        const label = this.labels.get(item.source);
+                        this.labels.delete(item.source);
+                        if (label) this.labels.set(replacement, label);
+                        this.shown.delete(item.source);
+                        this.shown.add(replacement);
+                        this.arrivals.delete(item.source);
+                        this.editPages.delete(item.source);
+                        item.page.current = replacement;
+                        item.page.savedRevision = item.revision;
+                        item.page.failed = false;
+                        this.editPages.set(replacement, item.page);
+                    }
+                    // Update existing thumbnails without replacing the focused
+                    // filmstrip button or disrupting a gesture on the report.
+                    this.dialog?.querySelectorAll<HTMLElement>('.proof-review-thumb-sheet').forEach((sheet, index) => {
+                        sheet.style.backgroundImage = `url("${this.images[index]}")`;
+                    });
+                } catch (_) {
+                    if (batch.some(item => item.page.revision !== item.revision)) continue;
+                    batch.forEach(item => item.page.failed = true);
+                    break;
+                }
             }
-            this.endEdit();
+        }).finally(() => {
+            this.saveTask = null;
+            this.editingPending(this.pendingPages().length > 0);
+            this.editor?.render();
+            const active = document.activeElement;
+            const focusKind = this.container.contains(active) ? ['proof-page-preview', 'proof-page-remove', 'proof-undo', 'proof-save-retry']
+                .find(name => active?.classList.contains(name)) : undefined;
+            const focusIndex = focusKind ? Array.from(this.container.querySelectorAll(`.${focusKind}`)).indexOf(active!) : -1;
             this.render();
-            this.buildFilmstrip();
-            this.zoomed = false;
-            this.updateViewer();
+            if (focusKind && document.activeElement === document.body) {
+                const target = this.container.querySelectorAll<HTMLButtonElement>(`.${focusKind}`)[focusIndex]
+                    || this.container.querySelectorAll<HTMLButtonElement>('.proof-page-preview')[this.viewerIndex];
+                target?.focus({ preventScroll: true });
+            }
             this.changed();
-            this.dialog.querySelector<HTMLElement>('.proof-review-stage')?.focus();
-        } catch (_) {
-            failed = true;
-            editor.busy = false;
-            editor.element.inert = false;
-        } finally {
-            buttons.forEach((button, index) => button.disabled = disabled[index]!);
-            if (this.editor) this.editor.render();
-            if (failed) editor.error();
-        }
+        });
+        return this.saveTask;
     }
+
 }
 
 window.setupProofUploadHTML = function (
@@ -1388,6 +1377,17 @@ window.setupProofUploadHTML = function (
         return;
     }
     let isProofUploadProcessing = false;
+    let isProofEditPending = false;
+    const updateProcessing = (): void => {
+        const processing = isProofUploadProcessing || isProofEditPending;
+        if (processing) proofProcessingButtons.add(nextButton);
+        else proofProcessingButtons.delete(nextButton);
+        uploadProofButton.disabled = processing;
+        proofPicInput.disabled = processing;
+        if (cameraButton) cameraButton.disabled = processing;
+        if (cameraInput) cameraInput.disabled = processing;
+        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+    };
     const queuedProofSelections: { files: File[]; retryButton: HTMLButtonElement | null | undefined }[] = [];
     const proofSourceImages = new Map<string, string>();
     // Keep only a fingerprint of replaced bytes. Even a differently named input
@@ -1407,6 +1407,9 @@ window.setupProofUploadHTML = function (
             // The athlete should check evidence again after hiding any part of it.
             biomarkerChecklistContainer?.querySelectorAll<HTMLInputElement>('.biomarker-checkbox').forEach(box => box.checked = false);
             if (biomarkerChecklistContainer) updateProofTrackerProgress(biomarkerChecklistContainer);
+        }, pending => {
+            isProofEditPending = pending;
+            updateProcessing();
         });
     proofReviews.set(proofImageContainer, review);
 
@@ -1415,7 +1418,7 @@ window.setupProofUploadHTML = function (
     // Attach event listener to the Upload Proof button
     if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
         uploadProofButton.addEventListener('click', function () {
-            if (isProofUploadProcessing) return;
+            if (isProofUploadProcessing || isProofEditPending) return;
             proofPicInput.click();
         });
         uploadProofButton.setAttribute('data-listener', 'true');
@@ -1423,7 +1426,7 @@ window.setupProofUploadHTML = function (
 
     if (cameraButton && cameraInput && !cameraButton.hasAttribute('data-listener')) {
         cameraButton.addEventListener('click', function () {
-            if (isProofUploadProcessing) return;
+            if (isProofUploadProcessing || isProofEditPending) return;
             cameraInput.click();
         });
         cameraButton.setAttribute('data-listener', 'true');
@@ -1651,13 +1654,8 @@ window.setupProofUploadHTML = function (
             }
         } finally {
             isProofUploadProcessing = false;
-            proofProcessingButtons.delete(nextButton);
             review.setProgress(null);
-            uploadProofButton.disabled = false;
-            proofPicInput.disabled = false;
-            if (cameraButton) cameraButton.disabled = false;
-            if (cameraInput) cameraInput.disabled = false;
-            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+            updateProcessing();
         }
     };
 

@@ -1016,8 +1016,8 @@ html body #biomarker-checklist .proof-tracker-head h4 {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 168px;
-    padding: var(--lwc-space-3) var(--lwc-space-3) 0;
+    min-height: 168px;
+    padding: 0;
     border: 0;
     border-radius: 0;
     background: var(--lwc-surface-muted);
@@ -1027,11 +1027,15 @@ html body #biomarker-checklist .proof-tracker-head h4 {
     box-sizing: border-box;
 }
 .proof-page-preview img {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
     display: block;
     width: auto;
     height: auto;
-    max-width: 100%;
-    max-height: 100%;
+    max-width: calc(100% - 24px);
+    max-height: calc(100% - 12px);
     align-self: flex-end;
     border-radius: 2px 2px 0 0;
     background: #ffffff;
@@ -1039,29 +1043,30 @@ html body #biomarker-checklist .proof-tracker-head h4 {
     object-fit: contain;
 }
 .proof-page-preview:hover { background: var(--lwc-accent-soft); }
+.proof-page-edit-affordance { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; padding: 12px 8px; box-sizing: border-box; pointer-events: none; }
 .proof-page-zoom-hint {
-    position: absolute;
-    left: 50%;
-    top: 50%;
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
     border-radius: var(--lwc-radius-pill);
     background: var(--lwc-accent);
     color: var(--lwc-on-accent);
-    font-size: 1rem;
+    padding: 12px;
+    box-sizing: border-box;
     box-shadow: var(--lwc-shadow-md);
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
+    transform: scale(0.9);
     transition: opacity var(--lwc-duration-fast) var(--lwc-ease), transform var(--lwc-duration-fast) var(--lwc-ease);
     pointer-events: none;
 }
 .proof-page-preview:hover .proof-page-zoom-hint,
 .proof-page-preview:focus-visible .proof-page-zoom-hint {
     opacity: 1;
-    transform: translate(-50%, -50%);
+    transform: scale(1.12);
 }
+.proof-page-zoom-hint svg { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .proof-page-preview:disabled .proof-page-zoom-hint { display: none; }
 .proof-page-caption {
     display: flex;
@@ -1080,8 +1085,15 @@ html body #biomarker-checklist .proof-tracker-head h4 {
     text-transform: uppercase;
 }
 .proof-page-source { color: var(--lwc-muted); font-size: var(--lwc-type-xs); overflow-wrap: anywhere; line-height: 1.4; }
-/* The complete page stays available in review; its duplicate label is visually hidden. */
-.proof-page-preview > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.proof-page-edit-hint { width: 100%; padding: 6px 8px; box-sizing: border-box; border-radius: var(--lwc-radius-sm); background: var(--lwc-accent); color: var(--lwc-on-accent); font-size: var(--lwc-type-xs); line-height: 1.3; text-align: center; opacity: 0; pointer-events: none; transition: opacity var(--lwc-duration-fast) var(--lwc-ease); }
+.proof-page-preview:hover .proof-page-edit-hint,
+.proof-page-preview:focus-visible .proof-page-edit-hint { opacity: 1; }
+@media (hover: none), (pointer: coarse) {
+    .proof-page-zoom-hint { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .proof-page-zoom-hint, .proof-page-edit-hint { transition: none; }
+}
 .proof-page-remove {
     position: absolute; top: 2px; right: 2px; display: grid; place-items: center;
     width: 44px; min-width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0;
@@ -1354,10 +1366,6 @@ body.proof-review-open { overflow: hidden; }
     white-space: nowrap;
 }
 .proof-review-close { flex: 0 0 auto; }
-.proof-review-stage { display: flex; flex: 1 1 auto; align-items: center; justify-content: center; min-height: max(80px, min(160px, 35dvh)); padding: var(--lwc-space-4); overflow: auto; background: var(--lwc-canvas); overscroll-behavior: contain; box-sizing: border-box; }
-.proof-review-stage img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; border: 0; border-radius: 2px; background: #ffffff; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.18), 0 16px 40px rgba(15, 23, 42, 0.18); object-fit: contain; transition: none; }
-.proof-review-dialog.is-zoomed .proof-review-stage { display: block; }
-.proof-review-dialog.is-zoomed .proof-review-stage img { width: max(100%, 1200px); height: auto; max-width: none; max-height: none; }
 .proof-review-filmstrip {
     display: flex;
     flex: 0 0 auto;
@@ -1385,50 +1393,15 @@ body.proof-review-open { overflow: hidden; }
 .proof-review-dialog .proof-review-thumb:hover { opacity: 1; background: var(--lwc-surface); border-color: var(--lwc-accent); }
 .proof-review-dialog .proof-review-thumb[aria-current="true"] { opacity: 1; border-color: var(--lwc-accent); box-shadow: 0 0 0 2px var(--lwc-accent); }
 .proof-review-thumb-sheet { display: block; width: 100%; height: 100%; background: #ffffff center / contain no-repeat; }
-.proof-review-navigation { display: flex; flex: 0 0 auto; justify-content: space-between; align-items: center; gap: var(--lwc-space-3); padding: var(--lwc-space-3) var(--lwc-space-4); border-top: 1px solid var(--lwc-border); }
-/* Previous and Next are one segmented control. */
-.proof-review-steps { display: inline-flex; min-width: 0; }
-.proof-review-steps button { display: inline-flex; align-items: center; justify-content: center; gap: var(--lwc-space-1); flex: 0 0 auto; white-space: nowrap; }
-/* Keep the full accessible names when enlarged text needs arrow-only targets. */
-.proof-review-steps.is-compact .proof-review-step-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.proof-review-dialog.is-compact-title .proof-review-close-label,
-.proof-review-dialog.is-compact-height .proof-review-close-label { display: none; }
 /* Keep the filename visible while editing, even when enlarged text needs its own row. */
 .proof-review-dialog.is-compact-title .proof-review-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .proof-review-dialog.is-compact-title .proof-review-title { display: contents; }
 .proof-review-dialog.is-compact-title .proof-review-position { justify-self: start; }
 .proof-review-dialog.is-compact-title h2 { grid-column: 1 / -1; grid-row: 2; }
 .proof-review-dialog.is-compact-title .proof-review-close { grid-column: 2; grid-row: 1; }
-/* Fit the controls to the measured space, including enlarged text and short
-   windows. The dialog can still scroll when the controls need more room. */
-.proof-review-dialog.is-compact-height[open] { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(64px, 1fr) auto; }
-.proof-review-dialog.is-compact-height .proof-review-toolbar,
-.proof-review-dialog.is-compact-height .proof-review-stage { grid-column: 1 / -1; }
-.proof-review-dialog.is-compact-height .proof-review-toolbar { gap: 8px; padding: 4px 8px; }
-.proof-review-dialog.is-compact-height .proof-review-title { gap: 8px; }
-.proof-review-dialog.is-compact-height .proof-review-close { min-width: 44px; padding: 8px; }
-.proof-review-dialog.is-compact-height .proof-review-stage { min-height: 64px; padding: 8px; }
-.proof-review-dialog.is-compact-height .proof-review-filmstrip { min-width: 0; align-items: center; gap: 8px; padding: 4px 0; }
-.proof-review-dialog.is-compact-height .proof-review-thumb { width: 44px; height: 44px; }
-.proof-review-dialog.is-compact-height .proof-review-navigation { flex-wrap: wrap; gap: 4px; padding: 4px; }
-.proof-review-dialog.is-compact-height .proof-review-steps,
-.proof-review-dialog.is-compact-height .proof-review-zoom { flex: 0 0 auto; }
-.proof-review-dialog.is-compact-height .proof-review-navigation button { flex: 0 0 auto; min-width: 44px; padding: 8px; }
-.proof-review-dialog.is-compact-height .proof-review-step-label,
-.proof-review-dialog.is-compact-height .proof-review-zoom-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.proof-review-dialog.is-compact-height .proof-review-filmstrip[hidden] + .proof-review-navigation { grid-column: 1 / -1; justify-content: center; }
-.proof-review-dialog .proof-review-previous { border-start-end-radius: 0; border-end-end-radius: 0; }
-.proof-review-dialog .proof-review-next { margin-inline-start: -1px; border-start-start-radius: 0; border-end-start-radius: 0; }
-.proof-review-zoom { display: inline-flex; align-items: center; justify-content: center; gap: var(--lwc-space-2); margin-left: auto !important; }
-/* Empty alternative text keeps the glyphs out of the buttons' accessible names. */
-.proof-review-zoom::before { content: "\f00e" / ""; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .85em; }
-.proof-review-zoom[aria-pressed="true"]::before { content: "\f010" / ""; }
-.proof-review-hide { white-space: nowrap; }
 .proof-review-dialog button { touch-action: manipulation; }
 /* Editing keeps the page central, with selection actions beside the chosen area. */
 .proof-review-dialog.is-editing[open] { display: flex; }
-.proof-review-dialog.is-editing .proof-review-stage,
-.proof-review-dialog.is-editing .proof-review-navigation { display: none; }
 .proof-review-dialog.is-editing .proof-review-toolbar h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proof-edit-stage { position: relative; flex: 1 1 0; min-height: 64px; overflow: hidden; background: var(--lwc-canvas); touch-action: none; user-select: none; cursor: crosshair; }
 .proof-edit-stage[data-tool="move"] { cursor: grab; }
@@ -1459,10 +1432,8 @@ body.proof-review-open { overflow: hidden; }
 .proof-edit-fit { white-space: nowrap; }
 .proof-edit-status { display: block; min-height: 1.5em; margin: 6px 0 0; color: var(--lwc-muted); font-size: var(--lwc-type-xs); line-height: 1.5; }
 .proof-review-dialog .proof-edit-delete { position: absolute; z-index: 1; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 10px; background: var(--lwc-surface); box-shadow: 0 2px 8px #0003; }
-.proof-edit-delete[hidden], .proof-edit-move[hidden] { display: none; }
-.proof-review-dialog .proof-edit-apply { padding-inline: 16px; background: var(--lwc-accent); border-color: var(--lwc-accent); color: var(--lwc-on-accent); margin-left: auto; }
-.proof-review-dialog .proof-edit-apply:hover { background: var(--lwc-accent-hover); }
-.proof-review-thumb.has-edits .proof-review-thumb-sheet::after { content: ""; display: block; width: 10px; height: 10px; margin: 2px; border: 2px solid white; border-radius: 50%; background: #000; }
+.proof-edit-delete[hidden], .proof-edit-move[hidden], .proof-edit-retry[hidden] { display: none; }
+.proof-edit-retry { margin-left: auto !important; }
 @media (min-width: 540px) and (max-height: 550px) {
     .proof-review-dialog.is-editing .proof-review-toolbar { padding: 4px 8px; }
     .proof-review-dialog.is-editing .proof-review-filmstrip { padding-block: 4px; }
@@ -1474,10 +1445,7 @@ body.proof-review-open { overflow: hidden; }
 .proof-page-preview:focus-visible,
 .proof-page-remove:focus-visible,
 .proof-undo:focus-visible,
-.proof-review-stage:focus-visible,
 .proof-review-dialog button:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
-/* A focused half of the segmented control draws its ring over the shared border. */
-.proof-review-steps button:focus-visible { position: relative; z-index: 1; }
 .proof-page-card button:disabled,
 .proof-undo:disabled,
 .proof-review-dialog button:disabled { cursor: default; color: var(--lwc-muted); background: var(--lwc-surface-muted); opacity: .65; }
@@ -1486,29 +1454,16 @@ body.proof-review-open { overflow: hidden; }
 .proof-page-card .proof-page-remove:focus-visible { outline-offset: -3px; }
 @media (max-width: 600px) {
     .proof-review-dialog { width: 100%; height: 100dvh; border: 0; border-radius: 0; }
-    .proof-review-stage { padding: var(--lwc-space-3); }
-    .proof-review-navigation { gap: var(--lwc-space-2); padding: var(--lwc-space-2) var(--lwc-space-3) max(var(--lwc-space-3), env(safe-area-inset-bottom)); }
     .proof-review-filmstrip { padding-inline: var(--lwc-space-3); }
-    .proof-review-steps { flex: 1 1 auto; }
-    .proof-review-steps button { flex: 1 1 0; min-width: 0; }
-    .proof-review-navigation .proof-review-steps { flex: 0 0 auto; }
-    .proof-review-navigation .proof-review-zoom { flex: 0 0 auto; }
-    .proof-review-navigation .proof-review-step-label,
-    .proof-review-navigation .proof-review-zoom-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .proof-review-navigation button { min-width: 44px; }
     .proof-edit-controls { padding-inline: 12px; }
 }
-@media (max-width: 400px) {
-    .proof-review-navigation { flex-wrap: wrap; }
-}
 @media (max-width: 360px) {
-    .proof-edit-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-    .proof-edit-tools { grid-column: 1; grid-row: 1; }
-    .proof-edit-apply { grid-column: 2; grid-row: 1; }
-    .proof-edit-zoom { grid-column: 1 / -1; grid-row: 2; }
+    .proof-edit-actions { gap: 6px; }
+    .proof-edit-controls { padding-inline: 8px; }
+    .proof-edit-zoom { flex: 1 0 auto; }
     .proof-edit-fit { flex: 1; }
     .proof-page-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr)); gap: var(--lwc-space-2); padding: var(--lwc-space-2); }
-    .proof-page-preview,
+    .proof-page-preview { min-height: 136px; }
     .proof-page-pending-sheet { height: 136px; }
 }
 

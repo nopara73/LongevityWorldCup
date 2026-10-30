@@ -159,8 +159,8 @@ public sealed class ProofReviewWorkspaceBrowserTests(PlaywrightBrowserFixture br
         await UploadAsync(page, CreatePages(4));
         var sources = await page.Locator("#proofImageContainer img").EvaluateAllAsync<string[]>("images => images.map(image => image.src)");
         await page.Locator(".proof-page-preview").First.ClickAsync();
-        await ProofReviewBrowserTests.ApplyDraftForReviewAsync(page);
-        var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Review attached proofs" });
+        await ProofReviewBrowserTests.EditorReadyAsync(page);
+        var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Hide details", Exact = true });
         await dialog.WaitForAsync();
 
         await Assertions.Expect(dialog.Locator(".proof-review-toolbar .proof-review-position")).ToHaveTextAsync("1 / 4");
@@ -168,7 +168,7 @@ public sealed class ProofReviewWorkspaceBrowserTests(PlaywrightBrowserFixture br
         await Assertions.Expect(thumbs).ToHaveCountAsync(4);
         await Assertions.Expect(thumbs.First).ToHaveAttributeAsync("aria-current", "true");
         await thumbs.Nth(3).ClickAsync();
-        Assert.Equal(sources[3], await dialog.Locator(".proof-review-stage img").GetAttributeAsync("src"));
+        Assert.Equal(sources[3], await dialog.Locator(".proof-edit-sheet img").GetAttributeAsync("src"));
         await Assertions.Expect(dialog.Locator(".proof-review-position")).ToHaveTextAsync("4 / 4");
         await Assertions.Expect(thumbs.Nth(3)).ToHaveAttributeAsync("aria-current", "true");
         Assert.Equal(1, await dialog.Locator("[aria-current='true']").CountAsync());
@@ -180,25 +180,20 @@ public sealed class ProofReviewWorkspaceBrowserTests(PlaywrightBrowserFixture br
             dialog => {
                 const rect = selector => dialog.querySelector(selector).getBoundingClientRect();
                 const box = dialog.getBoundingClientRect();
-                const previous = rect('.proof-review-previous');
-                const next = rect('.proof-review-next');
                 const thumbs = [...dialog.querySelectorAll('.proof-review-thumb')].map(t => t.getBoundingClientRect());
-                return [previous.height, next.height, Math.abs(previous.top - next.top), next.left - previous.right,
-                    Math.min(...thumbs.map(t => t.height)), Math.min(...thumbs.map(t => t.left)) - box.left, box.right - Math.max(...thumbs.map(t => t.right))];
+                return [Math.min(...thumbs.map(t => t.height)), Math.min(...thumbs.map(t => t.left)) - box.left,
+                    box.right - Math.max(...thumbs.map(t => t.right))];
             }
             """);
-        Assert.InRange(Math.Abs(geometry[0] - geometry[1]), 0, 1);
-        Assert.InRange(geometry[2], 0, 1);
-        Assert.InRange(geometry[3], -2, 0.5);
-        Assert.True(geometry[4] >= 44, "Every thumbnail should be a 44px target.");
-        Assert.True(geometry[5] >= 0 && geometry[6] >= 0, "The filmstrip should stay inside the viewer.");
+        Assert.True(geometry[0] >= 44, "Every thumbnail should be a 44px target.");
+        Assert.True(geometry[1] >= 0 && geometry[2] >= 0, "The filmstrip should stay inside the viewer.");
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
 
         await page.Keyboard.PressAsync("Escape");
         while (await page.Locator(".proof-page-remove").CountAsync() > 1)
             await page.Locator(".proof-page-remove").First.ClickAsync();
         await page.Locator(".proof-page-preview").First.ClickAsync();
-        await ProofReviewBrowserTests.ApplyDraftForReviewAsync(page);
+        await ProofReviewBrowserTests.EditorReadyAsync(page);
         await Assertions.Expect(dialog.Locator(".proof-review-filmstrip")).ToBeHiddenAsync();
         await Assertions.Expect(dialog.Locator(".proof-review-position")).ToHaveTextAsync("1 / 1");
     }

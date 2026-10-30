@@ -17,7 +17,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public async Task AppliedAreas_ReplaceActualSubmissionBytesAcrossCancelUndoNavigationAndReuploads(bool onboarding, bool pdf)
+    public async Task AutomaticSaving_PreservesEditableAreasAndSubmitsOnlyCurrentPixels(bool onboarding, bool pdf)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await PrepareAsync(context, onboarding);
@@ -25,54 +25,59 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await UploadAsync(page, files);
         var original = await SourcesAsync(page);
         Assert.Equal(2, original.Length);
-
-        // Leave an original in removal history, then restore it by re-uploading.
         await page.Locator(".proof-page-remove").Last.ClickAsync();
         await UploadAsync(page, files);
         await page.Locator(".proof-page-preview").First.ClickAsync();
         await ReadyAsync(page);
         await Assertions.Expect(page.Locator(".proof-edit-stage")).ToBeFocusedAsync();
-        await Assertions.Expect(page.Locator(".proof-review-hide")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".proof-edit-apply, .proof-review-hide")).ToHaveCountAsync(0);
         await DrawAsync(page, 50, 170, 600, 170);
-        await page.Locator(".proof-review-close").ClickAsync(); // Cancel all drafts.
+        await SavedAsync(page);
+        var firstEdit = await SourcesAsync(page);
+        AssertFlattened(original[0], firstEdit[0]);
+        await page.Locator(".proof-review-close").ClickAsync();
         await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
-        Assert.Equal(original, await SourcesAsync(page));
+
+        // Closing and reopening must preserve individually selectable areas.
         await page.Locator(".proof-page-preview").First.ClickAsync();
         await ReadyAsync(page);
-        await DrawAsync(page, 50, 170, 600, 170);
-        await page.Locator(".proof-review-thumb").Nth(1).ClickAsync();
-        await ReadyAsync(page);
-        await DrawAsync(page, 50, 170, 600, 170);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        await Areas(page).First.ClickAsync();
+        await page.Locator(".proof-edit-delete").ClickAsync();
+        await SavedAsync(page);
+        Assert.Equal(original[0], (await SourcesAsync(page))[0]);
         await page.Locator(".proof-edit-undo").ClickAsync();
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToHaveAccessibleNameAsync("Apply (1)");
-        await page.Locator(".proof-review-thumb").First.ClickAsync();
-        await ReadyAsync(page);
-        await SaveEvidenceAsync(page, $"{(onboarding ? "apply" : "proofs")}-{(pdf ? "pdf" : "image")}-editing");
-        await ApplyAsync(page);
-        var firstEdit = await SourcesAsync(page);
-        Assert.NotEqual(original[0], firstEdit[0]);
-        Assert.Equal(original[1], firstEdit[1]);
-
-        // Applying is an irreversible boundary. A new edit's Undo/Cancel cannot
-        // recover an already hidden area, even after changing pages.
-        await StartAsync(page);
+        await SavedAsync(page);
+        Assert.Equal(firstEdit[0], (await SourcesAsync(page))[0]);
         await DrawAsync(page, 700, 900, 160, 80);
-        await page.Locator(".proof-edit-undo").ClickAsync();
-        await page.Locator(".proof-review-thumb").Nth(1).ClickAsync();
+        await SavedAsync(page);
+        await page.Locator(".proof-review-close").ClickAsync();
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(2);
+        await Areas(page).Last.ClickAsync();
+        await page.Locator(".proof-edit-stage").PressAsync("Delete");
+        await SavedAsync(page);
+        Assert.Equal(firstEdit[0], (await SourcesAsync(page))[0]);
+        await SaveEvidenceAsync(page, $"{(onboarding ? "apply" : "proofs")}-{(pdf ? "pdf" : "image")}-editing");
+
+        await page.Locator(".proof-review-thumb").Last.ClickAsync();
         await ReadyAsync(page);
         await DrawAsync(page, 50, 170, 600, 170);
-        await ApplyAsync(page);
+        await page.Locator(".proof-edit-undo").ClickAsync();
+        await SavedAsync(page);
+        Assert.Equal(original[1], (await SourcesAsync(page))[1]);
+        await DrawAsync(page, 50, 170, 600, 170);
+        await SavedAsync(page);
         var applied = await SourcesAsync(page);
         Assert.Equal(firstEdit[0], applied[0]);
-        Assert.NotEqual(original[1], applied[1]);
-        await SaveEvidenceAsync(page, $"{(onboarding ? "apply" : "proofs")}-{(pdf ? "pdf" : "image")}-applied");
-        await StartAsync(page);
-        await DrawAsync(page, 700, 900, 160, 80);
+        AssertFlattened(original[1], applied[1]);
+        await page.Locator(".proof-edit-stage").PressAsync("Escape");
+        await SaveEvidenceAsync(page, $"{(onboarding ? "apply" : "proofs")}-{(pdf ? "pdf" : "image")}-saved");
         await page.Locator(".proof-review-close").ClickAsync();
-        await Assertions.Expect(page.Locator(".proof-page-preview").Nth(1)).ToBeFocusedAsync();
 
-        // Removal history, original file fingerprints, and optimized-image
-        // fingerprints must all lead to the latest safe copy.
+        // Removal history and original/optimized fingerprints resolve to the
+        // current flattened copy, never to the editor's private working original.
         await page.Locator(".proof-undo").ClickAsync();
         Assert.Equal(applied, await SourcesAsync(page));
         await page.Locator(".proof-page-remove").Last.ClickAsync();
@@ -81,13 +86,10 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         Assert.Equal(applied, await SourcesAsync(page));
         if (!pdf)
         {
-            // Different file bytes that decode/optimize to the same original.
             await UploadAsync(page, files.Select(file => new FilePayload { Name = "trailing-" + file.Name, MimeType = file.MimeType, Buffer = [.. file.Buffer, 0, 0] }).ToArray());
             Assert.Equal(applied, await SourcesAsync(page));
         }
-        var originalsInDom = await page.EvaluateAsync<bool>("sources => sources.some(source => document.documentElement.outerHTML.includes(source))", original);
-        Assert.False(originalsInDom);
-
+        Assert.False(await page.EvaluateAsync<bool>("sources => sources.some(source => document.documentElement.outerHTML.includes(source))", original));
         if (onboarding)
         {
             await page.Locator("#nextButton").ClickAsync();
@@ -95,11 +97,14 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
             await page.Locator("#backButton").ClickAsync();
             await page.GetByRole(AriaRole.Heading, new() { Name = "Don't trust, verify", Exact = true }).WaitForAsync();
             Assert.Equal(applied, await SourcesAsync(page));
+            await page.Locator(".proof-page-preview").First.ClickAsync();
+            await ReadyAsync(page);
+            await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+            await page.Locator(".proof-review-close").ClickAsync();
             await page.Locator("#nextButton").ClickAsync();
             await page.GetByRole(AriaRole.Heading, new() { Name = "Final details", Exact = true }).WaitForAsync();
             await page.Locator("#nextButton").ClickAsync();
         }
-
         var requestTask = page.WaitForRequestAsync(request => request.Url.EndsWith("/api/application/application") && request.Method == "POST");
         await page.Locator(onboarding ? "#nextButton" : "#submitButton").ClickAsync();
         var request = await requestTask;
@@ -112,7 +117,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     }
 
     [Fact]
-    public async Task FailedEncoding_IsAtomicAndRetryKeepsTheSelectionsWithoutAnOriginalFallback()
+    public async Task FailedAutomaticSave_BlocksSubmissionAndRetryPreservesEditableSelections()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await PrepareAsync(context, false);
@@ -121,29 +126,87 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await page.Locator(".biomarker-checkbox").First.CheckAsync();
         await page.Locator(".proof-page-preview").First.ClickAsync();
         await ReadyAsync(page);
-        await DrawAsync(page, 50, 170, 600, 170);
-        await page.Locator(".proof-review-thumb").Last.ClickAsync();
-        await ReadyAsync(page);
-        await DrawAsync(page, 50, 170, 600, 170);
         await page.EvaluateAsync("""
             () => {
                 window.__originalProofToBlob = HTMLCanvasElement.prototype.toBlob;
-                let count = 0;
-                HTMLCanvasElement.prototype.toBlob = function(callback, ...args) {
-                    if (++count >= 3) { callback(null); return; }
-                    return window.__originalProofToBlob.call(this, callback, ...args);
-                };
+                HTMLCanvasElement.prototype.toBlob = function(callback) { callback(null); };
             }
             """);
-        await page.Locator(".proof-edit-apply").ClickAsync();
-        await Assertions.Expect(page.Locator(".proof-edit-status")).ToContainTextAsync("Could not apply");
+        await DrawAsync(page, 50, 170, 600, 170);
+        await Assertions.Expect(page.Locator(".proof-edit-status")).ToContainTextAsync("Could not save");
+        await page.Locator(".proof-review-close").ClickAsync();
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
+        await Assertions.Expect(page.Locator(".proof-save-retry")).ToBeVisibleAsync();
         Assert.Equal(original, await SourcesAsync(page));
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToBeEnabledAsync();
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        await page.Locator(".proof-review-thumb").Last.ClickAsync();
+        await ReadyAsync(page);
+        await DrawAsync(page, 50, 170, 600, 170);
+        await Assertions.Expect(page.Locator(".proof-edit-status")).ToContainTextAsync("Could not save");
+        Assert.Equal(original, await SourcesAsync(page));
         await page.EvaluateAsync("() => { HTMLCanvasElement.prototype.toBlob = window.__originalProofToBlob; }");
-        await ApplyAsync(page);
+        await page.Locator(".proof-edit-retry").ClickAsync();
+        await SavedAsync(page);
         var applied = await SourcesAsync(page);
         for (var index = 0; index < applied.Length; index++) AssertFlattened(original[index], applied[index]);
         Assert.False(await page.Locator(".biomarker-checkbox").First.IsCheckedAsync());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EditingDuringEncoding_RejectsStalePixelsAndKeepsProgressionBlocked(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await ReportsAsync(page, false));
+        var original = await SourcesAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                const encode = HTMLCanvasElement.prototype.toBlob;
+                let held = false;
+                HTMLCanvasElement.prototype.toBlob = function(callback, ...args) {
+                    if (!held) {
+                        held = true;
+                        window.__releaseProofSave = () => encode.call(this, callback, ...args);
+                    } else encode.call(this, callback, ...args);
+                };
+            }
+            """);
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        await DrawAsync(page, 50, 170, 600, 170);
+        await page.WaitForFunctionAsync("() => typeof window.__releaseProofSave === 'function'");
+        await DrawAsync(page, 700, 900, 160, 80);
+        await page.Locator(".proof-review-close").ClickAsync();
+        var next = page.Locator(onboarding ? "#nextButton" : "#submitButton");
+        await Assertions.Expect(next).ToBeDisabledAsync();
+        Assert.Equal(original, await SourcesAsync(page));
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(2);
+        await Areas(page).First.ClickAsync();
+        await page.Locator(".proof-edit-delete").ClickAsync();
+        await page.Locator(".proof-review-close").ClickAsync();
+        await Assertions.Expect(next).ToBeDisabledAsync();
+        await page.EvaluateAsync("window.__releaseProofSave()");
+        await SavedAsync(page);
+        await Assertions.Expect(next).ToBeEnabledAsync();
+        var submitted = (await SourcesAsync(page))[0];
+        using var final = Image.Load<Rgba32>(Convert.FromBase64String(submitted.Split(',')[1]));
+        using var before = Image.Load<Rgba32>(Convert.FromBase64String(original[0].Split(',')[1]));
+        Assert.True(final[800, 940].R < 12 && final[800, 940].A == 255);
+        Assert.True(final[100, 180].R > 240, "The explicitly removed first area must be restored.");
+        Assert.NotEqual(original[0], submitted);
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        await Areas(page).First.ClickAsync();
+        await page.Locator(".proof-edit-delete").ClickAsync();
+        await SavedAsync(page);
+        Assert.Equal(original[0], (await SourcesAsync(page))[0]);
     }
 
     [Theory]
@@ -155,11 +218,18 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = width, Height = 844 }, HasTouch = true,
+            ViewportSize = new() { Width = width, Height = 844 }, HasTouch = true, IsMobile = width <= 390,
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await PrepareAsync(context, false);
         await UploadAsync(page, await ReportsAsync(page, false));
+        if (width <= 390)
+        {
+            Assert.True(await page.EvaluateAsync<bool>("matchMedia('(hover: none), (pointer: coarse)').matches"));
+            await Assertions.Expect(page.Locator(".proof-page-preview .proof-page-zoom-hint").First).ToHaveCSSAsync("opacity", "1");
+            await page.Locator(".proof-page-preview").First.ScrollIntoViewIfNeededAsync();
+            await SaveEvidenceAsync(page, $"touch-thumbnail-{width}-{(dark ? "dark" : "light")}");
+        }
         await page.Locator(".proof-page-preview").First.TapAsync();
         await ReadyAsync(page);
         if (largeText)
@@ -187,24 +257,24 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await TouchAsync(cdp, "touchMove", (x - 65, y - 15), (x + 65, y + 15));
         await TouchAsync(cdp, "touchEnd");
         Assert.True((await page.Locator(".proof-edit-sheet").BoundingBoxAsync())!.Width > before!.Width * 2);
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToBeDisabledAsync();
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(0);
         // Finger drawing uses native touch input, not synthetic DOM pointer events.
         await TouchAsync(cdp, "touchStart", (x - 60, y - 30));
         await TouchAsync(cdp, "touchMove", (x + 60, y + 30));
         await TouchAsync(cdp, "touchEnd");
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToHaveAccessibleNameAsync("Apply (1)");
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
         // A contextual action must work on the first tap after a touch gesture.
         // It must remove the selection, not start another drawing gesture.
         await page.Locator(".proof-edit-delete").TapAsync();
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToBeDisabledAsync();
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator(".proof-edit-delete")).ToBeHiddenAsync();
         await page.Locator(".proof-edit-undo").TapAsync();
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToHaveAccessibleNameAsync("Apply (1)");
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
         await stage.FocusAsync();
         await page.Keyboard.PressAsync("PageDown");
         await page.Locator(".proof-edit-delete").FocusAsync();
         await page.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToBeDisabledAsync();
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(0);
         await Assertions.Expect(stage).ToBeFocusedAsync();
         await page.Locator(".proof-edit-undo").TapAsync();
         var chosenArea = await page.Locator(".proof-edit-sheet rect[data-area]").EvaluateAsync<string>("e => ['x','y','width','height'].map(key => e.getAttribute(key)).join(',')");
@@ -222,7 +292,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         Assert.True(fitted.X >= viewport.X + 15 && fitted.Y >= viewport.Y + 15);
         Assert.True(fitted.X + fitted.Width <= viewport.X + viewport.Width - 15 && fitted.Y + fitted.Height <= viewport.Y + viewport.Height - 15);
         Assert.Equal(chosenArea, await page.Locator(".proof-edit-sheet rect[data-area]").EvaluateAsync<string>("e => ['x','y','width','height'].map(key => e.getAttribute(key)).join(',')"));
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToHaveAccessibleNameAsync("Apply (1)");
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
         await stage.FocusAsync();
         var imageZoom = await page.Locator(".proof-edit-sheet").GetAttributeAsync("style");
         await page.EvaluateAsync("""
@@ -242,15 +312,15 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await page.Keyboard.PressAsync("Shift+ArrowRight");
         Assert.NotEqual(originalWidth, await area.GetAttributeAsync("width"));
         await page.Keyboard.PressAsync("Delete");
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToHaveAccessibleNameAsync("Apply (1)");
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
         await page.Keyboard.PressAsync("Control+z");
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToHaveAccessibleNameAsync("Apply (2)");
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(2);
         await page.Keyboard.PressAsync("PageDown");
         await Assertions.Expect(stage).ToHaveAccessibleNameAsync("Hide details on proof page, area 1 of 2 selected");
         await page.Keyboard.PressAsync("PageUp");
         await Assertions.Expect(stage).ToHaveAccessibleNameAsync("Hide details on proof page, area 2 of 2 selected");
         await page.Keyboard.PressAsync("Delete");
-        await Assertions.Expect(page.Locator(".proof-edit-apply")).ToHaveAccessibleNameAsync("Apply (1)");
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
         await page.Keyboard.PressAsync("Control+z");
         await SaveEvidenceAsync(page, $"touch-{width}-{(dark ? "dark" : "light")}{(largeText ? "-large-text" : "")}");
         // Actual layout/focus checks, including 200% text and narrow screens.
@@ -262,13 +332,122 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
             Assert.InRange(rect.X, 0, width - rect.Width + 1);
             Assert.True(await control.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth + 1"));
         }
-        await page.Locator(".proof-edit-apply").FocusAsync();
+        await page.Locator(".proof-edit-zoom-in").FocusAsync();
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator(".proof-review-close")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
         await cdp.DetachAsync();
+    }
+
+    [Fact]
+    public async Task WheelZoomAnchorsAtPointer_AndSpaceDragTemporarilyPans()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, false);
+        await UploadAsync(page, await ReportsAsync(page, false));
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        var stage = page.Locator(".proof-edit-stage");
+        var sheet = page.Locator(".proof-edit-sheet");
+        var bounds = (await stage.BoundingBoxAsync())!;
+        var centerX = bounds.X + bounds.Width / 2;
+        var centerY = bounds.Y + bounds.Height / 2;
+        await page.Mouse.MoveAsync(centerX, centerY);
+        var fitted = (await sheet.BoundingBoxAsync())!;
+        await page.Mouse.WheelAsync(0, -120);
+        await page.WaitForFunctionAsync("width => document.querySelector('.proof-edit-sheet').getBoundingClientRect().width > width + 0.1", (double)fitted.Width);
+        var enlarged = (await sheet.BoundingBoxAsync())!;
+        await page.Mouse.WheelAsync(0, 120);
+        await page.WaitForFunctionAsync("width => document.querySelector('.proof-edit-sheet').getBoundingClientRect().width < width - 0.1", (double)enlarged.Width);
+
+        // Make both dimensions larger than the stage so clamping cannot obscure
+        // whether the same image point stays beneath the pointer while zooming.
+        for (var i = 0; i < 5; i++) await page.Locator(".proof-edit-zoom-in").ClickAsync();
+        await page.Locator(".proof-edit-zoom-in").FocusAsync();
+        var beforeButtonSpace = (await sheet.BoundingBoxAsync())!;
+        await page.Keyboard.PressAsync("Space");
+        await page.WaitForFunctionAsync("width => document.querySelector('.proof-edit-sheet').getBoundingClientRect().width > width + 0.1", (double)beforeButtonSpace.Width);
+        bounds = (await stage.BoundingBoxAsync())!;
+        var anchorX = bounds.X + bounds.Width * .57f;
+        var anchorY = bounds.Y + bounds.Height * .55f;
+        await page.Mouse.MoveAsync(anchorX, anchorY);
+        var before = (await sheet.BoundingBoxAsync())!;
+        Assert.True(before.Width > bounds.Width + 100 && before.Height > bounds.Height + 100);
+        var imageX = (anchorX - before.X) / before.Width;
+        var imageY = (anchorY - before.Y) / before.Height;
+        await page.Mouse.WheelAsync(0, -80);
+        await page.WaitForFunctionAsync("width => document.querySelector('.proof-edit-sheet').getBoundingClientRect().width > width + 0.1", (double)before.Width);
+        var after = (await sheet.BoundingBoxAsync())!;
+        Assert.InRange((anchorX - after.X) / after.Width, imageX - .002, imageX + .002);
+        Assert.InRange((anchorY - after.Y) / after.Height, imageY - .002, imageY + .002);
+        await page.Mouse.WheelAsync(0, 80);
+        await page.WaitForFunctionAsync("width => document.querySelector('.proof-edit-sheet').getBoundingClientRect().width < width - 0.1", (double)after.Width);
+
+        await stage.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        var geometry = await Areas(page).First.EvaluateAsync<string>("e => ['x','y','width','height'].map(key => e.getAttribute(key)).join(',')");
+        var priorPan = (await sheet.BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(centerX, centerY);
+        await page.Keyboard.DownAsync("Space");
+        await page.Mouse.DownAsync();
+        await page.Mouse.MoveAsync(centerX + 45, centerY + 35, new() { Steps = 5 });
+        await page.Mouse.UpAsync();
+        await page.Keyboard.UpAsync("Space");
+        var panned = (await sheet.BoundingBoxAsync())!;
+        Assert.True(Math.Abs(panned.X - priorPan.X) > 10 && Math.Abs(panned.Y - priorPan.Y) > 10);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        Assert.Equal(geometry, await Areas(page).First.EvaluateAsync<string>("e => ['x','y','width','height'].map(key => e.getAttribute(key)).join(',')"));
+        await Assertions.Expect(page.Locator(".proof-edit-move")).ToHaveAttributeAsync("aria-pressed", "false");
+
+        await page.Mouse.MoveAsync(centerX, centerY);
+        await page.Mouse.DownAsync(new() { Button = MouseButton.Middle });
+        await page.Mouse.MoveAsync(centerX - 30, centerY - 25, new() { Steps = 5 });
+        await page.Mouse.UpAsync(new() { Button = MouseButton.Middle });
+        var middlePanned = (await sheet.BoundingBoxAsync())!;
+        Assert.True(Math.Abs(middlePanned.X - panned.X) > 10 && Math.Abs(middlePanned.Y - panned.Y) > 10);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        Assert.Equal(geometry, await Areas(page).First.EvaluateAsync<string>("e => ['x','y','width','height'].map(key => e.getAttribute(key)).join(',')"));
+
+        // Starting from a focused zoom control must also allow Space-drag,
+        // without accidentally activating that control when Space is released.
+        await page.Locator(".proof-edit-zoom-in").FocusAsync();
+        await page.Keyboard.DownAsync("Space");
+        await page.Mouse.MoveAsync(centerX, centerY);
+        await page.Mouse.DownAsync();
+        await page.Mouse.MoveAsync(centerX + 30, centerY + 25, new() { Steps = 5 });
+        await page.Mouse.UpAsync();
+        await page.Keyboard.UpAsync("Space");
+        var toolbarPanned = (await sheet.BoundingBoxAsync())!;
+        Assert.True(Math.Abs(toolbarPanned.X - middlePanned.X) > 10 && Math.Abs(toolbarPanned.Y - middlePanned.Y) > 10);
+        Assert.InRange(toolbarPanned.Width, middlePanned.Width - .1, middlePanned.Width + .1);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        Assert.Equal(geometry, await Areas(page).First.EvaluateAsync<string>("e => ['x','y','width','height'].map(key => e.getAttribute(key)).join(',')"));
+
+        // Releasing Space restores drawing instead of leaving the editor in pan mode.
+        await page.Mouse.MoveAsync(bounds.X + bounds.Width * .2f, bounds.Y + bounds.Height * .2f);
+        await page.Mouse.DownAsync();
+        await page.Mouse.MoveAsync(bounds.X + bounds.Width * .2f + 45, bounds.Y + bounds.Height * .2f + 35, new() { Steps = 5 });
+        await page.Mouse.UpAsync();
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(2);
+        await SavedAsync(page);
+        await SaveEvidenceAsync(page, "wheel-zoom-space-pan");
+
+        await page.EvaluateAsync("""
+            () => {
+                window.__proofCtrlWheelDefaultPrevented = null;
+                document.addEventListener('wheel', event => {
+                    if (event.ctrlKey) window.__proofCtrlWheelDefaultPrevented = event.defaultPrevented;
+                });
+            }
+            """);
+        await page.Keyboard.DownAsync("Control");
+        await page.Mouse.WheelAsync(0, -120);
+        await page.WaitForFunctionAsync("() => window.__proofCtrlWheelDefaultPrevented !== null");
+        await page.Keyboard.UpAsync("Control");
+        Assert.False(await page.EvaluateAsync<bool>("window.__proofCtrlWheelDefaultPrevented"));
     }
 
     [Theory]
@@ -321,15 +500,15 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
             Assert.True(await page.Locator(".proof-review-dialog").EvaluateAsync<bool>("""
                 dialog => {
                     const d = dialog.getBoundingClientRect();
-                    return ['.proof-review-close', '.proof-edit-apply'].every(selector => {
+                    return ['.proof-review-close', '.proof-edit-fit'].every(selector => {
                         const b = dialog.querySelector(selector).getBoundingClientRect();
                         return b.top >= d.top && b.bottom <= d.bottom;
                     });
                 }
-                """), "Cancel and Apply must both remain visible at native 200% zoom.");
-            await ApplyAsync(page);
+                """), "Close and zoom controls must remain visible at native 200% zoom.");
+            await SavedAsync(page);
             AssertFlattened(original[0], (await SourcesAsync(page))[0]);
-            await SaveEvidenceAsync(page, name + "-applied", cdp);
+            await SaveEvidenceAsync(page, name + "-saved", cdp);
             await page.Locator(".proof-review-close").ClickAsync();
             await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
         }
@@ -345,7 +524,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         return path;
     }
 
-    private static async Task SaveEvidenceAsync(IPage page, string name, ICDPSession? cdp = null)
+    internal static async Task SaveEvidenceAsync(IPage page, string name, ICDPSession? cdp = null)
     {
         var path = Path.Combine(EvidenceDirectory(), name + ".png");
         if (cdp is null) await page.ScreenshotAsync(new() { Path = path });
@@ -414,8 +593,8 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     }
     private static Task<string[]> SourcesAsync(IPage page) => page.EvaluateAsync<string[]>("proofPics.slice()");
     private static Task ReadyAsync(IPage page) => page.WaitForFunctionAsync("() => !!document.querySelector('.proof-edit-sheet:not([hidden])')");
-    private static async Task StartAsync(IPage page) { await page.Locator(".proof-review-hide").ClickAsync(); await ReadyAsync(page); }
-    private static async Task ApplyAsync(IPage page) { await page.Locator(".proof-edit-apply").ClickAsync(); await Assertions.Expect(page.Locator(".proof-edit-stage")).ToHaveCountAsync(0); }
+    private static ILocator Areas(IPage page) => page.Locator(".proof-edit-sheet rect[data-area]");
+    private static Task SavedAsync(IPage page) => page.WaitForFunctionAsync("() => !document.querySelector('#proofPicInput').disabled");
     private static async Task DrawAsync(IPage page, float x, float y, float width, float height)
     {
         var b = (await page.Locator(".proof-edit-sheet").BoundingBoxAsync())!;
