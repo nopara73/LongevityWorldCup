@@ -169,16 +169,6 @@ button:hover {
     text-align: center;
 }
 
-.section-container[data-aos]:not(.aos-animate) {
-    opacity: 1 !important;
-    transform: none !important;
-}
-
-.section-container [data-aos]:not(.aos-animate) {
-    opacity: 1 !important;
-    transform: none !important;
-}
-
     /* Heading style */
     .section-container h3 {
         font-size: 1.5rem;

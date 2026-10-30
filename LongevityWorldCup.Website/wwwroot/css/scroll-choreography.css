@@ -1,0 +1,106 @@
+/*
+ * Scroll choreography: the one shared vocabulary for how content arrives on scroll.
+ * See Frontend/scroll-choreography.ts for the attributes.
+ *
+ * Only elements the script marked as waiting below the fold are ever held back, so
+ * the HTML stays fully readable without JavaScript. Motion is opacity plus the
+ * individual `translate` / `scale` properties: no layout shift, and components keep
+ * their own transforms for hover and press.
+ */
+
+:root {
+    --lwc-enter-distance: 22px;
+    --lwc-enter-scale: 0.985;
+    --lwc-enter-fade: 380ms;
+    --lwc-enter-travel: 640ms;
+    --lwc-enter-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --lwc-enter-step: 60ms;
+    --lwc-parallax-drift: 7%;
+}
+
+@media (max-width: 640px) {
+    :root {
+        --lwc-enter-distance: 14px;
+        --lwc-enter-step: 50ms;
+        --lwc-parallax-drift: 4%;
+    }
+}
+
+/* Waiting: just out of sight below the fold. */
+:root[data-lwc-choreo] [data-lwc-enter-state="wait"] {
+    opacity: 0;
+    translate: 0 var(--lwc-enter-distance);
+    scale: var(--lwc-enter-scale);
+}
+
+/* Arriving: a quick fade carried by a longer, settling rise. */
+:root[data-lwc-choreo] [data-lwc-enter-state="go"] {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    transition:
+        opacity var(--lwc-enter-fade) ease-out,
+        translate var(--lwc-enter-travel) var(--lwc-enter-ease),
+        scale var(--lwc-enter-travel) var(--lwc-enter-ease);
+    transition-delay: calc(var(--lwc-enter-i, 0) * var(--lwc-enter-step));
+}
+
+/* Cards inside a cascade rise a touch less than whole sections, so lists feel light. */
+:root[data-lwc-choreo] [data-lwc-stagger] > [data-lwc-enter-state="wait"] {
+    translate: 0 calc(var(--lwc-enter-distance) * 0.7);
+}
+
+/* Counters roll through the charts system's figure overlay (charts.css). */
+
+/* Parallax: hero media only, driven by the scroll itself where the browser supports it. */
+[data-lwc-parallax] {
+    overflow: clip;
+}
+@supports (animation-timeline: view()) {
+    [data-lwc-parallax] > :is(img, video, picture, canvas, svg) {
+        animation: lwc-parallax linear both;
+        animation-timeline: view();
+        animation-range: cover 0% cover 100%;
+        will-change: translate;
+    }
+    @keyframes lwc-parallax {
+        from { translate: 0 calc(var(--lwc-parallax-drift) * -1); scale: 1.12; }
+        to { translate: 0 var(--lwc-parallax-drift); scale: 1.12; }
+    }
+}
+
+/* Sticky section-header hand-off: the heading rides along while its section is read,
+   then fades and lifts away as the section's end pushes it out for the next one. */
+[data-lwc-handoff-head] {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--card-bg, var(--lwc-surface, inherit));
+    opacity: calc(1 - var(--lwc-handoff, 0) * 0.85);
+    translate: 0 calc(var(--lwc-handoff, 0) * -8px);
+    transition: box-shadow 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-lwc-choreo] [data-lwc-enter-state] {
+        opacity: 1;
+        translate: none;
+        scale: none;
+        transition: none;
+    }
+    [data-lwc-parallax] > * {
+        animation: none !important;
+    }
+    [data-lwc-handoff-head] {
+        opacity: 1;
+        translate: none;
+    }
+}
+
+@media print {
+    :root[data-lwc-choreo] [data-lwc-enter-state] {
+        opacity: 1 !important;
+        translate: none !important;
+        scale: none !important;
+    }
+}
