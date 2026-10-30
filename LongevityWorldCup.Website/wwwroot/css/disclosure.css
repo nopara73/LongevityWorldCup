@@ -1,0 +1,178 @@
+/* Shared disclosure layer (Frontend/disclosure.ts decides when; this owns how).
+   Every <details> on the site shares one drawn marker, one open tint and one
+   motion. Flag teams add the face hand-off and contribution bars. Colours come
+   only from the existing --lwc-* tokens. */
+
+/* ------------------------------------------------------------ shared marker */
+/* Plain summaries (play requirements, challenge archives) get the drawn chevron
+   used by the flag board instead of the browser triangle. Components with
+   their own marker keep it. */
+:root[data-lwc-disclosure] details:not(.flag-team):not([data-disclosure='off']) > summary:not([class]) {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    list-style: none;
+    cursor: pointer;
+    border-radius: var(--lwc-radius-sm, 6px);
+    transition: color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+}
+:root[data-lwc-disclosure] details:not(.flag-team):not([data-disclosure='off']) > summary:not([class])::-webkit-details-marker { display: none; }
+:root[data-lwc-disclosure] details:not(.flag-team):not([data-disclosure='off']) > summary:not([class])::before {
+    content: "";
+    flex: 0 0 auto;
+    width: .42rem;
+    height: .42rem;
+    margin: 0 .2rem 0 .15rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    color: var(--lwc-accent, var(--primary-color));
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 260ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1));
+}
+:root[data-lwc-disclosure] details[open]:not([data-disclosure='closing']):not(.flag-team) > summary:not([class])::before,
+:root[data-lwc-disclosure] details[data-disclosure='opening']:not(.flag-team) > summary:not([class])::before {
+    transform: translateY(2px) rotate(225deg);
+}
+@media (hover: hover) {
+    :root[data-lwc-disclosure] details:not(.flag-team):not([data-disclosure='off']) > summary:not([class]):hover { color: var(--lwc-accent-hover, var(--lwc-accent)); }
+}
+:root[data-lwc-disclosure] details:not(.flag-team):not([data-disclosure='off']) > summary:not([class]):active::before { scale: .82; }
+:root[data-lwc-disclosure] details:not(.flag-team):not([data-disclosure='off']) > summary:not([class]):focus-visible {
+    outline: 3px solid var(--lwc-accent, var(--primary-color));
+    outline-offset: 2px;
+}
+
+/* Revealed content hangs from a thin accent thread under the marker. */
+:root[data-lwc-disclosure] details:not(.flag-team):not([data-disclosure='off']):has(> summary:not([class])) > :not(summary) {
+    margin-inline-start: .5rem;
+    padding-inline-start: .9rem;
+    border-inline-start: 2px solid var(--lwc-border-strong, var(--lwc-border));
+}
+:root[data-lwc-disclosure] details[open]:not(.flag-team):has(> summary:not([class])) > :not(summary) {
+    border-inline-start-color: var(--lwc-accent-bright, var(--lwc-accent));
+}
+
+/* ------------------------------------------------------------- flag teams */
+/* JS deals the roster in now; the old one-shot entrance would double it.
+   The panel's own grow (motion.css) runs a touch longer so the faces land. */
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes { animation: none; }
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team { --lwc-details-duration: 280ms; }
+
+/* The chevron turns with a little overshoot, and presses in. */
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-chevron {
+    transition:
+        transform 300ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)),
+        color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        box-shadow var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
+        background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+}
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure='closing'] .flag-team-chevron { transform: none; }
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure='opening'] .flag-team-chevron,
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open]:not([data-disclosure='closing']) .flag-team-chevron {
+    transform: rotate(180deg);
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent, var(--lwc-surface));
+    box-shadow: 0 0 0 4px var(--lwc-accent-soft, transparent);
+}
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team summary:active .flag-team-chevron { scale: .88; }
+
+/* The stack previews the roster: on hover the faces part a little. */
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-portraits > img {
+    transition: margin 220ms var(--lwc-ease-standard, ease), opacity 0s, scale 220ms var(--lwc-ease-pop, ease);
+}
+@media (hover: hover) {
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team:not([open]) summary:hover .flag-team-portraits > img + img { margin-inline-start: -2px; }
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team:not([open]) summary:hover .flag-team-portraits > img { scale: 1.06; }
+}
+/* While open, the faces have stepped down into the roster; their seats wait
+   as the same dashed rings the board uses for a missing member. */
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-team-portraits > img,
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure] .flag-team-portraits > img {
+    object-position: -999px -999px;
+    border-style: dashed;
+    border-color: var(--lwc-border-strong);
+    background: var(--lwc-surface);
+    box-shadow: none;
+}
+
+/* Roster: one lifted sheet under the team row. */
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes {
+    background:
+        linear-gradient(to bottom, color-mix(in srgb, var(--lwc-accent) 10%, transparent), transparent 18px) top / 100% 18px no-repeat;
+}
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link img {
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 0 0 3px var(--lwc-surface), 0 6px 14px -8px rgba(0, 0, 0, .45);
+}
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-rank { transition: scale 200ms var(--lwc-ease-pop, ease), box-shadow 140ms ease, color 140ms ease; }
+@media (hover: hover) {
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link:hover .flag-athlete-rank { scale: 1.12; }
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link:hover img { scale: 1.05; transition: scale 200ms var(--lwc-ease-pop, ease); }
+}
+
+/* Contribution bar: each member's share of the team total. */
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before,
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(var(--flag-icon) + var(--flag-gap) + var(--flag-face) + var(--flag-gap));
+    inset-inline-end: calc(var(--flag-toggle) + var(--flag-gap));
+    bottom: 5px;
+    height: 4px;
+    border-radius: 999px;
+    pointer-events: none;
+}
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before { background: var(--lwc-border); opacity: .7; }
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+    background: linear-gradient(90deg, var(--lwc-accent-bright, var(--lwc-accent)), var(--lwc-accent));
+    transform-origin: left center;
+    transform: scaleX(var(--lwc-share, 0));
+}
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-athlete-link::after {
+    animation: lwc-share-grow 520ms cubic-bezier(.2, 0, 0, 1) both;
+    animation-delay: calc(140ms + var(--lwc-i, 0) * 70ms);
+}
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-athletes > li { position: relative; }
+@keyframes lwc-share-grow { from { transform: scaleX(0); } }
+
+/* Gold / silver / bronze rows: the top team's rank medal breathes once on open. */
+:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure='opening'] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]) {
+    animation: lwc-medal-tap 360ms var(--lwc-ease-pop, ease);
+}
+@keyframes lwc-medal-tap { 40% { transform: scale(1.14); } }
+
+/* Phones: no stack to hand off from, so the bar sits under the name block. */
+@media (max-width: 480px) {
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before,
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+        inset-inline-start: calc(var(--flag-face) + var(--flag-gap));
+        inset-inline-end: var(--lwc-space-2, 8px);
+        bottom: 3px;
+        height: 3px;
+    }
+}
+
+/* -------------------------------------------------------- profile proofs */
+#detailsModal #proofsGallery .proof-item { transition: translate 200ms var(--lwc-ease-standard, ease), box-shadow 200ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-lwc-disclosure] details > summary::before,
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-chevron,
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-portraits > img { transition: none; }
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-athlete-link::after,
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-rank { animation: none; }
+}
+
+/* Faces in flight between a team row and its roster. */
+.lwc-disclosure-ghost {
+    position: fixed;
+    z-index: 60;
+    margin: 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    transform-origin: center;
+    box-shadow: 0 10px 22px -10px rgba(0, 0, 0, .55);
+    will-change: transform;
+}
