@@ -25,6 +25,57 @@ public sealed class ProofUploadLayoutBrowserTests(
         """;
 
     [Theory]
+    [InlineData(1440, 100, false)]
+    [InlineData(320, 200, true)]
+    public async Task ThumbnailHover_ExplainsEditingAndKeepsTheEnlargedIconUnclipped(int width, int textPercent, bool reducedMotion)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ColorScheme = reducedMotion ? ColorScheme.Dark : ColorScheme.Light,
+            ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync(AthleteState);
+        var page = await OpenAsync(context);
+        await page.Locator("#proofPicInput").SetInputFilesAsync(await CreateProofImagesAsync(context, 1));
+        await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled");
+        await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
+        var preview = page.Locator(".proof-page-preview").First;
+        var icon = preview.Locator(".proof-page-zoom-hint");
+        var originalWidth = (await icon.BoundingBoxAsync())!.Width;
+        await preview.HoverAsync();
+        await Assertions.Expect(icon).ToHaveCSSAsync("opacity", "1");
+        await Assertions.Expect(preview.Locator(".proof-page-edit-hint")).ToHaveCSSAsync("opacity", "1");
+        await Assertions.Expect(preview.Locator(".proof-page-edit-hint")).ToHaveTextAsync("Click to censor");
+        var bounds = (await preview.BoundingBoxAsync())!;
+        var badge = (await icon.BoundingBoxAsync())!;
+        var drawing = (await icon.Locator("svg").BoundingBoxAsync())!;
+        var hint = (await preview.Locator(".proof-page-edit-hint").BoundingBoxAsync())!;
+        if (width == 320)
+        {
+            var uploadOverlap = await page.Locator("#uploadProofButton").EvaluateAsync<bool>("""
+                button => {
+                    const label = button.querySelector('.flow-action__label');
+                    const icon = button.querySelector('i').getBoundingClientRect();
+                    const range = document.createRange();
+                    range.selectNodeContents(label);
+                    return [...range.getClientRects()].some(text =>
+                        Math.min(text.right, icon.right) - Math.max(text.left, icon.left) > 0.5
+                        && Math.min(text.bottom, icon.bottom) - Math.max(text.top, icon.top) > 0.5);
+                }
+                """);
+            Assert.False(uploadOverlap, "The enlarged upload label must not overlap its icon.");
+        }
+        Assert.True(badge.Width > originalWidth * 1.2 && drawing.Width >= 32);
+        Assert.True(drawing.X >= badge.X + 8 && drawing.X + drawing.Width <= badge.X + badge.Width - 8);
+        Assert.True(drawing.Y >= badge.Y + 8 && drawing.Y + drawing.Height <= badge.Y + badge.Height - 8);
+        Assert.True(badge.Y >= bounds.Y && badge.Y + badge.Height <= hint.Y + 1);
+        Assert.True(hint.X >= bounds.X && hint.X + hint.Width <= bounds.X + bounds.Width);
+        Assert.True(hint.Y + hint.Height <= bounds.Y + bounds.Height);
+        await ProofRedactionBrowserTests.SaveEvidenceAsync(page, $"thumbnail-hover-{width}-text-{textPercent}");
+    }
+
+    [Theory]
     [InlineData(1440, 900, false)]
     [InlineData(390, 844, true)]
     [InlineData(320, 640, false)]
@@ -325,7 +376,7 @@ public sealed class ProofUploadLayoutBrowserTests(
             """);
         Assert.False(overflow, "Captions, including the complete source filename, should remain inside their tiles.");
         await Assertions.Expect(page.Locator(".proof-page-preview").First)
-            .ToHaveAccessibleNameAsync($"Review proof page 1: {files[0].Name}");
+            .ToHaveAccessibleNameAsync($"Hide details on proof page 1: {files[0].Name}");
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

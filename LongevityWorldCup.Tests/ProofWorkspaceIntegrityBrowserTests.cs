@@ -152,13 +152,14 @@ public sealed class ProofWorkspaceIntegrityBrowserTests(PlaywrightBrowserFixture
         await UploadAsync(page, CreatePages(3));
         if (enlargedText) await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
         await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ProofReviewBrowserTests.EditorReadyAsync(page);
         for (var index = 0; index < 3; index++)
         {
             await page.Locator(".proof-review-thumb").Nth(index).ClickAsync();
-            await page.Locator(".proof-review-stage img").EvaluateAsync("image => image.decode()");
+            await ProofReviewBrowserTests.EditorReadyAsync(page);
             var geometry = await page.EvaluateAsync<double[]>("""
                 () => {
-                    const stage = document.querySelector('.proof-review-stage');
+                    const stage = document.querySelector('.proof-edit-stage');
                     const image = stage.querySelector('img');
                     const s = stage.getBoundingClientRect(), i = image.getBoundingClientRect();
                     const dialog = document.querySelector('.proof-review-dialog');
@@ -173,9 +174,9 @@ public sealed class ProofWorkspaceIntegrityBrowserTests(PlaywrightBrowserFixture
             Assert.All(geometry[5..9], value => Assert.True(value >= -1, "Fit page must stay wholly inside the canvas."));
             Assert.InRange(geometry[9], 0, 1);
         }
-        await page.Locator(".proof-review-zoom").ClickAsync();
-        await page.Keyboard.PressAsync("ArrowRight");
-        Assert.True(await page.Locator(".proof-review-stage").EvaluateAsync<bool>("e => e.scrollLeft > 0"));
+        var fitted = await page.Locator(".proof-edit-sheet").GetAttributeAsync("style");
+        await page.Locator(".proof-edit-zoom-in").ClickAsync();
+        Assert.NotEqual(fitted, await page.Locator(".proof-edit-sheet").GetAttributeAsync("style"));
         await page.Locator(".proof-review-close").ClickAsync();
         Assert.False(await page.Locator(".proof-review-dialog").IsVisibleAsync());
     }

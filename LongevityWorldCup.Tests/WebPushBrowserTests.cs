@@ -205,11 +205,16 @@ public sealed class WebPushBrowserTests
         // Cross the opening-scroll deadline while the native press is held.
         await page.Clock.FastForwardAsync(600);
         var after = Assert.IsType<LocatorBoundingBoxResult>(await bell.BoundingBoxAsync());
-        await page.Mouse.UpAsync();
-
-        Assert.InRange(Math.Abs(before.Y - after.Y), 0, 0.5);
-        await page.Clock.ResumeAsync();
-        await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
+        var response = await page.RunAndWaitForResponseAsync(async () =>
+        {
+            await page.Mouse.UpAsync();
+            Assert.InRange(Math.Abs(before.Y - after.Y), 0, 0.5);
+            await page.Clock.ResumeAsync();
+            await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
+        }, response => response.Request.Method == "POST"
+            && response.Url.EndsWith("/api/web-push/subscribe", StringComparison.Ordinal));
+        Assert.True(response.Ok);
+        await response.FinishedAsync();
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "true");
     }
 

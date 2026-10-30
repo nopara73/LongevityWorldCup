@@ -15,7 +15,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     [InlineData(390, 844, 100, true)]
     [InlineData(320, 640, 200, false)]
     [InlineData(195, 422, 100, true)]
-    public async Task Review_LongFileNamesRemainReadableWithoutClippingTheTitle(int width, int height, int textPercent, bool dark)
+    public async Task Review_LongFileNamesRemainVisibleAndAccessible(int width, int height, int textPercent, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -28,10 +28,13 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, files);
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
         await page.Locator(".proof-page-preview").First.ClickAsync();
+        await EditorReadyAsync(page);
         var title = page.Locator(".proof-review-toolbar h2");
         await Assertions.Expect(title).ToHaveTextAsync(files[0].Name);
-        Assert.True(await title.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1"),
-            "The full proof filename must remain readable instead of being line-clamped.");
+        await Assertions.Expect(title).ToBeVisibleAsync();
+        await Assertions.Expect(title).ToHaveAttributeAsync("title", files[0].Name);
+        Assert.True(await title.EvaluateAsync<bool>("e => e.clientWidth > 40 && e.clientHeight >= parseFloat(getComputedStyle(e).fontSize)"),
+            "The filename must retain a visible row, with the complete name available on hover.");
         await page.Locator(".proof-review-close").FocusAsync();
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(page.Locator(".proof-page-preview").First).ToBeFocusedAsync();
@@ -244,21 +247,25 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, await CreatePagesAsync(3));
         var sources = await ReadSourcesAsync(page);
         await page.Locator(".proof-page-preview").First.ClickAsync();
-        var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Review attached proofs" });
+        await EditorReadyAsync(page);
+        var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Hide details", Exact = true });
         await dialog.WaitForAsync();
-        Assert.True(await dialog.GetByRole(AriaRole.Button, new() { Name = "← Previous", Exact = true }).IsDisabledAsync());
+        var thumbs = dialog.Locator(".proof-review-thumb");
+        await thumbs.First.FocusAsync();
         await page.Keyboard.PressAsync("ArrowRight");
-        Assert.Equal(sources[1], await dialog.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(dialog.Locator("img")).ToHaveAttributeAsync("src", sources[1]);
         await page.Keyboard.PressAsync("ArrowRight");
-        Assert.Equal(sources[2], await dialog.Locator("img").GetAttributeAsync("src"));
-        Assert.True(await dialog.GetByRole(AriaRole.Button, new() { Name = "Next →", Exact = true }).IsDisabledAsync());
+        await EditorReadyAsync(page);
+        await Assertions.Expect(dialog.Locator("img")).ToHaveAttributeAsync("src", sources[2]);
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Zoom in", Exact = true }).ClickAsync();
-        Assert.True(await dialog.Locator(".proof-review-stage").EvaluateAsync<bool>("e => e.scrollWidth > e.clientWidth"));
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Zoom in", Exact = true }).ClickAsync();
+        var transform = await dialog.Locator(".proof-edit-sheet").GetAttributeAsync("style");
+        await dialog.Locator(".proof-edit-stage").FocusAsync();
         await page.Keyboard.PressAsync("ArrowRight");
         await page.Keyboard.PressAsync("ArrowDown");
-        Assert.True(await dialog.Locator(".proof-review-stage").EvaluateAsync<bool>("e => e.scrollLeft > 0 && e.scrollTop > 0"));
+        Assert.NotEqual(transform, await dialog.Locator(".proof-edit-sheet").GetAttributeAsync("style"));
         Assert.Equal(sources[2], await dialog.Locator("img").GetAttributeAsync("src"));
-        await dialog.GetByRole(AriaRole.Button, new() { Name = "Fit page", Exact = true }).ClickAsync();
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Fit proof page", Exact = true }).ClickAsync();
         var bounds = await dialog.BoundingBoxAsync();
         Assert.NotNull(bounds);
         Assert.InRange(bounds.X, 0, width - bounds.Width);
@@ -271,7 +278,8 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.Keyboard.PressAsync("Escape");
         await page.WaitForFunctionAsync("() => !document.body.classList.contains('proof-review-open')");
         Assert.False(await dialog.IsVisibleAsync());
-        Assert.True(await page.Locator(".proof-page-preview").First.EvaluateAsync<bool>("e => e === document.activeElement"));
+        // Return to the page last inspected, including after the gallery re-renders.
+        await Assertions.Expect(page.Locator(".proof-page-preview").Nth(2)).ToBeFocusedAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.body.classList.contains('proof-review-open')"));
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
@@ -369,7 +377,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Equal(original, await ReadSourcesAsync(page));
         await page.Locator(".proof-page-preview").Nth(1).TapAsync();
         await Assertions.Expect(page.Locator(".proof-review-dialog")).ToBeVisibleAsync();
-        Assert.Equal(original[1], await page.Locator(".proof-review-dialog img").GetAttributeAsync("src"));
+        await Assertions.Expect(page.Locator(".proof-edit-sheet img")).ToHaveAttributeAsync("src", original[1]);
     }
 
     [Theory]
@@ -517,7 +525,7 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.True(await page.Locator("#proofPicInput").IsEnabledAsync());
         Assert.True(await page.Locator("#submitButton").IsEnabledAsync());
         await page.Locator(".proof-page-preview").Last.ClickAsync();
-        Assert.Equal(sources[1], await page.Locator(".proof-review-dialog img").GetAttributeAsync("src"));
+        await Assertions.Expect(page.Locator(".proof-edit-sheet img")).ToHaveAttributeAsync("src", sources[1]);
     }
 
     [Fact]
@@ -564,6 +572,9 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await UploadAsync(page, files);
         Assert.Equal(original, await ReadSourcesAsync(page));
     }
+
+    internal static Task EditorReadyAsync(IPage page) =>
+        page.Locator(".proof-edit-sheet:not([hidden])").WaitForAsync();
 
     internal static async Task<IPage> PrepareAsync(IBrowserContext context, bool onboarding)
     {
