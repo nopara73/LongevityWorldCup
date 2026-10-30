@@ -1,0 +1,335 @@
+/*
+ * Image viewer: one way to look closely at any picture on the site.
+ * See Frontend/image-viewer.ts. Colours come from the shared surface tokens, so the
+ * viewer is a calm sheet of the page itself in light mode and in dark.
+ */
+
+/* ---- In the page: a picture invites a closer look ---------------------------------- */
+img[data-lwc-viewable] {
+    cursor: zoom-in;
+    transition:
+        scale var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+img[data-lwc-viewable]:focus-visible {
+    outline: 2px solid var(--lwc-accent, #087685);
+    outline-offset: 3px;
+}
+
+/* While the picture is out in the viewer, its place in the page stays reserved. */
+img[data-lwc-view-away] {
+    opacity: 0;
+    transition: none;
+}
+
+/* Document plates gain a corner chip that says "this opens", with no words. */
+.documentation-document p:has(> img[data-lwc-viewable]) {
+    position: relative;
+    transition: border-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+.documentation-document p:has(> img[data-lwc-viewable])::before,
+.documentation-document p:has(> img[data-lwc-viewable])::after {
+    content: "";
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    width: 2.125rem;
+    height: 2.125rem;
+    z-index: 1;
+    border-radius: var(--lwc-radius-pill, 999px);
+    pointer-events: none;
+    opacity: 0;
+    translate: 0 -3px;
+    scale: 0.92;
+    transition:
+        opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        translate var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        scale var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+.documentation-document p:has(> img[data-lwc-viewable])::before {
+    background: var(--lwc-surface, #fff);
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    box-sizing: border-box;
+}
+
+.documentation-document p:has(> img[data-lwc-viewable])::after {
+    background: var(--lwc-ink, #17212b);
+    -webkit-mask: var(--lwc-viewer-expand) center / 1rem no-repeat;
+    mask: var(--lwc-viewer-expand) center / 1rem no-repeat;
+}
+
+:root {
+    --lwc-viewer-expand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5'/%3E%3C/svg%3E");
+}
+
+@media (hover: hover) {
+    .documentation-document p:has(> img[data-lwc-viewable]):hover {
+        border-color: var(--lwc-border-strong, #71808d);
+    }
+    .documentation-document p:has(> img[data-lwc-viewable]):hover > img {
+        scale: 1.012;
+        box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.1));
+    }
+    img.qr-code-img[data-lwc-viewable]:hover {
+        scale: 1.04;
+    }
+}
+
+.documentation-document p:has(> img[data-lwc-viewable]):is(:hover, :focus-within)::before,
+.documentation-document p:has(> img[data-lwc-viewable]):is(:hover, :focus-within)::after {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+}
+
+/* Touch screens have no hover, so the chip simply rests in the corner. */
+@media (hover: none) {
+    .documentation-document p:has(> img[data-lwc-viewable])::before,
+    .documentation-document p:has(> img[data-lwc-viewable])::after {
+        opacity: 0.94;
+        translate: 0 0;
+        scale: 0.88;
+    }
+}
+
+/* ---- The viewer --------------------------------------------------------------------- */
+.lwc-viewer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    background: transparent;
+    color: var(--lwc-ink, #17212b);
+    overscroll-behavior: contain;
+}
+
+.lwc-viewer::backdrop {
+    background: transparent;
+}
+
+.lwc-viewer-scrim {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--lwc-canvas, #f3f5f7) 92%, transparent);
+    -webkit-backdrop-filter: blur(10px) saturate(0.85);
+    backdrop-filter: blur(10px) saturate(0.85);
+}
+
+.lwc-viewer-stage {
+    position: absolute;
+    inset: 0;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.lwc-viewer-picture {
+    position: absolute;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    transform-origin: 50% 50%;
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface, #fff);
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.10),
+        0 28px 64px -12px rgba(15, 23, 42, 0.28);
+    cursor: zoom-in;
+    -webkit-user-drag: none;
+    will-change: transform;
+}
+
+.lwc-viewer[data-zoomed] .lwc-viewer-picture {
+    cursor: grab;
+    border-radius: 0;
+}
+
+.lwc-viewer[data-dragging] .lwc-viewer-picture {
+    cursor: grabbing;
+}
+
+/* Round controls in the site's bordered-secondary language. */
+.lwc-viewer-button {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface, #fff);
+    color: var(--lwc-ink, #17212b);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    cursor: pointer;
+    transition:
+        opacity 180ms var(--lwc-ease, ease),
+        scale 180ms var(--lwc-ease, ease),
+        translate 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.lwc-viewer-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lwc-viewer-button:hover:not(:disabled) {
+    border-color: var(--lwc-accent, #087685);
+    color: var(--lwc-accent, #087685);
+}
+
+.lwc-viewer-button:active:not(:disabled) {
+    scale: 0.92;
+}
+
+.lwc-viewer-button:focus-visible {
+    outline: 2px solid var(--lwc-accent, #087685);
+    outline-offset: 3px;
+}
+
+.lwc-viewer-button:disabled {
+    opacity: 0.38;
+    cursor: default;
+}
+
+.lwc-viewer-close {
+    top: max(1rem, env(safe-area-inset-top));
+    right: max(1rem, env(safe-area-inset-right));
+}
+
+.lwc-viewer-nav {
+    top: 50%;
+    margin-top: -1.375rem;
+}
+
+.lwc-viewer-nav[data-step="-1"] {
+    left: max(1rem, env(safe-area-inset-left));
+}
+
+.lwc-viewer-nav[data-step="1"] {
+    right: max(1rem, env(safe-area-inset-right));
+}
+
+.lwc-viewer:not([data-many]) :is(.lwc-viewer-nav, .lwc-viewer-dots) {
+    display: none;
+}
+
+/* Position: a row of dots with the current one stretched into an accent pill. */
+.lwc-viewer-dots {
+    position: absolute;
+    left: 50%;
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    display: flex;
+    gap: 0.375rem;
+    align-items: center;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface, #fff);
+    box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+    translate: -50% 0;
+    transition: opacity 180ms var(--lwc-ease, ease), translate 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lwc-viewer-dots > span {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-border-strong, #71808d);
+    opacity: 0.55;
+    transition:
+        width 280ms cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 200ms var(--lwc-ease, ease),
+        opacity 200ms var(--lwc-ease, ease);
+}
+
+.lwc-viewer-dots > span[data-current] {
+    width: 1.25rem;
+    background: var(--lwc-accent, #087685);
+    opacity: 1;
+}
+
+/* Controls arrive just after the picture lands and step aside while it is handled. */
+.lwc-viewer:is([data-state="opening"], [data-state="closing"], [data-dragging]) :is(.lwc-viewer-button, .lwc-viewer-dots) {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.lwc-viewer[data-state="opening"] .lwc-viewer-close {
+    translate: 0 -6px;
+}
+
+.lwc-viewer[data-state="opening"] .lwc-viewer-nav[data-step="-1"] {
+    translate: -8px 0;
+}
+
+.lwc-viewer[data-state="opening"] .lwc-viewer-nav[data-step="1"] {
+    translate: 8px 0;
+}
+
+.lwc-viewer[data-state="opening"] .lwc-viewer-dots {
+    translate: -50% 8px;
+}
+
+.lwc-viewer[data-state="open"] :is(.lwc-viewer-button, .lwc-viewer-dots) {
+    transition-delay: 40ms;
+}
+
+/* Zoomed in, the picture has the whole screen; only the way out remains. */
+.lwc-viewer[data-zoomed] :is(.lwc-viewer-nav, .lwc-viewer-dots) {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Phones swipe between pictures; the dots carry position. */
+@media (max-width: 640px) and (hover: none) {
+    .lwc-viewer-nav {
+        display: none;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .lwc-viewer-scrim {
+        background: color-mix(in srgb, var(--lwc-canvas, #0d141b) 94%, transparent);
+    }
+    .lwc-viewer-picture {
+        box-shadow:
+            0 0 0 1px var(--lwc-border, #42515e),
+            0 28px 64px -12px rgba(0, 0, 0, 0.6);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    img[data-lwc-viewable],
+    .lwc-viewer-button,
+    .lwc-viewer-dots,
+    .lwc-viewer-dots > span,
+    .documentation-document p:has(> img[data-lwc-viewable])::before,
+    .documentation-document p:has(> img[data-lwc-viewable])::after {
+        transition: none;
+    }
+}
+
+@media print {
+    .documentation-document p:has(> img[data-lwc-viewable])::before,
+    .documentation-document p:has(> img[data-lwc-viewable])::after {
+        display: none;
+    }
+}
