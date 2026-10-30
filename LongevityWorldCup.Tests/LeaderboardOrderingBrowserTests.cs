@@ -29,7 +29,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?sort=age");
+        await NavigateAsync(page, "/leaderboard?sort=age");
         await Loaded(page);
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
         var primary = page.Locator("#leaderboardOrderPrimary");
@@ -84,7 +84,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             });
             """);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard");
+        await NavigateAsync(page, "/leaderboard");
         await Loaded(page);
         var actual = JsonNode.Parse(await page.EvaluateAsync<string>("JSON.stringify(window.observedOrderValues)"))!.AsObject();
         foreach (var athlete in snapshot.Athletes)
@@ -115,7 +115,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         {
             await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = javaScriptEnabled });
             var page = await context.NewPageAsync();
-            await page.GotoAsync("/leaderboard?sort=phenoReduction&then=phenoPercent");
+            await NavigateAsync(page, "/leaderboard?sort=phenoReduction&then=phenoPercent");
             if (javaScriptEnabled) await Loaded(page);
             await Assertions.Expect(page.Locator("th[data-order-key=phenoReduction] button")).ToHaveAccessibleNameAsync("Pheno age reduction (years), order by, ascending; reverse order");
             await Assertions.Expect(page.Locator("th[data-order-key=phenoPercent] button")).ToHaveAccessibleNameAsync("Pheno age reduction (%), then by, descending; reverse order");
@@ -134,7 +134,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         {
             await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = javaScriptEnabled });
             var page = await context.NewPageAsync();
-            await page.GotoAsync("/leaderboard?sort=pheno");
+            await NavigateAsync(page, "/leaderboard?sort=pheno");
             if (javaScriptEnabled) await Loaded(page);
             await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(1);
             await Assertions.Expect(Rows(page).First.Locator(".leaderboard-order-value")).ToHaveCountAsync(1);
@@ -150,12 +150,12 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var serverContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
         var server = await serverContext.NewPageAsync();
-        await server.GotoAsync(url);
+        await NavigateAsync(server, url);
         var expected = await Snapshot(server);
         Assert.True(expected.Length > 10);
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(url);
+        await NavigateAsync(page, url);
         await Loaded(page);
         Assert.Equal(expected, await Snapshot(page));
         await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(2);
@@ -172,7 +172,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Ordered + "#rank-1");
+        await NavigateAsync(page, Ordered + "#rank-1");
         await Loaded(page);
         var original = await Snapshot(page);
         var thenHeader = page.Locator("th[data-order-key=age] button");
@@ -181,10 +181,10 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await Assertions.Expect(page.Locator("th[data-order-key=pheno]")).ToHaveAttributeAsync("aria-sort", "ascending");
         await Assertions.Expect(thenHeader).ToBeFocusedAsync();
         Assert.EndsWith("#rank-1", page.Url);
-        await page.GoBackAsync();
+        await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("data-order-direction", "desc");
         Assert.Equal(original, await Snapshot(page));
-        await page.GoForwardAsync();
+        await page.GoForwardAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("th[data-order-key=age]")).ToHaveAttributeAsync("data-order-direction", "asc");
         var toggle = page.GetByRole(AriaRole.Button, new() { Name = "Order athletes", Exact = true });
         Assert.Equal("", (await toggle.InnerTextAsync()).Trim());
@@ -220,7 +220,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?sort=vitd&dir=desc");
+        await NavigateAsync(page, "/leaderboard?sort=vitd&dir=desc");
         await Loaded(page);
         var toggle = page.Locator("#leaderboardOrderToggle");
         var panel = page.Locator("#leaderboardOrderPanel");
@@ -250,7 +250,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Ordered);
+        await NavigateAsync(page, Ordered);
         await Loaded(page);
         var original = await Snapshot(page);
         var toggle = page.Locator("#leaderboardOrderToggle");
@@ -291,7 +291,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ViewportSize = new() { Width = width, Height = 900 }
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Ordered);
+        await NavigateAsync(page, Ordered);
         await Loaded(page);
         await page.EvaluateAsync("async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}");
         await page.EvaluateAsync("""
@@ -339,7 +339,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         var slug = target["AthleteSlug"]!.GetValue<string>();
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?view=crowd&sort=crowdCount");
+        await NavigateAsync(page, "/leaderboard?view=crowd&sort=crowdCount");
         await Loaded(page);
         var before = await Rows(page).CountAsync();
         Assert.DoesNotContain(name, await Rows(page).EvaluateAllAsync<string[]>("rows=>rows.map(row=>row.dataset.athleteName)"));
@@ -365,7 +365,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Ordered);
+        await NavigateAsync(page, Ordered);
         await Loaded(page);
         // Freeze wall time before pausing timers; protocol latency must not
         // advance past the timestamp between these two calls.
@@ -392,7 +392,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Ordered);
+        await NavigateAsync(page, Ordered);
         await Loaded(page);
         var targetName = await Rows(page).Filter(new() { HasText = "Michael Lustgarten" }).Locator(".athlete-name").InnerTextAsync();
         await page.Locator("#athleteSearch").FillAsync(targetName);
@@ -417,7 +417,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 900 } });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?sort=bortz&then=pace#rank-1");
+        await NavigateAsync(page, "/leaderboard?sort=bortz&then=pace#rank-1");
         await Loaded(page);
         var reset = page.GetByRole(AriaRole.Button, new() { Name = "Clear ordering", Exact = true });
         await Assertions.Expect(reset).ToBeVisibleAsync();
@@ -434,7 +434,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         Assert.DoesNotContain("sort=", page.Url);
         Assert.DoesNotContain("then=", page.Url);
         Assert.EndsWith("#rank-1", page.Url);
-        await page.GoBackAsync();
+        await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(reset).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("th.leaderboard-order-column")).ToHaveCountAsync(2);
     }
@@ -451,7 +451,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?sort=vitd&dir=desc&then=tests&thenDir=asc#rank-1");
+        await NavigateAsync(page, "/leaderboard?sort=vitd&dir=desc&then=tests&thenDir=asc#rank-1");
         await Loaded(page);
         var original = await Snapshot(page);
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
@@ -478,11 +478,11 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         // A shared swapped URL must render exactly the same rows and values before JavaScript.
         await using var serverContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
         var server = await serverContext.NewPageAsync();
-        await server.GotoAsync(page.Url);
+        await NavigateAsync(server, page.Url);
         Assert.Equal(swapped, await Snapshot(server));
         await swap.ClickAsync();
         Assert.Equal(original, await Snapshot(page));
-        await page.GoBackAsync();
+        await page.GoBackAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#leaderboardOrderPrimary")).ToHaveValueAsync("tests");
         Assert.Equal(swapped, await Snapshot(page));
     }
@@ -498,7 +498,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?view=pheno&search=Wen&sort=bortz&dir=desc&then=age&thenDir=desc#rank-1");
+        await NavigateAsync(page, "/leaderboard?view=pheno&search=Wen&sort=bortz&dir=desc&then=age&thenDir=desc#rank-1");
         await Loaded(page);
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
         var panel = page.Locator("#leaderboardOrderPanel");
@@ -564,7 +564,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?sort=phenoPercent&dir=asc&then=bortzImprovement&thenDir=desc");
+        await NavigateAsync(page, "/leaderboard?sort=phenoPercent&dir=asc&then=bortzImprovement&thenDir=desc");
         if (javaScript) await Loaded(page);
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         // Disabled JavaScript cannot deliver the animation-frame callbacks used by the live-page helper.
@@ -645,7 +645,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?sort=bortz&then=pace");
+        await NavigateAsync(page, "/leaderboard?sort=bortz&then=pace");
         await Loaded(page);
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
@@ -711,7 +711,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ViewportSize = new() { Width = width, Height = 900 }, HasTouch = touch, IsMobile = touch
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?sort=vitd&dir=desc");
+        await NavigateAsync(page, "/leaderboard?sort=vitd&dir=desc");
         await Loaded(page);
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
         var panel = page.Locator("#leaderboardOrderPanel");
@@ -737,7 +737,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/league/pheno?sort=age&dir=desc&then=albumin");
+        await NavigateAsync(page, "/league/pheno?sort=age&dir=desc&then=albumin");
         await Loaded(page);
         var row = Rows(page).Nth(4);
         var name = (await row.GetAttributeAsync("data-athlete-name"))!;
@@ -746,7 +746,8 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         var result = Rows(page).Filter(new() { HasText = name }).First;
         await Assertions.Expect(result.Locator(".rank")).ToHaveTextAsync(rank);
         Assert.Contains("sort=age", page.Url);
-        await page.ReloadAsync();
+        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("() => document.fonts.ready");
         await Loaded(page);
         await Assertions.Expect(result.Locator(".rank")).ToHaveTextAsync(rank);
         await page.Locator("#athleteSearch").FillAsync("");
@@ -779,7 +780,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Ordered);
+        await NavigateAsync(page, Ordered);
         await Loaded(page);
         var toggle = page.Locator("#leaderboardOrderToggle");
         await toggle.ClickAsync();
@@ -841,7 +842,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/?sort=pheno&then=age&thenDir=desc");
+        await NavigateAsync(page, "/?sort=pheno&then=age&thenDir=desc");
         await Loaded(page);
         await page.Locator("#view-ultimate").FocusAsync();
         await page.Keyboard.PressAsync("Tab");
@@ -893,7 +894,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
             ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync(route + "?sort=phenoPercent");
+        await NavigateAsync(page, route + "?sort=phenoPercent");
         await Loaded(page);
         await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
         await page.Locator("#athleteSearch").FocusAsync();
@@ -937,13 +938,13 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await using var serverContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
         var page = await context.NewPageAsync();
         var server = await serverContext.NewPageAsync();
-        await page.GotoAsync("/?view=pheno");
+        await NavigateAsync(page, "/?view=pheno");
         await Loaded(page);
         foreach (var direction in new[] { "asc", "desc" })
         {
             await page.Locator("th[data-order-key=name] button").ClickAsync();
             await Assertions.Expect(page.Locator("th[data-order-key=name]")).ToHaveAttributeAsync("data-order-direction", direction);
-            await server.GotoAsync(page.Url);
+            await NavigateAsync(server, page.Url);
             Assert.Equal(await Snapshot(server), await Snapshot(page));
         }
     }
@@ -953,7 +954,7 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/?sort=name&then=age");
+        await NavigateAsync(page, "/?sort=name&then=age");
         await Loaded(page);
         await Assertions.Expect(page.Locator(".podium")).ToBeHiddenAsync();
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(10);
@@ -963,6 +964,16 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
         await page.Locator("th[data-order-key=rank] button").ClickAsync();
         await Assertions.Expect(page.Locator(".podium")).ToBeVisibleAsync();
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(7);
+    }
+
+    private static async Task NavigateAsync(IPage page, string path)
+    {
+        // Ordering is ready independently of portrait downloads. Keep layout
+        // prerequisites and the callers' explicit data/hydration assertions.
+        await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => [...document.querySelectorAll('link[rel=stylesheet]')].every(link => link.sheet !== null)");
+        await page.EvaluateAsync("() => document.fonts.ready");
     }
 
     private static Task Loaded(IPage page) => Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.", new() { Timeout = 60000 });

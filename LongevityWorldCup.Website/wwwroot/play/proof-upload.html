@@ -267,15 +267,18 @@
             }
 
             .proof-upload-primary-action .option-button {
-                flex-direction: column;
-                gap: 0.45rem;
-                padding-inline: 1.2rem;
+                flex-direction: row;
+                gap: min(0.75rem, 12px);
+                padding-inline: min(1.2rem, 20px);
                 line-height: 1.15;
                 text-align: center;
             }
 
             .proof-upload-primary-action .option-button i {
+                position: static;
+                flex: 0 0 auto;
                 margin-right: 0;
+                transform: none;
             }
 
             #biomarker-checklist {

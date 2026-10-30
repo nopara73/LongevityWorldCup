@@ -308,6 +308,14 @@ jobs:
         path: ${{ runner.temp }}/test-results/
         retention-days: 3
         if-no-files-found: error
+    - name: Preserve proof editor review images
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: proof-redaction-review-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/test-results/proof-redaction/
+        retention-days: 30
+        if-no-files-found: ignore
 
   build:
     # Keep the existing required check name; it succeeds only after all shards.
