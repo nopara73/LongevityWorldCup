@@ -6119,6 +6119,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             populateModal(fullAthleteData, athleteData, rankSummary);
             delete modalContent.dataset.serverRenderedProfile;
             modalContent.querySelectorAll('[data-profile-pending]').forEach(element => {
+                restoreInactiveProfileContent(element);
                 element.hidden = false;
                 element.removeAttribute('data-profile-pending');
             });
