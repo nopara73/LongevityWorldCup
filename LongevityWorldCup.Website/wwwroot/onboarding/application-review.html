@@ -51,30 +51,6 @@
             border-bottom: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
         }
 
-        /* Podium-coloured confetti, scattered once across the band. */
-        .application-review-visual::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(circle, var(--lwc-gold) 0 4px, transparent 4.5px) 7% 18% / 18px 18px no-repeat,
-                radial-gradient(circle, var(--lwc-accent-bright) 0 3px, transparent 3.5px) 14% 62% / 14px 14px no-repeat,
-                radial-gradient(circle, var(--lwc-success) 0 3.5px, transparent 4px) 4% 88% / 16px 16px no-repeat,
-                radial-gradient(circle, var(--lwc-bronze) 0 3px, transparent 3.5px) 22% 36% / 14px 14px no-repeat,
-                radial-gradient(circle, var(--lwc-gold) 0 3px, transparent 3.5px) 80% 12% / 14px 14px no-repeat,
-                radial-gradient(circle, var(--lwc-success) 0 3px, transparent 3.5px) 92% 34% / 14px 14px no-repeat,
-                radial-gradient(circle, var(--lwc-accent-bright) 0 4px, transparent 4.5px) 86% 70% / 18px 18px no-repeat,
-                radial-gradient(circle, var(--lwc-bronze) 0 3.5px, transparent 4px) 96% 92% / 16px 16px no-repeat,
-                linear-gradient(var(--lwc-gold), var(--lwc-gold)) 17% 8% / 10px 4px no-repeat,
-                linear-gradient(var(--lwc-accent-bright), var(--lwc-accent-bright)) 9% 44% / 4px 10px no-repeat,
-                linear-gradient(var(--lwc-success), var(--lwc-success)) 20% 84% / 10px 4px no-repeat,
-                linear-gradient(var(--lwc-accent-bright), var(--lwc-accent-bright)) 76% 46% / 10px 4px no-repeat,
-                linear-gradient(var(--lwc-gold), var(--lwc-gold)) 91% 54% / 4px 10px no-repeat,
-                linear-gradient(var(--lwc-bronze), var(--lwc-bronze)) 82% 90% / 10px 4px no-repeat;
-            animation: reviewConfetti 900ms var(--lwc-ease, ease) both;
-        }
-
         .application-review-frame {
             position: relative;
             width: min(100%, 340px);
@@ -338,18 +314,6 @@
             border-color: var(--lwc-border-strong);
         }
 
-        @keyframes reviewConfetti {
-            from {
-                opacity: 0;
-                transform: translateY(-14px) scale(0.96);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
-        }
-
         @keyframes reviewSeal {
             0% {
                 transform: scale(0.3) rotate(-30deg);
@@ -375,7 +339,6 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .application-review-visual::before,
             .application-review-seal,
             .application-review-trail .is-current .application-review-step {
                 animation: none;
@@ -724,6 +687,7 @@
             item.hidden = false;
             item.classList.remove('is-done', 'is-current', 'is-waiting', 'is-failed');
             if (state) item.classList.add(state);
+            return item;
             // A step that was waiting and just finished crosses its line once. The
             // attributes stay: removing them would replay the page's entrance motion.
             if (crossed) {
@@ -776,6 +740,22 @@
         // Result and edit return routes do not represent a new application.
         if (!isNewResultsUploaded && !isEditRequest) setLocalItem('hasApplication', 'true');
         window.LwcInitialView.complete();
+
+        // Arriving here is the milestone: the seal stamps, then the shared burst
+        // lands on it once per submission.
+        function celebrateReviewArrival() {
+            const kind = document.querySelector('.application-review-panel').dataset.reviewKind;
+            const id = normalizeOptionalString(pendingPaymentInvoice && (pendingPaymentInvoice.submissionId || pendingPaymentInvoice.invoiceId))
+                || new Date().toISOString().slice(0, 10);
+            window.LwcCelebrate?.play(document.querySelector('.application-review-seal'), {
+                level: 'burst',
+                tone: 'success',
+                once: `review:${kind}:${id}`,
+                delay: 640
+            });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', celebrateReviewArrival, { once: true });
+        else celebrateReviewArrival();
 
         let paymentCheckTimer = null;
         let paymentCheckAbort = null;
@@ -843,7 +823,13 @@
                 // The server also recognizes recorded payments on expired invoices.
                 if (result.isPaid === true) {
                     paymentCheckComplete = true;
-                    setTrailStep('payment', 'is-done');
+                    const paidStep = setTrailStep('payment', 'is-done');
+                    window.LwcCelebrate?.play(paidStep && paidStep.querySelector('.application-review-step'), {
+                        level: 'rise',
+                        tone: 'success',
+                        once: `payment:${pending.invoiceId}`,
+                        delay: 260
+                    });
                     setTrailStep('review', 'is-current');
                     document.getElementById('review-payment-status').textContent = 'Payment confirmed. Awaiting review.';
                     // Clear only the invoice this page verified; another tab may have stored a newer one.
