@@ -501,6 +501,11 @@ const eventsPageAssets = document.currentScript.dataset;
     let openLinksInNewTab = false;
     let eventBoardMarkupOptions = {};
 
+    function renderLeagueLink(label, slug){
+        const targetAttrs = openLinksInNewTab ? ` target="_blank" rel="noopener"` : ``;
+        return `<a href="/league/${esc(slug)}" class="event-league-link"${targetAttrs}>${esc(label)}</a>`;
+    }
+
     function renderBadgeBubbleForLabel(label, athlete, leagueCategory=null, leagueValue=null, place=null, links=allowBadgeClicks){
         try{
             const ownedBadge = findServerBadgeOnAthleteStrict(athlete,label,leagueCategory,leagueValue,place);
@@ -1885,16 +1890,17 @@ const eventsPageAssets = document.currentScript.dataset;
                 const crowdCountText = Number.isFinite(r.eventCrowdCount)
                     ? new Intl.NumberFormat().format(r.eventCrowdCount)
                     : "?";
+                const leagueHtml = renderLeagueLink("Crowd Age", "crowd");
                 if (r.crowdAgeDirection === "lost") {
                     const toHtml = r.otherSlug
                         ? renderTextWithSlugLinks(`slug[${r.otherSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
                         : "";
                     msgHtml = toHtml
-                        ? `${nameWithRank} lost the ${esc(placeText)} Crowd Age position to ${toHtml}`
-                        : `${nameWithRank} lost the ${esc(placeText)} Crowd Age position`;
+                        ? `${nameWithRank} lost the ${esc(placeText)} ${leagueHtml} position to ${toHtml}`
+                        : `${nameWithRank} lost the ${esc(placeText)} ${leagueHtml} position`;
                 } else {
                     const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
-                    msgHtml = `${nameWithRank} ${esc(movementText)} in Crowd Age${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(crowdAgeText)}</strong> years, ${esc(crowdCountText)} guesses)</span>`;
+                    msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(crowdAgeText)}</strong> years, ${esc(crowdCountText)} guesses)</span>`;
                 }
             } else if (r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug) {
                 const nameWithRank = renderTextWithSlugLinks(
@@ -1910,7 +1916,10 @@ const eventsPageAssets = document.currentScript.dataset;
                     ? (previousPlaceN > placeN ? `climbed from ${ordinal(previousPlaceN)} to ${placeText}` : `moved from ${ordinal(previousPlaceN)} to ${placeText}`)
                     : (placeN === 1 ? `took ${placeText} place` : `entered the top 10 at ${placeText}`);
                 const clockNorm = String(r.clockId || "").toLowerCase().replace(/\s+/g,"");
-                const leaderboardName = clockNorm === "bortz" || clockNorm === "bortzage" ? "Bortz Improvement" : "Pheno Improvement";
+                const isBortz = clockNorm === "bortz" || clockNorm === "bortzage";
+                const leagueHtml = isBortz
+                    ? renderLeagueLink("Bortz Improvement", "bortz-improvement")
+                    : renderLeagueLink("Pheno Improvement", "improvement");
                 const improvementText = Number.isFinite(r.eventImprovement)
                     ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 1, signDisplay: "exceptZero" }).format(r.eventImprovement)
                     : "?";
@@ -1919,14 +1928,14 @@ const eventsPageAssets = document.currentScript.dataset;
                         ? renderTextWithSlugLinks(`slug[${r.otherSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
                         : "";
                     msgHtml = toHtml
-                        ? `${nameWithRank} lost the ${esc(placeText)} ${esc(leaderboardName)} position to ${toHtml}`
-                        : `${nameWithRank} lost the ${esc(placeText)} ${esc(leaderboardName)} position`;
+                        ? `${nameWithRank} lost the ${esc(placeText)} ${leagueHtml} position to ${toHtml}`
+                        : `${nameWithRank} lost the ${esc(placeText)} ${leagueHtml} position`;
                 } else {
                     const prevHtml = r.prevSlug
                         ? renderTextWithSlugLinks(`slug[${r.prevSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
                         : "";
                     const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
-                    msgHtml = `${nameWithRank} ${esc(movementText)} in ${esc(leaderboardName)}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
+                    msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
                 }
             } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                 const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
