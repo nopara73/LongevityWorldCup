@@ -35,13 +35,16 @@ public sealed class PublicEventsApiTests
     {
         await using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
+        // This endpoint contract owns its event history. Drain the athlete
+        // watcher before seeding it so a queued startup rescan cannot publish
+        // unrelated milestones while the feed is being asserted.
+        factory.Services.GetRequiredService<AthleteDataService>().Dispose();
         var database = factory.Services.GetRequiredService<DatabaseManager>();
         var events = factory.Services.GetRequiredService<EventDataService>();
         database.Run(sqlite =>
         {
             using var command = sqlite.CreateCommand();
-            // Preserve startup Event IDs for deduplication: the queued athlete
-            // rescan deliberately recreates milestones if their rows are deleted.
+            // Keep startup history while isolating this test's public feed.
             command.CommandText = "UPDATE Events SET VisibleOnWebsite = 0;";
             command.ExecuteNonQuery();
         });
