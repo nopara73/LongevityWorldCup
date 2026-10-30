@@ -74,8 +74,8 @@ public sealed class GuessMyAgeBrowserTests(
         var filteredGuess = (int)Math.Floor(actualAge * 1.30) + 1;
         Assert.InRange(filteredGuess, 10, 110);
 
-        var crowdCount = page.Locator("#crowdCount");
-        var crowdCountBefore = int.Parse(await crowdCount.InnerTextAsync());
+        var crowdCountBefore = await page.EvaluateAsync<int>(
+            "() => window.getLeaderboardPeek('Patrick Ruff').crowdCount");
         var range = page.Locator("#gmaRange");
         await range.EvaluateAsync(
             "(element, value) => { element.value = String(value); element.dispatchEvent(new Event('input', { bubbles: true })); }",
@@ -93,7 +93,12 @@ public sealed class GuessMyAgeBrowserTests(
         await page.WaitForFunctionAsync(
             "() => document.getElementById('gmaStatus')?.textContent?.includes('Actual age:') === true");
         Assert.DoesNotContain("not accepted", await status.InnerTextAsync(), StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(crowdCountBefore.ToString(), await crowdCount.InnerTextAsync());
+        Assert.Equal(crowdCountBefore, await page.EvaluateAsync<int>(
+            "() => window.getLeaderboardPeek('Patrick Ruff').crowdCount"));
+        if (crowdCountBefore == 0)
+            await Assertions.Expect(page.Locator("#crowdAgeContainer")).ToBeHiddenAsync();
+        else
+            await Assertions.Expect(page.Locator("#crowdCount")).ToHaveTextAsync(crowdCountBefore.ToString());
 
         await page.WaitForFunctionAsync(
             "args => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['patrick-ruff']?.byImage?.[args.imageId]?.value === args.guess",

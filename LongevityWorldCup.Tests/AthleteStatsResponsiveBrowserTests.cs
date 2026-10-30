@@ -66,7 +66,8 @@ public sealed class AthleteStatsResponsiveBrowserTests(
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
 
-        var rows = page.Locator(".athlete-info-table tr:not(.athlete-info-divider-row)");
+        // Inactive facts are inert placeholders, not displayed table rows.
+        var rows = page.Locator(".athlete-info-table tr:not(.athlete-info-divider-row):visible");
         Assert.True(await rows.CountAsync() > 0);
         var problems = await rows.EvaluateAllAsync<string[]>(
             """
