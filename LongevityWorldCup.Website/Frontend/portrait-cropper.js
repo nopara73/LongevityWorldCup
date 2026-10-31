@@ -18,7 +18,8 @@
                     <cropper-shade></cropper-shade>
                     <cropper-handle action="move" plain></cropper-handle>
                     <cropper-selection class="cropper-crop-box" aspect-ratio="1" movable resizable precise>
-                        <cropper-grid role="presentation" bordered covered></cropper-grid>
+                        <div class="lwc-crop-ring" aria-hidden="true"></div>
+                        <cropper-grid role="presentation" covered></cropper-grid>
                         <cropper-crosshair centered></cropper-crosshair>
                         <cropper-handle class="cropper-face" action="move" theme-color="rgba(255,255,255,.1)"></cropper-handle>
                         ${handles}
@@ -34,6 +35,8 @@
             this.image.alt = element.alt;
             this.selection = this.cropper.getCropperSelection();
             element.cropper = this;
+            this.stage = element.parentElement;
+            this.stageSetup();
             this.image.addEventListener('transform', event => {
                 if (!this.ready || this.adjusting) return;
                 const bounds = this.imageBounds(event.detail.matrix);
@@ -62,8 +65,103 @@
                 this.naturalHeight = image.naturalHeight;
                 this.resize();
                 this.ready = true;
+                this.develop();
                 options.ready?.();
             }).catch(() => { if (!this.destroyed) options.error?.(); });
+        }
+
+        // Stage dressing: an ambient copy of the photo, live previews and the
+        // adjusting state that shows the thirds guides.
+        stageSetup() {
+            const stage = this.stage;
+            if (!stage) return;
+            stage.setAttribute('data-lwc-crop-stage', '');
+            stage.dataset.state = 'developing';
+            stage.querySelector(':scope > .lwc-crop-ambient')?.remove();
+            const ambient = document.createElement('img');
+            ambient.className = 'lwc-crop-ambient';
+            ambient.alt = '';
+            ambient.setAttribute('aria-hidden', 'true');
+            ambient.decoding = 'async';
+            ambient.src = this.element.getAttribute('src') || '';
+            stage.prepend(ambient);
+            this.ambient = ambient;
+
+            this.previews = this.options.previews || null;
+            if (this.previews) {
+                this.previews.dataset.state = 'developing';
+                this.previews.setAttribute('aria-hidden', 'true');
+                if (!this.previews.querySelector('canvas')) {
+                    const sizes = (this.previews.dataset.sizes || '88 52 30').split(/\s+/).map(Number);
+                    for (const size of sizes) {
+                        const canvas = document.createElement('canvas');
+                        canvas.style.width = canvas.style.height = `${size}px`;
+                        canvas.dataset.size = String(size);
+                        this.previews.append(canvas);
+                    }
+                }
+            }
+
+            const queue = () => this.queuePreview();
+            this.image.addEventListener('transform', queue);
+            this.selection.addEventListener('change', queue);
+            let wheelTimer = 0;
+            const setAdjusting = on => {
+                for (const el of [stage, this.previews]) {
+                    if (!el) continue;
+                    if (on) el.setAttribute('data-adjusting', '');
+                    else el.removeAttribute('data-adjusting');
+                }
+            };
+            this.canvas.addEventListener('actionstart', () => { if (!this.disabled) setAdjusting(true); });
+            this.canvas.addEventListener('actionend', () => setAdjusting(false));
+            this.canvas.addEventListener('wheel', () => {
+                if (this.disabled) return;
+                setAdjusting(true);
+                clearTimeout(wheelTimer);
+                wheelTimer = setTimeout(() => setAdjusting(false), 420);
+            }, { passive: true });
+            this.clearAdjusting = () => { clearTimeout(wheelTimer); setAdjusting(false); };
+        }
+
+        develop() {
+            this.drawPreviews();
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                if (this.destroyed) return;
+                if (this.stage) this.stage.dataset.state = 'ready';
+                if (this.previews) this.previews.dataset.state = 'ready';
+            }));
+        }
+
+        queuePreview() {
+            if (this.previewFrame || !this.ready) return;
+            this.previewFrame = requestAnimationFrame(() => {
+                this.previewFrame = 0;
+                this.drawPreviews();
+            });
+        }
+
+        drawPreviews() {
+            if (!this.previews || this.destroyed || !this.naturalWidth) return;
+            const source = this.image.$image || this.element;
+            const { x, y, width, height } = this.getData();
+            if (!(width > 0 && height > 0)) return;
+            const ratio = Math.min(window.devicePixelRatio || 1, 3);
+            for (const canvas of this.previews.querySelectorAll('canvas')) {
+                const size = Math.round((Number(canvas.dataset.size) || 48) * ratio);
+                if (canvas.width !== size) canvas.width = canvas.height = size;
+                const context = canvas.getContext('2d');
+                if (!context) continue;
+                context.clearRect(0, 0, size, size);
+                context.imageSmoothingQuality = 'high';
+                try { context.drawImage(source, x, y, width, height, 0, 0, size, size); } catch (_) { }
+            }
+        }
+
+        // Screen rectangle of the round window, for the landing flight.
+        windowRect() {
+            const rect = this.selection.getBoundingClientRect();
+            return rect.width > 0 ? rect : null;
         }
 
         imageBounds(matrix = this.image.$getTransform()) {
@@ -107,7 +205,8 @@
                 ? Math.min(this.options.maxHeight, width * this.naturalHeight / this.naturalWidth)
                 : stage.clientHeight;
             if (!width || !height || !this.naturalWidth) return;
-            const side = Math.min(this.naturalWidth, this.naturalHeight);
+            // The first window leaves a margin so its brackets sit inside the photo.
+            const side = Math.min(this.naturalWidth, this.naturalHeight) * 0.9;
             // Image readiness can arrive while Back has hidden the stage. Until
             // a first layout exists there are no image coordinates to preserve.
             const hasSelection = this.ready && this.width > 0 && this.height > 0
@@ -128,14 +227,69 @@
             } finally { this.adjusting = false; }
         }
 
-        disable() { this.disabled = true; this.canvas.disabled = true; }
+        disable() { this.disabled = true; this.canvas.disabled = true; this.clearAdjusting?.(); }
         enable() { this.disabled = false; this.canvas.disabled = false; }
         toCanvas(options) { return this.selection.$toCanvas(options); }
         destroy() {
             this.destroyed = true;
             this.ready = false;
+            cancelAnimationFrame(this.previewFrame || 0);
+            this.clearAdjusting?.();
+            this.ambient?.remove();
+            if (this.stage) {
+                this.stage.removeAttribute('data-lwc-crop-stage');
+                delete this.stage.dataset.state;
+            }
+            if (this.previews) {
+                this.previews.replaceChildren();
+                delete this.previews.dataset.state;
+            }
             this.cropper.destroy();
             if (this.element.cropper === this) delete this.element.cropper;
         }
+    };
+
+    // Flies the cropped circle from the crop window into the page portrait,
+    // then settles the portrait. Reduced motion or an off-screen target just
+    // updates the portrait in place.
+    window.LwcPortraitCropper.land ??= (from, src, target) => {
+        if (!target || !src) return;
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        const settle = () => {
+            target.classList.remove('lwc-crop-landed');
+            void target.offsetWidth;
+            target.classList.add('lwc-crop-landed');
+            target.addEventListener('animationend', () => target.classList.remove('lwc-crop-landed'), { once: true });
+        };
+        const to = target.getBoundingClientRect();
+        const visible = to.width > 0 && to.bottom > 0 && to.top < window.innerHeight;
+        if (reduce) return;
+        if (!from || !visible || !document.body.animate) { settle(); return; }
+        const ghost = document.createElement('div');
+        ghost.className = 'lwc-crop-flight';
+        ghost.setAttribute('aria-hidden', 'true');
+        ghost.style.backgroundImage = `url("${src}")`;
+        Object.assign(ghost.style, {
+            left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`
+        });
+        document.body.append(ghost);
+        const scale = from.width / to.width;
+        const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+        const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+        // A slight arc: the midpoint lifts above the straight path.
+        const lift = Math.min(80, Math.hypot(dx, dy) * 0.18);
+        const previous = target.style.opacity;
+        target.style.opacity = '0';
+        const flight = ghost.animate([
+            { transform: `translate(${dx}px, ${dy}px) scale(${scale})` },
+            { transform: `translate(${dx * 0.42}px, ${dy * 0.42 - lift}px) scale(${1 + (scale - 1) * 0.35})`, offset: 0.55 },
+            { transform: 'none' }
+        ], { duration: 620, easing: 'cubic-bezier(0.45, 0, 0.15, 1)' });
+        const finish = () => {
+            ghost.remove();
+            target.style.opacity = previous;
+            settle();
+        };
+        flight.finished.then(finish, finish);
     };
 })();

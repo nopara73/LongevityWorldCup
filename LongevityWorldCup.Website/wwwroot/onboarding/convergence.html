@@ -917,6 +917,7 @@
             from { opacity: 0.25; }
         }
     </style>
+    <link rel="stylesheet" href="{{ASSET_PORTRAIT_CROP_CSS}}">
 </head>
 <body class="play-flow-route" data-convergence-stage="1">
     <!--HEADER-->
@@ -1016,6 +1017,7 @@
                             <div class="convergence-crop-stage">
                                 <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
                             </div>
+                            <div id="profileCropPreviews" class="lwc-crop-previews" aria-hidden="true"></div>
                         </div>
                         <div class="convergence-upload-action flow-action-stack">
                             <button type="button" id="cropButton" class="option-button flow-action">
@@ -2581,6 +2583,7 @@
                     document.getElementById('croppingPart').style.display = 'block';
                     cropper = new LwcPortraitCropper(document.getElementById('cropperImage'), {
                         maxHeight: 320,
+                        previews: document.getElementById('profileCropPreviews'),
                         error: () => failProfileUpload(version),
                         ready() {
                             if (version !== profileReadVersion) return;
@@ -2670,6 +2673,7 @@
                         }
                         if (!window.isProfileImageDataUrl(croppedImageDataURL)) throw new Error('Portrait encoding failed.');
                         if (version !== profileReadVersion) return;
+                        const cropWindow = activeCropper.windowRect();
                         if (currentStage === 4) {
                             document.getElementById('profileImage').style.display = '';
                             document.body.classList.add('convergence-has-portrait');
@@ -2694,6 +2698,7 @@
                         const nextButton = document.getElementById('nextButton');
                         if (currentStage === 4) nextButton.disabled = false;
                         updateUploadButtons();
+                        if (currentStage === 4) LwcPortraitCropper.land(cropWindow, croppedImageDataURL, document.getElementById('profileImage'));
                     } catch (_) {
                         if (version !== profileReadVersion || cropper !== activeCropper) return;
                         customAlert('Profile picture crop failed. Please try another image.')
