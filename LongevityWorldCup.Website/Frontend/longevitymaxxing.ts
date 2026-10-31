@@ -1089,6 +1089,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 setDefaultTimezone(requiredSelect("lmxSignupTimeZone"));
                 signupSubmitted = true;
                 renderAll();
+                window.LwcCelebrate?.play(document.querySelector("#lmxSignupDonePanel .lmx-card-head"), { level: "rise", tone: "success", delay: 120 });
             }, "Joining...");
         });
 
@@ -2476,6 +2477,39 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (from === undefined) return;
             rollNumber(value, from, Number(value.dataset.opsValue), key === "rank" ? number => `#${number}` : String);
         });
+        celebrateOpsChanges(highlights, participant.id, previous, state);
+    }
+
+    // Milestones the status tiles already show: a better rank, a longer streak,
+    // and a streak that reaches a full week or the whole challenge. Each value
+    // celebrates once, after its number has rolled into place.
+    function celebrateOpsChanges(highlights: HTMLElement, participantId: string, previous: Map<string, number>, state: PublicState): void {
+        const celebrate = window.LwcCelebrate;
+        if (!celebrate || !previous.size) return;
+        const tile = (key: string) => highlights.querySelector<HTMLElement>(`strong[data-ops-key="${key}"]`)?.closest<HTMLElement>(".lmx-ops-tile") || null;
+        const value = (key: string) => Number(highlights.querySelector<HTMLElement>(`strong[data-ops-key="${key}"]`)?.dataset.opsValue);
+        const rank = value("rank");
+        const fromRank = previous.get("rank");
+        if (fromRank !== undefined && Number.isFinite(rank) && Number.isFinite(fromRank) && rank < fromRank) {
+            celebrate.play(tile("rank"), {
+                level: rank <= 3 ? "burst" : "rise",
+                tone: "gold",
+                once: `lmx-rank:${participantId}:${rank}`,
+                delay: 320
+            });
+        }
+        const streak = value("streak");
+        const fromStreak = previous.get("streak");
+        if (fromStreak !== undefined && Number.isFinite(streak) && streak > fromStreak) {
+            const fullRun = Math.max(1, Math.trunc(Number(state.durationDays) || 0));
+            const milestone = streak === fullRun || streak % 7 === 0;
+            celebrate.play(tile("streak"), {
+                level: milestone ? "burst" : "glow",
+                tone: milestone ? "gold" : "accent",
+                once: `lmx-streak:${participantId}:${streak}`,
+                delay: 380
+            });
+        }
     }
 
     function opsTile(label: string, value: string | number, key: string, numeric: number): string {

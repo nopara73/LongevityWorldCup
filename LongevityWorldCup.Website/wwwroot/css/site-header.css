@@ -522,31 +522,7 @@ button.option-button:disabled {
     animation: customAlertMarkIn 420ms var(--lwc-ease, ease) both;
 }
 
-/* Success gets a small burst of the podium colours around the medallion. */
-#custom-alert[data-tone="success"] .custom-alert-mark::before,
-#custom-alert[data-tone="success"] .custom-alert-mark::after {
-    content: "";
-    position: absolute;
-    inset: -22px -34px;
-    pointer-events: none;
-    background:
-        radial-gradient(circle, var(--lwc-gold) 0 3px, transparent 3.5px) 6% 30% / 14px 14px no-repeat,
-        radial-gradient(circle, var(--lwc-accent-bright) 0 2.5px, transparent 3px) 16% 88% / 12px 12px no-repeat,
-        radial-gradient(circle, var(--lwc-success) 0 2px, transparent 2.5px) 26% 4% / 10px 10px no-repeat,
-        radial-gradient(circle, var(--lwc-bronze) 0 2.5px, transparent 3px) 78% 2% / 12px 12px no-repeat,
-        radial-gradient(circle, var(--lwc-gold) 0 2px, transparent 2.5px) 96% 52% / 10px 10px no-repeat,
-        radial-gradient(circle, var(--lwc-accent-bright) 0 3px, transparent 3.5px) 84% 94% / 14px 14px no-repeat;
-    animation: customAlertBurst 640ms var(--lwc-ease, ease) both;
-}
-
-#custom-alert[data-tone="success"] .custom-alert-mark::after {
-    inset: -12px -20px;
-    background:
-        linear-gradient(var(--lwc-gold), var(--lwc-gold)) 0 70% / 7px 3px no-repeat,
-        linear-gradient(var(--lwc-accent-bright), var(--lwc-accent-bright)) 100% 22% / 7px 3px no-repeat,
-        linear-gradient(var(--lwc-success), var(--lwc-success)) 50% 100% / 3px 7px no-repeat;
-    animation-delay: 60ms;
-}
+/* Success moments celebrate through the shared LwcCelebrate layer (celebration.css). */
 
     #custom-alert p {
         width: 100%;
@@ -672,18 +648,6 @@ button.option-button:disabled {
     }
 }
 
-@keyframes customAlertBurst {
-    from {
-        opacity: 0;
-        transform: scale(0.5);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
 /* Phones: the alert rises as a bottom sheet, with OK under the thumb. */
 @media (max-width: 600px) {
     #custom-alert {
@@ -736,9 +700,7 @@ button.option-button:disabled {
 @media (prefers-reduced-motion: reduce) {
     .custom-alert-panel,
     .loading-dialog-panel,
-    .custom-alert-mark,
-    #custom-alert[data-tone="success"] .custom-alert-mark::before,
-    #custom-alert[data-tone="success"] .custom-alert-mark::after {
+    .custom-alert-mark {
         animation: none;
     }
 }

@@ -1029,7 +1029,7 @@
                 : paymentRequired
                     ? 'Your results were received, but the payment page could not be opened. Check your confirmation email.'
                     : 'Your results were received';
-            customAlert(nextStepMessage).then(() => {
+            customAlert(nextStepMessage, paymentUnavailable || paymentRequired ? undefined : { celebrate: 'burst' }).then(() => {
                 window.location.href = '/review?from=proof-upload';
             });
         }

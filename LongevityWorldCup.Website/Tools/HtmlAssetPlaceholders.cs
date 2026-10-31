@@ -89,6 +89,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_TROLLFACE}}"] = "/assets/content-images/trollface.png",
         ["{{ASSET_HOMEPAGE_CSS}}"] = "/css/homepage.css",
         ["{{ASSET_HOMEPAGE_JS}}"] = "/js/homepage.js",
+        ["{{ASSET_CELEBRATION_CSS}}"] = "/css/celebration.css",
+        ["{{ASSET_CELEBRATION_JS}}"] = "/js/celebration.js",
         ["{{ASSET_SITE_HEADER_CSS}}"] = "/css/site-header.css",
         ["{{ASSET_SITE_HEADER_JS}}"] = "/js/site-header.js",
         ["{{ASSET_SITE_FOOTER_CSS}}"] = "/css/site-footer.css",
