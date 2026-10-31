@@ -5,6 +5,7 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
     <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
     <link rel="expect" href="#lwc-site-header" blocking="render">
     <script>
@@ -350,11 +351,15 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
                     <div class="btc-status-title">Prize pool</div>
                     <div class="btc-status-goal"><span id="goal-btc">0.01</span> BTC goal</div>
                 </div>
-                <div class="btc-status-value"><span id="current-btc">0.0021</span> BTC</div>
-                <div class="btc-status-track" role="progressbar" aria-label="Bitcoin prize pool progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="21">
-                    <span class="btc-status-fill"></span>
+                <div class="btc-status-value"><span id="current-btc">0.0021</span> <span class="btc-status-unit">BTC</span></div>
+                <div class="btc-status-meter">
+                    <div class="btc-status-track" role="progressbar" aria-label="Bitcoin prize pool progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="21">
+                        <span class="btc-status-fill"></span>
+                    </div>
+                    <span class="btc-status-post" aria-hidden="true"><i class="fas fa-trophy"></i></span>
                 </div>
             </div>
+            <div class="btc-ticket">
             <div class="qr-code-container" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
                 <img src="{{ASSET_DONATION_QR}}" alt="Donate with Bitcoin QR code" class="qr-code-img" width="165" height="165" loading="lazy" fetchpriority="low" decoding="async">
             </div>
@@ -369,6 +374,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
                 <button type="button" id="bitcoinCopyButton" class="copy-btn" onclick="copyBitcoinAddress()" title="Copy Bitcoin address" aria-label="Copy Bitcoin donation address" disabled aria-disabled="true">
                     <i class="fas fa-copy"></i>
                 </button>
+            </div>
             </div>
         </div>
     </div>

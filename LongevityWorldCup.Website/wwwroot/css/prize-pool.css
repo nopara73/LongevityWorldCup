@@ -1,0 +1,424 @@
+/* The homepage finale: the prize pool as a vault meter and the donation
+   address as one ticket (QR above, address stub below a perforation), next
+   to the yearly newsletter. Loaded after homepage.css; the colours are the
+   pool's own Bitcoin orange and amber plus the shared tokens.
+   homepage.js drives the motion: the meter fills and the figure counts up
+   when the pool comes into view, copy stamps the stub, and a subscription
+   sends the paper plane off. */
+
+html body main.homepage-main #contribute {
+    --pool-orange: #f7931a;
+    --pool-amber: #ffc107;
+    --pool-glow: color-mix(in srgb, var(--pool-orange) 16%, transparent);
+    --pool-track: color-mix(in srgb, var(--lwc-muted) 16%, transparent);
+    --pool-ticket-notch: 14px;
+}
+
+/* ---------- Panel: vault on the left, ticket on the right ---------- */
+
+html body main.homepage-main #contribute .contribute-panel {
+    grid-template-areas:
+        "status"
+        "ticket";
+    align-items: stretch;
+    max-width: 46rem;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    border-radius: var(--lwc-radius-lg);
+    box-shadow: var(--lwc-shadow-md);
+}
+
+@media (min-width: 640px) {
+    html body main.homepage-main #contribute .contribute-panel {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "status ticket";
+        padding: 0;
+    }
+}
+
+/* ---------- Vault meter ---------- */
+
+html body main.homepage-main #contribute .btc-status {
+    position: relative;
+    isolation: isolate;
+    align-self: stretch;
+    align-content: center;
+    gap: 0.7rem;
+    padding: var(--lwc-space-5, 1.5rem);
+    background:
+        radial-gradient(120% 90% at 0% 100%, var(--pool-glow), transparent 62%),
+        var(--lwc-surface);
+}
+
+/* A large, faint coin mark sits behind the figure like a vault emblem. */
+html body main.homepage-main #contribute .btc-status::before {
+    content: "\f15a";
+    position: absolute;
+    z-index: -1;
+    right: -0.12em;
+    bottom: -0.28em;
+    font: 400 9.5rem/1 "Font Awesome 6 Brands";
+    color: color-mix(in srgb, var(--pool-orange) 9%, transparent);
+    transform: rotate(-14deg);
+    pointer-events: none;
+}
+
+html body main.homepage-main #contribute .btc-status-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+html body main.homepage-main #contribute .btc-status-title::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--pool-orange);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pool-orange) 22%, transparent);
+}
+
+html body main.homepage-main #contribute .btc-status-goal {
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface);
+    font-variant-numeric: tabular-nums;
+}
+
+html body main.homepage-main #contribute .btc-status-value {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    margin-top: 0.15rem;
+    color: var(--lwc-ink);
+    font-size: clamp(2.35rem, 6vw, 3.1rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+html body main.homepage-main #contribute .btc-status-unit {
+    color: var(--pool-orange);
+    font-size: 0.42em;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+/* Track, quarter ticks and a trophy post at the goal. */
+html body main.homepage-main #contribute .btc-status-meter {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.35rem;
+}
+
+html body main.homepage-main #contribute .btc-status-track {
+    position: relative;
+    flex: 1 1 auto;
+    height: 0.875rem;
+    overflow: visible;
+    border-radius: var(--lwc-radius-pill);
+    background:
+        linear-gradient(90deg, transparent calc(25% - 1px), var(--lwc-surface) calc(25% - 1px) calc(25% + 1px), transparent calc(25% + 1px) calc(50% - 1px), var(--lwc-surface) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px) calc(75% - 1px), var(--lwc-surface) calc(75% - 1px) calc(75% + 1px), transparent calc(75% + 1px)),
+        var(--pool-track);
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--lwc-ink) 14%, transparent);
+}
+
+html body main.homepage-main #contribute .btc-status-fill,
+html body main.homepage-main.home-scoreboard-live #contribute .btc-status-fill {
+    position: relative;
+    min-width: 0.875rem;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--pool-orange), var(--pool-amber));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--pool-orange) 45%, transparent);
+    /* homepage.js owns the fill; the old scroll-linked fill stays off. */
+    animation: none;
+    transform: none;
+    transform-origin: 0 50%;
+    transition: none;
+}
+
+/* The leading edge: a bright cap where the pool currently stands. */
+html body main.homepage-main #contribute .btc-status-fill::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--lwc-surface);
+    opacity: 0.85;
+    transform: translateY(-50%);
+}
+
+/* One sheen sweeps across the fill after it lands. */
+html body main.homepage-main #contribute .btc-status-fill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.55) 45%, transparent 70%);
+    transform: translateX(-120%);
+}
+
+html body main.homepage-main #contribute .btc-status.is-landed .btc-status-fill::before {
+    animation: pool-sheen 900ms var(--lwc-ease, ease) 60ms both;
+}
+
+html body main.homepage-main #contribute .btc-status-post {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid color-mix(in srgb, var(--lwc-gold) 55%, var(--lwc-border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--lwc-gold) 16%, var(--lwc-surface));
+    color: color-mix(in srgb, var(--lwc-gold) 70%, var(--lwc-ink));
+    font-size: 0.85rem;
+}
+
+html body main.homepage-main #contribute .btc-status.is-landed .btc-status-post {
+    animation: pool-post 520ms var(--lwc-ease-pop, var(--lwc-ease, ease)) 180ms both;
+}
+
+/* While counting, the figure keeps its width and dims slightly. */
+html body main.homepage-main #contribute .btc-status.is-counting .btc-status-value #current-btc {
+    color: color-mix(in srgb, var(--lwc-ink) 82%, var(--pool-orange));
+}
+
+html body main.homepage-main #contribute .btc-status.is-landed .btc-status-value #current-btc {
+    animation: pool-figure 420ms var(--lwc-ease-pop, var(--lwc-ease, ease)) both;
+}
+
+/* ---------- Ticket: QR, perforation, address stub ---------- */
+
+html body main.homepage-main #contribute .btc-ticket {
+    grid-area: ticket;
+    position: relative;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 0;
+    padding: var(--lwc-space-4, 1rem) var(--lwc-space-4, 1rem) var(--lwc-space-3, 0.75rem);
+    border-top: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-muted);
+}
+
+@media (min-width: 640px) {
+    html body main.homepage-main #contribute .btc-ticket {
+        width: 15.5rem;
+        border-top: 0;
+        border-inline-start: 1px dashed var(--lwc-border-strong);
+    }
+
+    /* Notches punch the dashed seam where the vault meets the ticket. */
+    html body main.homepage-main #contribute .btc-ticket::before,
+    html body main.homepage-main #contribute .btc-ticket::after {
+        content: "";
+        position: absolute;
+        left: calc(var(--pool-ticket-notch) / -2);
+        width: var(--pool-ticket-notch);
+        height: var(--pool-ticket-notch);
+        border-radius: 50%;
+        background: var(--lwc-surface-accent);
+        box-shadow: inset 0 0 0 1px var(--lwc-border);
+    }
+
+    html body main.homepage-main #contribute .btc-ticket::before {
+        top: calc(var(--pool-ticket-notch) / -2);
+    }
+
+    html body main.homepage-main #contribute .btc-ticket::after {
+        bottom: calc(var(--pool-ticket-notch) / -2);
+    }
+}
+
+html body main.homepage-main #contribute .qr-code-container {
+    grid-area: auto;
+    padding: 0.6rem;
+    border-radius: var(--lwc-radius-md);
+    background: #fff;
+    box-shadow: var(--lwc-shadow-sm), 0 0 0 1px var(--lwc-border);
+    transition: transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+html body main.homepage-main #contribute .qr-code-img {
+    width: 152px;
+    border: 0;
+    border-radius: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    html body main.homepage-main #contribute .btc-ticket:hover .qr-code-container {
+        transform: translateY(-2px) rotate(-1deg);
+        box-shadow: var(--lwc-shadow-md), 0 0 0 1px var(--pool-orange);
+    }
+}
+
+/* Perforated stub: the address tears off the ticket below a dotted line. */
+html body main.homepage-main #contribute .btc-ticket .btc-address {
+    grid-area: auto;
+    position: relative;
+    width: 100%;
+    margin-top: var(--lwc-space-4, 1rem);
+    padding: 0 0 0 0.7rem;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-pill);
+    background: var(--lwc-surface);
+    font-variant-numeric: tabular-nums;
+    transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+html body main.homepage-main #contribute .btc-ticket .btc-address::before {
+    content: "";
+    position: absolute;
+    left: -0.4rem;
+    right: -0.4rem;
+    top: calc(var(--lwc-space-4, 1rem) / -2 - 1px);
+    height: 2px;
+    background: radial-gradient(circle, var(--lwc-border-strong) 1px, transparent 1.4px) 0 50% / 7px 2px repeat-x;
+    pointer-events: none;
+}
+
+html body main.homepage-main #contribute .btc-ticket .btc-address:has(#bitcoinAddressFallback:not([hidden])) {
+    border-radius: var(--lwc-radius-md);
+}
+
+html body main.homepage-main #contribute .btc-ticket .copy-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    flex-basis: 2.5rem;
+    margin: 1px;
+    border-radius: 50%;
+}
+
+html body main.homepage-main #contribute .btc-ticket .copy-btn:hover i,
+html body main.homepage-main #contribute .btc-ticket .copy-btn:focus-visible i {
+    transform: scale(1.12);
+}
+
+/* Copied: the stub takes the success tint and the icon becomes a check. */
+html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied {
+    border-color: var(--lwc-success);
+    background: var(--lwc-success-soft);
+}
+
+html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied .copy-btn i {
+    color: var(--lwc-success);
+    animation: pool-stamp 360ms var(--lwc-ease-pop, var(--lwc-ease, ease)) both;
+}
+
+html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied #copiedText {
+    color: var(--lwc-success);
+}
+
+/* ---------- Newsletter: one joined field and a plane that leaves ---------- */
+
+@media (min-width: 640px) {
+    /* The label stays above; only the field row becomes one pill. */
+    html body main.homepage-main #newsletter #newsletter-form {
+        position: relative;
+        isolation: isolate;
+        grid-template-columns: minmax(0, 1fr) auto;
+        row-gap: var(--lwc-space-2, 0.5rem);
+        column-gap: 0;
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form::before {
+        content: "";
+        grid-row: 2;
+        grid-column: 1 / -1;
+        z-index: -1;
+        margin: -4px;
+        border: 1px solid var(--lwc-border-strong);
+        border-radius: var(--lwc-radius-pill);
+        background: var(--lwc-surface);
+        transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form:focus-within::before {
+        border-color: var(--lwc-accent);
+        box-shadow: 0 0 0 3px var(--lwc-accent-soft);
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form .shared-email-input {
+        grid-row: 2;
+        grid-column: 1;
+        border-color: transparent;
+        border-radius: var(--lwc-radius-pill);
+        background: transparent;
+        box-shadow: none;
+        outline: none;
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form .shared-email-button {
+        grid-row: 2;
+        grid-column: 2;
+        width: auto;
+        padding-inline: 1.5rem;
+        border-radius: var(--lwc-radius-pill);
+    }
+}
+
+html body main.homepage-main #newsletter #newsletter-form .shared-email-button i {
+    display: inline-block;
+}
+
+html body main.homepage-main #newsletter #newsletter-form.is-sent .shared-email-button i {
+    animation: pool-plane 900ms cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes pool-sheen {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(120%); }
+}
+
+@keyframes pool-post {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.22) rotate(-8deg); box-shadow: 0 0 0 6px color-mix(in srgb, var(--lwc-gold) 22%, transparent); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pool-figure {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-3px); }
+    100% { transform: translateY(0); }
+}
+
+@keyframes pool-stamp {
+    0% { transform: scale(0.4) rotate(-20deg); opacity: 0; }
+    60% { transform: scale(1.25) rotate(6deg); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+@keyframes pool-plane {
+    0% { transform: none; opacity: 1; }
+    45% { transform: translate(2.2rem, -1.4rem) rotate(-12deg) scale(0.8); opacity: 0; }
+    46% { transform: translate(-1.6rem, 0.6rem) scale(0.8); opacity: 0; }
+    100% { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html body main.homepage-main #contribute .btc-status.is-landed .btc-status-fill::before,
+    html body main.homepage-main #contribute .btc-status.is-landed .btc-status-post,
+    html body main.homepage-main #contribute .btc-status.is-landed .btc-status-value #current-btc,
+    html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied .copy-btn i,
+    html body main.homepage-main #newsletter #newsletter-form.is-sent .shared-email-button i {
+        animation: none;
+    }
+
+    html body main.homepage-main #contribute .qr-code-container {
+        transition: none;
+    }
+}
