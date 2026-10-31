@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -159,10 +161,13 @@ public sealed class AthletePortraitMotionBrowserTests(
     public async Task Gesture_FollowsThePhotosRenderedHoverAndBlendsBackIntoIt(int width, string surface)
     {
         await using var context = await NewContextAsync(width);
+        var fileSlug = surface == "table" ? "anna_buky" : "benjamin_garden";
+        await context.UnrouteAsync($"**/generated/thumbs/athletes/{fileSlug}_thumb_md_*.webp*");
         await context.AddInitScriptAsync("""
             localStorage.setItem('gmaSkipAll', 'true');
+            window.holdGestureMotion = true;
             document.addEventListener('playing', event => {
-                if (event.target.matches?.('video.athlete-portrait-motion')) queueMicrotask(() => event.target.pause());
+                if (window.holdGestureMotion && event.target.matches?.('video.athlete-portrait-motion')) queueMicrotask(() => event.target.pause());
             }, true);
             """);
         var page = await LoadAsync(context, surface == "podium" ? "/" : "/leaderboard");
@@ -185,7 +190,19 @@ public sealed class AthletePortraitMotionBrowserTests(
         }
         var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
         await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
-        await Assertions.Expect(overlay).ToHaveCSSAsync("opacity", "1");
+        var painted = image.Locator("..").Locator("canvas.athlete-portrait-frame");
+        await Assertions.Expect(painted).ToHaveCSSAsync("opacity", "1");
+        // A delayed renderer can reach playing after the first few frames.
+        // Compare the known still pose, rather than an arbitrary gesture frame.
+        await overlay.EvaluateAsync("""
+            async video => {
+                if (video.currentTime === 0) return;
+                await new Promise(resolve => {
+                    video.addEventListener('seeked', resolve, { once: true });
+                    video.currentTime = 0;
+                });
+            }
+            """);
 
         foreach (var position in new[] { .25f, .75f })
         {
@@ -207,30 +224,72 @@ public sealed class AthletePortraitMotionBrowserTests(
         await AssertFollowingAsync(overlay);
         var handoffCrop = await image.EvaluateAsync<string>("image => getComputedStyle(image).objectViewBox");
 
-        // Seek the real opacity transition rather than hoping a busy renderer
-        // presents an intermediate frame during the short handoff.
+        // Matching CSS is insufficient: Chromium crops a video differently
+        // from an image. Compare the actual painted face at the resting pose.
+        await painted.EvaluateAsync("surface => surface.style.visibility = 'hidden'");
+        var still = await image.ScreenshotAsync();
+        await painted.EvaluateAsync("surface => surface.style.removeProperty('visibility')");
+        var moving = await image.ScreenshotAsync();
+        if (Environment.GetEnvironmentVariable("LWC_UI_ARTIFACT_DIR") is { Length: > 0 } pixelDirectory)
+        {
+            await File.WriteAllBytesAsync(Path.Combine(pixelDirectory, $"{surface}-{width}-still.png"), still);
+            await File.WriteAllBytesAsync(Path.Combine(pixelDirectory, $"{surface}-{width}-moving.png"), moving);
+        }
+        Assert.InRange(MeanFaceDifference(still, moving), 0, 4);
+
+        // Play through the real ending. The surface must fade while media time
+        // still advances and be transparent before its removal.
         var fade = await overlay.EvaluateAsync<double[]>("""
             async video => {
-                video.dispatchEvent(new Event('ended'));
-                const animation = video.getAnimations().find(a => a.transitionProperty === 'opacity');
-                if (!animation) return [];
-                animation.pause();
-                const duration = Number(animation.effect.getTiming().duration);
-                const opacity = [0, .25, .5, .75].map(progress => {
-                    animation.currentTime = duration * progress;
-                    return Number(getComputedStyle(video).opacity);
+                window.holdGestureMotion = false;
+                const surface = video.nextElementSibling.querySelector('.athlete-portrait-frame');
+                const opacity = [];
+                let ended = false;
+                const finished = new Promise((resolve, reject) => {
+                    const deadline = setTimeout(() => reject(new Error('Gesture did not finish')), 8000);
+                    video.addEventListener('ended', () => {
+                        ended = true;
+                        clearTimeout(deadline);
+                        opacity.push(Number(surface.style.opacity));
+                        requestAnimationFrame(() => resolve(opacity));
+                    }, { once: true });
                 });
-                animation.finish();
-                return opacity;
+                video.playbackRate = .5;
+                video.currentTime = video.duration - .24;
+                await video.play();
+                requestAnimationFrame(function sample() {
+                    if (ended) return;
+                    opacity.push(Number(getComputedStyle(surface).opacity));
+                    requestAnimationFrame(sample);
+                });
+                return finished;
             }
             """);
-        Assert.Equal(4, fade.Length);
-        Assert.Equal(1, fade[0], 2);
         Assert.Contains(fade, opacity => opacity > 0 && opacity < 1);
-        Assert.True(fade[0] > fade[^1]);
+        Assert.Equal(0, fade[^1]);
         await Assertions.Expect(overlay).ToHaveCountAsync(0);
+        await Assertions.Expect(painted).ToHaveCSSAsync("opacity", "0");
         await Assertions.Expect(image).ToBeVisibleAsync();
         await Assertions.Expect(image).ToHaveCSSAsync("object-view-box", handoffCrop);
+        Assert.InRange(MeanFaceDifference(still, await image.ScreenshotAsync()), 0, .1);
+    }
+
+    private static double MeanFaceDifference(byte[] first, byte[] second)
+    {
+        using var before = Image.Load<Rgba32>(first);
+        using var after = Image.Load<Rgba32>(second);
+        Assert.Equal(before.Size, after.Size);
+        // Keep rings, badges and their independent glow outside the comparison.
+        long difference = 0, channels = 0;
+        for (var y = before.Height / 4; y < before.Height * 3 / 4; y++)
+        for (var x = before.Width / 4; x < before.Width * 3 / 4; x++)
+        {
+            var a = before[x, y];
+            var b = after[x, y];
+            difference += Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B);
+            channels += 3;
+        }
+        return (double)difference / channels;
     }
 
     private static async Task AssertFollowingAsync(ILocator overlay)
@@ -238,15 +297,19 @@ public sealed class AthletePortraitMotionBrowserTests(
         var differences = await overlay.EvaluateAsync<string[]>("""
             async video => {
                 const photo = video.previousElementSibling;
+                const surface = video.nextElementSibling;
                 const differences = [];
                 for (let frame = 0; frame < 24; frame++) {
                     await new Promise(requestAnimationFrame);
-                    const imageStyle = getComputedStyle(photo), videoStyle = getComputedStyle(video);
+                    const imageStyle = getComputedStyle(photo), videoStyle = getComputedStyle(surface);
                     for (const property of ['transform', 'object-fit', 'object-position', 'object-view-box']) {
                         if (imageStyle.getPropertyValue(property) !== videoStyle.getPropertyValue(property))
                             differences.push(`${frame}: ${property}: ${imageStyle.getPropertyValue(property)} / ${videoStyle.getPropertyValue(property)}`);
                     }
                 }
+                await Promise.all(photo.getAnimations()
+                    .filter(a => a.timeline === document.timeline && Number.isFinite(a.effect?.getComputedTiming().endTime))
+                    .map(a => a.finished.catch(() => {})));
                 return differences;
             }
             """);
@@ -290,7 +353,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         Assert.Contains($"/assets/athlete-motion/{slug}-", await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<string>("video => video.currentSrc"));
         if (slug == "tibor-konkoly")
             Assert.InRange(await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<double>("video => video.duration"), 11.95, 12.05);
-        Assert.True(await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<bool>("video => { const image = video.previousElementSibling.getBoundingClientRect(); const clip = video.getBoundingClientRect(); return Math.abs(clip.x - image.x - 3) < 1 && Math.abs(clip.y - image.y - 3) < 1 && Math.abs(clip.width - image.width + 6) < 1 && Math.abs(clip.height - image.height + 6) < 1; }"));
+        Assert.True(await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync<bool>("video => { const image = video.previousElementSibling.getBoundingClientRect(); const clip = video.nextElementSibling.getBoundingClientRect(); return Math.abs(clip.x - image.x - 3) < 1 && Math.abs(clip.y - image.y - 3) < 1 && Math.abs(clip.width - image.width + 6) < 1 && Math.abs(clip.height - image.height + 6) < 1; }"));
         await page.Locator("#athlete-profile video.athlete-portrait-motion").EvaluateAsync("video => { window.holdProfileMotion = false; return video.play(); }");
         await page.WaitForFunctionAsync("() => window.profileMotionEnds === 1");
         await Assertions.Expect(page.Locator("#modalProfilePic")).ToBeVisibleAsync();
@@ -434,8 +497,9 @@ public sealed class AthletePortraitMotionBrowserTests(
             var alignment = await overlay.EvaluateAsync<double[]>("""
                 async video => {
                     const photo = video.previousElementSibling;
-                    await Promise.all([photo, video].flatMap(element => element.getAnimations()).map(animation => animation.finished.catch(() => {})));
-                    const image = photo.getBoundingClientRect(), clip = video.getBoundingClientRect();
+                    const surface = video.nextElementSibling;
+                    await Promise.all([photo, surface].flatMap(element => element.getAnimations()).map(animation => animation.finished.catch(() => {})));
+                    const image = photo.getBoundingClientRect(), clip = surface.getBoundingClientRect();
                     return [Math.abs((clip.x + clip.width / 2) - (image.x + image.width / 2)),
                         Math.abs((clip.y + clip.height / 2) - (image.y + image.height / 2)),
                         Math.abs(clip.width - (image.width - 6 * 1.1))];
@@ -457,27 +521,34 @@ public sealed class AthletePortraitMotionBrowserTests(
     {
         await using var context = await NewContextAsync();
         await context.AddInitScriptAsync("window.holdTableMotion = true");
-        var pendingPhoto = new TaskCompletionSource<IRoute>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await context.RouteAsync("**/generated/thumbs/athletes/anna_buky_*.webp*", route =>
-        {
-            pendingPhoto.TrySetResult(route);
-            return Task.CompletedTask;
-        });
-        var page = await LoadAsync(context, "/leaderboard");
-        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
-        var image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
-        await image.HoverAsync();
-        Assert.Equal(0, await image.EvaluateAsync<int>("img => img.naturalWidth"));
-        if (!remainHovered) await page.Mouse.MoveAsync(0, 0);
+        var pendingPhoto = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePhoto = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var root = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         var photo = await File.ReadAllBytesAsync(Path.Combine(root, "athletes", "anna_buky", "anna_buky.webp"));
-        await (await pendingPhoto.Task.WaitAsync(TimeSpan.FromSeconds(15))).FulfillAsync(new() { ContentType = "image/webp", BodyBytes = photo });
-        await page.WaitForFunctionAsync("() => document.querySelector(\".leaderboard a[href='/athlete/anna-buky'] img.portrait\").naturalWidth > 0");
-        var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
-        if (remainHovered)
-            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
-        else
-            await Assertions.Expect(overlay).ToHaveCountAsync(0);
+        await context.RouteAsync("**/generated/thumbs/athletes/anna_buky_*.webp*", async route =>
+        {
+            pendingPhoto.TrySetResult();
+            await releasePhoto.Task;
+            await route.FulfillAsync(new() { ContentType = "image/webp", BodyBytes = photo });
+        });
+        try
+        {
+            var page = await LoadAsync(context, "/leaderboard");
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+            var image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
+            await image.HoverAsync();
+            Assert.Equal(0, await image.EvaluateAsync<int>("img => img.naturalWidth"));
+            if (!remainHovered) await page.Mouse.MoveAsync(0, 0);
+            await pendingPhoto.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            releasePhoto.TrySetResult();
+            await page.WaitForFunctionAsync("() => document.querySelector(\".leaderboard a[href='/athlete/anna-buky'] img.portrait\").complete");
+            var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
+            if (remainHovered)
+                await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+            else
+                await Assertions.Expect(overlay).ToHaveCountAsync(0);
+        }
+        finally { releasePhoto.TrySetResult(); }
     }
 
     [Fact]

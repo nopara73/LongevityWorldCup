@@ -559,6 +559,7 @@ function initializeAthletePortraitMotion() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const wired = new WeakSet();
     const active = new Map();
+    const surfaces = new Map();
     const podiumPlayed = new Set();
     let profilePlayed = null;
 
@@ -573,6 +574,126 @@ function initializeAthletePortraitMotion() {
         }
     }
 
+    // Keep the still and clip in one bitmap rendering path. Returning to the
+    // responsive <img> would change sharpness, even with a matching crop.
+    function surfaceFor(img, motion) {
+        const previous = surfaces.get(img);
+        if (previous?.motion === motion && previous.wrapper === img.parentElement) return previous;
+        previous?.dispose();
+        const wrapper = img.parentElement;
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return null;
+        const root = document.createElement('span');
+        root.className = 'athlete-portrait-motion';
+        root.setAttribute('aria-hidden', 'true');
+        const still = document.createElement('canvas');
+        still.className = 'athlete-portrait-still';
+        const live = document.createElement('canvas');
+        live.className = 'athlete-portrait-frame';
+        still.width = still.height = live.width = live.height = 320;
+        const stillContext = still.getContext('2d', { alpha: false });
+        const context = live.getContext('2d', { alpha: false });
+        if (!stillContext || !context) return null;
+        root.append(still, live);
+        let ready = false, loaded = false, disposed = false, playing = false;
+        let frame = 0, until = 0, entrance = null;
+        const photo = new Image();
+        const sync = () => {
+            const style = getComputedStyle(img);
+            for (const property of ['transform', 'scale', 'rotate', 'translate', 'object-fit', 'object-position', 'object-view-box']) {
+                const value = style.getPropertyValue(property);
+                if (root.style.getPropertyValue(property) !== value) root.style.setProperty(property, value);
+            }
+            root.style.outline = style.outline;
+            root.style.outlineOffset = `${parseFloat(style.outlineOffset) + img.clientLeft}px`;
+        };
+        const size = () => {
+            const style = getComputedStyle(img);
+            const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+            const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+            const width = parseFloat(style.width) - (style.boxSizing === 'border-box'
+                ? parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth) + paddingX : 0);
+            const height = parseFloat(style.height) - (style.boxSizing === 'border-box'
+                ? parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth) + paddingY : 0);
+            if (!(width > 0 && height > 0)) return;
+            const left = img.offsetLeft + img.clientLeft, top = img.offsetTop + img.clientTop;
+            root.style.left = `${left}px`;
+            root.style.top = `${top}px`;
+            root.style.width = `${width}px`;
+            root.style.height = `${height}px`;
+            // Inline link baselines and fractional sizes are absent from the
+            // integer offset/client measurements. Align the painted centres.
+            for (const property of ['transform', 'scale', 'rotate', 'translate']) root.style.setProperty(property, 'none');
+            const parentBox = root.getBoundingClientRect();
+            const parentScaleX = parentBox.width / width || 1, parentScaleY = parentBox.height / height || 1;
+            sync();
+            const imageBox = img.getBoundingClientRect(), box = root.getBoundingClientRect();
+            root.style.left = `${left + (imageBox.left + imageBox.width / 2 - box.left - box.width / 2) / parentScaleX}px`;
+            root.style.top = `${top + (imageBox.top + imageBox.height / 2 - box.top - box.height / 2) / parentScaleY}px`;
+        };
+        const tick = now => {
+            frame = 0;
+            if (disposed || playing || !img.checkVisibility()) return;
+            sync();
+            if (now < until) frame = requestAnimationFrame(tick);
+        };
+        const follow = () => {
+            until = performance.now() + 450;
+            if (!disposed && !playing && !frame) frame = requestAnimationFrame(tick);
+        };
+        const settle = () => {
+            if (disposed || ready || !loaded) return;
+            ready = true;
+            entrance?.cancel();
+            follow();
+            if (img.matches(':hover') || document.activeElement === img || document.activeElement === img.closest('a')) play(img);
+            if (reducedMotion.matches) return;
+            if (img === profile && profileReady(motion) && profilePlayed !== motion) visiblePortraits?.observe(img);
+            else if (podium?.contains(img) && athleteResultsReady && !podiumPlayed.has(motion)) visiblePortraits?.observe(img);
+        };
+        const resize = new ResizeObserver(size);
+        const record = {
+            motion, wrapper, root, live, context, sync, size, follow, settle,
+            get ready() { return ready; },
+            setPlaying(value) {
+                playing = value;
+                if (value) { cancelAnimationFrame(frame); frame = 0; }
+                else follow();
+            },
+            dispose() {
+                if (disposed) return;
+                active.get(img)?.stop();
+                disposed = true;
+                cancelAnimationFrame(frame);
+                entrance?.cancel();
+                resize.disconnect();
+                photo.removeAttribute('src');
+                root.remove();
+                wrapper.classList.remove('portrait-motion');
+                if (surfaces.get(img) === record) surfaces.delete(img);
+            }
+        };
+        surfaces.set(img, record);
+        wrapper.classList.add('portrait-motion');
+        img.after(root);
+        size();
+        resize.observe(img);
+        photo.decoding = 'async';
+        photo.src = img.src.replace('/generated/profiles/athletes/', '/generated/thumbs/athletes/')
+            .replace(/(?:_thumb_(?:sm|md))?_([0-9a-f]{64}\.webp)(?=[?#]|$)/, '_thumb_md_$1');
+        void photo.decode().then(() => {
+            if (disposed || !img.isConnected || motionFor(img) !== motion) { record.dispose(); return; }
+            stillContext.drawImage(photo, 0, 0, 320, 320);
+            loaded = true;
+            root.style.opacity = '1';
+            if (reducedMotion.matches) settle();
+            else {
+                entrance = root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+                entrance.finished.then(settle, () => {});
+            }
+        }, () => record.dispose());
+        return record;
+    }
+
     function play(img) {
         const motion = motionFor(img);
         if (reducedMotion.matches || !img.isConnected || !motion) return false;
@@ -583,6 +704,8 @@ function initializeAthletePortraitMotion() {
         }
         const wrapper = img.parentElement;
         if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
+        const portrait = surfaceFor(img, motion);
+        if (!portrait?.ready) return false;
 
         if (podium?.contains(img)) {
             podiumPlayed.add(motion);
@@ -599,54 +722,61 @@ function initializeAthletePortraitMotion() {
         video.playsInline = true;
         video.disablePictureInPicture = true;
         video.preload = 'auto';
-        // Follow the image's content box, including responsive margins and rings.
-        const sizeOverlay = () => {
-            video.style.left = `${img.offsetLeft + img.clientLeft}px`;
-            video.style.top = `${img.offsetTop + img.clientTop}px`;
-            video.style.width = `${img.clientWidth}px`;
-            video.style.height = `${img.clientHeight}px`;
-        };
-        const resize = new ResizeObserver(sizeOverlay);
+        video.hidden = true;
+        const surface = portrait.live;
+        const context = portrait.context;
+        portrait.size();
+        portrait.setPlaying(true);
         let frame = 0;
+        let finishFrame = 0;
         let fadeTimer = 0;
+        let firstPaint = null;
         let finishing = false;
         let replayRequested = false;
         const stop = () => {
             if (active.get(img)?.stop !== stop) return;
             active.delete(img);
-            resize.disconnect();
             cancelAnimationFrame(frame);
+            cancelAnimationFrame(finishFrame);
             clearTimeout(fadeTimer);
             video.pause();
             video.remove();
-            wrapper.classList.remove('portrait-motion');
+            surface.style.opacity = '0';
+            portrait.setPlaying(false);
         };
         // The photo owns hover/press motion. Sample its rendered crop and scale
         // so a clip arriving halfway through a hover joins that exact frame,
         // then follows pointer movement and the return to rest without lag.
-        const syncOverlay = () => {
-            const style = getComputedStyle(img);
-            for (const property of ['transform', 'object-fit', 'object-position', 'object-view-box']) {
-                const value = style.getPropertyValue(property);
-                if (video.style.getPropertyValue(property) !== value) video.style.setProperty(property, value);
+        const syncOverlay = (now = performance.now()) => {
+            portrait.sync();
+            if (!finishing && video.readyState >= 2 && video.videoWidth && video.classList.contains('is-playing')) {
+                if (surface.width !== video.videoWidth || surface.height !== video.videoHeight) {
+                    surface.width = video.videoWidth;
+                    surface.height = video.videoHeight;
+                }
+                context.drawImage(video, 0, 0, surface.width, surface.height);
+                firstPaint ??= now;
+                // Blend while the clip is still moving. Its first/last frames
+                // return to the photo's pose; ended only clears an invisible
+                // surface, rather than starting a frozen-frame dissolve.
+                const remaining = Number.isFinite(video.duration) ? (video.duration - video.currentTime) * 1000 : Infinity;
+                const blend = Math.max(0, Math.min(1, (now - firstPaint) / 180, remaining / 280));
+                surface.style.opacity = `${blend * blend * (3 - 2 * blend)}`;
             }
             frame = requestAnimationFrame(syncOverlay);
         };
         const finish = () => {
             if (finishing || active.get(img)?.stop !== stop) return;
             finishing = true;
-            // Keep the last video frame aligned while the original photo shows
-            // through. Identity changes, closing and errors still stop at once.
+            surface.style.opacity = '0';
+            video.classList.remove('is-playing');
             const complete = () => {
                 if (active.get(img)?.stop !== stop) return;
                 stop();
                 if (replayRequested) play(img);
             };
-            video.classList.remove('is-playing');
-            video.addEventListener('transitionend', event => {
-                if (event.target === video && event.propertyName === 'opacity') complete();
-            });
-            fadeTimer = window.setTimeout(complete, 240);
+            finishFrame = requestAnimationFrame(complete);
+            fadeTimer = window.setTimeout(complete, 80);
         };
         active.set(img, { motion, stop, replay: () => { if (finishing) replayRequested = true; } });
         video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
@@ -663,10 +793,7 @@ function initializeAthletePortraitMotion() {
             }, { once: true });
             video.appendChild(source);
         }
-        wrapper.classList.add('portrait-motion');
         img.after(video);
-        sizeOverlay();
-        resize.observe(img);
         syncOverlay();
         video.play().catch(stop);
         return true;
@@ -677,6 +804,8 @@ function initializeAthletePortraitMotion() {
         wired.add(img);
         let pointerInside = false;
         const link = img.closest('a');
+        const follow = () => surfaces.get(img)?.follow();
+        for (const event of ['pointermove', 'pointerenter', 'pointerleave', 'pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur']) img.addEventListener(event, follow, { passive: true });
         img.addEventListener('pointerenter', event => {
             pointerInside = event.pointerType !== 'touch';
             if (pointerInside) play(img);
@@ -687,8 +816,11 @@ function initializeAthletePortraitMotion() {
         // Lazy table photos may finish loading after the first pointer entry.
         // Replay then only if that interaction is still active.
         img.addEventListener('load', () => {
+            const motion = motionFor(img);
+            if (motion) surfaceFor(img, motion);
             if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
         });
+        if (img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
@@ -717,6 +849,11 @@ function initializeAthletePortraitMotion() {
     }
 
     function scan(records) {
+        const profileOnly = records && records.every(record => profileModal?.contains(record.target));
+        for (const [img, portrait] of surfaces) {
+            if (profileOnly && img !== profile) continue;
+            if (!img.isConnected || motionFor(img) !== portrait.motion || img.parentElement !== portrait.wrapper) portrait.dispose();
+        }
         for (const [img, playback] of active) {
             if (!img.isConnected || motionFor(img) !== playback.motion) playback.stop();
         }
@@ -761,6 +898,10 @@ function initializeAthletePortraitMotion() {
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
+        for (const portrait of surfaces.values()) {
+            if (reducedMotion.matches) portrait.settle();
+            portrait.follow();
+        }
     });
     scan();
 }
