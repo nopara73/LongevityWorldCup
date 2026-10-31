@@ -3143,3 +3143,208 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         opacity: 1;
     }
 }
+
+
+/* ===== Player stage =====
+   Athlete selection and the dashboard share one stage. The portrait sits over a
+   blurred, darkened copy of itself (play-athlete-flow.ts sets --stage-image), so
+   a square portrait fills a wide card without grey side bars, and its edges melt
+   into the backdrop. While searching, the stage eases into a slim banner rather
+   than snapping to a thumbnail, and spotlights the highlighted suggestion. */
+@property --stage-h {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 320px;
+}
+
+.play-athlete-card .athlete-picture-frame,
+.play-dashboard-card .athlete-picture-frame {
+    isolation: isolate;
+    background: #0b1116;
+}
+
+.play-athlete-card .athlete-picture-frame::before,
+.play-dashboard-card .athlete-picture-frame::before {
+    content: "";
+    position: absolute;
+    inset: -14%;
+    background: var(--stage-image, none) center / cover no-repeat;
+    filter: blur(28px) saturate(1.35) brightness(0.6);
+    transition: background-image 320ms ease;
+    pointer-events: none;
+}
+
+.play-athlete-card .athlete-picture-frame::after,
+.play-dashboard-card .athlete-picture-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(4, 9, 14, 0.42));
+    pointer-events: none;
+}
+
+/* The spotlight: whichever suggestion is highlighted, shown on the stage. */
+.athlete-stage-spotlight {
+    grid-area: 1 / 1;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--stage-spotlight, none) center / cover no-repeat;
+    opacity: 0;
+    transition: opacity 160ms var(--lwc-ease, ease);
+    pointer-events: none;
+}
+
+.play-athlete-panel:not(.athlete-search-open) .athlete-stage-spotlight {
+    display: none;
+}
+
+.play-athlete-card.is-spotlit .athlete-stage-spotlight {
+    opacity: 1;
+}
+
+@media (min-width: 761px) and (min-height: 600px) {
+    .play-athlete-panel:not([hidden]) .play-athlete-card,
+    .play-dashboard-panel:not([hidden]) .play-dashboard-card {
+        --stage-h: 320px;
+        transition: --stage-h 320ms var(--play-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+    }
+
+    .play-athlete-panel:not([hidden]) .play-athlete-card .athlete-picture-frame,
+    .play-dashboard-panel:not([hidden]) .play-dashboard-card .athlete-picture-frame {
+        aspect-ratio: auto;
+        height: var(--stage-h);
+    }
+
+    /* object-fit: contain centres a square portrait as tall as the stage;
+       its left and right edges fade into the blurred backdrop. */
+    .play-athlete-panel:not([hidden]) .athlete-picture-frame img.illustration,
+    .play-dashboard-panel:not([hidden]) .athlete-picture-frame img.illustration {
+        -webkit-mask-image: linear-gradient(90deg,
+            transparent calc(50% - var(--stage-h) / 2),
+            #000 calc(50% - var(--stage-h) / 2 + var(--stage-h) * 0.16),
+            #000 calc(50% + var(--stage-h) / 2 - var(--stage-h) * 0.16),
+            transparent calc(50% + var(--stage-h) / 2));
+        mask-image: linear-gradient(90deg,
+            transparent calc(50% - var(--stage-h) / 2),
+            #000 calc(50% - var(--stage-h) / 2 + var(--stage-h) * 0.16),
+            #000 calc(50% + var(--stage-h) / 2 - var(--stage-h) * 0.16),
+            transparent calc(50% + var(--stage-h) / 2));
+    }
+
+    /* Searching: the whole card stays, the stage narrows to a banner. */
+    .play-athlete-panel.athlete-search-open:not([hidden]) .play-athlete-card {
+        --stage-h: 148px;
+        width: 100%;
+        margin: 0;
+        border-radius: calc(var(--play-card-radius, 16px) - 1px) calc(var(--play-card-radius, 16px) - 1px) 0 0;
+    }
+
+    .play-athlete-panel.athlete-search-open:not([hidden]) .play-athlete-card .athlete-picture-frame {
+        width: 100%;
+        aspect-ratio: auto;
+        border-radius: 0;
+    }
+
+    .play-athlete-panel .athlete-stage-spotlight {
+        align-self: center;
+        justify-self: center;
+        width: calc(var(--stage-h) - 28px);
+        height: calc(var(--stage-h) - 28px);
+        border: 3px solid var(--primary-color, #00bcd4);
+        border-radius: 50%;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 0 6px rgba(0, 188, 212, 0.18);
+    }
+
+    @media (max-height: 740px) {
+        .play-athlete-panel:not([hidden]) .play-athlete-card,
+        .play-dashboard-panel:not([hidden]) .play-dashboard-card {
+            --stage-h: clamp(220px, 34dvh, 280px);
+        }
+
+        .play-athlete-panel.athlete-search-open:not([hidden]) .play-athlete-card {
+            --stage-h: 112px;
+        }
+    }
+}
+
+/* Select lights up with a ring the moment a choice makes it usable. */
+#playConfirmAthleteBtn.is-arming {
+    animation: play-stage-arm 760ms var(--play-ease-enter, cubic-bezier(0, 0, 0, 1));
+}
+
+@keyframes play-stage-arm {
+    from { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.55); }
+    to { box-shadow: 0 0 0 14px rgba(46, 125, 50, 0); }
+}
+
+/* Dashboard perks: one aligned list. Every line gets a chip, rows are ruled. */
+.play-dashboard-discounts .pro-discount-box {
+    padding: 0.35rem 0.85rem;
+}
+
+.play-dashboard-discounts .pro-discount-line {
+    padding-block: 0.3rem;
+}
+
+.play-dashboard-discounts .pro-discount-line + .pro-discount-line {
+    border-top: 1px solid rgba(46, 125, 50, 0.18);
+}
+
+.play-dashboard-discounts .pro-discount-badge-slot:empty::before {
+    content: "\f295";
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--lwc-ink, #17212b);
+    color: #ffffff;
+    font-family: "Font Awesome 6 Free";
+    font-size: 1rem;
+    font-weight: 900;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.play-dashboard-discounts .pro-discount-text {
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+
+/* The dashboard deals itself: caption, then perks, then commands. */
+@media (prefers-reduced-motion: no-preference) {
+    .play-dashboard-panel:not([hidden]) .play-dashboard-card .play-dashboard-title {
+        animation: play-stage-rise 320ms 90ms var(--play-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
+    }
+
+    .play-dashboard-panel:not([hidden]) .pro-discount-line {
+        animation: play-stage-rise 280ms 160ms var(--play-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
+    }
+
+    .play-dashboard-panel:not([hidden]) .pro-discount-line:nth-child(2) { animation-delay: 210ms; }
+    .play-dashboard-panel:not([hidden]) .pro-discount-line:nth-child(3) { animation-delay: 260ms; }
+    .play-dashboard-panel:not([hidden]) .pro-discount-line:nth-child(n + 4) { animation-delay: 310ms; }
+
+    .play-dashboard-panel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(:disabled):hover {
+        translate: 0 -2px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+    }
+}
+
+@keyframes play-stage-rise {
+    from { opacity: 0; transform: translateY(10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .play-athlete-panel:not([hidden]) .play-athlete-card,
+    .play-dashboard-panel:not([hidden]) .play-dashboard-card,
+    .play-athlete-card .athlete-picture-frame::before,
+    .play-dashboard-card .athlete-picture-frame::before,
+    .athlete-stage-spotlight {
+        transition: none;
+    }
+
+    #playConfirmAthleteBtn.is-arming { animation: none; }
+}
