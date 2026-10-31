@@ -1,0 +1,302 @@
+/* The homepage finale: the prize pool as one meter, and the donation
+   address as one ticket (QR with its address stub), beside the yearly
+   newsletter. Loaded after homepage.css. Colours: the pool's existing
+   orange/amber fill plus shared tokens.
+   Both columns share the card's 20px inset; the meter's stack is centred
+   against the ticket so neither column floats.
+   homepage.js drives the motion: the fill and figure count up together on
+   first view, copy stamps the stub, and a subscription sends the plane. */
+
+html body main.homepage-main #contribute {
+    --pool-orange: #f7931a;
+    --pool-amber: #ffc107;
+    --pool-pad: 20px;
+    --pool-qr: 128px;
+}
+
+/* ---------- Panel ---------- */
+
+/* Phones inset the card's copy by 15px; the meter and ticket follow it. */
+@media (max-width: 639px) {
+    html body main.homepage-main #contribute {
+        --pool-pad: 15px;
+    }
+}
+
+html body main.homepage-main #contribute .contribute-panel {
+    grid-template-areas:
+        "status"
+        "ticket";
+    align-items: stretch;
+    gap: 0;
+    max-width: none;
+    margin-top: var(--pool-pad);
+    padding: 0;
+    overflow: hidden;
+    border-top: 1px solid var(--lwc-border);
+}
+
+@media (min-width: 640px) {
+    html body main.homepage-main #contribute .contribute-panel {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "status ticket";
+        padding: 0;
+    }
+}
+
+/* ---------- Meter ---------- */
+
+html body main.homepage-main #contribute .btc-status {
+    align-self: stretch;
+    align-content: center;
+    gap: var(--lwc-space-3, 0.75rem);
+    padding: var(--pool-pad);
+}
+
+html body main.homepage-main #contribute .btc-status-topline {
+    align-items: baseline;
+}
+
+html body main.homepage-main #contribute .btc-status-goal {
+    font-variant-numeric: tabular-nums;
+}
+
+html body main.homepage-main #contribute .btc-status-value {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    color: var(--lwc-ink);
+    font-size: clamp(2.25rem, 5.5vw, 2.75rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+html body main.homepage-main #contribute .btc-status-unit {
+    color: var(--lwc-muted);
+    font-size: 0.45em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+html body main.homepage-main #contribute .btc-status-meter {
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-3, 0.75rem);
+}
+
+html body main.homepage-main #contribute .btc-status-track {
+    flex: 1 1 auto;
+    height: 0.625rem;
+    border-radius: var(--lwc-radius-pill);
+    background: color-mix(in srgb, var(--lwc-muted) 16%, transparent);
+}
+
+html body main.homepage-main #contribute .btc-status-fill,
+html body main.homepage-main.home-scoreboard-live #contribute .btc-status-fill {
+    position: relative;
+    min-width: 0.625rem;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--pool-orange), var(--pool-amber));
+    /* homepage.js owns the fill; the older scroll-linked fill stays off. */
+    animation: none;
+    transform: none;
+    transition: none;
+}
+
+/* One sheen crosses the fill after it lands. */
+html body main.homepage-main #contribute .btc-status-fill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 25%, rgba(255, 255, 255, 0.5) 50%, transparent 75%);
+    transform: translateX(-120%);
+}
+
+html body main.homepage-main #contribute .btc-status.is-landed .btc-status-fill::before {
+    animation: pool-sheen 800ms var(--lwc-ease, ease) both;
+}
+
+/* The goal end of the track: a small trophy that answers when the fill lands. */
+html body main.homepage-main #contribute .btc-status-post {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--lwc-gold) 18%, var(--lwc-surface));
+    color: color-mix(in srgb, var(--lwc-gold) 65%, var(--lwc-ink));
+    font-size: 0.75rem;
+}
+
+html body main.homepage-main #contribute .btc-status.is-landed .btc-status-post {
+    animation: pool-post 420ms var(--lwc-ease, ease) 120ms both;
+}
+
+/* ---------- Ticket: QR above, address stub below ---------- */
+
+html body main.homepage-main #contribute .btc-ticket {
+    grid-area: ticket;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--lwc-space-3, 0.75rem);
+    padding: var(--pool-pad);
+    border-top: 1px solid var(--lwc-border);
+    background: var(--lwc-surface-muted);
+}
+
+@media (min-width: 640px) {
+    html body main.homepage-main #contribute .btc-ticket {
+        width: calc(var(--pool-qr) + 6.5rem);
+        border-top: 0;
+        border-inline-start: 1px solid var(--lwc-border);
+    }
+}
+
+html body main.homepage-main #contribute .qr-code-container {
+    grid-area: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md);
+    background: #fff;
+}
+
+html body main.homepage-main #contribute .qr-code-img {
+    display: block;
+    width: var(--pool-qr);
+    border: 0;
+    border-radius: 0;
+}
+
+html body main.homepage-main #contribute .btc-ticket .btc-address {
+    grid-area: auto;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0 0 0 0.75rem;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface);
+    box-sizing: border-box;
+    transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+html body main.homepage-main #contribute .btc-ticket .copy-btn,
+html body main.homepage-main #contribute .btc-ticket .copy-btn:hover,
+html body main.homepage-main #contribute .btc-ticket .copy-btn:focus {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    flex-basis: 2.5rem;
+    margin: -1px -1px -1px auto;
+    border-radius: var(--lwc-radius-md);
+    background: transparent;
+    box-shadow: none;
+}
+
+html body main.homepage-main #contribute .btc-ticket .copy-btn:focus-visible {
+    outline: 2px solid var(--lwc-accent);
+    outline-offset: -4px;
+}
+
+/* Copied: success tint on the stub, and the copy icon becomes a check. */
+html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied {
+    border-color: var(--lwc-success);
+    background: var(--lwc-success-soft);
+}
+
+html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied .copy-btn i {
+    color: var(--lwc-success);
+    animation: pool-stamp 280ms var(--lwc-ease, ease) both;
+}
+
+/* ---------- Newsletter: the field row is one control ---------- */
+
+@media (min-width: 640px) {
+    html body main.homepage-main #newsletter #newsletter-form {
+        position: relative;
+        isolation: isolate;
+        grid-template-columns: minmax(0, 1fr) auto;
+        row-gap: var(--lwc-space-2, 0.5rem);
+        column-gap: 0;
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form::before {
+        content: "";
+        grid-row: 2;
+        grid-column: 1 / -1;
+        z-index: -1;
+        border: 1px solid var(--lwc-border-strong);
+        border-radius: var(--lwc-radius-md);
+        background: var(--lwc-surface);
+        transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form:focus-within::before {
+        border-color: var(--lwc-accent);
+        box-shadow: 0 0 0 3px var(--lwc-accent-soft);
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form .shared-email-input {
+        grid-row: 2;
+        grid-column: 1;
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
+        outline: none;
+    }
+
+    html body main.homepage-main #newsletter #newsletter-form .shared-email-button {
+        grid-row: 2;
+        grid-column: 2;
+        width: auto;
+        margin: 3px;
+        padding-inline: 1.25rem;
+        border-radius: calc(var(--lwc-radius-md) - 3px);
+    }
+}
+
+html body main.homepage-main #newsletter #newsletter-form .shared-email-button i {
+    display: inline-block;
+}
+
+html body main.homepage-main #newsletter #newsletter-form.is-sent .shared-email-button i {
+    animation: pool-plane 760ms cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes pool-sheen {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(120%); }
+}
+
+@keyframes pool-post {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+@keyframes pool-stamp {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pool-plane {
+    0% { transform: none; opacity: 1; }
+    45% { transform: translate(1.75rem, -1.1rem) rotate(-10deg) scale(0.85); opacity: 0; }
+    46% { transform: translate(-1.25rem, 0.5rem) scale(0.85); opacity: 0; }
+    100% { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html body main.homepage-main #contribute .btc-status.is-landed .btc-status-fill::before,
+    html body main.homepage-main #contribute .btc-status.is-landed .btc-status-post,
+    html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied .copy-btn i,
+    html body main.homepage-main #newsletter #newsletter-form.is-sent .shared-email-button i {
+        animation: none;
+    }
+}
