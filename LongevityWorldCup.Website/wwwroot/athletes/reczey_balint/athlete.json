@@ -1,0 +1,41 @@
+{
+  "Name": "Réczey Bálint",
+  "DisplayName": null,
+  "MediaContact": "@balintreczey",
+  "DateOfBirth": {
+    "Year": 1982,
+    "Month": 1,
+    "Day": 26
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-26",
+      "AlbGL": 50,
+      "CreatUmolL": 114,
+      "GluMmolL": 4.8,
+      "CrpMgL": 0.44,
+      "LymPc": 26.1,
+      "McvFL": 96,
+      "RdwPc": 12.9,
+      "AlpUL": 87,
+      "Wbc1000cellsuL": 5.7,
+      "NeutrophilPc": 58.3,
+      "MonocytePc": 10.5,
+      "Rbc10e12L": 4.8,
+      "MchPg": 31,
+      "UreaMmolL": 6.2,
+      "CystatinCMgL": 0.76,
+      "Hba1cMmolMol": 41,
+      "CholesterolMmolL": 6.6,
+      "ApoA1GL": 1.96,
+      "AltUL": 28,
+      "GgtUL": 18,
+      "ShbgNmolL": 33.6,
+      "VitaminDNmolL": null
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "Extending healthy and happy life for others and myself.",
+  "PersonalLink": "https://www.instagram.com/balintreczey"
+}
