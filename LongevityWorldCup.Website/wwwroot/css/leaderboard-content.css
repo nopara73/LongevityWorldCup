@@ -755,16 +755,13 @@
  .athlete-portrait-motion{
      position:absolute; top:3px; left:3px;
      border-radius:50%; object-fit:cover; pointer-events:none; opacity:0; z-index:1;
-     transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+     transition:opacity 180ms ease;
  }
  .podium-item .athlete-portrait-motion{
      width:calc(var(--podium-portrait-size) - 6px); height:calc(var(--podium-portrait-size) - 6px);
  }
  .athlete-portrait-motion.is-playing{ opacity:1; }
- .podium-item .podium-portrait:hover ~ .athlete-portrait-motion{ transform:scale(1.04); }
- .leaderboard .portrait:hover ~ .athlete-portrait-motion{ transform:scale(var(--portrait-hover-scale)); }
  #athlete-profile .athlete-portrait-motion{ width:calc(100% - 6px); height:calc(100% - 6px); }
- #athlete-profile .portrait-wrapper:hover .athlete-portrait-motion{ transform:scale(1.05); }
  @media (prefers-reduced-motion:reduce){
      .athlete-portrait-motion{ display:none; }
  }

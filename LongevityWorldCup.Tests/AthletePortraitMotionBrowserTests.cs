@@ -150,6 +150,110 @@ public sealed class AthletePortraitMotionBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, "podium")]
+    [InlineData(390, "podium")]
+    [InlineData(1440, "profile")]
+    [InlineData(390, "profile")]
+    [InlineData(1440, "table")]
+    [InlineData(390, "table")]
+    public async Task Gesture_FollowsThePhotosRenderedHoverAndBlendsBackIntoIt(int width, string surface)
+    {
+        await using var context = await NewContextAsync(width);
+        await context.AddInitScriptAsync("""
+            localStorage.setItem('gmaSkipAll', 'true');
+            document.addEventListener('playing', event => {
+                if (event.target.matches?.('video.athlete-portrait-motion')) queueMicrotask(() => event.target.pause());
+            }, true);
+            """);
+        var page = await LoadAsync(context, surface == "podium" ? "/" : "/leaderboard");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        ILocator image;
+        if (surface == "podium")
+        {
+            await InsertPortraitAsync(page);
+            image = page.Locator("#motionFixture");
+        }
+        else if (surface == "profile")
+        {
+            await page.Locator("a.athlete-name[href='/athlete/benjamin-garden']").First.ClickAsync();
+            image = page.Locator("#modalProfilePic");
+        }
+        else
+        {
+            image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
+            await image.HoverAsync();
+        }
+        var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
+        await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+        await Assertions.Expect(overlay).ToHaveCSSAsync("opacity", "1");
+
+        foreach (var position in new[] { .25f, .75f })
+        {
+            var box = await image.BoundingBoxAsync();
+            Assert.NotNull(box);
+            await page.Mouse.MoveAsync(box.X + box.Width * position, box.Y + box.Height * position);
+            await AssertFollowingAsync(overlay);
+        }
+        var crop = await image.EvaluateAsync<string>("image => getComputedStyle(image).objectViewBox");
+        if (surface != "table") Assert.NotEqual("inset(0%)", crop);
+        if (Environment.GetEnvironmentVariable("LWC_UI_ARTIFACT_DIR") is { Length: > 0 } directory)
+        {
+            Directory.CreateDirectory(directory);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"portrait-motion-{surface}-{width}.png") });
+        }
+        await page.Mouse.MoveAsync(0, 0);
+        await AssertFollowingAsync(overlay);
+        await image.HoverAsync();
+        await AssertFollowingAsync(overlay);
+        var handoffCrop = await image.EvaluateAsync<string>("image => getComputedStyle(image).objectViewBox");
+
+        // Seek the real opacity transition rather than hoping a busy renderer
+        // presents an intermediate frame during the short handoff.
+        var fade = await overlay.EvaluateAsync<double[]>("""
+            async video => {
+                video.dispatchEvent(new Event('ended'));
+                const animation = video.getAnimations().find(a => a.transitionProperty === 'opacity');
+                if (!animation) return [];
+                animation.pause();
+                const duration = Number(animation.effect.getTiming().duration);
+                const opacity = [0, .25, .5, .75].map(progress => {
+                    animation.currentTime = duration * progress;
+                    return Number(getComputedStyle(video).opacity);
+                });
+                animation.finish();
+                return opacity;
+            }
+            """);
+        Assert.Equal(4, fade.Length);
+        Assert.Equal(1, fade[0], 2);
+        Assert.Contains(fade, opacity => opacity > 0 && opacity < 1);
+        Assert.True(fade[0] > fade[^1]);
+        await Assertions.Expect(overlay).ToHaveCountAsync(0);
+        await Assertions.Expect(image).ToBeVisibleAsync();
+        await Assertions.Expect(image).ToHaveCSSAsync("object-view-box", handoffCrop);
+    }
+
+    private static async Task AssertFollowingAsync(ILocator overlay)
+    {
+        var differences = await overlay.EvaluateAsync<string[]>("""
+            async video => {
+                const photo = video.previousElementSibling;
+                const differences = [];
+                for (let frame = 0; frame < 24; frame++) {
+                    await new Promise(requestAnimationFrame);
+                    const imageStyle = getComputedStyle(photo), videoStyle = getComputedStyle(video);
+                    for (const property of ['transform', 'object-fit', 'object-position', 'object-view-box']) {
+                        if (imageStyle.getPropertyValue(property) !== videoStyle.getPropertyValue(property))
+                            differences.push(`${frame}: ${property}: ${imageStyle.getPropertyValue(property)} / ${videoStyle.getPropertyValue(property)}`);
+                    }
+                }
+                return differences;
+            }
+            """);
+        Assert.True(differences.Length == 0, string.Join("\n", differences));
+    }
+
+    [Theory]
     [InlineData(true, 1440, "benjamin-garden")]
     [InlineData(true, 390, "benjamin-garden")]
     [InlineData(false, 1440, "benjamin-garden")]

@@ -575,7 +575,12 @@ function initializeAthletePortraitMotion() {
 
     function play(img) {
         const motion = motionFor(img);
-        if (active.has(img) || reducedMotion.matches || !img.isConnected || !motion) return false;
+        if (reducedMotion.matches || !img.isConnected || !motion) return false;
+        const playback = active.get(img);
+        if (playback) {
+            playback.replay();
+            return false;
+        }
         const wrapper = img.parentElement;
         if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
 
@@ -594,26 +599,58 @@ function initializeAthletePortraitMotion() {
         video.playsInline = true;
         video.disablePictureInPicture = true;
         video.preload = 'auto';
-        // Table portraits can sit inside a rank-change wrapper and have different
-        // margins at each breakpoint. Follow the image's untransformed content box.
+        // Follow the image's content box, including responsive margins and rings.
         const sizeOverlay = () => {
             video.style.left = `${img.offsetLeft + img.clientLeft}px`;
             video.style.top = `${img.offsetTop + img.clientTop}px`;
             video.style.width = `${img.clientWidth}px`;
             video.style.height = `${img.clientHeight}px`;
         };
-        const rowResize = leaderboard?.contains(img) ? new ResizeObserver(sizeOverlay) : null;
+        const resize = new ResizeObserver(sizeOverlay);
+        let frame = 0;
+        let fadeTimer = 0;
+        let finishing = false;
+        let replayRequested = false;
         const stop = () => {
             if (active.get(img)?.stop !== stop) return;
             active.delete(img);
-            rowResize?.disconnect();
+            resize.disconnect();
+            cancelAnimationFrame(frame);
+            clearTimeout(fadeTimer);
             video.pause();
             video.remove();
             wrapper.classList.remove('portrait-motion');
         };
-        active.set(img, { motion, stop });
+        // The photo owns hover/press motion. Sample its rendered crop and scale
+        // so a clip arriving halfway through a hover joins that exact frame,
+        // then follows pointer movement and the return to rest without lag.
+        const syncOverlay = () => {
+            const style = getComputedStyle(img);
+            for (const property of ['transform', 'object-fit', 'object-position', 'object-view-box']) {
+                const value = style.getPropertyValue(property);
+                if (video.style.getPropertyValue(property) !== value) video.style.setProperty(property, value);
+            }
+            frame = requestAnimationFrame(syncOverlay);
+        };
+        const finish = () => {
+            if (finishing || active.get(img)?.stop !== stop) return;
+            finishing = true;
+            // Keep the last video frame aligned while the original photo shows
+            // through. Identity changes, closing and errors still stop at once.
+            const complete = () => {
+                if (active.get(img)?.stop !== stop) return;
+                stop();
+                if (replayRequested) play(img);
+            };
+            video.classList.remove('is-playing');
+            video.addEventListener('transitionend', event => {
+                if (event.target === video && event.propertyName === 'opacity') complete();
+            });
+            fadeTimer = window.setTimeout(complete, 240);
+        };
+        active.set(img, { motion, stop, replay: () => { if (finishing) replayRequested = true; } });
         video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
-        video.addEventListener('ended', stop, { once: true });
+        video.addEventListener('ended', finish, { once: true });
         video.addEventListener('error', stop, { once: true });
         for (const [extension, type] of [['webm', 'video/webm'], ['mp4', 'video/mp4']]) {
             const source = document.createElement('source');
@@ -628,10 +665,9 @@ function initializeAthletePortraitMotion() {
         }
         wrapper.classList.add('portrait-motion');
         img.after(video);
-        if (rowResize) {
-            sizeOverlay();
-            rowResize.observe(img);
-        }
+        sizeOverlay();
+        resize.observe(img);
+        syncOverlay();
         video.play().catch(stop);
         return true;
     }
