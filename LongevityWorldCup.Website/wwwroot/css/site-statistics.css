@@ -1399,30 +1399,30 @@ select:focus-visible,
 
 /* Motion: the dashboard assembles instead of popping in. Panels settle in
    reading order when data lands, every bar grows from its baseline, chart
-   columns rise, and the active tab's underline draws from the centre. A
-   filter change replays the growth so the eye sees what moved. */
+   columns rise, and the active tab's underline draws from the centre. This
+   happens once; later filter changes morph (see the feel layer below). */
 @media (prefers-reduced-motion: no-preference) {
-    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > *,
-    .stats-page[aria-busy="false"] .stats-panel {
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) :is(.traffic-overview, .data-quality-strip, .outcome-strip) > *,
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) .stats-panel {
         animation: stats-settle 420ms cubic-bezier(0, 0, 0, 1) backwards;
     }
 
-    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(2) { animation-delay: 50ms; }
-    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(3) { animation-delay: 100ms; }
-    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(4) { animation-delay: 150ms; }
-    .stats-page[aria-busy="false"] :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(n + 5) { animation-delay: 200ms; }
-    .stats-page[aria-busy="false"] .decision-grid > .stats-panel:nth-child(2),
-    .stats-page[aria-busy="false"] .decision-support-grid > .stats-panel:nth-child(2),
-    .stats-page[aria-busy="false"] .stats-main-grid > .stats-panel:nth-child(2) { animation-delay: 80ms; }
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(2) { animation-delay: 50ms; }
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(3) { animation-delay: 100ms; }
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(4) { animation-delay: 150ms; }
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) :is(.traffic-overview, .data-quality-strip, .outcome-strip) > :nth-child(n + 5) { animation-delay: 200ms; }
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) .decision-grid > .stats-panel:nth-child(2),
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) .decision-support-grid > .stats-panel:nth-child(2),
+    .stats-page[aria-busy="false"]:not([data-stats-settled]) .stats-main-grid > .stats-panel:nth-child(2) { animation-delay: 80ms; }
 
     .funnel-fill,
-    .traffic-meter > i,
+    .stats-page:not([data-stats-settled]) .traffic-meter > i,
     .stacked-bar > span {
         transform-origin: left center;
         animation: stats-grow 620ms 120ms cubic-bezier(0.2, 0, 0, 1) backwards;
     }
 
-    .traffic-session-bar {
+    .stats-page:not([data-stats-settled]) .traffic-session-bar {
         transform-box: fill-box;
         transform-origin: 50% 100%;
         animation: stats-rise 560ms cubic-bezier(0.2, 0, 0, 1) backwards;
@@ -1456,4 +1456,295 @@ select:focus-visible,
 
 @keyframes stats-underline {
     from { transform: scaleX(0); opacity: 0; }
+}
+
+/* ---------- Feel layer: a live instrument, not a page that reloads ----------
+   - The filter band is a sticky command bar that tucks into a slim strip.
+   - A refetch keeps the old numbers on screen, dims them and sweeps a line
+     under the bar; the new data then morphs in (site-statistics.ts).
+   - Changed filters glow so the active slice is readable at a glance.
+   - One indicator glides between Overview and Diagnostics; the page slides
+     sideways between the two views.
+   - Disclosures open and close with their height instead of snapping. */
+
+.stats-header {
+    position: relative;
+    transition:
+        padding 220ms cubic-bezier(0.2, 0, 0, 1),
+        box-shadow 220ms ease,
+        background-color 220ms ease,
+        border-color 220ms ease;
+}
+
+.stats-kicker {
+    display: block;
+    max-height: 20px;
+    overflow: hidden;
+    transition: max-height 220ms cubic-bezier(0.2, 0, 0, 1), opacity 160ms ease;
+}
+
+.stats-header h1 {
+    transition: font-size 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (min-width: 901px) {
+    .stats-header {
+        position: sticky;
+        top: 10px;
+        z-index: 20;
+    }
+
+    .stats-header[data-condensed] {
+        padding-block: 10px;
+        border-color: var(--line-strong);
+        background: color-mix(in srgb, var(--panel) 90%, transparent);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(14px) saturate(1.2);
+    }
+
+    .stats-header[data-condensed] .stats-kicker {
+        max-height: 0;
+        opacity: 0;
+    }
+
+    .stats-header[data-condensed] h1 { font-size: 20px; }
+
+    .stats-header[data-condensed] .stats-controls label {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+    }
+
+    .stats-header[data-condensed] .stats-controls label > span { font-size: 11px; }
+    .stats-header[data-condensed] :is(select, .stats-button) { min-height: 34px; padding-block: 5px; }
+}
+
+/* Phones and narrow windows: the header is tall, so the view switcher sticks instead. */
+@media (max-width: 900px) {
+    .stats-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        margin-inline: -16px;
+        padding-inline: 16px;
+        background: color-mix(in srgb, var(--bg) 92%, transparent);
+        backdrop-filter: blur(12px);
+        transition: box-shadow 200ms ease;
+    }
+
+    .stats-header[data-condensed] ~ .stats-tabs { box-shadow: 0 1px 0 var(--line), 0 12px 24px rgba(0, 0, 0, 0.4); }
+}
+
+/* Refetch: a sweep line under the bar, old data dimmed in place. */
+.stats-header::after {
+    content: "";
+    position: absolute;
+    left: var(--radius);
+    right: var(--radius);
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent) 0 0 / 36% 100% no-repeat;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+}
+
+.stats-page[aria-busy="true"] .stats-header::after {
+    opacity: 1;
+    transition-delay: 120ms;
+    animation: stats-sweep 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes stats-sweep {
+    from { background-position: -40% 0; }
+    to { background-position: 140% 0; }
+}
+
+.stats-page > :is(.traffic-overview, .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {
+    transition: opacity 200ms ease, filter 200ms ease;
+}
+
+.stats-page[aria-busy="true"] > :is(.traffic-overview:not(:empty), .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {
+    opacity: 0.5;
+    filter: saturate(0.4);
+    transition-delay: 120ms;
+}
+
+/* Active filters glow; Reset fades back when there is nothing to reset. */
+.stats-controls label > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 160ms ease;
+}
+
+.stats-controls label > span::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    margin-right: -12px;
+    border-radius: 50%;
+    background: var(--cyan);
+    opacity: 0;
+    scale: 0;
+    transition: opacity 160ms ease, scale 220ms cubic-bezier(0.34, 1.4, 0.64, 1), margin-right 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.stats-controls label[data-filter-active] > span { color: var(--cyan); }
+.stats-controls label[data-filter-active] > span::before { margin-right: 0; opacity: 1; scale: 1; }
+
+.stats-controls label[data-filter-active] > select {
+    border-color: rgba(107, 206, 192, 0.7);
+    background-color: var(--cyan-soft);
+}
+
+#statsReset { transition: opacity 180ms ease, border-color 140ms ease, background-color 140ms ease; }
+#statsReset[data-idle] { opacity: 0.45; }
+#statsReset[data-idle]:is(:hover, :focus-visible) { opacity: 1; }
+
+/* One indicator glides between the views. */
+.stats-tabs { position: relative; }
+
+.stats-tabs[data-indicator] > .stats-tab.active::after,
+.stats-tabs[data-indicator] .stats-diagnostics-toggle::before { display: none; }
+
+.stats-tabs[data-indicator]::after {
+    content: "";
+    position: absolute;
+    top: 40px;
+    left: 0;
+    width: var(--stats-tab-w, 0);
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--cyan);
+    transform: translateX(var(--stats-tab-x, 0));
+    transition: transform 280ms cubic-bezier(0.2, 0, 0, 1), width 280ms cubic-bezier(0.2, 0, 0, 1);
+    pointer-events: none;
+}
+
+.stats-diagnostic-tabs .stats-tab {
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+/* KPIs: the comparison reads as a tinted chip. */
+.traffic-metric > em {
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--chip);
+}
+
+.traffic-metric > em[data-trend="up"] { color: var(--green); background: rgba(103, 211, 147, 0.12); }
+.traffic-metric > em[data-trend="down"] { color: var(--red); background: rgba(255, 107, 107, 0.12); }
+
+/* A figure that just moved flashes its direction while it counts. */
+[data-morph-trend="up"] { animation: stats-tint-up 900ms ease; }
+[data-morph-trend="down"] { animation: stats-tint-down 900ms ease; }
+
+@keyframes stats-tint-up { 20%, 45% { color: var(--green); } }
+@keyframes stats-tint-down { 20%, 45% { color: var(--red); } }
+
+/* Chart: the picked day stands out, the rest step back. */
+.traffic-session-bar {
+    opacity: 0.8;
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transition: opacity 160ms ease;
+}
+
+.traffic-chart svg:has(.is-selected) .traffic-session-bar:not(.is-selected) { opacity: 0.42; }
+.traffic-chart svg:has(.is-selected):hover .traffic-session-bar:not(.is-selected) { opacity: 0.6; }
+.traffic-chart-detail { font-weight: 700; }
+
+/* Outcomes fill their card instead of leaving a gap under the last row. */
+.traffic-outcome { flex: 1 1 auto; }
+.traffic-outcome strong { transition: color 160ms ease; }
+
+/* Ranked rows: a thicker meter that brightens with the row under the pointer. */
+.traffic-meter { height: 8px; border-radius: 4px; }
+.traffic-meter > i { border-radius: 4px; transform-origin: 0 50%; transition: opacity 140ms ease; }
+.traffic-ranked-row { transition: background-color 140ms ease; }
+.traffic-ranked-row:first-child .traffic-meter > i { opacity: 1; }
+
+@media (hover: hover) {
+    .traffic-ranked-row:hover { background: var(--row-hover); }
+    .traffic-ranked-row:hover .traffic-meter > i { opacity: 1; }
+    .traffic-outcome:hover strong { color: var(--cyan); }
+}
+
+/* Disclosures open with their height. */
+@supports (interpolate-size: allow-keywords) {
+    .stats-page { interpolate-size: allow-keywords; }
+
+    .stats-page :is(.traffic-disclosure, .traffic-more, .stats-diagnostics, .ai-definitions)::details-content {
+        block-size: 0;
+        overflow: clip;
+        opacity: 0;
+        transition:
+            block-size 260ms cubic-bezier(0.2, 0, 0, 1),
+            opacity 200ms ease,
+            content-visibility 260ms allow-discrete;
+    }
+
+    .stats-page :is(.traffic-disclosure, .traffic-more, .stats-diagnostics, .ai-definitions)[open]::details-content {
+        block-size: auto;
+        opacity: 1;
+    }
+}
+
+.traffic-disclosure > summary::after,
+.stats-diagnostics-toggle::after { transition: transform 220ms cubic-bezier(0.2, 0, 0, 1); }
+
+/* Overview <-> Diagnostics: the header and switcher stay, the page slides. */
+.stats-header { view-transition-name: stats-header; }
+.stats-tabs { view-transition-name: stats-tabs; }
+
+::view-transition-group(stats-header),
+::view-transition-group(stats-tabs) { animation-duration: 280ms; animation-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+
+html[data-stats-travel]::view-transition-old(root) { animation: 180ms cubic-bezier(0.4, 0, 1, 1) both stats-travel-out; }
+html[data-stats-travel]::view-transition-new(root) { animation: 280ms cubic-bezier(0, 0, 0.2, 1) both stats-travel-in; }
+html[data-stats-travel="back"]::view-transition-old(root) { animation-name: stats-travel-out-back; }
+html[data-stats-travel="back"]::view-transition-new(root) { animation-name: stats-travel-in-back; }
+
+@keyframes stats-travel-out { to { opacity: 0; transform: translateX(-28px); } }
+@keyframes stats-travel-in { from { opacity: 0; transform: translateX(28px); } }
+@keyframes stats-travel-out-back { to { opacity: 0; transform: translateX(28px); } }
+@keyframes stats-travel-in-back { from { opacity: 0; transform: translateX(-28px); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .stats-page[aria-busy="true"] .stats-header::after { animation: none; background-position: 50% 0; }
+    [data-morph-trend] { animation: none; }
+    .stats-tabs[data-indicator]::after { transition: none; }
+    .stats-page :is(.traffic-disclosure, .traffic-more, .stats-diagnostics, .ai-definitions)::details-content { transition: none; }
+    .stats-header,
+    .stats-header h1,
+    .stats-kicker { transition: none; }
+}
+
+/* Right-aligned figures roll from their right edge, tinted by direction. */
+.traffic-outcome strong[data-lwc-count]::after {
+    inset: 0 0 auto auto;
+    text-align: right;
+}
+
+[data-morph-trend="up"][data-lwc-count]::after { animation: stats-tint-up 900ms ease; }
+[data-morph-trend="down"][data-lwc-count]::after { animation: stats-tint-down 900ms ease; }
+
+/* The condensed bar masks the strip above it so cards never peek over its top edge. */
+@media (min-width: 901px) {
+    .stats-header[data-condensed]::before {
+        content: "";
+        position: absolute;
+        left: -2px;
+        right: -2px;
+        bottom: 100%;
+        height: 12px;
+        background: var(--bg);
+        pointer-events: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-morph-trend][data-lwc-count]::after { animation: none; }
 }
