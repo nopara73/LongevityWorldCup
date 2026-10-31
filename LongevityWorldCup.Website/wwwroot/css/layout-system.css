@@ -1,0 +1,270 @@
+/* ==========================================================================
+   Layout system
+   One column for the whole site. The header, every page and the footer sit
+   on the same two rails, with the same fluid gutter and the same safe-area
+   handling. Pages choose a width tier rather than a pixel value, and lay
+   their content out with a few shared grid templates.
+
+   Breakpoints (CSS cannot read custom properties in media queries, so these
+   are the names every new rule should use):
+     xs          max-width: 359px                 small phones
+     phone       max-width: 599px                 portrait phones
+     phone-land  max-height: 500px and orientation: landscape
+                 and max-width: 959px             short landscape phones
+     tablet      600px – 1023px                   tablets, split screen
+     laptop      1024px – 1599px                  laptops and desktops
+     wide        min-width: 1600px                large desktop
+   Grids prefer container-driven sizing (auto-fill + minmax) over breakpoints.
+   ========================================================================== */
+
+:root {
+    /* Width tiers. `page` is the rail-to-rail column the header uses. */
+    --lwc-container-page: 72rem;      /* 1152px */
+    --lwc-container-list: 54rem;      /* feeds, timelines, dense lists */
+    --lwc-container-task: 47.5rem;    /* single-task flows and hubs */
+    --lwc-container-form: 36rem;      /* one form column */
+
+    /* Fluid gutter: 16px on phones, ~28px on tablets, 32px on desktops. */
+    --lwc-gutter: clamp(1rem, 0.35rem + 2.6vw, 2rem);
+    --lwc-gutter-start: max(var(--lwc-gutter), env(safe-area-inset-left, 0px));
+    --lwc-gutter-end: max(var(--lwc-gutter), env(safe-area-inset-right, 0px));
+
+    /* Page block rhythm: where content starts under the header and ends
+       above the footer. */
+    --lwc-page-top: clamp(1rem, 0.4rem + 2.2vw, 2.25rem);
+    --lwc-page-bottom: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+    --lwc-page-bottom-safe: calc(var(--lwc-page-bottom) + env(safe-area-inset-bottom, 0px));
+
+    /* Grid rhythm. */
+    --lwc-grid-gap: clamp(0.75rem, 0.45rem + 1.1vw, 1.5rem);
+    --lwc-grid-gap-lg: clamp(1.25rem, 0.6rem + 2.2vw, 2.75rem);
+    --lwc-card-min: 17.5rem;
+    --lwc-tile-min: 10rem;
+    --lwc-aside: clamp(12rem, 9rem + 6vw, 15rem);
+
+    /* Reflow motion (layout-system.ts reads these). */
+    --lwc-reflow-duration: 260ms;
+    --lwc-reflow-ease: cubic-bezier(0.2, 0, 0, 1);
+
+}
+
+/* The header and footer column follows the page column. site-header.css
+   loads later, so these overrides carry one extra type selector. */
+html:root {
+    --chrome-column: var(--lwc-container-page);
+    --chrome-gutter: max(var(--lwc-gutter), calc((100% - var(--chrome-column)) / 2));
+}
+
+/* Large desktop: the column opens up instead of leaving a narrow strip. */
+@media (min-width: 1600px) {
+    :root {
+        --lwc-container-page: 80rem;  /* 1280px */
+        --lwc-container-list: 58rem;
+        --lwc-card-min: 19rem;
+    }
+}
+
+/* Short landscape phones: keep the column, tighten the vertical rhythm. */
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 959px) {
+    :root {
+        --lwc-page-top: 0.75rem;
+        --lwc-page-bottom: 2rem;
+        --lwc-gutter: 1.25rem;
+    }
+}
+
+/* No sideways jump when a page grows past one screen, or when a dialog
+   locks scrolling. */
+html {
+    scrollbar-gutter: stable;
+}
+
+/* ===== Containers ======================================================== */
+
+/* Every page's main column: the header's rails, the fluid gutter and the
+   notch. Pages with their own width keep it (class selectors win);
+   `html body` outranks the bare `main` rules in site-header.css. */
+html body main,
+.lwc-container {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: calc(var(--lwc-container, var(--lwc-container-page)) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+    margin-inline: auto;
+    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
+}
+
+html body main {
+    margin-block: var(--lwc-page-top) var(--lwc-page-bottom-safe);
+}
+
+.lwc-container--list { --lwc-container: var(--lwc-container-list); }
+.lwc-container--task { --lwc-container: var(--lwc-container-task); }
+.lwc-container--form { --lwc-container: var(--lwc-container-form); }
+
+/* Full-bleed band inside a container (cover bands, galleries on phones). */
+.lwc-bleed {
+    margin-inline: calc(-1 * var(--lwc-gutter-start)) calc(-1 * var(--lwc-gutter-end));
+}
+
+/* ===== Grid templates ===================================================== */
+
+/* Cards: as many equal columns as fit, never narrower than --lwc-card-min. */
+.lwc-grid,
+.lwc-grid--cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--lwc-card-min)), 1fr));
+    gap: var(--lwc-grid-gap);
+    align-items: start;
+}
+
+/* Tiles: smaller, denser cards (thumbnails, badges, assets). */
+.lwc-grid--tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--lwc-tile-min)), 1fr));
+    gap: var(--lwc-grid-gap);
+}
+
+/* Split row: a narrow rail beside the main column; stacks under 900px. */
+.lwc-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--lwc-grid-gap-lg);
+    align-items: start;
+}
+
+@media (min-width: 901px) {
+    .lwc-split {
+        grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
+    }
+
+    .lwc-split--end {
+        grid-template-columns: minmax(0, 1fr) var(--lwc-aside);
+    }
+}
+
+/* Dense list: lead (rank, date, icon) · body · trailing value. */
+.lwc-list {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: var(--lwc-grid-gap);
+    row-gap: 0;
+}
+
+.lwc-list > * {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+}
+
+/* ===== Page adoption ======================================================
+   Pages arrive on the shared rails through their existing containers, so
+   their own markup and inline styles stay untouched. */
+
+/* Home and the full leaderboard: the board spans the rails. */
+html body main.homepage-main {
+    max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
+}
+
+/* Long-form documents (About, History, Ruleset, Privacy): the contents rail
+   starts on the left rail, the document card runs to the right rail, and
+   the prose keeps its reading measure while pictures, tables and the
+   closing tiles use the card's full width. */
+.documentation-page {
+    grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
+    gap: var(--lwc-grid-gap-lg);
+    justify-content: stretch;
+    max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+    margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
+}
+
+@media (min-width: 901px) {
+    .documentation-page .documentation-document {
+        --lwc-doc-measure: 46rem;
+    }
+
+    .documentation-page .documentation-document > :where(p, ul, ol, h2, h3, h4, blockquote, dl, details):not(:has(img, picture, video, table)),
+    .documentation-page .documentation-cover > :where(p, h1):not(:has(img, picture)) {
+        max-width: var(--lwc-doc-measure);
+    }
+}
+
+@media (max-width: 900px) {
+    .documentation-page {
+        margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+        padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
+    }
+}
+
+@media (max-width: 600px) {
+    .documentation-page {
+        padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
+    }
+}
+
+/* Media kit: the sheet spans the rails, so the featured pictures and the
+   folders get another column on laptops and wide screens. */
+.media-kit-main,
+main.media-kit-main {
+    width: 100%;
+    max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+    margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
+}
+
+.media-kit-featured {
+    --media-kit-tile: var(--lwc-card-min);
+}
+
+@media (max-width: 560px) {
+    main.media-kit-main {
+        margin: 0 0 var(--lwc-page-bottom-safe);
+        padding-inline: 0;
+    }
+}
+
+/* Highlights feed: one list-width column, gutters from the system. */
+main.event-board-page {
+    --feed-width: min(100%, var(--lwc-container-list));
+    max-width: none;
+}
+
+/* Longevitymaxxing: its shell sits on the same rails as everything else. */
+main.lmx-page {
+    max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
+}
+
+/* Play hub and task flows: one task column. */
+main.play-hub-main {
+    --lwc-container: var(--lwc-container-task);
+}
+
+/* Landing sheets (Rejuvenation Olympics, legal pages, unsubscribe). */
+main:has(> .landing-sheet:only-child) {
+    --lwc-container: var(--lwc-container-list);
+}
+
+/* Footer: the same rails and the home indicator. */
+footer {
+    padding-bottom: max(var(--lwc-space-5, 1.5rem), env(safe-area-inset-bottom, 0px));
+}
+
+/* ===== Reflow motion ======================================================
+   layout-system.ts glides grid items to their new cells when a grid changes
+   column count or its items are filtered, and fades new items in. These
+   rules only describe the arriving state. */
+@media (prefers-reduced-motion: no-preference) {
+    [data-lwc-reflow-enter] {
+        animation: lwc-reflow-enter var(--lwc-reflow-duration) var(--lwc-reflow-ease) both;
+    }
+}
+
+@keyframes lwc-reflow-enter {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+    }
+}
