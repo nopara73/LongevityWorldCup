@@ -141,7 +141,7 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
         Assert.InRange(Math.Abs(idle[0] - idle[2]), 0, 1);
         // Tablets and desktops head the player card with a wide portrait; phones keep the square.
         var wideCard = width >= 761 && height >= 600;
-        if (wideCard) Assert.InRange(idle[2] / idle[3], 1.55, 1.65);
+        if (wideCard) Assert.InRange(idle[3], 319, 321);
         else Assert.InRange(Math.Abs(idle[2] - idle[3]), 0, 1);
         var captionBelow = wideCard && fontSize == 32;
         Assert.True(idle[4] > 0 && Math.Abs(idle[9]) <= 1, $"{width}px: the title should caption the player card.");
@@ -152,8 +152,16 @@ public sealed class PlayAthleteSelectionCardBrowserTests(
         await Assertions.Expect(page.Locator(".athlete-search-open")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator(".autocomplete-items [role=option]").First).ToBeVisibleAsync();
         var searching = await page.EvaluateAsync<double[]>(measure);
-        Assert.True(searching[0] < idle[0] * 0.6, $"{width}px: the card should step aside while matches are open.");
-        Assert.InRange(Math.Abs(searching[2] - searching[3]), 0, 1);
+        if (wideCard)
+        {
+            Assert.InRange(Math.Abs(searching[0] - idle[0]), 0, 1);
+            Assert.InRange(searching[3], 147, 149);
+        }
+        else
+        {
+            Assert.True(searching[0] < idle[0] * 0.6, $"{width}px: the card should step aside while matches are open.");
+            Assert.InRange(Math.Abs(searching[2] - searching[3]), 0, 1);
+        }
         Assert.True(searching[6] < searching[2] / 4, $"{width}px: the card keeps its rounded-square shape instead of becoming a circle.");
         Assert.Equal(0, searching[7]);
         await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Athlete selection", Exact = true })).ToHaveCountAsync(1);
