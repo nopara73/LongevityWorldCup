@@ -7159,3 +7159,168 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
         transform: translateY(-4px);
     }
 }
+
+/* =========================
+   Access card motion: sign up and sign in as one card that moves.
+   - One accent underline glides between Sign up and Sign in.
+   - The card morphs its height and the new panel slides in from the side of
+     its tab (longevitymaxxing.ts wireAccessTabs).
+   - The sign-up rail fills downward as steps are answered; each check stamps.
+   - Check your email: a paper plane crosses the card head and lands in a
+     round tile; a sent sign-in link answers with the same plane.
+   ========================= */
+.lmx-access-tabs {
+    position: relative;
+    isolation: isolate;
+}
+
+.lmx-page .lmx-access-tabs.lmx-tabs .lmx-tab[aria-selected="true"],
+.lmx-access-tabs .lmx-tab[aria-selected="true"] {
+    box-shadow: none;
+    background: transparent;
+}
+
+.lmx-access-tabs::after {
+    --lmx-tabs-pad: var(--lwc-space-2, 0.5rem);
+    content: '';
+    position: absolute;
+    left: var(--lmx-tabs-pad);
+    bottom: 0;
+    width: calc((100% - 2 * var(--lmx-tabs-pad)) / 2);
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: var(--lmx-accent);
+    transform: translateX(0);
+    transition: transform 280ms var(--lwc-ease-standard, ease);
+    pointer-events: none;
+}
+
+.lmx-access-tabs:has(#lmxSigninTab[aria-selected="true"])::after {
+    transform: translateX(100%);
+}
+
+.lmx-access-tabs:not(:has(.lmx-tab[aria-selected="true"]))::after {
+    opacity: 0;
+}
+
+.lmx-access-tabs .lmx-tab i {
+    transition: transform 220ms var(--lwc-ease-pop, ease-out);
+}
+
+.lmx-access-tabs .lmx-tab[aria-selected="true"] i {
+    transform: scale(1.12);
+}
+
+/* Rail: the accent fills each segment from the top instead of switching colour. */
+#lmxSignupForm > :is(.lmx-field, .lmx-identity-field)::after {
+    background:
+        linear-gradient(var(--lmx-accent), var(--lmx-accent)) top / 100% 0% no-repeat,
+        var(--lmx-border);
+    transition: background-size 360ms var(--lwc-ease-standard, ease);
+}
+
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail[data-complete="true"]:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName[data-complete="true"]:enabled:valid)::after,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))::after,
+#lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::after {
+    background:
+        linear-gradient(var(--lmx-accent), var(--lmx-accent)) top / 100% 100% no-repeat,
+        var(--lmx-border);
+}
+
+#lmxSignupForm > .lmx-field:has(#lmxSignupEmail[data-complete="true"]:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupName[data-complete="true"]:enabled:valid)::before,
+#lmxSignupForm > .lmx-identity-field:has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))::before,
+#lmxSignupForm > .lmx-field:has(#lmxSignupTimeZone:valid)::before,
+#lmxSignupForm:has(#lmxSignupEmail[data-complete="true"]:valid):has(#lmxSignupTimeZone:valid):is(:has(#lmxSignupName[data-complete="true"]:enabled:valid), :has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))) > button[type="submit"]::before {
+    animation: lmx-step-stamp 340ms var(--lwc-ease-pop, ease-out);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--lmx-accent) 18%, transparent);
+}
+
+/* The last step glows while the form is ready to send. */
+#lmxSignupForm:has(#lmxSignupEmail[data-complete="true"]:valid):has(#lmxSignupTimeZone:valid):is(:has(#lmxSignupName[data-complete="true"]:enabled:valid), :has(#lmxSignupAthleteField:not(.lmx-hidden) #lmxSignupAthleteSelected:not(.lmx-hidden))) > button[type="submit"] {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--lmx-accent) 16%, transparent), var(--lwc-shadow-sm);
+    transition: box-shadow 260ms var(--lwc-ease-standard, ease);
+}
+
+/* Check your email. */
+#lmxSignupDonePanel:not(.lmx-hidden) .lmx-card-head {
+    position: relative;
+    padding-top: 4.6rem;
+}
+
+#lmxSignupDonePanel:not(.lmx-hidden) .lmx-card-head::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3.6rem;
+    height: 3.6rem;
+    border-radius: 50%;
+    background: var(--lmx-accent-soft, var(--lwc-accent-soft));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lmx-accent) 30%, transparent);
+    animation: lmx-mail-tile 520ms var(--lwc-ease-pop, ease-out) 380ms both;
+}
+
+#lmxSignupDonePanel:not(.lmx-hidden) .lmx-card-head::after {
+    content: '\f1d8';
+    position: absolute;
+    top: 0.95rem;
+    left: 0.98rem;
+    color: var(--lmx-accent);
+    font-family: "Font Awesome 6 Free";
+    font-size: 1.55rem;
+    font-weight: 900;
+    line-height: 1;
+    animation: lmx-mail-flight 900ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+
+#lmxResendStatus.success {
+    position: relative;
+    padding-left: 1.7rem;
+}
+
+#lmxResendStatus.success::before {
+    content: '\f1d8';
+    position: absolute;
+    left: 0.2rem;
+    top: 0.1rem;
+    color: var(--lmx-accent);
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    animation: lmx-mail-hop 640ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+
+@keyframes lmx-step-stamp {
+    0% { transform: scale(0.6); }
+    55% { transform: scale(1.22); }
+    100% { transform: none; }
+}
+
+@keyframes lmx-mail-tile {
+    from { opacity: 0; transform: scale(0.4); }
+}
+
+@keyframes lmx-mail-flight {
+    0% { opacity: 0; transform: translate(14rem, 2.2rem) rotate(18deg) scale(0.7); }
+    20% { opacity: 1; }
+    60% { transform: translate(3rem, -1.2rem) rotate(-8deg) scale(1.1); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes lmx-mail-hop {
+    0% { opacity: 0; transform: translate(-0.8rem, 0.6rem) rotate(20deg); }
+    60% { opacity: 1; transform: translate(0.3rem, -0.4rem) rotate(-10deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lmx-access-tabs::after,
+    .lmx-access-tabs .lmx-tab i,
+    #lmxSignupForm > :is(.lmx-field, .lmx-identity-field)::after { transition: none; }
+
+    #lmxSignupForm > :is(.lmx-field, .lmx-identity-field, button[type="submit"])::before,
+    #lmxSignupDonePanel .lmx-card-head::before,
+    #lmxSignupDonePanel .lmx-card-head::after,
+    #lmxResendStatus.success::before { animation: none; }
+}

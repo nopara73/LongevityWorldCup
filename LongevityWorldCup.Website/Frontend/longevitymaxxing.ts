@@ -1636,13 +1636,33 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireAccessTabs() {
         document.querySelectorAll<HTMLButtonElement>("[data-lmx-access-tab]").forEach(button => {
             button.addEventListener("click", () => {
-                accessTab = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
+                const next = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
+                const card = button.closest<HTMLElement>(".lmx-action-card");
+                const before = next !== accessTab && card ? card.getBoundingClientRect().height : 0;
+                accessTab = next;
                 renderPanels(publicState || {});
+                morphAccessCard(card, before, next);
             });
             button.addEventListener("keydown", event => {
                 handleAccessTabKeydown(event, button);
             });
         });
+    }
+
+    // Switching between Sign up and Sign in: the card glides to its new height
+    // and the incoming panel slides in from the side of its tab.
+    function morphAccessCard(card: HTMLElement | null, before: number, tab: "signin" | "signup"): void {
+        if (!card || !before || typeof card.animate !== "function"
+            || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        const after = card.getBoundingClientRect().height;
+        if (Math.abs(after - before) > 1) {
+            card.animate([{ height: `${before}px`, overflow: "hidden" }, { height: `${after}px`, overflow: "hidden" }],
+                { duration: 280, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+        }
+        const panel = document.getElementById(tab === "signin" ? "lmxResendPanel" : "lmxSignupPanel");
+        const from = tab === "signin" ? 18 : -18;
+        panel?.animate([{ opacity: 0, transform: `translateX(${from}px)` }, { opacity: 1, transform: "none" }],
+            { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" });
     }
 
     function wireIdentityControls() {
