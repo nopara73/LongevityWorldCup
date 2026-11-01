@@ -478,8 +478,8 @@ public sealed class PlayFlowMotionBrowserTests(
             ViewportSize = new() { Width = width, Height = height },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
-        // Filesystem/API order does not select a fixed discount breakdown. A
-        // second discount legitimately makes the short desktop card need its dock.
+        // Keep the discount breakdown independent of filesystem/API order.
+        // The shorter desktop stage leaves both variants' commands inline.
         const string athleteName = "Motion Test Athlete";
         await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
         {
@@ -539,11 +539,8 @@ public sealed class PlayFlowMotionBrowserTests(
         if (width >= 1280)
         {
             var docked = await page.EvaluateAsync<bool>("() => document.getElementById('athleteDashboardActions').classList.contains('flow-action-stack--docked')");
-            if (personalLink)
-                Assert.True(docked, "The additional discount should keep the taller card's commands in the viewport dock.");
-            else
-                // The deal must not trick the dock into treating the card's commands as off-screen.
-                Assert.False(docked, $"{width}x{height}: the dashboard's commands should stay in the card after it lands.");
+            // The deal must not trick the dock into treating the card's commands as off-screen.
+            Assert.False(docked, $"{width}x{height}: the dashboard's commands should stay in the card after it lands.");
         }
         Assert.True(await page.Locator("#athleteDashboardActions .flow-action").EvaluateAllAsync<bool>("""
             actions => actions.every(action => {

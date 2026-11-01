@@ -3258,9 +3258,15 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 0 6px rgba(0, 188, 212, 0.18);
     }
 
-    @media (max-height: 740px) {
-        .play-athlete-panel:not([hidden]) .play-athlete-card,
+    @media (max-height: 820px) {
+        /* Leave room for three perks and inline commands on shorter desktops. */
         .play-dashboard-panel:not([hidden]) .play-dashboard-card {
+            --stage-h: clamp(220px, calc(100dvh - 580px), 240px);
+        }
+    }
+
+    @media (max-height: 740px) {
+        .play-athlete-panel:not([hidden]) .play-athlete-card {
             --stage-h: clamp(220px, 34dvh, 280px);
         }
 

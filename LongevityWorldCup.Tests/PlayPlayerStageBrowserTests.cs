@@ -114,6 +114,27 @@ public sealed class PlayPlayerStageBrowserTests(
     }
 
     [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(1440, 900)]
+    public async Task ThreePerks_KeepDesktopCommandsInline(int width, int height)
+    {
+        await using var context = await ContextAsync();
+        await context.AddInitScriptAsync(SavedAthlete + """
+            athlete.PersonalLink='https://example.test/stage-test-athlete';
+            sessionStorage.setItem('selectedAthlete',JSON.stringify(athlete));
+            localStorage.setItem('gmaHasPerfectGuess','1');
+            """);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(width, height);
+        await ReadyAsync(page, "/dashboard");
+        await WaitForFiniteAnimationsAsync(page);
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+        await Assertions.Expect(page.Locator(".play-dashboard-discounts .pro-discount-line")).ToHaveCountAsync(3);
+        Assert.True(await page.Locator("#athleteDashboardActions").EvaluateAsync<bool>("e => !e.classList.contains('flow-action-stack--docked') && e.getBoundingClientRect().bottom <= innerHeight"));
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
     [InlineData(1366, 640)]
     [InlineData(1280, 600)]
     public async Task ShortProStage_KeepsFittingActionsInline(int width, int height)
