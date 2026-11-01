@@ -179,6 +179,7 @@ let loadingDialogPreviousFocus = null;
 let loadingDialogOwnsScrollLock = false;
 
 function closeCustomAlert() {
+    window.LwcCelebrate?.skip();
     if (customAlertDialog.hidden) {
         return;
     }
@@ -312,6 +313,7 @@ function customAlert(message, options) {
 
 function showNextCustomAlert() {
     if (customAlertActive || !customAlertQueue.length) return;
+    window.LwcCelebrate?.skip();
     const entry = customAlertQueue.shift();
     customAlertActive = entry;
     const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -330,6 +332,7 @@ function showNextCustomAlert() {
     customAlertDialog.hidden = false;
     customAlertOwnsScrollLock ||= !document.body.classList.contains('no-scroll');
     document.body.classList.add('no-scroll');
+    if (tone === 'success') celebrateCustomAlert(options && options.celebrate);
     requestAnimationFrame(() => {
         updateCustomAlertMessageFocus();
         if (customAlertActive === entry && !customAlertDialog.hidden
@@ -337,6 +340,22 @@ function showNextCustomAlert() {
                 || customAlertDialog.contains(document.activeElement))) {
             customAlertCloseButton.focus({ preventScroll: true });
         }
+    });
+}
+
+// A received submission is a milestone: the medallion rises by default and a
+// caller marking a bigger moment asks for a burst. Short phone sheets hide the
+// medallion, so the panel takes the glow instead.
+function celebrateCustomAlert(level) {
+    const celebrate = window.LwcCelebrate;
+    if (!celebrate) return;
+    const mark = customAlertDialog.querySelector('.custom-alert-mark');
+    const panel = customAlertDialog.querySelector('.custom-alert-panel');
+    const visibleMark = mark && mark.getClientRects().length ? mark : null;
+    celebrate.play(visibleMark || panel, {
+        level: visibleMark ? (level === 'burst' ? 'burst' : level === 'glow' ? 'glow' : 'rise') : 'glow',
+        tone: 'success',
+        delay: 450
     });
 }
 

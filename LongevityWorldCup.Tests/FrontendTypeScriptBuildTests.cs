@@ -14,6 +14,7 @@ public sealed class FrontendTypeScriptBuildTests
         "athlete-story",
         "bioage-flow",
         "charts",
+        "celebration",
         "custom-event-markup",
         "empty-state",
         "field-validation",
