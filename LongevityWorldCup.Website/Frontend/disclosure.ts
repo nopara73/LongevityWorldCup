@@ -113,8 +113,9 @@ interface Window {
             if (!to.width || !from.width) return;
             const cs = getComputedStyle(face);
             const ghost = face.cloneNode(false) as HTMLImageElement;
-            // Fly the already visible portrait, rather than waiting for a lazy roster image.
-            const source = (opening ? seat : face) as HTMLImageElement;
+            // Keep a decoded portrait even when a cold roster is closed mid-flight.
+            const portrait = face as HTMLImageElement;
+            const source = !opening && portrait.naturalWidth ? portrait : seat as HTMLImageElement;
             ghost.src = source.currentSrc || source.src;
             ghost.loading = "eager";
             ghost.decoding = "sync";

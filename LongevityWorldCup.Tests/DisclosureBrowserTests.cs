@@ -42,21 +42,28 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
                         cold.src = '/disclosure-cold.png';
                         image.replaceWith(cold);
                     });
-                    team.querySelector('summary').click();
-                    document.getAnimations().filter(animation => {
-                        const target = animation.effect?.target;
-                        return target instanceof Element && (team.contains(target) || target.matches('.lwc-disclosure-ghost'));
-                    }).forEach(animation => animation.pause());
                 }
                 """);
-            await Assertions.Expect(page.Locator(".lwc-disclosure-ghost")).ToHaveCountAsync(3);
-            await page.WaitForFunctionAsync("""
-                () => {
-                    const images = [...document.querySelectorAll('.lwc-disclosure-ghost')];
-                    return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
-                }
-                """, null, new() { Timeout = 3000 });
-            Assert.True(await team.EvaluateAsync<bool>("d => d.open"));
+            foreach (var open in new[] { true, false })
+            {
+                await team.EvaluateAsync("""
+                    team => {
+                        team.querySelector('summary').click();
+                        document.getAnimations().filter(animation => {
+                            const target = animation.effect?.target;
+                            return target instanceof Element && (team.contains(target) || target.matches('.lwc-disclosure-ghost'));
+                        }).forEach(animation => animation.pause());
+                    }
+                    """);
+                await Assertions.Expect(page.Locator(".lwc-disclosure-ghost")).ToHaveCountAsync(3);
+                await page.WaitForFunctionAsync("""
+                    () => {
+                        const images = [...document.querySelectorAll('.lwc-disclosure-ghost')];
+                        return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
+                    }
+                    """, null, new() { Timeout = 3000 });
+                Assert.Equal(open, await team.EvaluateAsync<bool>("d => d.open"));
+            }
         }
         finally
         {
