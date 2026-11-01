@@ -991,6 +991,7 @@
             const applicantName = submissionContext.applicantName || null;
             const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);
             const submissionId = submissionContext.submissionId;
+            setSessionItem('reviewSubmission', JSON.stringify({ kind: 'result', id: submissionId }));
 
             if (reviewContactEmail) {
                 if (applicantName) rememberAthleteContactEmail(applicantName, reviewContactEmail);

@@ -179,6 +179,7 @@ let loadingDialogPreviousFocus = null;
 let loadingDialogOwnsScrollLock = false;
 
 function closeCustomAlert() {
+    window.LwcCelebrate?.skip();
     if (customAlertDialog.hidden) {
         return;
     }
@@ -330,7 +331,7 @@ function showNextCustomAlert() {
     customAlertDialog.hidden = false;
     customAlertOwnsScrollLock ||= !document.body.classList.contains('no-scroll');
     document.body.classList.add('no-scroll');
-    if (tone === 'success') celebrateCustomAlert(entry, options && options.celebrate);
+    if (tone === 'success') celebrateCustomAlert(options && options.celebrate);
     requestAnimationFrame(() => {
         updateCustomAlertMessageFocus();
         if (customAlertActive === entry && !customAlertDialog.hidden
@@ -344,20 +345,17 @@ function showNextCustomAlert() {
 // A received submission is a milestone: the medallion rises by default and a
 // caller marking a bigger moment asks for a burst. Short phone sheets hide the
 // medallion, so the panel takes the glow instead.
-function celebrateCustomAlert(entry, level) {
+function celebrateCustomAlert(level) {
     const celebrate = window.LwcCelebrate;
     if (!celebrate) return;
     const mark = customAlertDialog.querySelector('.custom-alert-mark');
     const panel = customAlertDialog.querySelector('.custom-alert-panel');
-    // The panel's own entrance runs first so the moment lands on a settled dialog.
-    setTimeout(() => {
-        if (customAlertActive !== entry || customAlertDialog.hidden) return;
-        const visibleMark = mark && mark.getClientRects().length ? mark : null;
-        celebrate.play(visibleMark || panel, {
-            level: visibleMark ? (level === 'burst' ? 'burst' : level === 'glow' ? 'glow' : 'rise') : 'glow',
-            tone: 'success'
-        });
-    }, 300);
+    const visibleMark = mark && mark.getClientRects().length ? mark : null;
+    celebrate.play(visibleMark || panel, {
+        level: visibleMark ? (level === 'burst' ? 'burst' : level === 'glow' ? 'glow' : 'rise') : 'glow',
+        tone: 'success',
+        delay: 450
+    });
 }
 
 function updateCustomAlertMessageFocus() {

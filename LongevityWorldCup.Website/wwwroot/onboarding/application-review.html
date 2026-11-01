@@ -687,13 +687,13 @@
             item.hidden = false;
             item.classList.remove('is-done', 'is-current', 'is-waiting', 'is-failed');
             if (state) item.classList.add(state);
-            return item;
             // A step that was waiting and just finished crosses its line once. The
             // attributes stay: removing them would replay the page's entrance motion.
             if (crossed) {
                 item.dataset.applyCrossed = 'true';
                 document.querySelector('.application-review-panel')?.setAttribute('data-apply-crossing', 'true');
             }
+            return item;
         }
 
         function initializeReviewTrail() {
@@ -745,8 +745,11 @@
         // lands on it once per submission.
         function celebrateReviewArrival() {
             const kind = document.querySelector('.application-review-panel').dataset.reviewKind;
+            let receipt = null;
+            try { receipt = JSON.parse(getSessionItem('reviewSubmission') || 'null'); } catch (_) {}
             const id = normalizeOptionalString(pendingPaymentInvoice && (pendingPaymentInvoice.submissionId || pendingPaymentInvoice.invoiceId))
-                || new Date().toISOString().slice(0, 10);
+                || (receipt?.kind === kind ? normalizeOptionalString(receipt.id) : null);
+            if (!id) return;
             window.LwcCelebrate?.play(document.querySelector('.application-review-seal'), {
                 level: 'burst',
                 tone: 'success',
