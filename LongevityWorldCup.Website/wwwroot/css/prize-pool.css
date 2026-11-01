@@ -14,6 +14,10 @@ html body main.homepage-main #contribute {
     --pool-qr: 128px;
 }
 
+html body main.homepage-main #contribute .contribute-content {
+    container: prize-panel / inline-size;
+}
+
 /* ---------- Panel ---------- */
 
 /* Phones inset the card's copy by 15px; the meter and ticket follow it. */
@@ -24,6 +28,7 @@ html body main.homepage-main #contribute {
 }
 
 html body main.homepage-main #contribute .contribute-panel {
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
         "status"
         "ticket";
@@ -36,7 +41,7 @@ html body main.homepage-main #contribute .contribute-panel {
     border-top: 1px solid var(--lwc-border);
 }
 
-@media (min-width: 640px) {
+@container prize-panel (min-width: 32rem) {
     html body main.homepage-main #contribute .contribute-panel {
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas: "status ticket";
@@ -63,6 +68,7 @@ html body main.homepage-main #contribute .btc-status-goal {
 
 html body main.homepage-main #contribute .btc-status-value {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 0.4rem;
     color: var(--lwc-ink);
@@ -73,11 +79,34 @@ html body main.homepage-main #contribute .btc-status-value {
     font-variant-numeric: tabular-nums;
 }
 
+/* Generated content is decorative; selection and assistive technology retain
+   the confirmed amount throughout the count. */
+html body main.homepage-main #contribute #current-btc.is-pool-counting {
+    position: relative;
+    color: transparent;
+}
+
+html body main.homepage-main #contribute #current-btc.is-pool-counting::after {
+    content: attr(data-pool-count) / "";
+    position: absolute;
+    inset: 0;
+    color: var(--lwc-ink);
+}
+
 html body main.homepage-main #contribute .btc-status-unit {
+    flex: none;
+    white-space: nowrap;
     color: var(--lwc-muted);
     font-size: 0.45em;
     font-weight: 700;
     letter-spacing: 0.06em;
+}
+
+/* Leave the amount room at enlarged text sizes, including native scrollbars. */
+@container prize-panel (max-width: 10rem) {
+    html body main.homepage-main #contribute .btc-status {
+        padding-inline: 8px;
+    }
 }
 
 html body main.homepage-main #contribute .btc-status-meter {
@@ -96,7 +125,8 @@ html body main.homepage-main #contribute .btc-status-track {
 html body main.homepage-main #contribute .btc-status-fill,
 html body main.homepage-main.home-scoreboard-live #contribute .btc-status-fill {
     position: relative;
-    min-width: 0.625rem;
+    min-width: 0;
+    width: 0;
     max-width: 100%;
     overflow: hidden;
     border-radius: inherit;
@@ -150,7 +180,7 @@ html body main.homepage-main #contribute .btc-ticket {
     background: var(--lwc-surface-muted);
 }
 
-@media (min-width: 640px) {
+@container prize-panel (min-width: 32rem) {
     html body main.homepage-main #contribute .btc-ticket {
         width: calc(var(--pool-qr) + 6.5rem);
         border-top: 0;
@@ -176,7 +206,7 @@ html body main.homepage-main #contribute .qr-code-img {
 html body main.homepage-main #contribute .btc-ticket .btc-address {
     grid-area: auto;
     width: 100%;
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     padding: 0 0 0 0.75rem;
     border: 1px solid var(--lwc-border);
     border-radius: var(--lwc-radius-md);
@@ -188,10 +218,10 @@ html body main.homepage-main #contribute .btc-ticket .btc-address {
 html body main.homepage-main #contribute .btc-ticket .copy-btn,
 html body main.homepage-main #contribute .btc-ticket .copy-btn:hover,
 html body main.homepage-main #contribute .btc-ticket .copy-btn:focus {
-    width: 2.5rem;
-    height: 2.5rem;
-    min-width: 2.5rem;
-    flex-basis: 2.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    flex-basis: 2.75rem;
     margin: -1px -1px -1px auto;
     border-radius: var(--lwc-radius-md);
     background: transparent;
@@ -205,8 +235,27 @@ html body main.homepage-main #contribute .btc-ticket .copy-btn:focus-visible {
 
 /* Copied: success tint on the stub, and the copy icon becomes a check. */
 html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied {
+    flex-wrap: wrap;
+    column-gap: 4px;
+    padding-inline-start: min(0.75rem, 12px);
     border-color: var(--lwc-success);
     background: var(--lwc-success-soft);
+}
+
+/* The ticket and copy button already carry the success mark. Keep the short
+   confirmation free of a second pill so it fits alongside the focused control. */
+html body main.homepage-main #contribute #copiedText {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    white-space: normal;
+    word-break: normal;
+}
+
+html body main.homepage-main #contribute #copiedText::before {
+    content: none;
 }
 
 html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied .copy-btn i {
@@ -216,7 +265,7 @@ html body main.homepage-main #contribute .btc-ticket .btc-address.is-copied .cop
 
 /* ---------- Newsletter: the field row is one control ---------- */
 
-@media (min-width: 640px) {
+@container newsletter-section (min-width: 26rem) {
     html body main.homepage-main #newsletter #newsletter-form {
         position: relative;
         isolation: isolate;
@@ -299,4 +348,10 @@ html body main.homepage-main #newsletter #newsletter-form.is-sent .shared-email-
     html body main.homepage-main #newsletter #newsletter-form.is-sent .shared-email-button i {
         animation: none;
     }
+}
+
+html body main.homepage-main #contribute #btcAddressLink:not([href]) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }

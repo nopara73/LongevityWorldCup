@@ -685,7 +685,7 @@ function initializeAthletePortraitMotion() {
             stillContext.drawImage(photo, 0, 0, 320, 320);
             loaded = true;
             root.style.opacity = '1';
-            if (reducedMotion.matches) settle();
+            if (reducedMotion.matches || typeof root.animate !== 'function') settle();
             else {
                 entrance = root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
                 entrance.finished.then(settle, () => {});
