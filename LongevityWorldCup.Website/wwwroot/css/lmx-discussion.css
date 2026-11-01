@@ -1,0 +1,230 @@
+/* Longevitymaxxing discussion as conversation threads.
+   Frontend/lmx-discussion.ts measures the line geometry (--lmx-rail-*,
+   --lmx-elbow-*, --lmx-node-x) and plays arrivals; this file owns the look.
+   Colours come only from the page's --lmx-* tokens. */
+
+.lmx-page #lmxNotesPanel {
+    --lmx-thread: color-mix(in srgb, var(--lmx-border) 55%, var(--lmx-border-strong));
+    --lmx-thread-live: var(--lmx-accent);
+}
+
+/* ------------------------------------------------------------ post rhythm */
+.lmx-page .lmx-note {
+    position: relative;
+    transition: background-color 220ms var(--lwc-ease-standard, ease);
+}
+/* Posts read as separate conversations: more air and a softer divider. */
+.lmx-page .lmx-note + .lmx-note {
+    border-top-color: color-mix(in srgb, var(--lmx-border) 70%, transparent);
+}
+@media (hover: hover) {
+    .lmx-page .lmx-note:hover {
+        background: color-mix(in srgb, var(--lmx-surface-accent) 38%, var(--lmx-surface));
+    }
+}
+
+/* The author's face anchors the thread: a ring that the line grows out of. */
+.lmx-page .lmx-discussion-post-header .lmx-discussion-author-avatar {
+    box-sizing: border-box;
+    border: 2px solid var(--lmx-surface);
+    box-shadow: 0 0 0 2px var(--lmx-thread), 0 6px 14px -10px rgba(0, 0, 0, .55);
+    transition: box-shadow 200ms var(--lwc-ease-standard, ease), scale 220ms var(--lwc-ease-pop, ease);
+}
+.lmx-page .lmx-discussion-reply-meta .lmx-discussion-author-avatar {
+    box-sizing: border-box;
+    border: 2px solid var(--lmx-surface);
+    box-shadow: 0 0 0 1.5px var(--lmx-thread);
+    transition: box-shadow 200ms var(--lwc-ease-standard, ease), scale 220ms var(--lwc-ease-pop, ease);
+}
+@media (hover: hover) {
+    .lmx-page .lmx-note:hover > .lmx-discussion-post-header .lmx-discussion-author-avatar { box-shadow: 0 0 0 2px var(--lmx-thread-live), 0 6px 14px -10px rgba(0, 0, 0, .55); }
+    .lmx-page .lmx-discussion-reply-item:hover > .lmx-discussion-reply-meta .lmx-discussion-author-avatar { box-shadow: 0 0 0 2px var(--lmx-thread-live); scale: 1.06; }
+}
+
+/* Name, then a quiet meta line with the challenge day as a small chip. */
+.lmx-page .lmx-note .lmx-discussion-post-author strong { letter-spacing: -.005em; }
+.lmx-page .lmx-day-chip {
+    display: inline-block;
+    padding: .05rem .5rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lmx-surface-muted);
+    color: var(--lmx-muted);
+    font-size: var(--lwc-type-xs, .75rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+    line-height: 1.5;
+}
+.lmx-page .lmx-discussion-count {
+    display: inline-block;
+    padding: .05rem .5rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lmx-accent-soft);
+    color: var(--lmx-accent-hover);
+    font-size: var(--lwc-type-xs, .75rem);
+    font-weight: 700;
+    line-height: 1.5;
+    text-decoration: none;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+.lmx-page .lmx-discussion-count:hover { background: var(--lmx-accent); color: var(--lmx-on-inverse); }
+
+/* Text keeps a readable measure beside the avatar column. */
+.lmx-page .lmx-note > p,
+.lmx-page .lmx-discussion-reply-item > p { max-width: 68ch; }
+
+/* Quiet actions wait at the edge until the post or reply is in play. */
+@media (hover: hover) {
+    .lmx-page .lmx-note .lmx-discussion-quiet-action {
+        opacity: .38;
+        transition: opacity 160ms var(--lwc-ease-standard, ease), background-color 140ms ease, color 140ms ease, scale 160ms var(--lwc-ease-pop, ease);
+    }
+    .lmx-page .lmx-note > .lmx-discussion-post-header:hover .lmx-discussion-quiet-action,
+    .lmx-page .lmx-note:focus-within > .lmx-discussion-post-header .lmx-discussion-quiet-action,
+    .lmx-page .lmx-discussion-reply-item:hover .lmx-discussion-quiet-action,
+    .lmx-page .lmx-discussion-reply-item:focus-within .lmx-discussion-quiet-action,
+    .lmx-page .lmx-note .lmx-discussion-quiet-action:focus-visible,
+    .lmx-page .lmx-note .lmx-discussion-quiet-action[aria-expanded="true"] { opacity: 1; }
+}
+.lmx-page .lmx-note .lmx-discussion-quiet-action:active { scale: .9; }
+/* A copied link answers with a pop and a ring. */
+.lmx-page .lmx-discussion-copy-link:has(> .fa-check) {
+    opacity: 1;
+    color: var(--lmx-success);
+    animation: lmx-copied 520ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1));
+}
+@keyframes lmx-copied {
+    0% { scale: .8; box-shadow: 0 0 0 0 color-mix(in srgb, var(--lmx-success) 45%, transparent); }
+    55% { scale: 1.12; }
+    100% { scale: 1; box-shadow: 0 0 0 10px transparent; }
+}
+
+/* ------------------------------------------------------------ thread line */
+.lmx-page .lmx-discussion-replies[data-lmx-thread] {
+    position: relative;
+    border-left-color: transparent;
+}
+/* One continuous line from under the author's face to the last reply's curve. */
+.lmx-page .lmx-discussion-replies[data-lmx-thread]::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    left: var(--lmx-rail-x, -1px);
+    top: calc(-1 * var(--lmx-rail-reach, 0px));
+    bottom: var(--lmx-rail-tail, 0px);
+    width: 2px;
+    border-radius: 2px;
+    background: var(--lmx-thread);
+    transition: background-color 220ms var(--lwc-ease-standard, ease);
+    pointer-events: none;
+}
+/* Each reply hooks into the line with its own curve. */
+.lmx-page .lmx-discussion-replies[data-lmx-thread] .lmx-discussion-reply-item { position: relative; }
+.lmx-page .lmx-discussion-replies[data-lmx-thread] .lmx-discussion-reply-item::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    left: var(--lmx-elbow-x, -1.5rem);
+    top: calc(var(--lmx-elbow-y, 1rem) - 14px);
+    width: var(--lmx-elbow-w, 1rem);
+    height: 14px;
+    box-sizing: border-box;
+    border-left: 2px solid var(--lmx-thread);
+    border-bottom: 2px solid var(--lmx-thread);
+    border-bottom-left-radius: 14px;
+    transition: border-color 220ms var(--lwc-ease-standard, ease);
+    pointer-events: none;
+}
+/* The thread in play lights up; the reply under the pointer lights its own curve. */
+@media (hover: hover) {
+    .lmx-page .lmx-note:hover > .lmx-discussion-replies[data-lmx-thread]::before { background: color-mix(in srgb, var(--lmx-thread-live) 55%, var(--lmx-thread)); }
+    .lmx-page .lmx-note:hover > .lmx-discussion-replies[data-lmx-thread] .lmx-discussion-reply-item::before { border-color: color-mix(in srgb, var(--lmx-thread-live) 55%, var(--lmx-thread)); }
+    .lmx-page .lmx-discussion-replies[data-lmx-thread] .lmx-discussion-reply-item:hover::before { border-color: var(--lmx-thread-live); }
+}
+.lmx-page .lmx-discussion-replies[data-lmx-thread] .lmx-discussion-reply-item:focus-within::before { border-color: var(--lmx-thread-live); }
+
+/* "View N earlier replies" sits on the line as a node you can open. */
+.lmx-page .lmx-discussion-replies[data-lmx-thread] > .lmx-discussion-replies-toggle:not(.lmx-discussion-collapse) {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: 0 .75rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    transition: background-color 160ms ease, color 160ms ease;
+}
+.lmx-page .lmx-discussion-replies[data-lmx-thread] > .lmx-discussion-replies-toggle:not(.lmx-discussion-collapse)::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--lmx-node-x, -1rem) - 6px);
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    border: 2px solid var(--lmx-accent);
+    border-radius: 50%;
+    background: var(--lmx-surface);
+    translate: 0 -50%;
+    box-shadow: 0 0 0 3px var(--lmx-surface);
+    transition: background-color 160ms ease, scale 200ms var(--lwc-ease-pop, ease);
+}
+@media (hover: hover) {
+    .lmx-page .lmx-discussion-replies[data-lmx-thread] > .lmx-discussion-replies-toggle:not(.lmx-discussion-collapse):hover {
+        background: var(--lmx-accent-soft);
+        text-decoration: none;
+    }
+    .lmx-page .lmx-discussion-replies[data-lmx-thread] > .lmx-discussion-replies-toggle:not(.lmx-discussion-collapse):hover::before {
+        background: var(--lmx-accent);
+        scale: 1.2;
+    }
+}
+.lmx-page .lmx-discussion-replies[data-lmx-thread] > .lmx-discussion-replies-toggle[aria-busy="true"]::before,
+.lmx-page .lmx-discussion-replies[data-lmx-thread] > .lmx-discussion-replies-toggle:disabled::before {
+    animation: lmx-node-wait 900ms ease-in-out infinite;
+}
+@keyframes lmx-node-wait { 50% { background: var(--lmx-accent); scale: .8; } }
+
+/* ------------------------------------------------------------ arrivals */
+/* New replies draw their curve as they slide in. */
+.lmx-page .lmx-discussion-reply-item.lmx-arriving::before {
+    animation: lmx-elbow-draw 320ms cubic-bezier(.2, 0, 0, 1) both;
+}
+@keyframes lmx-elbow-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* Jumping to a linked post or reply: a soft accent wash that fades. */
+.lmx-page .lmx-note.lmx-discussion-target,
+.lmx-page .lmx-discussion-reply-item.lmx-discussion-target {
+    animation: lmx-target-wash 1800ms cubic-bezier(.2, 0, 0, 1) both;
+    border-radius: var(--lwc-radius-sm, 6px);
+}
+@keyframes lmx-target-wash {
+    0%, 25% { background-color: var(--lmx-accent-soft); box-shadow: 0 0 0 6px var(--lmx-accent-soft); }
+    100% { background-color: transparent; box-shadow: 0 0 0 6px transparent; }
+}
+
+/* The "New posts" pill floats in. */
+.lmx-page .lmx-feed-new:not([hidden]) {
+    animation: lmx-pill-in 300ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)) both;
+}
+@keyframes lmx-pill-in { from { opacity: 0; transform: translateY(-8px) scale(.92); } }
+
+/* ------------------------------------------------------------ phones */
+@media (max-width: 600px) {
+    .lmx-page .lmx-discussion-replies[data-lmx-thread] .lmx-discussion-reply-item::before { height: 10px; top: calc(var(--lmx-elbow-y, 1rem) - 10px); border-bottom-left-radius: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lmx-page .lmx-discussion-copy-link:has(> .fa-check),
+    .lmx-page .lmx-note.lmx-discussion-target,
+    .lmx-page .lmx-discussion-reply-item.lmx-discussion-target,
+    .lmx-page .lmx-feed-new:not([hidden]),
+    .lmx-page .lmx-discussion-reply-item.lmx-arriving::before,
+    .lmx-page .lmx-discussion-replies-toggle::before { animation: none; }
+    .lmx-page .lmx-discussion-author-avatar { transition: none; }
+}
+
+/* Phones keep the reply count as a plain link: the touch-size rule would turn the pill into a tall capsule. */
+@media (max-width: 600px) {
+    .lmx-page .lmx-discussion-count { padding: 0; background: none; font-size: inherit; font-weight: 400; }
+    .lmx-page .lmx-discussion-count:hover { background: none; color: var(--lmx-accent-hover); }
+}
