@@ -57,6 +57,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LEAGUE_ICONS_JS}}"] = "/js/leagueIcons.js",
         ["{{ASSET_LONGEVITYMAXXING_CSS}}"] = "/css/longevitymaxxing.css",
         ["{{ASSET_LONGEVITYMAXXING_JS}}"] = "/js/longevitymaxxing.js",
+        ["{{ASSET_BIOAGE_DATES_CSS}}"] = "/css/bioage-dates.css",
+        ["{{ASSET_BIOAGE_DATES_JS}}"] = "/js/bioage-dates.js",
         ["{{ASSET_MARTIN_HELSTAB_PROFILE_IMAGE}}"] = "/athletes/martin_helstab/martin_helstab.webp",
         ["{{ASSET_MERCH_CAP}}"] = "/assets/content-images/merch/cap.webp",
         ["{{ASSET_MERCH_HOODIE}}"] = "/assets/content-images/merch/hoodie.webp",
