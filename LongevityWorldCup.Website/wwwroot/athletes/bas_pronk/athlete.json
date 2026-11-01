@@ -1,6 +1,6 @@
 {
   "Name": "Bas Pronk",
-  "MediaContact": "bas.pronk@proton.me",
+  "MediaContact": "bas.pronk.nl@gmail.com",
   "DateOfBirth": {
     "Year": 1971,
     "Month": 3,
@@ -18,6 +18,18 @@
       "RdwPc": 13,
       "AlpUL": 80,
       "Wbc1000cellsuL": 4.4
+    },
+    {
+      "Date": "2026-10-15",
+      "AlbGL": 49,
+      "CreatUmolL": 115.8,
+      "GluMmolL": 5.62,
+      "CrpMgL": 0.4,
+      "LymPc": 35.9,
+      "McvFL": 95.3,
+      "RdwPc": 12.4,
+      "AlpUL": 69,
+      "Wbc1000cellsuL": 3
     }
   ],
   "Division": "Men's",

@@ -145,7 +145,8 @@
 
     interface AdvicePrompt {
         id: string; challengeDay: number; date: string; rawScore: number;
-        baselineRawScore: number | null; characterLimit: number; version: number;
+        baselineRawScore: number | null; version: number;
+        characterLimit?: number;
         checkInNote?: string | null;
     }
 
@@ -1250,7 +1251,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const notes = state ? participantDiscussionThreads(state) : publicDiscussionThreads(await getJson(`${API}/state`));
             const readContexts: DiscussionReadContext[] = state?.readContext ? [state.readContext] : [];
             const unavailable: ParticipantNote[] = [];
-            // A newly answered or withdrawn old request may fall outside the bounded state window.
+            // A newly answered or edited old request may fall outside the bounded state window.
             const returned = new Set(notes.map(discussionPermalink));
             const missing = Array.from(discussionFeedNotes.values())
                 .filter(note => (discussionNeedsAdvice(note) || discussionUnreadPriority(note)) && !returned.has(discussionPermalink(note)));
@@ -5297,10 +5298,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function discussionOpeningPostHtml(note: ParticipantNote): string {
         if (note.advice) {
             const advice = note.advice;
-            const withdraw = !advice.withdrawn && participantState?.participant.id === note.participantId
-                ? `<span class="lmx-advice-story-tools"><button type="button" class="lmx-discussion-quiet-action" data-advice-edit>Edit story</button>
-                    <button type="button" class="lmx-discussion-quiet-action" data-advice-withdraw="${escAttr(advice.id)}" data-advice-version="${advice.version}">Withdraw request</button></span>` : "";
-            return `<div class="lmx-advice-story"><p>${advice.withdrawn ? "Advice request withdrawn." : participantMentionTextHtml(advice.story)}</p>${withdraw}</div>
+            const storyTools = !advice.withdrawn && participantState?.participant.id === note.participantId
+                ? `<span class="lmx-advice-story-tools"><button type="button" class="lmx-discussion-quiet-action" data-advice-edit>Edit story</button></span>` : "";
+            return `<div class="lmx-advice-story"><p>${advice.withdrawn ? "Advice request withdrawn." : participantMentionTextHtml(advice.story)}</p>${storyTools}</div>
                 ${note.note ? `<details class="lmx-advice-context"><summary>Check-in remarks</summary><p>${participantMentionTextHtml(note.note)}</p></details>` : ""}`;
         }
         if (note.kind === "announcement" && note.announcement) {
@@ -5882,7 +5882,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.innerHTML = `<form>
                 <h2 id="lmxAdviceStoryHeading">This is unusual for you. What’s the story?</h2>
                 <div class="lmx-advice-story-input">
-                    <textarea id="lmxAdviceStory" rows="4" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
+                    <textarea id="lmxAdviceStory" rows="6" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
                     <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>
                 </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
@@ -5936,9 +5936,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
         submit.textContent = "Post";
-        const length = adviceStoryDraft?.body.length || 0;
-        dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!.textContent = `${length} / ${prompt.characterLimit}`;
-        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || length > prompt.characterLimit;
+        const overLimit = updateAdviceStoryCount(dialog.querySelector<HTMLTextAreaElement>("textarea")!,
+            dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!, prompt.characterLimit);
+        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || overLimit;
+    }
+
+    function updateAdviceStoryCount(textarea: HTMLTextAreaElement, count: HTMLElement, allowance?: number): boolean {
+        const limit = Math.max(2000, allowance ?? discussionCharacterLimit());
+        const length = textarea.value.length;
+        const over = Math.max(0, length - limit);
+        count.textContent = over ? `${over} over` : `${length}/${limit}`;
+        count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${limit} characters`);
+        count.classList.toggle("over-limit", over > 0);
+        textarea.setAttribute("aria-invalid", String(over > 0));
+        return over > 0;
     }
 
     async function finishAdviceStory(publish: boolean): Promise<void> {
@@ -6893,12 +6904,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const form = document.createElement("form");
                 form.className = "lmx-advice-story-editor";
                 form.innerHTML = `<label for="lmxAdviceEdit-${escAttr(advice.id)}">Edit your story</label>
-                    <textarea id="lmxAdviceEdit-${escAttr(advice.id)}" rows="4"></textarea><p class="lmx-status" role="status"></p>
+                    <textarea id="lmxAdviceEdit-${escAttr(advice.id)}" rows="4" aria-describedby="lmxAdviceEditCount-${escAttr(advice.id)}"></textarea>
+                    <span id="lmxAdviceEditCount-${escAttr(advice.id)}" class="lmx-advice-story-count"></span><p class="lmx-status" role="status"></p>
                     <div><button class="lmx-button" type="submit">Save story</button><button class="lmx-discussion-quiet-action" type="button">Cancel</button></div>`;
                 const textarea = form.querySelector<HTMLTextAreaElement>("textarea")!;
                 textarea.value = original;
-                textarea.maxLength = Math.max(advice.storyCharacterLimit || discussionCharacterLimit(), original.length);
-                textarea.addEventListener("input", () => { adviceStoryEditDirty = textarea.value !== original; });
+                const updateControls = (): void => {
+                    const overLimit = updateAdviceStoryCount(textarea, form.querySelector<HTMLElement>(".lmx-advice-story-count")!, advice.storyCharacterLimit);
+                    const save = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+                    save.disabled = save.hasAttribute("aria-busy") || !textarea.value.trim() || overLimit;
+                };
+                updateControls();
+                textarea.addEventListener("input", () => { adviceStoryEditDirty = textarea.value !== original; updateControls(); });
                 form.querySelector("button[type=button]")!.addEventListener("click", () => { form.remove(); adviceStoryEditDirty = false; button.focus(); });
                 form.addEventListener("submit", async event => {
                     event.preventDefault();
@@ -6919,23 +6936,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                         void finishWait?.("error");
                         form.querySelector<HTMLElement>(".lmx-status")!.textContent = messageOf(error);
                         save.disabled = false;
-                    } finally { save.removeAttribute("aria-busy"); }
+                    } finally { save.removeAttribute("aria-busy"); updateControls(); }
                 });
                 story.append(form);
                 textarea.focus();
-            });
-        });
-        root.querySelectorAll<HTMLButtonElement>("[data-advice-withdraw]").forEach(button => {
-            if (button.dataset.discussionControlWired) return;
-            button.dataset.discussionControlWired = "true";
-            button.addEventListener("click", async () => {
-                if (!accessToken || !window.confirm("Withdraw your public story? The existing advice and conversations will remain as read-only history.")) return;
-                button.disabled = true;
-                try {
-                    const result = await postJson(`${API}/advice/withdraw`, { accessToken, adviceId: button.dataset.adviceWithdraw, version: Number(button.dataset.adviceVersion) });
-                    acceptParticipantState(result);
-                    renderParticipantDiscussion(result);
-                } catch (error) { button.disabled = false; button.title = messageOf(error); }
             });
         });
         root.querySelectorAll<HTMLAnchorElement>("[data-youtube-video-id]").forEach(card => {
@@ -7776,12 +7780,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
-                ${simpleAdvice ? `<span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>` : ""}
             </div>
             ${editing || simpleAdvice ? "" : '<div class="lmx-note-photo-grid pending" data-reply-photo-previews></div><div class="lmx-photo-feedback" data-reply-photo-feedback role="status" aria-live="polite"></div>'}
             <div class="lmx-status" role="status" aria-live="polite"></div>
             ${simpleAdvice ? "" : '<button class="lmx-discussion-replies-toggle" type="button" data-advice-retarget hidden>Move draft to the active conversation</button>'}
             <div class="lmx-discussion-reply-actions">
+                ${simpleAdvice ? `<span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>` : ""}
                 ${simpleAdvice ? "" : `<span class="lmx-discussion-compose-tools">
                     ${editing ? "" : `<button class="lmx-discussion-quiet-action lmx-discussion-add-photo" type="button" data-reply-photo-button
                         title="Add photos (or paste or drop an image)" aria-label="Add photos"><i class="fas fa-image" aria-hidden="true"></i></button>
@@ -9727,9 +9731,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             isGardenState(value.garden) && hasValidDiscussionReadContext(value) && hasValidDiscussionSnapshot(value) &&
             (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) &&
             (!hasProperties(value, "pendingAdvicePrompt") || value.pendingAdvicePrompt === null ||
-                hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "characterLimit", "version") &&
+                hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "version") &&
                 typeof value.pendingAdvicePrompt.id === "string" && typeof value.pendingAdvicePrompt.challengeDay === "number" &&
-                typeof value.pendingAdvicePrompt.date === "string" && typeof value.pendingAdvicePrompt.characterLimit === "number" &&
+                typeof value.pendingAdvicePrompt.date === "string" &&
                 typeof value.pendingAdvicePrompt.version === "number" &&
                 (!hasProperties(value.pendingAdvicePrompt, "checkInNote") || isNullableString(value.pendingAdvicePrompt.checkInNote))) &&
             (!hasProperties(value, "updatedDiscussionThread") || value.updatedDiscussionThread === null || isParticipantNote(value.updatedDiscussionThread));
@@ -9764,7 +9768,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function postJson(url: `${typeof API}/discussion/read`, payload: object): Promise<DiscussionReadResult>;
     async function postJson(url: `${typeof API}/discussion/replies/edit`, payload: object): Promise<DiscussionReply>;
     async function postJson(
-        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete` | `${typeof API}/advice/publish` | `${typeof API}/advice/dismiss` | `${typeof API}/advice/withdraw` | `${typeof API}/advice/edit`,
+        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete` | `${typeof API}/advice/publish` | `${typeof API}/advice/dismiss` | `${typeof API}/advice/edit`,
         payload: object
     ): Promise<ParticipantState>;
     async function postJson(

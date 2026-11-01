@@ -360,9 +360,9 @@ public sealed class FlowActionDockResultBrowserTests(
     [InlineData(390, 844, 245, false)]
     [InlineData(390, 740, 220, true)]
     [InlineData(1366, 768, 68, false)]
-    [InlineData(1366, 640, 68, true)]
+    [InlineData(1366, 540, 68, true)]
     [InlineData(1280, 720, 68, false)]
-    [InlineData(1280, 600, 68, true)]
+    [InlineData(1280, 520, 68, true)]
     public async Task DashboardActions_DockAsCompactCommandsWhenTheyWouldOverflow(
         int viewportWidth,
         int viewportHeight,

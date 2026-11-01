@@ -3,6 +3,8 @@ let bitcoinCopyTimer = null;
 let cancelBitcoinCopyExit = null;
 let newsletterSubmitting = false;
 let newsletterRetryEmail = '';
+let newsletterPlaneTimer = null;
+let cancelPrizePoolFill = null;
 const newsletterForm = document.getElementById('newsletter-form');
 const newsletterEmailInput = document.getElementById('emailInput');
 const newsletterSubmitButton = newsletterForm.querySelector('button[type="submit"]');
@@ -621,6 +623,14 @@ newsletterEmailInput.addEventListener('input', () => {
     renderNewsletterAction();
 });
 
+function resetNewsletterPlane() {
+    clearTimeout(newsletterPlaneTimer);
+    newsletterForm.classList.remove('is-sent');
+}
+const newsletterMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+newsletterMotionPreference.addEventListener?.('change', resetNewsletterPlane);
+window.addEventListener('pagehide', resetNewsletterPlane);
+
 newsletterForm.addEventListener('submit', async function (e) {
     e.preventDefault();
     if (newsletterSubmitting) return;
@@ -653,6 +663,13 @@ newsletterForm.addEventListener('submit', async function (e) {
         }
 
         waitOutcome = 'success';
+        // The paper plane leaves with the address and comes back for the next one.
+        resetNewsletterPlane();
+        if (!newsletterMotionPreference.matches) {
+            void newsletterForm.offsetWidth;
+            newsletterForm.classList.add('is-sent');
+            newsletterPlaneTimer = setTimeout(resetNewsletterPlane, 1000);
+        }
 
         // A response confirms its submitted address, not a later edit in the field.
         if (newsletterEmailInput.value.trim() === email) newsletterEmailInput.value = '';
@@ -691,6 +708,10 @@ async function copyBitcoinAddress() {
         return;
     }
 
+    const addressStub = bitcoinCopyButton.closest('.btc-address');
+    const copyIcon = bitcoinCopyButton.querySelector('i');
+    addressStub?.classList.remove('is-copied');
+    if (copyIcon) copyIcon.className = 'fas fa-copy';
     const copiedTextElement = document.getElementById('copiedText');
     clearTimeout(bitcoinCopyTimer);
     cancelBitcoinCopyExit?.();
@@ -732,10 +753,17 @@ async function copyBitcoinAddress() {
     if (copied) {
         copiedTextElement.textContent = 'Copied';
         copiedTextElement.hidden = false;
+        // The stub stamps itself: success tint and a check until the address returns.
+        addressStub?.classList.remove('is-copied');
+        void addressStub?.offsetWidth;
+        addressStub?.classList.add('is-copied');
+        if (copyIcon) copyIcon.className = 'fas fa-check';
         if (document.activeElement === bitcoinAddressFallback) bitcoinCopyButton.focus({ preventScroll: true });
         bitcoinCopyTimer = setTimeout(function () {
             copiedTextElement.hidden = true;
             // The address returns to the toast's place once the toast has left it.
+            addressStub?.classList.remove('is-copied');
+            if (copyIcon) copyIcon.className = 'fas fa-copy';
             const restoreAddress = function () {
                 if (!copiedTextElement.hidden) return;
                 copiedTextElement.textContent = '';
@@ -757,6 +785,7 @@ async function copyBitcoinAddress() {
 window.getSharedPrizeFund()
     .then(data => {
         const totalReceivedSatoshis = data.totalReceivedSatoshis;
+        if (!Number.isFinite(totalReceivedSatoshis) || totalReceivedSatoshis < 0) throw new Error('Invalid prize fund');
         const totalReceivedBTC = totalReceivedSatoshis / 1e8;
         const prizeFundBTC = totalReceivedBTC * 0.9; // 90% of total received
 
@@ -779,45 +808,104 @@ window.getSharedPrizeFund()
         // Calculate the percentage
         const progressPercentage = (prizeFundBTC / goalBTC) * 100;
 
-        // Update the prize-pool progress fill
-        document.querySelector('.btc-status-fill').style.width = progressPercentage + '%';
+        const decimals = prizeFundBTC >= 10 ? 0 : prizeFundBTC >= 1 ? 1 : prizeFundBTC >= 0.1 ? 2
+            : prizeFundBTC >= 0.01 ? 3 : prizeFundBTC >= 0.001 ? 4 : prizeFundBTC >= 0.0001 ? 5 : 6;
 
-        // Update the BTC status with appropriate decimal places
-        let displayPrizeFundBTC;
-        if (prizeFundBTC >= 10) {
-            displayPrizeFundBTC = prizeFundBTC.toFixed(0);
-            goalBTC = goalBTC.toFixed(0);
-        } else if (prizeFundBTC >= 1) {
-            displayPrizeFundBTC = prizeFundBTC.toFixed(1);
-            goalBTC = goalBTC.toFixed(1);
-        } else if (prizeFundBTC >= 0.1) {
-            displayPrizeFundBTC = prizeFundBTC.toFixed(2);
-            goalBTC = goalBTC.toFixed(2);
-        } else if (prizeFundBTC >= 0.01) {
-            displayPrizeFundBTC = prizeFundBTC.toFixed(3);
-            goalBTC = goalBTC.toFixed(3);
-        } else if (prizeFundBTC >= 0.001) {
-            displayPrizeFundBTC = prizeFundBTC.toFixed(4);
-            goalBTC = goalBTC.toFixed(4);
-        } else if (prizeFundBTC >= 0.0001) {
-            displayPrizeFundBTC = prizeFundBTC.toFixed(5);
-            goalBTC = goalBTC.toFixed(5);
-        }
-        else {
-            displayPrizeFundBTC = prizeFundBTC.toFixed(6);
-            goalBTC = goalBTC.toFixed(6);
-        }
+        const displayPrizeFundBTC = prizeFundBTC.toFixed(decimals);
+        goalBTC = goalBTC.toFixed(decimals);
 
-        document.getElementById('current-btc').textContent = displayPrizeFundBTC;
         document.getElementById('goal-btc').textContent = goalBTC;
+        playPrizePoolFill(prizeFundBTC, decimals, progressPercentage, displayPrizeFundBTC);
         const btcStatusTrack = document.querySelector('.btc-status-track');
+        btcStatusTrack.setAttribute('aria-busy', 'false');
         btcStatusTrack.setAttribute('aria-valuenow', Math.round(progressPercentage));
         btcStatusTrack.setAttribute('aria-valuetext', `${displayPrizeFundBTC} of ${goalBTC} BTC`);
     })
     .catch(error => {
+        cancelPrizePoolFill?.();
+        document.getElementById('current-btc').textContent = '—';
+        document.getElementById('goal-btc').textContent = '—';
+        const track = document.querySelector('.btc-status-track');
+        track.removeAttribute('aria-valuenow');
+        track.setAttribute('aria-busy', 'false');
+        track.setAttribute('aria-valuetext', 'Prize pool unavailable');
+        document.querySelector('.btc-status-fill').style.width = '0%';
         console.error('Error fetching BTC data:', error);
     });
 
+
+// Keep the confirmed total in the document. Only the visual overlay counts,
+// and every interruption restores the final state and releases owned motion.
+function playPrizePoolFill(prizeFundBTC, decimals, percentage, finalText) {
+    cancelPrizePoolFill?.();
+    const status = document.querySelector('#contribute .btc-status');
+    const fill = document.querySelector('#contribute .btc-status-fill');
+    const figure = document.getElementById('current-btc');
+    if (!status || !fill || !figure) return;
+    const width = Math.max(0, Math.min(100, percentage));
+    figure.textContent = finalText;
+    fill.style.width = width + '%';
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reduced.matches || document.hidden || typeof IntersectionObserver !== 'function'
+        || status.dataset.poolPlayed === 'true') return;
+    status.dataset.poolPlayed = 'true';
+
+    let frame = 0, timer = 0, finished = false;
+    const skipEvents = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'focusin'];
+    const finish = (landed = false) => {
+        if (finished) return;
+        finished = true;
+        cancelAnimationFrame(frame);
+        clearTimeout(timer);
+        observer.disconnect();
+        skipEvents.forEach(type => window.removeEventListener(type, skip, true));
+        window.removeEventListener('pagehide', skip);
+        document.removeEventListener('visibilitychange', hidden);
+        if (reduced.removeEventListener) reduced.removeEventListener('change', skip);
+        else reduced.removeListener?.(skip);
+        fill.style.width = width + '%';
+        figure.classList.remove('is-pool-counting');
+        delete figure.dataset.poolCount;
+        status.classList.remove('is-counting');
+        status.classList.toggle('is-landed', landed);
+        cancelPrizePoolFill = null;
+    };
+    const skip = () => finish();
+    const hidden = () => { if (document.hidden) finish(); };
+    const run = () => {
+        if (finished) return;
+        observer.disconnect();
+        if (reduced.matches || document.hidden) { finish(); return; }
+        const duration = 1100;
+        let start;
+        status.classList.add('is-counting');
+        figure.dataset.poolCount = (0).toFixed(decimals);
+        if (CSS.supports('content', 'attr(data-pool-count) / ""')) figure.classList.add('is-pool-counting');
+        skipEvents.forEach(type => window.addEventListener(type, skip, { capture: true, passive: true }));
+        const step = now => {
+            if (finished) return;
+            if (!status.isConnected || reduced.matches || document.hidden) { finish(); return; }
+            start ??= now;
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            fill.style.width = (width * eased) + '%';
+            figure.dataset.poolCount = (prizeFundBTC * eased).toFixed(decimals);
+            if (t < 1) frame = requestAnimationFrame(step);
+            else finish(true);
+        };
+        frame = requestAnimationFrame(step);
+        timer = setTimeout(skip, duration + 1500);
+    };
+    const observer = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.6)) run();
+    }, { threshold: 0.6 });
+    cancelPrizePoolFill = skip;
+    window.addEventListener('pagehide', skip);
+    document.addEventListener('visibilitychange', hidden);
+    if (reduced.addEventListener) reduced.addEventListener('change', skip);
+    else reduced.addListener?.(skip);
+    observer.observe(status);
+}
 
 window.addEventListener('DOMContentLoaded', adjustBitcoinAddressDisplay);
 window.addEventListener('resize', adjustBitcoinAddressDisplay);

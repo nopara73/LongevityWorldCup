@@ -383,8 +383,13 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
             await page.Locator("label[for=group-flags]").ClickAsync();
             await Assertions.Expect(page.Locator(".flag-team").First).ToBeVisibleAsync();
             Assert.Equal("lwc-flag-board-in", await page.Locator("#flagLeaderboard").EvaluateAsync<string>("board => getComputedStyle(board).animationName"));
-            await page.Locator(".flag-team summary").First.ClickAsync();
-            Assert.Equal("lwc-flag-members-in", await page.Locator(".flag-team-athletes").First.EvaluateAsync<string>("list => getComputedStyle(list).animationName"));
+            Assert.True(await page.Locator(".flag-team").First.EvaluateAsync<bool>("""
+                team => {
+                    team.querySelector('summary').click();
+                    return team.open && [...team.querySelectorAll('.flag-team-athletes > li')]
+                        .every(row => row.getAnimations().some(a => a.effect.getKeyframes().some(k => k.opacity === '0')));
+                }
+                """));
         }
 
         var (reduced, reducedPage) = await OpenAsync(1280, 900, false, "/leaderboard");
@@ -393,6 +398,13 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
             await reducedPage.Locator("label[for=group-flags]").ClickAsync();
             await Assertions.Expect(reducedPage.Locator(".flag-team").First).ToBeVisibleAsync();
             Assert.Equal("none", await reducedPage.Locator("#flagLeaderboard").EvaluateAsync<string>("board => getComputedStyle(board).animationName"));
+            Assert.True(await reducedPage.Locator(".flag-team").First.EvaluateAsync<bool>("""
+                team => {
+                    team.querySelector('summary').click();
+                    return team.open && [...team.querySelectorAll('.flag-team-athletes > li')]
+                        .every(row => row.getAnimations().length === 0);
+                }
+                """));
         }
     }
 }

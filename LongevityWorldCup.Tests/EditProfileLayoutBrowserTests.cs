@@ -120,8 +120,7 @@ public sealed class EditProfileLayoutBrowserTests(
         await using var context = await CreateContextAsync(width, height, dark);
         var page = await OpenEditorAsync(context);
 
-        // Mirrors what a cropped picture does: the restore control appears beside the picture action.
-        await page.EvaluateAsync("() => { document.getElementById('restoreProfilePicButton').style.display = 'inline-flex'; }");
+        await SaveChangedPortraitAsync(page);
         var boxes = await page.EvaluateAsync<double[]>(
             """
             () => ['changeProfilePicButton', 'restoreProfilePicButton'].flatMap(id => {
@@ -296,12 +295,10 @@ public sealed class EditProfileLayoutBrowserTests(
     {
         await using var context = await CreateContextAsync(width, height, dark);
         var page = await OpenEditorAsync(context);
+        await SaveChangedPortraitAsync(page);
         await page.EvaluateAsync("() => { document.documentElement.style.fontSize = '200%'; }");
         await page.Locator("#divisionDisplaySelect").SelectOptionAsync("Women's");
         await page.Locator("#whyDisplayInput").FillAsync("An unfinished motivation draft.");
-        // The shared test host stubs the external cropper. Exercise the real post-crop
-        // display state here; the crop and restore interaction is checked separately.
-        await page.EvaluateAsync("() => { document.getElementById('restoreProfilePicButton').style.display = 'inline-flex'; }");
         await Assertions.Expect(page.Locator("#submitButton")).ToBeEnabledAsync();
 
         // Text scaling and revealing the primary action schedule the dock's next layout frame.
@@ -939,6 +936,17 @@ public sealed class EditProfileLayoutBrowserTests(
         Assert.True(size[0] <= size[1] + 1,
             $"{width}x{height}: the motivation hides {size[0] - size[1]:F0}px of its text behind an inner scrollbar.");
         await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    private async Task SaveChangedPortraitAsync(IPage page)
+    {
+        // Keep the draft and control in sync when optional directory responses refresh the form.
+        var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(Path.Combine(webRoot, "assets", "logo.png"));
+        await page.WaitForFunctionAsync("() => window.changeProfileCropper?.ready && !document.getElementById('changeProfileCropButton').disabled");
+        await page.Locator("#changeProfileCropButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#restoreProfilePicButton")).ToBeVisibleAsync();
     }
 
     private static async Task<IPage> OpenEditorAsync(IBrowserContext context)

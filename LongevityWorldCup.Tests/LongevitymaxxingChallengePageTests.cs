@@ -43,6 +43,15 @@ public sealed class LongevitymaxxingChallengePageTests(TestWebApplicationFactory
     }
 
     [Fact]
+    public async Task AdviceWithdrawalEndpoint_IsAbsent()
+    {
+        using var client = sharedFactory.CreateClient();
+        using var body = new StringContent("{\"accessToken\":\"old-client\",\"adviceId\":\"request\",\"version\":1}", System.Text.Encoding.UTF8, "application/json");
+        using var response = await client.PostAsync("/api/longevitymaxxing/advice/withdraw", body);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task LongevitymaxxingPublicState_OmitsCallsForFutureCompetition()
     {
         using var factory = CreateFactory(new Config
