@@ -32,6 +32,7 @@ public sealed class FrontendTypeScriptBuildTests
         "touch",
         "depth-system",
         "scroll-choreography",
+        "image-viewer",
         "disclosure",
         "site-statistics",
         "site-statistics-tracking"

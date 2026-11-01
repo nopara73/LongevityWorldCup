@@ -206,6 +206,7 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                         bodyContent = InjectDepthSystem(bodyContent);
                         bodyContent = InjectScrollChoreography(bodyContent);
+                        bodyContent = InjectImageViewer(bodyContent);
                         bodyContent = InjectDisclosureLayer(bodyContent);
                     }
 
@@ -677,6 +678,21 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/scroll-choreography.js")}\" defer></script>{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Pictures open into one shared viewer: flight from the page, zoom, pan, swipe and dismiss.
+        private string InjectImageViewer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/image-viewer.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/image-viewer.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 
