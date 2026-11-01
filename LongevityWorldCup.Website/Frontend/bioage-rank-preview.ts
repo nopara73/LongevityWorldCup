@@ -528,13 +528,15 @@ declare global {
 
     // Reveal: the rank counts in from the back of the field to your place while
     // the field rises and the marker travels; neighbours close in around You.
-    function playRankReveal(target: HTMLElement, rank: number, fieldSize: number): void {
+    function playRankReveal(target: HTMLElement, rank: number, fieldSize: number, renderToken: number): void {
         var number = target.querySelector<HTMLElement>('.bioage-rank-number');
         target.classList.remove('bioage-rank-revealing');
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         void target.offsetWidth;
         target.classList.add('bioage-rank-revealing');
-        window.setTimeout(function () { target.classList.remove('bioage-rank-revealing'); }, 1600);
+        window.setTimeout(function () {
+            if (isCurrentTargetRenderToken(target.id, renderToken)) target.classList.remove('bioage-rank-revealing');
+        }, 1600);
         if (!number || fieldSize <= rank) return;
         const counter: HTMLElement = number;
         var start = performance.now();
@@ -542,6 +544,7 @@ declare global {
         // The status region announces once, with the final rank.
         target.setAttribute('aria-busy', 'true');
         var step = function (now: number): void {
+            if (!isCurrentTargetRenderToken(target.id, renderToken)) return;
             var t = Math.min(1, (now - start) / duration);
             var eased = 1 - Math.pow(1 - t, 3);
             var value = Math.round(fieldSize - (fieldSize - rank) * eased);
@@ -652,7 +655,7 @@ declare global {
                 target.innerHTML = buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex);
                 installAvatarFallbacks(target);
                 target.setAttribute('aria-busy', 'false');
-                playRankReveal(target, rank, rankedFieldSize);
+                playRankReveal(target, rank, rankedFieldSize, renderToken);
             })
             .catch(function () {
                 if (!isCurrentTargetRenderToken(targetId, renderToken)) return;

@@ -1983,18 +1983,33 @@ interface Window {
             const generation = state.generation;
             const expectedScroll = Math.max(0, maxScrollTop);
             const inputEvents = ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const;
+            let settleTimer = 0;
+            let cancelled = false;
             const cleanup = (): void => {
+                cancelled = true;
+                window.clearTimeout(settleTimer);
                 observer.disconnect();
                 inputEvents.forEach(event => window.removeEventListener(event, cleanup));
                 state.rankRevealCleanup = null;
             };
             const observer = new MutationObserver(() => {
                 if (rankPending.getAttribute('aria-busy') === 'true') return;
-                cleanup();
-                window.setTimeout(() => {
-                    if (state.generation !== generation || getShownBioageResultElement() !== resultElement) return;
-                    if (Math.abs(window.scrollY - expectedScroll) > 2) return;
+                observer.disconnect();
+                settleTimer = window.setTimeout(() => {
+                    const mayReveal = !cancelled && state.generation === generation
+                        && getShownBioageResultElement() === resultElement
+                        && Math.abs(window.scrollY - expectedScroll) <= 2;
+                    cleanup();
+                    if (!mayReveal) return;
                     revealBioageResult(resultElement, { instant: true });
+                    // The loaded rank can outgrow the temporary card. Complete this
+                    // initial reveal with the rank itself clear of the action bar.
+                    const rankBounds = rankPending.getBoundingClientRect();
+                    const viewportBounds = getBioageResultViewportBounds();
+                    if (rankBounds.height <= viewportBounds.height && rankBounds.bottom > viewportBounds.bottom) {
+                        window.scrollBy({ top: rankBounds.bottom - viewportBounds.bottom, behavior: 'instant' });
+                        state.revealScrollTop = window.scrollY;
+                    }
                 }, prefersReducedMotion ? 0 : BIOAGE_RESULT_SCROLL_SETTLE_MS);
             });
             state.rankRevealCleanup = cleanup;
