@@ -1661,7 +1661,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
         const panel = document.getElementById(tab === "signin" ? "lmxResendPanel" : "lmxSignupPanel");
         const from = tab === "signin" ? 18 : -18;
-        panel?.animate([{ opacity: 0, transform: `translateX(${from}px)` }, { opacity: 1, transform: "none" }],
+        panel?.animate([{ transform: `translateX(${from}px)` }, { transform: "none" }],
             { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" });
     }
 
