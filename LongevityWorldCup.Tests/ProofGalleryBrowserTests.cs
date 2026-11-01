@@ -79,6 +79,33 @@ public sealed class ProofGalleryBrowserTests(PlaywrightBrowserFixture browserFix
         Assert.InRange(firstBounds.Y, headerBounds.Y + headerBounds.Height - 1, 900 - firstBounds.Height);
     }
 
+    [Fact]
+    public async Task ReducedMotionDuringExpansion_RestoresOverflowAndKeepsProofsAndFocus()
+    {
+        await using var context = await CreateContextAsync(14);
+        var page = await OpenProfileAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var toggle = page.Locator(".proofs-toggle");
+        await toggle.FocusAsync();
+        await toggle.EvaluateAsync("""
+            async button => {
+                button.click();
+                await new Promise(requestAnimationFrame);
+                document.querySelector('#proofsGallery').getAnimations({ subtree: true }).forEach(a => a.pause());
+            }
+            """);
+        var gallery = page.Locator("#proofsGallery");
+        Assert.Equal("clip", await gallery.EvaluateAsync<string>("e => e.style.overflow"));
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.WaitForFunctionAsync("() => document.querySelector('#proofsGallery').style.overflow === ''");
+        Assert.Equal(0, await gallery.EvaluateAsync<int>("e => e.getAnimations({ subtree: true }).length"));
+        await Assertions.Expect(gallery.Locator(".proof-item:visible")).ToHaveCountAsync(14);
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Assertions.Expect(gallery.Locator(".proof-item:visible")).ToHaveCountAsync(6);
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

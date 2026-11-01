@@ -1226,6 +1226,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/leaderboard-ordering.css":
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/disclosure.css":
+                    await AssertFlagContainerBoundariesAsync(page, source.ToArray(), disclosure: true);
+                    break;
                 case "css/play-menu.css":
                     await AssertJoinContainerBoundariesAsync(page,
                         source.Where(condition => condition.Name != "play-player-card").ToArray());
@@ -1237,6 +1240,9 @@ public sealed class AestheticSystemBrowserTests(
                         source.Where(condition => condition.Name == "newsletter-section").ToArray());
                     await AssertFontRelativeLeaderboardBoundariesAsync(page,
                         source.Where(condition => condition.Name != "newsletter-section").ToArray());
+                    break;
+                case "css/prize-pool.css":
+                    await AssertPrizePoolContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
@@ -1647,6 +1653,63 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.Equal(width >= 18 * rootFont && width <= 24 * rootFont ? 1 : 0, diagnostics[1]);
                 Assert.True(diagnostics[2] <= 1, $"Documentation reading rows overflowed at {width}px.");
             }
+        }
+    }
+
+    private static async Task AssertPrizePoolContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        await NavigateAndSettleAsync(page, "/contribute");
+        try
+        {
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+                foreach (var condition in conditions)
+                {
+                    Assert.Equal("rem", condition.Unit);
+                    Assert.Contains(condition.Name, new[] { "prize-panel", "newsletter-section" });
+                    if (condition.Name == "newsletter-section") Assert.Equal(26, condition.Value);
+                    else Assert.Contains(condition.Value, new double[] { 10, 32 });
+                    var threshold = condition.Value * fontSize;
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var width = threshold + delta;
+                        var diagnostics = await page.EvaluateAsync<double[]>("""
+                            async ({ Width, Name, Boundary }) => {
+                                const newsletter = Name === 'newsletter-section';
+                                const container = document.querySelector(newsletter ? '#newsletter' : '.contribute-content');
+                                Object.assign(container.style, { boxSizing: 'content-box', width: `${Width}px`,
+                                    inlineSize: `${Width}px`, maxWidth: 'none', maxInlineSize: 'none' });
+                                await document.fonts.ready;
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                let applied, companion;
+                                if (newsletter) {
+                                    const form = container.querySelector('#newsletter-form');
+                                    applied = getComputedStyle(form, '::before').content === '\"\"';
+                                    companion = form.scrollWidth <= form.clientWidth + 1;
+                                } else if (Boundary === 32) {
+                                    const panel = container.querySelector('.contribute-panel');
+                                    const ticket = getComputedStyle(container.querySelector('.btc-ticket'));
+                                    applied = getComputedStyle(panel).gridTemplateColumns.split(' ').length === 2;
+                                    companion = applied === (parseFloat(ticket.borderLeftWidth) > 0);
+                                } else {
+                                    applied = parseFloat(getComputedStyle(container.querySelector('.btc-status')).paddingLeft) === 8;
+                                    companion = true;
+                                }
+                                return [parseFloat(getComputedStyle(container).width), applied ? 1 : 0, companion ? 1 : 0];
+                            }
+                            """, new { Width = width, condition.Name, Boundary = condition.Value });
+                        Assert.Equal(width, diagnostics[0], 1);
+                        var expected = condition.Bound == "min" ? width >= threshold : width <= threshold;
+                        Assert.Equal(expected ? 1 : 0, diagnostics[1]);
+                        Assert.Equal(1, diagnostics[2]);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            await page.EvaluateAsync("() => document.documentElement.style.removeProperty('font-size')");
         }
     }
 
@@ -2183,7 +2246,8 @@ public sealed class AestheticSystemBrowserTests(
 
     private static async Task AssertFlagContainerBoundariesAsync(
         IPage page,
-        ResponsiveContainerCondition[] conditions)
+        ResponsiveContainerCondition[] conditions,
+        bool disclosure = false)
     {
         if (conditions.Length == 0) return;
         await NavigateAndSettleAsync(page, "/league/pheno?group=flags");
@@ -2219,7 +2283,7 @@ public sealed class AestheticSystemBrowserTests(
                         list.style.boxSizing = 'content-box';
                         list.style.inlineSize = `${argument.InlineSize}px`;
                         list.style.maxInlineSize = 'none';
-                        list.querySelector('.flag-team').open = argument.Boundary === 14;
+                        list.querySelector('.flag-team').open = argument.Disclosure || argument.Boundary === 14;
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         await Promise.all(list.getAnimations({ subtree: true })
                             .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
@@ -2233,7 +2297,10 @@ public sealed class AestheticSystemBrowserTests(
                         const athleteBox = athleteLink.getBoundingClientRect();
                         const athleteStyle = getComputedStyle(athleteLink);
                         const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-                        const compact = argument.Boundary === 42
+                        const bar = getComputedStyle(athleteLink, '::before');
+                        const compact = argument.Disclosure
+                            ? argument.Boundary === 22 ? parseFloat(bar.height) === 3 : parseFloat(bar.left) === 0
+                            : argument.Boundary === 42
                             ? getComputedStyle(team.querySelector('.flag-team-portraits')).display === 'none'
                             : argument.Boundary === 28
                                 ? Math.abs(team.querySelector('.flag-team-icon').getBoundingClientRect().width - 1.75 * rootFontSize) < .1
@@ -2246,7 +2313,7 @@ public sealed class AestheticSystemBrowserTests(
                             HorizontalOverflow: Math.max(0, list.scrollWidth - list.clientWidth)
                         };
                     }
-                    """, new { InlineSize = inlineSize, Boundary = condition.Value });
+                    """, new { InlineSize = inlineSize, Boundary = condition.Value, Disclosure = disclosure });
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
                     $"Flag results did not cross their {condition.Value}rem boundary at {inlineSize}px. " +

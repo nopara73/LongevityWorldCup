@@ -144,7 +144,8 @@ public sealed class PlayPlayerCardBrowserTests(
                 const rect = image.getBoundingClientRect(), style = getComputedStyle(image);
                 const ratios = [rect.width / image.naturalWidth, rect.height / image.naturalHeight];
                 const scale = style.objectFit === 'contain' ? Math.min(...ratios) : Math.max(...ratios);
-                return image.naturalWidth * scale <= rect.width + 1
+                const preservesMask = image.naturalWidth === image.naturalHeight || style.maskImage === 'none';
+                return preservesMask && image.naturalWidth * scale <= rect.width + 1
                     && image.naturalHeight * scale <= rect.height + 1;
             }
             """), $"{path}: the {imageWidth}x{imageHeight} portrait must fit without cropping its source framing.");

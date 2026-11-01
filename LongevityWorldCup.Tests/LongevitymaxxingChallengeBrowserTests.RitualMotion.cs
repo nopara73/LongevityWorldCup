@@ -159,6 +159,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await release.Task.WaitAsync(TimeSpan.FromSeconds(30));
             await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Connection interrupted. Try again.\"}" });
         });
+        var responseTask = page.WaitForResponseAsync(response => new Uri(response.Url).AbsolutePath == "/api/longevitymaxxing/check-in" && response.Status == 503);
         try
         {
             await save.ClickAsync();
@@ -180,6 +181,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await page.WaitForFunctionAsync("() => window.__lmxMotion.includes('lmx-card-saved')");
         }
         finally { release.TrySetResult(); }
+        // A released fixture can still be delivering its body to a throttled renderer.
+        await (await responseTask).FinishedAsync();
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
 
         // Rollback: the optimistic day leaves again, Retry nudges once, and the answers stay.
         await Assertions.Expect(save).ToHaveTextAsync("Retry");
