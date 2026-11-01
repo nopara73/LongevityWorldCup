@@ -375,6 +375,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     var canonicalPath = WebUtility.HtmlEncode(page.CanonicalPath);
     var sourceUrl = WebUtility.HtmlEncode(page.SourceUrl);
     var pageClass = WebUtility.HtmlEncode("documentation-page-" + page.CanonicalPath.Trim('/'));
+    // Pages with a dated timeline load the living-timeline layer.
+    var hasTimeline = documentHtml.Contains("class=\"documentation-timeline\"", StringComparison.Ordinal);
+    var timelineStyle = hasTimeline ? "\n    <link rel=\"stylesheet\" href=\"{{ASSET_HISTORY_TIMELINE_CSS}}\">" : string.Empty;
+    var timelineScript = hasTimeline ? "\n    <script src=\"{{ASSET_HISTORY_TIMELINE_JS}}\" defer></script>" : string.Empty;
 
     return $$"""
 <!DOCTYPE html>
@@ -1464,7 +1468,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
         }
     </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
-    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">
+    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">{{timelineStyle}}
 </head>
 <body>
     <!--HEADER-->
@@ -1475,7 +1479,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         </article>
     </main>
     <!--FOOTER-->
-    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
+    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}{{timelineScript}}
 </body>
 </html>
 """;
