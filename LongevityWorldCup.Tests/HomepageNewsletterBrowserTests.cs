@@ -14,6 +14,7 @@ public sealed class HomepageNewsletterBrowserTests(
 {
     [Theory]
     [InlineData(1280, 100, 6)]
+    [InlineData(1440, 200, 6)]
     [InlineData(769, 100, 6)]
     [InlineData(769, 200, 6)]
     [InlineData(700, 200, 6)]
