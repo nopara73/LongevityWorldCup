@@ -1430,8 +1430,37 @@ window.playAthleteFlow = {
 // athlete is highlighted in the suggestions; the caption rolls over when the
 // choice lands. Everything here watches the DOM the flow already renders.
 
+const reducedStageMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const stageAnimations = new Map<Element, Animation>();
+
 function stageMotionAllowed(): boolean {
-    return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return !reducedStageMotion.matches;
+}
+
+function cancelStageAnimations(): void {
+    stageAnimations.forEach(animation => animation.cancel());
+    stageAnimations.clear();
+}
+
+reducedStageMotion.addEventListener("change", () => {
+    if (reducedStageMotion.matches) cancelStageAnimations();
+});
+window.addEventListener("pagehide", cancelStageAnimations);
+
+function animateStage(element: Element, frames: Keyframe[], options: KeyframeAnimationOptions): void {
+    stageAnimations.get(element)?.cancel();
+    stageAnimations.delete(element);
+    if (!stageMotionAllowed() || typeof element.animate !== "function") return;
+    try {
+        const animation = element.animate(frames, options);
+        stageAnimations.set(element, animation);
+        const forget = (): void => {
+            if (stageAnimations.get(element) === animation) stageAnimations.delete(element);
+        };
+        animation.finished.then(forget, forget);
+    } catch (_) {
+        // Decoration must never interrupt the existing selection flow.
+    }
 }
 
 function cssImageUrl(src: string): string {
@@ -1448,6 +1477,10 @@ function visibleStageSource(frame: HTMLElement): string {
 function bindStageBackdrop(frame: HTMLElement): void {
     let shown = "";
     const update = (): void => {
+        frame.querySelectorAll<HTMLImageElement>("img.illustration").forEach(image => {
+            image.toggleAttribute("data-stage-square",
+                image.complete && image.naturalWidth > 0 && image.naturalWidth === image.naturalHeight);
+        });
         if (frame.dataset["stagePreview"]) return;
         const source = visibleStageSource(frame);
         if (!source || source === shown) return;
@@ -1468,9 +1501,9 @@ function bindStageCaption(title: HTMLElement | null): void {
         if (next === text) return;
         text = next;
         if (!stageMotionAllowed() || title.closest("[hidden]")) return;
-        title.animate([
-            { opacity: 0, transform: "translateY(10px)", filter: "blur(2px)" },
-            { opacity: 1, transform: "none", filter: "none" }
+        animateStage(title, [
+            { transform: "translateY(10px)" },
+            { transform: "none" }
         ], { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" });
     }).observe(title, { childList: true, characterData: true, subtree: true });
 }
@@ -1481,11 +1514,15 @@ function bindStageSpotlight(input: HTMLInputElement, card: HTMLElement, frame: H
     spotlight.setAttribute("aria-hidden", "true");
     card.appendChild(spotlight);
     let current = "";
+    let hoveredOption: Element | null = null;
 
     const show = (source: string): void => {
         if (source === current) return;
         current = source;
         if (!source) {
+            stageAnimations.get(spotlight)?.cancel();
+            stageAnimations.delete(spotlight);
+            spotlight.style.removeProperty("--stage-spotlight");
             delete frame.dataset["stagePreview"];
             card.classList.remove("is-spotlit");
             frame.dispatchEvent(new Event("stage-restore"));
@@ -1496,7 +1533,7 @@ function bindStageSpotlight(input: HTMLInputElement, card: HTMLElement, frame: H
         spotlight.style.setProperty("--stage-spotlight", cssImageUrl(source));
         card.classList.add("is-spotlit");
         if (stageMotionAllowed()) {
-            spotlight.animate([
+            animateStage(spotlight, [
                 { transform: "scale(0.82)", opacity: 0.4 },
                 { transform: "none", opacity: 1 }
             ], { duration: 240, easing: "cubic-bezier(0.34, 1.4, 0.64, 1)" });
@@ -1505,27 +1542,39 @@ function bindStageSpotlight(input: HTMLInputElement, card: HTMLElement, frame: H
 
     const sourceOf = (option: Element | null): string => {
         const thumb = option?.querySelector<HTMLImageElement>(".athlete-option-thumb");
-        return thumb && thumb.dataset["lwcImageRole"] !== "illustration" ? thumb.currentSrc || thumb.src : "";
+        return thumb && thumb.complete && thumb.naturalWidth >= MIN_USABLE_ATHLETE_PICTURE_SIDE
+            && thumb.naturalHeight >= MIN_USABLE_ATHLETE_PICTURE_SIDE
+            && thumb.dataset["lwcImageRole"] !== "illustration" ? thumb.currentSrc || thumb.src : "";
     };
 
     const sync = (): void => {
         if (input.getAttribute("aria-expanded") !== "true") {
+            hoveredOption = null;
             show("");
             return;
         }
         const activeId = input.getAttribute("aria-activedescendant");
-        show(activeId ? sourceOf(document.getElementById(activeId)) : "");
+        show(sourceOf(hoveredOption?.isConnected ? hoveredOption : activeId ? document.getElementById(activeId) : null));
     };
 
-    new MutationObserver(sync).observe(input, { attributes: true, attributeFilter: ["aria-activedescendant", "aria-expanded"] });
+    new MutationObserver(() => { hoveredOption = null; sync(); })
+        .observe(input, { attributes: true, attributeFilter: ["aria-activedescendant", "aria-expanded"] });
+    // A lazy thumbnail can fail or fall back after its row was highlighted.
+    const refreshLoadedPreview = (): void => { queueMicrotask(sync); };
+    input.parentElement?.addEventListener("load", refreshLoadedPreview, true);
+    input.parentElement?.addEventListener("error", refreshLoadedPreview, true);
     document.addEventListener("pointerover", event => {
         if (!(event.target instanceof Element) || event.pointerType === "touch") return;
         const option = event.target.closest(".autocomplete-items:not(.autocomplete-items--leaving) [role=option]");
-        if (option) show(sourceOf(option));
+        if (option?.closest("[role=listbox]")?.id === input.getAttribute("aria-controls")) {
+            hoveredOption = option;
+            sync();
+        }
     });
     document.addEventListener("pointerout", event => {
         if (!(event.target instanceof Element) || !event.target.closest(".autocomplete-items")) return;
         if (event.relatedTarget instanceof Element && event.relatedTarget.closest(".autocomplete-items")) return;
+        hoveredOption = null;
         sync();
     });
 }
