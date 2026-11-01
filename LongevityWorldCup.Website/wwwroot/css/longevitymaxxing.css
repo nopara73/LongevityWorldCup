@@ -6352,6 +6352,8 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-story-dialog h2 { text-align: left; font-size: 1.35rem; line-height: 1.3; margin: 0; padding: 0; text-shadow: none; }
 .lmx-advice-story-dialog p { margin: 0; color: var(--lmx-muted); }
 .lmx-advice-story-input { min-width: 0; }
+.lmx-advice-story-count { display: block; margin-top: .35rem; text-align: right; color: var(--lmx-muted); font-size: .75rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.lmx-advice-story-count.over-limit { color: var(--lmx-danger); }
 .lmx-advice-story-dialog textarea { display: block; box-sizing: border-box; width: 100%; min-height: 8rem; max-height: 40dvh; resize: vertical; border: 1px solid var(--lmx-border-strong); border-radius: 5px; padding: .75rem; font: inherit; line-height: 1.5; color: var(--lmx-ink); background: var(--lmx-surface); }
 .lmx-advice-story-dialog :focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 2px; }
 .lmx-advice-story-dialog textarea:focus-visible { outline-offset: -1px; }

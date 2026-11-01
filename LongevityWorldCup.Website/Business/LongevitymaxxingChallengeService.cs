@@ -1708,6 +1708,7 @@ public sealed partial class LongevitymaxxingChallengeService
 
     private (LongevitymaxxingParticipantState State, bool Applied) SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages, string requestHash)
     {
+        var adviceCharacterLimit = GetCharacterAllowance(checkIn.Participant, checkIn.NowUtc).Limit;
         var applied = _db.Run(sqlite =>
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
@@ -1781,7 +1782,7 @@ public sealed partial class LongevitymaxxingChallengeService
             Add(upsert, "@checked", checkIn.NowUtc.ToString("o"));
             Add(upsert, "@updated", checkIn.NowUtc.ToString("o"));
             upsert.ExecuteNonQuery();
-            UpdateAdvicePrompt(sqlite, transaction, checkIn);
+            UpdateAdvicePrompt(sqlite, transaction, checkIn, adviceCharacterLimit);
 
             var nextImageIndex = existingDiscussion.LastImageIndex + 1;
             foreach (var image in newImages)

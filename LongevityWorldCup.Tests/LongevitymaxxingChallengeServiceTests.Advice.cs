@@ -148,33 +148,46 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.NotNull(fixture.Service.GetParticipantState(owner).PendingAdvicePrompt);
     }
 
-    [Fact]
-    public async Task AdviceStory_LegacyRequestsPublishAndEditLongStoriesWithoutLosingFormatting()
+    [Theory]
+    [InlineData(0, 2000)]
+    [InlineData(146, 2000)]
+    [InlineData(2500, 2500)]
+    public async Task AdviceStory_EnforcesTheLargerOf2000AndOriginalAllowanceWithoutLosingFormatting(int originalAllowance, int limit)
     {
         using var fixture = TestChallengeFixture.Create();
         fixture.Config.LongevitymaxxingChallenge!.StartDate = "2026-06-20";
         var owner = await fixture.ConfirmParticipantAsync("long-story@example.com", "Story Author");
         SeedAdviceBaseline(fixture, owner);
         const string note = "Travelling today.\n\nBack tomorrow.";
-        var prompt = SubmitAdviceScore(fixture, owner, 7, 0, note).PendingAdvicePrompt!;
+        var saved = SubmitAdviceScore(fixture, owner, 7, 0, note);
+        var prompt = saved.PendingAdvicePrompt!;
+        Assert.Equal(2000, prompt.CharacterLimit);
         fixture.Db.Run(sqlite =>
         {
             using var command = sqlite.CreateCommand();
-            command.CommandText = "UPDATE LongevitymaxxingAdviceRequests SET CharacterLimit = 146;";
+            command.CommandText = "SELECT CharacterLimit FROM LongevitymaxxingAdviceRequests;";
+            Assert.Equal(Assert.Single(saved.Public.Leaderboard).CharacterAllowance.Limit, Convert.ToInt32(command.ExecuteScalar()));
+            command.CommandText = "UPDATE LongevitymaxxingAdviceRequests SET CharacterLimit = @allowance;";
+            command.Parameters.AddWithValue("@allowance", originalAllowance);
             command.ExecuteNonQuery();
         });
-        var story = string.Concat(Enumerable.Repeat("A longer explanation.\n\n  Some indented context & a plan.\n", 2000));
+        Assert.Equal(limit, fixture.Service.GetParticipantState(owner).PendingAdvicePrompt!.CharacterLimit);
+        var story = "A longer explanation.\n\n  Some indented context & a plan.\n".PadRight(limit - 50, 'x');
         var now = new DateTimeOffset(DateOnly.Parse(fixture.Config.LongevitymaxxingChallenge!.StartDate)
             .AddDays(9).ToDateTime(new TimeOnly(13, 0)), TimeSpan.Zero);
         var request = new LongevitymaxxingAdviceStoryRequest(owner, prompt.Id, prompt.Version, story);
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.PublishAdviceStory(request with { Story = new string('x', limit + 1) }, now));
+        Assert.NotNull(fixture.Service.GetParticipantState(owner, now).PendingAdvicePrompt);
         var published = fixture.Service.PublishAdviceStory(request, now);
         var advice = Assert.Single(published.Notes).Advice!;
+        Assert.Equal(limit, advice.StoryCharacterLimit);
         Assert.Equal(story.Trim(), advice.Story);
         Assert.Equal(note, Assert.Single(published.Notes).Note);
         Assert.Equal(advice.Story, Assert.Single(fixture.Service.PublishAdviceStory(request, now).Notes).Advice!.Story);
         Assert.Throws<InvalidOperationException>(() => fixture.Service.EditAdviceStory(new(owner, advice.Id, advice.Version, "\n \t"), now));
 
-        var editedStory = story + "\nA new paragraph after trying the advice.\nAnd another line.";
+        var editedStory = (story + "\nA new paragraph.\nAnd another line.").PadRight(limit, 'x');
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.EditAdviceStory(new(owner, advice.Id, advice.Version, editedStory + "x"), now));
         fixture.Service.EditAdviceStory(new(owner, advice.Id, advice.Version, editedStory), now.AddMinutes(1));
         var reloaded = fixture.Service.GetParticipantState(owner, now.AddMinutes(2));
         Assert.Equal(editedStory, Assert.Single(reloaded.Notes).Advice!.Story);

@@ -8,6 +8,17 @@ namespace LongevityWorldCup.Website.Business;
 
 public sealed partial class LongevitymaxxingChallengeService
 {
+    private static int AdviceStoryCharacterLimit(int originalAllowance) => Math.Max(2000, originalAllowance);
+
+    private static void ValidateAdviceStory(string story, int originalAllowance)
+    {
+        if (story.Length == 0)
+            throw new InvalidOperationException("Write your story before posting.");
+        var limit = AdviceStoryCharacterLimit(originalAllowance);
+        if (story.Length > limit)
+            throw new InvalidOperationException($"Keep your story within {limit} characters. Your text has not been saved.");
+    }
+
     private static void EnsureAdviceSchema(SqliteConnection sqlite)
     {
         using var command = sqlite.CreateCommand();
@@ -41,7 +52,7 @@ public sealed partial class LongevitymaxxingChallengeService
     }
 
     private void UpdateAdvicePrompt(SqliteConnection sqlite, SqliteTransaction transaction,
-        ValidatedCheckIn checkIn)
+        ValidatedCheckIn checkIn, int characterLimit)
     {
         var history = new Dictionary<int, CheckInRecord>();
         using (var read = sqlite.CreateCommand())
@@ -75,11 +86,10 @@ public sealed partial class LongevitymaxxingChallengeService
         using var command = sqlite.CreateCommand();
         command.Transaction = transaction;
         // A corrected pending check-in is retired. A published or dismissed story never reopens itself.
-        // Keep the retired CharacterLimit column for existing databases; stories no longer use an allowance.
         command.CommandText = qualifies ? """
             INSERT OR IGNORE INTO LongevitymaxxingAdviceRequests
                 (Id, ParticipantId, ChallengeDay, Status, TriggerRawScore, BaselineRawScore, CharacterLimit, CreatedAtUtc, UpdatedAtUtc)
-            VALUES (@id, @participant, @day, 'pending', @score, @baseline, 0, @now, @now);
+            VALUES (@id, @participant, @day, 'pending', @score, @baseline, @limit, @now, @now);
             UPDATE LongevitymaxxingAdviceRequests
             SET TriggerRawScore = @score, BaselineRawScore = @baseline
             WHERE ParticipantId = @participant AND ChallengeDay = @day AND Status = 'pending';
@@ -92,6 +102,7 @@ public sealed partial class LongevitymaxxingChallengeService
         Add(command, "@day", current.ChallengeDay);
         Add(command, "@score", current.Score);
         Add(command, "@baseline", baseline);
+        Add(command, "@limit", characterLimit);
         Add(command, "@now", checkIn.NowUtc.ToString("o"));
         command.ExecuteNonQuery();
     }
@@ -101,7 +112,7 @@ public sealed partial class LongevitymaxxingChallengeService
         {
             using var command = sqlite.CreateCommand();
             command.CommandText = """
-                SELECT a.Id, a.ChallengeDay, c.ChallengeDate, a.TriggerRawScore, a.BaselineRawScore, a.Version, c.Note
+                SELECT a.Id, a.ChallengeDay, c.ChallengeDate, a.TriggerRawScore, a.BaselineRawScore, a.Version, c.Note, a.CharacterLimit
                 FROM LongevitymaxxingAdviceRequests a
                 JOIN LongevitymaxxingCheckIns c ON c.ParticipantId = a.ParticipantId AND c.ChallengeDay = a.ChallengeDay
                 WHERE a.ParticipantId = @participant AND a.Status = 'pending'
@@ -110,7 +121,7 @@ public sealed partial class LongevitymaxxingChallengeService
             Add(command, "@participant", participantId);
             using var reader = command.ExecuteReader();
             return reader.Read() ? new LongevitymaxxingAdvicePrompt(reader.GetString(0), reader.GetInt32(1), reader.GetString(2),
-                reader.GetInt32(3), reader.IsDBNull(4) ? null : reader.GetDouble(4), reader.GetInt32(5))
+                reader.GetInt32(3), reader.IsDBNull(4) ? null : reader.GetDouble(4), reader.GetInt32(5), AdviceStoryCharacterLimit(reader.GetInt32(7)))
                 { CheckInNote = reader.IsDBNull(6) ? null : reader.GetString(6) } : null;
         });
 
@@ -134,8 +145,7 @@ public sealed partial class LongevitymaxxingChallengeService
             if (advice.Status != "published" || advice.Version != request.Version)
                 throw new LongevitymaxxingAdviceChangedException("This request changed. Refresh before editing it.");
             var story = request.Story?.Trim() ?? "";
-            if (story.Length == 0)
-                throw new InvalidOperationException("Write your story before posting.");
+            ValidateAdviceStory(story, advice.CharacterLimit);
             using var update = sqlite.CreateCommand();
             update.Transaction = transaction;
             update.CommandText = "UPDATE LongevitymaxxingAdviceRequests SET Story = @story, Version = Version + 1, UpdatedAtUtc = @now WHERE Id = @id;";
@@ -173,8 +183,7 @@ public sealed partial class LongevitymaxxingChallengeService
             if (target == "published")
             {
                 if (advice.Status != "pending") throw new LongevitymaxxingAdviceChangedException("This advice request has already been handled.");
-                if (story.Length == 0)
-                    throw new InvalidOperationException("Write your story before posting.");
+                ValidateAdviceStory(story, advice.CharacterLimit);
             }
             else if (advice.Status != "pending")
                 throw new LongevitymaxxingAdviceChangedException("This advice request has already been handled.");
@@ -261,7 +270,7 @@ public sealed partial class LongevitymaxxingChallengeService
         using var command = sqlite.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            SELECT Id, ParticipantId, ChallengeDay, Status, Story, PublishedAtUtc, RankSnapshotJson, ActiveAdviceReplyId, Version, PublishHash
+            SELECT Id, ParticipantId, ChallengeDay, Status, Story, PublishedAtUtc, RankSnapshotJson, ActiveAdviceReplyId, Version, PublishHash, CharacterLimit
             FROM LongevitymaxxingAdviceRequests
             WHERE (@id IS NOT NULL AND Id = @id) OR (@id IS NULL AND ParticipantId = @participant AND ChallengeDay = @day);
             """;
@@ -271,7 +280,7 @@ public sealed partial class LongevitymaxxingChallengeService
         using var reader = command.ExecuteReader();
         return reader.Read() ? new(reader.GetString(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3),
             reader.IsDBNull(4) ? "" : reader.GetString(4), reader.IsDBNull(5) ? "" : reader.GetString(5), reader.GetString(6),
-            reader.IsDBNull(7) ? null : reader.GetString(7), reader.GetInt32(8), reader.GetString(9)) : null;
+            reader.IsDBNull(7) ? null : reader.GetString(7), reader.GetInt32(8), reader.GetString(9), reader.GetInt32(10)) : null;
     }
 
     private static (string? RootId, int? Rank) ValidateAdviceReply(SqliteConnection sqlite, SqliteTransaction transaction,
@@ -410,7 +419,7 @@ public sealed partial class LongevitymaxxingChallengeService
         }
         return new(advice.Id, advice.Status == "withdrawn" ? "" : advice.Story, advice.PublishedAt,
             advice.Status == "withdrawn" ? null : advice.ActiveId, replies)
-        { Version = advice.Version, Withdrawn = advice.Status == "withdrawn",
+        { Version = advice.Version, Withdrawn = advice.Status == "withdrawn", StoryCharacterLimit = AdviceStoryCharacterLimit(advice.CharacterLimit),
             BetterAdviceParticipantIds = betterAdviceParticipants };
     }
 
@@ -432,7 +441,7 @@ public sealed partial class LongevitymaxxingChallengeService
     }
 
     private sealed record AdviceRequestRecord(string Id, string ParticipantId, int Day, string Status, string Story,
-        string PublishedAt, string Ranks, string? ActiveId, int Version, string PublishHash);
+        string PublishedAt, string Ranks, string? ActiveId, int Version, string PublishHash, int CharacterLimit);
 
     private static bool DeleteAdviceAnchor(SqliteConnection sqlite, SqliteTransaction transaction, DiscussionReplyRecord reply)
     {

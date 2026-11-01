@@ -8,20 +8,23 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
-    [InlineData(320)]
-    [InlineData(1280)]
-    public async Task AdviceStory_LongMultilineDraftPublishesReloadsAndGrowsDuringEditing(int width)
+    [InlineData(320, 146, 2000)]
+    [InlineData(1280, 2500, 2500)]
+    public async Task AdviceStory_EnforcesTheLargerAllowanceWhilePreservingMultilineDrafts(int width, int originalAllowance, int limit)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 900 } });
         var state = AdvicePromptBrowserState("case-22", 22);
-        var story = "First line.\nSecond line.\n\n  Indented paragraph.\n" +
-            string.Concat(Enumerable.Repeat("More context about my day. ", 500)) + "\nhttps://example.com/story\n<b>literal text</b>";
+        state["pendingAdvicePrompt"]!["characterLimit"] = originalAllowance;
+        var story = ("First line.\nSecond line.\n\n  Indented paragraph.\nhttps://example.com/story\n<b>literal text</b>\n").PadRight(limit - 100, 'x');
         string? published = null;
         string? edited = null;
         void SetStory(string value)
         {
             foreach (var collection in new[] { state["notes"]!, state["public"]!["notes"]! })
+            {
                 collection[0]!["advice"]!["story"] = value;
+                collection[0]!["advice"]!["storyCharacterLimit"] = originalAllowance;
+            }
         }
         await context.RouteAsync("**/api/longevitymaxxing/advice/publish", async route =>
         {
@@ -43,15 +46,24 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.GotoAsync("/longevitymaxxing");
         var dialog = page.Locator("#lmxAdviceStoryDialog");
         var textarea = dialog.Locator("textarea");
+        await textarea.FillAsync(new string('x', limit + 1));
+        await Assertions.Expect(dialog.Locator("#lmxAdviceStoryCount")).ToHaveTextAsync("1 over");
+        await Assertions.Expect(dialog.Locator("button[type=submit]")).ToBeDisabledAsync();
+        await page.ReloadAsync();
+        await Assertions.Expect(textarea).ToHaveValueAsync(new string('x', limit + 1));
+        await Assertions.Expect(dialog.Locator("button[type=submit]")).ToBeDisabledAsync();
         await textarea.FillAsync(story);
         await textarea.PressAsync("End");
         await textarea.PressAsync("Enter");
         await textarea.PressSequentiallyAsync("Last line.");
         story += "\nLast line.";
         await Assertions.Expect(textarea).ToHaveValueAsync(story);
-        await Assertions.Expect(dialog.Locator("#lmxAdviceStoryCount")).ToHaveCountAsync(0);
+        await Assertions.Expect(dialog.Locator("#lmxAdviceStoryCount")).ToHaveTextAsync($"{story.Length}/{limit}");
+        var inputBounds = (await textarea.BoundingBoxAsync())!;
+        var countBounds = (await dialog.Locator("#lmxAdviceStoryCount").BoundingBoxAsync())!;
+        Assert.True(countBounds.Y >= inputBounds.Y + inputBounds.Height);
         await Assertions.Expect(dialog.Locator("button[type=submit]")).ToBeEnabledAsync();
-        await CaptureAdviceAsync(page, $"unlimited-story-{width}.png");
+        await CaptureAdviceAsync(page, $"story-allowance-{width}.png");
         await page.ReloadAsync();
         await Assertions.Expect(textarea).ToHaveValueAsync(story);
         await dialog.Locator("button[type=submit]").ClickAsync();
@@ -67,8 +79,13 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxNotes [data-advice-edit]").ClickAsync();
         var editor = page.Locator("#lmxNotes .lmx-advice-story-editor");
         Assert.Null(await editor.Locator("textarea").GetAttributeAsync("maxlength"));
-        var longerStory = story + "\n\n" + new string('x', 5000);
+        await editor.Locator("textarea").FillAsync(new string('x', limit + 1));
+        await Assertions.Expect(editor.Locator(".lmx-advice-story-count")).ToHaveTextAsync("1 over");
+        await Assertions.Expect(editor.Locator("button[type=submit]")).ToBeDisabledAsync();
+        var longerStory = (story + "\n\nMore context.").PadRight(limit, 'x');
         await editor.Locator("textarea").FillAsync(longerStory);
+        await Assertions.Expect(editor.Locator(".lmx-advice-story-count")).ToHaveTextAsync($"{limit}/{limit}");
+        await Assertions.Expect(editor.Locator("button[type=submit]")).ToBeEnabledAsync();
         await editor.Locator("button[type=submit]").ClickAsync();
         await Assertions.Expect(editor).ToHaveCountAsync(0);
         Assert.Equal(longerStory, edited);

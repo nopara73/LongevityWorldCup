@@ -146,12 +146,14 @@
     interface AdvicePrompt {
         id: string; challengeDay: number; date: string; rawScore: number;
         baselineRawScore: number | null; version: number;
+        characterLimit?: number;
         checkInNote?: string | null;
     }
 
     interface AdviceThread {
         id: string; story: string; publishedAtUtc: string; activeAdviceReplyId: string | null;
         replies: DiscussionReply[]; version: number; withdrawn: boolean;
+        storyCharacterLimit?: number;
         betterAdviceParticipantIds?: string[];
     }
 
@@ -5846,7 +5848,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.innerHTML = `<form>
                 <h2 id="lmxAdviceStoryHeading">This is unusual for you. What’s the story?</h2>
                 <div class="lmx-advice-story-input">
-                    <textarea id="lmxAdviceStory" rows="6" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading"></textarea>
+                    <textarea id="lmxAdviceStory" rows="6" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
+                    <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>
                 </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
                 <div class="lmx-advice-story-actions">
@@ -5899,7 +5902,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
         submit.textContent = "Post";
-        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim();
+        const overLimit = updateAdviceStoryCount(dialog.querySelector<HTMLTextAreaElement>("textarea")!,
+            dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!, prompt.characterLimit);
+        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || overLimit;
+    }
+
+    function updateAdviceStoryCount(textarea: HTMLTextAreaElement, count: HTMLElement, allowance?: number): boolean {
+        const limit = Math.max(2000, allowance ?? discussionCharacterLimit());
+        const length = textarea.value.length;
+        const over = Math.max(0, length - limit);
+        count.textContent = over ? `${over} over` : `${length}/${limit}`;
+        count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${limit} characters`);
+        count.classList.toggle("over-limit", over > 0);
+        textarea.setAttribute("aria-invalid", String(over > 0));
+        return over > 0;
     }
 
     async function finishAdviceStory(publish: boolean): Promise<void> {
@@ -6854,11 +6870,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const form = document.createElement("form");
                 form.className = "lmx-advice-story-editor";
                 form.innerHTML = `<label for="lmxAdviceEdit-${escAttr(advice.id)}">Edit your story</label>
-                    <textarea id="lmxAdviceEdit-${escAttr(advice.id)}" rows="4"></textarea><p class="lmx-status" role="status"></p>
+                    <textarea id="lmxAdviceEdit-${escAttr(advice.id)}" rows="4" aria-describedby="lmxAdviceEditCount-${escAttr(advice.id)}"></textarea>
+                    <span id="lmxAdviceEditCount-${escAttr(advice.id)}" class="lmx-advice-story-count"></span><p class="lmx-status" role="status"></p>
                     <div><button class="lmx-button" type="submit">Save story</button><button class="lmx-discussion-quiet-action" type="button">Cancel</button></div>`;
                 const textarea = form.querySelector<HTMLTextAreaElement>("textarea")!;
                 textarea.value = original;
-                textarea.addEventListener("input", () => { adviceStoryEditDirty = textarea.value !== original; });
+                const updateControls = (): void => {
+                    const overLimit = updateAdviceStoryCount(textarea, form.querySelector<HTMLElement>(".lmx-advice-story-count")!, advice.storyCharacterLimit);
+                    const save = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+                    save.disabled = save.hasAttribute("aria-busy") || !textarea.value.trim() || overLimit;
+                };
+                updateControls();
+                textarea.addEventListener("input", () => { adviceStoryEditDirty = textarea.value !== original; updateControls(); });
                 form.querySelector("button[type=button]")!.addEventListener("click", () => { form.remove(); adviceStoryEditDirty = false; button.focus(); });
                 form.addEventListener("submit", async event => {
                     event.preventDefault();
@@ -6879,7 +6902,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                         void finishWait?.("error");
                         form.querySelector<HTMLElement>(".lmx-status")!.textContent = messageOf(error);
                         save.disabled = false;
-                    } finally { save.removeAttribute("aria-busy"); }
+                    } finally { save.removeAttribute("aria-busy"); updateControls(); }
                 });
                 story.append(form);
                 textarea.focus();
