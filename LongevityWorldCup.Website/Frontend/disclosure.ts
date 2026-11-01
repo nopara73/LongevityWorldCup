@@ -112,19 +112,21 @@ interface Window {
             const to = face.getBoundingClientRect();
             if (!to.width || !from.width) return;
             const cs = getComputedStyle(face);
-            const ghost = face.cloneNode(false) as HTMLImageElement;
+            // A fresh image keeps responsive sources and loading effects on the real portrait.
+            const ghost = document.createElement("img");
             // Keep a decoded portrait even when a cold roster is closed mid-flight.
             const portrait = face as HTMLImageElement;
             const source = !opening && portrait.naturalWidth ? portrait : seat as HTMLImageElement;
             ghost.src = source.currentSrc || source.src;
             ghost.loading = "eager";
             ghost.decoding = "sync";
-            ghost.removeAttribute("id");
+            ghost.alt = "";
             ghost.setAttribute("aria-hidden", "true");
             ghost.className = "lwc-disclosure-ghost";
             Object.assign(ghost.style, {
                 left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`,
-                border: cs.border, borderRadius: cs.borderRadius, objectFit: cs.objectFit, background: cs.backgroundColor,
+                border: cs.border, borderRadius: cs.borderRadius, objectFit: cs.objectFit, objectPosition: cs.objectPosition,
+                outline: cs.outline, outlineOffset: cs.outlineOffset, background: cs.backgroundColor,
             });
             document.body.appendChild(ghost);
             const dx = from.left + from.width / 2 - (to.left + to.width / 2);
@@ -186,9 +188,16 @@ interface Window {
             ...extras.map(a => Number(a.effect?.getComputedTiming().endTime) || 0));
         const anim = details.animate([], { duration: end });
         running.set(details, { anim, opening: open, extras, cleanup: () => { delete details.dataset.disclosure; } });
-        anim.onfinish = anim.oncancel = () => {
+        anim.oncancel = () => {
             if (running.get(details)?.anim !== anim) return;
             stop(details);
+        };
+        anim.onfinish = () => {
+            if (running.get(details)?.anim !== anim) return;
+            // Equal end times can still settle in different rendering turns.
+            void Promise.all(extras.map(a => a.finished.catch(() => {}))).then(() => {
+                if (running.get(details)?.anim === anim) stop(details);
+            });
         };
     }
 
