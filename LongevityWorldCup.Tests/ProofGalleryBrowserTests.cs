@@ -54,10 +54,10 @@ public sealed class ProofGalleryBrowserTests(PlaywrightBrowserFixture browserFix
         await using var context = await CreateContextAsync(14);
         var page = await OpenProfileAsync(context);
         await page.Locator("#proofsGallery img").First.ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
         await page.Keyboard.PressAsync("End");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 14 of 14");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 14 of 14");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
         await page.GoBackAsync();
         await Assertions.Expect(viewer).ToBeHiddenAsync();
@@ -68,9 +68,9 @@ public sealed class ProofGalleryBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(page.Locator(".proofs-toggle")).ToHaveAttributeAsync("aria-expanded", "true");
         await page.GoForwardAsync();
         await Assertions.Expect(viewer).ToBeVisibleAsync();
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 14 of 14");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 14 of 14");
         await page.Keyboard.PressAsync("Home");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 1 of 14");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 1 of 14");
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(viewer).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#proofsGallery img").First).ToBeFocusedAsync();

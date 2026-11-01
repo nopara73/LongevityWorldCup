@@ -9,6 +9,58 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(1440, 900, ColorScheme.Light)]
+    [InlineData(1440, 900, ColorScheme.Dark)]
+    [InlineData(390, 844, ColorScheme.Light)]
+    [InlineData(390, 844, ColorScheme.Dark)]
+    public async Task PhotoReader_RecoversAndReturnsToItsDiscussion(int width, int height, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ColorScheme = theme, ReducedMotion = ReducedMotion.Reduce
+        });
+        var baseline = Environment.GetEnvironmentVariable("LWC_VIEWER_BASELINE_DIR");
+        if (!string.IsNullOrEmpty(baseline))
+        {
+            await context.RouteAsync("**/js/longevitymaxxing.js?*", route => route.FulfillAsync(new() { ContentType = "application/javascript", Path = Path.Combine(baseline, "before-longevitymaxxing.js") }));
+            await context.RouteAsync("**/css/longevitymaxxing.css?*", route => route.FulfillAsync(new() { ContentType = "text/css", Path = Path.Combine(baseline, "before-longevitymaxxing.css") }));
+        }
+        var state = ConversationWorkspaceState();
+        foreach (var notes in new[] { state["notes"]!, state["public"]!["notes"]! })
+            notes.AsArray()[0]!["images"] = JsonSerializer.SerializeToNode(new[] { new { url = "/mock/viewer-capture.svg", width = 1600, height = 900 } });
+        var loaded = false;
+        await context.RouteAsync("**/mock/viewer-capture.svg", route => route.FulfillAsync(new()
+        {
+            Status = loaded ? 200 : 503, ContentType = loaded ? "image/svg+xml" : "text/plain",
+            Body = loaded ? "<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='900'><rect width='1600' height='900' fill='#e1efea'/><circle cx='800' cy='380' r='170' fill='#167a68'/><text x='800' y='680' text-anchor='middle' font-size='55' font-family='sans-serif'>Synthetic discussion photo</text></svg>" : "Unavailable"
+        }));
+        var page = await OpenDiscussionWorkspaceAsync(context, state);
+        var source = DiscussionThread(page, "p7", 5).Locator(".lmx-note-photo").First;
+        await source.ClickAsync();
+        var viewer = page.Locator(baseline is null ? ".lwc-viewer" : "#lmxNotePhotoViewer");
+        var retry = viewer.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true });
+        await Assertions.Expect(retry).ToBeVisibleAsync();
+        await Capture("error");
+        Assert.True(await viewer.EvaluateAsync<bool>("e=>e.scrollHeight<=e.clientHeight+1 && e.scrollWidth<=e.clientWidth+1"));
+        loaded = true;
+        await retry.ClickAsync();
+        await Assertions.Expect(retry).ToBeHiddenAsync();
+        await viewer.Locator("img").EvaluateAsync("async e=>await e.decode()");
+        await Capture("ready");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
+        await Assertions.Expect(source).ToBeFocusedAsync();
+
+        async Task Capture(string stateName)
+        {
+            if (Environment.GetEnvironmentVariable("LWC_VIEWER_CAPTURE_DIR") is not { Length: > 0 } directory) return;
+            await page.EvaluateAsync("async()=>await document.fonts.ready");
+            await page.WaitForTimeoutAsync(450);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"synthetic-photo-{stateName}-{width}-{theme}.png") });
+        }
+    }
+
+    [Theory]
     [InlineData(1280)]
     [InlineData(390)]
     public async Task DiscussionReliability_OpenMentionsKeepHeldSubmitOnItsButton(int width)
@@ -279,21 +331,21 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var page = await OpenDiscussionWorkspaceAsync(context, state);
         var thread = DiscussionThread(page, "p7", 5);
         await thread.Locator(".lmx-note-photo").First.ClickAsync();
-        var viewer = page.Locator("#lmxNotePhotoViewer");
-        var retry = viewer.Locator("[data-photo-retry]");
+        var viewer = page.Locator(".lwc-viewer");
+        var retry = viewer.Locator(".lwc-viewer-retry");
         await Assertions.Expect(retry).ToBeVisibleAsync();
-        await Assertions.Expect(viewer.Locator("#lmxNotePhotoViewerClose")).ToBeEnabledAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-close")).ToBeEnabledAsync();
         await CaptureReliabilityAsync(viewer, "photo-retry-mobile.png");
         loadFirst = true;
         await retry.ClickAsync();
-        await Assertions.Expect(viewer.Locator(".lmx-photo-load-status")).ToBeHiddenAsync();
-        await viewer.Locator(".lmx-photo-viewer-stage img").EvaluateAsync("e => window.previousDiscussionImage = e");
-        await viewer.Locator("#lmxNotePhotoViewerNext").ClickAsync();
-        await Assertions.Expect(viewer.Locator(".lmx-photo-load-status")).ToBeHiddenAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
+        await viewer.Locator(".lwc-viewer-stage img").EvaluateAsync("e => window.previousDiscussionImage = e");
+        await viewer.Locator(".lwc-viewer-next").ClickAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
         await page.EvaluateAsync("window.previousDiscussionImage.dispatchEvent(new Event('error'))");
-        await Assertions.Expect(viewer.Locator(".lmx-photo-load-status")).ToBeHiddenAsync();
-        await Assertions.Expect(viewer.Locator(".lmx-photo-viewer-stage img")).ToHaveAttributeAsync("src", "/mock/reliability-second.svg");
-        await viewer.Locator("#lmxNotePhotoViewerClose").ClickAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync("src", "/mock/reliability-second.svg");
+        await viewer.Locator(".lwc-viewer-close").ClickAsync();
         await Assertions.Expect(thread.Locator("[data-discussion-reply-id='r3'] .lmx-discussion-author-avatar img")).Not.ToHaveAttributeAsync("src", "/mock/reliability-avatar.svg");
     }
 

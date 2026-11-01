@@ -127,7 +127,8 @@ img[data-lwc-view-away] {
 
 .lwc-viewer-stage {
     position: absolute;
-    inset: 0;
+    inset: 72px clamp(12px, 7vw, 96px) 80px;
+    overflow: hidden;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
@@ -160,11 +161,11 @@ img[data-lwc-view-away] {
 
 /* Round controls in the site's bordered-secondary language. */
 .lwc-viewer-button {
-    position: absolute;
     display: grid;
     place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
     padding: 0;
     border: 1px solid var(--lwc-border, #d7e0e6);
     border-radius: var(--lwc-radius-pill, 999px);
@@ -172,6 +173,7 @@ img[data-lwc-view-away] {
     color: var(--lwc-ink, #17212b);
     box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
     cursor: pointer;
+    touch-action: manipulation;
     transition:
         opacity 180ms var(--lwc-ease, ease),
         scale 180ms var(--lwc-ease, ease),
@@ -196,7 +198,8 @@ img[data-lwc-view-away] {
 }
 
 .lwc-viewer-button:active:not(:disabled) {
-    scale: 0.92;
+    border-color: var(--lwc-accent, #087685);
+    background: color-mix(in srgb, var(--lwc-surface, #fff) 90%, var(--lwc-accent, #087685));
 }
 
 .lwc-viewer-button:focus-visible {
@@ -210,47 +213,104 @@ img[data-lwc-view-away] {
 }
 
 .lwc-viewer-close {
+    position: absolute;
     top: max(1rem, env(safe-area-inset-top));
     right: max(1rem, env(safe-area-inset-right));
 }
 
-.lwc-viewer-nav {
-    top: 50%;
-    margin-top: -1.375rem;
-}
-
-.lwc-viewer-nav[data-step="-1"] {
-    left: max(1rem, env(safe-area-inset-left));
-}
-
-.lwc-viewer-nav[data-step="1"] {
-    right: max(1rem, env(safe-area-inset-right));
+.lwc-viewer-toolbar {
+    position: absolute;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 50%;
+    translate: -50% 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: safe center;
+    gap: 6px;
+    width: max-content;
+    max-width: calc(100% - 16px);
 }
 
 .lwc-viewer:not([data-many]) :is(.lwc-viewer-nav, .lwc-viewer-dots) {
     display: none;
 }
 
+.lwc-viewer-zoom-controls {
+    display: flex;
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface, #fff);
+}
+.lwc-viewer-zoom-controls .lwc-viewer-button {
+    border: 0;
+    box-shadow: none;
+}
+
 /* Position: a row of dots with the current one stretched into an accent pill. */
 .lwc-viewer-dots {
     position: absolute;
     left: 50%;
-    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    top: 24px;
     display: flex;
-    gap: 0.375rem;
+    gap: 6px;
     align-items: center;
-    padding: 0.5rem 0.65rem;
+    padding: 8px 10px;
     border: 1px solid var(--lwc-border, #d7e0e6);
     border-radius: var(--lwc-radius-pill, 999px);
     background: var(--lwc-surface, #fff);
     box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
     translate: -50% 0;
     transition: opacity 180ms var(--lwc-ease, ease), translate 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+
+.lwc-viewer-position, .lwc-viewer-zoom-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.lwc-viewer-feedback {
+    position: absolute;
+    top: 72px;
+    bottom: 130px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+    gap: 12px;
+    overflow: auto;
+    text-align: center;
+    font: inherit;
+}
+.lwc-viewer-feedback[hidden], .lwc-viewer-retry[hidden] { display: none; }
+.lwc-viewer-load-message { margin: .5em 0 0; }
+.lwc-viewer-retry {
+    flex: 0 0 auto;
+    min-width: 48px;
+    min-height: 48px;
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface, #fff);
+    color: var(--lwc-ink, #17212b);
+    padding: .5em 1em;
+    font: inherit;
+    cursor: pointer;
+}
+.lwc-viewer-retry:focus-visible, .lwc-viewer-stage:focus-visible {
+    outline: 2px solid var(--lwc-accent, #087685);
+    outline-offset: 2px;
 }
 
 .lwc-viewer-dots > span {
-    width: 0.375rem;
-    height: 0.375rem;
+    width: 6px;
+    height: 6px;
     border-radius: var(--lwc-radius-pill, 999px);
     background: var(--lwc-border-strong, #71808d);
     opacity: 0.55;
@@ -261,13 +321,13 @@ img[data-lwc-view-away] {
 }
 
 .lwc-viewer-dots > span[data-current] {
-    width: 1.25rem;
+    width: 20px;
     background: var(--lwc-accent, #087685);
     opacity: 1;
 }
 
-/* Controls arrive just after the picture lands and step aside while it is handled. */
-.lwc-viewer:is([data-state="opening"], [data-state="closing"], [data-dragging]) :is(.lwc-viewer-button, .lwc-viewer-dots) {
+/* Controls step aside during the return flight or a drag. */
+.lwc-viewer:is([data-state="closing"], [data-dragging]) :is(.lwc-viewer-toolbar, .lwc-viewer-dots) {
     opacity: 0;
     pointer-events: none;
 }
@@ -292,17 +352,20 @@ img[data-lwc-view-away] {
     transition-delay: 40ms;
 }
 
-/* Zoomed in, the picture has the whole screen; only the way out remains. */
-.lwc-viewer[data-zoomed] :is(.lwc-viewer-nav, .lwc-viewer-dots) {
-    opacity: 0;
-    pointer-events: none;
+@media (max-width: 340px) {
+    .lwc-viewer-dots { left: 16px; translate: 0 0; gap: 3px; padding-inline: 6px; }
+    .lwc-viewer-close { right: 8px; top: 12px; }
 }
-
-/* Phones swipe between pictures; the dots carry position. */
-@media (max-width: 640px) and (hover: none) {
-    .lwc-viewer-nav {
-        display: none;
-    }
+@media (max-width: 260px) {
+    .lwc-viewer-dots { display: none; }
+    .lwc-viewer-toolbar { display: grid; grid-template-columns: repeat(3, 48px); }
+    .lwc-viewer-zoom-controls { grid-column: 1 / -1; grid-row: 1; }
+    .lwc-viewer-prev { grid-column: 1; grid-row: 2; }
+    .lwc-viewer-next { grid-column: 3; grid-row: 2; }
+}
+@media (max-width: 180px) {
+    .lwc-viewer-toolbar { grid-template-columns: 48px 44px 48px; gap: 6px 0; }
+    .lwc-viewer-zoom-controls .lwc-viewer-button { width: 46px; flex-basis: 46px; }
 }
 
 @media (prefers-color-scheme: dark) {

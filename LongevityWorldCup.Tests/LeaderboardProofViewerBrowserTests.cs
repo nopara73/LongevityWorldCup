@@ -58,32 +58,31 @@ public sealed class LeaderboardProofViewerBrowserTests(
                 openEnlargedView(firstProof);
             }
             """);
-        var viewer = page.Locator(".enlarged-portrait.show");
+        var viewer = page.Locator(".lwc-viewer[open]");
         await viewer.WaitForAsync();
 
-        Assert.Equal("region", await viewer.GetAttributeAsync("role"));
-        Assert.Equal(1, await page.Locator("#detailsModal > #athleteImageViewer").CountAsync());
-        Assert.Equal(1, await page.Locator("[role=dialog]:visible").CountAsync());
-        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.inert"));
+        Assert.Equal("dialog", await viewer.GetAttributeAsync("role"));
+        Assert.Equal(1, await page.Locator("body > dialog.lwc-viewer").CountAsync());
+        Assert.True(await viewer.EvaluateAsync<bool>("element => element.matches(':modal')"));
 
-        var previousButton = viewer.Locator(".image-nav--previous");
-        var nextButton = viewer.Locator(".image-nav--next");
-        var closeButton = viewer.Locator(".close-btn");
-        var position = viewer.Locator(".image-position");
-        var zoomOutButton = viewer.Locator(".image-zoom-out");
-        var zoomInButton = viewer.Locator(".image-zoom-in");
-        var fitButton = viewer.Locator(".image-zoom-fit");
+        var previousButton = viewer.Locator(".lwc-viewer-prev");
+        var nextButton = viewer.Locator(".lwc-viewer-next");
+        var closeButton = viewer.Locator(".lwc-viewer-close");
+        var position = viewer.Locator(".lwc-viewer-position");
+        var zoomOutButton = viewer.Locator(".lwc-viewer-zoom-out");
+        var zoomInButton = viewer.Locator(".lwc-viewer-zoom-in");
+        var fitButton = viewer.Locator(".lwc-viewer-zoom-fit");
 
         await page.WaitForFunctionAsync(
-            "() => { const image = document.querySelector('.enlarged-portrait.show img'); return image?.complete && image.naturalWidth > 0; }");
+            "() => { const image = document.querySelector('.lwc-viewer[open] img'); return image?.complete && image.naturalWidth > 0; }");
+        await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         var mobileLayout = await viewer.EvaluateAsync<ProofViewerLayoutDiagnostics>(
             """
             element => {
-                const stage = element.querySelector('.image-viewer-stage');
-                const previous = element.querySelector('.image-nav--previous');
-                const next = element.querySelector('.image-nav--next');
-                const hint = element.querySelector('.image-viewer-hint');
-                const zoomStatus = element.querySelector('.image-zoom-status');
+                const stage = element.querySelector('.lwc-viewer-stage');
+                const previous = element.querySelector('.lwc-viewer-prev');
+                const next = element.querySelector('.lwc-viewer-next');
+                const zoomStatus = element.querySelector('.lwc-viewer-zoom-status');
                 const stageRect = stage.getBoundingClientRect();
                 const previousRect = previous.getBoundingClientRect();
                 const nextRect = next.getBoundingClientRect();
@@ -91,11 +90,10 @@ public sealed class LeaderboardProofViewerBrowserTests(
                     && rect.top < stageRect.bottom && rect.bottom > stageRect.top;
                 return {
                     StageClientWidth: stage.clientWidth,
-                    StageScrollWidth: stage.scrollWidth,
+                    StageScrollWidth: element.querySelector('img').getBoundingClientRect().width,
                     StageClientHeight: stage.clientHeight,
-                    StageScrollHeight: stage.scrollHeight,
+                    StageScrollHeight: element.querySelector('img').getBoundingClientRect().height,
                     NavigationOverlapsStage: overlapsStage(previousRect) || overlapsStage(nextRect),
-                    HintIsVisible: !hint.hidden && getComputedStyle(hint).display !== 'none',
                     ZoomStatus: zoomStatus.textContent.trim()
                 };
             }
@@ -103,7 +101,6 @@ public sealed class LeaderboardProofViewerBrowserTests(
 
         Assert.Equal("Proof 1 of 3", await position.InnerTextAsync());
         Assert.Equal("200%", mobileLayout.ZoomStatus);
-        Assert.True(mobileLayout.HintIsVisible);
         Assert.True(
             mobileLayout.StageScrollWidth >= mobileLayout.StageClientWidth * 1.9,
             $"Expected a readable zoomed proof width; client={mobileLayout.StageClientWidth}, scroll={mobileLayout.StageScrollWidth}.");
@@ -111,34 +108,13 @@ public sealed class LeaderboardProofViewerBrowserTests(
         Assert.False(mobileLayout.NavigationOverlapsStage);
         Assert.True(await IsFocusedAsync(closeButton));
 
-        // Freeze the viewer at the production entrance scale so every viewer
-        // control remains a valid touch target throughout the motion.
-        await viewer.EvaluateAsync(
-            """
-            element => {
-                const entryScale = getComputedStyle(element)
-                    .getPropertyValue('--image-viewer-entry-scale')
-                    .trim();
-                if (!entryScale) throw new Error('Missing image viewer entry scale.');
-                element.style.transition = 'none';
-                element.style.transform = `scale(${entryScale})`;
-                void element.offsetWidth;
-            }
-            """);
+        // Controls retain their size while only the picture animates.
         await AssertTouchTargetAsync(closeButton);
         await AssertTouchTargetAsync(previousButton);
         await AssertTouchTargetAsync(nextButton);
         await AssertTouchTargetAsync(zoomOutButton);
         await AssertTouchTargetAsync(zoomInButton);
         await AssertTouchTargetAsync(fitButton);
-        await viewer.EvaluateAsync(
-            """
-            element => {
-                element.style.removeProperty('transition');
-                element.style.removeProperty('transform');
-                void element.offsetWidth;
-            }
-            """);
         Assert.True(await viewer.EvaluateAsync<bool>(
             "element => !element.style.transition && !element.style.transform"));
         Assert.False(await previousButton.IsEnabledAsync());
@@ -149,46 +125,54 @@ public sealed class LeaderboardProofViewerBrowserTests(
         Assert.Contains("/proof_1.webp", await viewer.Locator("img").GetAttributeAsync("src"));
 
         await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         Assert.Equal("Proof 2 of 3", await position.InnerTextAsync());
         Assert.Contains("/proof_2.webp", await viewer.Locator("img").GetAttributeAsync("src"));
 
         await page.Keyboard.PressAsync("End");
+        await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         Assert.Equal("Proof 3 of 3", await position.InnerTextAsync());
         Assert.True(await previousButton.IsEnabledAsync());
         Assert.False(await nextButton.IsEnabledAsync());
 
         await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         Assert.Equal("Proof 3 of 3", await position.InnerTextAsync());
         Assert.Contains("/proof_3.webp", await viewer.Locator("img").GetAttributeAsync("src"));
 
         await previousButton.ClickAsync();
+        await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         Assert.Equal("Proof 2 of 3", await position.InnerTextAsync());
 
         await page.Keyboard.PressAsync("End");
+        await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         await previousButton.FocusAsync();
+        for (var tab = 0; tab < 9; tab++)
+        {
+            await page.Keyboard.PressAsync("Tab");
+            Assert.True(await viewer.EvaluateAsync<bool>("element => element.contains(document.activeElement)"));
+        }
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-viewer')?.dataset.imageState === 'ready'");
+        await zoomInButton.FocusAsync();
         await page.Keyboard.PressAsync("Tab");
-        Assert.True(await IsFocusedAsync(viewer.Locator(".image-viewer-stage")));
-        await page.WaitForFunctionAsync("() => document.getElementById('athleteImageViewer')?.dataset.imageState === 'ready'");
-        await fitButton.FocusAsync();
-        await page.Keyboard.PressAsync("Tab");
-        Assert.True(await IsFocusedAsync(closeButton));
+        Assert.True(await IsFocusedAsync(viewer.Locator(".lwc-viewer-stage")));
 
         await page.Keyboard.PressAsync("Escape");
         await page.WaitForFunctionAsync(
-            "() => document.getElementById('athleteImageViewer')?.getAttribute('aria-hidden') === 'true'");
+            "() => document.querySelector('.lwc-viewer')?.getAttribute('aria-hidden') === 'true'");
         Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.inert"));
-        Assert.Equal("true", await page.Locator(".enlarged-portrait").GetAttributeAsync("aria-hidden"));
+        Assert.Equal("true", await page.Locator(".lwc-viewer").GetAttributeAsync("aria-hidden"));
         Assert.Equal(
             "Enlarge proof image 3",
             await page.EvaluateAsync<string>("() => document.activeElement?.getAttribute('aria-label') || document.activeElement?.tagName"));
 
         await page.GoForwardAsync();
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         Assert.Equal("Proof 3 of 3", await position.InnerTextAsync());
         Assert.Contains("/proof_3.webp", await viewer.Locator("img").GetAttributeAsync("src"));
         await page.GoBackAsync();
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
-        await page.Locator(".enlarged-portrait").WaitForAsync(
+        await page.Locator(".lwc-viewer").WaitForAsync(
             new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.inert"));
         Assert.Equal(
@@ -237,7 +221,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
             }
             """);
 
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
 
         // A dismissal in the same frame as opening must cancel the queued
         // entrance class instead of resurrecting a visually closed viewer.
@@ -245,7 +229,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
             """
             () => {
                 const proof = document.querySelector('#proofsGallery .proof-item img');
-                const viewer = document.getElementById('athleteImageViewer');
+                const viewer = document.querySelector('.lwc-viewer');
                 proof.focus();
                 openEnlargedView(proof, { pushHistory: false });
                 closeEnlargedView(viewer);
@@ -253,8 +237,8 @@ public sealed class LeaderboardProofViewerBrowserTests(
             """);
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         Assert.Equal("true", await viewer.GetAttributeAsync("aria-hidden"));
-        Assert.False(await viewer.EvaluateAsync<bool>("element => element.classList.contains('show')"));
-        Assert.True(await viewer.IsHiddenAsync());
+        Assert.False(await viewer.EvaluateAsync<bool>("element => element.open"));
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
         await AssertDetailsStateAsync(page);
 
         await page.EvaluateAsync(
@@ -265,18 +249,18 @@ public sealed class LeaderboardProofViewerBrowserTests(
                 openEnlargedView(proof);
             }
             """);
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         var initialViewerState = await viewer.EvaluateAsync<ViewerStateDiagnostics>(
             """
             element => ({
-                ClassName: element.className,
-                Hidden: element.hidden,
+                ClassName: element.dataset.state,
+                Hidden: !element.open,
                 AriaHidden: element.getAttribute('aria-hidden'),
                 ModalDisplay: document.getElementById('detailsModal').style.display,
                 HistoryModal: history.state?.modal || ''
             })
             """);
-        Assert.Contains("show", initialViewerState.ClassName, StringComparison.Ordinal);
+        Assert.Contains(initialViewerState.ClassName, new[] { "opening", "open" });
         Assert.False(initialViewerState.Hidden);
         Assert.Equal("false", initialViewerState.AriaHidden);
         Assert.Equal("block", initialViewerState.ModalDisplay);
@@ -289,10 +273,10 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await AssertDetailsStateAsync(page);
 
         await TraverseHistoryAsync(page, 1);
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         Assert.Equal("enlarged", await page.EvaluateAsync<string>("() => history.state?.modal"));
 
-        await viewer.Locator(".close-btn").ClickAsync();
+        await viewer.Locator(".lwc-viewer-close").ClickAsync();
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         await AssertDetailsStateAsync(page);
 
@@ -306,7 +290,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
                 openEnlargedView(document.querySelector('#proofsGallery .proof-item img'));
             }
             """);
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         await page.EvaluateAsync("() => history.go(-2)");
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         await page.WaitForFunctionAsync(
@@ -325,14 +309,14 @@ public sealed class LeaderboardProofViewerBrowserTests(
 
         await page.EvaluateAsync(
             "() => openEnlargedView(document.querySelector('#proofsGallery .proof-item img'))");
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         await page.Keyboard.PressAsync("Escape");
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         await AssertDetailsStateAsync(page);
 
         await page.EvaluateAsync(
             "() => openEnlargedView(document.querySelector('#proofsGallery .proof-item img'))");
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         var viewerBox = await viewer.BoundingBoxAsync();
         Assert.NotNull(viewerBox);
         await page.Mouse.ClickAsync((float)viewerBox.X + 8, (float)viewerBox.Y + 8);
@@ -341,7 +325,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
 
         await page.EvaluateAsync(
             "() => openEnlargedView(document.querySelector('#proofsGallery .proof-item img'))");
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         await TraverseHistoryAsync(page, -1);
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         await AssertDetailsStateAsync(page);
@@ -355,7 +339,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await TraverseHistoryAsync(page, 1);
         await page.WaitForFunctionAsync("() => location.pathname === '/' && !history.state?.modal");
         Assert.Equal("/", new Uri(page.Url).AbsolutePath);
-        Assert.True(await viewer.IsHiddenAsync());
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
         Assert.True(await page.Locator("#detailsModal").IsHiddenAsync());
 
         // Selecting the base entry from the browser Back menu can skip both
@@ -369,12 +353,12 @@ public sealed class LeaderboardProofViewerBrowserTests(
                 openEnlargedView(document.querySelector('#proofsGallery .proof-item img'));
             }
             """);
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         await page.EvaluateAsync("() => history.go(-2)");
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && document.getElementById('detailsModal')?.style.display === 'none'");
         Assert.Equal("/", new Uri(page.Url).AbsolutePath);
-        Assert.True(await viewer.IsHiddenAsync());
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
         Assert.True(await page.Locator("#detailsModal").IsHiddenAsync());
 
         // Browser Back/Forward restores both the real athlete details state and
@@ -420,7 +404,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
                 openEnlargedView(image);
             }
             """);
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         // The viewer deliberately shows a loaded thumbnail while the full
         // portrait downloads. Compare history against the canonical source,
         // and wait for that upgrade instead of sampling its transient preview.
@@ -485,7 +469,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await TraverseHistoryAsync(page, 1);
         athleteRequestGate.SetResult();
         athleteRequestGate = null;
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')");
         Assert.Equal("enlarged", await page.EvaluateAsync<string>("() => history.state?.modal"));
@@ -495,11 +479,11 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await page.EvaluateAsync("() => history.go(-2)");
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && document.getElementById('detailsModal')?.style.display === 'none'");
-        Assert.True(await viewer.IsHiddenAsync());
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
 
         await page.EvaluateAsync(
             "() => { window.__sharedAthletesRequest = null; history.go(2); }");
-        await page.Locator("#athleteImageViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         await page.WaitForFunctionAsync(
             "() => history.state?.modal === 'enlarged' && !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')");
         Assert.Equal(realAthletePath, new Uri(page.Url).AbsolutePath);
@@ -524,7 +508,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
             () => history.state?.modal === 'details'
                 && !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')
             """);
-        Assert.True(await viewer.IsHiddenAsync());
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
         Assert.Equal(realAthletePath, new Uri(page.Url).AbsolutePath);
 
         await TraverseHistoryAsync(page, -1);
@@ -539,7 +523,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
                 && !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')
             """);
         Assert.Equal(realAthletePath, new Uri(page.Url).AbsolutePath);
-        Assert.True(await viewer.IsHiddenAsync());
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
         Assert.True(await page.Locator("#detailsModal").IsVisibleAsync());
         Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>("element => element.inert"));
         Assert.Equal("Athlete details unavailable", await page.Locator("#athleteName").InnerTextAsync());
@@ -580,7 +564,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
             """);
         Assert.True(await page.EvaluateAsync<bool>(
             "() => { window.__proofHistoryLoadingObserver?.disconnect(); return window.__proofHistorySawEnlargedLoading === true; }"));
-        Assert.True(await viewer.IsHiddenAsync());
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
         Assert.True(await loadError.IsVisibleAsync());
 
         await TraverseHistoryAsync(page, -1);
@@ -643,7 +627,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await delayedResponse;
         await page.WaitForFunctionAsync(
             "() => location.pathname === '/' && !history.state?.modal && document.getElementById('detailsModal')?.style.display === 'none'");
-        Assert.True(await viewer.IsHiddenAsync());
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
     }
 
     private static async Task AssertDetailsStateAsync(IPage page)
@@ -676,7 +660,6 @@ public sealed class LeaderboardProofViewerBrowserTests(
         public double StageClientHeight { get; set; }
         public double StageScrollHeight { get; set; }
         public bool NavigationOverlapsStage { get; set; }
-        public bool HintIsVisible { get; set; }
         public string ZoomStatus { get; set; } = "";
     }
 
