@@ -120,9 +120,6 @@ public sealed partial class LongevitymaxxingChallengeService
     public LongevitymaxxingParticipantState DismissAdviceStory(LongevitymaxxingAdviceStoryRequest request, DateTimeOffset? nowUtc = null)
         => ChangeAdviceStory(request, "dismissed", nowUtc);
 
-    public LongevitymaxxingParticipantState WithdrawAdviceStory(LongevitymaxxingAdviceStoryRequest request, DateTimeOffset? nowUtc = null)
-        => ChangeAdviceStory(request, "withdrawn", nowUtc);
-
     public LongevitymaxxingParticipantState EditAdviceStory(LongevitymaxxingAdviceStoryRequest request, DateTimeOffset? nowUtc = null)
     {
         var author = RequireParticipantByAccessToken(request.AccessToken);
@@ -179,7 +176,7 @@ public sealed partial class LongevitymaxxingChallengeService
                 if (story.Length == 0 || story.Length > advice.CharacterLimit)
                     throw new InvalidOperationException($"Write your story in 1–{advice.CharacterLimit} characters.");
             }
-            else if (target == "withdrawn" ? advice.Status != "published" : advice.Status != "pending")
+            else if (advice.Status != "pending")
                 throw new LongevitymaxxingAdviceChangedException("This advice request has already been handled.");
             using var update = sqlite.CreateCommand();
             update.Transaction = transaction;

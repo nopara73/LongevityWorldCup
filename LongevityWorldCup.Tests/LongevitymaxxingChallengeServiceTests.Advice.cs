@@ -105,7 +105,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task AdviceStory_PersistsSeparatelyPublishesAfterDayClosesAndRetriesAfterWithdrawal()
+    public async Task AdviceStory_PersistsSeparatelyPublishesAfterDayClosesAndPreservesLegacyWithdrawalOnRetry()
     {
         using var fixture = TestChallengeFixture.Create();
         fixture.Config.LongevitymaxxingChallenge!.StartDate = "2026-06-20";
@@ -126,7 +126,8 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal(request.Story, post.Advice!.Story);
         Assert.Equal(request.Story, Assert.Single(published.Public.Notes).Advice!.Story);
         Assert.Equal(post.Advice.Id, Assert.Single(fixture.Service.PublishAdviceStory(request).Notes).Advice!.Id);
-        var withdrawn = fixture.Service.WithdrawAdviceStory(new(access, prompt.Id, post.Advice.Version));
+        SeedLegacyWithdrawnAdvice(fixture, prompt.Id, DateTimeOffset.UtcNow);
+        var withdrawn = fixture.Service.GetParticipantState(access);
         Assert.True(Assert.Single(withdrawn.Notes).Advice!.Withdrawn);
         var retried = fixture.Service.PublishAdviceStory(request);
         Assert.True(Assert.Single(retried.Notes).Advice!.Withdrawn);
@@ -200,7 +201,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task Advice_DeletionKeepsAnchorWithoutReopeningHistoryAndWithdrawalFreezesReplies()
+    public async Task Advice_DeletionKeepsAnchorWithoutReopeningHistoryAndLegacyWithdrawalFreezesReplies()
     {
         using var fixture = TestChallengeFixture.Create();
         var (owner, lower, higher, post, now) = await AdviceScenarioAsync(fixture);
@@ -214,7 +215,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.DoesNotContain("Restart with a walk", advice.Replies.Single(reply => reply.Id == id).Body);
         var reopened = fixture.Service.SubmitDiscussionReply(new(higher, post.ParticipantId, post.ChallengeDay, "A fresh suggestion.", Guid.NewGuid().ToString("N"), IsAdvice: true), now.AddMinutes(3));
         var current = reopened.Notes.Single(note => note.Advice != null).Advice!;
-        fixture.Service.WithdrawAdviceStory(new(owner, current.Id, current.Version), now.AddMinutes(4));
+        SeedLegacyWithdrawnAdvice(fixture, current.Id, now.AddMinutes(4));
         Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(new(owner, post.ParticipantId, post.ChallengeDay, "Too late.", Guid.NewGuid().ToString("N"), AdviceRootId: current.ActiveAdviceReplyId), now.AddMinutes(5)));
     }
 
@@ -287,10 +288,17 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task Advice_WithdrawalReturnsTheExactThreadEvenWhenTheStateWindowOmitsIt()
+    public async Task Advice_StoryEditReturnsTheExactThreadEvenWhenTheStateWindowOmitsIt()
     {
         using var fixture = TestChallengeFixture.Create();
-        var (owner, _, _, post, now) = await AdviceScenarioAsync(fixture);
+        var (owner, lower, _, post, now) = await AdviceScenarioAsync(fixture);
+        var answered = fixture.Service.SubmitDiscussionReply(new(lower, post.ParticipantId, post.ChallengeDay,
+            "Start with one walk.", Guid.NewGuid().ToString("N"), IsAdvice: true), now);
+        var advice = answered.UpdatedDiscussionThread!.Advice!;
+        var readContext = fixture.Service.GetDiscussionFeed(new(owner), now).ReadContext!;
+        var unread = readContext.Threads.Single(thread => thread.ChallengeDay == post.ChallengeDay);
+        fixture.Service.MarkDiscussionRead(new(owner, post.ParticipantId, post.ChallengeDay, null,
+            readContext.ActivityRevision, unread.Notifications.Select(notification => notification.Id).ToList()));
         fixture.Db.Run(sqlite =>
         {
             using var insert = sqlite.CreateCommand();
@@ -301,13 +309,32 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
                 SELECT @participant, day, '2026-06-14', 2, 2, 2, 2, 'Newer discussion', @time, @time, @time FROM days;
                 """;
             insert.Parameters.AddWithValue("@participant", post.ParticipantId);
-            insert.Parameters.AddWithValue("@time", now.AddHours(1).ToString("o"));
+            insert.Parameters.AddWithValue("@time", now.AddDays(1).ToString("o"));
             insert.ExecuteNonQuery();
         });
-        var state = fixture.Service.WithdrawAdviceStory(new(owner, post.Advice!.Id, post.Advice.Version), now.AddHours(2));
+        var state = fixture.Service.EditAdviceStory(new(owner, advice.Id, advice.Version, "A clearer explanation."), now.AddDays(2));
         Assert.DoesNotContain(state.Notes, note => note.ChallengeDay == post.ChallengeDay);
-        Assert.True(state.UpdatedDiscussionThread!.Advice!.Withdrawn);
-        Assert.Equal("", state.UpdatedDiscussionThread.Advice.Story);
+        Assert.Equal("A clearer explanation.", state.UpdatedDiscussionThread!.Advice!.Story);
+        Assert.False(state.UpdatedDiscussionThread.Advice.Withdrawn);
+        Assert.Equal(advice.ActiveAdviceReplyId, state.UpdatedDiscussionThread.Advice.ActiveAdviceReplyId);
+        Assert.Equal(advice.Replies.Select(reply => reply.Id), state.UpdatedDiscussionThread.Advice.Replies.Select(reply => reply.Id));
+    }
+
+    private static void SeedLegacyWithdrawnAdvice(TestChallengeFixture fixture, string adviceId, DateTimeOffset now)
+    {
+        fixture.Db.Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText = """
+                UPDATE LongevitymaxxingAdviceRequests
+                SET Status = 'withdrawn', Story = NULL, ActiveAdviceReplyId = NULL,
+                    Version = Version + 1, UpdatedAtUtc = @now
+                WHERE Id = @id;
+                """;
+            command.Parameters.AddWithValue("@id", adviceId);
+            command.Parameters.AddWithValue("@now", now.ToString("o"));
+            Assert.Equal(1, command.ExecuteNonQuery());
+        });
     }
 
     private static async Task<(string Owner, string Lower, string Higher, LongevitymaxxingParticipantNote Post, DateTimeOffset Now)> AdviceScenarioAsync(TestChallengeFixture fixture)

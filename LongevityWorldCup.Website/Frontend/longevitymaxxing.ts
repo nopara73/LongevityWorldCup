@@ -1249,7 +1249,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const notes = state ? participantDiscussionThreads(state) : publicDiscussionThreads(await getJson(`${API}/state`));
             const readContexts: DiscussionReadContext[] = state?.readContext ? [state.readContext] : [];
             const unavailable: ParticipantNote[] = [];
-            // A newly answered or withdrawn old request may fall outside the bounded state window.
+            // A newly answered or edited old request may fall outside the bounded state window.
             const returned = new Set(notes.map(discussionPermalink));
             const missing = Array.from(discussionFeedNotes.values())
                 .filter(note => (discussionNeedsAdvice(note) || discussionUnreadPriority(note)) && !returned.has(discussionPermalink(note)));
@@ -5263,10 +5263,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function discussionOpeningPostHtml(note: ParticipantNote): string {
         if (note.advice) {
             const advice = note.advice;
-            const withdraw = !advice.withdrawn && participantState?.participant.id === note.participantId
-                ? `<span class="lmx-advice-story-tools"><button type="button" class="lmx-discussion-quiet-action" data-advice-edit>Edit story</button>
-                    <button type="button" class="lmx-discussion-quiet-action" data-advice-withdraw="${escAttr(advice.id)}" data-advice-version="${advice.version}">Withdraw request</button></span>` : "";
-            return `<div class="lmx-advice-story"><p>${advice.withdrawn ? "Advice request withdrawn." : participantMentionTextHtml(advice.story)}</p>${withdraw}</div>
+            const storyTools = !advice.withdrawn && participantState?.participant.id === note.participantId
+                ? `<span class="lmx-advice-story-tools"><button type="button" class="lmx-discussion-quiet-action" data-advice-edit>Edit story</button></span>` : "";
+            return `<div class="lmx-advice-story"><p>${advice.withdrawn ? "Advice request withdrawn." : participantMentionTextHtml(advice.story)}</p>${storyTools}</div>
                 ${note.note ? `<details class="lmx-advice-context"><summary>Check-in remarks</summary><p>${participantMentionTextHtml(note.note)}</p></details>` : ""}`;
         }
         if (note.kind === "announcement" && note.announcement) {
@@ -6889,19 +6888,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 });
                 story.append(form);
                 textarea.focus();
-            });
-        });
-        root.querySelectorAll<HTMLButtonElement>("[data-advice-withdraw]").forEach(button => {
-            if (button.dataset.discussionControlWired) return;
-            button.dataset.discussionControlWired = "true";
-            button.addEventListener("click", async () => {
-                if (!accessToken || !window.confirm("Withdraw your public story? The existing advice and conversations will remain as read-only history.")) return;
-                button.disabled = true;
-                try {
-                    const result = await postJson(`${API}/advice/withdraw`, { accessToken, adviceId: button.dataset.adviceWithdraw, version: Number(button.dataset.adviceVersion) });
-                    acceptParticipantState(result);
-                    renderParticipantDiscussion(result);
-                } catch (error) { button.disabled = false; button.title = messageOf(error); }
             });
         });
         root.querySelectorAll<HTMLAnchorElement>("[data-youtube-video-id]").forEach(card => {
@@ -9730,7 +9716,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function postJson(url: `${typeof API}/discussion/read`, payload: object): Promise<DiscussionReadResult>;
     async function postJson(url: `${typeof API}/discussion/replies/edit`, payload: object): Promise<DiscussionReply>;
     async function postJson(
-        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete` | `${typeof API}/advice/publish` | `${typeof API}/advice/dismiss` | `${typeof API}/advice/withdraw` | `${typeof API}/advice/edit`,
+        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete` | `${typeof API}/advice/publish` | `${typeof API}/advice/dismiss` | `${typeof API}/advice/edit`,
         payload: object
     ): Promise<ParticipantState>;
     async function postJson(
