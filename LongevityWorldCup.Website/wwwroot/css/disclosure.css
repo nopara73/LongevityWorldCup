@@ -143,14 +143,19 @@
 }
 @keyframes lwc-medal-tap { 40% { transform: scale(1.14); } }
 
-/* Phones: no stack to hand off from, so the bar sits under the name block. */
-@media (max-width: 480px) {
+/* Follow the roster's container breakpoints, including enlarged text. */
+@container flag-results (max-width: 22rem) {
     :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before,
     :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
-        inset-inline-start: calc(var(--flag-face) + var(--flag-gap));
         inset-inline-end: var(--lwc-space-2, 8px);
         bottom: 3px;
         height: 3px;
+    }
+}
+@container flag-results (max-width: 14rem) {
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before,
+    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+        inset-inline-start: 0;
     }
 }
 

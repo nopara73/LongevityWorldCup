@@ -1,9 +1,8 @@
 // Shared disclosure layer: how anything on the site opens and closes.
 //
 // - Every <details> grows and shrinks to its new height instead of snapping,
-//   and its content settles in a short stagger. Closing plays the same move
-//   backwards before the element really closes, so `toggle` listeners and
-//   saved open state still see the native value.
+//   and its content settles in a short stagger. The native open state changes
+//   immediately, so `toggle` listeners and saved state follow the user's action.
 // - "Show all" toggles that reveal hidden siblings (profile proofs) grow their
 //   region the same way and deal the new items in.
 // - Flag teams get the signature move: the stacked faces in the team row drop
@@ -39,21 +38,43 @@ interface Window {
     // data-disclosure="off" on the element.
     const SKIP = "[data-disclosure='off'], .documentation-nav, #site-menu";
 
-    type Running = { anim: Animation; opening: boolean; extras: Animation[] };
-    const running = new WeakMap<HTMLElement, Running>();
+    type Running = { anim: Animation; opening: boolean; extras: Animation[]; cleanup: () => void };
+    const running = new Map<HTMLElement, Running>();
+    const pendingReveals = new Map<HTMLElement, number>();
 
     const visible = (el: Element): boolean => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
 
     function stop(el: HTMLElement): number {
         const height = el.getBoundingClientRect().height;
+        const pending = pendingReveals.get(el);
+        if (pending !== undefined) cancelAnimationFrame(pending);
+        pendingReveals.delete(el);
         const current = running.get(el);
         if (current) {
-            current.anim.cancel();
-            current.extras.forEach(a => a.cancel());
             running.delete(el);
+            current.anim.onfinish = current.anim.oncancel = null;
+            current.anim.cancel();
+            current.extras.forEach(a => {
+                a.cancel();
+                // Cancel events are asynchronous; remove copies in this task.
+                const target = a.effect instanceof KeyframeEffect ? a.effect.target : null;
+                if (target instanceof Element && target.matches('.lwc-disclosure-ghost')) target.remove();
+            });
+            current.cleanup();
         }
         return height;
     }
+
+    function stopAll(): void {
+        for (const el of new Set([...running.keys(), ...pendingReveals.keys()])) stop(el);
+    }
+    reduced.addEventListener('change', () => { if (reduced.matches) stopAll(); });
+    window.addEventListener('resize', stopAll);
+    window.addEventListener('pagehide', stopAll);
+    // Fixed copies cannot follow document or nested scroll containers.
+    document.addEventListener('scroll', () => {
+        for (const el of running.keys()) if (el.matches('.flag-team')) stop(el);
+    }, { capture: true, passive: true });
 
     function contentOf(details: HTMLDetailsElement): HTMLElement[] {
         return Array.from(details.children).filter((c): c is HTMLElement => c instanceof HTMLElement && c.tagName !== "SUMMARY");
@@ -153,14 +174,14 @@ interface Window {
             if (isTeam) extras.push(...flyFaces(details, true, duration));
             contentOf(details).forEach(c => extras.push(...dealItems(c)));
         }
-        // An empty effect is the clock, so it follows the page's animation rate.
-        const anim = details.animate([], { duration: duration + (isTeam ? (open ? 220 : 70) : 40) });
-        running.set(details, { anim, opening: open, extras });
-        anim.onfinish = () => {
+        // Follow the page's animation rate and let the last staggered item land.
+        const end = Math.max(duration + (isTeam ? (open ? 220 : 70) : 40),
+            ...extras.map(a => Number(a.effect?.getComputedTiming().endTime) || 0));
+        const anim = details.animate([], { duration: end });
+        running.set(details, { anim, opening: open, extras, cleanup: () => { delete details.dataset.disclosure; } });
+        anim.onfinish = anim.oncancel = () => {
             if (running.get(details)?.anim !== anim) return;
-            running.delete(details);
-            extras.forEach(a => a.cancel());
-            delete details.dataset.disclosure;
+            stop(details);
         };
     }
 
@@ -189,9 +210,12 @@ interface Window {
         if (!button || !region || region.closest(SKIP)) return;
         const start = stop(region);
         const before = new Set(Array.from(region.children).filter(visible));
-        requestAnimationFrame(() => {
+        pendingReveals.set(region, requestAnimationFrame(() => {
+            pendingReveals.delete(region);
+            if (reduced.matches || !region.isConnected) return;
             const end = region.getBoundingClientRect().height;
             if (Math.abs(end - start) < 1) return;
+            const overflow = region.style.overflow;
             region.style.overflow = "clip";
             const opening = end > start;
             const anim = region.animate(
@@ -203,17 +227,22 @@ interface Window {
                 [{ opacity: 0, transform: "translateY(8px) scale(.94)" }, { opacity: 1, transform: "none" }],
                 { duration: 240, delay: 30 + i * 28, easing: EASE_OPEN, fill: "backwards" }
             ));
-            running.set(region, { anim, opening, extras });
+            running.set(region, { anim, opening, extras, cleanup: () => { region.style.overflow = overflow; } });
+            anim.oncancel = () => { if (running.get(region)?.anim === anim) stop(region); };
             anim.onfinish = () => {
                 if (running.get(region)?.anim !== anim) return;
-                running.delete(region);
-                region.style.overflow = "";
+                region.style.overflow = overflow;
+                // Keep staggered tiles cancellable after the height has settled.
+                void Promise.all(extras.map(a => a.finished.catch(() => {}))).then(() => {
+                    if (running.get(region)?.anim === anim) stop(region);
+                });
             };
-        });
+        }));
     }, true);
 
     // Flag rosters are re-rendered as filters change; keep their shares current.
     function refresh(scope: ParentNode = document): void {
+        for (const el of running.keys()) if (!el.isConnected) stop(el);
         measureShares(scope);
     }
     const watch = (): void => {
