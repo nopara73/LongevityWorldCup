@@ -56,39 +56,39 @@
 /* ------------------------------------------------------------- flag teams */
 /* JS deals the roster in now; the old one-shot entrance would double it.
    The panel's own grow (motion.css) runs a touch longer so the faces land. */
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes { animation: none; }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team { --lwc-details-duration: 280ms; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-athletes { animation: none; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team { --lwc-details-duration: 280ms; }
 
 /* The chevron turns with a little overshoot, and presses in. */
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-chevron {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-chevron {
     transition:
         transform 300ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)),
         color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
         box-shadow var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease),
         background-color var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
 }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure='closing'] .flag-team-chevron { transform: none; }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure='opening'] .flag-team-chevron,
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open]:not([data-disclosure='closing']) .flag-team-chevron {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure='closing'] .flag-team-chevron { transform: none; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure='opening'] .flag-team-chevron,
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open]:not([data-disclosure='closing']) .flag-team-chevron {
     transform: rotate(180deg);
     background: var(--lwc-accent);
     color: var(--lwc-on-accent, var(--lwc-surface));
     box-shadow: 0 0 0 4px var(--lwc-accent-soft, transparent);
 }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team summary:active .flag-team-chevron { scale: .88; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team summary:active .flag-team-chevron { scale: .88; }
 
 /* The stack previews the roster: on hover the faces part a little. */
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-portraits > img {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-portraits > img {
     transition: margin 220ms var(--lwc-ease-standard, ease), opacity 0s, scale 220ms var(--lwc-ease-pop, ease);
 }
 @media (hover: hover) {
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team:not([open]) summary:hover .flag-team-portraits > img + img { margin-inline-start: -2px; }
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team:not([open]) summary:hover .flag-team-portraits > img { scale: 1.06; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img + img { margin-inline-start: -2px; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img { scale: 1.06; }
 }
 /* While open, the faces have stepped down into the roster; their seats wait
    as the same dashed rings the board uses for a missing member. */
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-team-portraits > img,
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure] .flag-team-portraits > img {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-portraits > img,
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure] .flag-team-portraits > img {
     object-position: -999px -999px;
     border-style: dashed;
     border-color: var(--lwc-border-strong);
@@ -97,24 +97,24 @@
 }
 
 /* Roster: one lifted sheet under the team row. */
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-team-athletes {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-athletes {
     background:
         linear-gradient(to bottom, color-mix(in srgb, var(--lwc-accent) 10%, transparent), transparent 18px) top / 100% 18px no-repeat;
 }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link img {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link img {
     position: relative;
     z-index: 2;
     box-shadow: 0 0 0 3px var(--lwc-surface), 0 6px 14px -8px rgba(0, 0, 0, .45);
 }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-rank { transition: scale 200ms var(--lwc-ease-pop, ease), box-shadow 140ms ease, color 140ms ease; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-rank { transition: scale 200ms var(--lwc-ease-pop, ease), box-shadow 140ms ease, color 140ms ease; }
 @media (hover: hover) {
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link:hover .flag-athlete-rank { scale: 1.12; }
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link:hover img { scale: 1.05; transition: scale 200ms var(--lwc-ease-pop, ease); }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link:hover .flag-athlete-rank { scale: 1.12; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link:hover img { scale: 1.05; transition: scale 200ms var(--lwc-ease-pop, ease); }
 }
 
 /* Contribution bar: each member's share of the team total. */
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before,
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::before,
+:root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::after {
     content: "";
     position: absolute;
     inset-inline-start: calc(var(--flag-icon) + var(--flag-gap) + var(--flag-face) + var(--flag-gap));
@@ -124,37 +124,37 @@
     border-radius: 999px;
     pointer-events: none;
 }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before { background: var(--lwc-border); opacity: .7; }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::before { background: var(--lwc-border); opacity: .7; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::after {
     background: linear-gradient(90deg, var(--lwc-accent-bright, var(--lwc-accent)), var(--lwc-accent));
     transform-origin: left center;
     transform: scaleX(var(--lwc-share, 0));
 }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-athlete-link::after {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-athlete-link::after {
     animation: lwc-share-grow 520ms cubic-bezier(.2, 0, 0, 1) both;
     animation-delay: calc(140ms + var(--lwc-i, 0) * 70ms);
 }
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-athletes > li { position: relative; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-athletes > li { position: relative; }
 @keyframes lwc-share-grow { from { transform: scaleX(0); } }
 
 /* Gold / silver / bronze rows: the top team's rank medal breathes once on open. */
-:root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[data-disclosure='opening'] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]) {
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure='opening'] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]) {
     animation: lwc-medal-tap 360ms var(--lwc-ease-pop, ease);
 }
 @keyframes lwc-medal-tap { 40% { transform: scale(1.14); } }
 
 /* Follow the roster's container breakpoints, including enlarged text. */
 @container flag-results (max-width: 22rem) {
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before,
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::before,
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::after {
         inset-inline-end: var(--lwc-space-2, 8px);
         bottom: 3px;
         height: 3px;
     }
 }
 @container flag-results (max-width: 14rem) {
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::before,
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-athlete-link::after {
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::before,
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::after {
         inset-inline-start: 0;
     }
 }
@@ -164,10 +164,10 @@
 
 @media (prefers-reduced-motion: reduce) {
     :root[data-lwc-disclosure] details > summary::before,
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-chevron,
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-portraits > img { transition: none; }
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team[open] .flag-athlete-link::after,
-    :root[data-lwc-disclosure] main[data-leaderboard-page="full"] .flag-team-rank { animation: none; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-chevron,
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-portraits > img { transition: none; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-athlete-link::after,
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-rank { animation: none; }
 }
 
 /* Faces in flight between a team row and its roster. */

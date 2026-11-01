@@ -10,17 +10,20 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("preference")]
-    [InlineData("scroll")]
-    [InlineData("resize")]
-    public async Task InterruptedFlight_RestoresPortraitsAndNativeState(string interrupt)
+    [InlineData("/leaderboard?group=flags", "preference")]
+    [InlineData("/leaderboard?group=flags", "scroll")]
+    [InlineData("/leaderboard?group=flags", "resize")]
+    [InlineData("/?group=flags", "preference")]
+    [InlineData("/?group=flags", "scroll")]
+    [InlineData("/?group=flags", "resize")]
+    public async Task InterruptedFlight_RestoresPortraitsAndNativeState(string path, string interrupt)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.NoPreference
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/leaderboard?group=flags");
+        await NavigateAndSettleAsync(page, path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         var team = page.Locator(".flag-team").First;
         // Hold real effects so runner speed cannot let the flight finish before interruption.
@@ -41,6 +44,7 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
         await Assertions.Expect(team).Not.ToHaveAttributeAsync("data-disclosure", "opening");
         Assert.True(await team.EvaluateAsync<bool>("d => d.open"));
         Assert.True(await team.EvaluateAsync<bool>("d => [...d.querySelectorAll('.flag-athlete-link img')].every(i => getComputedStyle(i).opacity === '1')"));
+        Assert.Equal("-999px -999px", await team.Locator(".flag-team-portraits img").First.EvaluateAsync<string>("image => getComputedStyle(image).objectPosition"));
         await team.Locator("summary").FocusAsync();
         await page.Keyboard.PressAsync("Space");
         Assert.False(await team.EvaluateAsync<bool>("d => d.open"));
@@ -79,17 +83,22 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
     }
 
     [Theory]
-    [InlineData(390, 100)]
-    [InlineData(600, 100)]
-    [InlineData(390, 200)]
-    public async Task ContributionBar_FollowsTheRenderedNameColumn(int width, int textPercent)
+    [InlineData("/leaderboard?group=flags", 1440, 100)]
+    [InlineData("/leaderboard?group=flags", 390, 100)]
+    [InlineData("/leaderboard?group=flags", 600, 100)]
+    [InlineData("/leaderboard?group=flags", 390, 200)]
+    [InlineData("/?group=flags", 1440, 100)]
+    [InlineData("/?group=flags", 390, 100)]
+    [InlineData("/?group=flags", 600, 100)]
+    [InlineData("/?group=flags", 390, 200)]
+    public async Task ContributionBar_FollowsTheRenderedNameColumn(string path, int width, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
             ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/leaderboard?group=flags");
+        await NavigateAndSettleAsync(page, path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textPercent);
         await page.Locator(".flag-team summary").First.ClickAsync();
