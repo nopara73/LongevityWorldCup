@@ -113,6 +113,12 @@ interface Window {
             if (!to.width || !from.width) return;
             const cs = getComputedStyle(face);
             const ghost = face.cloneNode(false) as HTMLImageElement;
+            // Keep a decoded portrait even when a cold roster is closed mid-flight.
+            const portrait = face as HTMLImageElement;
+            const source = !opening && portrait.naturalWidth ? portrait : seat as HTMLImageElement;
+            ghost.src = source.currentSrc || source.src;
+            ghost.loading = "eager";
+            ghost.decoding = "sync";
             ghost.removeAttribute("id");
             ghost.setAttribute("aria-hidden", "true");
             ghost.className = "lwc-disclosure-ghost";
