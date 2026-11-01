@@ -42,8 +42,6 @@ Apply through the [Longevity World Cup website](https://www.longevityworldcup.co
 
 ![Registration process: visit the website, then follow the instructions](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
 
-Need help with your application? Watch [this seven-minute video tutorial](https://www.youtube.com/watch?v=0mCIbqgfqq8) or [this one-minute video tutorial](https://www.youtube.com/shorts/yhMFZMPAoKQ).
-
 #### Can I withdraw from the competition?
 Yes. Email `hi@longevityworldcup.com`.
 

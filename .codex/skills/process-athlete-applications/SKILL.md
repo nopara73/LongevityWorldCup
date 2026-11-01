@@ -163,6 +163,8 @@ Continue the latest direct exchange in a warm, concise human voice. The conversa
 
 For simple informational or pre-application questions, answer only the question and relevant eligibility condition. Do not turn them into an application review by adding document requests, missing-attachment commentary, payment instructions, or other next steps unless explicitly requested or necessary for an actual active submission. A general inquiry without an attachment is not a proof-blocked application.
 
+Do not mention successful payment or receipt of an entry fee when there is no payment issue. Include payment details only when they address an actual payment/refund question or problem, or the user explicitly asks.
+
 Do not use em dashes in newly written replies. Use periods or commas instead; preserve original quoted correspondence unchanged.
 
 Language priority: explicit user/athlete instruction; otherwise a clearly non-English `Why` field; otherwise latest direct exchange; otherwise English. Localize the entire reply, retaining names, URLs, biomarker labels, and exact values. Lab-report language alone does not establish preference.
@@ -196,6 +198,8 @@ Before sending/committing/pushing, present the decision and exact proposed actio
 Always include the relevant athlete-authored inbound email verbatim, with sender and date, clearly separated from the proposed reply. Show each relevant new message when several inform the reply; a summary alone is not enough. This applies to follow-ups and security-only handoffs too. If only an automated submission notice exists, label it as automated and quote the submitted request/changed fields instead of inventing personal correspondence.
 
 - Athlete/profile and actual folder path (underscore folder keys, hyphenated URL slugs); new applicants stay under `.artifacts/pending-athlete-reviews/`.
+- Always report the projected Ultimate League rank, track, and applicable clock-specific and track ranks, with field sizes, using a fresh published roster and the competition's full-precision scoring and tie-break rules. For an existing athlete, replace their published entry with the proposed complete history rather than adding a duplicate; show current versus projected ranks. For profile-only changes, report the unchanged current rank. Exclude other unpublished submissions. Label blocked or uncertain results as conditional projections and state the assumptions; if a rank cannot be calculated without missing evidence or bypassing the security gate, say why instead of inventing one.
+- Put rank near the start of the summary so the user can prioritize scrutiny of high-ranking contenders. Rank does not relax the baseline proof checks for anyone. Record the roster timestamp, scoring inputs, and projected ranks in the private review after the security gate.
 - Current message ID, `expectedThreadId`, saved draft thread ID, explicit equality, draft text/ID, verified sender, unread status/restorations.
 - Related-history search/evidence, ledger/new-message status, security confirmation/override, payment evidence, and blockers.
 - Changed files from `git status --short`; identity/DOB, record dates and available clocks; per-record proof/date/value/same-test/privacy checks and missing evidence.
