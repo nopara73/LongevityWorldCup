@@ -82,6 +82,11 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         Assert.Equal(1, html.Split("/css/depth-system.css?v=", StringSplitOptions.None).Length - 1);
         Assert.Equal(1, html.Split("/js/depth-system.js?v=", StringSplitOptions.None).Length - 1);
         var disclosureIndex = html.IndexOf("/css/disclosure.css?v=", StringComparison.Ordinal);
+        var viewerIndex = html.IndexOf("/css/image-viewer.css?v=", StringComparison.Ordinal);
+        var viewerScriptIndex = html.IndexOf("/js/image-viewer.js?v=", StringComparison.Ordinal);
+        Assert.True(viewerIndex > depthScriptIndex && viewerScriptIndex > viewerIndex && viewerScriptIndex < disclosureIndex);
+        Assert.Equal(1, html.Split("/css/image-viewer.css?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/js/image-viewer.js?v=", StringSplitOptions.None).Length - 1);
         var disclosureScriptIndex = html.IndexOf("/js/disclosure.js?v=", StringComparison.Ordinal);
         Assert.True(disclosureIndex > depthScriptIndex && disclosureScriptIndex > disclosureIndex && disclosureScriptIndex < closingHeadIndex);
         Assert.Equal(1, html.Split("/css/disclosure.css?v=", StringSplitOptions.None).Length - 1);

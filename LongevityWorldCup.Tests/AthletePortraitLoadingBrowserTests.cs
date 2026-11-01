@@ -35,35 +35,35 @@ public sealed class AthletePortraitLoadingBrowserTests(
         {
             await portrait.ClickAsync();
             await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            var viewer = page.Locator("#athleteImageViewer");
-            await Assertions.Expect(viewer).ToHaveClassAsync(new Regex("\\bshow\\b"));
+            var viewer = page.Locator(".lwc-viewer");
+            await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
             await SaveEvidenceAsync(page, $"portrait-{width}");
 
             // Inspect the painted state while the real full-image request is held.
             Assert.Equal("ready", await viewer.GetAttributeAsync("data-image-state"));
-            await Assertions.Expect(viewer.Locator(".image-load-feedback")).ToBeHiddenAsync();
-            await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToHaveAttributeAsync("aria-busy", "false");
-            var image = viewer.Locator(".image-viewer-stage img");
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToHaveAttributeAsync("aria-busy", "false");
+            var image = viewer.Locator(".lwc-viewer-stage img");
             await Assertions.Expect(image).ToBeVisibleAsync();
             await page.WaitForFunctionAsync("""
                 () => {
-                    const image = document.querySelector('#athleteImageViewer .image-viewer-stage img');
+                    const image = document.querySelector('.lwc-viewer .lwc-viewer-stage img');
                     return image.complete && image.naturalWidth > 0;
                 }
                 """);
             Assert.Equal(thumbnail, await image.EvaluateAsync<string>("image => image.currentSrc"));
-            await Assertions.Expect(viewer.Locator(".close-btn")).ToBeFocusedAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-close")).ToBeFocusedAsync();
 
             release.TrySetResult();
             var fullUrl = new Uri(App.BaseAddress, fullSource).AbsoluteUri;
             await page.WaitForFunctionAsync("""
                 url => {
-                    const image = document.querySelector('#athleteImageViewer .image-viewer-stage img');
+                    const image = document.querySelector('.lwc-viewer .lwc-viewer-stage img');
                     return image.currentSrc === url && image.complete && image.naturalWidth > 0;
                 }
                 """, fullUrl);
             await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
-            await Assertions.Expect(viewer.Locator(".close-btn")).ToBeFocusedAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-close")).ToBeFocusedAsync();
             await page.Keyboard.PressAsync("Escape");
             await Assertions.Expect(viewer).ToBeHiddenAsync();
             await Assertions.Expect(portrait).ToBeFocusedAsync();
@@ -100,12 +100,12 @@ public sealed class AthletePortraitLoadingBrowserTests(
             release.TrySetResult();
             await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
             await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-            var viewer = page.Locator("#athleteImageViewer");
+            var viewer = page.Locator(".lwc-viewer");
             await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
-            await Assertions.Expect(viewer.Locator(".image-load-feedback")).ToBeHiddenAsync();
-            await Assertions.Expect(viewer.Locator(".image-viewer-stage img")).ToBeVisibleAsync();
-            Assert.Equal(thumbnail, await viewer.Locator(".image-viewer-stage img").EvaluateAsync<string>("image => image.currentSrc"));
-            await viewer.Locator(".close-btn").ClickAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToBeVisibleAsync();
+            Assert.Equal(thumbnail, await viewer.Locator(".lwc-viewer-stage img").EvaluateAsync<string>("image => image.currentSrc"));
+            await viewer.Locator(".lwc-viewer-close").ClickAsync();
             await Assertions.Expect(viewer).ToBeHiddenAsync();
             await Assertions.Expect(portrait).ToBeFocusedAsync();
         }
@@ -133,8 +133,8 @@ public sealed class AthletePortraitLoadingBrowserTests(
         {
             await portrait.ClickAsync();
             await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            var viewer = page.Locator("#athleteImageViewer");
-            await viewer.Locator(".close-btn").ClickAsync();
+            var viewer = page.Locator(".lwc-viewer");
+            await viewer.Locator(".lwc-viewer-close").ClickAsync();
             await Assertions.Expect(viewer).ToBeHiddenAsync();
             await Assertions.Expect(portrait).ToBeFocusedAsync();
 
@@ -145,10 +145,10 @@ public sealed class AthletePortraitLoadingBrowserTests(
             release.TrySetResult();
             await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
             await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-            Assert.Contains("michael_lustgarten", await viewer.Locator(".image-viewer-stage img").GetAttributeAsync("src"));
+            Assert.Contains("michael_lustgarten", await viewer.Locator(".lwc-viewer-stage img").GetAttributeAsync("src"));
             await Assertions.Expect(viewer).ToBeVisibleAsync();
-            await Assertions.Expect(viewer.Locator(".image-load-feedback")).ToBeHiddenAsync();
-            await Assertions.Expect(viewer.Locator(".close-btn")).ToBeFocusedAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-close")).ToBeFocusedAsync();
         }
         finally { release.TrySetResult(); }
     }
