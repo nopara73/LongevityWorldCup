@@ -53,6 +53,7 @@
     interface RadarScale {
         readonly xCenter: number;
         readonly yCenter: number;
+        readonly drawingArea?: number;
         getPointPositionForValue(index: number, value: number): RadarPoint;
     }
 
@@ -325,6 +326,7 @@
     }
 
     function destroyRadarChart() {
+        cancelRadarTween();
         cancelRadarBuild();
         cancelRadarResize();
         if (radarResizeObserver) {
@@ -366,13 +368,94 @@
         if (fallbackBio) fallbackBio.textContent = bioText;
     }
 
+    // The radar moves like an instrument. Stepping between results morphs the
+    // web axis by axis, and its percentiles count with it. Switching clocks
+    // (six domains to five) gathers the old web into the centre and unfolds
+    // the new one with a little overshoot and a settling turn. Values are
+    // tweened here rather than by Chart.js so the axis labels follow the shape
+    // frame by frame.
+    var radarTweenFrame = 0;
+    var radarFoldAnimations: Animation[] = [];
+
+    function cancelRadarTween(): void {
+        if (radarTweenFrame) cancelAnimationFrame(radarTweenFrame);
+        radarTweenFrame = 0;
+        radarFoldAnimations.forEach(function (animation) { animation.cancel(); });
+        radarFoldAnimations = [];
+    }
+
+    function easeOutCubic(t: number): number { return 1 - Math.pow(1 - t, 3); }
+    function easeOutBack(t: number): number { var c = 1.35; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
+
+    function tweenRadarValues(chart: RadarChartInstance, from: readonly number[], to: readonly number[], duration: number, stagger: number, ease: (t: number) => number, done?: () => void): void {
+        var dataset = chart.data.datasets[0];
+        if (!dataset) return;
+        // The document timeline is the clock, so the web keeps pace with CSS
+        // and Web Animations (and with DevTools slow motion).
+        var clock = function (): number { return Number(document.timeline?.currentTime ?? performance.now()); };
+        var start = clock();
+        var total = duration + stagger * Math.max(0, to.length - 1);
+        function frame(): void {
+            if (radarChartInstance !== chart || !dataset) { radarTweenFrame = 0; return; }
+            var elapsed = clock() - start;
+            if (elapsed >= total) {
+                radarTweenFrame = 0;
+                dataset.data = to.slice();
+                chart.update('none');
+                if (done) done();
+                return;
+            }
+            dataset.data = to.map(function (target, index) {
+                var origin = from[index] ?? 0;
+                var t = Math.min(1, Math.max(0, (elapsed - index * stagger) / duration));
+                return origin + (target - origin) * ease(t);
+            });
+            chart.update('none');
+            radarTweenFrame = requestAnimationFrame(frame);
+        }
+        radarTweenFrame = requestAnimationFrame(frame);
+    }
+
     function applyRadarData(data: RadarData | null): void {
         if (!radarChartInstance || !data) return;
-        radarChartInstance.data.labels = data.labels;
-        var dataset = radarChartInstance.data.datasets[0];
-        if (dataset) dataset.data = data.values;
-        if (data.tooltipContributors) radarChartInstance._radarTooltipContributors = data.tooltipContributors;
-        radarChartInstance.update('active');
+        var chart = radarChartInstance;
+        var dataset = chart.data.datasets[0];
+        var previousLabels = chart.data.labels || [];
+        var previousValues = dataset ? dataset.data.slice() : [];
+        if (data.tooltipContributors) chart._radarTooltipContributors = data.tooltipContributors;
+        cancelRadarTween();
+        var sameShape = previousLabels.length === data.labels.length
+            && previousLabels.every(function (label, index) { return label === data.labels[index]; });
+        if (!getRadarAnimationDuration() || !dataset) {
+            chart.data.labels = data.labels;
+            if (dataset) dataset.data = data.values;
+            chart.update('none');
+            return;
+        }
+        if (sameShape) {
+            tweenRadarValues(chart, previousValues, data.values, 520, 34, easeOutCubic);
+            return;
+        }
+        var wrapper = document.getElementById('ageRadarWrapper');
+        var unfold = function (): void {
+            if (radarChartInstance !== chart || !dataset) return;
+            chart.data.labels = data.labels;
+            var zeros = data.values.map(function () { return 0; });
+            dataset.data = zeros;
+            chart.update('none');
+            if (wrapper) radarFoldAnimations.push(wrapper.animate(
+                [{ transform: 'rotate(16deg) scale(.92)', opacity: 0.25 }, { transform: 'none', opacity: 1 }],
+                { duration: 560, easing: 'cubic-bezier(.2, 0, 0, 1)' }
+            ));
+            tweenRadarValues(chart, zeros, data.values, 560, 48, easeOutBack);
+        };
+        if (!wrapper || !previousLabels.length) { unfold(); return; }
+        // The old web gathers into the centre before the new clock opens.
+        radarFoldAnimations.push(wrapper.animate(
+            [{ transform: 'none', opacity: 1 }, { transform: 'rotate(-12deg) scale(.95)', opacity: 0.4 }],
+            { duration: 180, easing: 'cubic-bezier(.3, 0, 1, 1)' }
+        ));
+        tweenRadarValues(chart, previousValues, previousValues.map(function () { return 0; }), 180, 0, function (t) { return t * t; }, unfold);
     }
 
     var resultDateFormat = new Intl.DateTimeFormat('en-GB', {
@@ -529,8 +612,20 @@
             if (later) later.hidden = !multiple;
             if (chevron) chevron.style.display = multiple ? '' : 'none';
             if (current) current.setAttribute('aria-hidden', multiple ? 'true' : 'false');
+            placeClockGlide();
             showReading(state.selectedIndex);
         }
+
+        // One underline glides between the clocks and takes the chosen clock's colour.
+        var clockTablist = tabBortz?.parentElement || null;
+        function placeClockGlide(): void {
+            var selected = useBortz ? tabBortz : tabPheno;
+            if (!clockTablist || !selected || !selected.offsetWidth) return;
+            clockTablist.dataset.glide = useBortz ? 'bortz' : 'pheno';
+            clockTablist.style.setProperty('--clock-tab-x', selected.offsetLeft + 'px');
+            clockTablist.style.setProperty('--clock-tab-w', selected.offsetWidth + 'px');
+        }
+        if (clockTablist && 'ResizeObserver' in window) new ResizeObserver(placeClockGlide).observe(clockTablist);
 
         if (select) select.onchange = function () { showReading(Number(select?.value)); };
         if (earlier) earlier.onclick = function () { showReading((useBortz ? bortz : pheno).selectedIndex - 1); };
@@ -633,6 +728,19 @@
             }
             var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
             var contributors = data.tooltipContributors || [];
+            // A soft glow under the web in the clock's colour.
+            var radarGlowPlugin = {
+                id: 'radarGlow',
+                beforeDatasetDraw: function (chart: RadarPluginChart): void {
+                    chart.ctx.save();
+                    chart.ctx.shadowColor = clockColor(0.55);
+                    chart.ctx.shadowBlur = 14;
+                },
+                afterDatasetDraw: function (chart: RadarPluginChart): void {
+                    chart.ctx.restore();
+                }
+            };
+
             var radarWebSpokesPlugin = {
                 id: 'radarWebSpokes',
                 beforeDatasetsDraw: function (chart: RadarPluginChart): void {
@@ -657,13 +765,22 @@
 
             radarChartInstance = new ChartConstructor(ctx, {
                 type: 'radar',
-                plugins: [radarWebSpokesPlugin],
+                plugins: [radarWebSpokesPlugin, radarGlowPlugin],
                 data: {
                     labels: data.labels,
                     datasets: [{
                         label: 'Percentile (higher = better)',
                         data: data.values,
-                        backgroundColor: function () { return clockColor(0.16); },
+                        // The web deepens toward its rim, so strong domains read as reach, not just area.
+                        backgroundColor: function (context: { readonly chart: RadarPluginChart }) {
+                            var scale = context.chart.scales?.r;
+                            if (!scale || !scale.drawingArea) return clockColor(0.16);
+                            var gradient = context.chart.ctx.createRadialGradient(scale.xCenter, scale.yCenter, 0, scale.xCenter, scale.yCenter, scale.drawingArea);
+                            gradient.addColorStop(0, clockColor(0.04));
+                            gradient.addColorStop(0.7, clockColor(0.2));
+                            gradient.addColorStop(1, clockColor(0.36));
+                            return gradient;
+                        },
                         borderColor: function () { return clockColor(); },
                         // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.
                         hoverBackgroundColor: function () { return clockColor(0.16); },
