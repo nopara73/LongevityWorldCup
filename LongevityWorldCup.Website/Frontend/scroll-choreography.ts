@@ -87,12 +87,19 @@
     }
 
     function clearEntrance(element: HTMLElement): void {
+        // Removing the rule alone can leave an in-flight transition contributing its
+        // current opacity. Cancel only the two transitions owned by this entrance.
+        const transitions = element.getAttribute('data-lwc-enter-state') === 'go'
+            ? element.getAnimations().filter(animation => animation instanceof CSSTransition
+                && (animation.transitionProperty === 'opacity' || animation.transitionProperty === 'translate'))
+            : [];
         observer?.unobserve(element);
         pending.delete(element);
         window.clearTimeout(settling.get(element));
         settling.delete(element);
         element.removeAttribute('data-lwc-enter-state');
         element.style.removeProperty('--lwc-enter-i');
+        transitions.forEach(animation => animation.cancel());
     }
 
     function releaseAll(): void {
@@ -269,8 +276,14 @@
         window.addEventListener('hashchange', releaseAll);
         window.addEventListener('beforeprint', releaseAll);
         document.addEventListener('beforematch', releaseAll, true);
-        document.addEventListener('focusin', releaseAll, true);
-        document.addEventListener('pointerdown', releaseAll, { capture: true, passive: true });
+        // Pointer focus precedes click dispatch. Snapping a translated link then can
+        // move it away from the pointer and swallow the click; finish after targeting.
+        let pointerDown = false;
+        document.addEventListener('pointerdown', () => { pointerDown = true; }, { capture: true, passive: true });
+        document.addEventListener('pointerup', () => { pointerDown = false; }, { capture: true, passive: true });
+        document.addEventListener('pointercancel', () => { pointerDown = false; }, { capture: true, passive: true });
+        document.addEventListener('focusin', () => { if (!pointerDown) releaseAll(); }, true);
+        document.addEventListener('click', releaseAll, { capture: true, passive: true });
         reduce.addEventListener?.('change', () => { if (reduce.matches) releaseAll(); });
         window.addEventListener('pageshow', event => { if (event.persisted) releaseAll(); });
         window.addEventListener('pagehide', releaseAll);

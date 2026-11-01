@@ -68,6 +68,13 @@
         adopt(document);
         queue();
         document.addEventListener('scroll', queue, { capture: true, passive: true });
+        // A sticky heading can finish its own entrance after the last scroll frame.
+        // Recheck its settled rectangle without polling animation frames indefinitely.
+        const settled = (event: Event): void => {
+            if (event.target instanceof HTMLElement && bars.has(event.target)) queue();
+        };
+        ['animationend', 'animationcancel', 'transitionend', 'transitioncancel']
+            .forEach(name => document.addEventListener(name, settled, true));
         window.addEventListener('resize', invalidate, { passive: true });
         window.addEventListener('pageshow', invalidate);
         document.fonts?.ready.then(invalidate);
