@@ -75,5 +75,99 @@
         initEventBoard();
     }
 </script>
+<script>
+    // Reading the day: the pinned month band shows the day under the reader's
+    // eye and rolls it as days pass; events from the last day are marked fresh.
+    (function () {
+        const board = () => document.querySelector('.event-board-page .events-board');
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const DAY = 86400000;
+        let frame = 0;
+        let lastRow = null;
+
+        function chipFor(band) {
+            const th = band.querySelector('th');
+            if (!th) return null;
+            let chip = th.querySelector('.events-day-chip');
+            if (!chip) {
+                chip = document.createElement('span');
+                chip.className = 'events-day-chip';
+                chip.setAttribute('aria-hidden', 'true');
+                th.appendChild(chip);
+            }
+            return chip;
+        }
+
+        function setDay(chip, day, direction) {
+            if (chip.dataset.day === day) return;
+            const previous = chip.dataset.day;
+            chip.dataset.day = day;
+            const next = document.createElement('span');
+            next.textContent = String(Number(day.split("-").pop()));
+            chip.replaceChildren(next);
+            if (previous && !reduced.matches) {
+                next.animate([
+                    { transform: `translateY(${direction * 100}%)`, opacity: 0 },
+                    { transform: 'none', opacity: 1 }
+                ], { duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+            }
+        }
+
+        function update() {
+            frame = 0;
+            const root = board();
+            if (!root) return;
+            root.querySelectorAll('tbody[data-month]').forEach(tbody => {
+                const band = tbody.querySelector('tr.events-month-row');
+                if (!band) return;
+                const chip = chipFor(band);
+                if (!chip) return;
+                const bandBottom = band.getBoundingClientRect().bottom;
+                const rows = tbody.querySelectorAll('tr.main-row[data-day]');
+                let current = null;
+                for (const row of rows) {
+                    const box = row.getBoundingClientRect(); if (box.top + box.height / 2 > bandBottom) { current = row; break; }
+                }
+                if (!band.classList.contains('is-pinned') || !current) return;
+                const order = Array.prototype.indexOf.call(rows, current);
+                const lastOrder = lastRow && lastRow.parentElement === tbody ? Array.prototype.indexOf.call(rows, lastRow) : order;
+                setDay(chip, current.dataset.day, order >= lastOrder ? 1 : -1);
+                if (lastRow !== current) {
+                    lastRow?.classList.remove('is-current-day');
+                    current.classList.add('is-current-day');
+                    lastRow = current;
+                }
+            });
+        }
+
+        function markFresh() {
+            const root = board();
+            if (!root) return;
+            const now = Date.now();
+            root.querySelectorAll('tr.main-row:not([data-fresh-checked])').forEach(row => {
+                row.dataset.freshChecked = '';
+                const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
+                if (Number.isFinite(stamp) && now - stamp < DAY) row.classList.add('is-fresh');
+            });
+        }
+
+        function schedule() {
+            if (!frame) frame = requestAnimationFrame(update);
+        }
+
+        function start() {
+            const root = board();
+            if (!root) return;
+            new MutationObserver(() => { markFresh(); schedule(); }).observe(root, { childList: true, subtree: true });
+            markFresh();
+            window.addEventListener('scroll', schedule, { passive: true });
+            window.addEventListener('resize', schedule, { passive: true });
+            schedule();
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+        else start();
+    })();
+</script>
 </body>
 </html>
