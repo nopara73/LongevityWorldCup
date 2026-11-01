@@ -1199,6 +1199,7 @@
             window.LwcInitialView.hold();
             profileEditorReady = false;
             const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);
+            setSessionItem('reviewSubmission', JSON.stringify({ kind: 'edit', id: submissionContext.submissionId }));
             if (reviewContactEmail) {
                 if (submissionContext.applicantName) {
                     rememberAthleteContactEmail(submissionContext.applicantName, reviewContactEmail);
