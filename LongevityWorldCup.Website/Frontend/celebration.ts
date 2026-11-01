@@ -281,7 +281,15 @@ interface Window {
     for (const type of ["pointerdown", "keydown", "wheel", "touchstart"] as const) {
         window.addEventListener(type, stopAll, { capture: true, passive: true });
     }
-    window.addEventListener("scroll", stopAll, { capture: true, passive: true });
+    window.addEventListener("scroll", event => {
+        const scroller = event.target;
+        if (!(scroller instanceof Element)) { stopAll(); return; }
+        // Rendering can position an unrelated board/history scroller. Only a
+        // scroll that moves this target invalidates its viewport position;
+        // deliberate wheel, touch and keyboard input already cancel everything.
+        pending.forEach(entry => { if (scroller.contains(entry.target)) entry.cancel(); });
+        active.forEach(entry => { if (scroller.contains(entry.target)) entry.stop(); });
+    }, { capture: true, passive: true });
     window.addEventListener("resize", stopAll, { passive: true });
 
     document.addEventListener("visibilitychange", () => { if (document.hidden) stopAll(); });

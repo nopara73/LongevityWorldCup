@@ -106,6 +106,23 @@ public sealed class CelebrationBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     [Fact]
+    public async Task PositioningAnotherScrollerDoesNotCancelAVisibleMilestone()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await OpenAsync(context);
+        await page.EvaluateAsync("""
+            () => {
+                LwcCelebrate.play(document.querySelector('.application-review-seal'), { once: 'board-update', delay: 100 });
+                document.querySelector('.application-review-trail').dispatchEvent(new Event('scroll'));
+            }
+            """);
+        await Assertions.Expect(page.Locator(".lwc-celebration.is-static")).ToHaveCountAsync(1);
+        Assert.True(await page.EvaluateAsync<bool>("LwcCelebrate.seen('board-update')"));
+        await page.EvaluateAsync("document.querySelector('.application-review-panel').dispatchEvent(new Event('scroll'))");
+        await Assertions.Expect(page.Locator(".lwc-celebration")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task AnimationFailureFallsBackWithoutErrorsOrOrphanLayers()
     {
         await using var context = await NewContextAsync(Browser, App, new());
