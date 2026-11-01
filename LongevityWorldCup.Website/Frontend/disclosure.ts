@@ -113,6 +113,11 @@ interface Window {
             if (!to.width || !from.width) return;
             const cs = getComputedStyle(face);
             const ghost = face.cloneNode(false) as HTMLImageElement;
+            // Fly the already visible portrait, rather than waiting for a lazy roster image.
+            const source = (opening ? seat : face) as HTMLImageElement;
+            ghost.src = source.currentSrc || source.src;
+            ghost.loading = "eager";
+            ghost.decoding = "sync";
             ghost.removeAttribute("id");
             ghost.setAttribute("aria-hidden", "true");
             ghost.className = "lwc-disclosure-ghost";

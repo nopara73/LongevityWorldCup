@@ -10,6 +10,62 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/?group=flags")]
+    [InlineData("/leaderboard?group=flags")]
+    public async Task OpeningFlight_ShowsLoadedPortraitsWhileRosterImagesArePending(string path)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var team = page.Locator(".flag-team").First;
+        await team.Locator("summary").ScrollIntoViewIfNeededAsync();
+        await team.EvaluateAsync("team => Promise.all([...team.querySelectorAll('.flag-team-portraits img')].map(i => i.decode()))");
+        var releaseImages = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/disclosure-cold.png", async route =>
+        {
+            await releaseImages.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            await team.EvaluateAsync("""
+                team => {
+                    team.querySelectorAll('.flag-athlete-link > img').forEach(image => {
+                        // A fresh element has no previous decoded bitmap to reuse.
+                        const cold = document.createElement('img');
+                        cold.alt = '';
+                        cold.loading = 'lazy';
+                        cold.src = '/disclosure-cold.png';
+                        image.replaceWith(cold);
+                    });
+                    team.querySelector('summary').click();
+                    document.getAnimations().filter(animation => {
+                        const target = animation.effect?.target;
+                        return target instanceof Element && (team.contains(target) || target.matches('.lwc-disclosure-ghost'));
+                    }).forEach(animation => animation.pause());
+                }
+                """);
+            await Assertions.Expect(page.Locator(".lwc-disclosure-ghost")).ToHaveCountAsync(3);
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const images = [...document.querySelectorAll('.lwc-disclosure-ghost')];
+                    return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
+                }
+                """, null, new() { Timeout = 3000 });
+            Assert.True(await team.EvaluateAsync<bool>("d => d.open"));
+        }
+        finally
+        {
+            releaseImages.TrySetResult();
+            await context.UnrouteAllAsync(new() { Behavior = UnrouteBehavior.Wait });
+        }
+    }
+
+    [Theory]
     [InlineData("/leaderboard?group=flags", "preference")]
     [InlineData("/leaderboard?group=flags", "scroll")]
     [InlineData("/leaderboard?group=flags", "resize")]
