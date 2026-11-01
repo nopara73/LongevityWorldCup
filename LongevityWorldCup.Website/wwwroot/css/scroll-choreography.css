@@ -4,13 +4,12 @@
  *
  * Only elements the script marked as waiting below the fold are ever held back, so
  * the HTML stays fully readable without JavaScript. Motion is opacity plus the
- * individual `translate` / `scale` properties: no layout shift, and components keep
+ * individual `translate` property: no layout shift, and components keep
  * their own transforms for hover and press.
  */
 
 :root {
     --lwc-enter-distance: 22px;
-    --lwc-enter-scale: 0.985;
     --lwc-enter-fade: 380ms;
     --lwc-enter-travel: 640ms;
     --lwc-enter-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -30,18 +29,15 @@
 :root[data-lwc-choreo] [data-lwc-enter-state="wait"] {
     opacity: 0;
     translate: 0 var(--lwc-enter-distance);
-    scale: var(--lwc-enter-scale);
 }
 
 /* Arriving: a quick fade carried by a longer, settling rise. */
 :root[data-lwc-choreo] [data-lwc-enter-state="go"] {
     opacity: 1;
     translate: 0 0;
-    scale: 1;
     transition:
         opacity var(--lwc-enter-fade) ease-out,
-        translate var(--lwc-enter-travel) var(--lwc-enter-ease),
-        scale var(--lwc-enter-travel) var(--lwc-enter-ease);
+        translate var(--lwc-enter-travel) var(--lwc-enter-ease);
     transition-delay: calc(var(--lwc-enter-i, 0) * var(--lwc-enter-step));
 }
 
@@ -73,9 +69,9 @@
    then fades and lifts away as the section's end pushes it out for the next one. */
 [data-lwc-handoff-head] {
     position: sticky;
-    top: 0;
+    top: var(--site-visible-sticky-height, 0px);
     z-index: 3;
-    background: var(--card-bg, var(--lwc-surface, inherit));
+    background: var(--lwc-surface);
     opacity: calc(1 - var(--lwc-handoff, 0) * 0.85);
     translate: 0 calc(var(--lwc-handoff, 0) * -8px);
     transition: box-shadow 200ms ease-out;
@@ -102,5 +98,16 @@
         opacity: 1 !important;
         translate: none !important;
         scale: none !important;
+        transition: none !important;
+    }
+    [data-lwc-parallax] > * {
+        animation: none !important;
+        translate: none !important;
+        scale: none !important;
+    }
+    [data-lwc-handoff-head] {
+        position: static;
+        opacity: 1;
+        translate: none;
     }
 }

@@ -75,10 +75,11 @@
         // search, timer, tooltip or profile mutation.
         new MutationObserver(records => {
             for (const record of records) {
+                if (record.type === 'attributes' && record.target instanceof Element) adopt(record.target);
                 for (const node of record.addedNodes) if (node instanceof Element) adopt(node);
             }
             queue();
-        }).observe(document.body, { childList: true, subtree: true });
+        }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-lwc-sticky'] });
         new ResizeObserver(invalidate).observe(document.documentElement);
         // Header measurements and enlarged text can change inherited sticky
         // insets without changing the dimensions of a bar itself.

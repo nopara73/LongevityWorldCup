@@ -156,7 +156,10 @@ public sealed class HomepageArrivalBrowserTests(
 
         await page.WaitForDocumentContentLoadedAsync();
         await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
-        Assert.Equal("1", await page.Locator("#lwc-countdown-box").EvaluateAsync<string>("el => getComputedStyle(el).opacity"));
+        // Late content must not replay the opening entrance. It can now join the
+        // separate scroll entrance when the reader actually reaches it.
+        await page.Locator("#lwc-countdown-box").ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToHaveCSSAsync("opacity", "1");
         Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
         Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
         Assert.DoesNotContain("lwc-countdown-box", await page.EvaluateAsync<string[]>("arrivalTargets"));
