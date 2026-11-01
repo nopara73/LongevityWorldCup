@@ -1,0 +1,379 @@
+/* League filters: the leaderboard's filter panel as a deck, not a curtain.
+ *
+ * Desktop: opening the filters lays a full-width deck above the results
+ *   instead of a narrow card over the athlete names. Sections sit side by
+ *   side, options are tiles with a check, a count and a hairline showing
+ *   each option's share of its section. The rail no longer peeks on hover;
+ *   a click on it opens the deck.
+ * Phones: the left drawer becomes a bottom sheet with a grab handle and
+ *   two-up tiles; Show results stays docked at its foot.
+ * Motion: the deck unrolls and its sections arrive in a short cascade; a
+ *   ticked tile stamps its check; counts glide their hairlines.
+ *
+ * Everything is scoped to #athleteLeaderboard so it outranks the shared
+ * leaderboard-content.css rules without editing them. */
+
+/* ===== Tiles (all sizes) ===== */
+#athleteLeaderboard .sidebar-filter-list .filter-section ul {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label {
+    --tile-share: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    margin: 0;
+    padding: 0.45rem 0.7rem 0.55rem;
+    box-sizing: border-box;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface);
+    cursor: pointer;
+    overflow: hidden;
+    transition:
+        border-color 160ms var(--lwc-ease-standard, ease),
+        background-color 160ms var(--lwc-ease-standard, ease),
+        transform 160ms var(--lwc-ease-standard, ease),
+        box-shadow 160ms var(--lwc-ease-standard, ease);
+}
+
+@media (hover: hover) {
+    #athleteLeaderboard .sidebar-filter-list .filter-section li > label:hover {
+        border-color: color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border));
+        transform: translateY(-1px);
+        box-shadow: var(--lwc-shadow-sm);
+    }
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label:active {
+    transform: scale(0.98);
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label:has(input:checked) {
+    border-color: var(--lwc-accent);
+    background: var(--lwc-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--lwc-accent);
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label:has(input:focus-visible) {
+    outline: 2px solid var(--lwc-accent);
+    outline-offset: 2px;
+}
+
+/* The check: a round stamp instead of a square box. */
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"] {
+    flex: 0 0 auto;
+    appearance: none;
+    display: grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0;
+    border: 1.5px solid var(--lwc-border-strong, var(--lwc-border));
+    border-radius: 50%;
+    background: var(--lwc-surface);
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]::after {
+    content: "";
+    width: 0.32rem;
+    height: 0.58rem;
+    margin-top: -0.12rem;
+    border: solid var(--lwc-on-accent, #fff);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transition: transform 220ms var(--lwc-ease-pop, ease-out);
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]:checked {
+    border-color: var(--lwc-accent);
+    background: var(--lwc-accent);
+    animation: lwc-filter-stamp 300ms var(--lwc-ease-pop, ease-out);
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]:checked::after {
+    transform: rotate(45deg) scale(1);
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-label-copy {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    color: var(--lwc-ink);
+    font-size: 0.95rem;
+    line-height: 1.25;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-label-copy .filter-icon {
+    flex: 0 0 auto;
+    width: 1.1em;
+    color: var(--lwc-accent);
+    text-align: center;
+}
+
+/* Count: a quiet number at the tile's end, without its parentheses. */
+#athleteLeaderboard .sidebar-filter-list .filter-count-group {
+    margin-left: auto;
+    padding-left: 0.4rem;
+    font-size: 0;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-count-group .filter-count {
+    color: var(--lwc-muted);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+#athleteLeaderboard .sidebar-filter-list li > label:has(input:checked) .filter-count {
+    color: var(--lwc-accent);
+}
+
+/* Share hairline along the tile's foot. */
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label::after {
+    content: "";
+    position: absolute;
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: 0.3rem;
+    height: 2px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--lwc-accent) 45%, transparent);
+    transform: scaleX(var(--tile-share));
+    transform-origin: left center;
+    opacity: 0.6;
+    transition: transform 420ms var(--lwc-ease-standard, ease), opacity 160ms ease;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section li > label:has(input:checked)::after {
+    opacity: 1;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-section h3 {
+    position: static;
+    margin: 0 0 0.55rem;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-label-copy {
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+/* ===== Desktop deck ===== */
+@media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
+    #athleteLeaderboard > .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) {
+        flex-basis: 100%;
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        margin: 0;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .sidebar-rail {
+        display: none;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded ~ :is(table, .flag-leaderboard) {
+        flex-basis: 100%;
+        border-radius: 0 0 var(--lwc-radius-lg, 12px) var(--lwc-radius-lg, 12px);
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .sidebar-panel {
+        position: static;
+        width: 100%;
+        max-height: none;
+        border: 0;
+        border-bottom: 1px solid var(--lwc-border);
+        border-radius: 0;
+        background:
+            linear-gradient(var(--lwc-surface-accent, transparent), transparent 5rem),
+            var(--lwc-surface-muted);
+        box-shadow: inset 0 -8px 16px -14px rgb(15 23 42 / 0.25);
+        animation: lwc-deck-unroll 300ms var(--lwc-ease-standard, ease) both;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .sidebar-heading {
+        padding: 0.85rem 1.25rem 0.35rem;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .sidebar-filter-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+        align-items: start;
+        gap: 1rem 1.25rem;
+        padding: 0.5rem 1.25rem 1.25rem;
+        overflow: visible;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .filter-section {
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        animation: lwc-deck-section 320ms var(--lwc-ease-enter, ease-out) both;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(2) { animation-delay: 40ms; }
+    #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(3) { animation-delay: 80ms; }
+    #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(4) { animation-delay: 120ms; }
+    #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(5) { animation-delay: 160ms; }
+    #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(6) { animation-delay: 200ms; }
+
+    /* Flags are many: they take two columns and scroll inside. */
+    #athleteLeaderboard > .sidebar.expanded #flag-filter-section {
+        grid-column: span 2;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded #flag-filter-section ul {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+        max-height: 17rem;
+        padding: 2px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .filter-section:has(ul:empty) {
+        display: none;
+    }
+
+    /* No hover peek: the rail waits for a click. */
+    #athleteLeaderboard > .sidebar:hover:not(.expanded) .sidebar-panel {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    #athleteLeaderboard > .sidebar:hover:not(.expanded) .sidebar-rail {
+        opacity: 1;
+        cursor: pointer;
+    }
+
+    #athleteLeaderboard > .sidebar:not(.expanded) .sidebar-rail {
+        transition: background-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    #athleteLeaderboard > .sidebar:hover:not(.expanded) .sidebar-rail {
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lwc-accent) 45%, transparent);
+    }
+}
+
+/* ===== Phone bottom sheet ===== */
+@media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    #athleteLeaderboard > .sidebar {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        max-width: none;
+        height: auto;
+        max-height: min(88dvh, 760px);
+        padding-top: 1.35rem;
+        border-radius: 22px 22px 0 0;
+        transform: translateY(104%);
+        transition:
+            transform 320ms cubic-bezier(0.2, 0.9, 0.25, 1),
+            visibility 0s linear 320ms;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded {
+        transform: none;
+        transition: transform 360ms cubic-bezier(0.2, 0.9, 0.25, 1), visibility 0s;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded::after {
+        display: none;
+    }
+
+    /* Grab handle. */
+    #athleteLeaderboard > .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0.55rem;
+        left: 50%;
+        width: 2.5rem;
+        height: 4px;
+        margin-left: -1.25rem;
+        border-radius: 999px;
+        background: var(--lwc-border-strong, var(--lwc-border));
+    }
+
+    #athleteLeaderboard > .sidebar .sidebar-filter-list .filter-section ul {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* Long names keep whole words on one line. */
+    #athleteLeaderboard > .sidebar :is(#aging-clock-filter-section, #generation-filter-section) ul {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #athleteLeaderboard > .sidebar .sidebar-filter-list .filter-section li > label {
+        padding-inline: 0.6rem;
+    }
+
+    #athleteLeaderboard > .sidebar .sidebar-filter-list .filter-label-copy {
+        font-size: 0.9rem;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .filter-section {
+        animation: lwc-deck-section 320ms var(--lwc-ease-enter, ease-out) both;
+        animation-delay: 120ms;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(n + 3) {
+        animation-delay: 180ms;
+    }
+}
+
+@keyframes lwc-deck-unroll {
+    from { clip-path: inset(0 0 100% 0); opacity: 0.4; }
+    to { clip-path: inset(0); opacity: 1; }
+}
+
+@keyframes lwc-deck-section {
+    from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes lwc-filter-stamp {
+    0% { transform: scale(0.75); }
+    55% { transform: scale(1.2); }
+    100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #athleteLeaderboard .sidebar-filter-list .filter-section li > label,
+    #athleteLeaderboard .sidebar-filter-list .filter-section li > label::after,
+    #athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]::after,
+    #athleteLeaderboard > .sidebar,
+    #athleteLeaderboard > .sidebar.expanded {
+        transition: none;
+    }
+
+    #athleteLeaderboard > .sidebar.expanded .sidebar-panel,
+    #athleteLeaderboard > .sidebar.expanded .filter-section,
+    #athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]:checked {
+        animation: none;
+    }
+}

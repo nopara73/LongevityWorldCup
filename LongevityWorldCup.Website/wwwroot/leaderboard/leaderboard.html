@@ -6,6 +6,7 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_LEADERBOARD_FEEL_CSS}}">
     <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_LEADERBOARD_FILTERS_CSS}}">
     <script>
         // A native handoff must capture the parsed board, not an empty body.
         // Ordinary loads keep their progressive server-rendered content.
@@ -37,6 +38,31 @@
     <!--FOOTER-->
     <script src="{{ASSET_LEADERBOARD_FEEL_JS}}"></script>
     <script src="{{ASSET_LEADERBOARD_PODIUM_JS}}"></script>
+    <script>
+        // League filters: each option's share of its section drives the hairline
+        // on its tile, and a click on the collapsed rail opens the deck.
+        (function () {
+            const sidebar = document.getElementById('leaderboardFilters');
+            const toggle = document.querySelector('.sidebar-toggle');
+            if (!sidebar) return;
+            let frame = 0;
+            function syncShares() {
+                frame = 0;
+                sidebar.querySelectorAll('.filter-section').forEach(section => {
+                    const labels = Array.from(section.querySelectorAll('li > label'));
+                    const counts = labels.map(label => Number.parseInt(label.querySelector('.filter-count')?.textContent || '', 10) || 0);
+                    const max = Math.max(1, ...counts);
+                    labels.forEach((label, index) => label.style.setProperty('--tile-share', String(counts[index] / max)));
+                });
+            }
+            const queue = () => { if (!frame) frame = requestAnimationFrame(syncShares); };
+            new MutationObserver(queue).observe(sidebar, { subtree: true, childList: true, characterData: true });
+            queue();
+            sidebar.querySelector('.sidebar-rail')?.addEventListener('click', () => {
+                if (!sidebar.classList.contains('expanded')) toggle?.click();
+            });
+        })();
+    </script>
 </body>
 </html>
 
