@@ -97,15 +97,15 @@
                             <details>
                                 <summary class="play-biomarkers-summary">9 biomarkers needed</summary>
                                 <ul>
-                                    <li>White blood cell count (WBC)</li>
-                                    <li>Lymphocytes</li>
-                                    <li>Mean corpuscular volume (MCV)</li>
-                                    <li>Red cell distribution width (RDW)</li>
-                                    <li>Albumin</li>
-                                    <li>Alkaline phosphatase (ALP)</li>
-                                    <li>Creatinine</li>
-                                    <li>Glucose (Blood Sugar)</li>
-                                    <li>C-reactive protein (CRP)</li>
+                                    <li data-twin="wbc">White blood cell count (WBC)</li>
+                                    <li data-twin="lym">Lymphocytes</li>
+                                    <li data-twin="mcv">Mean corpuscular volume (MCV)</li>
+                                    <li data-twin="rdw">Red cell distribution width (RDW)</li>
+                                    <li data-twin="alb">Albumin</li>
+                                    <li data-twin="alp">Alkaline phosphatase (ALP)</li>
+                                    <li data-twin="crea">Creatinine</li>
+                                    <li data-twin="glu">Glucose (Blood Sugar)</li>
+                                    <li data-twin="crp">C-reactive protein (CRP)</li>
                                 </ul>
                             </details>
                         </div>
@@ -159,26 +159,26 @@
                             <details>
                                 <summary class="play-biomarkers-summary">22 biomarkers needed</summary>
                                 <ul>
-                                    <li>White blood cell count (WBC)</li>
-                                    <li>Lymphocytes</li>
+                                    <li data-twin="wbc">White blood cell count (WBC)</li>
+                                    <li data-twin="lym">Lymphocytes</li>
                                     <li>Neutrophils</li>
                                     <li>Monocytes</li>
                                     <li>Red blood cell count (RBC)</li>
-                                    <li>Mean corpuscular volume (MCV)</li>
+                                    <li data-twin="mcv">Mean corpuscular volume (MCV)</li>
                                     <li>Mean corpuscular hemoglobin (MCH)</li>
-                                    <li>Red cell distribution width (RDW)</li>
-                                    <li>Albumin</li>
+                                    <li data-twin="rdw">Red cell distribution width (RDW)</li>
+                                    <li data-twin="alb">Albumin</li>
                                     <li>Alanine aminotransferase (ALT)</li>
-                                    <li>Alkaline phosphatase (ALP)</li>
+                                    <li data-twin="alp">Alkaline phosphatase (ALP)</li>
                                     <li>Gamma-glutamyl transferase (GGT)</li>
                                     <li>Urea</li>
-                                    <li>Creatinine</li>
+                                    <li data-twin="crea">Creatinine</li>
                                     <li>Cystatin C</li>
-                                    <li>Glucose</li>
+                                    <li data-twin="glu">Glucose</li>
                                     <li>Hemoglobin A1c (HbA1c)</li>
                                     <li>Total cholesterol</li>
                                     <li>Apolipoprotein A1 (ApoA1)</li>
-                                    <li>C-reactive protein (CRP)</li>
+                                    <li data-twin="crp">C-reactive protein (CRP)</li>
                                     <li>Sex hormone-binding globulin (SHBG)</li>
                                     <li>Vitamin D (25-OH)</li>
                                 </ul>
@@ -212,6 +212,28 @@
             </div>
         </section>
 
+        <script>
+            // Track choice: the two biomarker lists answer each other. Pointing at
+            // a biomarker lights its twin in the other track; opened lists deal
+            // their items in. Pro marks which biomarkers Amateur already needs.
+            (function () {
+                const panel = document.getElementById('joinTrackPanel');
+                if (!panel) return;
+                panel.querySelectorAll('.play-join-biomarkers ul').forEach(list => {
+                    Array.from(list.children).forEach((item, index) => item.style.setProperty('--i', String(index)));
+                });
+                let lit = [];
+                const clear = () => { lit.forEach(item => item.classList.remove('is-twin-lit')); lit = []; };
+                panel.addEventListener('pointerover', event => {
+                    const item = event.target instanceof Element ? event.target.closest('li[data-twin]') : null;
+                    clear();
+                    if (!item) return;
+                    lit = Array.from(panel.querySelectorAll('li[data-twin="' + item.dataset.twin + '"]'));
+                    lit.forEach(twin => twin.classList.add('is-twin-lit'));
+                });
+                panel.addEventListener('pointerleave', clear);
+            })();
+        </script>
         <section id="athleteSelectionPanel" class="play-hub-panel play-athlete-panel" hidden>
             <div class="play-athlete-visual">
                 <div class="play-athlete-card">
