@@ -349,6 +349,8 @@
         podium.replaceChildren(...steps);
         board.replaceChildren(...boardRows);
         board.start = 4;
+        // The chasing pack measures itself against the last podium place.
+        board.style.setProperty('--ro-cut', scaleOf(rows[2]).toFixed(3));
         standings.removeAttribute('aria-busy');
         standings.classList.add('is-ready');
         onReveal(standings, () => playEntrance(rows, steps, boardRows));
