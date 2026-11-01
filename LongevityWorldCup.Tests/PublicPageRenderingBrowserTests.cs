@@ -55,6 +55,8 @@ public sealed class PublicPageRenderingBrowserTests(PlaywrightBrowserFixture bro
         var unavailable = await page.Locator(".athlete-info-table tr[hidden]")
             .EvaluateAllAsync<string[]>("rows => rows.map(row => row.textContent.trim())");
         Assert.All(unavailable, value => Assert.Empty(value));
+        Assert.Empty(await page.Locator(".athlete-info-table tr:not([hidden])").EvaluateAllAsync<string[]>(
+            "rows => rows.filter(row => !row.querySelector('th[scope=row]')).map(row => row.id)"));
         Assert.Equal(pro, await page.Locator("#lowestBortzAgeContainer").IsVisibleAsync());
     }
 

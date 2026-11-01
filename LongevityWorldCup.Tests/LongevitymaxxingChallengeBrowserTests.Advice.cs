@@ -723,19 +723,24 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal("Keep this thought while the lead changes.", submitted["body"]!.GetValue<string>());
     }
 
-    [Fact]
-    public async Task Advice_WithdrawalReplacesAnOlderThreadOmittedFromTheMutationState()
+    [Theory]
+    [InlineData(390, ColorScheme.Dark)]
+    [InlineData(1280, ColorScheme.Light)]
+    public async Task Advice_StoryCanBeEditedWithoutWithdrawalAndKeepsAnOlderConversation(int width, ColorScheme theme)
     {
-        await using var context = await NewContextAsync(Browser, App, new());
-        var state = AdviceBrowserState(2);
-        var withdrawals = 0;
-        await context.RouteAsync("**/api/longevitymaxxing/advice/withdraw", async route =>
+        await using var context = await NewContextAsync(Browser, App, new()
         {
-            withdrawals++;
+            ViewportSize = new() { Width = width, Height = 900 }, ColorScheme = theme, HasTouch = width < 500
+        });
+        var state = AdviceBrowserState(2);
+        const string story = "A clearer explanation after trying the advice.";
+        JsonNode? edited = null;
+        await context.RouteAsync("**/api/longevitymaxxing/advice/edit", async route =>
+        {
+            edited = JsonNode.Parse(route.Request.PostData!);
             var updated = state["notes"]![0]!.DeepClone();
-            updated["advice"]!["withdrawn"] = true;
-            updated["advice"]!["story"] = "";
-            updated["advice"]!["activeAdviceReplyId"] = null;
+            updated["advice"]!["story"] = edited!["story"]!.GetValue<string>();
+            updated["advice"]!["version"] = updated["advice"]!["version"]!.GetValue<int>() + 1;
             var response = state.DeepClone();
             response["notes"] = new JsonArray();
             response["public"]!["notes"] = new JsonArray();
@@ -743,24 +748,22 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await FulfillJsonAsync(route, response.ToJsonString());
         });
         var page = await OpenDiscussionWorkspaceAsync(context, state);
-        var confirmWithdrawal = false;
-        page.Dialog += async (_, dialog) =>
-        {
-            if (confirmWithdrawal) await dialog.AcceptAsync();
-            else await dialog.DismissAsync();
-        };
-        var withdraw = page.Locator("#lmxNotes [data-advice-withdraw]");
-        await withdraw.ClickAsync();
-        Assert.Equal(0, withdrawals);
-        await Assertions.Expect(withdraw).ToBeFocusedAsync();
-        await Assertions.Expect(withdraw).ToBeEnabledAsync();
-        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync(AdviceStory);
-        confirmWithdrawal = true;
-        await page.Locator("#lmxNotes [data-advice-withdraw]").ClickAsync();
-        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync("Advice request withdrawn");
-        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).Not.ToContainTextAsync(AdviceStory);
-        await Assertions.Expect(page.Locator("#lmxNotes [data-discussion-reply][data-advice-root-id]")).ToHaveCountAsync(0);
-        Assert.Equal(1, withdrawals);
+        var post = page.Locator("#lmxNotes > .lmx-advice-post");
+        var edit = post.GetByRole(AriaRole.Button, new() { Name = "Edit story", Exact = true });
+        await Assertions.Expect(post.GetByRole(AriaRole.Button, new() { Name = "Withdraw request", Exact = true })).ToHaveCountAsync(0);
+        await Assertions.Expect(post.Locator(".lmx-advice-story-tools button")).ToHaveCountAsync(1);
+        await edit.ClickAsync();
+        await post.Locator(".lmx-advice-story-editor textarea").FillAsync(story);
+        await post.GetByRole(AriaRole.Button, new() { Name = "Save story", Exact = true }).ClickAsync();
+        await Assertions.Expect(post.Locator(".lmx-advice-story-editor")).ToHaveCountAsync(0);
+        await Assertions.Expect(post.Locator(".lmx-advice-story")).ToContainTextAsync(story);
+        await Assertions.Expect(edit).ToBeVisibleAsync();
+        await Assertions.Expect(post.Locator(".is-active [data-discussion-reply][data-advice-root-id]")).ToBeVisibleAsync();
+        await Assertions.Expect(post.Locator("[data-discussion-reply-id='higher-advice']")).ToBeVisibleAsync();
+        Assert.Equal("case-22", edited!["adviceId"]!.GetValue<string>());
+        Assert.Equal(story, edited["story"]!.GetValue<string>());
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        await CaptureAdviceAsync(page, $"story-tools-{width}-{theme}.png", post);
     }
 
     [Fact]
@@ -842,7 +845,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var state = AdviceBrowserState(0);
         state["notes"] = new JsonArray();
         state["public"]!["notes"] = new JsonArray();
-        state["pendingAdvicePrompt"] = JsonSerializer.SerializeToNode(new { id, challengeDay = day, date = "2026-06-29", rawScore = 4, baselineRawScore = 8, characterLimit = 240, version = 1 });
+        state["pendingAdvicePrompt"] = JsonSerializer.SerializeToNode(new { id, challengeDay = day, date = "2026-06-29", rawScore = 4, baselineRawScore = 8, version = 1 });
         return state;
     }
 

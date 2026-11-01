@@ -393,7 +393,7 @@ interface Window {
         ringTarget = null;
         root.removeAttribute("data-lwc-ring");
         ring.classList.remove("is-on");
-        for (const animation of ring.getAnimations()) animation.cancel();
+        for (const animation of ring.getAnimations?.() ?? []) animation.cancel();
         cancelAnimationFrame(ringFrame);
         ringFrame = 0;
     }
@@ -500,7 +500,7 @@ interface Window {
 
     function pulseRing(kind: "return" | "bump", direction = 0): void {
         if (!ringTarget || reduced.matches || typeof ring.animate !== "function") return;
-        for (const animation of ring.getAnimations()) animation.cancel();
+        for (const animation of ring.getAnimations?.() ?? []) animation.cancel();
         if (kind === "return") {
             ring.animate([
                 { boxShadow: "0 0 0 0 var(--lwc-ring-halo)", scale: "1.06" },
@@ -700,7 +700,7 @@ interface Window {
     reduced.addEventListener?.("change", () => {
         ring.classList.remove("is-gliding");
         tip.classList.remove("is-gliding");
-        for (const animation of [...ring.getAnimations(), ...tip.getAnimations()]) animation.cancel();
+        for (const animation of [...(ring.getAnimations?.() ?? []), ...(tip.getAnimations?.() ?? [])]) animation.cancel();
         clearArrivals();
         refreshRing();
     });

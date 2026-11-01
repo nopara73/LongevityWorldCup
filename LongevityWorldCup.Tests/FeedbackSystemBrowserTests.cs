@@ -192,7 +192,7 @@ public sealed class FeedbackSystemBrowserTests(
     [Theory]
     [InlineData("light")]
     [InlineData("dark")]
-    public async Task CopiedConfirmation_IsASuccessPillWithTheSharedMark(string theme)
+    public async Task CopiedConfirmation_TintsTheTicketAndResetsItsSuccessMark(string theme)
     {
         await using var context = await NewThemedContextAsync(390, 844, theme);
         await context.RouteAsync("**/api/bitcoin/donation-address", route => route.FulfillAsync(new()
@@ -215,7 +215,7 @@ public sealed class FeedbackSystemBrowserTests(
         Assert.DoesNotContain("✓", await page.Locator("#bitcoinCopyStatus").AriaSnapshotAsync());
         var copied = await page.EvaluateAsync<string[]>("""
             () => {
-                const element = document.getElementById('copiedText');
+                const ticket = document.getElementById('copiedText').closest('.btc-address');
                 const probe = document.createElement('span');
                 document.body.append(probe);
                 probe.style.color = 'var(--lwc-success)';
@@ -223,19 +223,16 @@ public sealed class FeedbackSystemBrowserTests(
                 probe.style.color = 'var(--lwc-success-soft)';
                 const soft = getComputedStyle(probe).color;
                 probe.remove();
-                const style = getComputedStyle(element);
-                const mark = getComputedStyle(element, '::before');
-                const pill = element.getBoundingClientRect().width < element.closest('.btc-address').getBoundingClientRect().width;
-                return [style.display.endsWith('flex') && pill ? 'pill' : style.display, style.backgroundColor, soft, style.borderTopLeftRadius,
-                    mark.content.split(' / ')[0].replaceAll('"', ''), mark.backgroundColor, success];
+                const style = getComputedStyle(ticket);
+                const mark = getComputedStyle(ticket.querySelector('.copy-btn i'));
+                return [style.backgroundColor, soft, style.borderTopColor, success, mark.color];
             }
             """);
 
-        Assert.Equal("pill", copied[0]);
-        Assert.Equal(copied[2], copied[1]);
-        Assert.Equal("999px", copied[3]);
-        Assert.Equal("✓", copied[4]);
-        Assert.Equal(copied[6], copied[5]);
+        Assert.Equal(copied[1], copied[0]);
+        Assert.Equal(copied[3], copied[2]);
+        Assert.Equal(copied[3], copied[4]);
+        await Assertions.Expect(page.Locator("#bitcoinCopyButton i")).ToHaveClassAsync("fas fa-check");
         await page.Clock.FastForwardAsync(1500);
         await page.Locator("#bitcoinCopyButton").ClickAsync();
         await page.Clock.FastForwardAsync(600);
@@ -244,6 +241,8 @@ public sealed class FeedbackSystemBrowserTests(
         await Assertions.Expect(page.Locator("#copiedText")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#copiedText")).ToBeEmptyAsync();
         await Assertions.Expect(page.Locator("#btcAddressLink")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#bitcoinCopyButton i")).ToHaveClassAsync("fas fa-copy");
+        Assert.False(await page.Locator(".btc-address").EvaluateAsync<bool>("e => e.classList.contains('is-copied')"));
     }
 
     [Theory]
