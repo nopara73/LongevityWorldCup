@@ -41,6 +41,7 @@ interface Window {
     type Running = { anim: Animation; opening: boolean; extras: Animation[]; cleanup: () => void };
     const running = new Map<HTMLElement, Running>();
     const pendingReveals = new Map<HTMLElement, number>();
+    const canAnimate = (): boolean => !reduced.matches && typeof Element.prototype.animate === "function";
 
     const visible = (el: Element): boolean => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
 
@@ -160,7 +161,7 @@ interface Window {
     // dealt-in rows and a state attribute that keeps seats empty while closing.
     function toggle(details: HTMLDetailsElement, open = !(running.get(details)?.opening ?? details.open)): void {
         stop(details);
-        if (reduced.matches) {
+        if (!canAnimate()) {
             details.open = open;
             return;
         }
@@ -203,7 +204,7 @@ interface Window {
     // Buttons that unhide more siblings in a region (aria-controls) grow it.
     const REVEAL = ".proofs-toggle, [data-disclosure='reveal']";
     document.addEventListener("click", event => {
-        if (reduced.matches) return;
+        if (!canAnimate()) return;
         const button = event.target instanceof Element ? event.target.closest<HTMLElement>(REVEAL) : null;
         const id = button?.getAttribute("aria-controls");
         const region = id ? document.getElementById(id) : null;
