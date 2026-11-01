@@ -987,9 +987,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.style.overflow === 'hidden'"));
         Assert.True(await viewer.EvaluateAsync<bool>("element => element.matches(':modal')"));
         Assert.Equal("Photo 1 of 2", await viewer.Locator(".lwc-viewer-position").InnerTextAsync());
-        Assert.Equal(
-            "/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari",
-            await viewer.Locator(".lwc-viewer-stage img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync(
+            "src", "/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari");
 
         var closeButton = viewer.Locator(".lwc-viewer-close");
         var previousButton = viewer.Locator(".lwc-viewer-prev");
@@ -1007,9 +1006,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         await page.Keyboard.PressAsync("ArrowRight");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         Assert.Equal("Photo 2 of 2", await viewer.Locator(".lwc-viewer-position").InnerTextAsync());
-        Assert.Equal(
-            "/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea",
-            await viewer.Locator(".lwc-viewer-stage img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync(
+            "src", "/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea");
         Assert.True(await previousButton.IsEnabledAsync());
         Assert.False(await nextButton.IsEnabledAsync());
         Assert.Equal(

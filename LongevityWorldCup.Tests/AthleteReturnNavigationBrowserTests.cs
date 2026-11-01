@@ -156,7 +156,9 @@ public sealed class AthleteReturnNavigationBrowserTests(
         await OpenMichaelAsync(page);
         await page.Locator("#proofsGallery .proof-item img").First.ClickAsync();
         await Assertions.Expect(page.Locator(".lwc-viewer")).ToHaveAttributeAsync("aria-hidden", "false");
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToHaveAttributeAsync("data-image-state", "ready");
         var proofSource = await page.Locator(".lwc-viewer .lwc-viewer-stage img").GetAttributeAsync("src");
+        Assert.False(string.IsNullOrWhiteSpace(proofSource));
 
         await page.EvaluateAsync("window.openAthleteModalBySlug('christopher-yamba',{suppressGuessMyAge:true})");
         await WaitForProfileAsync(page, "christopher-yamba");

@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -122,12 +123,12 @@ public sealed class LeaderboardProofViewerBrowserTests(
 
         await page.Keyboard.PressAsync("ArrowLeft");
         Assert.Equal("Proof 1 of 3", await position.InnerTextAsync());
-        Assert.Contains("/proof_1.webp", await viewer.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator("img")).ToHaveAttributeAsync("src", new Regex(@"/proof_1\.webp"));
 
         await page.Keyboard.PressAsync("ArrowRight");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         Assert.Equal("Proof 2 of 3", await position.InnerTextAsync());
-        Assert.Contains("/proof_2.webp", await viewer.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator("img")).ToHaveAttributeAsync("src", new Regex(@"/proof_2\.webp"));
 
         await page.Keyboard.PressAsync("End");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
@@ -138,7 +139,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await page.Keyboard.PressAsync("ArrowRight");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         Assert.Equal("Proof 3 of 3", await position.InnerTextAsync());
-        Assert.Contains("/proof_3.webp", await viewer.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator("img")).ToHaveAttributeAsync("src", new Regex(@"/proof_3\.webp"));
 
         await previousButton.ClickAsync();
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
@@ -169,7 +170,7 @@ public sealed class LeaderboardProofViewerBrowserTests(
         await page.GoForwardAsync();
         await page.Locator(".lwc-viewer[open]").WaitForAsync();
         Assert.Equal("Proof 3 of 3", await position.InnerTextAsync());
-        Assert.Contains("/proof_3.webp", await viewer.Locator("img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer.Locator("img")).ToHaveAttributeAsync("src", new Regex(@"/proof_3\.webp"));
         await page.GoBackAsync();
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         await page.Locator(".lwc-viewer").WaitForAsync(
