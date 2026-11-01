@@ -81,7 +81,12 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         Assert.True(depthIndex > stylesheetIndex && depthScriptIndex > depthIndex && depthScriptIndex < closingHeadIndex);
         Assert.Equal(1, html.Split("/css/depth-system.css?v=", StringSplitOptions.None).Length - 1);
         Assert.Equal(1, html.Split("/js/depth-system.js?v=", StringSplitOptions.None).Length - 1);
-        var stylesheetTagEnd = html.IndexOf('>', depthIndex);
+        var disclosureIndex = html.IndexOf("/css/disclosure.css?v=", StringComparison.Ordinal);
+        var disclosureScriptIndex = html.IndexOf("/js/disclosure.js?v=", StringComparison.Ordinal);
+        Assert.True(disclosureIndex > depthScriptIndex && disclosureScriptIndex > disclosureIndex && disclosureScriptIndex < closingHeadIndex);
+        Assert.Equal(1, html.Split("/css/disclosure.css?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("/js/disclosure.js?v=", StringSplitOptions.None).Length - 1);
+        var stylesheetTagEnd = html.IndexOf('>', disclosureIndex);
         Assert.True(stylesheetTagEnd > stylesheetIndex);
         var trailingHead = html[(stylesheetTagEnd + 1)..closingHeadIndex];
         Assert.DoesNotContain("<style", trailingHead, StringComparison.OrdinalIgnoreCase);

@@ -186,6 +186,8 @@ public sealed class AthletePortraitMotionBrowserTests(
         else
         {
             image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
+            await image.ScrollIntoViewIfNeededAsync();
+            await image.EvaluateAsync("img => img.decode()");
             await image.HoverAsync();
         }
         var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
@@ -488,6 +490,9 @@ public sealed class AthletePortraitMotionBrowserTests(
         foreach (var slug in new[] { "anna-buky", "martin-helstab", "wen-z", "tibor-konkoly", "charlotte-wong", "slamovits-tibor", "qolars", "markus-mattiasson", "inka-land", "tamas-toth" })
         {
             var image = page.Locator($".leaderboard a[href='/athlete/{slug}'] img.portrait").First;
+            // This checks the rendered gesture; delayed-photo hover has its own tests.
+            await image.ScrollIntoViewIfNeededAsync();
+            await image.EvaluateAsync("img => img.decode()");
             await image.HoverAsync();
             var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
             await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");

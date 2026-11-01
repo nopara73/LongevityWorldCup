@@ -1226,6 +1226,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/leaderboard-ordering.css":
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/disclosure.css":
+                    await AssertFlagContainerBoundariesAsync(page, source.ToArray(), disclosure: true);
+                    break;
                 case "css/play-menu.css":
                     await AssertJoinContainerBoundariesAsync(page,
                         source.Where(condition => condition.Name != "play-player-card").ToArray());
@@ -2183,7 +2186,8 @@ public sealed class AestheticSystemBrowserTests(
 
     private static async Task AssertFlagContainerBoundariesAsync(
         IPage page,
-        ResponsiveContainerCondition[] conditions)
+        ResponsiveContainerCondition[] conditions,
+        bool disclosure = false)
     {
         if (conditions.Length == 0) return;
         await NavigateAndSettleAsync(page, "/league/pheno?group=flags");
@@ -2219,7 +2223,7 @@ public sealed class AestheticSystemBrowserTests(
                         list.style.boxSizing = 'content-box';
                         list.style.inlineSize = `${argument.InlineSize}px`;
                         list.style.maxInlineSize = 'none';
-                        list.querySelector('.flag-team').open = argument.Boundary === 14;
+                        list.querySelector('.flag-team').open = argument.Disclosure || argument.Boundary === 14;
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         await Promise.all(list.getAnimations({ subtree: true })
                             .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
@@ -2233,7 +2237,10 @@ public sealed class AestheticSystemBrowserTests(
                         const athleteBox = athleteLink.getBoundingClientRect();
                         const athleteStyle = getComputedStyle(athleteLink);
                         const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-                        const compact = argument.Boundary === 42
+                        const bar = getComputedStyle(athleteLink, '::before');
+                        const compact = argument.Disclosure
+                            ? argument.Boundary === 22 ? parseFloat(bar.height) === 3 : parseFloat(bar.left) === 0
+                            : argument.Boundary === 42
                             ? getComputedStyle(team.querySelector('.flag-team-portraits')).display === 'none'
                             : argument.Boundary === 28
                                 ? Math.abs(team.querySelector('.flag-team-icon').getBoundingClientRect().width - 1.75 * rootFontSize) < .1
@@ -2246,7 +2253,7 @@ public sealed class AestheticSystemBrowserTests(
                             HorizontalOverflow: Math.max(0, list.scrollWidth - list.clientWidth)
                         };
                     }
-                    """, new { InlineSize = inlineSize, Boundary = condition.Value });
+                    """, new { InlineSize = inlineSize, Boundary = condition.Value, Disclosure = disclosure });
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
                     $"Flag results did not cross their {condition.Value}rem boundary at {inlineSize}px. " +

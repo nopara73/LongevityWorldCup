@@ -205,6 +205,7 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent = InjectPointerLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                         bodyContent = InjectDepthSystem(bodyContent);
+                        bodyContent = InjectDisclosureLayer(bodyContent);
                     }
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -660,6 +661,22 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Everything that opens and closes (details, reveal-more toggles, flag
+        // rosters) shares one motion and marker; it loads after the surface systems.
+        private string InjectDisclosureLayer(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/disclosure.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/disclosure.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 
