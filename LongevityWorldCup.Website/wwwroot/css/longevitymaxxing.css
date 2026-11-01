@@ -6351,11 +6351,10 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-story-dialog form { display: grid; gap: .75rem; }
 .lmx-advice-story-dialog h2 { text-align: left; font-size: 1.35rem; line-height: 1.3; margin: 0; padding: 0; text-shadow: none; }
 .lmx-advice-story-dialog p { margin: 0; color: var(--lmx-muted); }
-.lmx-advice-story-input { position: relative; min-width: 0; }
-.lmx-advice-story-dialog textarea { display: block; box-sizing: border-box; width: 100%; min-height: 8rem; max-height: 40dvh; resize: vertical; border: 1px solid var(--lmx-border-strong); border-radius: 5px; padding: .75rem .75rem 1.75rem; font: inherit; line-height: 1.5; color: var(--lmx-ink); background: var(--lmx-surface); }
+.lmx-advice-story-input { min-width: 0; }
+.lmx-advice-story-dialog textarea { display: block; box-sizing: border-box; width: 100%; min-height: 8rem; max-height: 40dvh; resize: vertical; border: 1px solid var(--lmx-border-strong); border-radius: 5px; padding: .75rem; font: inherit; line-height: 1.5; color: var(--lmx-ink); background: var(--lmx-surface); }
 .lmx-advice-story-dialog :focus-visible { outline: 2px solid var(--lmx-accent); outline-offset: 2px; }
 .lmx-advice-story-dialog textarea:focus-visible { outline-offset: -1px; }
-.lmx-advice-story-count { position: absolute; bottom: .5rem; right: 1.25rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
 .lmx-advice-story-actions { display: flex; align-items: center; justify-content: flex-end; }
 .lmx-advice-story-actions [data-advice-change-scores] { margin-inline-end: auto; }
 .lmx-advice-story-actions [hidden] { display: none; }
@@ -6366,13 +6365,12 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-needs-advice .lmx-advice-badge { color: var(--lmx-warning); }
 .lmx-advice-story { padding-top: .75rem; }
 .lmx-advice-story > p { font-size: 1.05rem; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
+.lmx-advice-story > p, .lmx-advice-context > p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .lmx-advice-context { margin-bottom: 1rem; color: var(--lmx-muted); font-size: .9rem; }
 .lmx-advice-context summary, .lmx-advice-archive summary { cursor: pointer; min-height: 44px; align-content: center; }
 .lmx-page .lmx-advice-replies { margin: 0; padding: 0; border: 0; }
 .lmx-advice-entry-slot:not(:empty) { margin-block: .75rem; }
-.lmx-advice-composer .lmx-mention-field { position: relative; }
-.lmx-advice-composer textarea { padding-bottom: 1.75rem; }
-.lmx-advice-composer [data-reply-count] { position: absolute; bottom: .5rem; right: 1.15rem; color: var(--lmx-muted); font-size: .75rem; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
+.lmx-advice-composer [data-reply-count] { margin-inline-end: auto; }
 .lmx-advice-composer [data-reply-count].over-limit { color: var(--lmx-danger); }
 .lmx-page .lmx-unread-link { font-weight: 700; color: var(--lmx-accent); }
 .lmx-unread-link::before, .lmx-unread-marker { content: ""; display: inline-block; inline-size: .4rem; block-size: .4rem; border-radius: 50%; background: var(--lmx-accent); vertical-align: middle; flex: 0 0 auto; }

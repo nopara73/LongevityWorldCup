@@ -845,7 +845,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var state = AdviceBrowserState(0);
         state["notes"] = new JsonArray();
         state["public"]!["notes"] = new JsonArray();
-        state["pendingAdvicePrompt"] = JsonSerializer.SerializeToNode(new { id, challengeDay = day, date = "2026-06-29", rawScore = 4, baselineRawScore = 8, characterLimit = 240, version = 1 });
+        state["pendingAdvicePrompt"] = JsonSerializer.SerializeToNode(new { id, challengeDay = day, date = "2026-06-29", rawScore = 4, baselineRawScore = 8, version = 1 });
         return state;
     }
 

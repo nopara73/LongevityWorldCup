@@ -145,14 +145,13 @@
 
     interface AdvicePrompt {
         id: string; challengeDay: number; date: string; rawScore: number;
-        baselineRawScore: number | null; characterLimit: number; version: number;
+        baselineRawScore: number | null; version: number;
         checkInNote?: string | null;
     }
 
     interface AdviceThread {
         id: string; story: string; publishedAtUtc: string; activeAdviceReplyId: string | null;
         replies: DiscussionReply[]; version: number; withdrawn: boolean;
-        storyCharacterLimit?: number;
         betterAdviceParticipantIds?: string[];
     }
 
@@ -5847,8 +5846,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.innerHTML = `<form>
                 <h2 id="lmxAdviceStoryHeading">This is unusual for you. What’s the story?</h2>
                 <div class="lmx-advice-story-input">
-                    <textarea id="lmxAdviceStory" rows="4" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
-                    <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>
+                    <textarea id="lmxAdviceStory" rows="6" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading"></textarea>
                 </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
                 <div class="lmx-advice-story-actions">
@@ -5901,9 +5899,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
         submit.textContent = "Post";
-        const length = adviceStoryDraft?.body.length || 0;
-        dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!.textContent = `${length} / ${prompt.characterLimit}`;
-        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || length > prompt.characterLimit;
+        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim();
     }
 
     async function finishAdviceStory(publish: boolean): Promise<void> {
@@ -6862,7 +6858,6 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <div><button class="lmx-button" type="submit">Save story</button><button class="lmx-discussion-quiet-action" type="button">Cancel</button></div>`;
                 const textarea = form.querySelector<HTMLTextAreaElement>("textarea")!;
                 textarea.value = original;
-                textarea.maxLength = Math.max(advice.storyCharacterLimit || discussionCharacterLimit(), original.length);
                 textarea.addEventListener("input", () => { adviceStoryEditDirty = textarea.value !== original; });
                 form.querySelector("button[type=button]")!.addEventListener("click", () => { form.remove(); adviceStoryEditDirty = false; button.focus(); });
                 form.addEventListener("submit", async event => {
@@ -7728,12 +7723,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
-                ${simpleAdvice ? `<span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>` : ""}
             </div>
             ${editing || simpleAdvice ? "" : '<div class="lmx-note-photo-grid pending" data-reply-photo-previews></div><div class="lmx-photo-feedback" data-reply-photo-feedback role="status" aria-live="polite"></div>'}
             <div class="lmx-status" role="status" aria-live="polite"></div>
             ${simpleAdvice ? "" : '<button class="lmx-discussion-replies-toggle" type="button" data-advice-retarget hidden>Move draft to the active conversation</button>'}
             <div class="lmx-discussion-reply-actions">
+                ${simpleAdvice ? `<span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>` : ""}
                 ${simpleAdvice ? "" : `<span class="lmx-discussion-compose-tools">
                     ${editing ? "" : `<button class="lmx-discussion-quiet-action lmx-discussion-add-photo" type="button" data-reply-photo-button
                         title="Add photos (or paste or drop an image)" aria-label="Add photos"><i class="fas fa-image" aria-hidden="true"></i></button>
@@ -9679,9 +9674,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             isGardenState(value.garden) && hasValidDiscussionReadContext(value) && hasValidDiscussionSnapshot(value) &&
             (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) &&
             (!hasProperties(value, "pendingAdvicePrompt") || value.pendingAdvicePrompt === null ||
-                hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "characterLimit", "version") &&
+                hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "version") &&
                 typeof value.pendingAdvicePrompt.id === "string" && typeof value.pendingAdvicePrompt.challengeDay === "number" &&
-                typeof value.pendingAdvicePrompt.date === "string" && typeof value.pendingAdvicePrompt.characterLimit === "number" &&
+                typeof value.pendingAdvicePrompt.date === "string" &&
                 typeof value.pendingAdvicePrompt.version === "number" &&
                 (!hasProperties(value.pendingAdvicePrompt, "checkInNote") || isNullableString(value.pendingAdvicePrompt.checkInNote))) &&
             (!hasProperties(value, "updatedDiscussionThread") || value.updatedDiscussionThread === null || isParticipantNote(value.updatedDiscussionThread));

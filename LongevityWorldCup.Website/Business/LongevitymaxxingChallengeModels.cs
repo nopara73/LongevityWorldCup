@@ -274,7 +274,7 @@ public sealed record LongevitymaxxingDiscussionReply(
 }
 
 public sealed record LongevitymaxxingAdvicePrompt(
-    string Id, int ChallengeDay, string Date, int RawScore, double? BaselineRawScore, int CharacterLimit, int Version)
+    string Id, int ChallengeDay, string Date, int RawScore, double? BaselineRawScore, int Version)
 {
     public string? CheckInNote { get; init; }
 }
@@ -288,7 +288,6 @@ public sealed record LongevitymaxxingAdviceThread(
 {
     public int Version { get; init; }
     public bool Withdrawn { get; init; }
-    public int StoryCharacterLimit { get; init; }
     public IReadOnlyList<string> BetterAdviceParticipantIds { get; init; } = [];
 }
 
