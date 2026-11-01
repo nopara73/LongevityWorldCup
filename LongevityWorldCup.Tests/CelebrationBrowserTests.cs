@@ -42,6 +42,8 @@ public sealed class CelebrationBrowserTests(PlaywrightBrowserFixture browserFixt
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await OpenAsync(context);
+        await page.EvaluateAsync("() => LwcCelebrate.play(document.querySelector('.application-review-seal'))");
+        await Assertions.Expect(page.Locator(".lwc-celebration.is-static")).ToHaveCountAsync(1);
         await page.EvaluateAsync("() => { void customAlert('Change request submitted!'); }");
         await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");

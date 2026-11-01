@@ -313,6 +313,7 @@ function customAlert(message, options) {
 
 function showNextCustomAlert() {
     if (customAlertActive || !customAlertQueue.length) return;
+    window.LwcCelebrate?.skip();
     const entry = customAlertQueue.shift();
     customAlertActive = entry;
     const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
