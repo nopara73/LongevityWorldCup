@@ -4331,6 +4331,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
                 if (filteredNames.has(element.closest('[data-athlete-name]')?.dataset.athleteName)) window.highlightText(element, uniqueSearchTerms);
             });
         }
+        markSearchReasons(uniqueSearchTerms, matchingEntries);
         updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
     }
 
@@ -7490,6 +7491,70 @@ function focusSidebarControl(element) {
     catch {
         element.focus();
     }
+}
+
+// Search spotlight: a row that matches through something other than its name
+// shows why, without words. A matching badge lights up; a match in the flag,
+// media contact or motivation adds a small glyph after the name whose
+// tooltip carries the matching snippet.
+const SEARCH_REASON_SOURCES = [
+    { kind: 'flag', icon: 'fa-flag', read: athlete => `${athlete.flag || ''} ${athlete.canonicalFlag || ''}` },
+    { kind: 'contact', icon: 'fa-at', read: athlete => athlete.mediaContact || '' },
+    { kind: 'why', icon: 'fa-quote-left', read: athlete => athlete.why || '' }
+];
+
+function getSearchSnippet(text, term) {
+    const source = String(text || '').replace(/\s+/g, ' ').trim();
+    if (source.length <= 72) return source;
+    const index = Math.max(0, window.normalizeString(source.toLowerCase()).indexOf(term));
+    const start = Math.max(0, index - 28);
+    const end = Math.min(source.length, index + term.length + 36);
+    return `${start > 0 ? '…' : ''}${source.slice(start, end).trim()}${end < source.length ? '…' : ''}`;
+}
+
+function markSearchReasons(terms, entries) {
+    const board = document.querySelector('.leaderboard table tbody');
+    if (!board) return;
+    board.querySelectorAll('.search-reason').forEach(element => element.remove());
+    board.querySelectorAll('.badge-class.is-search-hit').forEach(element => element.classList.remove('is-search-hit'));
+    if (!terms.length) return;
+    const normalize = text => window.normalizeString(String(text || '').toLowerCase());
+    const entryByName = new Map(entries.map(entry => [entry.athlete.name, entry]));
+    board.querySelectorAll('tr[data-athlete-name]').forEach(row => {
+        const entry = entryByName.get(row.dataset.athleteName);
+        if (!entry || row.style.display === 'none') return;
+        const athlete = entry.athlete;
+        const nameText = normalize(`${athlete.name} ${athlete.displayName || ''}`);
+        let pending = terms.filter(term => !nameText.includes(term));
+        if (!pending.length) return;
+
+        const badges = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'));
+        pending = pending.filter(term => {
+            const hits = badges.filter(badge => normalize(`${badge.getAttribute('title') || ''} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`).includes(term));
+            hits.forEach(badge => badge.classList.add('is-search-hit'));
+            return hits.length === 0;
+        });
+        if (!pending.length) return;
+
+        const identity = row.querySelector('.athlete-identity');
+        if (!identity) return;
+        SEARCH_REASON_SOURCES.forEach((source, index) => {
+            const text = source.read(athlete);
+            const normalized = normalize(text);
+            const hits = pending.filter(term => normalized.includes(term));
+            if (!hits.length) return;
+            pending = pending.filter(term => !hits.includes(term));
+            const chip = document.createElement('span');
+            chip.className = `search-reason search-reason--${source.kind}`;
+            chip.style.setProperty('--search-reason-index', String(index));
+            chip.innerHTML = `<i class="fas ${source.icon}" aria-hidden="true"></i>`;
+            const snippet = getSearchSnippet(text, hits[0]);
+            chip.title = snippet;
+            chip.setAttribute('role', 'note');
+            chip.setAttribute('aria-label', snippet);
+            identity.appendChild(chip);
+        });
+    });
 }
 
 function toggleSidebar(options = {}) {

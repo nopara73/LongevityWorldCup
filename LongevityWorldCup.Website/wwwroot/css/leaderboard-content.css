@@ -5887,3 +5887,57 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     #detailsModal .athlete-links i::before,
     #detailsModal .athlete-links i::after{ transition:none !important; animation:none !important; transform:none !important; }
 }
+
+/* =========================
+   Search spotlight: every match explains itself without words.
+   Name matches sweep their highlight in; a matching badge lights up with a
+   ring; a match hidden in the flag, media contact or motivation adds a glyph
+   chip after the name whose tooltip is the matching snippet. Rows that match
+   arrive in a short cascade (see leaderboard-page.js markSearchReasons).
+   ========================= */
+.leaderboard .athlete-name .highlight{
+    background:linear-gradient(var(--lwc-accent-soft, rgba(0,188,212,.16)), var(--lwc-accent-soft, rgba(0,188,212,.16))) left center / 100% 100% no-repeat;
+    animation:lwc-search-sweep 280ms var(--lwc-ease-standard, ease) both;
+}
+.leaderboard table tbody .badge-class.is-search-hit{
+    position:relative; z-index:1;
+    box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 4px var(--lwc-accent);
+    border-radius:999px;
+    /* Shaped badges clip their box: a drop-shadow follows the shape instead. */
+    filter:drop-shadow(0 0 1.5px var(--lwc-accent)) drop-shadow(0 0 4px color-mix(in srgb, var(--lwc-accent) 70%, transparent));
+    animation:lwc-search-badge 520ms var(--lwc-ease-pop, ease-out) both;
+}
+.leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){
+    opacity:.45; filter:saturate(.6);
+    transition:opacity 200ms ease, filter 200ms ease;
+}
+.leaderboard .search-reason{
+    display:inline-grid; place-items:center; flex:0 0 auto;
+    width:1.55rem; height:1.55rem; margin-left:.4rem;
+    border-radius:50%;
+    background:var(--lwc-accent-soft); color:var(--lwc-accent);
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--lwc-accent) 35%, transparent);
+    font-size:.68rem; cursor:help;
+    animation:lwc-search-reason 320ms var(--lwc-ease-pop, ease-out) both;
+    animation-delay:calc(var(--search-reason-index, 0) * 60ms + 80ms);
+}
+.leaderboard .search-reason:hover{ background:var(--lwc-accent); color:var(--lwc-on-accent, #fff); }
+.leaderboard .search-reason--why i{ transform:translateY(-1px); }
+@keyframes lwc-search-sweep{
+    from{ background-size:0% 100%; }
+    to{ background-size:100% 100%; }
+}
+@keyframes lwc-search-badge{
+    0%{ transform:scale(.85); box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 0 var(--lwc-accent); }
+    55%{ transform:scale(1.14); box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 7px color-mix(in srgb, var(--lwc-accent) 40%, transparent); }
+    100%{ transform:none; box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 4px var(--lwc-accent); }
+}
+@keyframes lwc-search-reason{
+    from{ opacity:0; transform:scale(.4) rotate(-20deg); }
+}
+@media (prefers-reduced-motion: reduce){
+    .leaderboard .athlete-name .highlight,
+    .leaderboard table tbody .badge-class.is-search-hit,
+    .leaderboard .search-reason{ animation:none; }
+    .leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){ transition:none; }
+}
