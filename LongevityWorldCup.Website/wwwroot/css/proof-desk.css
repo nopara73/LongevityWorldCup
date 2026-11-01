@@ -1,0 +1,287 @@
+/* Proof desk: the /proofs page for returning athletes.
+ *
+ * One column width from start to finish, so nothing jumps when the first
+ * proof arrives.
+ * Empty: the start card is a drop sheet. Files can be dragged anywhere onto
+ *   the page; the sheet answers with a marching outline and a lifting symbol.
+ * With proofs: the sheet docks into a compact toolbar (animated by
+ *   proof-desk script), the pages and the tracker take the desk, and the
+ *   tracker stays in view while you scroll the pages.
+ * Tracker: a thicker meter, and each confirmed item gets a stamp and a wash.
+ *
+ * Landscape phones (max-height 480px) keep the page's existing compact grid. */
+
+@media not ((max-height: 480px) and (orientation: landscape)) {
+    :root body.play-flow-route .proof-upload-main {
+        --desk-width: 1080px;
+        width: min(100%, var(--desk-width));
+        max-width: var(--desk-width);
+        margin-inline: auto;
+        box-sizing: border-box;
+    }
+
+    /* ===== Drop sheet (empty) ===== */
+    :root body .proof-upload-main .proof-upload-start {
+        position: relative;
+        width: min(100%, 720px);
+        border: 2px dashed var(--lwc-border-strong, var(--lwc-border));
+        border-radius: var(--lwc-radius-lg, 12px);
+        background:
+            radial-gradient(90% 70% at 50% 0%, var(--lwc-surface-accent, var(--lwc-accent-soft)), transparent 72%),
+            var(--lwc-surface);
+        box-shadow: none;
+        transition:
+            border-color 200ms var(--lwc-ease-standard, ease),
+            box-shadow 200ms var(--lwc-ease-standard, ease),
+            transform 260ms var(--lwc-ease-pop, ease-out);
+    }
+
+    :root body .proof-upload-main .proof-upload-intro {
+        flex-direction: column;
+        align-items: center;
+        gap: 1.1rem;
+        padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.1rem, 4vw, 2.5rem) 0.5rem;
+        text-align: center;
+    }
+
+    :root body .proof-upload-main .proof-upload-intro .proof-upload-visual {
+        align-self: center;
+    }
+
+    :root body .proof-upload-main .proof-upload-symbol {
+        display: grid;
+        place-items: center;
+        width: 88px;
+        height: 88px;
+        border: 0;
+        border-radius: 26px;
+        background: var(--lwc-accent-soft);
+        color: var(--lwc-accent);
+        font-size: 2.35rem;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lwc-accent) 22%, transparent);
+        transition: transform 260ms var(--lwc-ease-pop, ease-out);
+    }
+
+    :root body .proof-upload-main .proof-upload-intro-copy {
+        width: min(100%, 46ch);
+    }
+
+    :root body .proof-upload-main .proof-upload-symbol i {
+        font-size: inherit;
+    }
+
+    :root body .proof-upload-main .proof-upload-start .options-container.proof-upload-primary-action {
+        width: min(100% - 2rem, 360px);
+        margin: 0 auto;
+        padding: 1rem 0 clamp(1.5rem, 4vw, 2.25rem);
+        border: 0;
+        background: none;
+    }
+
+    /* Files dragged over the page. */
+    body.proof-desk-dragging .proof-upload-main .proof-upload-start {
+        border-color: transparent;
+        transform: scale(1.012);
+        box-shadow: 0 0 0 4px var(--lwc-accent-soft), var(--lwc-shadow-md);
+    }
+
+    body.proof-desk-dragging .proof-upload-main .proof-upload-start::after {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border-radius: inherit;
+        pointer-events: none;
+        background:
+            repeating-linear-gradient(90deg, var(--lwc-accent) 0 12px, transparent 12px 22px) top left / 200% 3px repeat-x,
+            repeating-linear-gradient(90deg, var(--lwc-accent) 0 12px, transparent 12px 22px) bottom left / 200% 3px repeat-x,
+            repeating-linear-gradient(0deg, var(--lwc-accent) 0 12px, transparent 12px 22px) top left / 3px 200% repeat-y,
+            repeating-linear-gradient(0deg, var(--lwc-accent) 0 12px, transparent 12px 22px) top right / 3px 200% repeat-y;
+        animation: proof-desk-march 900ms linear infinite;
+    }
+
+    body.proof-desk-dragging .proof-upload-main .proof-upload-symbol {
+        transform: translateY(-6px) scale(1.08);
+    }
+
+    body.proof-desk-dragging .proof-upload-main .proof-upload-symbol i {
+        animation: proof-desk-bob 700ms var(--lwc-ease-standard, ease) infinite alternate;
+    }
+
+    /* ===== Docked toolbar (with proofs) ===== */
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-start {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        width: 100%;
+        border-style: solid;
+        border-width: 1px;
+        border-color: var(--lwc-border);
+        background: var(--lwc-surface);
+        box-shadow: var(--lwc-shadow-sm);
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-intro {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.85rem 1rem;
+        text-align: left;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-symbol {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        font-size: 1.2rem;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-intro-copy {
+        width: auto;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-intro .proof-upload-copy {
+        font-size: 0.92rem;
+        line-height: 1.4;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-intro .proof-upload-copy.smaller-text {
+        margin-top: 0.35rem;
+        padding-top: 0;
+        border-top: 0;
+        font-size: 0.82rem;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-start .options-container.proof-upload-primary-action {
+        width: auto;
+        min-width: 15rem;
+        padding: 0.85rem 1rem;
+    }
+
+    /* ===== Workspace ===== */
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-workspace > * {
+        animation: proof-desk-rise 360ms var(--lwc-ease-enter, ease-out) both;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-workspace > #biomarker-checklist {
+        animation-delay: 90ms;
+    }
+}
+
+@media (min-width: 960px) and (min-height: 481px) {
+    body.proof-upload-has-proofs .proof-upload-workspace {
+        flex-wrap: nowrap;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-workspace #biomarker-checklist {
+        position: sticky;
+        top: calc(var(--site-header-height, 76px) + 1rem);
+        flex: 0 0 20rem;
+        max-height: calc(100dvh - var(--site-header-height, 76px) - var(--flow-action-dock-height, 72px) - 2.5rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+}
+
+@media (max-width: 720px) {
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-start {
+        grid-template-columns: 1fr;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-start .options-container.proof-upload-primary-action {
+        width: auto;
+        min-width: 0;
+        margin: 0;
+        padding: 0 1rem 1rem;
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-intro {
+        align-items: flex-start;
+    }
+}
+
+/* ===== Tracker ===== */
+:root body #biomarker-checklist .proof-tracker-meter {
+    height: 6px;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+:root body #biomarker-checklist .proof-tracker-meter > span {
+    border-radius: inherit;
+    transition: width 420ms var(--lwc-ease-pop, ease-out), background-color 240ms ease;
+}
+
+:root body #biomarker-checklist.is-complete .proof-tracker-meter > span {
+    background-image: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.55) 50%, transparent 70%);
+    background-size: 200% 100%;
+    animation: proof-desk-shine 1.4s ease-out 1;
+}
+
+:root body #biomarker-checklist .biomarker-item {
+    position: relative;
+    border-radius: var(--lwc-radius-sm, 6px);
+    background-image: linear-gradient(var(--lwc-success-soft), var(--lwc-success-soft));
+    background-repeat: no-repeat;
+    background-position: left center;
+    background-size: 0% 100%;
+    transition: background-size 320ms var(--lwc-ease-standard, ease), color 200ms ease;
+}
+
+:root body #biomarker-checklist .biomarker-item:has(.biomarker-checkbox:checked) {
+    background-size: 100% 100%;
+}
+
+:root body #biomarker-checklist .biomarker-checkbox:checked {
+    animation: proof-desk-stamp 320ms var(--lwc-ease-pop, ease-out);
+}
+
+:root body #biomarker-checklist .biomarker-item:has(.biomarker-checkbox:checked) > span {
+    color: var(--lwc-ink);
+}
+
+@keyframes proof-desk-march {
+    to { background-position: 22px 0, -22px 100%, 0 -22px, 100% 22px; }
+}
+
+@keyframes proof-desk-bob {
+    from { transform: translateY(0); }
+    to { transform: translateY(-4px); }
+}
+
+@keyframes proof-desk-rise {
+    from { opacity: 0; transform: translateY(12px); }
+}
+
+@keyframes proof-desk-stamp {
+    0% { transform: scale(0.7); }
+    55% { transform: scale(1.18); }
+    100% { transform: none; }
+}
+
+@keyframes proof-desk-shine {
+    from { background-position: 150% 0; }
+    to { background-position: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root body .proof-upload-main .proof-upload-start,
+    :root body .proof-upload-main .proof-upload-symbol,
+    :root body #biomarker-checklist .biomarker-item,
+    :root body #biomarker-checklist .proof-tracker-meter > span {
+        transition: none;
+    }
+
+    body.proof-desk-dragging .proof-upload-main .proof-upload-start::after,
+    body.proof-desk-dragging .proof-upload-main .proof-upload-symbol i,
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-workspace > *,
+    :root body #biomarker-checklist .biomarker-checkbox:checked,
+    :root body #biomarker-checklist.is-complete .proof-tracker-meter > span {
+        animation: none;
+    }
+
+    body.proof-desk-dragging .proof-upload-main .proof-upload-start,
+    body.proof-desk-dragging .proof-upload-main .proof-upload-symbol {
+        transform: none;
+    }
+}
