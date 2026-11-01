@@ -2897,3 +2897,265 @@ body.flow-input-keyboard-open .bioage-live-readout {
     51% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-success, #1f7a38) 40%, transparent); }
     100% { box-shadow: 0 0 0 12px transparent; }
 }
+
+
+/*
+ * Calculator step one, the date sheet (pheno and bortz only).
+ * It reads like the biomarker sheet that follows: each date is a section with
+ * its own band, a domain chip that fills and a pip that pops once the section
+ * is answered, and a ruled row that gains the accent edge. The privacy note
+ * is a quiet strip whose lock opens when the birthday leaves December 31.
+ * Continue stays quiet until the birth year is in, then lights up once.
+ * Everything is driven by the fields' own state through :has(), so no script
+ * runs and reduced motion keeps every state without the movement.
+ */
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset {
+    position: relative;
+    transition: box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+/* One band per date, full bleed, chip first and pip last. */
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    box-sizing: border-box;
+    width: calc(100% + 2 * var(--bioage-pad-x));
+    min-height: 44px;
+    margin: 0 calc(-1 * var(--bioage-pad-x));
+    padding: 0.55rem var(--bioage-pad-x);
+    border-top: 1px solid var(--bioage-hairline);
+    border-bottom: 1px solid var(--bioage-hairline);
+    background: var(--bioage-band);
+    color: var(--lwc-ink, #17212b);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::before {
+    content: "\f1fd";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 1px var(--bioage-hairline);
+    color: var(--lwc-accent, #087685);
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    transition: background-color 180ms var(--lwc-ease, ease), color 180ms var(--lwc-ease, ease), box-shadow 180ms var(--lwc-ease, ease);
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) > legend::before {
+    content: "\f48e";
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::after {
+    content: "";
+    flex: 0 0 9px;
+    width: 9px;
+    height: 9px;
+    margin-left: auto;
+    box-sizing: border-box;
+    border: 1.5px solid var(--lwc-muted, #52606d);
+    border-radius: 50%;
+    opacity: 0.55;
+    transition: background-color 140ms var(--lwc-ease, ease), border-color 140ms var(--lwc-ease, ease), opacity 140ms var(--lwc-ease, ease);
+}
+
+/* Answered: the chip fills, the pip pops and the section gains the accent edge. */
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset:has(#dob-year:valid) > legend::before,
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2):has(input:valid) > legend::before {
+    background: var(--lwc-accent, #087685);
+    box-shadow: none;
+    color: var(--lwc-on-accent, #fff);
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset:has(#dob-year:valid) > legend::after,
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2):has(input:valid) > legend::after {
+    border-color: var(--lwc-accent, #087685);
+    background: var(--lwc-accent, #087685);
+    opacity: 1;
+}
+
+/* The accent edge draws down the card's left edge under an answered band. */
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset {
+    padding-bottom: var(--lwc-space-4, 1rem);
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset::after {
+    content: "";
+    position: absolute;
+    top: 44px;
+    bottom: 0;
+    left: calc(-1 * var(--bioage-pad-x));
+    width: 3px;
+    background: var(--lwc-accent, #087685);
+    transform: scaleY(0);
+    transform-origin: 50% 0;
+    transition: transform 320ms cubic-bezier(0.2, 0, 0, 1);
+    pointer-events: none;
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset:has(#dob-year:valid)::after,
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2):has(input:valid)::after {
+    transform: none;
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 select:valid:not(:focus),
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 input:valid:not(:focus) {
+    border-color: var(--lwc-accent, #087685);
+}
+
+/* Privacy: a strip with a lock that opens when the birthday is no longer December 31. */
+html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote {
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.5rem;
+    margin-top: var(--lwc-space-3, 0.75rem);
+    padding: 0.6rem 0.75rem;
+    border: 0;
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--bioage-band);
+    color: var(--lwc-muted, #52606d);
+    transition: background-color 200ms var(--lwc-ease, ease), color 200ms var(--lwc-ease, ease);
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote::before {
+    content: "\f023";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 1px var(--bioage-hairline);
+    color: var(--lwc-accent, #087685);
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.75rem;
+    font-weight: 900;
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-month option[value="12"]:checked)) #privacyNote,
+html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-day option:last-child:checked)) #privacyNote {
+    background: var(--lwc-accent-soft, #dff5f7);
+    color: var(--lwc-ink, #17212b);
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-month option[value="12"]:checked)) #privacyNote::before,
+html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-day option:last-child:checked)) #privacyNote::before {
+    content: "\f3c1";
+}
+
+/* Continue stays quiet until the birth year is in. */
+/* The step's actions can ride in the dock outside the form, so the state is read from the page. */
+body:has(:is(#phenoAgeForm, #bortzAgeForm) #dob-year:invalid) #lwcToStep2Btn.green {
+    border-color: var(--lwc-border, #d7e0e6);
+    background: var(--lwc-surface-muted, #eef2f5);
+    color: var(--lwc-muted, #52606d);
+    box-shadow: none;
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwcToStep2Btn {
+    transition: background-color 200ms var(--lwc-ease, ease), border-color 200ms var(--lwc-ease, ease), color 200ms var(--lwc-ease, ease), box-shadow 200ms var(--lwc-ease, ease);
+}
+
+/* Desktop: the two dates stack as sections, like the domains in the next step. */
+@media (min-width: 960px) and (min-height: 640px) {
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) {
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    /* Undo the side-by-side split of the wide container query: both bands bleed edge to edge. */
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset#dobFieldset > legend,
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) > legend {
+        width: calc(100% + 2 * var(--bioage-pad-x));
+        margin: 0 calc(-1 * var(--bioage-pad-x));
+        padding-left: var(--bioage-pad-x);
+        border-top: 1px solid var(--bioage-hairline);
+        border-left: 0;
+        font-size: 0.8rem;
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .blood-draw-date-control {
+        width: min(100%, 22rem);
+        padding-top: var(--lwc-space-4, 1rem);
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset {
+        column-gap: 0.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset:has(#dob-year:valid) > legend::after,
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2):has(input:valid) > legend::after {
+        animation: bioage-date-pip 360ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset:has(#dob-year:valid) > legend::before {
+        animation: bioage-date-chip 420ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
+    }
+
+    body:has(:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active #dob-year:valid) #lwcToStep2Btn.green {
+        animation: bioage-date-arm 760ms cubic-bezier(0, 0, 0, 1);
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-month option[value="12"]:checked)) #privacyNote::before,
+    html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-day option:last-child:checked)) #privacyNote::before {
+        animation: bioage-date-unlock 520ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* On arrival the year, the one required answer, draws a single ring. */
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active #dob-year:invalid {
+        animation: bioage-date-invite 1100ms 700ms cubic-bezier(0, 0, 0, 1) backwards;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset::after,
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::before,
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwcToStep2Btn {
+        transition: none;
+    }
+}
+
+@keyframes bioage-date-pip {
+    from { transform: scale(0.2); }
+    60% { transform: scale(1.5); }
+}
+
+@keyframes bioage-date-chip {
+    from { transform: scale(0.75) rotate(-12deg); }
+}
+
+@keyframes bioage-date-arm {
+    from { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.55); }
+    to { box-shadow: 0 0 0 14px rgba(46, 125, 50, 0); }
+}
+
+@keyframes bioage-date-unlock {
+    0% { transform: none; }
+    30% { transform: rotate(-14deg) scale(1.12); }
+    60% { transform: rotate(8deg); }
+}
+
+@keyframes bioage-date-invite {
+    from { box-shadow: 0 0 0 0 rgba(8, 118, 133, 0.45); }
+    to { box-shadow: 0 0 0 10px rgba(8, 118, 133, 0); }
+}
