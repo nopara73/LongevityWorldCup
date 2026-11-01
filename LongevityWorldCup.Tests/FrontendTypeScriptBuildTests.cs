@@ -31,6 +31,7 @@ public sealed class FrontendTypeScriptBuildTests
         "share-sheet",
         "touch",
         "depth-system",
+        "scroll-choreography",
         "image-viewer",
         "disclosure",
         "site-statistics",
