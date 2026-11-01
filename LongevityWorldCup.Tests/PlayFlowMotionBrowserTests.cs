@@ -294,30 +294,35 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.WaitForURLAsync("**/play");
         await WaitForMoveToSettleAsync(page);
         await page.EvaluateAsync("""
-            () => {
+            name => new Promise((resolve, reject) => {
                 const render = window.playAthleteFlow.renderAthleteDashboardHeader;
                 window.playAthleteFlow.renderAthleteDashboardHeader = (...args) => {
                     const header = render(...args);
                     return new Promise(resolve => window.__releaseHeader = () => resolve(header));
                 };
+                // Interrupt in the browser's callback: a protocol round trip can
+                // otherwise miss this short state entirely on a busy runner.
+                const observer = new MutationObserver(() => {
+                    if (!document.documentElement.classList.contains('play-panel-transitioning')) return;
+                    observer.disconnect();
+                    try {
+                        const animations = document.getElementById('athleteSelectionPanel').getAnimations();
+                        if (!animations.length) throw new Error('The previous panel must still be moving.');
+                        animations.forEach(animation => animation.pause());
+                        const input = document.getElementById('playAthleteInput');
+                        input.focus({ preventScroll: true });
+                        input.value = name;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                        const confirm = document.getElementById('playConfirmAthleteBtn');
+                        if (confirm.disabled) throw new Error('The loaded athlete must be selected.');
+                        confirm.click();
+                        resolve();
+                    } catch (error) { reject(error); }
+                });
+                observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
                 document.getElementById('continueGameBtn').click();
-            }
-            """);
-        await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('play-panel-transitioning')");
-        await page.EvaluateAsync("""
-            name => {
-                const animations = document.getElementById('athleteSelectionPanel').getAnimations();
-                if (!animations.length) throw new Error('The previous panel must still be moving.');
-                animations.forEach(animation => animation.pause());
-                const input = document.getElementById('playAthleteInput');
-                input.focus({ preventScroll: true });
-                input.value = name;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-                const confirm = document.getElementById('playConfirmAthleteBtn');
-                if (confirm.disabled) throw new Error('The loaded athlete must be selected.');
-                confirm.click();
-            }
+            })
             """, name);
         await page.WaitForFunctionAsync("() => window.__releaseHeader && location.pathname === '/dashboard'");
         await Task.Delay(700);
