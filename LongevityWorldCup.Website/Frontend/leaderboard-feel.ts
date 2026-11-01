@@ -379,8 +379,19 @@ function initializeLeaderboardFeel(): void {
     const thumb = document.createElement("span");
     thumb.className = "lb-rail-thumb";
     thumb.setAttribute("aria-hidden", "true");
-    rail.append(track, thumb);
+    // While scrubbing, a balloon beside the thumb shows who is under it.
+    const balloon = document.createElement("div");
+    balloon.className = "lb-rail-balloon";
+    balloon.setAttribute("aria-hidden", "true");
+    const balloonPicture = document.createElement("img");
+    balloonPicture.alt = "";
+    balloonPicture.decoding = "async";
+    const balloonRank = document.createElement("strong");
+    const balloonName = document.createElement("span");
+    balloon.append(balloonPicture, balloonRank, balloonName);
+    rail.append(track, thumb, balloon);
     document.body.append(rail);
+    let balloonRow: HTMLTableRowElement | null = null;
     let railRows: HTMLTableRowElement[] = [];
     let railFrame = 0;
     let railHide = 0;
@@ -448,7 +459,8 @@ function initializeLeaderboardFeel(): void {
         if (!board!.classList.contains("has-rank-rail") || byFlag?.checked
             || document.querySelector("dialog[open], .modal[style*='display: block'], .sidebar-overlay.active")) return false;
         const box = table!.getBoundingClientRect();
-        return box.top < window.innerHeight * 0.5 && box.bottom > window.innerHeight * 0.6;
+        const headTop = head.getBoundingClientRect().top;
+        return headTop <= stickyTop() + 2 && box.top < 0 && box.bottom > window.innerHeight * 0.6;
     }
 
     function syncRail(): void {
@@ -468,8 +480,25 @@ function initializeLeaderboardFeel(): void {
             else high = mid;
         }
         const current = railRows[low];
+        // The rail hangs from just under the pinned column heads.
+        rail.style.top = `${Math.round(line + 4)}px`;
         thumb.textContent = current ? rankOf(current) : "";
-        thumb.style.top = `${12 + (low / (railRows.length - 1)) * track.clientHeight}px`;
+        const thumbTop = 12 + (low / (railRows.length - 1)) * track.clientHeight;
+        thumb.style.top = `${thumbTop}px`;
+        balloon.style.top = `${thumbTop}px`;
+        if (current && current !== balloonRow) {
+            balloonRow = current;
+            const portrait = current.querySelector<HTMLImageElement>("img.portrait");
+            const src = portrait?.currentSrc || portrait?.src || "";
+            balloonPicture.hidden = !src;
+            if (src && balloonPicture.src !== src) balloonPicture.src = src;
+            balloonRank.textContent = rankOf(current);
+            balloonName.textContent = current.dataset["athleteName"] || "";
+            if (scrubbing && moving()) {
+                balloonRank.animate([{ transform: "translateY(40%)", opacity: 0.2 }, { transform: "none", opacity: 1 }],
+                    { duration: 140, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+            }
+        }
         rail.classList.add("is-visible");
         rail.inert = false;
         window.clearTimeout(railHide);
