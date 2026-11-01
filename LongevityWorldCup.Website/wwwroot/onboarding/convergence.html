@@ -1773,6 +1773,7 @@
             const applicantName = submissionContext.applicantName || null;
             const accountEmail = normalizeContactEmail(submissionContext.accountEmail);
             const submissionId = submissionContext.submissionId;
+            setSessionItem('reviewSubmission', JSON.stringify({ kind: 'application', id: submissionId }));
 
             if (applicantName && accountEmail) rememberAthleteContactEmail(applicantName, accountEmail);
             if (accountEmail) {

@@ -991,6 +991,7 @@
             const applicantName = submissionContext.applicantName || null;
             const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);
             const submissionId = submissionContext.submissionId;
+            setSessionItem('reviewSubmission', JSON.stringify({ kind: 'result', id: submissionId }));
 
             if (reviewContactEmail) {
                 if (applicantName) rememberAthleteContactEmail(applicantName, reviewContactEmail);
@@ -1029,7 +1030,7 @@
                 : paymentRequired
                     ? 'Your results were received, but the payment page could not be opened. Check your confirmation email.'
                     : 'Your results were received';
-            customAlert(nextStepMessage).then(() => {
+            customAlert(nextStepMessage, paymentUnavailable || paymentRequired ? undefined : { celebrate: 'burst' }).then(() => {
                 window.location.href = '/review?from=proof-upload';
             });
         }
