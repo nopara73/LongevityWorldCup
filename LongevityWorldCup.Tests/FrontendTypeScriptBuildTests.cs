@@ -30,6 +30,7 @@ public sealed class FrontendTypeScriptBuildTests
         "share-sheet",
         "touch",
         "depth-system",
+        "disclosure",
         "site-statistics",
         "site-statistics-tracking"
     ];
