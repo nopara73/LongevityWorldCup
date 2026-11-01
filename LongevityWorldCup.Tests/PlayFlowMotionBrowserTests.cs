@@ -353,6 +353,21 @@ public sealed class PlayFlowMotionBrowserTests(
             ViewportSize = new() { Width = width, Height = height },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
+        // The list caps results at five. Filesystem-dependent athlete order can
+        // otherwise make "a" and "an" legitimately share no visible rows.
+        // This fixture guarantees retained, departing and newly entering rows.
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = System.Text.Json.JsonSerializer.Serialize(
+                new[] { "Ada Finch", "Anna Reed", "Avery Cole", "Alan Vale", "Ava Stone", "Andrew Park", "Anita West" }
+                    .Select(name => new
+                    {
+                        Name = name,
+                        DateOfBirth = new { Year = 1980, Month = 5, Day = 20 },
+                        Biomarkers = Array.Empty<object>()
+                    }))
+        }));
         var page = await OpenAsync(context, "/select-athlete");
         var input = page.Locator("#playAthleteInput");
         await input.ClickAsync();
@@ -382,8 +397,8 @@ public sealed class PlayFlowMotionBrowserTests(
         await input.PressAsync("n");
         await page.WaitForFunctionAsync("() => window.__rowChange");
         var change = await page.EvaluateAsync<int[]>("() => window.__rowChange");
-        Assert.True(change[0] > 0, "Typing a letter should still list matches.");
-        Assert.True(change[1] > 0, "Rows that still match should stay the same rows, not be redrawn.");
+        Assert.Equal(4, change[0]);
+        Assert.Equal(2, change[1]);
         Assert.True(change[2] > 0 && change[3] == 1, "Rows that stop matching should fade out, already gone from the listbox.");
         Assert.True(change[4] > 0, "Entering, leaving or moving rows should animate.");
         Assert.True(change[5] == 1, "Option ids must follow the visible order.");
