@@ -40,6 +40,11 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
                         cold.alt = '';
                         cold.loading = 'lazy';
                         cold.src = '/disclosure-cold.png';
+                        cold.srcset = '/disclosure-cold.png 96w';
+                        cold.sizes = '60px';
+                        cold.dataset.lwcImageRole = 'athlete';
+                        cold.dataset.lwcPortrait = '';
+                        cold.dataset.lwcPortraitState = 'loading';
                         image.replaceWith(cold);
                     });
                 }
@@ -59,7 +64,8 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
                 await page.WaitForFunctionAsync("""
                     () => {
                         const images = [...document.querySelectorAll('.lwc-disclosure-ghost')];
-                        return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
+                        return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0
+                            && getComputedStyle(image).content === 'normal');
                     }
                     """, null, new() { Timeout = 3000 });
                 Assert.Equal(open, await team.EvaluateAsync<bool>("d => d.open"));
