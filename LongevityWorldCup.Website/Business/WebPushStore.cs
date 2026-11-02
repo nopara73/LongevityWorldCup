@@ -5,7 +5,8 @@ using Microsoft.Data.Sqlite;
 
 namespace LongevityWorldCup.Website.Business;
 
-internal sealed record PushAnnouncement(string Id, string Text, bool VisibleOnWebsite, string QueuedAtUtc, string? Payload);
+internal sealed record PushAnnouncement(string Id, string Text, bool VisibleOnWebsite, string QueuedAtUtc, string? Payload,
+    EventType Type = EventType.CustomEvent);
 internal sealed record PushRecipient(string Id, WebPushSubscription Subscription, int Attempts);
 
 public sealed class WebPushStore
@@ -136,19 +137,61 @@ public sealed class WebPushStore
         cmd.ExecuteNonQuery();
     }
 
+    internal void EnableAutomaticAnnouncements(DateTimeOffset now) => _db.Run(sqlite =>
+    {
+        using var tx = sqlite.BeginTransaction();
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = tx;
+        // Introduce automatic notifications once, without replaying the historical feed.
+        // Explicitly selected custom announcements and existing receipts remain untouched.
+        cmd.CommandText = """
+            INSERT OR IGNORE INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
+            SELECT Id, 'webpush', 'skipped', 'AutomaticChannelIntroduced', @now FROM Events
+            WHERE Type != 6 AND NOT EXISTS
+                (SELECT 1 FROM SocialDeliveryChannels WHERE Platform = 'webpush-automatic');
+            INSERT OR IGNORE INTO SocialDeliveryChannels (Platform, IntroducedAtUtc)
+            VALUES ('webpush-automatic', @now);
+            """;
+        cmd.Parameters.AddWithValue("@now", Stamp(now));
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+    });
+
+    internal void QueueAutomatic(EventItem item, string? subject, DateTimeOffset now) => _db.Run(sqlite =>
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText = """
+            INSERT OR IGNORE INTO SocialDeliveries (EventId, Platform, Status, SubjectSlug, UpdatedAtUtc)
+            VALUES (@id, 'webpush', 'pending', @subject, @now);
+            """;
+        cmd.Parameters.AddWithValue("@id", item.Id);
+        cmd.Parameters.AddWithValue("@subject", (object?)subject ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@now", Stamp(now));
+        cmd.ExecuteNonQuery();
+    });
+
+    internal bool HasPendingSubject(string subject) => _db.Run(sqlite =>
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM SocialDeliveries WHERE Platform = 'webpush' AND Status = 'pending' AND SubjectSlug = @subject);";
+        cmd.Parameters.AddWithValue("@subject", subject);
+        return Convert.ToInt32(cmd.ExecuteScalar()) != 0;
+    });
+
     internal IReadOnlyList<PushAnnouncement> Pending() => _db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
-        // An absent destination row is never consent to send a push notification.
+        // Custom announcements still require explicit selection. Automatic announcements
+        // enter this queue only after the shared social eligibility policy accepts them.
         cmd.CommandText = """
-            SELECT e.Id, e.Text, e.VisibleOnWebsite, d.UpdatedAtUtc, d.RecordJson
+            SELECT e.Id, e.Text, e.VisibleOnWebsite, d.UpdatedAtUtc, d.RecordJson, e.Type
             FROM Events e JOIN SocialDeliveries d ON d.EventId = e.Id AND d.Platform = 'webpush'
-            WHERE e.Type = 6 AND d.Status = 'pending' ORDER BY e.OccurredAt LIMIT 20;
+            WHERE d.Status = 'pending' ORDER BY e.OccurredAt LIMIT 20;
             """;
         using var reader = cmd.ExecuteReader();
         var result = new List<PushAnnouncement>();
         while (reader.Read()) result.Add(new(reader.GetString(0), reader.GetString(1), reader.GetInt32(2) != 0,
-            reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4)));
+            reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4), (EventType)reader.GetInt32(5)));
         return result;
     });
 

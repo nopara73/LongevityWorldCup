@@ -68,6 +68,13 @@
         adopt(document);
         queue();
         document.addEventListener('scroll', queue, { capture: true, passive: true });
+        // A sticky heading can finish its own entrance after the last scroll frame.
+        // Recheck its settled rectangle without polling animation frames indefinitely.
+        const settled = (event: Event): void => {
+            if (event.target instanceof HTMLElement && bars.has(event.target)) queue();
+        };
+        ['animationend', 'animationcancel', 'transitionend', 'transitioncancel']
+            .forEach(name => document.addEventListener(name, settled, true));
         window.addEventListener('resize', invalidate, { passive: true });
         window.addEventListener('pageshow', invalidate);
         document.fonts?.ready.then(invalidate);
@@ -75,10 +82,11 @@
         // search, timer, tooltip or profile mutation.
         new MutationObserver(records => {
             for (const record of records) {
+                if (record.type === 'attributes' && record.target instanceof Element) adopt(record.target);
                 for (const node of record.addedNodes) if (node instanceof Element) adopt(node);
             }
             queue();
-        }).observe(document.body, { childList: true, subtree: true });
+        }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-lwc-sticky'] });
         new ResizeObserver(invalidate).observe(document.documentElement);
         // Header measurements and enlarged text can change inherited sticky
         // insets without changing the dimensions of a bar itself.
