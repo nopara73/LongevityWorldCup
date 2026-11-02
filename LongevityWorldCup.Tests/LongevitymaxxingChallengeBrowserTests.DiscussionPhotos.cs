@@ -54,9 +54,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await composer.Locator("[data-remove-reply-photo]").Last.ClickAsync();
         await Assertions.Expect(composer.Locator("[data-reply-photo-button]")).ToBeEnabledAsync();
         await composer.Locator("[data-reply-photo-previews] .lmx-note-photo").First.ClickAsync();
-        await Assertions.Expect(page.Locator("#lmxNotePhotoViewer")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Escape");
-        await Assertions.Expect(page.Locator("#lmxNotePhotoViewer")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToBeHiddenAsync();
         await composer.Locator("[data-reply-action='close']").ClickAsync();
         await thread.Locator("[data-discussion-reply]").ClickAsync();
         await Assertions.Expect(composer.Locator("[data-reply-photo-previews] img")).ToHaveCountAsync(3);
@@ -134,7 +134,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             """);
         Assert.Contains("\"matches\":true", imageHit);
         await posted.Locator(".lmx-note-photo").ClickAsync();
-        await Assertions.Expect(page.Locator("#lmxNotePhotoViewer")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(form.Locator("[data-photo-previews] img")).ToHaveCountAsync(2);
         await Assertions.Expect(form.Locator("textarea")).ToHaveValueAsync("Check-in caption.");
         await form.Locator("[data-photo-previews] .lmx-note-photo").First.ClickAsync();
-        await Assertions.Expect(page.Locator("#lmxNotePhotoViewer")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToBeVisibleAsync();
     }
 
     private static Task TransferDiscussionPhotosAsync(ILocator target, string kind, params string[] names) => target.EvaluateAsync("""

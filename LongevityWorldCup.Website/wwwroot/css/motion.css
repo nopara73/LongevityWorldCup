@@ -37,7 +37,7 @@
  * This also covers native details, whose toggle event is dispatched too late
  * for imperative focus/scroll callers in the same task. */
 @supports (interactivity: inert) {
-    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
     details:not([open])::details-content {
         interactivity: inert;
         pointer-events: none;
@@ -81,14 +81,14 @@
 
 /* 2) Overlays: backdrop fades, panel rises; closing reverses faster. */
 @media (prefers-reduced-motion: no-preference) {
-    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer) {
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog) {
         transition:
             opacity var(--lwc-motion-base) var(--lwc-ease-enter),
             display var(--lwc-motion-base) allow-discrete,
             overlay var(--lwc-motion-base) allow-discrete;
     }
 
-    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer)[hidden] {
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog)[hidden] {
         opacity: 0;
         pointer-events: none;
         transition-duration: var(--lwc-motion-fast);
@@ -96,7 +96,7 @@
     }
 
     @starting-style {
-        :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer):not([hidden]) {
+        :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog):not([hidden]) {
             opacity: 0;
         }
     }
@@ -249,7 +249,7 @@
 }
 
 @supports not (interactivity: inert) {
-    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .lmx-photo-viewer, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
+    :root[data-lwc-motion="on"] :is(#custom-alert, #loading-dialog, #lmxCheckinDialogBackdrop, #modalOverlay, #changeProfileCropperModal, .lmx-quote-dialog, .leaderboard-order-panel, .athlete-share-menu, .lmx-mention-options, .lmx-timezone-list, .lmx-timezone-popover, #copiedText)[hidden],
     details:not([open])::details-content {
         transition: none;
     }
