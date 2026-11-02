@@ -15,6 +15,7 @@
     type Box = { x: number; y: number };
     type Grid = { tracks: number; boxes: Map<Element, Box>; visible: number };
     const grids = new Map<HTMLElement, Grid>();
+    const moving = new Map<Element, { animation: Animation; dx: number; dy: number }>();
 
     function duration(): number {
         const raw = getComputedStyle(document.documentElement).getPropertyValue('--lwc-reflow-duration').trim();
@@ -31,16 +32,24 @@
     function shown(item: Element): boolean {
         return item instanceof HTMLElement && !item.hidden && item.getClientRects().length > 0;
     }
+    // Layout coordinates exclude hover transforms and our own in-flight FLIP.
+    // Reading a settled destination must not cancel an animation to measure it.
+    function position(item: HTMLElement): Box {
+        let x = 0;
+        let y = 0;
+        for (let parent: HTMLElement | null = item; parent; parent = parent.offsetParent as HTMLElement | null) {
+            x += parent.offsetLeft;
+            y += parent.offsetTop;
+        }
+        return { x, y };
+    }
     function snapshot(grid: HTMLElement): Map<Element, Box> {
-        const origin = grid.getBoundingClientRect();
+        const origin = position(grid);
         const boxes = new Map<Element, Box>();
         for (const item of Array.from(grid.children)) {
-            if (!shown(item)) continue;
-            for (const animation of item.getAnimations()) {
-                if (animation.id === 'lwc-reflow') animation.cancel();
-            }
-            const box = item.getBoundingClientRect();
-            boxes.set(item, { x: box.left - origin.left, y: box.top - origin.top });
+            if (!(item instanceof HTMLElement) || !shown(item)) continue;
+            const box = position(item);
+            boxes.set(item, { x: box.x - origin.x, y: box.y - origin.y });
         }
         return boxes;
     }
@@ -60,19 +69,37 @@
             if (!previous) {
                 if (entering && before.visible > 0 && item instanceof HTMLElement) {
                     item.setAttribute('data-lwc-reflow-enter', '');
-                    item.addEventListener('animationend', () => item.removeAttribute('data-lwc-reflow-enter'), { once: true });
+                    const clearEnter = () => {
+                        item.removeAttribute('data-lwc-reflow-enter');
+                        item.removeEventListener('animationend', clearEnter);
+                        item.removeEventListener('animationcancel', clearEnter);
+                    };
+                    item.addEventListener('animationend', clearEnter, { once: true });
+                    item.addEventListener('animationcancel', clearEnter, { once: true });
                 }
                 continue;
             }
-            const dx = previous.x - box.x;
-            const dy = previous.y - box.y;
+            let dx = previous.x - box.x;
+            let dy = previous.y - box.y;
             if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
             if (!inView(item.getBoundingClientRect())) continue;
+            const active = moving.get(item);
+            if (active) {
+                const remaining = 1 - (active.animation.effect?.getComputedTiming().progress ?? 1);
+                dx += active.dx * remaining;
+                dy += active.dy * remaining;
+                active.animation.cancel();
+            }
             const animation = item.animate(
                 [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
                 { duration: time, easing: ease, composite: 'add' }
             );
             animation.id = 'lwc-reflow';
+            moving.set(item, { animation, dx, dy });
+            const forget = () => {
+                if (moving.get(item)?.animation === animation) moving.delete(item);
+            };
+            animation.finished.then(forget, forget);
         }
     }
 
@@ -131,8 +158,20 @@
                     if (node instanceof HTMLElement) adopt(node);
                 });
             }
+            for (const grid of grids.keys()) {
+                if (grid.isConnected) continue;
+                resize.unobserve(grid);
+                grids.delete(grid);
+            }
+            for (const [item, active] of moving) {
+                if (!item.isConnected) active.animation.cancel();
+            }
         }).observe(document.body, { childList: true, subtree: true });
     }
+
+    reduced.addEventListener('change', () => {
+        if (reduced.matches) for (const active of moving.values()) active.animation.cancel();
+    });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
     else start();

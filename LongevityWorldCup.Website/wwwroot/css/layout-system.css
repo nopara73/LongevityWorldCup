@@ -73,12 +73,6 @@ html:root {
     }
 }
 
-/* No sideways jump when a page grows past one screen, or when a dialog
-   locks scrolling. */
-html {
-    scrollbar-gutter: stable;
-}
-
 /* ===== Containers ======================================================== */
 
 /* Every page's main column: the header's rails, the fluid gutter and the
@@ -171,15 +165,6 @@ html body main.homepage-main {
    starts on the left rail, the document card runs to the right rail, and
    the prose keeps its reading measure while pictures, tables and the
    closing tiles use the card's full width. */
-.documentation-page {
-    grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
-    gap: var(--lwc-grid-gap-lg);
-    justify-content: stretch;
-    max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
-    margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
-    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
-}
-
 @media (min-width: 901px) {
     .documentation-page .documentation-document {
         --lwc-doc-measure: 46rem;
@@ -188,19 +173,6 @@ html body main.homepage-main {
     .documentation-page .documentation-document > :where(p, ul, ol, h2, h3, h4, blockquote, dl, details):not(:has(img, picture, video, table)),
     .documentation-page .documentation-cover > :where(p, h1):not(:has(img, picture)) {
         max-width: var(--lwc-doc-measure);
-    }
-}
-
-@media (max-width: 900px) {
-    .documentation-page {
-        margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
-        padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
-    }
-}
-
-@media (max-width: 600px) {
-    .documentation-page {
-        padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
     }
 }
 
@@ -229,12 +201,6 @@ main.media-kit-main {
 main.event-board-page {
     --feed-width: min(100%, var(--lwc-container-list));
     max-width: none;
-}
-
-/* Longevitymaxxing: its shell sits on the same rails as everything else. */
-main.lmx-page {
-    max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
-    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
 }
 
 /* Play hub and task flows: one task column. */
