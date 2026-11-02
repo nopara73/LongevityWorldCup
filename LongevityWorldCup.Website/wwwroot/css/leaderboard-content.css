@@ -5166,13 +5166,14 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     padding:.75rem .85rem .8rem;
     border:1px solid var(--athlete-modal-border, var(--lwc-border));
     border-radius:var(--lwc-radius-md, 8px);
-    background:var(--lwc-surface);
+    background:var(--athlete-modal-card, var(--lwc-surface));
+    color:var(--athlete-modal-text, var(--lwc-ink));
     transition:border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 #detailsModal #athlete-stats .athlete-info-basics > tr:has(a:hover){
-    border-color:color-mix(in srgb, var(--lwc-accent) 50%, var(--athlete-modal-border, var(--lwc-border)));
+    border-color:var(--athlete-modal-border-strong, var(--lwc-border-strong));
     transform:translateY(-1px);
-    box-shadow:var(--lwc-shadow-sm);
+    background:var(--athlete-modal-card-strong, var(--lwc-surface));
 }
 #detailsModal #athlete-stats .athlete-info-basics > tr > th,
 #detailsModal #athlete-stats .athlete-info-basics > tr > td{
@@ -5183,7 +5184,7 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     text-align:left;
 }
 #detailsModal #athlete-stats .athlete-info-basics > tr > th{
-    color:var(--lwc-muted);
+    color:var(--athlete-modal-muted, var(--lwc-muted));
     font-size:.7rem;
     letter-spacing:.08em;
     text-transform:uppercase;
@@ -5200,7 +5201,7 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 }
 #detailsModal #athlete-stats .athlete-info-basics .standing-rank{
     flex:0 0 auto;
-    color:var(--lwc-accent);
+    color:var(--athlete-modal-cream, var(--lwc-accent));
     font-family:Orbitron, Roboto, sans-serif;
     font-size:1.45rem;
     font-weight:700;
@@ -5213,11 +5214,11 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 #detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-podium]{
     border-color:color-mix(in srgb, var(--standing-medal) 55%, var(--athlete-modal-border, var(--lwc-border)));
     background:
-        radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--standing-medal) 16%, transparent), transparent 60%),
-        var(--lwc-surface);
+        radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--standing-medal) 22%, transparent), transparent 62%),
+        var(--athlete-modal-card, var(--lwc-surface));
 }
 #detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-podium] .standing-rank{
-    color:color-mix(in srgb, var(--standing-medal) 75%, var(--lwc-ink));
+    color:var(--standing-medal);
 }
 /* The "(#3)" and "(rank: #3)" text stays for assistive technology only. */
 #detailsModal #athlete-stats .athlete-info-basics .standing-rank-source{

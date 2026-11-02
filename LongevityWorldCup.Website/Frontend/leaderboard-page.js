@@ -5098,8 +5098,10 @@ function decorateProfileStandings() {
         chip.textContent = `#${rank}`;
         if (rankHolder === cell) {
             // Best rank leads with a bare "#1 for …" text node: the chip takes its place.
-            const lead = cell.firstChild;
-            if (!lead || lead.nodeType !== Node.TEXT_NODE || !/^\s*#\s*\d+/.test(lead.textContent)) return;
+            const lead = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, {
+                acceptNode: node => node.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+            }).nextNode();
+            if (!lead || !/^\s*#\s*\d+/.test(lead.textContent)) return;
             lead.textContent = lead.textContent.replace(/^\s*#\s*\d+\s*/, '');
             chip.setAttribute('aria-label', `#${rank}`);
         } else {
