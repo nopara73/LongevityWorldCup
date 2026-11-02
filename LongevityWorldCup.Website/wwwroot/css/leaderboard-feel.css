@@ -199,7 +199,7 @@ html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLead
       and athletes' own names, no new words. */
 .lb-rail{
     bottom:max(48px, env(safe-area-inset-bottom, 0px) + 48px);
-    width:40px; right:2px;
+    width:44px; right:2px;
     translate:14px 0;
     transition:opacity var(--lwc-motion-base, 200ms) linear, translate var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(.2,0,0,1)), visibility 0s linear var(--lwc-motion-base, 200ms);
 }
@@ -213,7 +213,7 @@ html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLead
 /* Marks: a small number and a notch on the track; the 44px target stays invisible. */
 .lb-rail-tick,
 .lb-rail.is-scrubbing .lb-rail-tick:not(.is-section){
-    min-width:40px; min-height:40px; padding:0 14px 0 0;
+    min-width:44px; min-height:44px; padding:0 14px 0 0;
     border:0; border-radius:0; background:transparent; box-shadow:none;
     color:var(--lwc-muted, #52606d); font-size:.68rem; font-weight:700; text-align:right;
 }
@@ -226,9 +226,9 @@ html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLead
 /* The balloon: who is under the thumb, while scrubbing. */
 .lb-rail-balloon{
     position:absolute; right:46px; translate:0 -50%;
-    display:grid; grid-template-columns:36px auto; grid-template-rows:auto auto; column-gap:8px; align-items:center;
+    display:grid; grid-template-columns:36px minmax(0, 1fr); grid-template-rows:auto auto; column-gap:8px; align-items:center;
     min-width:min(56vw, 180px); max-width:min(62vw, 240px); padding:6px 12px 6px 6px; box-sizing:border-box;
-    border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-pill, 999px);
+    border:1px solid var(--lwc-border); border-radius:24px;
     background:var(--lwc-surface); color:var(--lwc-ink); box-shadow:var(--lwc-shadow-md, 0 12px 28px rgba(15,23,42,.18));
     pointer-events:none; opacity:0; scale:.85; transform-origin:right center;
     transition:opacity var(--lwc-motion-fast, 140ms) linear, scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease);
@@ -236,8 +236,10 @@ html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLead
 .lb-rail.is-scrubbing .lb-rail-balloon{ opacity:1; scale:1; }
 .lb-rail-balloon > img{ grid-row:1 / span 2; width:36px; height:36px; border-radius:50%; object-fit:cover; box-shadow:0 0 0 2px var(--lwc-accent); }
 .lb-rail-balloon > img[hidden]{ display:none; }
-.lb-rail-balloon > strong{ color:var(--lwc-accent); font-size:.8rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
-.lb-rail-balloon > span{ min-width:0; overflow:hidden; font-size:.85rem; font-weight:600; line-height:1.2; text-overflow:ellipsis; white-space:nowrap; }
+.lb-rail-balloon > strong{ grid-column:2; color:var(--lwc-accent); font-size:.8rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+.lb-rail-balloon > span{ grid-column:2; min-width:0; font-size:.85rem; font-weight:600; line-height:1.2; overflow-wrap:anywhere; }
+.lb-rail-balloon:has(> img[hidden]){ grid-template-columns:minmax(0, 1fr); }
+.lb-rail-balloon:has(> img[hidden]) > :is(strong, span){ grid-column:1; }
 
 @media (prefers-reduced-motion:no-preference){
     .lb-rail-balloon{ transition:opacity var(--lwc-motion-fast, 140ms) linear, scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), top 60ms linear; }
