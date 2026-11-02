@@ -198,7 +198,7 @@ public sealed class WebPushTests
             Assert.Equal("86400", Assert.Single(request.Headers.GetValues("TTL")));
             return new(request.RequestUri.AbsolutePath.EndsWith("second") && !succeeds ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.Created);
         });
-        WebPushAnnouncementService Service() => new(fixture.Events, new WebPushStore(fixture.Database), transport, new(fixture.Database), new(fixture.Env), NullLogger<WebPushAnnouncementService>.Instance, now);
+        WebPushAnnouncementService Service() => new(fixture.Events, new WebPushStore(fixture.Database), transport, new(fixture.Database), new(fixture.Env), NullLogger<WebPushAnnouncementService>.Instance, now, fixture.Athletes, fixture.ThreadsEvents);
         await Service().DispatchAsync();
         Assert.Equal(2, requests.Count);
         Assert.Equal((1, 1, 2), store.Progress(id));
@@ -225,7 +225,7 @@ public sealed class WebPushTests
         using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
         var store = new WebPushStore(fixture.Database);
         var clock = new Clock(DateTimeOffset.UtcNow);
-        WebPushAnnouncementService Service() => new(fixture.Events, store, Transport(Configured(), _ => new(HttpStatusCode.Gone)), new(fixture.Database), new(fixture.Env), NullLogger<WebPushAnnouncementService>.Instance, clock);
+        WebPushAnnouncementService Service() => new(fixture.Events, store, Transport(Configured(), _ => new(HttpStatusCode.Gone)), new(fixture.Database), new(fixture.Env), NullLogger<WebPushAnnouncementService>.Instance, clock, fixture.Athletes, fixture.ThreadsEvents);
         fixture.Events.CreateCustomEvent("Nobody subscribed", "Skip forever", deliveryTargets: new(false, false, false, false, false, SendToWebPush: true));
         await Service().DispatchAsync();
         var subscription = Subscription();
@@ -293,6 +293,62 @@ public sealed class WebPushTests
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var p = key.ExportParameters(true);
         return new() { WebPushVapidSubject = "mailto:testing@longevityworldcup.com", WebPushVapidPublicKey = WebPushTransport.Encode(WebPushTransport.PublicBytes(p)), WebPushVapidPrivateKey = WebPushTransport.Encode(p.D!) };
+    }
+
+    [Fact]
+    public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverPodiumAndDonationWithoutDuplicates()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
+        var store = new WebPushStore(fixture.Database);
+        var now = new Clock(DateTimeOffset.UtcNow);
+        store.Subscribe(Subscription(), now.GetUtcNow().AddMinutes(-1));
+        var old = fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[3]", now.GetUtcNow().UtcDateTime);
+        var requests = 0;
+        var succeeds = false;
+        var transport = Transport(Configured(), _ => { requests++; return new(succeeds ? HttpStatusCode.Created : HttpStatusCode.ServiceUnavailable); });
+        WebPushAnnouncementService Service() => new(fixture.Events, store, transport, new(fixture.Database), new(fixture.Env),
+            NullLogger<WebPushAnnouncementService>.Instance, now, fixture.Athletes, fixture.ThreadsEvents);
+        await Service().DispatchAsync();
+        Assert.Equal(0, requests);
+
+        var rank = fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]", now.GetUtcNow().UtcDateTime);
+        await Service().DispatchAsync();
+        Assert.Equal(1, requests);
+        Assert.Equal((1, 0, 1), store.Progress(rank));
+        var prepared = Assert.Single(store.Pending());
+        using (var payload = JsonDocument.Parse(prepared.Payload!))
+        {
+            Assert.Contains("Benjamin Garden", payload.RootElement.GetProperty("title").GetString());
+            Assert.DoesNotContain("slug[", prepared.Payload);
+            Assert.Equal("/athlete/benjamin-garden", payload.RootElement.GetProperty("url").GetString());
+        }
+        store.Subscribe(Subscription("https://fcm.googleapis.com/send/late"), now.GetUtcNow().AddSeconds(1));
+        succeeds = true;
+        now.Advance(TimeSpan.FromMinutes(3));
+        await Service().DispatchAsync();
+        Assert.Equal(2, requests);
+        Assert.Equal((0, 1, 1), store.Progress(rank));
+        await Service().DispatchAsync();
+        Assert.Equal(2, requests);
+        Assert.Equal((0, 0, 0), store.Progress(old));
+
+        fixture.Events.CreateDonationReceivedEvents([("new-donation", now.GetUtcNow().UtcDateTime, 961973L)]);
+        var donation = Assert.Single(fixture.Events.GetPendingXEvents(), e => e.Type == EventType.DonationReceived);
+        await Service().DispatchAsync();
+        Assert.Equal(4, requests); // Both current subscribers, only once each.
+        Assert.Equal((0, 2, 2), store.Progress(donation.Id));
+        await Service().DispatchAsync();
+        Assert.Equal(4, requests);
+        var payloadText = fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT RecordJson FROM SocialDeliveries WHERE EventId = @id AND Platform = 'webpush';";
+            cmd.Parameters.AddWithValue("@id", donation.Id);
+            return (string)cmd.ExecuteScalar()!;
+        });
+        using var donationPayload = JsonDocument.Parse(payloadText);
+        Assert.Contains("0.00961973 BTC", donationPayload.RootElement.GetProperty("title").GetString());
+        Assert.Equal("/contribute", donationPayload.RootElement.GetProperty("url").GetString());
     }
     internal static WebPushSubscription Subscription(string endpoint = "https://fcm.googleapis.com/send/test")
     {

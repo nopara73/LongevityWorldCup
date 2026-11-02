@@ -36,6 +36,110 @@ public sealed class HighlightsEventAnatomyBrowserTests(
         ]
         """;
 
+    private const string RankingEvents =
+        """
+        [
+          { "Id": "pheno-ranking", "Type": 12, "Text": "slug[ada_aging] clock[pheno] place[5] prev[bo_biomarker] improvement[-5.6]", "OccurredAt": "2026-10-20T10:00:00Z", "Relevance": 10 },
+          { "Id": "bortz-ranking", "Type": 12, "Text": "slug[ada_aging] clock[Bortz Age] place[3] prevPlace[5] prev[bo_biomarker] improvement[-1.2]", "OccurredAt": "2026-10-19T10:00:00Z", "Relevance": 10 },
+          { "Id": "crowd-ranking", "Type": 11, "Text": "slug[ada_aging] place[4] prev[bo_biomarker] crowdAge[46.5] crowdCount[862]", "OccurredAt": "2026-10-18T10:00:00Z", "Relevance": 10 }
+        ]
+        """;
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public async Task RankingHighlightsLinkToTheirLeaguesOnHomepageAndEvents(int width)
+    {
+        await using var context = await NewContextAsync(width, "light");
+        var events = System.Text.Json.Nodes.JsonNode.Parse(RankingEvents)!.AsArray();
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = "[" + events[0]!.ToJsonString() + "]"
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var row = page.Locator("tr.main-row[data-event-id='pheno-ranking']");
+        await Assertions.Expect(row).ToContainTextAsync("entered the top 10 at 5th in Pheno Improvement");
+        var homeLink = row.GetByRole(AriaRole.Link, new() { Name = "Pheno Improvement", Exact = true });
+        await Assertions.Expect(homeLink).ToHaveAttributeAsync("href", "/league/improvement");
+        Assert.Contains("underline", await homeLink.EvaluateAsync<string>("e => getComputedStyle(e).textDecorationLine"));
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+        if (Environment.GetEnvironmentVariable("LWC_HIGHLIGHTS_LEAGUE_CAPTURE_DIR") is { Length: > 0 } capture)
+        {
+            Directory.CreateDirectory(capture);
+            await row.ScrollIntoViewIfNeededAsync();
+            await page.Locator("#events-root-index").ScreenshotAsync(new() { Path = Path.Combine(capture, $"homepage-{width}.png") });
+        }
+
+        await homeLink.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await page.WaitForURLAsync("**/league/improvement");
+
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = RankingEvents
+        }));
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        foreach (var (id, name, href) in new[]
+        {
+            ("pheno-ranking", "Pheno Improvement", "/league/improvement"),
+            ("bortz-ranking", "Bortz Improvement", "/league/bortz-improvement"),
+            ("crowd-ranking", "Crowd Age", "/league/crowd")
+        })
+        {
+            var league = page.Locator($"tr.main-row[data-event-id='{id}']")
+                .GetByRole(AriaRole.Link, new() { Name = name, Exact = true });
+            await Assertions.Expect(league).ToHaveAttributeAsync("href", href);
+            Assert.Null(await league.GetAttributeAsync("target"));
+        }
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+        var crowd = page.Locator("tr.main-row[data-event-id='crowd-ranking'] .event-league-link");
+        await crowd.ClickAsync();
+        await page.WaitForURLAsync("**/league/crowd");
+    }
+
+    [Fact]
+    public async Task ProfileRankingHighlightsLinkToLeaguesForGainsAndLosses()
+    {
+        await using var context = await NewContextAsync(390, "dark");
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = RankingEvents
+        }));
+        var page = await context.NewPageAsync();
+        foreach (var (athlete, verb) in new[] { ("ada-aging", "in"), ("bo-biomarker", "lost") })
+        {
+            await page.GotoAsync($"/event-board-embed.html?embed=1&athlete={athlete}&rows=all&linkNames=false&theme=dark",
+                new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            foreach (var (id, name, href) in new[]
+            {
+                ("pheno-ranking", "Pheno Improvement", "/league/improvement"),
+                ("bortz-ranking", "Bortz Improvement", "/league/bortz-improvement"),
+                ("crowd-ranking", "Crowd Age", "/league/crowd")
+            })
+            {
+                var row = page.Locator($"tr.main-row[data-event-id='{id}']");
+                await Assertions.Expect(row).ToContainTextAsync(verb);
+                var league = row.GetByRole(AriaRole.Link, new() { Name = name, Exact = true });
+                await Assertions.Expect(league).ToHaveAttributeAsync("href", href);
+                Assert.Equal("_blank", await league.GetAttributeAsync("target"));
+                Assert.Contains("noopener", await league.GetAttributeAsync("rel"));
+                Assert.Contains("underline", await league.EvaluateAsync<string>("e => getComputedStyle(e).textDecorationLine"));
+            }
+            Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+            if (Environment.GetEnvironmentVariable("LWC_HIGHLIGHTS_LEAGUE_CAPTURE_DIR") is { Length: > 0 } capture)
+            {
+                Directory.CreateDirectory(capture);
+                await page.Locator("#events-root").ScreenshotAsync(new() { Path = Path.Combine(capture, $"profile-{athlete}.png") });
+            }
+        }
+
+        var bortz = page.Locator("tr.main-row[data-event-id='bortz-ranking'] .event-league-link");
+        var popup = await page.RunAndWaitForPopupAsync(() => bortz.ClickAsync());
+        await Assertions.Expect(popup).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"/league/bortz-improvement$"));
+        await popup.CloseAsync();
+    }
+
     [Theory]
     [InlineData(1280, "light")]
     [InlineData(390, "dark")]

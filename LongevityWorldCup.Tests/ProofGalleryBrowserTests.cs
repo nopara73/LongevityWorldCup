@@ -54,10 +54,10 @@ public sealed class ProofGalleryBrowserTests(PlaywrightBrowserFixture browserFix
         await using var context = await CreateContextAsync(14);
         var page = await OpenProfileAsync(context);
         await page.Locator("#proofsGallery img").First.ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
         await page.Keyboard.PressAsync("End");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 14 of 14");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 14 of 14");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
         await page.GoBackAsync();
         await Assertions.Expect(viewer).ToBeHiddenAsync();
@@ -68,15 +68,42 @@ public sealed class ProofGalleryBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(page.Locator(".proofs-toggle")).ToHaveAttributeAsync("aria-expanded", "true");
         await page.GoForwardAsync();
         await Assertions.Expect(viewer).ToBeVisibleAsync();
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 14 of 14");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 14 of 14");
         await page.Keyboard.PressAsync("Home");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 1 of 14");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 1 of 14");
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(viewer).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#proofsGallery img").First).ToBeFocusedAsync();
         var firstBounds = (await page.Locator("#proofsGallery .proof-item").First.BoundingBoxAsync())!;
         var headerBounds = (await page.Locator("#detailsModal .modal-sticky-header").BoundingBoxAsync())!;
         Assert.InRange(firstBounds.Y, headerBounds.Y + headerBounds.Height - 1, 900 - firstBounds.Height);
+    }
+
+    [Fact]
+    public async Task ReducedMotionDuringExpansion_RestoresOverflowAndKeepsProofsAndFocus()
+    {
+        await using var context = await CreateContextAsync(14);
+        var page = await OpenProfileAsync(context);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var toggle = page.Locator(".proofs-toggle");
+        await toggle.FocusAsync();
+        await toggle.EvaluateAsync("""
+            async button => {
+                button.click();
+                await new Promise(requestAnimationFrame);
+                document.querySelector('#proofsGallery').getAnimations({ subtree: true }).forEach(a => a.pause());
+            }
+            """);
+        var gallery = page.Locator("#proofsGallery");
+        Assert.Equal("clip", await gallery.EvaluateAsync<string>("e => e.style.overflow"));
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.WaitForFunctionAsync("() => document.querySelector('#proofsGallery').style.overflow === ''");
+        Assert.Equal(0, await gallery.EvaluateAsync<int>("e => e.getAnimations({ subtree: true }).length"));
+        await Assertions.Expect(gallery.Locator(".proof-item:visible")).ToHaveCountAsync(14);
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Assertions.Expect(gallery.Locator(".proof-item:visible")).ToHaveCountAsync(6);
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
     }
 
     [Theory]

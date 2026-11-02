@@ -266,13 +266,13 @@ public sealed class CustomAlertDialogBrowserTests(
                 const style = getComputedStyle(panel);
                 const button = document.getElementById('custom-alert-close').getBoundingClientRect();
                 const mark = document.querySelector('.custom-alert-mark');
-                const burst = getComputedStyle(mark, '::before');
+                const layer = document.querySelector('.lwc-celebration');
                 const content = panel.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                 return [String(Math.abs((rect.left + rect.right) / 2 - innerWidth / 2)),
                     String(Math.abs((rect.top + rect.bottom) / 2 - innerHeight / 2)),
                     String(rect.width), String(Math.abs(button.width - content)), style.backgroundColor,
-                    burst.content, burst.backgroundImage.split('radial-gradient').length - 1 + '',
-                    String(mark.getBoundingClientRect().width), burst.animationName];
+                    layer?.getAttribute('aria-hidden'), String(layer?.querySelectorAll('.lwc-celebration-spark').length),
+                    String(mark.offsetWidth), layer?.dataset.level];
             }
             """);
 
@@ -280,10 +280,10 @@ public sealed class CustomAlertDialogBrowserTests(
         Assert.InRange(double.Parse(card[2]), 380, 420);
         Assert.True(double.Parse(card[3]) <= 1, "OK should span the card's content.");
         Assert.Equal(surface, card[4]);
-        Assert.Equal("\"\"", card[5]);
-        Assert.True(int.Parse(card[6]) >= 4, "Success should burst with podium-coloured confetti.");
+        Assert.Equal("true", card[5]);
+        Assert.True(int.Parse(card[6]) >= 4, "Success should radiate decorative sparks.");
         Assert.Equal("56", card[7]);
-        Assert.Equal("customAlertBurst", card[8]);
+        Assert.Equal("rise", card[8]);
     }
 
     [Fact]

@@ -14,6 +14,7 @@ public sealed class FrontendTypeScriptBuildTests
         "athlete-story",
         "bioage-flow",
         "charts",
+        "celebration",
         "custom-event-markup",
         "empty-state",
         "field-validation",
@@ -30,6 +31,9 @@ public sealed class FrontendTypeScriptBuildTests
         "share-sheet",
         "touch",
         "depth-system",
+        "scroll-choreography",
+        "image-viewer",
+        "disclosure",
         "site-statistics",
         "site-statistics-tracking"
     ];

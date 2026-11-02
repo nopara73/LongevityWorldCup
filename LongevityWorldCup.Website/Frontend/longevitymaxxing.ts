@@ -49,10 +49,7 @@
         height: number;
     }
 
-    interface NotePhotoViewerItem {
-        source: string;
-        trigger: HTMLButtonElement;
-    }
+
 
     interface MentionContext {
         start: number;
@@ -145,7 +142,8 @@
 
     interface AdvicePrompt {
         id: string; challengeDay: number; date: string; rawScore: number;
-        baselineRawScore: number | null; characterLimit: number; version: number;
+        baselineRawScore: number | null; version: number;
+        characterLimit?: number;
         checkInNote?: string | null;
     }
 
@@ -907,11 +905,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let adviceCheckInEditing: { participantId: string; adviceId: string; challengeDay: number } | null = null;
     let adviceStorySaving = false;
     let adviceStoryEditDirty = false;
-    let notePhotoViewerItems: NotePhotoViewerItem[] = [];
-    let notePhotoViewerIndex = 0;
-    let notePhotoViewerShowFrame: number | null = null;
-    let notePhotoViewerCloseTimer: number | null = null;
-    let notePhotoViewerInertStates: Array<{ element: HTMLElement; inert: boolean }> = [];
+
 
     function readSharedWindowApi(): SharedWindowApi {
         const api: SharedWindowApi = {};
@@ -1089,6 +1083,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 setDefaultTimezone(requiredSelect("lmxSignupTimeZone"));
                 signupSubmitted = true;
                 renderAll();
+                window.LwcCelebrate?.play(document.querySelector("#lmxSignupDonePanel .lmx-card-head"), { level: "rise", tone: "success", delay: 120 });
             }, "Joining...");
         });
 
@@ -1249,7 +1244,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const notes = state ? participantDiscussionThreads(state) : publicDiscussionThreads(await getJson(`${API}/state`));
             const readContexts: DiscussionReadContext[] = state?.readContext ? [state.readContext] : [];
             const unavailable: ParticipantNote[] = [];
-            // A newly answered or withdrawn old request may fall outside the bounded state window.
+            // A newly answered or edited old request may fall outside the bounded state window.
             const returned = new Set(notes.map(discussionPermalink));
             const missing = Array.from(discussionFeedNotes.values())
                 .filter(note => (discussionNeedsAdvice(note) || discussionUnreadPriority(note)) && !returned.has(discussionPermalink(note)));
@@ -2476,6 +2471,39 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (from === undefined) return;
             rollNumber(value, from, Number(value.dataset.opsValue), key === "rank" ? number => `#${number}` : String);
         });
+        celebrateOpsChanges(highlights, participant.id, previous, state);
+    }
+
+    // Milestones the status tiles already show: a better rank, a longer streak,
+    // and a streak that reaches a full week or the whole challenge. Each value
+    // celebrates once, after its number has rolled into place.
+    function celebrateOpsChanges(highlights: HTMLElement, participantId: string, previous: Map<string, number>, state: PublicState): void {
+        const celebrate = window.LwcCelebrate;
+        if (!celebrate || !previous.size) return;
+        const tile = (key: string) => highlights.querySelector<HTMLElement>(`strong[data-ops-key="${key}"]`)?.closest<HTMLElement>(".lmx-ops-tile") || null;
+        const value = (key: string) => Number(highlights.querySelector<HTMLElement>(`strong[data-ops-key="${key}"]`)?.dataset.opsValue);
+        const rank = value("rank");
+        const fromRank = previous.get("rank");
+        if (fromRank !== undefined && Number.isFinite(rank) && Number.isFinite(fromRank) && rank < fromRank) {
+            celebrate.play(tile("rank"), {
+                level: rank <= 3 ? "burst" : "rise",
+                tone: "gold",
+                once: `lmx-rank:${participantId}:${rank}`,
+                delay: 320
+            });
+        }
+        const streak = value("streak");
+        const fromStreak = previous.get("streak");
+        if (fromStreak !== undefined && Number.isFinite(streak) && streak > fromStreak) {
+            const fullRun = Math.max(1, Math.trunc(Number(state.durationDays) || 0));
+            const milestone = streak === fullRun || streak % 7 === 0;
+            celebrate.play(tile("streak"), {
+                level: milestone ? "burst" : "glow",
+                tone: milestone ? "gold" : "accent",
+                once: `lmx-streak:${participantId}:${streak}`,
+                delay: 380
+            });
+        }
     }
 
     function opsTile(label: string, value: string | number, key: string, numeric: number): string {
@@ -2823,7 +2851,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (inert) {
             if (checkInDialogInertStates.length) return;
             checkInDialogInertStates = Array.from(document.body.children)
-                .filter((element): element is HTMLElement => element instanceof HTMLElement && element !== panel && element !== backdrop)
+                .filter((element): element is HTMLElement => element instanceof HTMLElement && element !== panel && element !== backdrop
+                    && !element.matches('dialog.lwc-viewer'))
                 .map(element => ({ element, inert: element.inert }));
             checkInDialogInertStates.forEach(state => {
                 state.element.inert = true;
@@ -5263,10 +5292,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function discussionOpeningPostHtml(note: ParticipantNote): string {
         if (note.advice) {
             const advice = note.advice;
-            const withdraw = !advice.withdrawn && participantState?.participant.id === note.participantId
-                ? `<span class="lmx-advice-story-tools"><button type="button" class="lmx-discussion-quiet-action" data-advice-edit>Edit story</button>
-                    <button type="button" class="lmx-discussion-quiet-action" data-advice-withdraw="${escAttr(advice.id)}" data-advice-version="${advice.version}">Withdraw request</button></span>` : "";
-            return `<div class="lmx-advice-story"><p>${advice.withdrawn ? "Advice request withdrawn." : participantMentionTextHtml(advice.story)}</p>${withdraw}</div>
+            const storyTools = !advice.withdrawn && participantState?.participant.id === note.participantId
+                ? `<span class="lmx-advice-story-tools"><button type="button" class="lmx-discussion-quiet-action" data-advice-edit>Edit story</button></span>` : "";
+            return `<div class="lmx-advice-story"><p>${advice.withdrawn ? "Advice request withdrawn." : participantMentionTextHtml(advice.story)}</p>${storyTools}</div>
                 ${note.note ? `<details class="lmx-advice-context"><summary>Check-in remarks</summary><p>${participantMentionTextHtml(note.note)}</p></details>` : ""}`;
         }
         if (note.kind === "announcement" && note.announcement) {
@@ -5329,10 +5357,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         window.addEventListener("popstate", event => {
             const source = notePhotoViewerHistorySource(event.state);
-            const dialog = document.getElementById("lmxNotePhotoViewer");
-            const isOpen = !!dialog && !dialog.hidden && dialog.getAttribute("aria-hidden") === "false";
+            const dialog = document.querySelector<HTMLDialogElement>(".lwc-viewer");
+            const isOpen = !!dialog?.open;
             if (!source) {
-                if (isOpen) closeNotePhotoViewer();
+                if (isOpen) window.LwcImageViewer?.close(true);
                 return;
             }
 
@@ -5341,305 +5369,32 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (trigger) {
                 openNotePhotoViewer(trigger, { pushHistory: false });
             } else if (isOpen) {
-                closeNotePhotoViewer();
+                window.LwcImageViewer?.close(true);
             }
         });
     }
 
-    function ensureNotePhotoViewer(): HTMLElement {
-        let dialog = document.getElementById("lmxNotePhotoViewer");
-        if (dialog) return dialog;
-
-        document.body.insertAdjacentHTML("beforeend", `
-            <div id="lmxNotePhotoViewer"
-                 class="lmx-photo-viewer"
-                 role="dialog"
-                 aria-modal="true"
-                 aria-label="Discussion photo viewer"
-                 aria-hidden="true"
-                 hidden>
-                <button id="lmxNotePhotoViewerClose" type="button" class="lmx-photo-viewer-close" aria-label="Close enlarged image">&times;</button>
-                <div id="lmxNotePhotoViewerStage" class="lmx-photo-viewer-stage" tabindex="0" aria-label="Enlarged discussion photo">
-                    <img src="" alt="">
-                    <div class="lmx-photo-load-status" role="status" aria-live="polite" hidden>
-                        <i class="fas fa-image" aria-hidden="true"></i><span></span>
-                        <button type="button" class="lmx-button" data-photo-retry hidden>Retry</button>
-                    </div>
-                </div>
-                <button id="lmxNotePhotoViewerPrevious" type="button" class="lmx-photo-viewer-nav previous" aria-label="Previous discussion photo" hidden>&lsaquo;</button>
-                <button id="lmxNotePhotoViewerNext" type="button" class="lmx-photo-viewer-nav next" aria-label="Next discussion photo" hidden>&rsaquo;</button>
-                <span id="lmxNotePhotoViewerPosition" class="lmx-photo-viewer-position" aria-live="polite" aria-atomic="true" hidden></span>
-            </div>`);
-
-        dialog = requiredElement("lmxNotePhotoViewer", HTMLElement);
-        const closeButton = requiredButton("lmxNotePhotoViewerClose");
-        const previousButton = requiredButton("lmxNotePhotoViewerPrevious");
-        const nextButton = requiredButton("lmxNotePhotoViewerNext");
-
-        closeButton.addEventListener("click", requestCloseNotePhotoViewer);
-        previousButton.addEventListener("click", () => navigateNotePhotoViewer(-1));
-        nextButton.addEventListener("click", () => navigateNotePhotoViewer(1));
-        dialog.querySelector("[data-photo-retry]")?.addEventListener("click", () => updateNotePhotoViewer(notePhotoViewerIndex));
-        dialog.addEventListener("click", event => {
-            if (event.target === dialog) requestCloseNotePhotoViewer();
-        });
-        dialog.addEventListener("keydown", event => {
-            if (event.key === "Escape" || event.key === "Esc") {
-                event.preventDefault();
-                event.stopPropagation();
-                requestCloseNotePhotoViewer();
-                return;
-            }
-
-            if (event.key === "Tab") {
-                trapNotePhotoViewerFocus(dialog, event);
-                return;
-            }
-            if (notePhotoViewerItems.length < 2) return;
-
-            if (event.key === "ArrowLeft") {
-                event.preventDefault();
-                event.stopPropagation();
-                navigateNotePhotoViewer(-1);
-            } else if (event.key === "ArrowRight") {
-                event.preventDefault();
-                event.stopPropagation();
-                navigateNotePhotoViewer(1);
-            } else if (event.key === "Home") {
-                event.preventDefault();
-                event.stopPropagation();
-                updateNotePhotoViewer(0);
-            } else if (event.key === "End") {
-                event.preventDefault();
-                event.stopPropagation();
-                updateNotePhotoViewer(notePhotoViewerItems.length - 1);
+    function openNotePhotoViewer(trigger: HTMLButtonElement, settings: { pushHistory?: boolean } = {}): void {
+        const gallery = trigger.closest<HTMLElement>("[data-reply-photo-previews]")
+            || trigger.closest<HTMLElement>(".lmx-notes, .lmx-note-photo-field") || trigger.parentElement;
+        const buttons = gallery ? Array.from(gallery.querySelectorAll<HTMLButtonElement>("button.lmx-note-photo[data-photo-src]")) : [trigger];
+        const images = buttons.map(button => button.querySelector<HTMLImageElement>('img'))
+            .filter((image): image is HTMLImageElement => !!image);
+        const image = trigger.querySelector<HTMLImageElement>('img');
+        if (!image) return;
+        void window.LwcImageViewer?.open(image, {
+            images, kind: 'photo',
+            pushHistory: settings.pushHistory !== false,
+            ownsHistory: state => !!notePhotoViewerHistorySource(state),
+            historyState: image => ({ lmxNotePhotoViewer: { source: image.closest<HTMLButtonElement>('[data-photo-src]')?.dataset.photoSrc || image.src } }),
+            onLoad(loaded) {
+                const button = loaded.closest<HTMLButtonElement>('button.lmx-note-photo');
+                if (!button) return;
+                button.classList.remove('has-error');
+                button.setAttribute('aria-label', 'Open discussion photo');
+                if (!loaded.naturalWidth) loaded.src = button.dataset.photoSrc || loaded.src;
             }
         });
-
-        let touchStart: { x: number; y: number } | null = null;
-        dialog.addEventListener("touchstart", event => {
-            if (event.touches.length !== 1) return;
-            const touch = event.touches[0];
-            if (!touch) return;
-            touchStart = { x: touch.clientX, y: touch.clientY };
-        }, { passive: true });
-        dialog.addEventListener("touchend", event => {
-            if (!touchStart) return;
-            const touch = event.changedTouches[0];
-            const start = touchStart;
-            touchStart = null;
-            if (!touch || notePhotoViewerItems.length < 2) return;
-
-            const horizontalDistance = touch.clientX - start.x;
-            const verticalDistance = touch.clientY - start.y;
-            if (Math.abs(horizontalDistance) < 50 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
-            navigateNotePhotoViewer(horizontalDistance > 0 ? -1 : 1);
-        }, { passive: true });
-        dialog.addEventListener("touchcancel", () => {
-            touchStart = null;
-        }, { passive: true });
-
-        return dialog;
-    }
-
-    function openNotePhotoViewer(trigger: HTMLButtonElement, options: { pushHistory?: boolean } = {}): void {
-        const source = String(trigger.dataset.photoSrc || "").trim();
-        if (!source) return;
-
-        const gallery = trigger.closest<HTMLElement>("[data-reply-photo-previews]") || trigger.closest<HTMLElement>(".lmx-notes, .lmx-note-photo-field")
-            || trigger.parentElement;
-        const triggers = gallery
-            ? Array.from(gallery.querySelectorAll<HTMLButtonElement>("button.lmx-note-photo[data-photo-src]"))
-            : [trigger];
-        notePhotoViewerItems = triggers
-            .map(item => ({ source: String(item.dataset.photoSrc || "").trim(), trigger: item }))
-            .filter(item => !!item.source);
-        if (!notePhotoViewerItems.length) return;
-
-        const initialIndex = Math.max(0, notePhotoViewerItems.findIndex(item => item.trigger === trigger));
-        const dialog = ensureNotePhotoViewer();
-        const wasOpen = !dialog.hidden && dialog.getAttribute("aria-hidden") === "false";
-        if (notePhotoViewerCloseTimer !== null) {
-            window.clearTimeout(notePhotoViewerCloseTimer);
-            notePhotoViewerCloseTimer = null;
-        }
-        if (notePhotoViewerShowFrame !== null) {
-            window.cancelAnimationFrame(notePhotoViewerShowFrame);
-            notePhotoViewerShowFrame = null;
-        }
-
-        updateNotePhotoViewer(initialIndex);
-        dialog.hidden = false;
-        dialog.inert = false;
-        dialog.setAttribute("aria-hidden", "false");
-        document.body.classList.add("lmx-photo-viewer-open");
-        if (!wasOpen) setNotePhotoViewerPageInert(dialog, true);
-        requiredButton("lmxNotePhotoViewerClose").focus({ preventScroll: true });
-        notePhotoViewerShowFrame = window.requestAnimationFrame(() => {
-            notePhotoViewerShowFrame = null;
-            if (!dialog.hidden && dialog.getAttribute("aria-hidden") === "false") dialog.classList.add("show");
-        });
-
-        if (options.pushHistory !== false && !notePhotoViewerHistorySource(window.history.state)) {
-            window.history.pushState(
-                {
-                    ...(window.history.state || {}),
-                    lmxNotePhotoViewer: { source: notePhotoViewerItems[notePhotoViewerIndex]?.source || source }
-                },
-                "",
-                window.location.href);
-        }
-    }
-
-    function updateNotePhotoViewer(index: number): void {
-        if (!notePhotoViewerItems.length) return;
-        const boundedIndex = Math.min(Math.max(index, 0), notePhotoViewerItems.length - 1);
-        const item = notePhotoViewerItems[boundedIndex];
-        const dialog = document.getElementById("lmxNotePhotoViewer");
-        const previousImage = dialog?.querySelector<HTMLImageElement>(".lmx-photo-viewer-stage img");
-        const stage = dialog?.querySelector<HTMLElement>(".lmx-photo-viewer-stage");
-        const previousButton = optionalElement("lmxNotePhotoViewerPrevious", HTMLButtonElement);
-        const nextButton = optionalElement("lmxNotePhotoViewerNext", HTMLButtonElement);
-        const position = optionalElement("lmxNotePhotoViewerPosition", HTMLElement);
-        if (!item || !dialog || !previousImage || !stage || !previousButton || !nextButton || !position) return;
-
-        notePhotoViewerIndex = boundedIndex;
-        const image = document.createElement("img");
-        image.alt = `Discussion photo ${boundedIndex + 1}`;
-        const status = stage.querySelector<HTMLElement>(".lmx-photo-load-status")!;
-        const retry = status.querySelector<HTMLButtonElement>("[data-photo-retry]")!;
-        const retryFocused = document.activeElement === retry;
-        status.hidden = false;
-        status.querySelector("span")!.textContent = "Loading photo…";
-        retry.hidden = !retryFocused;
-        retry.disabled = true;
-        stage.classList.add("is-loading");
-        stage.classList.remove("has-error");
-        stage.setAttribute("aria-busy", "true");
-        image.onload = () => {
-            if (!image.isConnected) return;
-            const restoreRetryFocus = document.activeElement === retry;
-            status.hidden = true;
-            stage.classList.remove("is-loading", "has-error");
-            stage.removeAttribute("aria-busy");
-            document.querySelectorAll<HTMLButtonElement>("button.lmx-note-photo").forEach(photo => {
-                if (photo.dataset.photoSrc !== item.source) return;
-                photo.classList.remove("has-error");
-                photo.setAttribute("aria-label", "Open discussion photo");
-                const thumbnail = photo.querySelector<HTMLImageElement>("img");
-                if (thumbnail && !thumbnail.naturalWidth) thumbnail.src = item.source;
-            });
-            if (restoreRetryFocus) stage.focus({ preventScroll: true });
-        };
-        image.onerror = () => {
-            if (!image.isConnected) return;
-            stage.classList.remove("is-loading");
-            stage.classList.add("has-error");
-            stage.removeAttribute("aria-busy");
-            status.querySelector("span")!.textContent = "Photo couldn’t load.";
-            retry.hidden = false;
-            retry.disabled = false;
-        };
-        previousImage.replaceWith(image);
-        image.src = item.source;
-        const canNavigate = notePhotoViewerItems.length > 1;
-        previousButton.hidden = !canNavigate;
-        nextButton.hidden = !canNavigate;
-        previousButton.disabled = !canNavigate || boundedIndex === 0;
-        nextButton.disabled = !canNavigate || boundedIndex === notePhotoViewerItems.length - 1;
-        position.hidden = !canNavigate;
-        position.textContent = canNavigate ? `Photo ${boundedIndex + 1} of ${notePhotoViewerItems.length}` : "";
-        stage.setAttribute("aria-label", canNavigate
-            ? `Enlarged discussion photo ${boundedIndex + 1} of ${notePhotoViewerItems.length}`
-            : "Enlarged discussion photo");
-        dialog.setAttribute("aria-label", canNavigate
-            ? `Discussion photo ${boundedIndex + 1} of ${notePhotoViewerItems.length}`
-            : "Enlarged discussion photo");
-
-        if (notePhotoViewerHistorySource(window.history.state)) {
-            window.history.replaceState(
-                {
-                    ...(window.history.state || {}),
-                    lmxNotePhotoViewer: { source: item.source }
-                },
-                "",
-                window.location.href);
-        }
-    }
-
-    function navigateNotePhotoViewer(offset: number): void {
-        const targetIndex = notePhotoViewerIndex + offset;
-        if (targetIndex < 0 || targetIndex >= notePhotoViewerItems.length) return;
-        updateNotePhotoViewer(targetIndex);
-    }
-
-    function trapNotePhotoViewerFocus(dialog: HTMLElement, event: KeyboardEvent): void {
-        const focusable = getDialogFocusableElements(dialog);
-        const first = focusable[0];
-        const last = focusable.at(-1);
-        if (!first || !last) {
-            event.preventDefault();
-            return;
-        }
-
-        if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus({ preventScroll: true });
-        } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus({ preventScroll: true });
-        }
-    }
-
-    function requestCloseNotePhotoViewer(): void {
-        const dialog = document.getElementById("lmxNotePhotoViewer");
-        if (!dialog || dialog.hidden || dialog.getAttribute("aria-hidden") !== "false") return;
-        if (notePhotoViewerHistorySource(window.history.state)) {
-            window.history.back();
-            return;
-        }
-        closeNotePhotoViewer();
-    }
-
-    function closeNotePhotoViewer(): void {
-        const dialog = document.getElementById("lmxNotePhotoViewer");
-        if (!dialog || dialog.hidden || dialog.getAttribute("aria-hidden") !== "false") return;
-        if (notePhotoViewerShowFrame !== null) {
-            window.cancelAnimationFrame(notePhotoViewerShowFrame);
-            notePhotoViewerShowFrame = null;
-        }
-
-        const returnFocusTo = notePhotoViewerItems[notePhotoViewerIndex]?.trigger;
-        dialog.classList.remove("show");
-        dialog.setAttribute("aria-hidden", "true");
-        dialog.inert = true;
-        setNotePhotoViewerPageInert(dialog, false);
-        if (returnFocusTo?.isConnected) returnFocusTo.focus({ preventScroll: true });
-
-        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        notePhotoViewerCloseTimer = window.setTimeout(() => {
-            dialog.hidden = true;
-            document.body.classList.remove("lmx-photo-viewer-open");
-            notePhotoViewerCloseTimer = null;
-        }, prefersReducedMotion ? 0 : 220);
-    }
-
-    function setNotePhotoViewerPageInert(dialog: HTMLElement, inert: boolean): void {
-        if (inert) {
-            if (notePhotoViewerInertStates.length) return;
-            notePhotoViewerInertStates = Array.from(document.body.children)
-                .filter((element): element is HTMLElement => element instanceof HTMLElement && element !== dialog)
-                .map(element => ({ element, inert: element.inert }));
-            notePhotoViewerInertStates.forEach(state => {
-                state.element.inert = true;
-            });
-            return;
-        }
-
-        notePhotoViewerInertStates.forEach(state => {
-            state.element.inert = state.inert;
-        });
-        notePhotoViewerInertStates = [];
     }
 
     function notePhotoViewerHistorySource(state: unknown): string {
@@ -5848,7 +5603,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             dialog.innerHTML = `<form>
                 <h2 id="lmxAdviceStoryHeading">This is unusual for you. What’s the story?</h2>
                 <div class="lmx-advice-story-input">
-                    <textarea id="lmxAdviceStory" rows="4" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
+                    <textarea id="lmxAdviceStory" rows="6" placeholder="Writing helps process it." aria-labelledby="lmxAdviceStoryHeading" aria-describedby="lmxAdviceStoryCount"></textarea>
                     <span id="lmxAdviceStoryCount" class="lmx-advice-story-count"></span>
                 </div>
                 <p class="lmx-status error" role="status" aria-live="polite"></p>
@@ -5902,9 +5657,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             return;
         }
         submit.textContent = "Post";
-        const length = adviceStoryDraft?.body.length || 0;
-        dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!.textContent = `${length} / ${prompt.characterLimit}`;
-        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || length > prompt.characterLimit;
+        const overLimit = updateAdviceStoryCount(dialog.querySelector<HTMLTextAreaElement>("textarea")!,
+            dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!, prompt.characterLimit);
+        submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || overLimit;
+    }
+
+    function updateAdviceStoryCount(textarea: HTMLTextAreaElement, count: HTMLElement, allowance?: number): boolean {
+        const limit = Math.max(2000, allowance ?? discussionCharacterLimit());
+        const length = textarea.value.length;
+        const over = Math.max(0, length - limit);
+        count.textContent = over ? `${over} over` : `${length}/${limit}`;
+        count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${limit} characters`);
+        count.classList.toggle("over-limit", over > 0);
+        textarea.setAttribute("aria-invalid", String(over > 0));
+        return over > 0;
     }
 
     async function finishAdviceStory(publish: boolean): Promise<void> {
@@ -6859,12 +6625,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const form = document.createElement("form");
                 form.className = "lmx-advice-story-editor";
                 form.innerHTML = `<label for="lmxAdviceEdit-${escAttr(advice.id)}">Edit your story</label>
-                    <textarea id="lmxAdviceEdit-${escAttr(advice.id)}" rows="4"></textarea><p class="lmx-status" role="status"></p>
+                    <textarea id="lmxAdviceEdit-${escAttr(advice.id)}" rows="4" aria-describedby="lmxAdviceEditCount-${escAttr(advice.id)}"></textarea>
+                    <span id="lmxAdviceEditCount-${escAttr(advice.id)}" class="lmx-advice-story-count"></span><p class="lmx-status" role="status"></p>
                     <div><button class="lmx-button" type="submit">Save story</button><button class="lmx-discussion-quiet-action" type="button">Cancel</button></div>`;
                 const textarea = form.querySelector<HTMLTextAreaElement>("textarea")!;
                 textarea.value = original;
-                textarea.maxLength = Math.max(advice.storyCharacterLimit || discussionCharacterLimit(), original.length);
-                textarea.addEventListener("input", () => { adviceStoryEditDirty = textarea.value !== original; });
+                const updateControls = (): void => {
+                    const overLimit = updateAdviceStoryCount(textarea, form.querySelector<HTMLElement>(".lmx-advice-story-count")!, advice.storyCharacterLimit);
+                    const save = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+                    save.disabled = save.hasAttribute("aria-busy") || !textarea.value.trim() || overLimit;
+                };
+                updateControls();
+                textarea.addEventListener("input", () => { adviceStoryEditDirty = textarea.value !== original; updateControls(); });
                 form.querySelector("button[type=button]")!.addEventListener("click", () => { form.remove(); adviceStoryEditDirty = false; button.focus(); });
                 form.addEventListener("submit", async event => {
                     event.preventDefault();
@@ -6885,23 +6657,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                         void finishWait?.("error");
                         form.querySelector<HTMLElement>(".lmx-status")!.textContent = messageOf(error);
                         save.disabled = false;
-                    } finally { save.removeAttribute("aria-busy"); }
+                    } finally { save.removeAttribute("aria-busy"); updateControls(); }
                 });
                 story.append(form);
                 textarea.focus();
-            });
-        });
-        root.querySelectorAll<HTMLButtonElement>("[data-advice-withdraw]").forEach(button => {
-            if (button.dataset.discussionControlWired) return;
-            button.dataset.discussionControlWired = "true";
-            button.addEventListener("click", async () => {
-                if (!accessToken || !window.confirm("Withdraw your public story? The existing advice and conversations will remain as read-only history.")) return;
-                button.disabled = true;
-                try {
-                    const result = await postJson(`${API}/advice/withdraw`, { accessToken, adviceId: button.dataset.adviceWithdraw, version: Number(button.dataset.adviceVersion) });
-                    acceptParticipantState(result);
-                    renderParticipantDiscussion(result);
-                } catch (error) { button.disabled = false; button.title = messageOf(error); }
             });
         });
         root.querySelectorAll<HTMLAnchorElement>("[data-youtube-video-id]").forEach(card => {
@@ -7742,12 +7501,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
                     aria-expanded="false" aria-controls="${inputId}-mentions" aria-describedby="${inputId}-count"></textarea>
                 <div id="${inputId}-mentions" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
-                ${simpleAdvice ? `<span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>` : ""}
             </div>
             ${editing || simpleAdvice ? "" : '<div class="lmx-note-photo-grid pending" data-reply-photo-previews></div><div class="lmx-photo-feedback" data-reply-photo-feedback role="status" aria-live="polite"></div>'}
             <div class="lmx-status" role="status" aria-live="polite"></div>
             ${simpleAdvice ? "" : '<button class="lmx-discussion-replies-toggle" type="button" data-advice-retarget hidden>Move draft to the active conversation</button>'}
             <div class="lmx-discussion-reply-actions">
+                ${simpleAdvice ? `<span class="lmx-discussion-composer-meta" id="${inputId}-count" data-reply-count></span>` : ""}
                 ${simpleAdvice ? "" : `<span class="lmx-discussion-compose-tools">
                     ${editing ? "" : `<button class="lmx-discussion-quiet-action lmx-discussion-add-photo" type="button" data-reply-photo-button
                         title="Add photos (or paste or drop an image)" aria-label="Add photos"><i class="fas fa-image" aria-hidden="true"></i></button>
@@ -9693,9 +9452,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             isGardenState(value.garden) && hasValidDiscussionReadContext(value) && hasValidDiscussionSnapshot(value) &&
             (!hasProperties(value, "systemDiscussionPosts") || isArrayOf(value.systemDiscussionPosts, isDiscussionSystemPost)) &&
             (!hasProperties(value, "pendingAdvicePrompt") || value.pendingAdvicePrompt === null ||
-                hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "characterLimit", "version") &&
+                hasProperties(value.pendingAdvicePrompt, "id", "challengeDay", "date", "version") &&
                 typeof value.pendingAdvicePrompt.id === "string" && typeof value.pendingAdvicePrompt.challengeDay === "number" &&
-                typeof value.pendingAdvicePrompt.date === "string" && typeof value.pendingAdvicePrompt.characterLimit === "number" &&
+                typeof value.pendingAdvicePrompt.date === "string" &&
                 typeof value.pendingAdvicePrompt.version === "number" &&
                 (!hasProperties(value.pendingAdvicePrompt, "checkInNote") || isNullableString(value.pendingAdvicePrompt.checkInNote))) &&
             (!hasProperties(value, "updatedDiscussionThread") || value.updatedDiscussionThread === null || isParticipantNote(value.updatedDiscussionThread));
@@ -9730,7 +9489,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function postJson(url: `${typeof API}/discussion/read`, payload: object): Promise<DiscussionReadResult>;
     async function postJson(url: `${typeof API}/discussion/replies/edit`, payload: object): Promise<DiscussionReply>;
     async function postJson(
-        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete` | `${typeof API}/advice/publish` | `${typeof API}/advice/dismiss` | `${typeof API}/advice/withdraw` | `${typeof API}/advice/edit`,
+        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete` | `${typeof API}/advice/publish` | `${typeof API}/advice/dismiss` | `${typeof API}/advice/edit`,
         payload: object
     ): Promise<ParticipantState>;
     async function postJson(

@@ -89,6 +89,11 @@ public sealed class InteractionMotionLifecycleBrowserTests(
             """));
         await page.EvaluateAsync("() => LwcMotion.afterExit(document.createElement('div'), () => window.exitFinished = true)");
         Assert.True(await page.EvaluateAsync<bool>("() => window.exitFinished"));
+        await page.Locator("label[for=group-flags]").ClickAsync();
+        var team = page.Locator(".flag-team").First;
+        await team.Locator("summary").ClickAsync();
+        Assert.True(await team.EvaluateAsync<bool>("details => details.open"));
+        await Assertions.Expect(team.Locator(".flag-athlete-link").First).ToBeVisibleAsync();
         await page.EvaluateAsync("() => new Promise(requestAnimationFrame)");
         Assert.Empty(errors);
     }

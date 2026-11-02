@@ -1,0 +1,86 @@
+/* Shared milestone celebration (Frontend/celebration.ts).
+   The layer sits exactly over the celebrated element in viewport space;
+   every piece ignores pointers, so input passes straight through. */
+
+.lwc-celebration {
+    position: fixed;
+    z-index: 2147483000;
+    pointer-events: none;
+    contain: layout style;
+    overflow: visible;
+    --lwc-celebration-tone: var(--lwc-accent-bright);
+    --lwc-celebration-radius: var(--lwc-radius-md, 8px);
+}
+
+.lwc-celebration > * {
+    position: absolute;
+    pointer-events: none;
+}
+
+/* Halo: a soft tinted glow that hugs the element's own shape. */
+.lwc-celebration-halo {
+    inset: -3px;
+    border-radius: var(--lwc-celebration-radius);
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--lwc-celebration-tone) 42%, transparent),
+        0 0 22px 6px color-mix(in srgb, var(--lwc-celebration-tone) 30%, transparent),
+        0 0 48px 14px color-mix(in srgb, var(--lwc-celebration-tone) 14%, transparent);
+    opacity: 0;
+    will-change: opacity, transform;
+}
+
+/* Ring: one outline that travels outward and fades. */
+.lwc-celebration-ring {
+    inset: 0;
+    border-radius: var(--lwc-celebration-radius);
+    outline: 2px solid color-mix(in srgb, var(--lwc-celebration-tone) 70%, transparent);
+    outline-offset: 0;
+    opacity: 0;
+}
+
+/* Sparks: short rays around the element, like the alert burst they replace. */
+.lwc-celebration-spark {
+    width: 3px;
+    height: 9px;
+    margin: -4.5px 0 0 -1.5px;
+    border-radius: 2px;
+    background: var(--lwc-celebration-tone);
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.lwc-celebration-spark:nth-child(3n) {
+    background: var(--lwc-gold);
+}
+
+/* Confetti: podium-coloured bars and dots. */
+.lwc-celebration-bit {
+    width: 8px;
+    height: 4px;
+    margin: -2px 0 0 -4px;
+    border-radius: 1px;
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.lwc-celebration-bit.is-dot {
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+}
+
+/* Dark surfaces read glow as light, so the halo carries a little more of it. */
+@media (prefers-color-scheme: dark) {
+    .lwc-celebration-halo {
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--lwc-celebration-tone) 55%, transparent),
+            0 0 26px 8px color-mix(in srgb, var(--lwc-celebration-tone) 34%, transparent),
+            0 0 56px 18px color-mix(in srgb, var(--lwc-celebration-tone) 16%, transparent);
+    }
+}
+
+/* Reduced motion: the same halo, held still for a moment. */
+.lwc-celebration.is-static .lwc-celebration-halo {
+    opacity: 1;
+}

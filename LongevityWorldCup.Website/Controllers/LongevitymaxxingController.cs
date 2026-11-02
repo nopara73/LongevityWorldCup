@@ -309,31 +309,21 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
 
     [HttpPost("advice/publish")]
     public IActionResult PublishAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
-        => ChangeAdviceStory(request, "publish");
+        => ChangeAdviceStory(() => _challenge.PublishAdviceStory(request));
 
     [HttpPost("advice/dismiss")]
     public IActionResult DismissAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
-        => ChangeAdviceStory(request, "dismiss");
-
-    [HttpPost("advice/withdraw")]
-    public IActionResult WithdrawAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
-        => ChangeAdviceStory(request, "withdraw");
+        => ChangeAdviceStory(() => _challenge.DismissAdviceStory(request));
 
     [HttpPost("advice/edit")]
     public IActionResult EditAdviceStory([FromBody] LongevitymaxxingAdviceStoryRequest request)
-        => ChangeAdviceStory(request, "edit");
+        => ChangeAdviceStory(() => _challenge.EditAdviceStory(request));
 
-    private IActionResult ChangeAdviceStory(LongevitymaxxingAdviceStoryRequest request, string action)
+    private IActionResult ChangeAdviceStory(Func<LongevitymaxxingParticipantState> change)
     {
         try
         {
-            return Ok(action switch
-            {
-                "publish" => _challenge.PublishAdviceStory(request),
-                "dismiss" => _challenge.DismissAdviceStory(request),
-                "edit" => _challenge.EditAdviceStory(request),
-                _ => _challenge.WithdrawAdviceStory(request)
-            });
+            return Ok(change());
         }
         catch (LongevitymaxxingAdviceChangedException ex) { return Conflict(new { message = ex.Message, code = "advice_changed" }); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
