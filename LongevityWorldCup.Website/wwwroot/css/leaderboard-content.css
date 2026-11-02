@@ -5145,6 +5145,106 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 #detailsModal #athlete-stats .athlete-info-basics > tr[hidden] + tr{ border-top:0; }
 #detailsModal #athlete-stats .athlete-info-basics > tr[hidden]{ display:none; }
 
+/* Standings tiles: Best rank, Division, Generation and Flag as four small
+   scoreboard tiles, two to a row. Each leads with its rank chip (gold, silver
+   and bronze for the podium places); the league name follows as the link.
+   On open the tiles rise in turn while the chips climb to their places
+   (decorateProfileStandings in leaderboard-page.js). */
+#detailsModal #athlete-stats .athlete-info-table > tbody.athlete-info-basics{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:.6rem;
+    padding-top:.9rem;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:.3rem;
+    min-width:0;
+    margin:0;
+    padding:.75rem .85rem .8rem;
+    border:1px solid var(--athlete-modal-border, var(--lwc-border));
+    border-radius:var(--lwc-radius-md, 8px);
+    background:var(--lwc-surface);
+    transition:border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr:has(a:hover){
+    border-color:color-mix(in srgb, var(--lwc-accent) 50%, var(--athlete-modal-border, var(--lwc-border)));
+    transform:translateY(-1px);
+    box-shadow:var(--lwc-shadow-sm);
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr > th,
+#detailsModal #athlete-stats .athlete-info-basics > tr > td{
+    display:block;
+    width:auto;
+    padding:0;
+    border:0;
+    text-align:left;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr > th{
+    color:var(--lwc-muted);
+    font-size:.7rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr > th strong{ font-weight:700; }
+#detailsModal #athlete-stats .athlete-info-basics > tr > td{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    gap:.2rem .45rem;
+    min-width:0;
+    font-size:.95rem;
+    line-height:1.3;
+}
+#detailsModal #athlete-stats .athlete-info-basics .standing-rank{
+    flex:0 0 auto;
+    color:var(--lwc-accent);
+    font-family:Orbitron, Roboto, sans-serif;
+    font-size:1.45rem;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    line-height:1;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-place="1"]{ --standing-medal:var(--lwc-gold, #c9a227); }
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-place="2"]{ --standing-medal:var(--lwc-silver, #9aa5b1); }
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-place="3"]{ --standing-medal:var(--lwc-bronze, #b0713f); }
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-podium]{
+    border-color:color-mix(in srgb, var(--standing-medal) 55%, var(--athlete-modal-border, var(--lwc-border)));
+    background:
+        radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--standing-medal) 16%, transparent), transparent 60%),
+        var(--lwc-surface);
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-podium] .standing-rank{
+    color:color-mix(in srgb, var(--standing-medal) 75%, var(--lwc-ink));
+}
+/* The "(#3)" and "(rank: #3)" text stays for assistive technology only. */
+#detailsModal #athlete-stats .athlete-info-basics .standing-rank-source{
+    position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+@media (prefers-reduced-motion: no-preference){
+    #detailsModal #athlete-stats .athlete-info-basics.is-standing-entering > tr{
+        animation:lwc-standing-rise 420ms cubic-bezier(0.2, 0, 0, 1) both;
+        animation-delay:calc(var(--standing-index, 0) * 70ms);
+    }
+    #detailsModal #athlete-stats .athlete-info-basics.is-standing-entering > tr[data-standing-podium] .standing-rank{
+        animation:lwc-standing-medal 700ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+        animation-delay:calc(var(--standing-index, 0) * 70ms + 420ms);
+    }
+}
+@keyframes lwc-standing-rise{
+    from{ opacity:0; transform:translateY(10px) scale(.98); }
+}
+@keyframes lwc-standing-medal{
+    0%{ transform:none; }
+    40%{ transform:scale(1.25) rotate(-6deg); }
+    100%{ transform:none; }
+}
+@container athlete-stats (max-width: 15.99em){
+    #detailsModal #athlete-stats .athlete-info-table > tbody.athlete-info-basics{ grid-template-columns:minmax(0, 1fr); }
+}
+
 /* Phones: two tiles to a row; a lone last tile takes the whole row. */
 @container athlete-stats (max-width: 29.99em){
     #detailsModal #athlete-stats .athlete-age-board > tr{ --age-tile-span:3; padding:.8rem .9rem .9rem; }
