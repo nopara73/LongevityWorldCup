@@ -4,8 +4,8 @@
  * proof arrives.
  * Empty: the start card is a drop sheet. Files can be dragged anywhere onto
  *   the page; the sheet answers with a marching outline and a lifting symbol.
- * With proofs: the sheet docks into a compact toolbar (animated by
- *   proof-desk script), the pages and the tracker take the desk, and the
+ * With proofs: the sheet becomes a compact toolbar with a decorative arrival
+ *   animation; the pages and the tracker take the desk, and the
  *   tracker stays in view while you scroll the pages.
  * Tracker: a thicker meter, and each confirmed item gets a stamp and a wash.
  *
@@ -18,6 +18,7 @@
         max-width: var(--desk-width);
         margin-inline: auto;
         box-sizing: border-box;
+        container: proof-desk / inline-size;
     }
 
     /* ===== Drop sheet (empty) ===== */
@@ -159,7 +160,7 @@
 
     /* ===== Workspace ===== */
     body.proof-upload-has-proofs .proof-upload-main .proof-upload-workspace > * {
-        animation: proof-desk-rise 360ms var(--lwc-ease-enter, ease-out) both;
+        animation: proof-desk-reveal 360ms var(--lwc-ease-enter, ease-out) both;
     }
 
     body.proof-upload-has-proofs .proof-upload-main .proof-upload-workspace > #biomarker-checklist {
@@ -168,22 +169,23 @@
 }
 
 @media (min-width: 960px) and (min-height: 481px) {
-    body.proof-upload-has-proofs .proof-upload-workspace {
-        flex-wrap: nowrap;
-    }
-
-    body.proof-upload-has-proofs .proof-upload-workspace #biomarker-checklist {
-        position: sticky;
-        top: calc(var(--site-header-height, 76px) + 1rem);
-        flex: 0 0 20rem;
-        max-height: calc(100dvh - var(--site-header-height, 76px) - var(--flow-action-dock-height, 72px) - 2.5rem);
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
+    /* Container rem units also respond to enlarged text. Keep the original
+       wrapping workspace and page scroll when two readable columns do not fit. */
+    @container proof-desk (min-width: 54rem) {
+        body.proof-upload-has-proofs .proof-upload-workspace #biomarker-checklist {
+            position: sticky;
+            top: calc(var(--site-sticky-height, 0px) + 1rem);
+            /* Reserve the action row even before it docks. Otherwise its own
+               appearance can shrink this column and release the dock again. */
+            max-height: calc(100dvh - var(--site-sticky-height, 0px) - max(6rem, var(--flow-action-dock-height, 0px)) - 2rem);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+        }
     }
 }
 
-@media (max-width: 720px) {
+@container proof-desk (max-width: 48rem) {
     body.proof-upload-has-proofs .proof-upload-main .proof-upload-start {
         grid-template-columns: 1fr;
     }
@@ -192,11 +194,57 @@
         width: auto;
         min-width: 0;
         margin: 0;
-        padding: 0 1rem 1rem;
+        padding: 0 min(1rem, 16px) 1rem;
     }
 
     body.proof-upload-has-proofs .proof-upload-main .proof-upload-intro {
         align-items: flex-start;
+        flex-wrap: wrap;
+        padding-inline: min(1rem, 16px);
+    }
+
+    body.proof-upload-has-proofs .proof-upload-main .proof-upload-intro-copy {
+        flex-basis: 14rem;
+    }
+
+    :root body .proof-upload-main .proof-upload-intro {
+        padding-inline: min(1rem, 16px);
+    }
+}
+
+@media (max-width: 360px) {
+    :root body.play-flow-route .proof-upload-main {
+        padding-inline: min(1rem, 4vw);
+    }
+}
+
+/* At narrow zoom/text sizes, use the whole row for readable labels rather
+   than breaking ordinary words beside a fixed checkbox or upload icon. */
+@container proof-desk (max-width: 14rem) {
+    :root body .proof-upload-main .proof-upload-primary-action .option-button {
+        flex-direction: column;
+        padding-inline: 8px;
+        gap: 8px;
+    }
+
+    :root body .proof-upload-main .proof-upload-primary-action .option-button i {
+        position: static;
+        transform: none;
+    }
+
+    :root body #biomarker-checklist .proof-tracker-group {
+        padding-inline: 4px;
+    }
+
+    :root body #biomarker-checklist .biomarker-item {
+        flex-wrap: wrap;
+        padding-inline: 4px;
+        gap: 8px;
+    }
+
+    :root body #biomarker-checklist .biomarker-item > span {
+        flex: 1 1 12rem;
+        min-width: 0;
     }
 }
 
@@ -249,8 +297,8 @@
     to { transform: translateY(-4px); }
 }
 
-@keyframes proof-desk-rise {
-    from { opacity: 0; transform: translateY(12px); }
+@keyframes proof-desk-reveal {
+    from { opacity: 0; }
 }
 
 @keyframes proof-desk-stamp {
