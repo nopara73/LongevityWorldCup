@@ -979,21 +979,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         Assert.Equal("800", await photos.Nth(0).Locator("img").GetAttributeAsync("height"));
 
         await photos.Nth(0).ClickAsync();
-        var viewer = page.Locator("#lmxNotePhotoViewer");
-        await page.Locator("#lmxNotePhotoViewer.show").WaitForAsync();
+        var viewer = page.Locator(".lwc-viewer");
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         Assert.Equal("dialog", await viewer.GetAttributeAsync("role"));
         Assert.Equal("true", await viewer.GetAttributeAsync("aria-modal"));
         Assert.Equal("false", await viewer.GetAttributeAsync("aria-hidden"));
-        Assert.True(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('lmx-photo-viewer-open')"));
-        Assert.True(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
-        Assert.Equal("Photo 1 of 2", await viewer.Locator(".lmx-photo-viewer-position").InnerTextAsync());
-        Assert.Equal(
-            "/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari",
-            await viewer.Locator(".lmx-photo-viewer-stage img").GetAttributeAsync("src"));
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.style.overflow === 'hidden'"));
+        Assert.True(await viewer.EvaluateAsync<bool>("element => element.matches(':modal')"));
+        Assert.Equal("Photo 1 of 2", await viewer.Locator(".lwc-viewer-position").InnerTextAsync());
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync(
+            "src", "/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari");
 
-        var closeButton = viewer.Locator(".lmx-photo-viewer-close");
-        var previousButton = viewer.Locator(".lmx-photo-viewer-nav.previous");
-        var nextButton = viewer.Locator(".lmx-photo-viewer-nav.next");
+        var closeButton = viewer.Locator(".lwc-viewer-close");
+        var previousButton = viewer.Locator(".lwc-viewer-prev");
+        var nextButton = viewer.Locator(".lwc-viewer-next");
         Assert.True(await closeButton.EvaluateAsync<bool>("button => button === document.activeElement"));
         Assert.False(await previousButton.IsEnabledAsync());
         Assert.True(await nextButton.IsEnabledAsync());
@@ -1005,10 +1004,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
         }
 
         await page.Keyboard.PressAsync("ArrowRight");
-        Assert.Equal("Photo 2 of 2", await viewer.Locator(".lmx-photo-viewer-position").InnerTextAsync());
-        Assert.Equal(
-            "/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea",
-            await viewer.Locator(".lmx-photo-viewer-stage img").GetAttributeAsync("src"));
+        await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
+        Assert.Equal("Photo 2 of 2", await viewer.Locator(".lwc-viewer-position").InnerTextAsync());
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync(
+            "src", "/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea");
         Assert.True(await previousButton.IsEnabledAsync());
         Assert.False(await nextButton.IsEnabledAsync());
         Assert.Equal(
@@ -1016,27 +1015,30 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests(
             await page.EvaluateAsync<string>("() => history.state?.lmxNotePhotoViewer?.source"));
 
         await previousButton.FocusAsync();
-        await page.Keyboard.PressAsync("Tab");
-        Assert.True(await closeButton.EvaluateAsync<bool>("button => button === document.activeElement"));
+        for (var tab = 0; tab < 8; tab++)
+        {
+            await page.Keyboard.PressAsync("Tab");
+            Assert.True(await viewer.EvaluateAsync<bool>("element => element.contains(document.activeElement)"));
+        }
 
         await page.Keyboard.PressAsync("Escape");
-        await page.WaitForFunctionAsync("() => document.getElementById('lmxNotePhotoViewer').getAttribute('aria-hidden') === 'true'");
-        Assert.True(await viewer.EvaluateAsync<bool>("element => element.inert"));
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-viewer').getAttribute('aria-hidden') === 'true'");
+        Assert.False(await viewer.EvaluateAsync<bool>("element => element.open"));
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
-        Assert.False(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('lmx-photo-viewer-open')"));
+        Assert.False(await page.Locator("body").EvaluateAsync<bool>("() => document.documentElement.style.overflow === 'hidden'"));
         Assert.False(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
         Assert.True(await photos.Nth(1).EvaluateAsync<bool>("button => button === document.activeElement"));
 
         await page.GoForwardAsync();
-        await page.Locator("#lmxNotePhotoViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         Assert.False(await viewer.EvaluateAsync<bool>("element => element.inert"));
-        Assert.Equal("Photo 2 of 2", await viewer.Locator(".lmx-photo-viewer-position").InnerTextAsync());
+        Assert.Equal("Photo 2 of 2", await viewer.Locator(".lwc-viewer-position").InnerTextAsync());
         await page.GoBackAsync();
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
 
         await photos.Nth(0).FocusAsync();
         await page.Keyboard.PressAsync("Enter");
-        await page.Locator("#lmxNotePhotoViewer.show").WaitForAsync();
+        await page.Locator(".lwc-viewer[open]").WaitForAsync();
         await viewer.EvaluateAsync("dialog => dialog.click()");
         await viewer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         Assert.True(await photos.Nth(0).EvaluateAsync<bool>("button => button === document.activeElement"));

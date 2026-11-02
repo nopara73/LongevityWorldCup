@@ -198,18 +198,18 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         var page = await OpenAsync(context);
         await page.Locator("#athlete-proofs").ScrollIntoViewIfNeededAsync();
         await page.Locator("#proofsGallery .proof-item img").First.ClickAsync();
-        await page.WaitForFunctionAsync("() => document.querySelector('.enlarged-portrait.is-proof-gallery.show .image-viewer-stage img:not([hidden])')?.complete");
-        await page.Locator(".image-zoom-fit").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-viewer[open][data-image-state=ready] .lwc-viewer-stage img:not([hidden])')?.complete");
+        await page.Locator(".lwc-viewer-zoom-fit").ClickAsync();
 
         var layout = await page.EvaluateAsync<string[]>("""
             () => {
                 const problems = [];
-                const stage = document.querySelector('.enlarged-portrait .image-viewer-stage');
+                const stage = document.querySelector('.lwc-viewer .lwc-viewer-stage');
                 const img = stage.querySelector('img');
                 const s = stage.getBoundingClientRect();
                 const i = img.getBoundingClientRect();
                 if (i.height < s.height - 2 && Math.abs((i.top + i.bottom) / 2 - (s.top + s.bottom) / 2) > 3) problems.push('page hangs from the top of the stage');
-                const controls = document.querySelector('.enlarged-portrait .image-zoom-controls');
+                const controls = document.querySelector('.lwc-viewer .lwc-viewer-zoom-controls');
                 const style = getComputedStyle(controls);
                 if (parseFloat(style.borderTopWidth) < 1 || parseFloat(style.borderTopLeftRadius) < 20) problems.push('zoom is not one toolbar');
                 for (const button of controls.querySelectorAll('button'))
@@ -571,16 +571,16 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             """);
         Assert.Empty(galleryFailures);
         await page.Locator("#proofsGallery img").First.ClickAsync();
-        await page.WaitForFunctionAsync("() => document.getElementById('athleteImageViewer').dataset.imageState === 'ready'");
-        await page.Locator(".image-zoom-fit").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-viewer').dataset.imageState === 'ready'");
+        await page.Locator(".lwc-viewer-zoom-fit").ClickAsync();
         var viewerFailures = await page.EvaluateAsync<string[]>("""
             () => {
                 const failures = [];
-                const viewer = document.getElementById('athleteImageViewer');
-                const stage = viewer.querySelector('.image-viewer-stage').getBoundingClientRect();
-                const image = viewer.querySelector('.image-viewer-stage img').getBoundingClientRect();
+                const viewer = document.querySelector('.lwc-viewer');
+                const stage = viewer.querySelector('.lwc-viewer-stage').getBoundingClientRect();
+                const image = viewer.querySelector('.lwc-viewer-stage img').getBoundingClientRect();
                 if (image.left < stage.left - 1 || image.right > stage.right + 1 || image.top < stage.top - 1 || image.bottom > stage.bottom + 1) failures.push('Fit crops the proof page');
-                const controls = [...viewer.querySelectorAll('button, .image-position, .image-viewer-hint')].filter(element => element.checkVisibility());
+                const controls = [...viewer.querySelectorAll('button')].filter(element => element.checkVisibility());
                 for (const control of controls) {
                     const box = control.getBoundingClientRect();
                     if (box.left < -.5 || box.top < -.5 || box.right > innerWidth + .5 || box.bottom > innerHeight + .5) failures.push('proof control escapes viewport');
