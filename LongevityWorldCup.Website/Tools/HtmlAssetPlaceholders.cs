@@ -77,6 +77,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_PRO_DISCOUNTS_JS}}"] = "/js/pro-discounts.js",
         ["{{ASSET_PORTRAIT_CROP_CSS}}"] = "/css/portrait-crop.css",
         ["{{ASSET_PORTRAIT_CROPPER_JS}}"] = "/js/portrait-cropper.js",
+        ["{{ASSET_PROOF_DESK_CSS}}"] = "/css/proof-desk.css",
+        ["{{ASSET_PROOF_DESK_JS}}"] = "/js/proof-desk.js",
         ["{{ASSET_PROOF_HELPERS_JS}}"] = "/js/proof-helpers.js",
         ["{{ASSET_ROBOTO_BOLD}}"] = "/assets/fonts/Roboto-Bold.woff2",
         ["{{ASSET_ROBOTO_LIGHT}}"] = "/assets/fonts/Roboto-Light.woff2",

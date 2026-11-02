@@ -299,6 +299,9 @@ public sealed class WebPushTests
     public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverPodiumAndDonationWithoutDuplicates()
     {
         using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
+        // This test owns its event history. Drain the startup rescan before
+        // baselining it so unrelated roster milestones cannot arrive mid-test.
+        fixture.Athletes.Dispose();
         var store = new WebPushStore(fixture.Database);
         var now = new Clock(DateTimeOffset.UtcNow);
         store.Subscribe(Subscription(), now.GetUtcNow().AddMinutes(-1));
