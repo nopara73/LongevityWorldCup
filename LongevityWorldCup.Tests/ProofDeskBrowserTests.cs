@@ -9,6 +9,74 @@ namespace LongevityWorldCup.Tests;
 public sealed class ProofDeskBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    internal static async Task AssertContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        var savedState = await page.EvaluateAsync<string?[]>(
+            "() => ['selectedAthlete', 'biomarkerData'].map(key => sessionStorage.getItem(key))");
+        var wasReduced = await page.EvaluateAsync<bool>("() => matchMedia('(prefers-reduced-motion: reduce)').matches");
+        try
+        {
+            await page.SetViewportSizeAsync(1920, 900);
+            await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+            await page.EvaluateAsync("() => {" + AthleteState + "}");
+            await NavigateAndSettleAsync(page, "/proofs");
+            await page.WaitForFunctionAsync("() => document.getElementById('proofPicInput')?.dataset.listener === 'true'");
+            await page.Locator("#proofPicInput").SetInputFilesAsync(await CreateProofImagesAsync(page.Context, 1));
+            await page.WaitForFunctionAsync("() => document.body.classList.contains('proof-upload-has-proofs') && !document.getElementById('proofPicInput').disabled");
+            // Retain the rendered proof markup while isolating width probes
+            // from the live editor and action-dock observers.
+            await page.Locator(".proof-upload-main").EvaluateAsync("main => main.replaceWith(main.cloneNode(true))");
+            foreach (var fontSize in new[] { 16, 32 })
+            {
+                await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+                foreach (var condition in conditions)
+                {
+                    Assert.Equal("proof-desk", condition.Name);
+                    Assert.Equal("rem", condition.Unit);
+                    Assert.Contains(condition.Value, new[] { 14d, 48d, 54d });
+                    Assert.Equal(condition.Value == 54 ? "min" : "max", condition.Bound);
+                    var threshold = condition.Value * fontSize;
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var width = threshold + delta;
+                        var diagnostics = await page.EvaluateAsync<double[]>("""
+                            async probe => {
+                                const main = document.querySelector('.proof-upload-main');
+                                Object.assign(main.style, { boxSizing: 'content-box', width: `${probe.Width}px`,
+                                    inlineSize: `${probe.Width}px`, maxWidth: 'none', maxInlineSize: 'none' });
+                                await document.fonts.ready;
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                const active = probe.Threshold === 54
+                                    ? getComputedStyle(main.querySelector('#biomarker-checklist')).position === 'sticky'
+                                    : probe.Threshold === 48
+                                        ? getComputedStyle(main.querySelector('.proof-upload-start')).gridTemplateColumns.split(' ').length === 1
+                                        : getComputedStyle(main.querySelector('#uploadProofButton')).flexDirection === 'column';
+                                return [parseFloat(getComputedStyle(main).width), active ? 1 : 0,
+                                    Math.max(0, main.scrollWidth - main.clientWidth)];
+                            }
+                            """, new { Width = width, Threshold = condition.Value });
+                        Assert.Equal(width, diagnostics[0], 1);
+                        Assert.Equal(condition.Bound == "min" ? width >= threshold : width <= threshold, diagnostics[1] == 1);
+                        Assert.True(diagnostics[2] <= 1, $"Proof desk overflowed at {width}px with {fontSize}px text.");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            await page.EvaluateAsync("""
+                values => {
+                    document.documentElement.style.fontSize = '';
+                    ['selectedAthlete', 'biomarkerData'].forEach((key, i) => {
+                        if (values[i] === null) sessionStorage.removeItem(key);
+                        else sessionStorage.setItem(key, values[i]);
+                    });
+                }
+                """, savedState);
+            await page.EmulateMediaAsync(new() { ReducedMotion = wasReduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference });
+        }
+    }
+
     [Theory]
     [InlineData(320, 200)]
     [InlineData(187, 100)]

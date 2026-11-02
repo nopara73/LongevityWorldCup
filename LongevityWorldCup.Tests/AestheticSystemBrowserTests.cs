@@ -1244,6 +1244,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/prize-pool.css":
                     await AssertPrizePoolContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/proof-desk.css":
+                    await ProofDeskBrowserTests.AssertContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;

@@ -186,6 +186,11 @@
 }
 
 @container proof-desk (max-width: 48rem) {
+    body.proof-upload-has-proofs .proof-upload-workspace #biomarker-checklist {
+        min-width: 0;
+        flex-shrink: 1;
+    }
+
     body.proof-upload-has-proofs .proof-upload-main .proof-upload-start {
         grid-template-columns: 1fr;
     }
