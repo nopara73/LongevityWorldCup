@@ -370,4 +370,3 @@ public sealed class WebPushTests
         public void Advance(TimeSpan value) => _now += value;
     }
 }
-
