@@ -262,6 +262,9 @@
             });
         }
         input.addEventListener("input", syncSlot);
+        input.addEventListener("change", syncSlot);
+        // Native autofill/history restoration can bypass the instance setter.
+        window.addEventListener("pageshow", () => { syncSlot(); placeSlot(); });
         new ResizeObserver(placeSlot).observe(input);
         if (input.parentElement) new ResizeObserver(placeSlot).observe(input.parentElement);
         syncSlot();
@@ -275,6 +278,7 @@
             if (closing && prefersMotion() && closing.isConnected) {
                 // Fade out where it is; the id moves on so a new list can open at once.
                 closing.removeAttribute("id");
+                closing.querySelectorAll("[id]").forEach(option => option.removeAttribute("id"));
                 if (closing.classList.contains("lwc-flag-suggestions--inline")) {
                     // An inline list leaves the flow at once so the form does not wait for it.
                     Object.assign(closing.style, {

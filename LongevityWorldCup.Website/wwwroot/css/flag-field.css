@@ -210,6 +210,21 @@ input.lwc-flag-input.lwc-flag-input--landed {
         0 8px 18px rgb(0 0 0 / 0.28);
 }
 
+:root[data-lwc-motion="off"] .lwc-flag-glider,
+:root[data-lwc-motion="off"] .autocomplete-items.lwc-flag-suggestions .lwc-flag-tile,
+:root[data-lwc-motion="off"] .autocomplete-items.lwc-flag-suggestions .lwc-flag-share {
+    transition: none;
+}
+
+:root[data-lwc-motion="off"] .autocomplete-items.lwc-flag-suggestions .autocomplete-item.autocomplete-active .lwc-flag-tile {
+    transform: none;
+}
+
+:root[data-lwc-motion="off"] input.lwc-flag-input.lwc-flag-input--landed {
+    animation: none;
+    background-image: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .lwc-flag-glider,
     .autocomplete-items.lwc-flag-suggestions .lwc-flag-tile,
