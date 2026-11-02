@@ -974,3 +974,171 @@ main.event-board-page {
         animation: none !important;
     }
 }
+
+/* =========================
+   Activity calendar ("pulse"): one cell per day of the loaded feed, darker
+   with more highlights. Desktop: a sticky rail in the right gutter beside the
+   feed. Narrower screens: a strip under the heading. The ring follows the day
+   being read; a click glides to that day and flashes its rows. Wordless.
+   ========================= */
+main.event-board-page {
+    position: relative;
+}
+
+.event-pulse {
+    --pulse-cell: 0.8rem;
+    --pulse-gap: 3px;
+    width: var(--feed-width);
+    margin: 0 auto var(--lwc-space-4, 1rem);
+    box-sizing: border-box;
+}
+
+.event-pulse[hidden] {
+    display: none;
+}
+
+.event-pulse-sticky {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-sm);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+/* Narrow: weeks run left to right (newest first), weekdays top to bottom. */
+.event-pulse-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, var(--pulse-cell));
+    grid-auto-columns: var(--pulse-cell);
+    gap: var(--pulse-gap);
+}
+
+.event-pulse-cell {
+    display: block;
+    width: var(--pulse-cell);
+    height: var(--pulse-cell);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: var(--lwc-surface-muted);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lwc-border) 70%, transparent);
+}
+
+.event-pulse-cell.is-future {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lwc-border) 40%, transparent);
+}
+
+.event-pulse-cell.is-month-start {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lwc-ink) 35%, transparent);
+}
+
+/* Day cells are buttons; shed the site's button sizing (min heights, touch
+   padding) so every cell stays a square. A pointer target of a 13px cell is
+   small, but the cells are a secondary way through the feed. */
+.event-pulse .event-pulse-grid > button.event-pulse-cell {
+    appearance: none;
+    min-width: 0;
+    min-height: 0;
+    width: var(--pulse-cell);
+    height: var(--pulse-cell);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 0;
+    line-height: 0;
+    box-shadow: none;
+}
+
+button.event-pulse-cell {
+    background: color-mix(in srgb, var(--lwc-accent) calc(var(--pulse-level, 0.3) * 100%), var(--lwc-surface-muted));
+    cursor: pointer;
+    transition: transform 140ms var(--lwc-ease-standard, ease);
+}
+
+button.event-pulse-cell:hover,
+button.event-pulse-cell:focus-visible {
+    transform: scale(1.35);
+    position: relative;
+    z-index: 1;
+}
+
+button.event-pulse-cell:focus-visible {
+    outline: 2px solid var(--lwc-accent);
+    outline-offset: 2px;
+}
+
+.event-pulse-cursor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform 260ms var(--lwc-ease-standard, ease),
+        opacity 160ms ease;
+}
+
+/* Wide: a sticky rail in the gutter, newest week on top like the feed. */
+@media (min-width: 1240px) {
+    .event-pulse {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(50% + 430px + 1.5rem);
+        width: auto;
+        margin: 0;
+    }
+
+    .event-pulse-sticky {
+        position: sticky;
+        top: 5.5rem;
+        overflow: visible;
+    }
+
+    .event-pulse-grid {
+        grid-auto-flow: row;
+        grid-template-rows: none;
+        grid-template-columns: repeat(7, var(--pulse-cell));
+        grid-auto-rows: var(--pulse-cell);
+    }
+}
+
+/* Arrival: the cells fill in a quick diagonal wave. */
+@media (prefers-reduced-motion: no-preference) {
+    .event-pulse.is-arriving .event-pulse-cell {
+        animation: event-pulse-arrive 360ms var(--lwc-ease-pop, ease-out) both;
+        animation-delay: calc(min(var(--pulse-i, 0), 140) * 6ms);
+    }
+
+    .events-board tr.main-row.is-pulse-target > td {
+        animation: event-pulse-flash 1.6s ease-out;
+    }
+}
+
+.events-board tr.main-row {
+    scroll-margin-top: 6.5rem;
+}
+
+@keyframes event-pulse-arrive {
+    from { opacity: 0; transform: scale(0.3); }
+}
+
+@keyframes event-pulse-flash {
+    0%, 30% { background-color: var(--lwc-accent-soft); }
+    100% { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .event-pulse-cursor,
+    button.event-pulse-cell { transition: none; }
+}
