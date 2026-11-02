@@ -92,6 +92,7 @@
         const cursor = rail.querySelector('.event-pulse-cursor');
         const cellsByDay = new Map();
         let built = false;
+        let lastSignature = '';
         let currentDay = '';
         let buildTimer = 0;
         let spyFrame = 0;
@@ -106,6 +107,11 @@
         function build() {
             const counts = new Map();
             rows().forEach(row => counts.set(row.dataset.day, (counts.get(row.dataset.day) || 0) + 1));
+            // The feed mutates often (reveals, previews, ghosts). Rebuild only when
+            // the days or their counts change, so cells stay stable under the pointer.
+            const signature = Array.from(counts, ([day, count]) => `${day}:${count}`).join('|');
+            if (signature === lastSignature && grid.childElementCount) return;
+            lastSignature = signature;
             const days = Array.from(counts.keys()).map(parseDay).filter(Boolean).sort((a, b) => b - a);
             if (!days.length) { rail.hidden = true; return; }
             rail.hidden = false;
@@ -205,7 +211,7 @@
         };
         watch();
         window.addEventListener('scroll', () => { if (!spyFrame) spyFrame = requestAnimationFrame(spy); }, { passive: true });
-        window.addEventListener('resize', () => { currentDay = ''; queueBuild(); });
+        window.addEventListener('resize', () => { currentDay = ''; lastSignature = ''; queueBuild(); });
     })();
 </script>
 </body>
