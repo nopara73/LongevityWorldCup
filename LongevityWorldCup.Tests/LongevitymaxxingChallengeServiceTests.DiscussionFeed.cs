@@ -126,7 +126,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task DiscussionFeed_FirstAdviceUnpinsDeletingTheLeadRepinsAndWithdrawalClearsThePin()
+    public async Task DiscussionFeed_FirstAdviceUnpinsDeletingTheLeadRepinsAndLegacyWithdrawalStaysUnpinned()
     {
         using var fixture = TestChallengeFixture.Create();
         fixture.Config.LongevitymaxxingChallenge!.StartDate = "2026-06-20";
@@ -164,7 +164,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Null(deleted.Public.Notes[0].Advice!.ActiveAdviceReplyId);
         Assert.Contains(deleted.Public.Notes[0].Advice!.Replies, reply => reply.Id == first && reply.IsArchived);
         var advice = deleted.Public.Notes[0].Advice!;
-        fixture.Service.WithdrawAdviceStory(new(owner, advice.Id, advice.Version), now.AddMinutes(3));
+        SeedLegacyWithdrawnAdvice(fixture, advice.Id, now.AddMinutes(3));
         Assert.DoesNotContain(fixture.Service.GetPublicState(rankedAt).Notes, note => note.ChallengeDay == 7);
     }
 

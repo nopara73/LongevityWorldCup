@@ -1422,4 +1422,192 @@ window.playAthleteFlow = {
     renderDashboardActions
 };
 
+
+// ---------------------------------------------------------------- player stage
+// The player card is a stage: the portrait sits over a blurred, darkened copy
+// of itself, so a portrait never floats between grey bars. While the reader
+// searches, the stage eases into a slim banner and spotlights whichever
+// athlete is highlighted in the suggestions; the caption rolls over when the
+// choice lands. Everything here watches the DOM the flow already renders.
+
+const reducedStageMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const stageAnimations = new Map<Element, Animation>();
+
+function stageMotionAllowed(): boolean {
+    return !reducedStageMotion.matches;
+}
+
+function cancelStageAnimations(): void {
+    stageAnimations.forEach(animation => animation.cancel());
+    stageAnimations.clear();
+}
+
+reducedStageMotion.addEventListener("change", () => {
+    if (reducedStageMotion.matches) cancelStageAnimations();
+});
+window.addEventListener("pagehide", cancelStageAnimations);
+
+function animateStage(element: Element, frames: Keyframe[], options: KeyframeAnimationOptions): void {
+    stageAnimations.get(element)?.cancel();
+    stageAnimations.delete(element);
+    if (!stageMotionAllowed() || typeof element.animate !== "function") return;
+    try {
+        const animation = element.animate(frames, options);
+        stageAnimations.set(element, animation);
+        const forget = (): void => {
+            if (stageAnimations.get(element) === animation) stageAnimations.delete(element);
+        };
+        animation.finished.then(forget, forget);
+    } catch (_) {
+        // Decoration must never interrupt the existing selection flow.
+    }
+}
+
+function cssImageUrl(src: string): string {
+    return `url("${src.replace(/["\\\n]/g, encodeURIComponent)}")`;
+}
+
+function visibleStageSource(frame: HTMLElement): string {
+    const images = Array.from(frame.querySelectorAll<HTMLImageElement>("img.illustration"))
+        .filter(image => !image.classList.contains("is-exiting") && !image.closest(".is-exiting"));
+    const image = images[images.length - 1];
+    return image ? image.currentSrc || image.src : "";
+}
+
+function bindStageBackdrop(frame: HTMLElement): void {
+    let shown = "";
+    const update = (): void => {
+        frame.querySelectorAll<HTMLImageElement>("img.illustration").forEach(image => {
+            image.toggleAttribute("data-stage-square",
+                image.complete && image.naturalWidth > 0 && image.naturalWidth === image.naturalHeight);
+        });
+        if (frame.dataset["stagePreview"]) return;
+        const source = visibleStageSource(frame);
+        if (!source || source === shown) return;
+        shown = source;
+        frame.style.setProperty("--stage-image", cssImageUrl(source));
+    };
+    new MutationObserver(update).observe(frame, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "class"] });
+    frame.addEventListener("load", update, true);
+    frame.addEventListener("stage-restore", () => { shown = ""; update(); });
+    update();
+}
+
+function bindStageCaption(title: HTMLElement | null): void {
+    if (!title) return;
+    let text = title.textContent || "";
+    new MutationObserver(() => {
+        const next = title.textContent || "";
+        if (next === text) return;
+        text = next;
+        if (!stageMotionAllowed() || title.closest("[hidden]")) return;
+        animateStage(title, [
+            { transform: "translateY(10px)" },
+            { transform: "none" }
+        ], { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" });
+    }).observe(title, { childList: true, characterData: true, subtree: true });
+}
+
+function bindStageSpotlight(input: HTMLInputElement, card: HTMLElement, frame: HTMLElement): void {
+    const spotlight = document.createElement("span");
+    spotlight.className = "athlete-stage-spotlight";
+    spotlight.setAttribute("aria-hidden", "true");
+    card.appendChild(spotlight);
+    let current = "";
+    let hoveredOption: Element | null = null;
+
+    const show = (source: string): void => {
+        if (source === current) return;
+        current = source;
+        if (!source) {
+            stageAnimations.get(spotlight)?.cancel();
+            stageAnimations.delete(spotlight);
+            spotlight.style.removeProperty("--stage-spotlight");
+            delete frame.dataset["stagePreview"];
+            card.classList.remove("is-spotlit");
+            frame.dispatchEvent(new Event("stage-restore"));
+            return;
+        }
+        frame.dataset["stagePreview"] = "true";
+        frame.style.setProperty("--stage-image", cssImageUrl(source));
+        spotlight.style.setProperty("--stage-spotlight", cssImageUrl(source));
+        card.classList.add("is-spotlit");
+        if (stageMotionAllowed()) {
+            animateStage(spotlight, [
+                { transform: "scale(0.82)", opacity: 0.4 },
+                { transform: "none", opacity: 1 }
+            ], { duration: 240, easing: "cubic-bezier(0.34, 1.4, 0.64, 1)" });
+        }
+    };
+
+    const sourceOf = (option: Element | null): string => {
+        const thumb = option?.querySelector<HTMLImageElement>(".athlete-option-thumb");
+        return thumb && thumb.complete && thumb.naturalWidth >= MIN_USABLE_ATHLETE_PICTURE_SIDE
+            && thumb.naturalHeight >= MIN_USABLE_ATHLETE_PICTURE_SIDE
+            && thumb.dataset["lwcImageRole"] !== "illustration" ? thumb.currentSrc || thumb.src : "";
+    };
+
+    const sync = (): void => {
+        if (input.getAttribute("aria-expanded") !== "true") {
+            hoveredOption = null;
+            show("");
+            return;
+        }
+        const activeId = input.getAttribute("aria-activedescendant");
+        show(sourceOf(hoveredOption?.isConnected ? hoveredOption : activeId ? document.getElementById(activeId) : null));
+    };
+
+    new MutationObserver(() => { hoveredOption = null; sync(); })
+        .observe(input, { attributes: true, attributeFilter: ["aria-activedescendant", "aria-expanded"] });
+    // A lazy thumbnail can fail or fall back after its row was highlighted.
+    const refreshLoadedPreview = (): void => { queueMicrotask(sync); };
+    input.parentElement?.addEventListener("load", refreshLoadedPreview, true);
+    input.parentElement?.addEventListener("error", refreshLoadedPreview, true);
+    document.addEventListener("pointerover", event => {
+        if (!(event.target instanceof Element) || event.pointerType === "touch") return;
+        const option = event.target.closest(".autocomplete-items:not(.autocomplete-items--leaving) [role=option]");
+        if (option?.closest("[role=listbox]")?.id === input.getAttribute("aria-controls")) {
+            hoveredOption = option;
+            sync();
+        }
+    });
+    document.addEventListener("pointerout", event => {
+        if (!(event.target instanceof Element) || !event.target.closest(".autocomplete-items")) return;
+        if (event.relatedTarget instanceof Element && event.relatedTarget.closest(".autocomplete-items")) return;
+        hoveredOption = null;
+        sync();
+    });
+}
+
+// The Select command lights up with a sweep the moment a choice makes it usable.
+function bindStageArming(button: HTMLButtonElement | null): void {
+    if (!button) return;
+    let wasDisabled = button.disabled;
+    new MutationObserver(() => {
+        const disabled = button.disabled;
+        if (wasDisabled && !disabled && stageMotionAllowed()) {
+            button.classList.remove("is-arming");
+            void button.offsetWidth;
+            button.classList.add("is-arming");
+            window.setTimeout(() => button.classList.remove("is-arming"), 900);
+        }
+        wasDisabled = disabled;
+    }).observe(button, { attributes: true, attributeFilter: ["disabled"] });
+}
+
+function initPlayerStage(): void {
+    document.querySelectorAll<HTMLElement>(".play-athlete-card .athlete-picture-frame, .play-dashboard-card .athlete-picture-frame")
+        .forEach(bindStageBackdrop);
+    bindStageCaption(document.getElementById("athleteSelectionTitle"));
+    bindStageCaption(document.getElementById("athleteDashboardTitle"));
+    const input = document.getElementById("playAthleteInput");
+    const card = document.querySelector<HTMLElement>(".play-athlete-card");
+    const frame = document.getElementById("athleteSelectionPicture");
+    if (input instanceof HTMLInputElement && card && frame) bindStageSpotlight(input, card, frame);
+    bindStageArming(document.getElementById("playConfirmAthleteBtn") as HTMLButtonElement | null);
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initPlayerStage, { once: true });
+else initPlayerStage();
+
 export {};

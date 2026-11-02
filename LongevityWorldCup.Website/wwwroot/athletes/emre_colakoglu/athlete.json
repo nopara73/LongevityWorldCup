@@ -1,0 +1,28 @@
+{
+  "Name": "Emre Colakoglu",
+  "DisplayName": null,
+  "MediaContact": "@emrecolakoglu",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 7,
+    "Day": 17
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-13",
+      "AlbGL": 48.1,
+      "CreatUmolL": 121.7,
+      "GluMmolL": 5.27,
+      "CrpMgL": 0.92,
+      "LymPc": 41.18,
+      "McvFL": 86,
+      "RdwPc": 11.8,
+      "AlpUL": 38,
+      "Wbc1000cellsuL": 6.29
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United Kingdom",
+  "Why": "be the best version of myself!",
+  "PersonalLink": "https://emre.computer"
+}

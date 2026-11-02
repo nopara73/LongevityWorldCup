@@ -89,6 +89,13 @@ public sealed class WebPushBrowserTests
             window.testUnsubscribeCount = 0;
             window.testSubscribeStarted = false;
             window.testSubscription = null;
+            window.testRetryRegisterStarted = false;
+            window.testSyncAvailable = !!window.SyncManager;
+            // Background Sync has its own native acknowledgment, outside this
+            // test's virtual-time provider handshake.
+            if (window.SyncManager) SyncManager.prototype.register = async () => {
+                window.testRetryRegisterStarted = true;
+            };
             // Deliver this document's own preference broadcasts after the
             // timeout has rendered, reproducing delayed message dispatch.
             const NativeBroadcastChannel = window.BroadcastChannel;
@@ -128,6 +135,8 @@ public sealed class WebPushBrowserTests
         await page.GotoAsync(app.BaseAddress + "events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var bell = page.Locator("#webPushToggle");
         await Assertions.Expect(bell).ToBeVisibleAsync();
+        // Protocol round trips must not consume the gap between deadline and late result.
+        await page.Clock.PauseAtAsync(DateTime.UtcNow.AddSeconds(1));
         await bell.ClickAsync();
         await page.WaitForFunctionAsync("() => window.testSubscribeStarted");
         await Assertions.Expect(bell).ToBeDisabledAsync();
@@ -135,6 +144,8 @@ public sealed class WebPushBrowserTests
         // Observe the deadline before releasing a late provider result; jumping
         // over both timers at once can coalesce them in the browser's fake clock.
         await page.Clock.FastForwardAsync(enabled ? delay : 120001);
+        if (!enabled && await page.EvaluateAsync<bool>("window.testSyncAvailable"))
+            await page.WaitForFunctionAsync("() => window.testRetryRegisterStarted");
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", enabled ? "true" : "false");
         await Assertions.Expect(bell).ToBeEnabledAsync();
         if (enabled)

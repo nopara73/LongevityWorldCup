@@ -49,11 +49,14 @@ public sealed class DepthSystemBrowserTests(PlaywrightBrowserFixture browserFixt
                 const scroller = document.createElement('div');
                 scroller.id = 'depth-test-scrollport';
                 scroller.style.cssText = 'position:fixed;left:20px;top:120px;width:240px;height:220px;overflow:auto;border:8px solid black;z-index:99999';
-                scroller.innerHTML = '<div style="height:80px"></div><div data-lwc-sticky id="depth-test-bar" style="position:sticky;top:0;height:40px;background:white">Sticky heading</div><div style="height:800px"></div>';
+                scroller.innerHTML = '<div style="height:80px"></div><div id="depth-test-bar" style="position:sticky;top:0;height:40px;background:white">Sticky heading</div><div style="height:800px"></div>';
                 document.body.append(scroller);
             }
             """);
         var bar = page.Locator("#depth-test-bar");
+        // Scroll choreography may opt an already-inserted heading into sticky depth later.
+        await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
+        await bar.EvaluateAsync("e => e.setAttribute('data-lwc-sticky', '')");
         await Assertions.Expect(bar).Not.ToHaveAttributeAsync("data-lwc-stuck", "");
         await page.EvaluateAsync("document.getElementById('depth-test-scrollport').scrollTop = 180");
         await Assertions.Expect(bar).ToHaveAttributeAsync("data-lwc-stuck", "");

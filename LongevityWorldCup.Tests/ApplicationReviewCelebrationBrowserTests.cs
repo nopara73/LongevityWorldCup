@@ -20,13 +20,14 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
     [InlineData(768, 1024, "light")]
     [InlineData(390, 844, "dark")]
     [InlineData(320, 640, "light")]
-    public async Task Review_CelebratesWithAStampedPhotoConfettiAndATrail(int width, int height, string scheme)
+    public async Task Review_CelebratesWithAStampedPhotoSharedHaloAndATrail(int width, int height, string scheme)
     {
         await using var context = await NewReviewContextAsync(width, height, scheme);
-        await context.AddInitScriptAsync("try { localStorage.setItem('contactEmail', 'review@example.test'); } catch (_) {}");
+        await context.AddInitScriptAsync("try { localStorage.setItem('contactEmail', 'review@example.test'); sessionStorage.setItem('reviewSubmission', JSON.stringify({kind:'application',id:'accepted-81'})); } catch (_) {}");
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/review");
 
+        await Assertions.Expect(page.Locator(".lwc-celebration.is-static")).ToHaveCountAsync(1);
         var review = await page.EvaluateAsync<ReviewAnatomy>(
             """
             () => {
@@ -34,7 +35,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
                 const band = rect('.application-review-visual');
                 const photo = rect('.application-review-visual .illustration');
                 const seal = rect('.application-review-seal');
-                const confetti = getComputedStyle(document.querySelector('.application-review-visual'), '::before');
+                const halo = document.querySelector('.lwc-celebration-halo');
                 const steps = [...document.querySelectorAll('.application-review-trail li')].filter(li => !li.hidden);
                 const chip = document.getElementById('contactEmailPlaceholder');
                 const chipStyle = getComputedStyle(chip);
@@ -49,7 +50,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
                 return {
                     SealOverlapsPhotoCorner: seal.left < photo.right && seal.right > photo.right && seal.top < photo.bottom && seal.bottom > photo.bottom,
                     SealInsideBand: seal.bottom <= band.bottom + 1,
-                    ConfettiDots: confetti.backgroundImage.split('radial-gradient').length - 1,
+                    SharedHalo: !!halo && getComputedStyle(halo).opacity === '1' && halo.parentElement.getAttribute('aria-hidden') === 'true',
                     Steps: steps.map(li => li.dataset.step + ':' + li.className),
                     StepsOnOneRow: stepRects.every(r => Math.abs(r.top - stepRects[0].top) <= 1),
                     TrailCentred: Math.abs((stepRects[0].left + stepRects.at(-1).right) / 2 - (band.left + band.right) / 2) <= 2,
@@ -70,7 +71,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         var scenario = $"{width}x{height} {scheme}";
         Assert.True(review.SealOverlapsPhotoCorner, $"{scenario}: the seal should stamp the photo's bottom-right corner.");
         Assert.True(review.SealInsideBand, $"{scenario}: the seal should stay inside the artwork band.");
-        Assert.True(review.ConfettiDots >= 6, $"{scenario}: the band should carry confetti ({review.ConfettiDots}).");
+        Assert.True(review.SharedHalo, $"{scenario}: the received submission should have a visible, decorative reduced-motion halo.");
         Assert.Equal(["sent:is-done", "review:is-current", "email:", "finish:"], review.Steps);
         Assert.True(review.StepsOnOneRow && review.TrailCentred, $"{scenario}: the trail should be one centred row.");
         Assert.True(review.TrailHidden);
@@ -107,6 +108,11 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         await Assertions.Expect(payment).ToHaveClassAsync(isPaid ? "is-done" : "is-waiting");
         var steps = await page.Locator(".application-review-trail li:not([hidden])").EvaluateAllAsync<string[]>(
             "items => items.map(li => li.dataset.step + ':' + li.className)");
+        if (isPaid)
+        {
+            await Assertions.Expect(payment).ToHaveAttributeAsync("data-apply-crossed", "true");
+            await Assertions.Expect(page.Locator(".application-review-panel")).ToHaveAttributeAsync("data-apply-crossing", "true");
+        }
         Assert.Equal(["sent:is-done", expected, isPaid ? "review:is-current" : "review:", "email:", "finish:"], steps);
         await Assertions.Expect(page.Locator("#contactEmailPlaceholder")).ToHaveTextAsync("review@example.test");
         Assert.False(await page.Locator(".application-review-actions").EvaluateAsync<bool>(
@@ -284,7 +290,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
     {
         public bool SealOverlapsPhotoCorner { get; set; }
         public bool SealInsideBand { get; set; }
-        public int ConfettiDots { get; set; }
+        public bool SharedHalo { get; set; }
         public string[] Steps { get; set; } = [];
         public bool StepsOnOneRow { get; set; }
         public bool TrailCentred { get; set; }

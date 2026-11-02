@@ -559,6 +559,7 @@ function initializeAthletePortraitMotion() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const wired = new WeakSet();
     const active = new Map();
+    const surfaces = new Map();
     const podiumPlayed = new Set();
     let profilePlayed = null;
 
@@ -573,11 +574,138 @@ function initializeAthletePortraitMotion() {
         }
     }
 
+    // Keep the still and clip in one bitmap rendering path. Returning to the
+    // responsive <img> would change sharpness, even with a matching crop.
+    function surfaceFor(img, motion) {
+        const previous = surfaces.get(img);
+        if (previous?.motion === motion && previous.wrapper === img.parentElement) return previous;
+        previous?.dispose();
+        const wrapper = img.parentElement;
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return null;
+        const root = document.createElement('span');
+        root.className = 'athlete-portrait-motion';
+        root.setAttribute('aria-hidden', 'true');
+        const still = document.createElement('canvas');
+        still.className = 'athlete-portrait-still';
+        const live = document.createElement('canvas');
+        live.className = 'athlete-portrait-frame';
+        still.width = still.height = live.width = live.height = 320;
+        const stillContext = still.getContext('2d', { alpha: false });
+        const context = live.getContext('2d', { alpha: false });
+        if (!stillContext || !context) return null;
+        root.append(still, live);
+        let ready = false, loaded = false, disposed = false, playing = false;
+        let frame = 0, until = 0, entrance = null;
+        const photo = new Image();
+        const sync = () => {
+            const style = getComputedStyle(img);
+            for (const property of ['transform', 'scale', 'rotate', 'translate', 'object-fit', 'object-position', 'object-view-box']) {
+                const value = style.getPropertyValue(property);
+                if (root.style.getPropertyValue(property) !== value) root.style.setProperty(property, value);
+            }
+            root.style.outline = style.outline;
+            root.style.outlineOffset = `${parseFloat(style.outlineOffset) + img.clientLeft}px`;
+        };
+        const size = () => {
+            const style = getComputedStyle(img);
+            const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+            const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+            const width = parseFloat(style.width) - (style.boxSizing === 'border-box'
+                ? parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth) + paddingX : 0);
+            const height = parseFloat(style.height) - (style.boxSizing === 'border-box'
+                ? parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth) + paddingY : 0);
+            if (!(width > 0 && height > 0)) return;
+            const left = img.offsetLeft + img.clientLeft, top = img.offsetTop + img.clientTop;
+            root.style.left = `${left}px`;
+            root.style.top = `${top}px`;
+            root.style.width = `${width}px`;
+            root.style.height = `${height}px`;
+            // Inline link baselines and fractional sizes are absent from the
+            // integer offset/client measurements. Align the painted centres.
+            for (const property of ['transform', 'scale', 'rotate', 'translate']) root.style.setProperty(property, 'none');
+            const parentBox = root.getBoundingClientRect();
+            const parentScaleX = parentBox.width / width || 1, parentScaleY = parentBox.height / height || 1;
+            sync();
+            const imageBox = img.getBoundingClientRect(), box = root.getBoundingClientRect();
+            root.style.left = `${left + (imageBox.left + imageBox.width / 2 - box.left - box.width / 2) / parentScaleX}px`;
+            root.style.top = `${top + (imageBox.top + imageBox.height / 2 - box.top - box.height / 2) / parentScaleY}px`;
+        };
+        const tick = now => {
+            frame = 0;
+            if (disposed || playing || !img.checkVisibility()) return;
+            sync();
+            if (now < until) frame = requestAnimationFrame(tick);
+        };
+        const follow = () => {
+            until = performance.now() + 450;
+            if (!disposed && !playing && !frame) frame = requestAnimationFrame(tick);
+        };
+        const settle = () => {
+            if (disposed || ready || !loaded) return;
+            ready = true;
+            entrance?.cancel();
+            follow();
+            if (img.matches(':hover') || document.activeElement === img || document.activeElement === img.closest('a')) play(img);
+            if (reducedMotion.matches) return;
+            if (img === profile && profileReady(motion) && profilePlayed !== motion) visiblePortraits?.observe(img);
+            else if (podium?.contains(img) && athleteResultsReady && !podiumPlayed.has(motion)) visiblePortraits?.observe(img);
+        };
+        const resize = new ResizeObserver(size);
+        const record = {
+            motion, wrapper, root, live, context, sync, size, follow, settle,
+            get ready() { return ready; },
+            setPlaying(value) {
+                playing = value;
+                if (value) { cancelAnimationFrame(frame); frame = 0; }
+                else follow();
+            },
+            dispose() {
+                if (disposed) return;
+                active.get(img)?.stop();
+                disposed = true;
+                cancelAnimationFrame(frame);
+                entrance?.cancel();
+                resize.disconnect();
+                photo.removeAttribute('src');
+                root.remove();
+                wrapper.classList.remove('portrait-motion');
+                if (surfaces.get(img) === record) surfaces.delete(img);
+            }
+        };
+        surfaces.set(img, record);
+        wrapper.classList.add('portrait-motion');
+        img.after(root);
+        size();
+        resize.observe(img);
+        photo.decoding = 'async';
+        photo.src = img.src.replace('/generated/profiles/athletes/', '/generated/thumbs/athletes/')
+            .replace(/(?:_thumb_(?:sm|md))?_([0-9a-f]{64}\.webp)(?=[?#]|$)/, '_thumb_md_$1');
+        void photo.decode().then(() => {
+            if (disposed || !img.isConnected || motionFor(img) !== motion) { record.dispose(); return; }
+            stillContext.drawImage(photo, 0, 0, 320, 320);
+            loaded = true;
+            root.style.opacity = '1';
+            if (reducedMotion.matches || typeof root.animate !== 'function') settle();
+            else {
+                entrance = root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+                entrance.finished.then(settle, () => {});
+            }
+        }, () => record.dispose());
+        return record;
+    }
+
     function play(img) {
         const motion = motionFor(img);
-        if (active.has(img) || reducedMotion.matches || !img.isConnected || !motion) return false;
+        if (reducedMotion.matches || !img.isConnected || !motion) return false;
+        const playback = active.get(img);
+        if (playback) {
+            playback.replay();
+            return false;
+        }
         const wrapper = img.parentElement;
         if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
+        const portrait = surfaceFor(img, motion);
+        if (!portrait?.ready) return false;
 
         if (podium?.contains(img)) {
             podiumPlayed.add(motion);
@@ -594,26 +722,65 @@ function initializeAthletePortraitMotion() {
         video.playsInline = true;
         video.disablePictureInPicture = true;
         video.preload = 'auto';
-        // Table portraits can sit inside a rank-change wrapper and have different
-        // margins at each breakpoint. Follow the image's untransformed content box.
-        const sizeOverlay = () => {
-            video.style.left = `${img.offsetLeft + img.clientLeft}px`;
-            video.style.top = `${img.offsetTop + img.clientTop}px`;
-            video.style.width = `${img.clientWidth}px`;
-            video.style.height = `${img.clientHeight}px`;
-        };
-        const rowResize = leaderboard?.contains(img) ? new ResizeObserver(sizeOverlay) : null;
+        video.hidden = true;
+        const surface = portrait.live;
+        const context = portrait.context;
+        portrait.size();
+        portrait.setPlaying(true);
+        let frame = 0;
+        let finishFrame = 0;
+        let fadeTimer = 0;
+        let firstPaint = null;
+        let finishing = false;
+        let replayRequested = false;
         const stop = () => {
             if (active.get(img)?.stop !== stop) return;
             active.delete(img);
-            rowResize?.disconnect();
+            cancelAnimationFrame(frame);
+            cancelAnimationFrame(finishFrame);
+            clearTimeout(fadeTimer);
             video.pause();
             video.remove();
-            wrapper.classList.remove('portrait-motion');
+            surface.style.opacity = '0';
+            portrait.setPlaying(false);
         };
-        active.set(img, { motion, stop });
+        // The photo owns hover/press motion. Sample its rendered crop and scale
+        // so a clip arriving halfway through a hover joins that exact frame,
+        // then follows pointer movement and the return to rest without lag.
+        const syncOverlay = (now = performance.now()) => {
+            portrait.sync();
+            if (!finishing && video.readyState >= 2 && video.videoWidth && video.classList.contains('is-playing')) {
+                if (surface.width !== video.videoWidth || surface.height !== video.videoHeight) {
+                    surface.width = video.videoWidth;
+                    surface.height = video.videoHeight;
+                }
+                context.drawImage(video, 0, 0, surface.width, surface.height);
+                firstPaint ??= now;
+                // Blend while the clip is still moving. Its first/last frames
+                // return to the photo's pose; ended only clears an invisible
+                // surface, rather than starting a frozen-frame dissolve.
+                const remaining = Number.isFinite(video.duration) ? (video.duration - video.currentTime) * 1000 : Infinity;
+                const blend = Math.max(0, Math.min(1, (now - firstPaint) / 180, remaining / 280));
+                surface.style.opacity = `${blend * blend * (3 - 2 * blend)}`;
+            }
+            frame = requestAnimationFrame(syncOverlay);
+        };
+        const finish = () => {
+            if (finishing || active.get(img)?.stop !== stop) return;
+            finishing = true;
+            surface.style.opacity = '0';
+            video.classList.remove('is-playing');
+            const complete = () => {
+                if (active.get(img)?.stop !== stop) return;
+                stop();
+                if (replayRequested) play(img);
+            };
+            finishFrame = requestAnimationFrame(complete);
+            fadeTimer = window.setTimeout(complete, 80);
+        };
+        active.set(img, { motion, stop, replay: () => { if (finishing) replayRequested = true; } });
         video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
-        video.addEventListener('ended', stop, { once: true });
+        video.addEventListener('ended', finish, { once: true });
         video.addEventListener('error', stop, { once: true });
         for (const [extension, type] of [['webm', 'video/webm'], ['mp4', 'video/mp4']]) {
             const source = document.createElement('source');
@@ -626,12 +793,8 @@ function initializeAthletePortraitMotion() {
             }, { once: true });
             video.appendChild(source);
         }
-        wrapper.classList.add('portrait-motion');
         img.after(video);
-        if (rowResize) {
-            sizeOverlay();
-            rowResize.observe(img);
-        }
+        syncOverlay();
         video.play().catch(stop);
         return true;
     }
@@ -641,6 +804,8 @@ function initializeAthletePortraitMotion() {
         wired.add(img);
         let pointerInside = false;
         const link = img.closest('a');
+        const follow = () => surfaces.get(img)?.follow();
+        for (const event of ['pointermove', 'pointerenter', 'pointerleave', 'pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur']) img.addEventListener(event, follow, { passive: true });
         img.addEventListener('pointerenter', event => {
             pointerInside = event.pointerType !== 'touch';
             if (pointerInside) play(img);
@@ -651,8 +816,11 @@ function initializeAthletePortraitMotion() {
         // Lazy table photos may finish loading after the first pointer entry.
         // Replay then only if that interaction is still active.
         img.addEventListener('load', () => {
+            const motion = motionFor(img);
+            if (motion) surfaceFor(img, motion);
             if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
         });
+        if (img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
@@ -681,6 +849,11 @@ function initializeAthletePortraitMotion() {
     }
 
     function scan(records) {
+        const profileOnly = records && records.every(record => profileModal?.contains(record.target));
+        for (const [img, portrait] of surfaces) {
+            if (profileOnly && img !== profile) continue;
+            if (!img.isConnected || motionFor(img) !== portrait.motion || img.parentElement !== portrait.wrapper) portrait.dispose();
+        }
         for (const [img, playback] of active) {
             if (!img.isConnected || motionFor(img) !== playback.motion) playback.stop();
         }
@@ -725,6 +898,10 @@ function initializeAthletePortraitMotion() {
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
+        for (const portrait of surfaces.values()) {
+            if (reducedMotion.matches) portrait.settle();
+            portrait.follow();
+        }
     });
     scan();
 }
@@ -2300,225 +2477,7 @@ function attachAthleteNameClickListeners() {
     });
 }
 
-const proofViewerZoomLevels = [1, 1.5, 2, 3];
-
-function centerProofViewer(enlargedElem) {
-    const stage = enlargedElem.querySelector('.image-viewer-stage');
-    if (!stage || !enlargedElem.isProofGallery || enlargedElem.dataset.imageState !== 'ready') return;
-
-    stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
-    stage.scrollTop = 0;
-}
-
-function setProofViewerZoom(enlargedElem, requestedIndex, shouldCenter = true) {
-    const boundedIndex = Math.min(Math.max(requestedIndex, 0), proofViewerZoomLevels.length - 1);
-    const zoom = proofViewerZoomLevels[boundedIndex];
-    const zoomOut = enlargedElem.querySelector('.image-zoom-out');
-    const zoomIn = enlargedElem.querySelector('.image-zoom-in');
-    const fit = enlargedElem.querySelector('.image-zoom-fit');
-    const status = enlargedElem.querySelector('.image-zoom-status');
-    const hint = enlargedElem.querySelector('.image-viewer-hint');
-    const ready = enlargedElem.dataset.imageState === 'ready';
-
-    enlargedElem.proofZoomIndex = boundedIndex;
-    enlargedElem.dataset.proofZoom = String(zoom);
-    enlargedElem.style.setProperty('--proof-viewer-zoom', String(zoom));
-    if (zoomOut) zoomOut.disabled = !ready || boundedIndex === 0;
-    if (zoomIn) zoomIn.disabled = !ready || boundedIndex === proofViewerZoomLevels.length - 1;
-    if (fit) fit.disabled = !ready;
-    if (status) status.textContent = `${Math.round(zoom * 100)}%`;
-    if (hint) {
-        hint.hidden = !enlargedElem.isProofGallery || !ready;
-        hint.textContent = zoom > 1
-            ? 'Zoomed for readable text. Scroll to inspect the full proof.'
-            : 'Use the zoom controls for fine text, then scroll to inspect.';
-    }
-
-    if (shouldCenter) {
-        requestAnimationFrame(() => centerProofViewer(enlargedElem));
-    }
-}
-
-function stopEnlargedImageLoad(enlargedElem) {
-    clearTimeout(enlargedElem._imageLoadTimer);
-    enlargedElem._imageLoadTimer = null;
-    const pendingImage = enlargedElem._pendingImage;
-    enlargedElem._pendingImage = null;
-    if (pendingImage) {
-        pendingImage.onload = null;
-        pendingImage.onerror = null;
-        pendingImage.removeAttribute('src');
-    }
-    const image = enlargedElem.querySelector('.image-viewer-stage img');
-    if (image) {
-        image.onload = null;
-        image.onerror = null;
-        // Keep a completed image painted while the reader fades closed.
-        if (enlargedElem.dataset.imageState !== 'ready') image.removeAttribute('src');
-    }
-}
-
-function setEnlargedImageLoadState(enlargedElem, state) {
-    const stage = enlargedElem.querySelector('.image-viewer-stage');
-    const feedback = enlargedElem.querySelector('.image-load-feedback');
-    const retry = enlargedElem.querySelector('.image-load-retry');
-    const ready = state === 'ready';
-    const failed = state === 'error';
-    const subject = enlargedElem.isProofGallery ? 'proof' : 'image';
-    // Move focus before hiding the retry control. Subsequent completion must
-    // not steal focus from navigation or Close while the request is pending.
-    if (!failed && document.activeElement === retry) stage.focus({ preventScroll: true });
-    enlargedElem.dataset.imageState = state;
-    stage.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
-    stage.querySelector('img').hidden = !ready;
-    feedback.hidden = ready;
-    retry.hidden = !failed;
-    feedback.querySelector('.image-load-title').textContent = failed
-        ? `This ${subject} couldn't load`
-        : ready ? '' : `Loading ${subject}…`;
-    const message = feedback.querySelector('.image-load-message');
-    message.hidden = !failed;
-    message.textContent = failed
-        ? (enlargedElem.isProofGallery && enlargedElem.galleryImages.length > 1
-            ? 'Try again, or move to another proof.'
-            : `Try loading this ${subject} again.`)
-        : '';
-    setProofViewerZoom(enlargedElem, enlargedElem.proofZoomIndex ?? 0, false);
-}
-
-function loadEnlargedImage(enlargedElem, sourceImage) {
-    stopEnlargedImageLoad(enlargedElem);
-    // A separate element per attempt keeps a late response from a previous
-    // page from changing the currently selected proof or its loading state.
-    const image = document.createElement('img');
-    image.alt = sourceImage.alt;
-    image.loading = 'eager';
-    image.fetchPriority = 'high';
-    // A portrait is already useful at thumbnail resolution. Keep it visible
-    // while its full-size version downloads, including if that upgrade fails.
-    // Proofs still require the selected page to load before it can be read.
-    const preview = !enlargedElem.isProofGallery && !sourceImage.classList.contains('portrait-fallback')
-        && !sourceImage.hasAttribute('data-lwc-portrait-fallback')
-        && sourceImage.complete && sourceImage.naturalWidth > 0
-        ? document.createElement('img')
-        : null;
-    if (preview) {
-        preview.alt = sourceImage.alt;
-        preview.src = sourceImage.currentSrc || sourceImage.src;
-    }
-    enlargedElem.querySelector('.image-viewer-stage img').replaceWith(preview || image);
-    enlargedElem._pendingImage = image;
-    setEnlargedImageLoadState(enlargedElem, preview ? 'ready' : 'loading');
-    const finish = state => {
-        if (enlargedElem._pendingImage !== image) return;
-        enlargedElem._pendingImage = null;
-        clearTimeout(enlargedElem._imageLoadTimer);
-        enlargedElem._imageLoadTimer = null;
-        image.onload = null;
-        image.onerror = null;
-        if (preview && state === 'ready') preview.replaceWith(image);
-        if (!preview || state === 'ready') setEnlargedImageLoadState(enlargedElem, state);
-        if (state === 'ready') {
-            requestAnimationFrame(() => {
-                if (enlargedElem.querySelector('.image-viewer-stage img') === image) centerProofViewer(enlargedElem);
-            });
-        }
-    };
-    image.onload = () => finish(image.naturalWidth > 0 ? 'ready' : 'error');
-    image.onerror = () => finish('error');
-    enlargedElem._imageLoadTimer = setTimeout(() => {
-        finish('error');
-        image.removeAttribute('src');
-    }, 15000);
-    // Preserve the original versioned asset URL on every attempt.
-    image.src = sourceImage.dataset.fullSrc || sourceImage.src;
-    if (image.complete && image.naturalWidth > 0) finish('ready');
-}
-
-function updateEnlargedImage(enlargedElem, index) {
-    const galleryImages = enlargedElem.galleryImages;
-    if (!Array.isArray(galleryImages) || galleryImages.length === 0) return;
-
-    const imageCount = galleryImages.length;
-    const boundedIndex = Math.min(Math.max(index, 0), imageCount - 1);
-    const sourceImage = galleryImages[boundedIndex];
-    const previousButton = enlargedElem.querySelector('.image-nav--previous');
-    const nextButton = enlargedElem.querySelector('.image-nav--next');
-    const position = enlargedElem.querySelector('.image-position');
-    const stage = enlargedElem.querySelector('.image-viewer-stage');
-    const zoomControls = enlargedElem.querySelector('.image-zoom-controls');
-    const navigation = enlargedElem.querySelector('.image-navigation');
-    const isProofGallery = enlargedElem.isProofGallery;
-    const canNavigate = isProofGallery && imageCount > 1;
-
-    enlargedElem.currentImageIndex = boundedIndex;
-    enlargedElem.returnFocusTo = sourceImage;
-    enlargedElem.classList.toggle('is-proof-gallery', isProofGallery);
-    loadEnlargedImage(enlargedElem, sourceImage);
-
-    if (history.state?.modal === 'enlarged') {
-        history.replaceState({
-            ...history.state,
-            enlargedImage: getEnlargedImageHistoryState(sourceImage, enlargedElem)
-        }, '', window.location.href);
-    }
-
-    if (stage) {
-        stage.setAttribute('aria-label', isProofGallery
-            ? 'Scrollable proof image. Use zoom controls for fine text.'
-            : `Enlarged ${sourceImage.alt || 'image'}`);
-    }
-    if (zoomControls) zoomControls.hidden = !isProofGallery;
-    if (navigation) navigation.hidden = !isProofGallery;
-    if (!isProofGallery) {
-        enlargedElem.style.removeProperty('--proof-viewer-zoom');
-    }
-
-    previousButton.hidden = !canNavigate;
-    nextButton.hidden = !canNavigate;
-    previousButton.disabled = !canNavigate || boundedIndex === 0;
-    nextButton.disabled = !canNavigate || boundedIndex === imageCount - 1;
-    position.hidden = !isProofGallery;
-    if (!isProofGallery) {
-        enlargedElem.setAttribute('aria-label', 'Enlarged image');
-        return;
-    }
-
-    previousButton.setAttribute(
-        'aria-label',
-        boundedIndex > 0 ? `Previous proof (${boundedIndex} of ${imageCount})` : 'Previous proof');
-    nextButton.setAttribute(
-        'aria-label',
-        boundedIndex < imageCount - 1 ? `Next proof (${boundedIndex + 2} of ${imageCount})` : 'Next proof');
-    position.textContent = `Proof ${boundedIndex + 1} of ${imageCount}`;
-    enlargedElem.setAttribute('aria-label', `Proof image ${boundedIndex + 1} of ${imageCount}`);
-}
-
-function navigateEnlargedImage(enlargedElem, offset) {
-    if (!enlargedElem.isProofGallery || enlargedElem.galleryImages.length < 2) return;
-    const targetIndex = enlargedElem.currentImageIndex + offset;
-    if (targetIndex < 0 || targetIndex >= enlargedElem.galleryImages.length) return;
-    updateEnlargedImage(enlargedElem, targetIndex);
-}
-
-function trapEnlargedViewFocus(enlargedElem, event) {
-    if (event.key !== 'Tab') return;
-
-    const focusableControls = Array.from(enlargedElem.querySelectorAll('.image-viewer-stage[tabindex="0"], button:not([hidden]):not(:disabled)'))
-        .filter(control => control.getClientRects().length > 0 && !control.closest('[hidden]'));
-    if (focusableControls.length === 0) return;
-
-    const firstControl = focusableControls[0];
-    const lastControl = focusableControls[focusableControls.length - 1];
-    if (event.shiftKey && document.activeElement === firstControl) {
-        event.preventDefault();
-        lastControl.focus();
-    } else if (!event.shiftKey && document.activeElement === lastControl) {
-        event.preventDefault();
-        firstControl.focus();
-    }
-}
-
+// The shared top-layer reader owns image gestures, loading and its history entry.
 function getEnlargedImageHistoryState(imgElement, viewer) {
     const isProfileImage = imgElement.id === 'modalProfilePic';
     return {
@@ -2552,191 +2511,34 @@ function restoreEnlargedViewFromHistory(state) {
     return true;
 }
 
-function openEnlargedView(imgElement, options) {
-    const viewer = document.getElementById('athleteImageViewer');
-    const ownerDialog = viewer ? viewer.closest('#detailsModal') : null;
-    const modalContent = ownerDialog ? ownerDialog.querySelector('.modal-content') : null;
-    if (!viewer || !ownerDialog || !modalContent || ownerDialog.style.display !== 'block') return;
-
-    if (viewer._closeTimer) {
-        clearTimeout(viewer._closeTimer);
-        viewer._closeTimer = 0;
-    }
-    if (viewer._showFrame != null) {
-        cancelAnimationFrame(viewer._showFrame);
-        viewer._showFrame = null;
-    }
-    viewer._historyClosePending = false;
-
-    const proofGallery = imgElement.closest('.proofs-gallery');
-    viewer.isProofGallery = Boolean(proofGallery);
-    viewer.galleryImages = proofGallery
-        ? Array.from(proofGallery.querySelectorAll('.proof-item img'))
-        : [imgElement];
-    viewer.proofZoomIndex = viewer.isProofGallery && window.matchMedia('(max-width: 768px)').matches ? 2 : 0;
-    const initialIndex = Math.max(0, viewer.galleryImages.indexOf(imgElement));
-    updateEnlargedImage(viewer, initialIndex);
-
-    viewer.hidden = false;
-    viewer.inert = false;
-    viewer.setAttribute('aria-hidden', 'false');
-    modalContent.inert = true;
-    ownerDialog.classList.add('image-viewer-open');
-
-    const closeButton = viewer.querySelector('.close-btn');
-    closeButton.focus({ preventScroll: true });
-    viewer._showFrame = requestAnimationFrame(() => {
-        viewer._showFrame = null;
-        if (viewer.hidden || viewer.getAttribute('aria-hidden') !== 'false') return;
-        viewer.classList.add('show');
-    });
-
-    const shouldPushHistory = !options || options.pushHistory !== false;
-    if (shouldPushHistory && history.state?.modal !== 'enlarged') {
-        history.pushState({
-            ...(history.state || {}),
-            modal: 'enlarged',
-            enlargedImage: getEnlargedImageHistoryState(imgElement, viewer)
-        }, '', window.location.href);
-    }
-
-    if (viewer.dataset.interactionsBound === 'true') return;
-    viewer.dataset.interactionsBound = 'true';
-
-    closeButton.addEventListener('click', () => {
-        requestCloseEnlargedView(viewer);
-    });
-
-    viewer.querySelector('.image-nav--previous').addEventListener('click', () => {
-        navigateEnlargedImage(viewer, -1);
-    });
-    viewer.querySelector('.image-nav--next').addEventListener('click', () => {
-        navigateEnlargedImage(viewer, 1);
-    });
-    viewer.querySelector('.image-zoom-out').addEventListener('click', () => {
-        setProofViewerZoom(viewer, (viewer.proofZoomIndex ?? 0) - 1);
-    });
-    viewer.querySelector('.image-zoom-in').addEventListener('click', () => {
-        setProofViewerZoom(viewer, (viewer.proofZoomIndex ?? 0) + 1);
-    });
-    viewer.querySelector('.image-zoom-fit').addEventListener('click', () => {
-        setProofViewerZoom(viewer, 0);
-    });
-    viewer.querySelector('.image-load-retry').addEventListener('click', () => {
-        const sourceImage = viewer.galleryImages[viewer.currentImageIndex];
-        if (sourceImage && viewer.dataset.imageState === 'error') loadEnlargedImage(viewer, sourceImage);
-    });
-
-    viewer.addEventListener('keydown', event => {
-        if (event.key === 'Escape' || event.key === 'Esc') {
-            event.preventDefault();
-            event.stopPropagation();
-            requestCloseEnlargedView(viewer);
-            return;
-        }
-
-        trapEnlargedViewFocus(viewer, event);
-        if (!viewer.isProofGallery || viewer.galleryImages.length < 2) return;
-        if (viewer.dataset.imageState === 'ready' && (viewer.proofZoomIndex ?? 0) > 0 && event.target.closest('.image-viewer-stage')) return;
-
-        if (event.key === 'ArrowLeft') {
-            event.preventDefault();
-            event.stopPropagation();
-            navigateEnlargedImage(viewer, -1);
-        } else if (event.key === 'ArrowRight') {
-            event.preventDefault();
-            event.stopPropagation();
-            navigateEnlargedImage(viewer, 1);
-        } else if (event.key === 'Home') {
-            event.preventDefault();
-            event.stopPropagation();
-            updateEnlargedImage(viewer, 0);
-        } else if (event.key === 'End') {
-            event.preventDefault();
-            event.stopPropagation();
-            updateEnlargedImage(viewer, viewer.galleryImages.length - 1);
-        }
-    });
-
-    let touchStart = null;
-    viewer.addEventListener('touchstart', event => {
-        if (event.touches.length !== 1) return;
-        touchStart = {
-            x: event.touches[0].clientX,
-            y: event.touches[0].clientY
-        };
-    }, { passive: true });
-    viewer.addEventListener('touchend', event => {
-        if (!touchStart) return;
-        const completedTouch = event.changedTouches[0];
-        const startingTouch = touchStart;
-        touchStart = null;
-        if (!completedTouch) return;
-        if (viewer.dataset.imageState === 'ready' && (viewer.proofZoomIndex ?? 0) > 0) return;
-        const horizontalDistance = completedTouch.clientX - startingTouch.x;
-        const verticalDistance = completedTouch.clientY - startingTouch.y;
-        if (Math.abs(horizontalDistance) < 50 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
-        navigateEnlargedImage(viewer, horizontalDistance > 0 ? -1 : 1);
-    }, { passive: true });
-    viewer.addEventListener('touchcancel', () => {
-        touchStart = null;
-    }, { passive: true });
-
-    viewer.addEventListener('click', event => {
-        if (event.target === viewer) {
-            requestCloseEnlargedView(viewer);
+function openEnlargedView(imgElement, settings) {
+    const owner = document.getElementById('detailsModal');
+    if (!owner || owner.style.display !== 'block') return;
+    const gallery = imgElement.closest('.proofs-gallery');
+    void window.LwcImageViewer?.open(imgElement, {
+        images: gallery ? Array.from(gallery.querySelectorAll('.proof-item img')) : [imgElement],
+        kind: gallery ? 'proof' : 'image',
+        pushHistory: settings?.pushHistory !== false,
+        ownsHistory: state => state?.modal === 'enlarged',
+        historyState: (image, index) => ({ modal: 'enlarged', enlargedImage: getEnlargedImageHistoryState(image, { currentImageIndex: index }) }),
+        beforeClose(image) {
+            const item = image.closest('.proof-item');
+            if (item?.hidden) gallery?._setExpanded?.(true);
+            if (item) {
+                const headerHeight = owner.querySelector('.modal-sticky-header')?.getBoundingClientRect().height || 0;
+                item.style.scrollMarginTop = `${headerHeight}px`;
+                item.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+            }
         }
     });
 }
 
-function requestCloseEnlargedView(enlargedElem) {
-    if (!enlargedElem || enlargedElem.hidden || enlargedElem.getAttribute('aria-hidden') !== 'false') return;
-
-    if (history.state?.modal === 'enlarged') {
-        if (enlargedElem._historyClosePending) return;
-        enlargedElem._historyClosePending = true;
-        history.back();
-        return;
-    }
-
-    closeEnlargedView(enlargedElem);
+function requestCloseEnlargedView() {
+    window.LwcImageViewer?.close();
 }
 
-function closeEnlargedView(enlargedElem) {
-    if (!enlargedElem || enlargedElem.hidden || enlargedElem.getAttribute('aria-hidden') !== 'false') return;
-
-    stopEnlargedImageLoad(enlargedElem);
-    enlargedElem._historyClosePending = false;
-    if (enlargedElem._showFrame != null) {
-        cancelAnimationFrame(enlargedElem._showFrame);
-        enlargedElem._showFrame = null;
-    }
-
-    const returnFocusTo = enlargedElem.returnFocusTo;
-    const ownerDialog = enlargedElem.closest('#detailsModal');
-    const modalContent = ownerDialog ? ownerDialog.querySelector('.modal-content') : null;
-    if (modalContent) modalContent.inert = false;
-    if (ownerDialog?.style.display === 'block' && returnFocusTo?.isConnected && typeof returnFocusTo.focus === 'function') {
-        const proofGallery = returnFocusTo.closest('.proofs-gallery');
-        const proofItem = returnFocusTo.closest('.proof-item');
-        if (proofItem?.hidden) proofGallery?._setExpanded?.(true);
-        returnFocusTo.focus({ preventScroll: true });
-        if (proofItem) {
-            const headerHeight = ownerDialog.querySelector('.modal-sticky-header')?.getBoundingClientRect().height || 0;
-            proofItem.style.scrollMarginTop = `${headerHeight}px`;
-            proofItem.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
-        }
-    }
-    enlargedElem.classList.remove('show');
-    enlargedElem.setAttribute('aria-hidden', 'true');
-    enlargedElem.inert = true;
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    enlargedElem._closeTimer = setTimeout(() => {
-        enlargedElem.hidden = true;
-        enlargedElem._closeTimer = 0;
-        if (ownerDialog) ownerDialog.classList.remove('image-viewer-open');
-    }, prefersReducedMotion ? 0 : 220);
+function closeEnlargedView() {
+    window.LwcImageViewer?.close(true);
 }
 
 function renderMediaContact(contact, isPodium, athleteName) {
@@ -2825,6 +2627,9 @@ function isolateAthleteModalBackground() {
         if (branch === document.body) break;
         for (const sibling of branch.parentElement.children) {
             if (sibling === branch || !(sibling instanceof HTMLElement)) continue;
+            // The shared native reader opens above this profile in the top
+            // layer and owns its own modal isolation.
+            if (sibling.matches('dialog.lwc-viewer')) continue;
             if (!athleteModalIsolation.has(sibling)) athleteModalIsolation.set(sibling, sibling.inert);
             if (!sibling.inert) sibling.inert = true;
         }
@@ -2903,7 +2708,7 @@ function getAthleteModalFocusables(root = modal) {
 
 function containAthleteModalFocus(event) {
     if (event.key !== 'Tab' || event.defaultPrevented || modal.style.display !== 'block') return;
-    if (modal.querySelector('#athleteImageViewer[aria-hidden="false"]')) return;
+    if (document.querySelector('.lwc-viewer[open]')) return;
     // The athlete share sheet lives inside this dialog, independently of the
     // site's shared sheet. Keep its keyboard loop above the profile controls.
     const focusRoot = modal.querySelector('#athleteShareMenu:not([hidden])') || modal;
@@ -3092,7 +2897,7 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
     if (!allowPaging) modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
-    const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+    const viewer = document.querySelector('.lwc-viewer[open]');
     if (viewer) closeEnlargedView(viewer);
     modal._historyClosePending = false;
 
@@ -3373,7 +3178,7 @@ function setupModalKeyboardNavigation() {
 
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
-        if (event.defaultPrevented || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return;
+        if (event.defaultPrevented || (window.LwcImageViewer?.isOpen() || modal.querySelector('#athleteShareMenu:not([hidden])'))) return;
         if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
         if (modalContent.classList.contains('guess-mode')) return;
 
@@ -3517,7 +3322,7 @@ function stepAthleteDialog(direction) {
         || modalContent.matches('.guess-mode, .has-load-error, [data-server-rendered-profile], [data-server-rendered-loading]')
         || (modalContent.classList.contains('is-loading') && !modalContent.dataset.athleteStep)
         || modal.classList.contains('fade-out')
-        || modal.querySelector('#athleteImageViewer[aria-hidden="false"], #athleteShareMenu:not([hidden])')) return false;
+        || (window.LwcImageViewer?.isOpen() || modal.querySelector('#athleteShareMenu:not([hidden])'))) return false;
     const target = getAthleteDialogNeighbours()[direction];
     if (!target) return false;
     // Transfer boundary focus before hydration invalidates the card's layout.
@@ -5275,7 +5080,7 @@ document.addEventListener('keydown', function (event) {
 });
 function closeOpenComponents(options) {
     const closeAll = !!(options && options.closeAll);
-    const enlargedImg = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+    const enlargedImg = document.querySelector('.lwc-viewer[open]');
     if (enlargedImg) {
         if (options && options.fromHistory) {
             closeEnlargedView(enlargedImg);
@@ -7426,7 +7231,7 @@ window.addEventListener('hashchange', reconcileRestoredLeaderboard);
 // Ensure modal history cleanup
 window.addEventListener('popstate', function (event) {
     if (event.state?.modal === 'enlarged') {
-        const viewer = document.getElementById('athleteImageViewer');
+        const viewer = document.querySelector('.lwc-viewer');
         if (viewer?.getAttribute('aria-hidden') === 'false') {
             return;
         }
@@ -7449,7 +7254,7 @@ window.addEventListener('popstate', function (event) {
     }
 
     if (event.state?.modal === 'details') {
-        const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+        const viewer = document.querySelector('.lwc-viewer[open]');
         if (viewer) {
             closeEnlargedView(viewer);
         }
@@ -7804,6 +7609,7 @@ let sidebarSwipeEligible = false;
 document.addEventListener('touchstart', (e) => {
     sidebarSwipeEligible = false;
     if (!hasLeaderboardSidebar) return;
+    if (window.LwcImageViewer?.isOpen()) return;
     if (modal.style.display === "block") return;
     if (e.touches.length !== 1) return;
     // Horizontal scrollers own their gestures, including the Swag carousel.
@@ -7821,6 +7627,7 @@ document.addEventListener('touchend', (e) => {
     if (!sidebarSwipeEligible) return;
     sidebarSwipeEligible = false;
     if (!hasLeaderboardSidebar) return;
+    if (window.LwcImageViewer?.isOpen()) return;
     if (modal.style.display === "block") return;
 
     endX = e.changedTouches[0].clientX;
