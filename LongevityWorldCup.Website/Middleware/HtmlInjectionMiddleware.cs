@@ -205,6 +205,7 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent = InjectPointerLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                         bodyContent = InjectDepthSystem(bodyContent);
+                        bodyContent = InjectScrollChoreography(bodyContent);
                         bodyContent = InjectImageViewer(bodyContent);
                         bodyContent = InjectDisclosureLayer(bodyContent);
                     }
@@ -602,6 +603,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             // Shared interaction and type styles precede the palette, dark
             // lighting and the final depth scale. Component states retain priority.
+            // The layout system closes the group so every page shares its column.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
@@ -614,7 +616,9 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/type-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}"
-                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}";
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/layout-system.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/layout-system.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
         }
 
@@ -662,6 +666,21 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Sections, cards, lists and numbers arrive through one shared scroll vocabulary.
+        private string InjectScrollChoreography(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/scroll-choreography.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 
