@@ -70,8 +70,7 @@
             }).catch(() => { if (!this.destroyed) options.error?.(); });
         }
 
-        // Stage dressing: an ambient copy of the photo, live previews and the
-        // adjusting state that shows the thirds guides.
+        // An ambient copy of the photo and the adjusting state for thirds guides.
         stageSetup() {
             const stage = this.stage;
             if (!stage) return;
@@ -87,75 +86,47 @@
             stage.prepend(ambient);
             this.ambient = ambient;
 
-            this.previews = this.options.previews || null;
-            if (this.previews) {
-                this.previews.dataset.state = 'developing';
-                this.previews.setAttribute('aria-hidden', 'true');
-                if (!this.previews.querySelector('canvas')) {
-                    const sizes = (this.previews.dataset.sizes || '88 52 30').split(/\s+/).map(Number);
-                    for (const size of sizes) {
-                        const canvas = document.createElement('canvas');
-                        canvas.style.width = canvas.style.height = `${size}px`;
-                        canvas.dataset.size = String(size);
-                        this.previews.append(canvas);
-                    }
-                }
-            }
-
-            const queue = () => this.queuePreview();
-            this.image.addEventListener('transform', queue);
-            this.selection.addEventListener('change', queue);
-            let wheelTimer = 0;
-            const setAdjusting = on => {
-                for (const el of [stage, this.previews]) {
-                    if (!el) continue;
-                    if (on) el.setAttribute('data-adjusting', '');
-                    else el.removeAttribute('data-adjusting');
-                }
+            let adjustingTimer = 0;
+            const setAdjusting = on => stage.toggleAttribute('data-adjusting', on);
+            const brieflyAdjust = () => {
+                setAdjusting(true);
+                clearTimeout(adjustingTimer);
+                adjustingTimer = setTimeout(() => setAdjusting(false), 420);
             };
+            this.canvas.tabIndex = 0;
+            this.canvas.setAttribute('role', 'group');
+            this.canvas.setAttribute('aria-label', this.element.alt);
+            this.canvas.setAttribute('aria-description', 'Use arrow keys to move the crop, Shift for larger steps, and plus or minus to zoom.');
+            this.canvas.addEventListener('keydown', event => {
+                if (event.target !== this.canvas || !this.ready || this.disabled
+                    || event.altKey || event.ctrlKey || event.metaKey) return;
+                const step = event.shiftKey ? 10 : 1;
+                switch (event.key) {
+                    case 'ArrowLeft': this.selection.$move(-step, 0); break;
+                    case 'ArrowRight': this.selection.$move(step, 0); break;
+                    case 'ArrowUp': this.selection.$move(0, -step); break;
+                    case 'ArrowDown': this.selection.$move(0, step); break;
+                    case '+': case '=': this.image.$zoom(0.1); break;
+                    case '-': this.image.$zoom(-0.1); break;
+                    default: return;
+                }
+                event.preventDefault();
+                brieflyAdjust();
+            });
             this.canvas.addEventListener('actionstart', () => { if (!this.disabled) setAdjusting(true); });
             this.canvas.addEventListener('actionend', () => setAdjusting(false));
             this.canvas.addEventListener('wheel', () => {
                 if (this.disabled) return;
-                setAdjusting(true);
-                clearTimeout(wheelTimer);
-                wheelTimer = setTimeout(() => setAdjusting(false), 420);
+                brieflyAdjust();
             }, { passive: true });
-            this.clearAdjusting = () => { clearTimeout(wheelTimer); setAdjusting(false); };
+            this.clearAdjusting = () => { clearTimeout(adjustingTimer); setAdjusting(false); };
         }
 
         develop() {
-            this.drawPreviews();
             requestAnimationFrame(() => requestAnimationFrame(() => {
                 if (this.destroyed) return;
                 if (this.stage) this.stage.dataset.state = 'ready';
-                if (this.previews) this.previews.dataset.state = 'ready';
             }));
-        }
-
-        queuePreview() {
-            if (this.previewFrame || !this.ready) return;
-            this.previewFrame = requestAnimationFrame(() => {
-                this.previewFrame = 0;
-                this.drawPreviews();
-            });
-        }
-
-        drawPreviews() {
-            if (!this.previews || this.destroyed || !this.naturalWidth) return;
-            const source = this.image.$image || this.element;
-            const { x, y, width, height } = this.getData();
-            if (!(width > 0 && height > 0)) return;
-            const ratio = Math.min(window.devicePixelRatio || 1, 3);
-            for (const canvas of this.previews.querySelectorAll('canvas')) {
-                const size = Math.round((Number(canvas.dataset.size) || 48) * ratio);
-                if (canvas.width !== size) canvas.width = canvas.height = size;
-                const context = canvas.getContext('2d');
-                if (!context) continue;
-                context.clearRect(0, 0, size, size);
-                context.imageSmoothingQuality = 'high';
-                try { context.drawImage(source, x, y, width, height, 0, 0, size, size); } catch (_) { }
-            }
         }
 
         // Screen rectangle of the round window, for the landing flight.
@@ -201,10 +172,13 @@
         resize() {
             const stage = this.element.parentElement;
             const width = stage.clientWidth;
-            const height = this.options.maxHeight
+            const preferredHeight = this.options.maxHeight
                 ? Math.min(this.options.maxHeight, width * this.naturalHeight / this.naturalWidth)
                 : stage.clientHeight;
+            const cssMaxHeight = parseFloat(getComputedStyle(stage).maxHeight);
+            const height = Math.min(preferredHeight, Number.isFinite(cssMaxHeight) ? cssMaxHeight : Infinity);
             if (!width || !height || !this.naturalWidth) return;
+            if (this.ready && width === this.width && height === this.height) return;
             // The first window leaves a margin so its brackets sit inside the photo.
             const side = Math.min(this.naturalWidth, this.naturalHeight) * 0.9;
             // Image readiness can arrive while Back has hidden the stage. Until
@@ -233,16 +207,11 @@
         destroy() {
             this.destroyed = true;
             this.ready = false;
-            cancelAnimationFrame(this.previewFrame || 0);
             this.clearAdjusting?.();
             this.ambient?.remove();
             if (this.stage) {
                 this.stage.removeAttribute('data-lwc-crop-stage');
                 delete this.stage.dataset.state;
-            }
-            if (this.previews) {
-                this.previews.replaceChildren();
-                delete this.previews.dataset.state;
             }
             this.cropper.destroy();
             if (this.element.cropper === this) delete this.element.cropper;
@@ -252,8 +221,11 @@
     // Flies the cropped circle from the crop window into the page portrait,
     // then settles the portrait. Reduced motion or an off-screen target just
     // updates the portrait in place.
+    const landings = new WeakMap();
     window.LwcPortraitCropper.land ??= (from, src, target) => {
-        if (!target || !src) return;
+        if (!target) return;
+        landings.get(target)?.(false);
+        if (!src) return;
         const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
         const settle = () => {
             target.classList.remove('lwc-crop-landed');
@@ -262,7 +234,8 @@
             target.addEventListener('animationend', () => target.classList.remove('lwc-crop-landed'), { once: true });
         };
         const to = target.getBoundingClientRect();
-        const visible = to.width > 0 && to.bottom > 0 && to.top < window.innerHeight;
+        const visible = to.width > 0 && to.height > 0 && to.bottom > 0 && to.top < window.innerHeight
+            && to.right > 0 && to.left < window.innerWidth;
         if (reduce) return;
         if (!from || !visible || !document.body.animate) { settle(); return; }
         const ghost = document.createElement('div');
@@ -280,16 +253,31 @@
         const lift = Math.min(80, Math.hypot(dx, dy) * 0.18);
         const previous = target.style.opacity;
         target.style.opacity = '0';
-        const flight = ghost.animate([
-            { transform: `translate(${dx}px, ${dy}px) scale(${scale})` },
-            { transform: `translate(${dx * 0.42}px, ${dy * 0.42 - lift}px) scale(${1 + (scale - 1) * 0.35})`, offset: 0.55 },
-            { transform: 'none' }
-        ], { duration: 620, easing: 'cubic-bezier(0.45, 0, 0.15, 1)' });
-        const finish = () => {
+        let finished = false;
+        let flight;
+        const finish = (landed = false) => {
+            if (finished) return;
+            finished = true;
+            observer.disconnect();
+            flight?.cancel();
             ghost.remove();
             target.style.opacity = previous;
-            settle();
+            landings.delete(target);
+            if (landed && target.isConnected) settle();
         };
-        flight.finished.then(finish, finish);
+        const observer = new MutationObserver(() => finish(false));
+        observer.observe(target, { attributes: true, attributeFilter: ['src', 'srcset'] });
+        landings.set(target, finish);
+        try {
+            flight = ghost.animate([
+                { transform: `translate(${dx}px, ${dy}px) scale(${scale})` },
+                { transform: `translate(${dx * 0.42}px, ${dy * 0.42 - lift}px) scale(${1 + (scale - 1) * 0.35})`, offset: 0.55 },
+                { transform: 'none' }
+            ], { duration: 620, easing: 'cubic-bezier(0.45, 0, 0.15, 1)' });
+            flight.finished.then(() => finish(true), () => finish(false));
+        } catch (_) {
+            // Optional motion must never turn a saved portrait into an error.
+            finish(false);
+        }
     };
 })();

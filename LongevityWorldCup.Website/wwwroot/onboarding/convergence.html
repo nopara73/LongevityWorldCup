@@ -1017,7 +1017,6 @@
                             <div class="convergence-crop-stage">
                                 <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
                             </div>
-                            <div id="profileCropPreviews" class="lwc-crop-previews" aria-hidden="true"></div>
                         </div>
                         <div class="convergence-upload-action flow-action-stack">
                             <button type="button" id="cropButton" class="option-button flow-action">
@@ -2539,10 +2538,10 @@
                     return;
                 }
                 cropper.enable();
-                const width = document.querySelector('.convergence-crop-stage').clientWidth;
-                if (width > 0 && Math.abs(cropper.getContainerData().width - width) > 1) cropper.resize();
+                cropper.resize();
             }
             refreshProfileCrop = syncProfileCropLayout;
+            window.addEventListener('resize', syncProfileCropLayout);
             if ('ResizeObserver' in window) {
                 const observer = new ResizeObserver(syncProfileCropLayout);
                 observer.observe(document.querySelector('.convergence-crop-stage'));
@@ -2583,7 +2582,6 @@
                     document.getElementById('croppingPart').style.display = 'block';
                     cropper = new LwcPortraitCropper(document.getElementById('cropperImage'), {
                         maxHeight: 320,
-                        previews: document.getElementById('profileCropPreviews'),
                         error: () => failProfileUpload(version),
                         ready() {
                             if (version !== profileReadVersion) return;

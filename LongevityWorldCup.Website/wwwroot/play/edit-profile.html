@@ -1017,7 +1017,6 @@
         <div class="profile-crop-stage">
             <img id="changeProfileCropperImage" src="" alt="Profile picture crop preview">
         </div>
-        <div id="changeProfileCropPreviews" class="lwc-crop-previews" aria-hidden="true"></div>
         <div class="options-container flow-action-stack flow-action-stack--flush">
             <button type="button" id="changeProfileCropButton" class="option-button green flow-action">
                 <span class="flow-action__label">Crop and save</span>
@@ -1888,7 +1887,6 @@
                     // expose globally so crop/cancel buttons can access it
                     window.changeProfileCropper = new LwcPortraitCropper(cropperImage, {
                         error: failProfilePicture,
-                        previews: document.getElementById('changeProfileCropPreviews'),
                         // The stage observer handles viewport and text reflow,
                         // preserving image coordinates across aspect changes.
                         ready() {

@@ -5,8 +5,6 @@
  *   checkerboard, so letterboxing reads as part of the photo.
  * Window: a round cut-out inside Cropper's square selection; corner brackets
  *   and edge pills replace the 5px blue dots.
- * Previews: three live circles at the sizes the portrait is shown across the
- *   site (profile, leaderboard row, small avatar).
  * Motion: the photo develops in, the window draws in, thirds appear only while
  *   adjusting, and Crop and save flies the circle into the page's portrait. */
 
@@ -208,50 +206,6 @@
     }
 }
 
-/* ===== Live previews ===== */
-.lwc-crop-previews {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(0.9rem, 4vw, 1.6rem);
-    padding: 0.95rem 1rem;
-    background:
-        radial-gradient(120% 140% at 50% 0%, var(--lwc-surface-accent, transparent), transparent 70%),
-        var(--lwc-surface);
-}
-
-.lwc-crop-previews canvas {
-    display: block;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background: var(--lwc-surface-muted);
-    box-shadow:
-        0 0 0 2px var(--lwc-surface),
-        0 0 0 3px var(--lwc-border-strong, var(--lwc-border)),
-        var(--lwc-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.12));
-    opacity: 0;
-    transform: scale(0.6);
-    transition:
-        opacity 260ms var(--lwc-ease-enter, ease-out),
-        transform 420ms var(--lwc-ease-pop, ease-out),
-        box-shadow 200ms var(--lwc-ease-standard, ease);
-}
-
-.lwc-crop-previews[data-state="ready"] canvas {
-    opacity: 1;
-    transform: none;
-}
-
-.lwc-crop-previews[data-state="ready"] canvas:nth-child(2) { transition-delay: 70ms, 70ms, 0ms; }
-.lwc-crop-previews[data-state="ready"] canvas:nth-child(3) { transition-delay: 140ms, 140ms, 0ms; }
-
-.lwc-crop-previews[data-adjusting] canvas {
-    box-shadow:
-        0 0 0 2px var(--lwc-surface),
-        0 0 0 4px var(--lwc-accent),
-        var(--lwc-shadow-sm, 0 1px 2px rgb(0 0 0 / 0.12));
-}
-
 /* ===== Landing: the cut-out flies into the page portrait ===== */
 .lwc-crop-flight {
     position: fixed;
@@ -283,10 +237,6 @@
     background: var(--lwc-surface);
 }
 
-.convergence-crop-preview:has([data-lwc-crop-stage]) .lwc-crop-previews {
-    border-top: 1px solid var(--lwc-border);
-}
-
 @media (prefers-reduced-motion: no-preference) {
     #croppingPart:not([style*="none"]) .convergence-crop-preview,
     #uploadPart:not([style*="none"]) > * {
@@ -306,14 +256,14 @@
 
 /* ===== Edit-profile dialog ===== */
 #changeProfileCropperModal .profile-crop-stage {
+    flex: 0 1 auto;
+    min-height: 100px;
     height: min(52dvh, 400px);
 }
 
-#changeProfileCropperModal .lwc-crop-previews {
-    border-top: 1px solid var(--lwc-border);
-}
-
+#changeProfileCropperModal .cropper-dialog-title,
 #changeProfileCropperModal .options-container {
+    flex-shrink: 0;
     background: var(--lwc-surface);
 }
 
@@ -321,22 +271,23 @@
     #changeProfileCropperModal .profile-crop-stage {
         height: min(46dvh, 360px);
     }
-
-    .lwc-crop-previews {
-        padding-block: 0.75rem;
-    }
 }
 
-@media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-    #changeProfileCropperModal .lwc-crop-previews {
-        display: none;
+/* Keep the crop and its commands together above the dock on short screens. */
+@media (min-width: 640px) and (max-height: 480px) {
+    .convergence-crop-stage {
+        max-height: max(100px, calc(100dvh - 13rem));
+    }
+
+    #croppingPart .convergence-upload-action {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     [data-lwc-crop-stage] *,
     [data-lwc-crop-stage] > .lwc-crop-ambient,
-    .lwc-crop-previews canvas,
     .lwc-crop-ring {
         transition: none !important;
     }
@@ -344,4 +295,9 @@
     .lwc-crop-landed {
         animation: none;
     }
+}
+
+[data-lwc-crop-stage] cropper-canvas:focus-visible {
+    outline: 3px solid var(--lwc-accent);
+    outline-offset: -3px;
 }
