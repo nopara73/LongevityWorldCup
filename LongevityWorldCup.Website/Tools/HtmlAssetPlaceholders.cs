@@ -56,6 +56,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_JUST_TRACK_IT_IMAGE}}"] = "/assets/content-images/JustTrackIt.jpg",
         ["{{ASSET_LEAGUE_ICONS_JS}}"] = "/js/leagueIcons.js",
         ["{{ASSET_LONGEVITYMAXXING_CSS}}"] = "/css/longevitymaxxing.css",
+        ["{{ASSET_HERO_STAGE_CSS}}"] = "/css/hero-stage.css",
+        ["{{ASSET_HERO_STAGE_JS}}"] = "/js/hero-stage.js",
         ["{{ASSET_LONGEVITYMAXXING_JS}}"] = "/js/longevitymaxxing.js",
         ["{{ASSET_MARTIN_HELSTAB_PROFILE_IMAGE}}"] = "/athletes/martin_helstab/martin_helstab.webp",
         ["{{ASSET_MERCH_CAP}}"] = "/assets/content-images/merch/cap.webp",
