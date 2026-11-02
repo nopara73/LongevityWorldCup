@@ -562,6 +562,10 @@ public sealed class AthletePortraitMotionBrowserTests(
         await using var context = await NewContextAsync();
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
         var page = await LoadAsync(context, "/leaderboard");
+        // Rankings change as athlete results are updated. The next profile
+        // must match the next rendered row, regardless of who occupies it.
+        var nextAthlete = (await page.Locator(".leaderboard a.athlete-name").Nth(2).InnerTextAsync()).Trim();
+        Assert.NotEmpty(nextAthlete);
         await page.Locator(".leaderboard a.athlete-name").Nth(1).ClickAsync();
         await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
@@ -579,7 +583,7 @@ public sealed class AthletePortraitMotionBrowserTests(
             }
             """);
         await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
-        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync("Siim Land");
+        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(nextAthlete);
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         Assert.Equal(0, await page.EvaluateAsync<int>("window.backgroundPortraitReads"));
     }
