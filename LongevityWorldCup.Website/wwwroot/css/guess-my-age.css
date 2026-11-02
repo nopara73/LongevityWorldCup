@@ -2201,3 +2201,126 @@
     font-size: var(--lwc-type-sm);
     line-height: 1.5;
 }
+
+/* ===== Result scoreboard =====
+   After the real age lands, your guess and the crowd's drop into the track
+   as small icon markers, so the whole field of guesses reads at a glance
+   without the card changing height. The closer guess carries the
+   accent. A plain outcome, which has no banner, repeats them as chips in the
+   empty dock with each miss beside its number. */
+.gma-pins {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    height: 0;
+    pointer-events: none;
+}
+
+.gma-pin {
+    --gma-pin-ink: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    position: absolute;
+    top: 0;
+    display: grid;
+    place-items: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 1.5px solid var(--gma-pin-ink);
+    border-radius: 50%;
+    background: rgba(13, 20, 27, 0.92);
+    color: var(--gma-pin-ink);
+    font-size: 0.62rem;
+    line-height: 1;
+    box-shadow: 0 0.3rem 0.8rem rgba(2, 8, 23, 0.4);
+    transform: translate(-50%, -50%);
+}
+
+.gma-pin[data-lane="upper"] { transform: translate(-50%, calc(-50% - 0.55rem)); }
+.gma-pin[data-lane="lower"] { transform: translate(-50%, calc(-50% + 0.55rem)); }
+
+.gma-pin[data-closer] {
+    --gma-pin-ink: var(--lwc-accent-bright, #19c3d1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 25%, transparent), 0 0.3rem 0.8rem rgba(2, 8, 23, 0.4);
+}
+
+/* Dock chips for the plain outcome. */
+.gma-scoreline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.gma-score {
+    --gma-score-ink: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    border: 1.5px solid color-mix(in srgb, var(--gma-score-ink) 45%, transparent);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--gma-score-ink);
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.gma-score i {
+    align-self: center;
+    font-size: 0.9rem;
+    opacity: 0.75;
+}
+
+.gma-score b {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.gma-score small {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
+}
+
+.gma-score[data-closer] {
+    --gma-score-ink: var(--lwc-accent-bright, #19c3d1);
+    background: color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 10%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* The pins drop into the track after the miss line draws: yours, then the crowd's. */
+    .gma-pin {
+        animation: gma-pin-drop 360ms cubic-bezier(.2, .9, .3, 1.25) 560ms both;
+    }
+
+    .gma-pin + .gma-pin {
+        animation-delay: 720ms;
+    }
+
+    .gma-score {
+        animation: gma-score-rise 320ms cubic-bezier(.2, .8, .2, 1) 820ms both;
+    }
+
+    .gma-score + .gma-score {
+        animation-delay: 940ms;
+    }
+}
+
+/* Individual transform keeps each lane offset while the pin drops. */
+@keyframes gma-pin-drop {
+    from { opacity: 0; translate: 0 -1.4rem; scale: 0.6; }
+    to { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+@keyframes gma-score-rise {
+    from { opacity: 0; translate: 0 0.6rem; }
+    to { opacity: 1; translate: 0 0; }
+}
+
+@media (max-width: 600px) {
+    .gma-score {
+        padding: 0.45rem 0.8rem;
+        font-size: 1rem;
+    }
+}

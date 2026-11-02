@@ -110,6 +110,7 @@ const resetObserver = new MutationObserver(mutations => {
         cancelGmaPresentation();
         clearGmaEphemera();
         document.getElementById('gmaGap')?.remove();
+        clearGmaScoreboard();
         document.getElementById('gmaRealBubble')?.remove();
         delete gmaCard.dataset.gmaReaction;
         gmaCard.classList.remove('is-submitting', 'is-revealing', 'celebrate-exact', 'celebrate-better', 'gma-done');
@@ -163,6 +164,7 @@ const resetObserver = new MutationObserver(mutations => {
         const oldRealBubble = document.getElementById('gmaRealBubble');
         if (oldRealBubble) oldRealBubble.remove();
         document.getElementById('gmaGap')?.remove();
+        clearGmaScoreboard();
         delete gmaCard.dataset.gmaReaction;
         modalContent.classList.remove('gma-handoff');
 
@@ -333,6 +335,7 @@ function syncGmaGeometry() {
     const revealedAge = Number.parseFloat(realBubble.dataset.age || realBubble.textContent);
     if (Number.isFinite(revealedAge)) positionGmaBubble(realBubble, revealedAge);
     positionGmaGap();
+    positionGmaPins();
 }
 
 // After the reveal, a dimension line under the track spans the guess and the real age,
@@ -363,6 +366,82 @@ function showGmaGap(guess, actual, tone) {
     gap.dataset.tone = tone;
     gmaSliderWrap.insertBefore(gap, gmaBubble);
     positionGmaGap();
+}
+
+// The result scoreboard: once the real age has landed, a marker for your guess
+// and one for the crowd's drop into the track, so the whole field of guesses
+// reads at a glance. A plain outcome, which has no banner, also gets the two
+// values as chips in the empty dock, each with its miss; the closer guess
+// carries the accent. Icons and numbers only: the status line keeps the words.
+function clearGmaScoreboard() {
+    document.getElementById('gmaPins')?.remove();
+    gmaPayoffRegion.querySelector('.gma-scoreline')?.remove();
+}
+
+function positionGmaPins() {
+    const pins = document.getElementById('gmaPins');
+    if (!pins) return;
+    // The pins ride inside the track itself, so the reveal never changes the card's height.
+    pins.style.top = `${gmaRange.offsetTop + gmaRange.offsetHeight / 2}px`;
+    const placed = [];
+    pins.querySelectorAll('.gma-pin').forEach(pin => {
+        const geometry = gmaGeometryForAge(Number(pin.dataset.age));
+        if (geometry.bubbleLeft == null) return;
+        pin.style.left = `${geometry.bubbleLeft}px`;
+        placed.push({ pin, left: geometry.bubbleLeft, width: pin.offsetWidth || 22 });
+    });
+    // Two close guesses split into an upper and a lower lane instead of overlapping.
+    const [first, second] = placed;
+    const crowded = first && second && Math.abs(first.left - second.left) < (first.width + second.width) / 2 + 4;
+    placed.forEach((entry, index) => {
+        if (crowded) entry.pin.dataset.lane = index === 0 ? 'upper' : 'lower';
+        else delete entry.pin.dataset.lane;
+    });
+}
+
+function gmaScoreEntry(className, who, age, actual, closer) {
+    const entry = document.createElement('span');
+    entry.className = className;
+    entry.dataset.who = who;
+    entry.dataset.age = String(clampGmaAge(age));
+    if (closer) entry.dataset.closer = '';
+    const icon = document.createElement('i');
+    icon.className = `fas ${who === 'crowd' ? 'fa-users' : 'fa-user'}`;
+    entry.append(icon);
+    if (className === 'gma-score') {
+        const value = document.createElement('b');
+        value.textContent = String(Math.round(age));
+        entry.append(value);
+        const miss = Math.round(age) - Math.round(actual);
+        const delta = document.createElement('small');
+        delta.textContent = miss === 0 ? '0' : `${miss > 0 ? '+' : '−'}${Math.abs(miss)}`;
+        entry.append(delta);
+    }
+    return entry;
+}
+
+function showGmaScoreboard(guess, crowdAge, actual, plainOutcome) {
+    clearGmaScoreboard();
+    const hasCrowd = Number.isFinite(crowdAge) && crowdAge > 0;
+    const userError = Math.abs(guess - actual);
+    const crowdError = hasCrowd ? Math.abs(crowdAge - actual) : Infinity;
+    const youCloser = userError <= crowdError;
+
+    const pins = document.createElement('span');
+    pins.id = 'gmaPins';
+    pins.className = 'gma-pins';
+    pins.setAttribute('aria-hidden', 'true');
+    pins.append(gmaScoreEntry('gma-pin', 'you', guess, actual, youCloser));
+    if (hasCrowd) pins.append(gmaScoreEntry('gma-pin', 'crowd', crowdAge, actual, !youCloser));
+    gmaSliderWrap.insertBefore(pins, gmaBubble);
+    positionGmaPins();
+
+    if (!plainOutcome) return;
+    const line = document.createElement('div');
+    line.className = 'gma-scoreline';
+    line.append(gmaScoreEntry('gma-score', 'you', guess, actual, youCloser));
+    if (hasCrowd) line.append(gmaScoreEntry('gma-score', 'crowd', crowdAge, actual, !youCloser));
+    gmaPayoffRegion.replaceChildren(line);
 }
 
 window.addEventListener('resize', () => window.requestAnimationFrame(syncGmaGeometry), { passive: true });
@@ -1547,6 +1626,7 @@ function restoreGuessControls(message, focusTarget) {
     gmaBubble.classList.remove('gma-bubble-inactive', 'gma-bubble-overlap');
     document.getElementById('gmaRealBubble')?.remove();
     document.getElementById('gmaGap')?.remove();
+    clearGmaScoreboard();
     delete gmaCard.dataset.gmaReaction;
     clearGmaEphemera();
     syncRange();
@@ -1710,6 +1790,15 @@ gmaSubmitBtn.addEventListener('click', async function () {
         focusGmaCloseControl();
         const beatCrowd = crowdError !== null && userError < crowdError;
         showGmaGap(userGuess, realAge, isFirstGuess ? 'first' : beatCrowd ? 'crowd' : 'plain');
+        try {
+            showGmaScoreboard(
+                userGuess,
+                crowdError === null ? NaN : result.crowdAge,
+                realAge,
+                userError !== 0 && !isFirstGuess && !beatCrowd);
+        } catch (scoreboardError) {
+            console.warn('Could not draw the Guess My Age scoreboard.', scoreboardError);
+        }
 
         const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()
             ? 16000
