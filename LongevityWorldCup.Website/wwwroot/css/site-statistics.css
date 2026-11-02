@@ -227,6 +227,7 @@ select:focus-visible,
 
 /* ---------- Tabs: accent underline, diagnostics as a segmented row ---------- */
 .stats-tabs {
+    position: relative;
     display: flex;
     align-items: start;
     flex-wrap: nowrap;
@@ -510,7 +511,7 @@ select:focus-visible,
 
 .traffic-metrics {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10em), 1fr));
     margin: 0 calc(-1 * var(--pad)) 18px;
     border-bottom: 1px solid var(--line);
 }
@@ -1291,7 +1292,7 @@ select:focus-visible,
     .stats-page { padding: 16px 16px 40px; gap: 14px; }
     .stats-header { padding: 16px; }
     h1 { font-size: 26px; }
-    .stats-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stats-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10em), 1fr)); gap: 10px; }
     .stats-controls label { min-width: 0; }
     .stats-controls select { width: 100%; }
     .stats-tabs { overflow: visible; }
@@ -1300,10 +1301,8 @@ select:focus-visible,
         overflow-x: auto;
         margin-right: -16px;
         padding-right: 16px;
-        scrollbar-width: none;
         overscroll-behavior-x: contain;
     }
-    .stats-diagnostic-tabs::-webkit-scrollbar { display: none; }
     .stats-diagnostic-tabs .stats-tab { flex: 0 0 auto; }
     .data-quality-strip { grid-template-columns: 1fr; }
     .traffic-metrics:has([data-wide-value="true"]) { grid-template-columns: minmax(0, 1fr); }
@@ -1516,6 +1515,9 @@ select:focus-visible,
     }
 
     .stats-header[data-condensed] .stats-controls label > span { font-size: 11px; }
+}
+
+@media (min-width: 901px) and (pointer: fine) {
     .stats-header[data-condensed] :is(select, .stats-button) { min-height: 34px; padding-block: 5px; }
 }
 
@@ -1525,8 +1527,6 @@ select:focus-visible,
         position: sticky;
         top: 0;
         z-index: 20;
-        margin-inline: -16px;
-        padding-inline: 16px;
         background: color-mix(in srgb, var(--bg) 92%, transparent);
         backdrop-filter: blur(12px);
         transition: box-shadow 200ms ease;
@@ -1604,15 +1604,13 @@ select:focus-visible,
 #statsReset[data-idle]:is(:hover, :focus-visible) { opacity: 1; }
 
 /* One indicator glides between the views. */
-.stats-tabs { position: relative; }
-
 .stats-tabs[data-indicator] > .stats-tab.active::after,
 .stats-tabs[data-indicator] .stats-diagnostics-toggle::before { display: none; }
 
 .stats-tabs[data-indicator]::after {
     content: "";
     position: absolute;
-    top: 40px;
+    top: var(--stats-tab-y, 40px);
     left: 0;
     width: var(--stats-tab-w, 0);
     height: 2px;
@@ -1747,4 +1745,7 @@ html[data-stats-travel="back"]::view-transition-new(root) { animation-name: stat
 
 @media (prefers-reduced-motion: reduce) {
     [data-morph-trend][data-lwc-count]::after { animation: none; }
+    .stats-page *,
+    .stats-page *::before,
+    .stats-page *::after { transition: none; animation: none; }
 }

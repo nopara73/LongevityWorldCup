@@ -361,6 +361,7 @@
         selectedLabel: "all events"
     };
     let loadGeneration = 0;
+    let dashboardLoading = false;
     let trafficChartObserver: ResizeObserver | null = null;
     let disposeTrafficCrosshair: (() => void) | undefined;
     let selectedTrafficDay: string | null = null;
@@ -590,22 +591,25 @@
                 if (generation !== loadGeneration) return;
             }
 
-            state.events = events;
-            state.previousEvents = previousEvents;
-            state.trafficSummary = normalizeTrafficSummary(payload.trafficSummary);
-            state.aiReferrals = payload.aiReferrals || null;
-            updateAiProviderOptions();
-            state.filters = filters;
-            state.eventsPage = payload.eventsPage || null;
-            state.previousEventsPage = payload.previousEventsPage || null;
-            state.currentWindowComplete = loadCompleteDiagnostics || !hasMoreEvents(payload.eventsPage);
-            state.previousWindowComplete = loadCompleteDiagnostics || !hasMoreEvents(payload.previousEventsPage);
-            state.diagnosticWindowsLoaded = loadCompleteDiagnostics;
-            state.generatedAtUtc = payload.generatedAtUtc || null;
-            state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
-            state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
-            const morph = captureMorph();
-            travel(() => {
+            await travel(() => {
+                // A view transition paints asynchronously. A newer filter request
+                // must keep its loading state until its own response is painted.
+                if (generation !== loadGeneration) return;
+                const morph = captureMorph();
+                state.events = events;
+                state.previousEvents = previousEvents;
+                state.trafficSummary = normalizeTrafficSummary(payload.trafficSummary);
+                state.aiReferrals = payload.aiReferrals || null;
+                updateAiProviderOptions();
+                state.filters = filters;
+                state.eventsPage = payload.eventsPage || null;
+                state.previousEventsPage = payload.previousEventsPage || null;
+                state.currentWindowComplete = loadCompleteDiagnostics || !hasMoreEvents(payload.eventsPage);
+                state.previousWindowComplete = loadCompleteDiagnostics || !hasMoreEvents(payload.previousEventsPage);
+                state.diagnosticWindowsLoaded = loadCompleteDiagnostics;
+                state.generatedAtUtc = payload.generatedAtUtc || null;
+                state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
+                state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
                 setDashboardLoading(false);
                 renderLoadedStatus();
                 renderAll();
@@ -681,12 +685,14 @@
     }
 
     function renderLoadedStatus(): void {
+        if (dashboardLoading) return;
         setStatus(state.tab !== trafficOverviewTab
             ? `Complete ${selectedRangeLabel()} diagnostic windows loaded: ${formatNumber(state.events.length)} current and ${formatNumber(state.previousEvents.length)} previous redacted events. Generated ${formatTime(state.generatedAtUtc)}.`
             : `Updated ${formatTime(state.generatedAtUtc)}`);
     }
 
     function setDashboardLoading(loading: boolean): void {
+        dashboardLoading = loading;
         (el("statsExport") as HTMLButtonElement).disabled = loading;
         document.querySelector(".stats-page")?.setAttribute("aria-busy", String(loading));
     }
@@ -967,7 +973,7 @@
             const changedDay = selectedTrafficDay !== day;
             selectedTrafficDay = day;
             select.value = day;
-            if (changedDay && feelMotion()) el("trafficDayDetail").animate(
+            if (changedDay && feelMotion()) animateFeel(el("trafficDayDetail"),
                 [{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
                 { duration: 180, easing: morphEase });
             el("trafficDayDetail").textContent = `${formatTrafficDay(day)} · ${formatNumber(point.sessions)} sessions · ${formatNumber(point.pageViews)} page views${isPartialTrafficDay(day) ? " · partial day" : ""}`;
@@ -1588,6 +1594,22 @@
 
     const reducedFeel = window.matchMedia("(prefers-reduced-motion: reduce)");
     const morphEase = "cubic-bezier(0.2, 0, 0, 1)";
+    const feelAnimations = new Set<Animation>();
+    let viewTravel: ViewTransition | null = null;
+
+    reducedFeel.addEventListener("change", event => {
+        if (!event.matches) return;
+        feelAnimations.forEach(animation => animation.cancel());
+        feelAnimations.clear();
+        viewTravel?.skipTransition();
+    });
+
+    function animateFeel(element: Element, frames: Keyframe[], options: KeyframeAnimationOptions): void {
+        const animation = element.animate(frames, options);
+        feelAnimations.add(animation);
+        const release = (): void => { feelAnimations.delete(animation); };
+        void animation.finished.then(release, release);
+    }
 
     function feelMotion(): boolean {
         return !reducedFeel.matches;
@@ -1646,18 +1668,18 @@
             const oldWidth = snapshot.meters.get(key);
             const newWidth = meter ? parseFloat(meter.style.width) || 0 : 0;
             if (meter && newWidth > 0 && Math.abs((oldWidth ?? 0) - newWidth) > 0.2) {
-                meter.animate([{ transform: `scaleX(${(oldWidth ?? 0) / newWidth})` }, { transform: "none" }],
+                animateFeel(meter, [{ transform: `scaleX(${(oldWidth ?? 0) / newWidth})` }, { transform: "none" }],
                     { duration: 320, easing: morphEase });
             }
             if (!row.offsetParent) return;
             const oldTop = snapshot.rows.get(key);
             if (oldTop === undefined) {
-                row.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }],
+                animateFeel(row, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }],
                     { duration: 220, delay: Math.min(index, 6) * 24, easing: morphEase, fill: "backwards" });
                 return;
             }
             const shift = oldTop - row.getBoundingClientRect().top;
-            if (Math.abs(shift) > 1) row.animate([{ transform: `translateY(${shift}px)` }, { transform: "none" }],
+            if (Math.abs(shift) > 1) animateFeel(row, [{ transform: `translateY(${shift}px)` }, { transform: "none" }],
                 { duration: 300, easing: morphEase });
         });
 
@@ -1670,9 +1692,9 @@
                 const newHeight = bar.height.baseVal.value;
                 const delay = Math.round(index / Math.max(1, bars.length) * 90);
                 if (oldHeight === undefined) {
-                    bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay, easing: morphEase, fill: "backwards" });
+                    animateFeel(bar, [{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay, easing: morphEase, fill: "backwards" });
                 } else if (newHeight > 0 && Math.abs(oldHeight - newHeight) > 0.5) {
-                    bar.animate([{ transform: `scaleY(${Math.max(0, oldHeight / newHeight)})` }, { transform: "none" }],
+                    animateFeel(bar, [{ transform: `scaleY(${Math.max(0, oldHeight / newHeight)})` }, { transform: "none" }],
                         { duration: 320, delay, easing: morphEase, fill: "backwards" });
                 }
             });
@@ -1681,7 +1703,7 @@
 
     // Overview and diagnostics sit side by side: when a render crosses between
     // them, the page slides that way while the header and switcher hold still.
-    function travel(paint: () => void): void {
+    async function travel(paint: () => void): Promise<void> {
         const showingOverview = !el("trafficOverview").hidden;
         const toOverview = state.tab === trafficOverviewTab;
         if (showingOverview === toOverview || !feelMotion() || !document.startViewTransition) {
@@ -1689,8 +1711,17 @@
             return;
         }
         const root = document.documentElement;
+        viewTravel?.skipTransition();
         root.dataset["statsTravel"] = toOverview ? "back" : "forward";
-        document.startViewTransition(paint).finished.finally(() => delete root.dataset["statsTravel"]);
+        const transition = document.startViewTransition(paint);
+        viewTravel = transition;
+        const finish = (): void => {
+            if (viewTravel !== transition) return;
+            viewTravel = null;
+            delete root.dataset["statsTravel"];
+        };
+        void transition.finished.then(finish, finish);
+        await transition.updateCallbackDone;
     }
 
     function markActiveFilters(): void {
@@ -1714,9 +1745,13 @@
         const hostBox = host.getBoundingClientRect();
         const box = target.getBoundingClientRect();
         if (!box.width) return;
+        const style = getComputedStyle(target);
+        const left = parseFloat(style.paddingLeft);
+        const right = parseFloat(style.paddingRight);
         const chevron = target.matches("summary") ? 16 : 0;
-        host.style.setProperty("--stats-tab-x", `${box.left - hostBox.left + 14}px`);
-        host.style.setProperty("--stats-tab-w", `${Math.max(0, box.width - 28 - chevron)}px`);
+        host.style.setProperty("--stats-tab-x", `${box.left - hostBox.left + left}px`);
+        host.style.setProperty("--stats-tab-y", `${box.bottom - hostBox.top - 4}px`);
+        host.style.setProperty("--stats-tab-w", `${Math.max(0, box.width - left - right - chevron)}px`);
         host.dataset["indicator"] = "ready";
     }
 
@@ -1737,6 +1772,7 @@
             update();
         }
         window.addEventListener("resize", placeTabIndicator, { passive: true });
+        new ResizeObserver(placeTabIndicator).observe(el("statsTabs"));
         void document.fonts?.ready.then(placeTabIndicator);
     }
 
@@ -1774,10 +1810,10 @@
                 state.selectedLabel = `${tab} / all events`;
                 placeTabIndicator();
                 if (needsDiagnosticEventReload()) loadDashboard();
-                else travel(() => {
+                else void travel(() => {
                     renderLoadedStatus();
                     renderAll();
-                });
+                }).catch(error => setStatus(`Dashboard data could not be loaded: ${errorMessage(error)}.`, true));
             });
             (tab === trafficOverviewTab ? host : diagnosticTabs).appendChild(button);
         });
@@ -3104,7 +3140,8 @@
     }
 
     function formatNumber(value: unknown): string {
-        return numberValue(value).toLocaleString();
+        // Match the shared chart counter's grouping and decimal convention.
+        return numberValue(value).toLocaleString("en-US");
     }
 
     function signedNumber(value: unknown): string {
