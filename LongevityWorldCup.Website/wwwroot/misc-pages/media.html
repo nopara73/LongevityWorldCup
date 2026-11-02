@@ -23,6 +23,9 @@
         .media-kit-panel.landing-sheet {
             --landing-pad: clamp(1.25rem, 4.5vw, 3rem);
             --media-kit-gutter: var(--landing-pad);
+            /* Retain the rounded clipping without creating a non-scrolling
+               scroll container around the sticky folder headings. */
+            overflow: clip;
         }
 
         .media-kit-head.landing-cover {
