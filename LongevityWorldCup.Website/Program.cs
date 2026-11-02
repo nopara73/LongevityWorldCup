@@ -310,9 +310,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
             builder.Services.AddSingleton<ILongevitymaxxingEmailSender, SmtpLongevitymaxxingEmailSender>();
             builder.Services.AddSingleton<LongevitymaxxingChallengeService>();
-            builder.Services.AddSingleton<BtcpayInvoiceClient>();
-            builder.Services.AddSingleton<StripeCheckoutClient>();
-            builder.Services.AddSingleton<IBtcpayInvoiceClient, ApplicationCheckoutClient>();
+            builder.Services.AddSingleton<IBtcpayInvoiceClient, BtcpayInvoiceClient>();
             builder.Services.AddSingleton(TimeProvider.System);
             builder.Services.AddSingleton<ApplicationPaymentStore>();
             builder.Services.AddSingleton<IApplicationPaymentEmailSender, SmtpApplicationPaymentEmailSender>();

@@ -1059,7 +1059,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     public void ApplicationSubmit_TreatsPostEmailInvoiceFailureAsAcceptedSubmission()
     {
         var source = ReadApplicationControllerSource();
-        var failureStart = source.IndexOf("Application submission was saved but payment checkout creation failed.", StringComparison.Ordinal);
+        var failureStart = source.IndexOf("Application submission was saved but BTCPay invoice creation failed.", StringComparison.Ordinal);
         var acceptedReturn = source.IndexOf("return Ok(paymentUnavailableResponse);", failureStart, StringComparison.Ordinal);
         var failureEnd = acceptedReturn + "return Ok(paymentUnavailableResponse);".Length;
 
