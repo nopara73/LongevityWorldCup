@@ -468,14 +468,15 @@
     content: "";
     position: absolute;
     left: 0;
-    bottom: 0;
+    top: 0;
+    bottom: auto;
     width: var(--clock-tab-w, 0px);
     height: 2px;
     border-radius: 2px;
     background: var(--athlete-modal-chart-bortz, var(--athlete-modal-accent, #7bdde3));
     box-shadow: 0 0 10px currentColor;
     color: var(--athlete-modal-chart-bortz, transparent);
-    translate: var(--clock-tab-x, 0px) 0;
+    translate: var(--clock-tab-x, 0px) var(--clock-tab-y, 0px);
     transition: translate 300ms cubic-bezier(.2, 0, 0, 1), width 300ms cubic-bezier(.2, 0, 0, 1), background-color 300ms ease, color 300ms ease;
     pointer-events: none;
 }
