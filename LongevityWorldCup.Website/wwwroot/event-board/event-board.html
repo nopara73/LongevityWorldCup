@@ -74,6 +74,139 @@
     } else {
         initEventBoard();
     }
+
+    // Activity calendar: one cell per day of the loaded feed, darker with more
+    // highlights. It follows the day you are reading and jumps to any day.
+    // Wordless; each cell's title carries its date and count.
+    (function () {
+        const page = document.querySelector('.event-board-page');
+        const heading = document.querySelector('.event-board-heading');
+        if (!page || !heading) return;
+        const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const rail = document.createElement('nav');
+        rail.className = 'event-pulse';
+        rail.setAttribute('aria-label', 'Highlights by day');
+        rail.innerHTML = '<div class="event-pulse-sticky"><div class="event-pulse-grid" role="list"></div><span class="event-pulse-cursor" aria-hidden="true"></span></div>';
+        heading.after(rail);
+        const grid = rail.querySelector('.event-pulse-grid');
+        const cursor = rail.querySelector('.event-pulse-cursor');
+        const cellsByDay = new Map();
+        let built = false;
+        let currentDay = '';
+        let buildTimer = 0;
+        let spyFrame = 0;
+
+        const dayKey = date => `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        const parseDay = value => {
+            const [y, m, d] = String(value || '').split('-').map(Number);
+            return y && m && d ? new Date(y, m - 1, d) : null;
+        };
+        const rows = () => Array.from(document.querySelectorAll('.events-board tr.main-row[data-day]'));
+
+        function build() {
+            const counts = new Map();
+            rows().forEach(row => counts.set(row.dataset.day, (counts.get(row.dataset.day) || 0) + 1));
+            const days = Array.from(counts.keys()).map(parseDay).filter(Boolean).sort((a, b) => b - a);
+            if (!days.length) { rail.hidden = true; return; }
+            rail.hidden = false;
+            const newest = days[0];
+            const oldest = days[days.length - 1];
+            // Weeks run Monday to Sunday; the newest week comes first, like the feed.
+            const mondayOf = value => {
+                const monday = new Date(value);
+                monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+                return monday;
+            };
+            const busiest = Math.max(...counts.values());
+            const fragment = document.createDocumentFragment();
+            cellsByDay.clear();
+            let index = 0;
+            const lastMonday = mondayOf(oldest);
+            const dates = [];
+            for (let week = mondayOf(newest); week >= lastMonday && dates.length < 7 * 60; week.setDate(week.getDate() - 7)) {
+                for (let offset = 0; offset < 7; offset++) {
+                    const date = new Date(week);
+                    date.setDate(date.getDate() + offset);
+                    dates.push(date);
+                }
+            }
+            for (const date of dates) {
+                const key = dayKey(date);
+                const count = counts.get(key) || 0;
+                const future = date > newest;
+                const cell = document.createElement(count ? 'button' : 'span');
+                cell.className = 'event-pulse-cell';
+                cell.setAttribute('role', 'listitem');
+                cell.style.setProperty('--pulse-i', String(index++));
+                if (future) cell.classList.add('is-future');
+                if (date.getDate() === 1) cell.classList.add('is-month-start');
+                if (count) {
+                    cell.type = 'button';
+                    cell.dataset.day = key;
+                    cell.style.setProperty('--pulse-level', String(Math.max(0.22, count / busiest)));
+                    const label = `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${count}`;
+                    cell.title = label;
+                    cell.setAttribute('aria-label', label);
+                    cellsByDay.set(key, cell);
+                }
+                fragment.appendChild(cell);
+            }
+            grid.replaceChildren(fragment);
+            if (!built && !reduceMotion()) rail.classList.add('is-arriving');
+            built = true;
+            window.setTimeout(() => rail.classList.remove('is-arriving'), 1400);
+            currentDay = '';
+            spy();
+        }
+
+        function moveCursor(cell) {
+            if (!cell) { cursor.style.opacity = '0'; return; }
+            const box = cell.getBoundingClientRect();
+            const host = rail.querySelector('.event-pulse-sticky').getBoundingClientRect();
+            cursor.style.opacity = '1';
+            cursor.style.transform = `translate(${box.left - host.left}px, ${box.top - host.top}px)`;
+            cursor.style.width = `${box.width}px`;
+            cursor.style.height = `${box.height}px`;
+        }
+
+        function spy() {
+            spyFrame = 0;
+            const line = Math.min(window.innerHeight * 0.35, 260);
+            const reading = rows().find(row => row.getBoundingClientRect().bottom > line);
+            const day = reading?.dataset.day || '';
+            if (day === currentDay) return;
+            currentDay = day;
+            cellsByDay.forEach(cell => cell.classList.toggle('is-current', cell.dataset.day === day));
+            moveCursor(cellsByDay.get(day));
+        }
+
+        grid.addEventListener('click', event => {
+            const cell = event.target.closest('.event-pulse-cell[data-day]');
+            if (!cell) return;
+            const dayRows = rows().filter(row => row.dataset.day === cell.dataset.day);
+            if (!dayRows.length) return;
+            dayRows[0].scrollIntoView({ behavior: reduceMotion() ? 'instant' : 'smooth', block: 'start' });
+            dayRows.forEach(row => {
+                row.classList.remove('is-pulse-target');
+                void row.offsetWidth;
+                row.classList.add('is-pulse-target');
+            });
+            window.setTimeout(() => dayRows.forEach(row => row.classList.remove('is-pulse-target')), 1800);
+        });
+
+        const queueBuild = () => { window.clearTimeout(buildTimer); buildTimer = window.setTimeout(build, 120); };
+        const board = () => document.querySelector('.events-board');
+        const observer = new MutationObserver(queueBuild);
+        const watch = () => {
+            const target = board();
+            if (!target) { window.setTimeout(watch, 300); return; }
+            observer.observe(target, { childList: true, subtree: true });
+            queueBuild();
+        };
+        watch();
+        window.addEventListener('scroll', () => { if (!spyFrame) spyFrame = requestAnimationFrame(spy); }, { passive: true });
+        window.addEventListener('resize', () => { currentDay = ''; queueBuild(); });
+    })();
 </script>
 </body>
 </html>
