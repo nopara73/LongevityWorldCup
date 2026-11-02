@@ -981,15 +981,11 @@ main.event-board-page {
    a wrapped message. While a month is pinned, its band carries the day under
    the reader's eye; the number rolls as days pass. Events from the last day
    breathe on the rail, and the rail answers the pointer. */
-.event-board-page .events-board tbody tr.main-row > td.col-date {
-    align-self: start;
-    /* Centre the number on the message's first line (1.5em line, 8px pad). */
-    padding-top: calc(var(--lwc-space-2, 8px) + (1.5rem - 1.375rem) / 2);
-}
-
-@media (max-width: 600px) {
+@media (min-width: 601px) {
     .event-board-page .events-board tbody tr.main-row > td.col-date {
-        padding-top: calc(var(--lwc-space-2, 8px) + .3rem);
+        align-self: start;
+        /* Centre the number on the message's first line (1.5em line, 8px pad). */
+        padding-top: calc(var(--lwc-space-2, 8px) + (1.5rem - 1.375rem) / 2);
     }
 }
 
@@ -1000,6 +996,7 @@ main.event-board-page {
 
 .event-board-page .events-day-chip {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     min-width: 2.25rem;
@@ -1012,6 +1009,7 @@ main.event-board-page {
     color: var(--lwc-on-accent, #fff);
     font-size: .85rem;
     font-weight: 700;
+    line-height: 1;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
     opacity: 0;
@@ -1073,7 +1071,7 @@ main.event-board-page {
 
 @media (prefers-reduced-motion: no-preference) {
     .event-board-page .events-board tr.main-row.is-fresh .event-avatar-frame::before {
-        animation: events-fresh 2.4s ease-out infinite;
+        animation: events-fresh 2.4s ease-out 2;
     }
 }
 
