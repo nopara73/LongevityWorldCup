@@ -27,38 +27,66 @@
             padding: clamp(1.5rem, 6vh, 4.5rem) 16px;
         }
 
+        /* Fan-cam stage, shared with the 404 and outage pages: the envelope
+           sits in a round seat astride the sheet's top edge, and the cover
+           stands centred beneath it. */
         .unsubscribe-panel.landing-sheet {
             --landing-pad: clamp(1.25rem, 5vw, 2.75rem);
+            --unsub-seat: 84px;
             width: min(100%, 38rem);
-            margin: 0;
+            margin: calc(var(--unsub-seat) / 2) 0 0;
+            overflow: visible;
         }
 
-        /* The envelope stamps the cover's corner, opposite the accent bar. */
+        .unsubscribe-panel .landing-cover {
+            padding-top: calc(var(--unsub-seat) / 2 + clamp(1rem, 3vw, 1.5rem));
+            border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+            text-align: center;
+        }
+
+        .unsubscribe-panel .landing-cover::before {
+            margin-inline: auto;
+        }
+
         .unsubscribe-mark {
             position: absolute;
-            top: clamp(1.25rem, 4vw, 2.25rem);
-            right: var(--landing-pad);
+            top: 0;
+            left: 50%;
+            z-index: 1;
             display: grid;
             place-items: center;
-            width: 56px;
-            height: 56px;
+            width: var(--unsub-seat);
+            height: var(--unsub-seat);
             border: 1px solid var(--lwc-border);
             border-radius: var(--lwc-radius-pill);
             background: var(--lwc-surface);
             color: var(--lwc-accent);
-            font-size: 22px;
-            box-shadow: var(--lwc-shadow-sm);
+            font-size: 30px;
+            box-shadow: 0 0 0 5px var(--lwc-surface-muted), 0 0 0 8px var(--lwc-border), var(--lwc-shadow-md);
+            translate: -50% -50%;
             transform: rotate(-8deg);
+        }
+
+        .unsubscribe-mark::after {
+            right: 0;
+            bottom: 0;
+        }
+
+        .unsubscribe-panel .landing-title,
+        .unsubscribe-panel .unsubscribe-copy {
+            text-align: center;
         }
 
         .unsubscribe-panel .landing-title {
             margin-bottom: var(--lwc-space-3);
-            padding-right: 64px;
+            padding-right: 0;
             font-size: 2.25rem;
         }
 
         .unsubscribe-panel .unsubscribe-copy {
             max-width: 30rem;
+            margin-inline: auto;
+            text-wrap: balance;
             color: var(--lwc-muted);
             font-size: 1.0625rem;
             line-height: 1.55;
@@ -158,16 +186,12 @@
 
         /* Very narrow windows give the title the whole cover; the stamp steps aside. */
         @media (max-width: 359px) {
-            .unsubscribe-mark {
-                display: none;
-            }
-
             .unsubscribe-panel.landing-sheet {
+                --unsub-seat: 64px;
                 --landing-pad: min(16px, 6.25vw);
             }
 
             .unsubscribe-panel .landing-title {
-                padding-right: 0;
                 font-size: 2rem;
             }
         }
@@ -207,6 +231,10 @@
 
             .unsubscribe-panel .landing-cover {
                 padding-block: 1rem;
+            }
+
+            .unsubscribe-panel.landing-sheet {
+                margin-top: 0;
             }
 
             .unsubscribe-panel .landing-cover::before,
