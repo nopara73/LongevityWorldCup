@@ -2936,7 +2936,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend {
 }
 
 html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::before {
-    content: "\f1fd";
+    content: "\f1fd" / "";
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2955,7 +2955,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::bef
 }
 
 html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) > legend::before {
-    content: "\f48e";
+    content: "\f48e" / "";
 }
 
 html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::after {
@@ -3031,7 +3031,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote {
 }
 
 html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote::before {
-    content: "\f023";
+    content: "\f023" / "";
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3054,7 +3054,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-day optio
 
 html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-month option[value="12"]:checked)) #privacyNote::before,
 html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-day option:last-child:checked)) #privacyNote::before {
-    content: "\f3c1";
+    content: "\f3c1" / "";
 }
 
 /* Actions can ride in the dock outside the form. */

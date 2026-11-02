@@ -26,6 +26,8 @@ public sealed class BioageDateSheetBrowserTests(
         await page.Clock.SetFixedTimeAsync(new DateTime(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc));
         await page.GotoAsync(path);
         await page.WaitForSelectorAsync(".bioage-biomarker-entry-ready");
+        await Assertions.Expect(page.Locator("#dobFieldset")).ToHaveAccessibleNameAsync("Date of birth:");
+        await Assertions.Expect(page.Locator("#lwc-step-1 > fieldset").Nth(1)).ToHaveAccessibleNameAsync("Blood draw date:");
         var year = page.Locator("#dob-year");
         var date = page.Locator("#blood-draw-date");
         var drawBand = page.Locator("#lwc-step-1 > fieldset:nth-of-type(2) > legend");
