@@ -197,12 +197,6 @@ main.media-kit-main {
     }
 }
 
-/* Highlights feed: one list-width column, gutters from the system. */
-main.event-board-page {
-    --feed-width: min(100%, var(--lwc-container-list));
-    max-width: none;
-}
-
 /* Play hub and task flows: one task column. */
 main.play-hub-main {
     --lwc-container: var(--lwc-container-task);
