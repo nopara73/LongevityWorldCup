@@ -227,7 +227,7 @@ html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLead
 .lb-rail-balloon{
     position:absolute; right:46px; translate:0 -50%;
     display:grid; grid-template-columns:36px minmax(0, 1fr); grid-template-rows:auto auto; column-gap:8px; align-items:center;
-    min-width:min(56vw, 180px); max-width:min(62vw, 240px); padding:6px 12px 6px 6px; box-sizing:border-box;
+    width:max-content; max-width:min(62vw, 240px); padding:6px 12px 6px 6px; box-sizing:border-box;
     border:1px solid var(--lwc-border); border-radius:24px;
     background:var(--lwc-surface); color:var(--lwc-ink); box-shadow:var(--lwc-shadow-md, 0 12px 28px rgba(15,23,42,.18));
     pointer-events:none; opacity:0; scale:.85; transform-origin:right center;

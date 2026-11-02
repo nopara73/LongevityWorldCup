@@ -137,9 +137,11 @@ public sealed partial class LeaderboardFeelBrowserTests
     }
 
     [Theory]
-    [InlineData("light", 16)]
-    [InlineData("dark", 20)]
-    public async Task Rail_BalloonShowsTheFullRealAthleteNameWithinTheViewport(string theme, int textSize)
+    [InlineData("light", 16, true)]
+    [InlineData("dark", 20, true)]
+    [InlineData("light", 16, false)]
+    [InlineData("dark", 20, false)]
+    public async Task Rail_BalloonShowsTheFullRealAthleteNameWithinTheViewport(string theme, int textSize, bool longName)
     {
         var (context, page) = await OpenAsync(390, true);
         await using var _ = context;
@@ -147,11 +149,11 @@ public sealed partial class LeaderboardFeelBrowserTests
         await page.EvaluateAsync("size => { document.documentElement.style.fontSize = size + 'px'; dispatchEvent(new Event('resize')); }", textSize);
         await PinRailAsync(page);
         var fraction = await page.Locator(Rows).EvaluateAllAsync<double>("""
-            rows => {
-                const longest = rows.reduce((a, r) => r.dataset.athleteName.length > a.dataset.athleteName.length ? r : a);
-                return rows.indexOf(longest) / (rows.length - 1);
+            (rows, longName) => {
+                const ordered = rows.slice().sort((a, b) => a.dataset.athleteName.length - b.dataset.athleteName.length);
+                return rows.indexOf(longName ? ordered.at(-1) : ordered[0]) / (rows.length - 1);
             }
-            """);
+            """, longName);
         var box = (await page.Locator(".lb-rail-track").BoundingBoxAsync())!;
         await page.Mouse.MoveAsync(box.X + box.Width - 2, box.Y + box.Height * .61f);
         await page.Mouse.DownAsync();
@@ -169,6 +171,23 @@ public sealed partial class LeaderboardFeelBrowserTests
                     && box.bottom <= innerHeight && getComputedStyle(balloon).opacity === '1';
             }
             """));
+        if (!longName)
+        {
+            Assert.True(await page.Locator(".lb-rail-balloon").EvaluateAsync<bool>("""
+                balloon => {
+                    const glyphWidth = element => {
+                        const range = document.createRange(); range.selectNodeContents(element);
+                        return range.getBoundingClientRect().width;
+                    };
+                    const style = getComputedStyle(balloon);
+                    const content = balloon.querySelector('img').getBoundingClientRect().width + parseFloat(style.columnGap)
+                        + Math.max(glyphWidth(balloon.querySelector('strong')), glyphWidth(balloon.querySelector('span')));
+                    const frame = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+                        + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
+                    return Math.abs(balloon.getBoundingClientRect().width - content - frame) <= 2;
+                }
+                """), "A short real name should not leave a fixed-width empty region in the balloon.");
+        }
         await page.Mouse.UpAsync();
     }
 }
