@@ -23,13 +23,13 @@ public sealed class ProofReaderRecoveryBrowserTests(
         await context.RouteAsync("**/proof-reader-test/**", FulfillImageAsync);
         var page = await OpenProfileAsync(context);
         await page.Locator("#proofsGallery img").Nth(1).ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await ExpectStateAsync(viewer, "ready");
         var overlaps = await viewer.EvaluateAsync<string[]>(
             """
             viewer => {
-                const elements = [...viewer.querySelectorAll('button, .image-position, .image-viewer-hint, .image-viewer-stage')]
-                    .filter(element => element.checkVisibility());
+                const elements = [...viewer.querySelectorAll('button, .lwc-viewer-stage')]
+                    .filter(element => element.checkVisibility() && !element.closest('[hidden]'));
                 const failures = [];
                 for (let i = 0; i < elements.length; i++) {
                     const a = elements[i].getBoundingClientRect();
@@ -48,12 +48,12 @@ public sealed class ProofReaderRecoveryBrowserTests(
         Assert.Empty(overlaps);
 
         // The outer edges of these targets used to be covered by other controls.
-        await viewer.Locator(".image-nav--next").ClickAsync(new() { Position = new() { X = 2, Y = 24 } });
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 3 of 3");
-        await viewer.Locator(".image-nav--previous").ClickAsync(new() { Position = new() { X = 46, Y = 24 } });
+        await viewer.Locator(".lwc-viewer-next").ClickAsync(new() { Position = new() { X = 2, Y = 24 } });
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 3 of 3");
+        await viewer.Locator(".lwc-viewer-prev").ClickAsync(new() { Position = new() { X = 46, Y = 24 } });
         await ExpectStateAsync(viewer, "ready");
-        await viewer.Locator(".image-zoom-out").ClickAsync(new() { Position = new() { X = 2, Y = 22 } });
-        await Assertions.Expect(viewer.Locator(".image-zoom-status")).ToHaveTextAsync("150%");
+        await viewer.Locator(".lwc-viewer-zoom-out").ClickAsync(new() { Position = new() { X = 2, Y = 22 } });
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-zoom-status")).ToHaveTextAsync("150%");
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public sealed class ProofReaderRecoveryBrowserTests(
             Assert.NotNull(after);
             Assert.InRange(Math.Abs(after.Y - before.Y), 0, 1);
             await page.Mouse.ClickAsync(x, y);
-            await Assertions.Expect(page.Locator("#athleteImageViewer")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator(".lwc-viewer")).ToBeVisibleAsync();
         }
         finally
         {
@@ -119,29 +119,30 @@ public sealed class ProofReaderRecoveryBrowserTests(
         });
         var page = await OpenProfileAsync(context, path);
         await page.Locator("#proofsGallery img").First.ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await ExpectStateAsync(viewer, "ready");
         var zoomIn = viewer.GetByRole(AriaRole.Button, new() { Name = "Zoom proof in", Exact = true });
         while (await zoomIn.IsEnabledAsync()) await zoomIn.ClickAsync();
-        await viewer.Locator(".image-nav--next").ClickAsync();
+        await viewer.Locator(".lwc-viewer-next").ClickAsync();
         await ExpectStateAsync(viewer, "error");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 2 of 3");
-        await Assertions.Expect(viewer.Locator(".image-zoom-status")).ToHaveTextAsync("300%");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToHaveAttributeAsync("aria-busy", "false");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage img")).ToBeHiddenAsync();
-        await Assertions.Expect(viewer.Locator(".image-viewer-hint")).ToBeHiddenAsync();
-        foreach (var button in await viewer.Locator(".image-zoom-controls button").AllAsync())
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 2 of 3");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-zoom-status")).ToHaveTextAsync("300%");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToHaveAttributeAsync("aria-busy", "false");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToBeHiddenAsync();
+        foreach (var button in await viewer.Locator("[data-zoom]").AllAsync())
             await Assertions.Expect(button).ToBeDisabledAsync();
-        await Assertions.Expect(viewer.Locator(".image-nav--previous")).ToBeEnabledAsync();
-        await Assertions.Expect(viewer.Locator(".image-nav--next")).ToBeEnabledAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-prev")).ToBeEnabledAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-next")).ToBeEnabledAsync();
         var retry = viewer.GetByRole(AriaRole.Button, new() { Name = "Try again", Exact = true });
         var retryBox = await retry.BoundingBoxAsync();
         Assert.NotNull(retryBox);
         Assert.True(retryBox.Width >= 44 && retryBox.Height >= 44);
-        var panelBox = await viewer.Locator(".image-load-feedback").BoundingBoxAsync();
+        var panelBox = await viewer.Locator(".lwc-viewer-feedback").BoundingBoxAsync();
         Assert.NotNull(panelBox);
         Assert.InRange(panelBox.X, 0, width - panelBox.Width + 1);
-        Assert.InRange(panelBox.Y, 60, 800 - panelBox.Height);
+        var toolbarBox = (await viewer.Locator(".lwc-viewer-toolbar").BoundingBoxAsync())!;
+        Assert.InRange(panelBox.Y, 60, toolbarBox.Y - panelBox.Height);
+        Assert.True(await viewer.Locator(".lwc-viewer-feedback").EvaluateAsync<bool>("e=>e.scrollHeight<=e.clientHeight+1 && e.scrollWidth<=e.clientWidth+1"));
 
         failSecond = false;
         var attemptsBeforeRetry = secondRequests.Count;
@@ -149,19 +150,19 @@ public sealed class ProofReaderRecoveryBrowserTests(
         await ExpectStateAsync(viewer, "ready");
         Assert.True(secondRequests.Count > attemptsBeforeRetry);
         Assert.All(secondRequests, url => Assert.Equal(SecondProof, new Uri(url).PathAndQuery));
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 2 of 3");
-        await Assertions.Expect(viewer.Locator(".image-zoom-status")).ToHaveTextAsync("300%");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToBeFocusedAsync();
-        await Assertions.Expect(viewer.Locator(".image-load-feedback")).ToBeHiddenAsync();
-        await Assertions.Expect(viewer.Locator(".image-zoom-fit")).ToBeEnabledAsync();
-        await Assertions.Expect(viewer.Locator(".image-viewer-hint")).ToBeVisibleAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 2 of 3");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-zoom-status")).ToHaveTextAsync("300%");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToBeFocusedAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-zoom-fit")).ToBeEnabledAsync();
+        Assert.True(await viewer.Locator(".lwc-viewer-stage img").EvaluateAsync<bool>("image => image.getBoundingClientRect().width >= image.parentElement.clientWidth * 2.9"));
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(viewer).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#proofsGallery img").Nth(1)).ToBeFocusedAsync();
         await page.GoForwardAsync();
         await ExpectStateAsync(viewer, "ready");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 2 of 3");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 2 of 3");
     }
 
     [Fact]
@@ -172,27 +173,26 @@ public sealed class ProofReaderRecoveryBrowserTests(
             ? FulfillImageAsync(route) : FailImageAsync(route));
         var page = await OpenProfileAsync(context);
         await page.Locator("#proofsGallery img").First.ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await ExpectStateAsync(viewer, "error");
-        await viewer.Locator(".image-load-retry").FocusAsync();
+        await viewer.Locator(".lwc-viewer-retry").FocusAsync();
         await page.Keyboard.PressAsync("ArrowRight");
         await ExpectStateAsync(viewer, "ready");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 2 of 3");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToBeFocusedAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 2 of 3");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToBeFocusedAsync();
         // Once an image is ready, arrows in the zoomed stage scroll the proof.
         await page.Keyboard.PressAsync("ArrowRight");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 2 of 3");
-        await viewer.Locator(".close-btn").FocusAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 2 of 3");
+        await viewer.Locator(".lwc-viewer-close").FocusAsync();
         await page.Keyboard.PressAsync("ArrowLeft");
         await ExpectStateAsync(viewer, "error");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 1 of 3");
-        await viewer.Locator(".close-btn").FocusAsync();
-        await page.Keyboard.PressAsync("Shift+Tab");
-        await Assertions.Expect(viewer.Locator(".image-load-retry")).ToBeFocusedAsync();
-        await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(viewer.Locator(".close-btn")).ToBeFocusedAsync();
-        await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(viewer.Locator(".image-nav--next")).ToBeFocusedAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 1 of 3");
+        await viewer.Locator(".lwc-viewer-close").FocusAsync();
+        for (var tab = 0; tab < 8; tab++)
+        {
+            await page.Keyboard.PressAsync("Tab");
+            Assert.True(await viewer.EvaluateAsync<bool>("e => e.contains(document.activeElement) && !document.activeElement.disabled && document.activeElement.checkVisibility()"));
+        }
     }
 
     [Theory]
@@ -219,20 +219,20 @@ public sealed class ProofReaderRecoveryBrowserTests(
         {
             await page.Locator("#proofsGallery img").Nth(1).ClickAsync();
             await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            var viewer = page.Locator("#athleteImageViewer");
+            var viewer = page.Locator(".lwc-viewer");
             await ExpectStateAsync(viewer, "loading");
-            await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToHaveAttributeAsync("aria-busy", "true");
-            await Assertions.Expect(viewer.Locator(".image-load-title")).ToHaveTextAsync("Loading proof…");
-            await Assertions.Expect(viewer.Locator(".image-zoom-in")).ToBeDisabledAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToHaveAttributeAsync("aria-busy", "true");
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-load-title")).ToHaveTextAsync("Loading proof…");
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-zoom-in")).ToBeDisabledAsync();
             if (closeWhileLoading)
             {
-                await viewer.Locator(".close-btn").ClickAsync();
+                await viewer.Locator(".lwc-viewer-close").ClickAsync();
                 await Assertions.Expect(viewer).ToBeHiddenAsync();
                 await Assertions.Expect(page.Locator("#proofsGallery img").Nth(1)).ToBeFocusedAsync();
             }
             else
             {
-                await viewer.Locator(".image-nav--next").ClickAsync();
+                await viewer.Locator(".lwc-viewer-next").ClickAsync();
                 await ExpectStateAsync(viewer, "ready");
             }
             release.TrySetResult();
@@ -245,9 +245,9 @@ public sealed class ProofReaderRecoveryBrowserTests(
                 await page.Locator("#proofsGallery img").Nth(2).ClickAsync();
             }
             await ExpectStateAsync(viewer, "ready");
-            await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 3 of 3");
-            Assert.Equal(ThirdProof, new Uri(await viewer.Locator(".image-viewer-stage img").GetAttributeAsync("src") ?? "").PathAndQuery);
-            await Assertions.Expect(viewer.Locator(".image-load-feedback")).ToBeHiddenAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 3 of 3");
+            Assert.Equal(ThirdProof, new Uri(await viewer.Locator(".lwc-viewer-stage img").GetAttributeAsync("src") ?? "").PathAndQuery);
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-feedback")).ToBeHiddenAsync();
         }
         finally { release.TrySetResult(); }
     }
@@ -274,17 +274,17 @@ public sealed class ProofReaderRecoveryBrowserTests(
         {
             await page.Locator("#proofsGallery img").First.ClickAsync();
             await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            var viewer = page.Locator("#athleteImageViewer");
+            var viewer = page.Locator(".lwc-viewer");
             await ExpectStateAsync(viewer, "loading");
             await page.Clock.FastForwardAsync(15001);
             await ExpectStateAsync(viewer, "error");
-            await Assertions.Expect(viewer.Locator(".image-load-retry")).ToBeVisibleAsync();
-            await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToHaveAttributeAsync("aria-busy", "false");
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-retry")).ToBeVisibleAsync();
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToHaveAttributeAsync("aria-busy", "false");
             delay = false;
             release.TrySetResult();
-            await viewer.Locator(".image-load-retry").ClickAsync();
+            await viewer.Locator(".lwc-viewer-retry").ClickAsync();
             await ExpectStateAsync(viewer, "ready");
-            await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 1 of 3");
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 1 of 3");
         }
         finally { release.TrySetResult(); }
     }
@@ -313,21 +313,21 @@ public sealed class ProofReaderRecoveryBrowserTests(
             await photo.ClickAsync();
         }
         else await page.Locator("#proofsGallery img").First.ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await ExpectStateAsync(viewer, "error");
-        await Assertions.Expect(viewer.Locator(".image-load-title")).ToHaveTextAsync(portrait ? "This image couldn't load" : "This proof couldn't load");
-        await Assertions.Expect(viewer.Locator(".image-nav--next")).ToBeHiddenAsync();
-        await Assertions.Expect(viewer.Locator(".image-nav--previous")).ToBeHiddenAsync();
-        if (!portrait) await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 1 of 1");
-        var close = viewer.Locator(".close-btn");
-        var retry = viewer.Locator(".image-load-retry");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-load-title")).ToHaveTextAsync(portrait ? "This image couldn't load" : "This proof couldn't load");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-next")).ToBeHiddenAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-prev")).ToBeHiddenAsync();
+        if (!portrait) await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 1 of 1");
+        var close = viewer.Locator(".lwc-viewer-close");
+        var retry = viewer.Locator(".lwc-viewer-retry");
         await close.FocusAsync();
-        await page.Keyboard.PressAsync("Shift+Tab");
+        await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(retry).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(close).ToBeFocusedAsync();
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage")).ToBeFocusedAsync();
+        await Assertions.Expect(close).ToBeFocusedAsync();
     }
 
     [Fact]
@@ -338,19 +338,19 @@ public sealed class ProofReaderRecoveryBrowserTests(
         var page = await OpenProfileAsync(context);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
         await page.Locator("#proofsGallery img").First.ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await ExpectStateAsync(viewer, "ready");
         await Assertions.Expect(viewer).ToHaveCSSAsync("opacity", "1");
         await viewer.EvaluateAsync("""
             viewer => {
                 const observer = new MutationObserver(() => {
-                    if (viewer.getAttribute('aria-hidden') !== 'true') return;
-                    const image = viewer.querySelector('.image-viewer-stage img');
-                    window.__closingProofRendered = !viewer.hidden && !image.hidden
+                    if (viewer.dataset.state !== 'closing') return;
+                    const image = viewer.querySelector('.lwc-viewer-stage img');
+                    window.__closingProofRendered = viewer.open && !image.hidden
                         && image.complete && image.naturalWidth > 0;
                     observer.disconnect();
                 });
-                observer.observe(viewer, { attributes: true, attributeFilter: ['aria-hidden'] });
+                observer.observe(viewer, { attributes: true, attributeFilter: ['data-state'] });
             }
             """);
         await page.Keyboard.PressAsync("Escape");

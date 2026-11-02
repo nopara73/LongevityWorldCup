@@ -20,8 +20,8 @@ public sealed partial class AthleteDialogFrameBrowserTests
         await Assertions.Expect(portrait).ToHaveAccessibleNameAsync("Enlarge athlete profile picture");
         await portrait.FocusAsync();
         await page.Keyboard.PressAsync("Enter");
-        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToBeVisibleAsync();
-        await Assertions.Expect(page.Locator("#athleteImageViewer img").First).ToHaveAttributeAsync("alt", currentAlt!);
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".lwc-viewer img").First).ToHaveAttributeAsync("alt", currentAlt!);
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(portrait).ToBeFocusedAsync();
     }
