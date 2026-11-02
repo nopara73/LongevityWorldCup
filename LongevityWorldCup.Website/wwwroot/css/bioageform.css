@@ -2905,7 +2905,7 @@ body.flow-input-keyboard-open .bioage-live-readout {
  * its own band, a domain chip that fills and a pip that pops once the section
  * is answered, and a ruled row that gains the accent edge. The privacy note
  * is a quiet strip whose lock opens when the birthday leaves December 31.
- * Continue stays quiet until the birth year is in, then lights up once.
+ * Continue keeps its established green and lights up when both dates are valid.
  * Everything is driven by the fields' own state through :has(), so no script
  * runs and reduced motion keeps every state without the movement.
  */
@@ -3057,22 +3057,15 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-day optio
     content: "\f3c1";
 }
 
-/* Continue stays quiet until the birth year is in. */
-/* The step's actions can ride in the dock outside the form, so the state is read from the page. */
-body:has(:is(#phenoAgeForm, #bortzAgeForm) #dob-year:invalid) #lwcToStep2Btn.green {
-    border-color: var(--lwc-border, #d7e0e6);
-    background: var(--lwc-surface-muted, #eef2f5);
-    color: var(--lwc-muted, #52606d);
-    box-shadow: none;
-}
-
-html body :is(#phenoAgeForm, #bortzAgeForm) #lwcToStep2Btn {
+/* Actions can ride in the dock outside the form. */
+body:has(:is(#phenoAgeForm, #bortzAgeForm)) #lwcToStep2Btn {
     transition: background-color 200ms var(--lwc-ease, ease), border-color 200ms var(--lwc-ease, ease), color 200ms var(--lwc-ease, ease), box-shadow 200ms var(--lwc-ease, ease);
 }
 
 /* Desktop: the two dates stack as sections, like the domains in the next step. */
 @media (min-width: 960px) and (min-height: 640px) {
     html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
+        display: block;
         grid-template-columns: minmax(0, 1fr);
     }
 
@@ -3094,11 +3087,27 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #lwcToStep2Btn {
 
     html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .blood-draw-date-control {
         width: min(100%, 22rem);
-        padding-top: var(--lwc-space-4, 1rem);
+        padding-top: var(--lwc-space-2, 0.5rem);
     }
 
     html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset {
         column-gap: 0.75rem;
+    }
+
+    /* Keep the stacked sheet and its inline actions clear on laptop screens.
+       Reduce gutters, retaining the original text and control sizes. */
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset {
+        padding-bottom: 0;
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote {
+        margin-top: var(--lwc-space-2, 0.5rem);
+        padding-block: 0.25rem;
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > .lwc-step-actions {
+        margin-top: var(--lwc-space-2, 0.5rem);
+        padding-block: var(--lwc-space-2, 0.5rem);
     }
 }
 
@@ -3112,7 +3121,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #lwcToStep2Btn {
         animation: bioage-date-chip 420ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1));
     }
 
-    body:has(:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active #dob-year:valid) #lwcToStep2Btn.green {
+    body:has(:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active:has(#dob-year:valid):has(#blood-draw-date:valid)) #lwcToStep2Btn.green {
         animation: bioage-date-arm 760ms cubic-bezier(0, 0, 0, 1);
     }
 
