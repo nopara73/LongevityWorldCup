@@ -1150,7 +1150,7 @@
         }
 
         host.innerHTML = insights.map((insight, index) => `
-            <button type="button" class="decision-card ${escAttr(insight.severity)}" data-action="${registerDecisionAction(insight.title, insight.events)}">
+            <button type="button" class="decision-card ${escAttr(insight.severity)}" data-insight="${escAttr(insightKey(insight.title))}" data-action="${registerDecisionAction(insight.title, insight.events)}">
                 <span class="decision-rank">${index + 1}</span>
                 <span class="decision-body">
                     <span class="decision-title">${esc(insight.title)}</span>
@@ -1178,12 +1178,18 @@
         }
 
         host.innerHTML = investigations.map(item => `
-            <button type="button" class="investigation-row" data-action="${registerDecisionAction(item.title, item.events)}">
+            <button type="button" class="investigation-row" data-insight="${escAttr(insightKey(item.title))}" data-action="${registerDecisionAction(item.title, item.events)}">
                 <strong>${esc(item.title)}</strong>
                 <span>${esc(item.reason)}</span>
                 <em>${esc(item.sessions)} sessions</em>
             </button>
         `).join("");
+    }
+
+    // A decision and the investigation that follows it share one key, so
+    // pointing at either lights both columns.
+    function insightKey(title: string): string {
+        return title.replace(/^inspect:\s*/i, "").trim().toLowerCase();
     }
 
     function renderSegmentComparisons(active: DashboardEvent[], previous: DashboardEvent[]): void {
@@ -1772,6 +1778,18 @@
             update();
         }
         window.addEventListener("resize", placeTabIndicator, { passive: true });
+        // Decision and investigation pairs answer each other.
+        let paired: Element[] = [];
+        const pair = (target: EventTarget | null): void => {
+            const card = target instanceof Element ? target.closest<HTMLElement>("[data-insight]") : null;
+            const key = card?.dataset["insight"] || "";
+            paired.forEach(item => item.classList.remove("is-paired"));
+            paired = key ? Array.from(document.querySelectorAll(`[data-insight="${CSS.escape(key)}"]`)) : [];
+            if (paired.length > 1) paired.forEach(item => item.classList.add("is-paired"));
+            else paired = [];
+        };
+        document.addEventListener("pointerover", event => pair(event.target));
+        document.addEventListener("focusin", event => pair(event.target));
         new ResizeObserver(placeTabIndicator).observe(el("statsTabs"));
         void document.fonts?.ready.then(placeTabIndicator);
     }
@@ -1933,7 +1951,15 @@
 
     function renderFunnel(defs: FunnelDefinition[], events: DashboardEvent[]): void {
         const host = el("primaryFunnel");
+        // Remember each step's bar and count so a new flow or filter morphs
+        // from what was on screen instead of regrowing from nothing.
+        const before = Array.from(host.querySelectorAll<HTMLElement>(".funnel-row")).map(row => ({
+            fill: parseFloat(row.querySelector<HTMLElement>(".funnel-fill")?.style.width || "0") || 0,
+            leak: parseFloat(row.querySelector<HTMLElement>(".funnel-leak")?.style.width || "0") || 0,
+            count: Number(row.querySelector<HTMLElement>(".funnel-number")?.dataset["value"] || NaN)
+        }));
         host.innerHTML = "";
+        host.toggleAttribute("data-fresh", !before.length);
         if (!defs.length) {
             host.innerHTML = empty("No funnel data for the active filters.");
             return;
@@ -1942,7 +1968,7 @@
         if (!firstDefinition) return;
         const first = sessionsForNames(events, [firstDefinition[0]]);
         let previous = first;
-        defs.forEach(([name, label]) => {
+        defs.forEach(([name, label], index) => {
             const reached = sessionsForNames(events, [name]);
             const count = reached.size;
             // Reach counts include returning sessions. Conversion and drop-off
@@ -1955,15 +1981,31 @@
             row.className = `funnel-row${state.selectedEventName === name ? " active" : ""}`;
             row.innerHTML = `
                 <span class="funnel-name">${esc(label)}</span>
-                <span class="funnel-bar"><span class="funnel-fill" style="width:${barWidth(count, first.size)}%"></span></span>
-                <span class="funnel-number">${count}</span>
+                <span class="funnel-bar"><span class="funnel-leak" style="width:${barWidth(previous.size, first.size)}%"></span><span class="funnel-fill" style="width:${barWidth(count, first.size)}%"></span></span>
+                <span class="funnel-number" data-value="${count}">${count}</span>
                 <span class="funnel-rate">${fromPrev}</span>
                 <span class="funnel-drop${drop > Math.max(2, previous.size * 0.35) ? " high" : ""}">drop ${drop}</span>
             `;
             row.addEventListener("click", () => selectDrilldown(name, label));
             host.appendChild(row);
+            morphFunnelRow(row, before[index], index);
             previous = reached;
         });
+    }
+
+    function morphFunnelRow(row: HTMLElement, before: { fill: number; leak: number; count: number } | undefined, index: number): void {
+        if (!before || !feelMotion()) return;
+        const number = row.querySelector<HTMLElement>(".funnel-number");
+        if (number && Number.isFinite(before.count)) number.dataset["lwcNumber"] = String(before.count);
+        const stretch = (selector: string, from: number): void => {
+            const bar = row.querySelector<HTMLElement>(selector);
+            const to = bar ? parseFloat(bar.style.width) || 0 : 0;
+            if (!bar || to <= 0 || Math.abs(from - to) < 0.2) return;
+            bar.animate([{ transform: `scaleX(${from / to})` }, { transform: "none" }],
+                { duration: 340, delay: Math.min(index, 10) * 18, easing: morphEase, fill: "backwards" });
+        };
+        stretch(".funnel-fill", before.fill);
+        stretch(".funnel-leak", before.leak);
     }
 
     function renderFriction(): void {
