@@ -519,6 +519,7 @@ interface Window {
     styleWithBadgeVars?(style: string): string;
     __lwcBadgeTipBound?: boolean;
     __lwcBadgeLightBound?: boolean;
+    __lwcBadgeCabinetBound?: boolean;
     getBadgeRarity?(badge: ServerBadge): 'legendary' | 'rare' | '';
     LwcBadges?: {
         celebrate(scope: Element | null | undefined): void;
