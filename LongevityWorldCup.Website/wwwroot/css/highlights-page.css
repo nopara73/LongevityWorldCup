@@ -974,3 +974,116 @@ main.event-board-page {
         animation: none !important;
     }
 }
+
+
+/* ===== Reading the day =====
+   A day number leads its own first line instead of floating at the middle of
+   a wrapped message. While a month is pinned, its band carries the day under
+   the reader's eye; the number rolls as days pass. Events from the last day
+   breathe on the rail, and the rail answers the pointer. */
+@media (min-width: 601px) {
+    .event-board-page .events-board tbody tr.main-row > td.col-date {
+        align-self: start;
+        /* Centre the number on the message's first line (1.5em line, 8px pad). */
+        padding-top: calc(var(--lwc-space-2, 8px) + (1.5rem - 1.375rem) / 2);
+    }
+}
+
+/* The band's day: a chip that appears at the band's end once the month is pinned. */
+.event-board-page .events-board tbody tr.events-month-row > th {
+    gap: var(--lwc-space-2, 8px);
+}
+
+.event-board-page .events-day-chip {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    height: 1.6rem;
+    margin-left: auto;
+    padding: 0 .5rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--events-header-action, var(--secondary-color, #087685));
+    color: var(--lwc-on-accent, #fff);
+    font-size: .85rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+    transform: scale(.6);
+    transition: opacity 180ms var(--feed-ease, ease), transform 260ms cubic-bezier(.34, 1.4, .64, 1);
+}
+
+.event-board-page .events-board tbody tr.events-month-row.is-pinned .events-day-chip:not(:empty) {
+    opacity: 1;
+    transform: none;
+}
+
+.event-board-page .events-day-chip > span {
+    display: block;
+}
+
+/* The row whose day the band is showing gets a quiet marker on its date. */
+.event-board-page .events-board tbody tr.main-row.is-current-day > td.col-date {
+    color: var(--secondary-color, #087685);
+}
+
+/* Fresh: events from the last day breathe on the rail. */
+.event-board-page .events-board tr.main-row.is-fresh .event-avatar-frame {
+    position: relative;
+}
+
+.event-board-page .events-board tr.main-row.is-fresh .event-avatar-frame::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--secondary-color, #087685);
+    opacity: .9;
+    pointer-events: none;
+}
+
+/* The rail answers the pointer: the portrait lifts, its kind chip pops. */
+.event-board-page .events-board .event-avatar-frame {
+    transition: transform 200ms var(--feed-ease, ease);
+}
+
+.event-board-page .events-board .event-kind {
+    transition: transform 220ms cubic-bezier(.34, 1.4, .64, 1);
+}
+
+@media (hover: hover) {
+    .event-board-page .events-board tr.main-row:hover .event-avatar-frame {
+        transform: scale(1.08);
+    }
+
+    .event-board-page .events-board tr.main-row:hover .event-kind {
+        transform: scale(1.25) rotate(-8deg);
+    }
+
+    .event-board-page .events-board tr.main-row:hover {
+        box-shadow: inset 3px 0 0 var(--secondary-color, #087685);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .event-board-page .events-board tr.main-row.is-fresh .event-avatar-frame::before {
+        animation: events-fresh 2.4s ease-out 2;
+    }
+}
+
+@keyframes events-fresh {
+    0% { transform: scale(.85); opacity: .9; }
+    70%, 100% { transform: scale(1.35); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .event-board-page .events-day-chip,
+    .event-board-page .events-board .event-avatar-frame,
+    .event-board-page .events-board .event-kind {
+        transition: none;
+    }
+}

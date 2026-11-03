@@ -24,22 +24,27 @@ public sealed class SiteChromeSystemBrowserTests(
     [InlineData("/about", 1440, 900, false)]
     [InlineData("/about", 1280, 720, true)]
     [InlineData("/ruleset", 1024, 768, false)]
+    [InlineData("/about", 820, 1024, false)]
+    [InlineData("/", 1366, 900, true)]
+    [InlineData("/about", 1920, 1080, true)]
     public async Task Header_AlignsTheLockupAndPlayToTheContentColumn(string path, int width, int height, bool dark)
     {
         await using var context = await NewChromeContextAsync(width, height, dark);
         var page = await OpenAsync(context, path);
-        var gutter = Math.Max(24, (width - 1152) / 2.0);
         var box = await page.EvaluateAsync<double[]>(
             """
             () => {
                 const brand = document.querySelector('header[role=banner] .header-link').getBoundingClientRect();
                 const logo = document.querySelector('header[role=banner] .main-logo-image').getBoundingClientRect();
                 const play = document.querySelector('header[role=banner] .join-game:not(.scrolled-button)').getBoundingClientRect();
-                return [brand.left, logo.left, document.querySelector('header .site-header-actions').getBoundingClientRect().right, document.documentElement.clientWidth, play.top + play.height / 2, logo.top + logo.height / 2];
+                const main = document.querySelector('main'), content = main.getBoundingClientRect(), style = getComputedStyle(main);
+                return [brand.left, logo.left, document.querySelector('header .site-header-actions').getBoundingClientRect().right, document.documentElement.clientWidth, play.top + play.height / 2, logo.top + logo.height / 2,
+                    content.left + parseFloat(style.paddingLeft), content.right - parseFloat(style.paddingRight)];
             }
             """);
-        Assert.InRange(box[1], gutter - 2, gutter + 2);
-        Assert.InRange(box[3] - box[2], gutter - 2, gutter + 2);
+        Assert.InRange(Math.Abs(box[1] - box[6]), 0, 2);
+        Assert.InRange(Math.Abs(box[2] - box[7]), 0, 2);
+        if (width == 1920) Assert.InRange(box[7] - box[6], 1279, 1281);
         Assert.InRange(Math.Abs(box[4] - box[5]), 0, 2);
         await ExpectNoHorizontalOverflowAsync(page);
     }
@@ -120,7 +125,6 @@ public sealed class SiteChromeSystemBrowserTests(
         await page.Mouse.WheelAsync(0, 1600);
         await page.WaitForFunctionAsync("() => document.getElementById('site-sticky-header').getAttribute('aria-hidden') === 'false'");
         await page.EvaluateAsync("async () => { for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame); }");
-        var gutter = width <= 640 ? 16 : Math.Max(24, (width - 1152) / 2.0);
         var box = await page.EvaluateAsync<double[]>(
             """
             () => {
@@ -128,12 +132,14 @@ public sealed class SiteChromeSystemBrowserTests(
                 const title = document.querySelector('.site-sticky-header-title');
                 const play = document.querySelector('.scrolled-button').getBoundingClientRect();
                 const bar = document.getElementById('site-sticky-header').getBoundingClientRect();
+                const main = document.querySelector('main'), content = main.getBoundingClientRect(), style = getComputedStyle(main);
                 return [logo.left, document.documentElement.clientWidth - document.querySelector('.site-sticky-menu-toggle').getBoundingClientRect().right, parseFloat(getComputedStyle(title).borderLeftWidth),
-                    play.top - bar.top, bar.bottom - play.bottom, parseFloat(getComputedStyle(document.getElementById('site-sticky-header')).borderBottomWidth)];
+                    play.top - bar.top, bar.bottom - play.bottom, parseFloat(getComputedStyle(document.getElementById('site-sticky-header')).borderBottomWidth),
+                    content.left + parseFloat(style.paddingLeft), document.documentElement.clientWidth - content.right + parseFloat(style.paddingRight)];
             }
             """);
-        Assert.InRange(box[0], gutter - 2, gutter + 2);
-        if (width > 640) Assert.InRange(box[1], gutter - 2, gutter + 2);
+        Assert.InRange(Math.Abs(box[0] - box[6]), 0, 2);
+        if (width > 640) Assert.InRange(Math.Abs(box[1] - box[7]), 0, 2);
         Assert.Equal(1, box[2]);
         Assert.InRange(box[3], 0, 100);
         Assert.InRange(box[4], 0, 100);
