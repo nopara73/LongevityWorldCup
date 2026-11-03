@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
@@ -8,7 +9,8 @@ namespace LongevityWorldCup.Tests;
 [Collection(BrowserTestCollections.WorkloadB)]
 public sealed class BioageBiomarkerGroupsBrowserTests(
     PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
+    BrowserTestAppFixture appFixture,
+    ITestOutputHelper output)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
@@ -106,7 +108,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
             Assert.InRange(fontSize, 16 * textPercent / 100d - 0.5, double.MaxValue);
             Assert.False(string.IsNullOrWhiteSpace(await input.GetAttributeAsync("aria-label")));
             await input.FillAsync("");
-            await input.PressAsync("Tab");
+            await BlurBiomarkerAsync(page, input, id, "empty");
             var error = page.Locator($"#{id}-entry-error");
             await Assertions.Expect(error).ToBeVisibleAsync();
             await Assertions.Expect(input).ToHaveAttributeAsync("aria-invalid", "true");
@@ -146,11 +148,45 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
                 """);
             Assert.True(problems.Length == 0, $"{path} {width}px {textPercent}% {id}: {string.Join("; ", problems)}");
             await input.FillAsync(value);
-            await input.PressAsync("Tab");
+            await BlurBiomarkerAsync(page, input, id, "restored");
             await Assertions.Expect(error).ToBeHiddenAsync();
         }
         await Assertions.Expect(page.Locator(".biomarker-card--complete")).ToHaveCountAsync(total);
         await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeEnabledAsync();
         Assert.Empty(errors);
+    }
+
+    private async Task BlurBiomarkerAsync(IPage page, ILocator input, string? id, string phase)
+    {
+        try
+        {
+            await input.PressAsync("Tab");
+        }
+        catch (PlaywrightException)
+        {
+            await WriteFailureDiagnosticsAsync(page, output, $"Tab after {phase} {id}", """
+                id => {
+                    const input = document.getElementById(id);
+                    const describe = element => element && ({
+                        tag: element.tagName, id: element.id, classes: element.className,
+                        rect: element.getBoundingClientRect().toJSON(),
+                        connected: element.isConnected, disabled: element.disabled,
+                        inert: !!element.closest('[inert]'),
+                        visibility: getComputedStyle(element).visibility
+                    });
+                    return {
+                        readyState: document.readyState, viewport: [innerWidth, innerHeight],
+                        scroll: [scrollX, scrollY], active: describe(document.activeElement),
+                        input: describe(input), card: describe(input?.closest('.biomarker-card')),
+                        invalid: input?.getAttribute('aria-invalid'),
+                        progress: document.querySelector('.bioage-biomarker-progress')?.textContent,
+                        dock: describe(document.querySelector('[data-flow-dock].flow-action-dock-active')),
+                        errors: [...document.querySelectorAll('.bioage-biomarker-error:not([hidden])')]
+                            .map(error => ({ id: error.id, rect: error.getBoundingClientRect().toJSON() }))
+                    };
+                }
+                """, id);
+            throw;
+        }
     }
 }
