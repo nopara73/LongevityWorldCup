@@ -164,6 +164,23 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     public async Task SearchingByRank_UsesTheDisplayedRankAndRecomputesAfterAViewChange()
     {
         await using var context = await NewContextAsync(Browser, App, new());
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            // Keep the rank query distinct from score text: the growing real roster
+            // moved Michael to #42, which also matched his 42.x% pheno reduction.
+            var amateur = athletes.OfType<JsonObject>().Single(a => a["Name"]!.GetValue<string>() == "Michael Lustgarten").DeepClone();
+            var pro = athletes.OfType<JsonObject>().Single(a => a["Name"]!.GetValue<string>() == "Benjamin Garden");
+            athletes.Clear();
+            athletes.Add(amateur);
+            for (var i = 1; i <= 9; i++)
+            {
+                var competitor = pro.DeepClone().AsObject();
+                competitor["Name"] = $"Pro Rank Fixture {i}";
+                competitor["DisplayName"] = null;
+                competitor["AthleteSlug"] = $"pro_rank_fixture_{i}";
+                athletes.Add(competitor);
+            }
+        });
         var page = await context.NewPageAsync();
         await page.GotoAsync("/league/pheno?search=michael%20lustgarten%201");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
@@ -174,7 +191,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await page.GetByRole(AriaRole.Button, new() { Name = "Remove Pheno age filter", Exact = true }).ClickAsync();
         await Assertions.Expect(page.Locator("#view-ultimate")).ToBeCheckedAsync();
         var ultimateRank = (await Rows(page).First.GetAttributeAsync("data-rank"))!;
-        Assert.NotEqual("1", ultimateRank);
+        Assert.Equal("10", ultimateRank);
         await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync(ultimateRank);
         await page.Locator("#athleteSearch").FillAsync($"michael lustgarten {ultimateRank}");
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);

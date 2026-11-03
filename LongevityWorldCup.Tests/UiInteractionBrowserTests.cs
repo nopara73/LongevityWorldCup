@@ -84,6 +84,40 @@ public sealed class UiInteractionBrowserTests(
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
+    public async Task Profile_TextCaretKeepsItsKeysWithoutChangingAthletes(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten");
+        var content = page.Locator("#detailsModal .modal-content");
+        await Assertions.Expect(content).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-loading"));
+        await page.Locator("#closeAthleteDetailsModal").FocusAsync();
+        var originalSlug = await content.GetAttributeAsync("data-athlete-slug");
+
+        foreach (var selected in new[] { false, true })
+        foreach (var key in new[] { "ArrowLeft", "ArrowRight", "Home", "End" })
+        {
+            await page.Locator("#athleteName").EvaluateAsync("""
+                (el, selected) => {
+                    const text = [...el.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+                    getSelection().collapse(text, 4);
+                    if (selected) getSelection().extend(text, 8);
+                }
+                """, selected);
+            await page.EvaluateAsync("() => window.addEventListener('keydown', e => window.keyHandled = e.defaultPrevented, {once:true})");
+            await page.Keyboard.PressAsync(key);
+            Assert.False(await page.EvaluateAsync<bool>("window.keyHandled"));
+            await Assertions.Expect(content).ToHaveAttributeAsync("data-athlete-slug", originalSlug!);
+        }
+
+        await page.EvaluateAsync("() => getSelection().removeAllRanges()");
+        await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(content).Not.ToHaveAttributeAsync("data-athlete-slug", originalSlug!);
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
     public async Task Profile_ReverseTabKeepsNestedFocusVisibleWhenTheEmbedGrows(int width)
     {
         await using var context = await NewContextAsync(width, 900);
