@@ -315,6 +315,27 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         else await Expect(page.Locator(selector)).ToBeFocusedAsync();
     }
 
+    [Theory]
+    [InlineData(false, "ArrowDown")]
+    [InlineData(false, "End")]
+    [InlineData(true, "ArrowRight")]
+    public async Task TextCaret_KeepsNavigationKeysUntilSelectionIsCleared(bool line, string key)
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
+        if (line) await page.Locator("tbody").EvaluateAsync("e => e.dataset.lwcArrows = 'line'");
+        await page.Locator("#row1").FocusAsync();
+        await page.Locator("#row1").EvaluateAsync("e => getSelection().collapse(e.firstChild, 4)");
+        await page.EvaluateAsync("() => window.addEventListener('keydown', e => window.keyHandled = e.defaultPrevented, {once:true})");
+        await page.Keyboard.PressAsync(key);
+        Assert.False(await page.EvaluateAsync<bool>("window.keyHandled"));
+        await Expect(page.Locator("#row1")).ToBeFocusedAsync();
+
+        await page.EvaluateAsync("() => getSelection().removeAllRanges()");
+        await page.Keyboard.PressAsync(key);
+        await Expect(page.Locator("#row2")).ToBeFocusedAsync();
+    }
+
     [Fact]
     public async Task RowArrows_SkipInvisibleRowsAndRespectSelectionModifiersAndPageHandlers()
     {
