@@ -498,11 +498,23 @@ public sealed class InternalToolsDashboardBrowserTests(
             """);
         Assert.Empty(clipped);
         var wrappedFigures = await page.Locator(".traffic-metric > strong").EvaluateAllAsync<string[]>("""
-            elements => elements.filter(e => {
+            elements => elements.flatMap(e => {
                 const range = document.createRange();
                 range.selectNodeContents(e);
-                return range.getClientRects().length !== 1;
-            }).map(e => e.textContent)
+                const rects = [...range.getClientRects()].map(rect => rect.toJSON());
+                if (rects.length === 1) return [];
+                const grid = e.closest('.traffic-metrics');
+                const style = getComputedStyle(e);
+                return [JSON.stringify({
+                    text: e.textContent, rects, figure: e.getBoundingClientRect().toJSON(),
+                    grid: grid.getBoundingClientRect().toJSON(),
+                    columns: getComputedStyle(grid).gridTemplateColumns,
+                    gridFont: getComputedStyle(grid).fontSize, font: style.font,
+                    visibility: style.visibility, fonts: document.fonts.status,
+                    busy: document.querySelector('.stats-page').getAttribute('aria-busy'),
+                    viewport: [innerWidth, innerHeight]
+                })];
+            })
             """);
         Assert.Empty(wrappedFigures);
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);

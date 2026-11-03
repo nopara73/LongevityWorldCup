@@ -1,6 +1,7 @@
 using Microsoft.Playwright;
 using System.Text.Json.Nodes;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace LongevityWorldCup.Tests;
 
@@ -167,6 +168,23 @@ public abstract class BrowserIntegrationTest(
     protected BrowserTestApp App => _isolatedApp ?? appFixture.App;
     protected IBrowser Browser => browserFixture.Browser;
     protected virtual bool UseIsolatedApplicationPerTest => false;
+
+    // A failed browser action may leave its renderer unresponsive. Keep evidence
+    // collection bounded, and preserve the original exception if it also fails.
+    protected static async Task WriteFailureDiagnosticsAsync(
+        IPage page, ITestOutputHelper output, string operation, string expression, object? argument = null)
+    {
+        try
+        {
+            var state = await page.EvaluateAsync<System.Text.Json.JsonElement>(expression, argument)
+                .WaitAsync(TimeSpan.FromSeconds(2));
+            output.WriteLine($"{operation}: {state}");
+        }
+        catch (Exception error)
+        {
+            output.WriteLine($"{operation}: browser diagnostics unavailable ({error.GetType().Name}: {error.Message})");
+        }
+    }
 
     // Scroll/view timelines settle at a scroll position, not after elapsed time.
     // Poll finite clock-driven effects with a deadline instead of awaiting every
