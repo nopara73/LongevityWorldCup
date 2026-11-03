@@ -3181,6 +3181,8 @@ function setupModalKeyboardNavigation() {
         if (event.defaultPrevented || (window.LwcImageViewer?.isOpen() || modal.querySelector('#athleteShareMenu:not([hidden])'))) return;
         if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
         if (modalContent.classList.contains('guess-mode')) return;
+        if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
+            && window.LwcPointer?.hasTextSelection(modalContent)) return;
 
         // Home key - scroll to top
         if (event.key === 'Home' && !event.ctrlKey && !event.metaKey) {
