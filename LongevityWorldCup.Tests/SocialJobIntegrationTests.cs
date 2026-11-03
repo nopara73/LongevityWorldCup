@@ -579,6 +579,11 @@ public sealed class SocialJobIntegrationTests
         var body = WebUtility.UrlDecode(await request.Content!.ReadAsStringAsync());
         Assert.Contains("Benjamin Garden", body);
         Assert.DoesNotContain("slug[", body);
+        // Force the startup-rescan ordering that used to recreate cleared milestones.
+        // This must not queue another post while the athlete is on subject cooldown.
+        await (Task)typeof(AthleteDataService)
+            .GetMethod("ReloadFromSourceAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(fixture.Athletes, [CancellationToken.None])!;
         var duplicateSubject = fixture.InsertEvent(type, raw, DateTime.UtcNow.AddSeconds(1), facebookProcessed: 0);
         await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
         Assert.Single(fixture.FacebookRequests);
@@ -1123,7 +1128,16 @@ public sealed class SocialJobIntegrationTests
             database.Run(sqlite =>
             {
                 using var cmd = sqlite.CreateCommand();
-                cmd.CommandText = "DELETE FROM Events;";
+                // Keep startup history for event deduplication. Deleting it lets the
+                // asynchronous roster rescan recreate athlete-count milestones and
+                // race the events explicitly inserted by each dispatch test.
+                cmd.CommandText = """
+                    UPDATE Events SET SlackProcessed=1, XProcessed=1, ThreadsProcessed=1, FacebookProcessed=1;
+                    INSERT OR REPLACE INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
+                    SELECT e.Id, c.Platform, 'skipped', 'FixtureBaseline', @now
+                    FROM Events e CROSS JOIN SocialDeliveryChannels c;
+                    """;
+                cmd.Parameters.AddWithValue("@now", DateTime.UtcNow.ToString("o"));
                 cmd.ExecuteNonQuery();
             });
 
