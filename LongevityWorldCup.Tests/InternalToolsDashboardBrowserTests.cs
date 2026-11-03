@@ -485,6 +485,7 @@ public sealed class InternalToolsDashboardBrowserTests(
         await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
         await page.AddStyleTagAsync(new() { Content = ".stats-controls, .traffic-metrics { font-size: 21px; } .traffic-metric > strong { font-size: 48px; }" });
         await page.Locator("#statsSource").SelectOptionAsync("ai");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
         var clipped = await page.EvaluateAsync<string[]>("""
             () => {
                 const canvas = document.createElement('canvas').getContext('2d');
@@ -497,8 +498,8 @@ public sealed class InternalToolsDashboardBrowserTests(
             }
             """);
         Assert.Empty(clipped);
-        var wrappedFigures = await page.Locator(".traffic-metric > strong").EvaluateAllAsync<string[]>("""
-            elements => elements.flatMap(e => {
+        var wrappedFigures = await page.EvaluateAsync<string[]>("""
+            () => [...document.querySelectorAll(".traffic-metric > strong")].flatMap(e => {
                 const range = document.createRange();
                 range.selectNodeContents(e);
                 const rects = [...range.getClientRects()].map(rect => rect.toJSON());
