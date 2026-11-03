@@ -36,8 +36,9 @@ public sealed class ApplicationPaymentReconciler(
                 return;
             }
 
-            if (!CheckoutConfiguration.Matches(config, payment))
-                throw new InvalidOperationException("Payment configuration no longer matches this payment's provider account.");
+            if (!string.Equals(payment.ProviderBaseUrl, config.BTCPayBaseUrl?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
+                || payment.StoreId != config.BTCPayStoreId)
+                throw new InvalidOperationException("BTCPay configuration no longer matches this payment's store.");
 
             if (payment.InvoiceId is null)
             {

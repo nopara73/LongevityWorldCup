@@ -871,7 +871,7 @@ namespace LongevityWorldCup.Website.Controllers
                     if (!invoiceResult.Success)
                     {
                         _logger.LogError(
-                            "Application submission was saved but payment checkout creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
+                            "Application submission was saved but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
                             submissionId,
                             submissionKind,
                             zipSizeBytes,
@@ -1699,14 +1699,18 @@ namespace LongevityWorldCup.Website.Controllers
             bool isEditSubmissionOnly,
             CancellationToken ct)
         {
-            if (CheckoutConfiguration.ValidateNewCheckout(config) is { } configurationError)
-                return (false, null, null, configurationError);
+            if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl))
+                return (false, null, null, "BTCPayBaseUrl is missing in config.");
+            if (string.IsNullOrWhiteSpace(config.BTCPayStoreId))
+                return (false, null, null, "BTCPayStoreId is missing in config.");
+            if (string.IsNullOrWhiteSpace(config.BTCPayGreenfieldApiKey))
+                return (false, null, null, "BTCPayGreenfieldApiKey is missing in config.");
 
             var amount = requestedAmountUsd < 0m ? 0m : requestedAmountUsd;
             if (amount <= 0m)
                 return (false, null, null, "Requested amount must be greater than zero.");
 
-            var orderId = $"lwc-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}";
+            var orderId = $"lwc-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}";
             var offerType = applicantData.PaymentOffer?.OfferType?.Trim();
             var source = applicantData.PaymentOffer?.Source?.Trim();
             var currency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
@@ -1749,8 +1753,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
-                return (false, null, null, CheckoutConfiguration.UseStripe(config)
-                    ? "Stripe checkout creation timed out." : "BTCPay invoice creation timed out.");
+                return (false, null, null, "BTCPay invoice creation timed out.");
             }
         }
 

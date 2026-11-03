@@ -1244,6 +1244,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/prize-pool.css":
                     await AssertPrizePoolContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/proof-desk.css":
+                    await ProofDeskBrowserTests.AssertContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
@@ -2427,12 +2430,16 @@ public sealed class AestheticSystemBrowserTests(
             await NavigateAndSettleAsync(page, route);
             var selector = condition.Value switch
             {
-                38 => "#lwc-step-1",
+                38 => "#lwc-step-2 .biomarker-card",
                 15 => "#dobFieldset",
                 14 when condition.Unit == "em" => "#dobFieldset",
                 _ => throw new InvalidOperationException(
                     $"Add a rendered calculator probe for {condition.Value}{condition.Unit}.")
             };
+            // Dates stay stacked on both sides of this boundary. The same
+            // query still changes biomarker rows between stacked and grid.
+            if (condition.Value == 38)
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
             // Em queries use the container's font, not the root font. Give the
             // date probe a distinct font size so a rem/em mix-up cannot pass.
             var emDateProbe = condition.Unit == "em";

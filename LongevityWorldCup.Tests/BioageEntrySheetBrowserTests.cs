@@ -35,21 +35,13 @@ public sealed class BioageEntrySheetBrowserTests(
             Assert.InRange(band.Right, -1, 1);
         });
 
-        Assert.InRange(stepOne[0].Left, -1, 1);
-        Assert.InRange(stepOne[1].Right, -1, 1);
-        if (width >= 960)
+        // Both dates open full-width sections on desktop and phone alike.
+        Assert.True(stepOne[1].Top > stepOne[0].Top + 40, $"{path}: the draw date band shares the birth date row.");
+        Assert.All(stepOne, band =>
         {
-            // On a desktop the two date sections share one band row across the card.
-            Assert.InRange(stepOne[1].Top - stepOne[0].Top, -1, 1);
-            Assert.InRange(stepOne[1].AbsoluteLeft - stepOne[0].AbsoluteRight, -1, 1);
-        }
-        else
-        {
-            // On a phone the draw date follows the birth date like the domains do.
-            Assert.True(stepOne[1].Top > stepOne[0].Top + 40, $"{path}: the draw date band shares the birth date row.");
-            Assert.InRange(stepOne[0].Right, -1, 1);
-            Assert.InRange(stepOne[1].Left, -1, 1);
-        }
+            Assert.InRange(band.Left, -1, 1);
+            Assert.InRange(band.Right, -1, 1);
+        });
         await ExpectNoHorizontalOverflowAsync(page);
     }
 

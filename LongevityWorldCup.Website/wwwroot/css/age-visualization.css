@@ -459,3 +459,40 @@
     border-top:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
     font-variant-numeric:tabular-nums;
 }
+
+/* One underline glides between the clocks (age-visualization.ts sets the
+   geometry) and takes the chosen clock's colour on the way. */
+#detailsModal .age-clock-switch [role="tablist"][data-glide] { position: relative; }
+#detailsModal .age-clock-switch [role="tablist"][data-glide]:not(:has([role="tab"][hidden])) [role="tab"][aria-selected="true"] { box-shadow: none; }
+#detailsModal .age-clock-switch [role="tablist"][data-glide]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: auto;
+    width: var(--clock-tab-w, 0px);
+    height: 2px;
+    border-radius: 2px;
+    background: var(--athlete-modal-chart-bortz, var(--athlete-modal-accent, #7bdde3));
+    box-shadow: 0 0 10px currentColor;
+    color: var(--athlete-modal-chart-bortz, transparent);
+    translate: var(--clock-tab-x, 0px) var(--clock-tab-y, 0px);
+    transition: translate 300ms cubic-bezier(.2, 0, 0, 1), width 300ms cubic-bezier(.2, 0, 0, 1), background-color 300ms ease, color 300ms ease;
+    pointer-events: none;
+}
+#detailsModal .age-clock-switch [role="tablist"][data-glide="pheno"]::after {
+    background: var(--athlete-modal-chart-pheno, var(--athlete-modal-accent, #7bdde3));
+    color: var(--athlete-modal-chart-pheno, transparent);
+}
+#detailsModal .age-clock-switch [role="tablist"][data-glide]:has([role="tab"][hidden])::after { display: none; }
+#detailsModal .age-clock-switch [role="tab"] { transition: color 200ms ease; }
+
+/* The radar card sits on a faint polar glow so the web has a stage. */
+#detailsModal .age-radar-wrapper {
+    background: radial-gradient(closest-side, rgba(246, 244, 237, .05), transparent 72%) center / min(100%, 420px) 100% no-repeat;
+    transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #detailsModal .age-clock-switch [role="tablist"][data-glide]::after { transition: none; }
+}
