@@ -1,0 +1,130 @@
+/* Generated reading pages: chapter openers and the "Where to go next" doorways.
+   Frontend/doc-chapters.ts sets [data-doc-chapters] on .documentation-page and
+   adds .is-opened (headings), .is-dealt (deck), .is-instant (already on screen)
+   and --door-x/--door-y/--door-i. This sheet loads before the page's inline
+   styles, so selectors carry html + the attribute to win. Only --lwc-* colours. */
+
+/* ------------------------------------------------------------ chapter openers */
+/* The number badge stamps in as its chapter arrives. */
+html .documentation-page[data-doc-chapters] .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2):not(.is-opened)::before {
+    opacity: 0;
+    scale: .5;
+}
+html .documentation-page[data-doc-chapters] .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2).is-opened:not(.is-instant)::before {
+    animation: doc-badge-stamp 560ms cubic-bezier(.34, 1.4, .64, 1) both;
+}
+@keyframes doc-badge-stamp {
+    0% { opacity: 0; scale: .45; rotate: -14deg; box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-accent) 45%, transparent); }
+    60% { opacity: 1; scale: 1.1; rotate: 3deg; }
+    100% { opacity: 1; scale: 1; rotate: 0deg; box-shadow: 0 0 0 10px transparent; }
+}
+
+/* An accent rule draws out from the chapter title to the card's edge. */
+html .documentation-page[data-doc-chapters] .documentation-document h2.documentation-chapter .documentation-chapter-title { flex: 0 1 auto; }
+html .documentation-page[data-doc-chapters] .documentation-document h2.documentation-chapter::after {
+    content: "";
+    flex: 1 1 2.5rem;
+    min-width: 2rem;
+    height: 2px;
+    margin-top: .2em;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--lwc-accent), color-mix(in srgb, var(--lwc-accent) 0%, transparent));
+    transform-origin: left center;
+    transform: scaleX(0);
+    opacity: .55;
+}
+html .documentation-page[data-doc-chapters] .documentation-document h2.documentation-chapter.is-opened::after {
+    transform: scaleX(1);
+    transition: transform 900ms cubic-bezier(.2, 0, 0, 1) 180ms;
+}
+html .documentation-page[data-doc-chapters] .documentation-document h2.documentation-chapter.is-instant::after { transition: none; }
+
+/* ------------------------------------------------------------ doorways */
+/* "Where to go next" becomes an even deck: every doorway the same height,
+   the arrow in a ring that steps through on hover, a light that follows the
+   pointer, and an accent edge that draws along the top. */
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: .85rem;
+}
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li {
+    isolation: isolate;
+    overflow: hidden;
+    padding: 1.1rem 4rem 1.15rem 1.15rem;
+    transition: border-color 200ms ease, box-shadow 260ms ease, translate 260ms cubic-bezier(.2, 0, 0, 1);
+}
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li > a {
+    display: inline;
+    color: var(--lwc-ink);
+    font-size: 1.12rem;
+    transition: color 160ms ease;
+}
+/* The arrow sits in a ring at the doorway's corner. */
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li::before {
+    top: 50%;
+    right: 1rem;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-top: -1.125rem;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border));
+    font-size: 1.05rem;
+    line-height: 1;
+    transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease, translate 260ms cubic-bezier(.34, 1.4, .64, 1);
+    z-index: 1;
+}
+/* The light and the top edge. */
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background:
+        linear-gradient(90deg, var(--lwc-accent), var(--lwc-accent-bright, var(--lwc-accent))) top left / 0% 3px no-repeat,
+        radial-gradient(60% 90% at var(--door-x, 50%) var(--door-y, 50%), var(--lwc-accent-soft), transparent 70%);
+    opacity: 0;
+    transition: opacity 220ms ease, background-size 420ms cubic-bezier(.2, 0, 0, 1);
+    pointer-events: none;
+}
+@media (hover: hover) {
+    html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li:hover {
+        translate: 0 -3px;
+        box-shadow: 0 14px 28px -18px rgba(15, 23, 42, .45);
+    }
+    html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li:hover::after {
+        opacity: 1;
+        background-size: 100% 3px, auto;
+    }
+    html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li:hover > a { color: var(--lwc-accent-hover, var(--lwc-accent)); }
+}
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li:is(:hover, :focus-within)::before {
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent, #fff);
+    box-shadow: none;
+    translate: 4px 0;
+}
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li:active { translate: 0 -1px; }
+
+/* The deck deals its doorways in when it arrives. */
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways:not(.is-dealt) > li {
+    opacity: 0;
+    translate: 0 14px;
+}
+html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways.is-dealt:not(.is-instant) > li {
+    animation: doc-door-deal 520ms cubic-bezier(.2, 0, 0, 1) both;
+    animation-delay: calc(var(--door-i, 0) * 70ms);
+}
+@keyframes doc-door-deal {
+    from { opacity: 0; translate: 0 14px; }
+    to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html .documentation-page[data-doc-chapters] .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2)::before { animation: none !important; opacity: 1; scale: 1; }
+    html .documentation-page[data-doc-chapters] .documentation-document h2.documentation-chapter::after { transform: scaleX(1); transition: none; }
+    html .documentation-page[data-doc-chapters] #where-to-go-next + ul.doc-doorways > li { animation: none !important; opacity: 1; translate: none; }
+}
