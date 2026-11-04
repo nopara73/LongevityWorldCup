@@ -1,0 +1,108 @@
+/* Homepage merch as a shelf. Frontend/merch-shelf.ts sets [data-shelf] on
+   .lwc-merch-body and measures the tilt (--shelf-rx/ry, --shelf-mx/my) and
+   the phone depth (--shelf-d, --shelf-ad). Only --lwc-* colours. The
+   html body main.homepage-main prefix matches homepage.css's final layer. */
+
+/* ------------------------------------------------------------ the product card */
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-grid {
+    gap: var(--lwc-space-4, 1rem);
+    perspective: 900px;
+}
+html body main.homepage-main .lwc-merch-body[data-shelf] :is(.lwc-merch-item, .lwc-merch-mobile-slide) {
+    position: relative;
+    isolation: isolate;
+    padding: 0 0 var(--lwc-space-3, .75rem);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--lwc-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+}
+/* The product stands on a soft studio floor. */
+html body main.homepage-main .lwc-merch-body[data-shelf] :is(.lwc-merch-item, .lwc-merch-mobile-slide) .lwc-merch-thumb {
+    background: radial-gradient(120% 90% at 50% 0%, var(--lwc-surface) 0 40%, var(--lwc-surface-muted) 100%);
+}
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .4rem;
+    padding: 0 var(--lwc-space-3, .75rem);
+    text-align: center;
+}
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item-title {
+    color: var(--lwc-ink);
+    font-weight: 700;
+}
+/* The price is a tag. */
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item-price {
+    padding: .1rem .5rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-accent-hover, var(--lwc-accent));
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ desktop: lean + sheen */
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item {
+    transform: rotateX(var(--shelf-rx, 0deg)) rotateY(var(--shelf-ry, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 520ms cubic-bezier(.2, 0, 0, 1), box-shadow 260ms ease, border-color 200ms ease;
+    will-change: transform;
+}
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item[data-shelf-lean] {
+    transition: transform 90ms linear, box-shadow 260ms ease, border-color 200ms ease;
+}
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    background: radial-gradient(42% 38% at var(--shelf-mx, 50%) var(--shelf-my, 30%), rgba(255, 255, 255, .42), transparent 70%);
+    mix-blend-mode: soft-light;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 260ms ease;
+}
+@media (hover: hover) {
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item:hover {
+        border-color: var(--lwc-accent);
+        box-shadow: 0 18px 34px -20px rgba(15, 23, 42, .55);
+    }
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item:hover::after { opacity: 1; }
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item:hover .lwc-merch-thumb { scale: 1.06; }
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item:hover .lwc-merch-item-price {
+        background: var(--lwc-accent);
+        color: var(--lwc-on-accent, #fff);
+    }
+}
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item:active { scale: .985; }
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item-price { transition: background-color 200ms ease, color 200ms ease; }
+
+/* ------------------------------------------------------------ phone: a turning shelf */
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-mobile-slide {
+    transform: scale(calc(1 - .09 * var(--shelf-ad, 0)));
+    transform-origin: calc(50% - 50% * var(--shelf-d, 0)) 60%;
+    opacity: calc(1 - .42 * var(--shelf-ad, 0));
+    box-shadow: 0 calc(14px * (1 - var(--shelf-ad, 0))) 26px -18px rgba(15, 23, 42, .5);
+}
+/* The photo pans inside its frame as the slide turns (parallax without overflow). */
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-mobile-slide .lwc-merch-thumb {
+    object-fit: cover;
+    object-position: calc(50% + 30% * var(--shelf-d, 0)) 34%;
+}
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-mobile-slide .lwc-merch-item-copy {
+    opacity: calc(1 - .8 * var(--shelf-ad, 0));
+}
+/* The active dot stretches into a pill; the others wait as dots. */
+html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-mobile-dot::before {
+    transition: width 320ms cubic-bezier(.34, 1.4, .64, 1), background-color 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item { transform: none; transition: box-shadow 160ms ease, border-color 160ms ease; }
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-item::after { display: none; }
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-mobile-slide,
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-mobile-slide .lwc-merch-thumb,
+    html body main.homepage-main .lwc-merch-body[data-shelf] .lwc-merch-mobile-slide .lwc-merch-item-copy { transform: none; opacity: 1; object-position: center 34%; }
+}
