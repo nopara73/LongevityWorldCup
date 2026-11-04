@@ -490,6 +490,123 @@
                 margin-top: 0.6rem;
             }
         }
+
+        /* ===== The waiting room =====
+           The wait is the page, so the page waits with you. The four-panel
+           comic plays out one panel at a time under a soft spotlight (point at
+           it to see the whole strip), the trail draws itself from sent to now,
+           the hourglass turns over every few seconds and the steps still ahead
+           wait in slowly turning dashed rings. Your email lands last. Reduced
+           motion keeps every state still. */
+        .application-review-visual picture {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--lwc-radius-md, 8px);
+        }
+
+        .application-review-visual picture::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 16, 22, 0.42);
+            clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 0% 0%, calc(0% + 50%) 0%, calc(0% + 50%) calc(0% + 50%), 0% calc(0% + 50%), 0% 0%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 260ms var(--lwc-ease, ease);
+        }
+
+        .application-review-trail li + li::before {
+            transform-origin: 0 50%;
+        }
+
+        .application-review-trail li:not(.is-done):not(.is-current):not(.is-waiting):not(.is-failed) .application-review-step {
+            border-color: transparent;
+        }
+
+        .application-review-trail li:not(.is-done):not(.is-current):not(.is-waiting):not(.is-failed) .application-review-step::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border: 2px dashed var(--lwc-border-strong);
+            border-radius: var(--lwc-radius-pill);
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            /* The comic reads itself: panel, panel, panel, Bean in the grass. */
+            .application-review-visual picture::after {
+                animation: reviewComic 10s 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+            }
+
+            .application-review-frame:hover picture::after,
+            .application-review-frame:focus-within picture::after {
+                animation-play-state: paused;
+                opacity: 0 !important;
+            }
+
+            /* The trail draws from sent to now, one link at a time. */
+            .application-review-trail li {
+                animation: reviewStepIn 360ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)) backwards;
+            }
+
+            .application-review-trail li + li::before {
+                animation: reviewLinkDraw 320ms var(--lwc-ease, ease) backwards;
+            }
+
+            .application-review-trail li:nth-child(1) { animation-delay: 380ms; }
+            .application-review-trail li:nth-child(2),
+            .application-review-trail li:nth-child(2)::before { animation-delay: 520ms; }
+            .application-review-trail li:nth-child(3),
+            .application-review-trail li:nth-child(3)::before { animation-delay: 660ms; }
+            .application-review-trail li:nth-child(4),
+            .application-review-trail li:nth-child(4)::before { animation-delay: 800ms; }
+            .application-review-trail li:nth-child(5),
+            .application-review-trail li:nth-child(5)::before { animation-delay: 940ms; }
+
+            /* The hourglass turns over now and then. */
+            .application-review-trail .is-current .fa-hourglass-half {
+                animation: reviewHourglass 4.2s 1.6s var(--lwc-ease, ease) infinite;
+            }
+
+            /* Steps still ahead wait in slowly turning rings. */
+            .application-review-trail li:not(.is-done):not(.is-current):not(.is-waiting):not(.is-failed) .application-review-step::before {
+                animation: reviewWaitRing 14s linear infinite;
+            }
+
+            /* Your address lands last. */
+            #contactEmailPlaceholder {
+                animation: reviewChipIn 420ms 1.05s var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)) backwards;
+            }
+        }
+
+        @keyframes reviewComic {
+            0% { opacity: 0; clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 0% 0%, calc(0% + 50%) 0%, calc(0% + 50%) calc(0% + 50%), 0% calc(0% + 50%), 0% 0%); }
+            6%, 22% { opacity: 1; clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 0% 0%, calc(0% + 50%) 0%, calc(0% + 50%) calc(0% + 50%), 0% calc(0% + 50%), 0% 0%); }
+            28%, 47% { opacity: 1; clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 50% 0%, calc(50% + 50%) 0%, calc(50% + 50%) calc(0% + 50%), 50% calc(0% + 50%), 50% 0%); }
+            53%, 72% { opacity: 1; clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 0% 50%, calc(0% + 50%) 50%, calc(0% + 50%) calc(50% + 50%), 0% calc(50% + 50%), 0% 50%); }
+            78%, 94% { opacity: 1; clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 50% 50%, calc(50% + 50%) 50%, calc(50% + 50%) calc(50% + 50%), 50% calc(50% + 50%), 50% 50%); }
+            100% { opacity: 0; clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 50% 50%, calc(50% + 50%) 50%, calc(50% + 50%) calc(50% + 50%), 50% calc(50% + 50%), 50% 50%); }
+        }
+
+        @keyframes reviewStepIn {
+            from { opacity: 0; transform: scale(0.6); }
+        }
+
+        @keyframes reviewLinkDraw {
+            from { transform: scaleX(0); }
+        }
+
+        @keyframes reviewHourglass {
+            0%, 82% { transform: rotate(0deg); }
+            94%, 100% { transform: rotate(180deg); }
+        }
+
+        @keyframes reviewWaitRing {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes reviewChipIn {
+            from { opacity: 0; transform: translateY(8px) scale(0.92); }
+        }
     </style>
 </head>
 <body class="play-flow-route">
