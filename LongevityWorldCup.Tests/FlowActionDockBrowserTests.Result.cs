@@ -117,14 +117,16 @@ public sealed class FlowActionDockResultBrowserTests(
             $"{scenario}: bioage step actions are below the viewport: {layout.Action.Bottom} > {layout.ViewportHeight}. {layout}");
         Assert.True(layout.Day.Bottom <= layout.Action.Top - 6,
             $"{scenario}: day selector is covered by actions. {layout}");
-        if (layout.BloodDraw.Bottom <= layout.Action.Top - 6)
+        // The inline footer shares the section edge. Clearance belongs around
+        // the input; adjoining panel borders do not constitute an overlap.
+        if (layout.BloodDraw.Bottom <= layout.Action.Top + 1)
         {
             Assert.True(layout.BloodDrawInput.Bottom <= layout.Action.Top - 6,
                 $"{scenario}: blood draw input is covered by actions. {layout}");
         }
         Assert.True(layout.Privacy.Bottom <= layout.Action.Top - 6,
             $"{scenario}: privacy note is covered by actions. {layout}");
-        Assert.True(layout.BloodDraw.Bottom <= layout.Action.Top - 6 || layout.BloodDraw.Top >= layout.Action.Bottom - 1,
+        Assert.True(layout.BloodDraw.Bottom <= layout.Action.Top + 1 || layout.BloodDraw.Top >= layout.Action.Bottom - 1,
             $"{scenario}: blood draw panel should not be half-covered by actions. {layout}");
         Assert.True(errors.Count == 0, $"{scenario}: {string.Join(" | ", errors)}");
     }

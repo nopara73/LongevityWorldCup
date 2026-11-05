@@ -36,6 +36,8 @@ public sealed class BioageLiveInstrumentBrowserTests(
     [Theory]
     [InlineData("pheno", 390)]
     [InlineData("bortz", 390)]
+    [InlineData("pheno", 820)]
+    [InlineData("bortz", 820)]
     [InlineData("pheno", 1280)]
     [InlineData("bortz", 1280)]
     public async Task JoinCaption_StaysClearOfItsArrowAtNormalAndLargeText(string clock, int width)
