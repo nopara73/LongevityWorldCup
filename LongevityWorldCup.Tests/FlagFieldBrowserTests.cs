@@ -85,9 +85,10 @@ public sealed class FlagFieldBrowserTests(
         var page = await PrepareAsync(context, path);
         var input = page.Locator("#" + id);
         var slot = page.Locator(".lwc-flag-slot");
+        const string customFlag = "My Custom Team";
         foreach (var trigger in new[] { "assignment", "change", "pageshow" })
         {
-            await input.FillAsync("Cyberspace");
+            await input.FillAsync(customFlag);
             await input.EvaluateAsync("""
                 (input, trigger) => {
                     if (trigger === 'assignment') input.value = 'Japan';
@@ -103,8 +104,8 @@ public sealed class FlagFieldBrowserTests(
         await input.EvaluateAsync("input => input.value = 'USA'");
         await Assertions.Expect(slot.Locator(".fi-us")).ToHaveCountAsync(1);
         await Assertions.Expect(input).ToHaveValueAsync("USA");
-        await input.EvaluateAsync("input => input.value = 'Cyberspace'");
-        await Assertions.Expect(slot.Locator(".lwc-flag-tile--mono")).ToHaveTextAsync("C");
+        await input.EvaluateAsync("(input, value) => input.value = value", customFlag);
+        await Assertions.Expect(slot.Locator(".lwc-flag-tile--mono")).ToHaveTextAsync("M");
         if (path == "/edit-profile")
         {
             await input.DispatchEventAsync("input");
