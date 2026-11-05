@@ -2671,7 +2671,9 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
+    padding-inline: 0.35rem;
+    white-space: nowrap;
 }
 
 .flow-action-stack.bioage-live-actions[data-flow-dock] > .back-button > i {
