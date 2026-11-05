@@ -94,7 +94,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
         var total = path == "/pheno-age" ? 9 : 22;
         await Assertions.Expect(page.Locator(".biomarker-card--complete")).ToHaveCountAsync(total);
         await Assertions.Expect(page.Locator(".bioage-biomarker-progress")).ToHaveTextAsync($"{total} of {total} biomarkers entered");
-        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout")).ToHaveAttributeAsync("data-complete", "true");
 
         // Exercise every actual label/error, including long Bortz names. Empty
         // geometry alone cannot detect a clipped error or a lost completion mark.
@@ -114,7 +114,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
             await Assertions.Expect(input).ToHaveAttributeAsync("aria-invalid", "true");
             await Assertions.Expect(page.Locator(".biomarker-card--complete")).ToHaveCountAsync(total - 1);
             await Assertions.Expect(page.Locator(".bioage-biomarker-progress")).ToHaveTextAsync($"{total - 1} of {total} biomarkers entered");
-            await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
+            await Assertions.Expect(page.Locator(".bioage-live-readout")).ToHaveAttributeAsync("data-complete", "false");
 
             var problems = await input.EvaluateAsync<string[]>(
                 """
@@ -152,7 +152,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
             await Assertions.Expect(error).ToBeHiddenAsync();
         }
         await Assertions.Expect(page.Locator(".biomarker-card--complete")).ToHaveCountAsync(total);
-        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout")).ToHaveAttributeAsync("data-complete", "true");
         Assert.Empty(errors);
     }
 

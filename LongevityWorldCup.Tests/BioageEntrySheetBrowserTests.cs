@@ -266,7 +266,7 @@ public sealed class BioageEntrySheetBrowserTests(
         else await FillPhenoBiomarkersAsync(page);
         var entryWidth = await page.Locator("form.bioageform").EvaluateAsync<double>("form => form.getBoundingClientRect().width");
 
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeVisibleAsync();
         var initialAge = await page.EvaluateAsync<double>("clock => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge", clock);
         await page.Locator("#wbc").FillAsync("7.54");

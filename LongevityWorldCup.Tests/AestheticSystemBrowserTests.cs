@@ -2351,7 +2351,7 @@ public sealed class AestheticSystemBrowserTests(
                     page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
                 if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
                 else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
-                await page.Locator(".bioage-calculate-button").ClickAsync();
+                await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
                 await page.Locator(".bioage-rank-summary").WaitForAsync();
                 var rankThreshold = condition.Value * rootFontSize;
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })

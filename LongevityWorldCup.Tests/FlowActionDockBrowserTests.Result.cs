@@ -191,7 +191,7 @@ public sealed class FlowActionDockResultBrowserTests(
     [InlineData("/bortz-age", 320, 844, 200)]
     [InlineData("/pheno-age", 960, 900, 200)]
     [InlineData("/bortz-age", 1024, 768, 200)]
-    public async Task BioageStepTwoDock_KeepsTheDisabledCalculateInItsSlot(string path, int width, int height, int textPercent)
+    public async Task BioageStepTwoDock_KeepsTheIncompleteReadingLegible(string path, int width, int height, int textPercent)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -209,13 +209,13 @@ public sealed class FlowActionDockResultBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = `${percent}%`", textPercent);
         await ExpectActionStackDockedInViewportAsync(page, "#lwcStepTwoActions");
-        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeDisabledAsync();
+        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeHiddenAsync();
         await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
 
         var layout = await page.Locator("#lwcStepTwoActions").EvaluateAsync<DockedActionHierarchy>(
             """
             element => {
-                const primary = element.querySelector('#calculateBioageButton').getBoundingClientRect();
+                const primary = element.querySelector('.bioage-live-readout').getBoundingClientRect();
                 const back = element.querySelector('.back-button').getBoundingClientRect();
                 return {
                     PrimaryLeft: primary.left,
@@ -229,39 +229,22 @@ public sealed class FlowActionDockResultBrowserTests(
                 };
             }
             """);
-        var labelFits = await page.Locator("#calculateBioageButton .flow-action__label").EvaluateAsync<bool>(
-            """
-            label => {
-                // Docked captions come from ::after while the original text is 0px.
-                // A Range over that hidden text cannot detect a broken visible word.
-                const caption = getComputedStyle(label, '::after');
-                if (caption.content !== 'none' && parseFloat(caption.fontSize) > 0) {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    ctx.font = `${caption.fontWeight} ${caption.fontSize} ${caption.fontFamily}`;
-                    const text = label.dataset.flowDockLabel;
-                    return ctx.measureText(text).width <= label.getBoundingClientRect().width + 1;
-                }
-                const range = document.createRange();
-                range.selectNodeContents(label);
-                return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size <= 1;
-            }
-            """);
+        var labelFits = await page.Locator(".bioage-live-readout__value").EvaluateAsync<bool>(
+            "element => element.scrollWidth <= element.clientWidth + 1");
 
         var scenario = $"{path} @ {width}px / {textPercent}%";
-        Assert.True(labelFits, $"{scenario}: the visible Calculate caption does not fit on one line.");
+        Assert.True(labelFits, $"{scenario}: the live age does not fit on one line.");
         Assert.True(layout.BackLeft >= 0 && layout.PrimaryRight <= width + 1,
             $"{scenario}: docked commands extend outside the viewport. {layout}");
-        if (width >= 960)
-        {
-            Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should sit left of Calculate. {layout}");
-            Assert.True(Math.Abs(layout.PrimaryCenter - layout.ViewportCenter) <= 16,
-                $"{scenario}: disabled Calculate should stay centered. {layout}");
-        }
-        else if (textPercent == 100)
-        {
-            Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should share Calculate's row. {layout}");
-        }
+        var progress = await page.Locator(".bioage-live-progress").BoundingBoxAsync();
+        var reading = await page.Locator(".bioage-live-readout").BoundingBoxAsync();
+        Assert.NotNull(progress);
+        Assert.NotNull(reading);
+        Assert.True(layout.BackRight < layout.PrimaryLeft, $"{scenario}: Back should sit left of the reading. {layout}");
+        Assert.True(progress.X >= 0 && progress.X + progress.Width <= width + 1,
+            $"{scenario}: progress extends outside the viewport.");
+        Assert.True(layout.PrimaryRight <= progress.X + 1 || reading.Y + reading.Height <= progress.Y + 1,
+            $"{scenario}: progress should sit beside or below the reading without overlap.");
         Assert.Empty(errors);
     }
 
@@ -728,7 +711,7 @@ public sealed class FlowActionDockResultBrowserTests(
             else
                 await FillPhenoBiomarkersAsync(page);
 
-            await page.Locator(".bioage-calculate-button").ClickAsync();
+            await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
             await page.WaitForSelectorAsync($"{resultSelector}.show");
             await page.WaitForSelectorAsync("#continueButton.show");
 
@@ -786,7 +769,7 @@ public sealed class FlowActionDockResultBrowserTests(
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
         await page.WaitForFunctionAsync(
             "() => document.getElementById('phenoAgeRankPreview')?.getAttribute('aria-busy') === 'true'");
@@ -870,7 +853,7 @@ public sealed class FlowActionDockResultBrowserTests(
         await page.GotoAsync("/bortz-age", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         await FillBortzBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync("#bortzAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
         await ExpectActionStackDockedInViewportAsync(page, ".bioage-result-actions");
