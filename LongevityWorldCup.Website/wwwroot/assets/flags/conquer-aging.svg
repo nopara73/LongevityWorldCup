@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 96">
+  <title>Conquer Aging or Die Trying</title>
+  <!-- Drawn from the emblem supplied for the team flag. -->
+  <defs>
+    <path id="emblem" d="M64 48C50 38 42 27 30 27a21 21 0 0 0 0 42c12 0 20-11 34-21s22-21 34-21a21 21 0 0 1 0 42C86 69 78 58 64 48Z"/>
+    <clipPath id="lobes"><use href="#emblem"/></clipPath>
+  </defs>
+  <path fill="#292929" d="M0 0h128v96H0z"/>
+  <g clip-path="url(#lobes)" fill="#f3d53d">
+    <path d="M44 22c4 18-6 33 0 52h20V22zM95 22c2 16-8 20-8 26s10 11 8 26h28V22z"/>
+    <circle cx="73" cy="48" r="1.7"/>
+    <circle cx="80" cy="48" r="1.5"/>
+  </g>
+  <use href="#emblem" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+</svg>
