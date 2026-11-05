@@ -2524,7 +2524,10 @@ interface Window {
         for (const actions of [entryActions, resultActions]) {
             actions?.classList.add('bioage-live-actions');
             const back = actions?.querySelector<HTMLElement>('.back-button');
-            if (back) actions?.prepend(back);
+            if (back) {
+                back.setAttribute('aria-label', 'Back');
+                actions?.prepend(back);
+            }
         }
         liveProgress = document.createElement('div');
         liveProgress.className = 'bioage-live-progress';

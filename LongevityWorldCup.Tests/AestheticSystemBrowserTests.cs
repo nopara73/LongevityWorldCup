@@ -2381,6 +2381,52 @@ public sealed class AestheticSystemBrowserTests(
                 continue;
             }
 
+            if (condition.Name == "bioage-actions")
+            {
+                Assert.Equal("max", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Equal(18, condition.Value);
+                await NavigateAndSettleAsync(page, route);
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(
+                    page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+                var actionThreshold = condition.Value * rootFontSize;
+                foreach (var complete in new[] { false, true })
+                {
+                    if (complete)
+                    {
+                        if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
+                        else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
+                        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
+                    }
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var inlineSize = actionThreshold + delta;
+                        var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                            """
+                            async width => {
+                                const readout = document.querySelector('.bioage-live-readout');
+                                const actions = readout.parentElement;
+                                actions.style.boxSizing = 'content-box';
+                                actions.style.setProperty('inline-size', `${width}px`, 'important');
+                                actions.style.setProperty('max-inline-size', 'none', 'important');
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                const action = actions.querySelector('#continueButton, .bioage-live-progress');
+                                return {
+                                    ContainerWidth: parseFloat(getComputedStyle(actions).width),
+                                    IsCompact: getComputedStyle(action).gridRowStart === '2',
+                                    HorizontalOverflow: Math.max(0, actions.scrollWidth - actions.clientWidth)
+                                };
+                            }
+                            """, inlineSize);
+                        Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                        Assert.Equal(inlineSize <= actionThreshold, diagnostics.IsCompact);
+                        Assert.True(diagnostics.HorizontalOverflow <= 1,
+                            $"{route} live actions overflowed at {inlineSize}px (complete: {complete}).");
+                    }
+                }
+                continue;
+            }
+
             if (condition.Name == "bioage-entry")
             {
                 Assert.Equal("max", condition.Bound);

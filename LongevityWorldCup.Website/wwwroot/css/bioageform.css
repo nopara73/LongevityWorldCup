@@ -2679,6 +2679,10 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     transform: none;
 }
 
+.flow-action-stack.bioage-live-actions #continueButton > i {
+    margin-inline-start: 0.35rem;
+}
+
 .bioage-live-readout {
     --bioage-readout-color: var(--lwc-ink, #18212a);
     grid-column: 2;
