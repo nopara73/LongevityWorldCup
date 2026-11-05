@@ -1378,7 +1378,8 @@
                 && setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))
                 && setSessionItem('biomarkerData', serializedBiomarkerData)
                 && (!draftKey || setSessionItem('biomarkerDraftKey', draftKey))
-                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer));
+                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer))
+                && (isUpdate || window.beginApplicationEntry());
 
             if (!stored) {
                 clearStoredBiomarkerHandoff();

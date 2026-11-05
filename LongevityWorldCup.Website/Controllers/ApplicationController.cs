@@ -1089,6 +1089,17 @@ namespace LongevityWorldCup.Website.Controllers
                 : Ok(completedResponse);
         }
 
+        [HttpGet("/api/payments/stripe/checkout/{orderId}")]
+        public IActionResult RetiredStripeCheckout(string orderId)
+        {
+            Response.Headers.CacheControl = "no-store";
+            Response.Headers["Referrer-Policy"] = "no-referrer";
+            var payment = _applicationPayments.GetByOrder(orderId);
+            return payment?.InvoiceId?.StartsWith("stripe_", StringComparison.Ordinal) == true
+                ? LocalRedirect("/review?checkout=unavailable")
+                : NotFound();
+        }
+
         private Task TrackApplicationSubmitEventAsync(
             string outcome,
             string submissionKind,

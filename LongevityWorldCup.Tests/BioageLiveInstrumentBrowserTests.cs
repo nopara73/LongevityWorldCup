@@ -34,6 +34,85 @@ public sealed class BioageLiveInstrumentBrowserTests(
     }
 
     [Theory]
+    [InlineData("pheno", 1280)]
+    [InlineData("bortz", 390)]
+    public async Task Join_StartsTheCurrentApplicationInsteadOfRecoveringAnOlderCheckout(string clock, int width)
+    {
+        await using var context = await NewContextAsync(width: width);
+        var recoveries = 0;
+        await context.RouteAsync("**/api/application/submission-status", route =>
+        {
+            Interlocked.Increment(ref recoveries);
+            return route.FulfillAsync(new()
+            {
+                ContentType = "application/json",
+                Body = """{"success":true,"paymentRequired":true,"checkoutLink":"/api/payments/stripe/checkout/old-order","invoiceId":"old-invoice"}"""
+            });
+        });
+        await context.RouteAsync("**/api/payments/stripe/checkout/old-order", route => route.FulfillAsync(new() { Status = 404, Body = "Retired checkout" }));
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        await page.EvaluateAsync("""
+            () => localStorage.setItem('pendingApplicationSubmission', JSON.stringify({
+                submissionId:'older-submission', payloadFingerprint:'older-payload', submissionKind:'full-application',
+                createdAt:Date.now() - 3 * 24 * 60 * 60 * 1000
+            }))
+            """);
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        Assert.EndsWith("/apply", page.Url);
+        Assert.Equal(0, recoveries);
+        Assert.True(await page.EvaluateAsync<bool>("sessionStorage.getItem('biomarkerData') !== null"));
+        Assert.True(await page.EvaluateAsync<bool>("clock => sessionStorage.getItem(`bioageDraft:${clock}:v1`) !== null", clock));
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        Assert.Equal(0, recoveries);
+        Assert.NotEqual("older-submission", await page.EvaluateAsync<string>("window.createApplicationSubmissionId('older-payload')"));
+    }
+
+    [Fact]
+    public async Task ApplicationReload_StillRecoversTheSubmissionFromItsOwnEntry()
+    {
+        await using var context = await NewContextAsync();
+        await context.RouteAsync("**/api/application/submission-status", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = """{"success":true,"paymentRequired":true,"checkoutLink":"/test-checkout","invoiceId":"current-invoice"}"""
+        }));
+        await context.RouteAsync("**/test-checkout", route => route.FulfillAsync(new() { Body = "Current checkout" }));
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, "pheno");
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        await page.EvaluateAsync("""
+            () => window.rememberPendingApplicationSubmission({
+                submissionId:'current-submission', payloadFingerprint:'current-payload', submissionKind:'full-application'
+            })
+            """);
+        await page.ReloadAsync();
+        await page.WaitForURLAsync("**/test-checkout");
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('biomarkerData')"));
+    }
+
+    [Fact]
+    public async Task RetiredCheckoutReview_ShowsUnavailableWithoutPollingTheWrongProvider()
+    {
+        await using var context = await NewContextAsync(width: 390);
+        var checks = 0;
+        await context.RouteAsync("**/api/application/payment-status", route =>
+        {
+            Interlocked.Increment(ref checks);
+            return route.FulfillAsync(new() { Status = 503 });
+        });
+        await context.AddInitScriptAsync("sessionStorage.setItem('pendingPaymentInvoice', JSON.stringify({invoiceId:'stripe_old-order'}))");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/review?checkout=unavailable");
+        await Assertions.Expect(page.Locator("#review-payment-status")).ToHaveTextAsync("This checkout is no longer available. Check your confirmation email.");
+        await Assertions.Expect(page.Locator("[data-step='payment']")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-failed"));
+        Assert.Equal(0, checks);
+    }
+
+    [Theory]
     [InlineData("pheno", 390, ColorScheme.Light)]
     [InlineData("bortz", 390, ColorScheme.Dark)]
     [InlineData("pheno", 1280, ColorScheme.Dark)]
