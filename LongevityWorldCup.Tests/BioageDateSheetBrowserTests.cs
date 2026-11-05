@@ -12,6 +12,70 @@ public sealed class BioageDateSheetBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/pheno-age", 1440, 1)]
+    [InlineData("/pheno-age", 390, 1)]
+    [InlineData("/bortz-age", 1440, 1)]
+    [InlineData("/bortz-age", 390, 1)]
+    [InlineData("/pheno-age", 320, 2)]
+    [InlineData("/bortz-age", 390, 2)]
+    public async Task DateSections_KeepControlSpacingWhenOptionalBirthdayFieldsHide(string path, int width, int textScale)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.Clock.SetFixedTimeAsync(new DateTime(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc));
+        await page.GotoAsync(path);
+        await page.WaitForSelectorAsync(".bioage-biomarker-entry-ready");
+        if (textScale > 1)
+            await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
+
+        // Both the full birthday and the year-only state must own their spacing.
+        foreach (var year in new[] { "2000", "2020" })
+        {
+            await page.SelectOptionAsync("#dob-year", year);
+            var spacing = await page.EvaluateAsync<double[]>(
+                """
+                () => {
+                    const dob = document.querySelector('#dobFieldset');
+                    const draw = document.querySelector('#lwc-step-1 > fieldset:nth-of-type(2)');
+                    const lastDobField = [...dob.children].filter(e => e.getBoundingClientRect().height > 1).at(-1);
+                    const rect = e => e.getBoundingClientRect();
+                    const label = dob.querySelector('label[for="dob-year"]');
+                    const year = dob.querySelector('#dob-year');
+                    const input = draw.querySelector('input');
+                    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+                    return [
+                        (rect(dob).bottom - rect(lastDobField).bottom) / rem,
+                        (rect(draw).bottom - rect(input).bottom) / rem,
+                        (rect(year).top - rect(label).bottom) / rem,
+                        (rect(input).top - rect(draw.querySelector('legend')).bottom) / rem,
+                        rect(draw).top - rect(dob).bottom
+                    ];
+                }
+                """);
+            Assert.InRange(spacing[0], 0.5, 1);
+            Assert.InRange(spacing[1], 0.5, 1);
+            Assert.InRange(spacing[2], 0.4, 0.6);
+            Assert.InRange(spacing[3], 0.4, 0.6);
+            Assert.InRange(spacing[4], -1, 1);
+            await ExpectNoHorizontalOverflowAsync(page);
+
+            if (Environment.GetEnvironmentVariable("LWC_CAPTURE_BIOAGE_DESIGN") == "1")
+            {
+                var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.artifacts/bioage-live"));
+                Directory.CreateDirectory(directory);
+                await page.Locator("#lwc-step-1").ScreenshotAsync(new()
+                {
+                    Path = Path.Combine(directory, $"dates-{path.Trim('/')}-{width}-{textScale}x-{year}.png")
+                });
+            }
+        }
+    }
+
+    [Theory]
     [InlineData("/pheno-age", 1440, ColorScheme.Light)]
     [InlineData("/bortz-age", 390, ColorScheme.Dark)]
     public async Task DateFeedback_FollowsNativeValidityAndRespectsReducedMotion(string path, int width, ColorScheme scheme)

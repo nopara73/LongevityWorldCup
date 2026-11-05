@@ -1845,10 +1845,6 @@ body #validAgeInput + * {
     font-size: 0.72rem;
 }
 
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:first-of-type {
-    margin-top: var(--lwc-space-5, 1.5rem);
-}
-
 :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 label {
     color: var(--lwc-ink, #17212b);
     font-size: 0.95rem;
@@ -1878,30 +1874,6 @@ body #validAgeInput + * {
     border-top: 1px solid var(--bioage-hairline);
     border-radius: 0 0 calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px);
     background: var(--bioage-band);
-}
-
-@media (min-width: 960px) and (min-height: 640px) {
-    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > .lwc-step-actions {
-        margin-top: var(--lwc-space-6, 2rem);
-    }
-
-    /* Both section titles share a line, and the date field lines up with the
-       birth date selects below their labels. */
-    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) {
-        margin-top: var(--lwc-space-5, 1.5rem);
-        padding-top: 0;
-    }
-
-    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) > legend {
-        min-height: 24px;
-        margin: 0 0 var(--lwc-space-3, 0.75rem);
-        font-size: 0.8rem;
-        line-height: 1.3;
-    }
-
-    :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 .blood-draw-date-control {
-        padding-top: calc(1.55rem + 0.95rem * 1.4 + 2px);
-    }
 }
 
 /* While the step actions ride in the dock, the card ends at its last field;
@@ -2161,49 +2133,6 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     border-bottom: 0;
 }
 
-/* Birth date and draw date follow the same band-then-fields rhythm. */
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
-    display: block;
-}
-
-/* On a desktop both sections share one band row, split by a rule, so the
-   whole step still fits above the actions on a laptop. */
-@media (min-width: 960px) and (min-height: 640px) {
-    /* Enlarged text keeps the stacked sections. */
-    @container bioage-form (width > 38rem) {
-        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.55fr);
-            align-items: start;
-            column-gap: 1rem;
-        }
-
-        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
-            margin-top: 0;
-        }
-
-        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset#dobFieldset > legend {
-            width: calc(100% + var(--bioage-pad-x) + 0.5rem);
-            margin-right: -0.5rem;
-            margin-left: calc(-1 * var(--bioage-pad-x));
-        }
-
-        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) > legend {
-            width: calc(100% + var(--bioage-pad-x) + 0.5rem);
-            margin-right: calc(-1 * var(--bioage-pad-x));
-            margin-left: -0.5rem;
-            padding-left: 0.5rem;
-            border-top: 0;
-            border-left: 1px solid var(--bioage-hairline);
-        }
-
-        :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .blood-draw-date-control {
-            width: 100%;
-            padding-top: calc(0.95rem * 1.4 + 0.95rem);
-        }
-    }
-}
-
 :is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset:first-of-type {
     margin-top: 0;
 }
@@ -2211,44 +2140,6 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
 /* The first section band continues the card header band under its rule. */
 :is(#phenoAgeForm, #bortzAgeForm) :is(#lwc-step-1, #lwc-step-2) > fieldset:first-of-type > legend {
     border-top: 0;
-}
-
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) {
-    padding-top: 0;
-}
-
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) > legend {
-    min-height: 44px;
-    margin: 0 calc(-1 * var(--bioage-pad-x)) var(--lwc-space-4, 1rem);
-    font-size: 0.8rem;
-    line-height: 1.3;
-}
-
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 .blood-draw-date-control {
-    padding-top: 0;
-}
-
-
-
-
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset {
-    column-gap: var(--lwc-space-2, 0.5rem);
-    row-gap: 0.35rem;
-    padding-inline: 0;
-}
-
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset > legend {
-    grid-column: 1 / -1;
-    margin-bottom: var(--lwc-space-3, 0.75rem);
-}
-
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset > label {
-    align-self: end;
-    margin-top: 0;
-}
-
-:is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset#dobFieldset > #privacyNote {
-    margin: var(--lwc-space-3, 0.75rem) 0 0;
 }
 
 /* Value and unit are one measurement: a single bordered field whose unit sits
@@ -3040,13 +2931,44 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
  * Everything is driven by the fields' own state through :has(), so no script
  * runs and reduced motion keeps every state without the movement.
  */
-html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset {
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
+    display: block;
+}
+
+/* The section owns its bottom inset even when optional birthday fields are
+   hidden. Field margins supply the gaps in both grid and stacked layouts. */
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset {
     position: relative;
+    margin: 0;
+    padding: 0 0 var(--lwc-space-3, 0.75rem);
+    border: 0;
     transition: box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset {
+    column-gap: var(--lwc-space-2, 0.5rem);
+    row-gap: 0;
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset > :is(label, select) {
+    margin-top: var(--lwc-space-2, 0.5rem);
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset > label {
+    align-self: end;
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 .blood-draw-date-control {
+    margin-top: 0;
+    padding-top: var(--lwc-space-2, 0.5rem);
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > .lwc-step-actions {
+    margin-top: 0;
+}
+
 /* One band per date, full bleed, chip first and pip last. */
-html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend {
+html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset > legend {
     display: flex;
     align-items: center;
     gap: 0.6rem;
@@ -3118,10 +3040,6 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2
 }
 
 /* The accent edge draws down the card's left edge under an answered band. */
-html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset {
-    padding-bottom: var(--lwc-space-4, 1rem);
-}
-
 html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset::after {
     content: "";
     position: absolute;
@@ -3177,6 +3095,19 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote::before {
     font-weight: 900;
 }
 
+/* Let enlarged text use the whole narrow row after the decorative lock. */
+@container bioage-form (max-width: 15rem) {
+    html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote {
+        display: flow-root;
+        padding-inline: min(0.75rem, 12px);
+    }
+
+    html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote::before {
+        float: left;
+        margin-right: 0.5rem;
+    }
+}
+
 html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-month option[value="12"]:checked)) #privacyNote,
 html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset:not(:has(#dob-day option:last-child:checked)) #privacyNote {
     background: var(--lwc-accent-soft, #dff5f7);
@@ -3193,42 +3124,13 @@ body:has(:is(#phenoAgeForm, #bortzAgeForm)) #lwcToStep2Btn {
     transition: background-color 200ms var(--lwc-ease, ease), border-color 200ms var(--lwc-ease, ease), color 200ms var(--lwc-ease, ease), box-shadow 200ms var(--lwc-ease, ease);
 }
 
-/* Desktop: the two dates stack as sections, like the domains in the next step. */
 @media (min-width: 960px) and (min-height: 640px) {
-    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active {
-        display: block;
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset:nth-of-type(2) {
-        margin-top: 0;
-        padding-top: 0;
-    }
-
-    /* Undo the side-by-side split of the wide container query: both bands bleed edge to edge. */
-    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset#dobFieldset > legend,
-    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) > legend {
-        width: calc(100% + 2 * var(--bioage-pad-x));
-        margin: 0 calc(-1 * var(--bioage-pad-x));
-        padding-left: var(--bioage-pad-x);
-        border-top: 1px solid var(--bioage-hairline);
-        border-left: 0;
-        font-size: 0.8rem;
-    }
-
     html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .blood-draw-date-control {
         width: min(100%, 22rem);
-        padding-top: var(--lwc-space-2, 0.5rem);
     }
 
     html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > #dobFieldset {
         column-gap: 0.75rem;
-    }
-
-    /* Keep the stacked sheet and its inline actions clear on laptop screens.
-       Reduce gutters, retaining the original text and control sizes. */
-    html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset {
-        padding-bottom: 0;
     }
 
     html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote {
@@ -3237,7 +3139,6 @@ body:has(:is(#phenoAgeForm, #bortzAgeForm)) #lwcToStep2Btn {
     }
 
     html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > .lwc-step-actions {
-        margin-top: var(--lwc-space-2, 0.5rem);
         padding-block: var(--lwc-space-2, 0.5rem);
     }
 }
