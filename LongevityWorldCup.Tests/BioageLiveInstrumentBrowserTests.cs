@@ -36,6 +36,52 @@ public sealed class BioageLiveInstrumentBrowserTests(
     [Theory]
     [InlineData("pheno", 1280)]
     [InlineData("bortz", 390)]
+    [InlineData("pheno", 390)]
+    [InlineData("bortz", 1280)]
+    public async Task BrowserBack_RecomputesRestoredFieldsAndKeepsJoinAvailable(string clock, int width)
+    {
+        await using var context = await NewContextAsync(width: width);
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        var reading = await page.Locator(".bioage-live-readout__value").InnerTextAsync();
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        await page.GoBackAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync(reading);
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeEnabledAsync();
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("pheno", false)]
+    [InlineData("pheno", true)]
+    [InlineData("bortz", false)]
+    [InlineData("bortz", true)]
+    public async Task HistoryRestoration_RecalculatesValuesRestoredWithoutInputEvents(string clock, bool cached)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        var reading = await page.Locator(".bioage-live-readout__value").InnerTextAsync();
+        await page.EvaluateAsync("""
+            ({clock, cached}) => {
+                hideCalculatedResult();
+                sessionStorage.removeItem(`bioageDraft:${clock}:v1`);
+                document.getElementById('glucose').value = '8';
+                window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: cached }));
+            }
+            """, new { clock, cached });
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).Not.ToHaveTextAsync(reading);
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^\d+\.\d$"));
+    }
+
+    [Theory]
+    [InlineData("pheno", 1280)]
+    [InlineData("bortz", 390)]
     public async Task Join_StartsTheCurrentApplicationInsteadOfRecoveringAnOlderCheckout(string clock, int width)
     {
         await using var context = await NewContextAsync(width: width);

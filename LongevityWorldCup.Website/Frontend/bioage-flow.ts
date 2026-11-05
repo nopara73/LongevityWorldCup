@@ -2549,6 +2549,16 @@ interface Window {
         controller.form.addEventListener('focusout', event => {
             if (liveTimer && event.target instanceof HTMLInputElement) scheduleLiveInstrument(true);
         });
+        window.addEventListener('pageshow', () => {
+            // Back/Forward can restore controls without input/change events,
+            // including after the old submission cleared its saved draft.
+            // Wait until native history restoration has finished before reading.
+            window.setTimeout(() => {
+                refreshAllBiomarkerCompletion();
+                scheduleLiveInstrument(true);
+            }, 0);
+        });
+        window.addEventListener('pagehide', cancelLiveCalculation);
     }
 
     // This module blocks parsing before the form. Capture date focus from the
