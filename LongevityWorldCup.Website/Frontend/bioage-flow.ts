@@ -114,6 +114,7 @@ interface LwcBioageFlowApi {
     bindLiveInstrument: (options: BioageLiveInstrumentOptions) => void;
     isLiveInstrumentBound: () => boolean;
     readBiomarkerModelValue: (inputId: string, clock: BioageClock, useReference?: boolean) => number;
+    hasValidDates: (form: HTMLFormElement) => boolean;
     announceBioageResult: (
         resultElement: HTMLElement | null,
         announcement: string
@@ -1417,9 +1418,9 @@ interface Window {
             step: 1
         };
 
-        // Update drafts own raw values and units. Native history restoration
-        // must not reapply calculation-filled controls after that draft loads.
-        if (controller.isUpdate) options.form.autocomplete = 'off';
+        // The saved draft owns the whole form. Native history restoration must
+        // not overwrite its dates/units or resurrect only part of a cleared draft.
+        options.form.autocomplete = 'off';
         options.form.classList.add('bioage-biomarker-entry-ready');
         biomarkerEntryControllers.set(options.clock, controller);
         bindBiomarkerEntry(controller);
@@ -2409,8 +2410,7 @@ interface Window {
         return values;
     }
 
-    function readLiveChronologicalAge(controller: BioageBiomarkerEntryController): number {
-        const form = controller.form;
+    function readBioageDates(form: HTMLFormElement): { birth: Date; draw: Date } | null {
         const year = form.querySelector<HTMLSelectElement>('#dob-year');
         const drawDate = form.querySelector<HTMLInputElement>('#blood-draw-date');
         const month = Number(form.querySelector<HTMLSelectElement>('#dob-month')?.value || 12);
@@ -2421,18 +2421,27 @@ interface Window {
             && !!drawDate?.value && drawDate.validity.valid
             && Number.isFinite(birth.getTime()) && Number.isFinite(draw.getTime())
             && birth <= draw;
-        return valid ? window.calculateAgeAtDate(birth, draw) : NaN;
+        return valid ? { birth, draw } : null;
+    }
+
+    function hasValidDates(form: HTMLFormElement): boolean {
+        return readBioageDates(form) !== null;
+    }
+
+    function readChronologicalAge(form: HTMLFormElement): number {
+        const dates = readBioageDates(form);
+        return dates ? window.calculateAgeAtDate(dates.birth, dates.draw) : NaN;
     }
 
     function isLivePanelReady(controller: BioageBiomarkerEntryController): boolean {
-        return Number.isFinite(readLiveChronologicalAge(controller))
+        return Number.isFinite(readChronologicalAge(controller.form))
             && (controller.clock !== 'bortz' || Number(controller.form.querySelector<HTMLInputElement>('#wbc')?.value) > 0)
             && controller.inputs.length > 0
             && controller.inputs.every(isCompleteBiomarkerInput);
     }
 
     function calculateIncompleteAge(controller: BioageBiomarkerEntryController): number {
-        const age = readLiveChronologicalAge(controller);
+        const age = readChronologicalAge(controller.form);
         if (!Number.isFinite(age) || controller.inputs.some(input => input.validity.badInput
             || (input.value.trim() !== '' && !isCompleteBiomarkerInput(input)))) return NaN;
         const wbc = controller.form.querySelector<HTMLInputElement>('#wbc');
@@ -2554,6 +2563,9 @@ interface Window {
             // including after the old submission cleared its saved draft.
             // Wait until native history restoration has finished before reading.
             window.setTimeout(() => {
+                if (options.getStep() === 2 && !hasValidDates(controller.form)) {
+                    document.getElementById('lwcDot1')?.click();
+                }
                 refreshAllBiomarkerCompletion();
                 scheduleLiveInstrument(true);
             }, 0);
@@ -2578,6 +2590,7 @@ interface Window {
         bindLiveInstrument,
         isLiveInstrumentBound,
         readBiomarkerModelValue,
+        hasValidDates,
         announceBioageResult,
         animateBioageResult,
         bindBiomarkerComparison,

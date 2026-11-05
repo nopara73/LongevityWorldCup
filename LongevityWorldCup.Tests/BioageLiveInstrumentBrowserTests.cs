@@ -86,10 +86,12 @@ public sealed class BioageLiveInstrumentBrowserTests(
         var page = await context.NewPageAsync();
         await OpenPanelAsync(page, clock);
         var reading = await page.Locator(".bioage-live-readout__value").InnerTextAsync();
+        var fields = await page.Locator("form input, form select").EvaluateAllAsync<string[]>("inputs => inputs.map(e => `${e.id}:${e.value}:${e.selectedIndex ?? e.checked}`)");
         await page.Locator("#continueButton").ClickAsync();
         await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
         await page.GoBackAsync();
         await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync(reading);
+        Assert.Equal(fields, await page.Locator("form input, form select").EvaluateAllAsync<string[]>("inputs => inputs.map(e => `${e.id}:${e.value}:${e.selectedIndex ?? e.checked}`)"));
         await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#continueButton")).ToBeEnabledAsync();
         await page.Locator("#continueButton").ClickAsync();
@@ -119,6 +121,49 @@ public sealed class BioageLiveInstrumentBrowserTests(
         await Assertions.Expect(page.Locator("#continueButton")).ToBeEnabledAsync();
         await Assertions.Expect(page.Locator(".bioage-live-readout__value")).Not.ToHaveTextAsync(reading);
         await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^\d+\.\d$"));
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task ClearedApplicationDraft_BackDoesNotMixNativeFieldsWithDefaultDates(string clock)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        await page.EvaluateAsync("clock => { sessionStorage.removeItem(`bioageDraft:${clock}:v1`); sessionStorage.removeItem('biomarkerData'); }", clock);
+        await page.GoBackAsync();
+        await Assertions.Expect(page.Locator("#lwc-step-1")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#dob-year")).ToHaveValueAsync("");
+        Assert.All(await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"), value => Assert.Equal("", value));
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task RestoredInvalidDates_ShowTheDateStepAndPreserveTheLabPanel(string clock)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        var panel = await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)");
+        await page.EvaluateAsync("""
+            () => {
+                document.getElementById('dob-year').value = String(new Date().getFullYear());
+                document.getElementById('dob-month').value = '12';
+                document.getElementById('dob-day').value = '31';
+                window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));
+            }
+            """);
+        await Assertions.Expect(page.Locator("#lwc-step-1")).ToBeVisibleAsync();
+        Assert.Equal(panel, await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"));
+        Assert.False(await page.EvaluateAsync<bool>("lwcValidateStep1(true)"));
+        await page.Locator("#dob-year").SelectOptionAsync("1980");
+        await page.Locator("#lwcToStep2Btn").ClickAsync();
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
     }
 
     [Theory]
