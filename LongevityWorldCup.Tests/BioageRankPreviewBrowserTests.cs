@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -9,6 +10,53 @@ public sealed class BioageRankPreviewBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/pheno-age", "phenoAgeRankPreview", "pheno", false)]
+    [InlineData("/bortz-age", "bortzAgeRankPreview", "bortz", false)]
+    [InlineData("/pheno-age", "phenoAgeRankPreview", "pheno", true)]
+    [InlineData("/bortz-age", "bortzAgeRankPreview", "bortz", true)]
+    public async Task RankPreview_StaleCountdownCannotClearANewerLoadingOrClearedState(
+        string path, string target, string clock, bool clear)
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await page.WaitForFunctionAsync("() => Boolean(window.LwcBioAgeRankPreview)");
+        var observed = await page.EvaluateAsync<JsonElement>(
+            """
+            async ({target, clock, clear}) => {
+                const athletes = await fetch('/api/data/athletes').then(response => response.json());
+                window.getSharedAthletes = () => Promise.resolve(athletes);
+                const nativeFrame = window.requestAnimationFrame;
+                const frames = [];
+                window.requestAnimationFrame = callback => {
+                    if (callback.name === 'step') { frames.push(callback); return 0; }
+                    return nativeFrame.call(window, callback);
+                };
+                try {
+                    const options = {clock, ageReduction: -1000, dateOfBirth: new Date(1980, 0, 1)};
+                    await window.LwcBioAgeRankPreview.render(target, options);
+                    if (!frames.length) throw new Error('The first rank must have a pending countdown frame.');
+                    let release;
+                    window.getSharedAthletes = () => new Promise(resolve => release = resolve);
+                    const pending = window.LwcBioAgeRankPreview.render(target, {...options, ageReduction: 4});
+                    if (clear) window.LwcBioAgeRankPreview.clear(target);
+                    frames.shift()(performance.now() + 2000);
+                    const element = document.getElementById(target);
+                    const result = {busy: element.getAttribute('aria-busy'), hidden: element.hidden,
+                        loading: !!element.querySelector('.bioage-rank-loading')};
+                    release([]);
+                    await pending;
+                    return result;
+                } finally { window.requestAnimationFrame = nativeFrame; }
+            }
+            """, new { target, clock, clear });
+        Assert.Equal(clear ? null : "true", observed.GetProperty("busy").GetString());
+        Assert.Equal(clear, observed.GetProperty("hidden").GetBoolean());
+        Assert.Equal(!clear, observed.GetProperty("loading").GetBoolean());
+    }
+
     [Theory]
     [InlineData("/pheno-age", "phenoAgeRankPreview", "pheno")]
     [InlineData("/bortz-age", "bortzAgeRankPreview", "bortz")]

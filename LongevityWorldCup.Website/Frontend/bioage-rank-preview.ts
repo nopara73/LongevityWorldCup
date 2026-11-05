@@ -447,7 +447,7 @@ declare global {
                 var profileSlug = String(row.slug).trim().replace(/_/g, '-');
                 nameHtml = '<a href="/athlete/' + encodeURIComponent(profileSlug) + '">' + nameHtml + '</a>';
             }
-            html += '<div class="bioage-rank-row' + (isYou ? ' current' : '') + '">' +
+            html += '<div class="bioage-rank-row' + (isYou ? ' current' : '') + '" style="--rank-row-offset:' + (i - youIndex) + '">' +
                 '<span class="bioage-rank-row-place">#' + (i + 1) + '</span>' +
                 buildAvatar(row) +
                 '<span class="bioage-rank-row-name">' + nameHtml + '</span>' +
@@ -489,7 +489,71 @@ declare global {
             '<div class="bioage-rank-percentile">Top ' + topPercent + '%</div>' +
             '</div>' +
             '</div>' +
+            buildFieldStrip(rows, youIndex, clock) +
             '<div class="bioage-rank-neighbors">' + buildNearbyRows(rows, youIndex, clock) + '</div>';
+    }
+
+    // The whole field at a glance: a histogram of every ranked age reduction,
+    // best on the left, with your place marked. Wordless and decorative; the
+    // summary above carries the numbers for assistive technology.
+    function buildFieldStrip(rows: RankRow[], youIndex: number, clock: BioageRankClock): string {
+        var values = rows.map(function (row) { return getReduction(row, clock); })
+            .filter(function (value): value is number { return typeof value === 'number' && Number.isFinite(value); });
+        var you = rows[youIndex];
+        var youValue = you ? getReduction(you, clock) : null;
+        if (values.length < 3 || typeof youValue !== 'number' || !Number.isFinite(youValue)) return '';
+        var best = Math.min.apply(null, values);
+        var worst = Math.max.apply(null, values);
+        var span = worst - best || 1;
+        var binCount = Math.min(36, Math.max(12, Math.round(values.length / 6)));
+        var bins: number[] = [];
+        for (var b = 0; b < binCount; b++) bins.push(0);
+        values.forEach(function (value) {
+            var index = Math.min(binCount - 1, Math.floor((value - best) / span * binCount));
+            bins[index] = (bins[index] || 0) + 1;
+        });
+        var tallest = Math.max.apply(null, bins) || 1;
+        var youBin = Math.min(binCount - 1, Math.floor((youValue - best) / span * binCount));
+        var youX = ((youValue - best) / span) * 100;
+        var bars = bins.map(function (count, index) {
+            var height = count ? Math.max(8, Math.round(count / tallest * 100)) : 0;
+            var state = index < youBin ? 'ahead' : index === youBin ? 'you' : 'behind';
+            return '<span class="bioage-rank-bin bioage-rank-bin--' + state + '" style="--bin-h:' + height + '%;--bin-i:' + index + '"></span>';
+        }).join('');
+        return '<div class="bioage-rank-field" aria-hidden="true" style="--rank-you-x:' + youX.toFixed(2) + '%;--rank-bins:' + binCount + '">' +
+            '<div class="bioage-rank-bins">' + bars + '</div>' +
+            '<span class="bioage-rank-marker"><span class="bioage-rank-marker-dot"></span></span>' +
+            '</div>';
+    }
+
+    // Reveal: the rank counts in from the back of the field to your place while
+    // the field rises and the marker travels; neighbours close in around You.
+    function playRankReveal(target: HTMLElement, rank: number, fieldSize: number, renderToken: number): void {
+        var number = target.querySelector<HTMLElement>('.bioage-rank-number');
+        target.classList.remove('bioage-rank-revealing');
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        void target.offsetWidth;
+        target.classList.add('bioage-rank-revealing');
+        window.setTimeout(function () {
+            if (isCurrentTargetRenderToken(target.id, renderToken)) target.classList.remove('bioage-rank-revealing');
+        }, 1600);
+        if (!number || fieldSize <= rank) return;
+        const counter: HTMLElement = number;
+        var start = performance.now();
+        var duration = 900;
+        // The status region announces once, with the final rank.
+        target.setAttribute('aria-busy', 'true');
+        var step = function (now: number): void {
+            if (!isCurrentTargetRenderToken(target.id, renderToken)) return;
+            var t = Math.min(1, (now - start) / duration);
+            var eased = 1 - Math.pow(1 - t, 3);
+            var value = Math.round(fieldSize - (fieldSize - rank) * eased);
+            if (counter.isConnected) counter.textContent = '#' + value;
+            if (t < 1 && counter.isConnected) requestAnimationFrame(step);
+            else target.setAttribute('aria-busy', 'false');
+        };
+        number.textContent = '#' + fieldSize;
+        requestAnimationFrame(step);
     }
 
     function trackRankPreview(eventName: string, clock: BioageRankClock, outcome: string): void {
@@ -591,6 +655,7 @@ declare global {
                 target.innerHTML = buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex);
                 installAvatarFallbacks(target);
                 target.setAttribute('aria-busy', 'false');
+                playRankReveal(target, rank, rankedFieldSize, renderToken);
             })
             .catch(function () {
                 if (!isCurrentTargetRenderToken(targetId, renderToken)) return;
