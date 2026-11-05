@@ -31,7 +31,7 @@ internal static partial class RedditIftttPost
     internal static string? GetPostId(string? postUrl)
     {
         if (postUrl is not { Length: <= 2048 } || !Uri.TryCreate(postUrl, UriKind.Absolute, out var url) ||
-            url.Scheme != Uri.UriSchemeHttps || !url.IsDefaultPort || url.UserInfo.Length != 0 ||
+            (url.Scheme != Uri.UriSchemeHttps && url.Scheme != Uri.UriSchemeHttp) || !url.IsDefaultPort || url.UserInfo.Length != 0 ||
             url.Host is not ("www.reddit.com" or "reddit.com" or "old.reddit.com"))
             return null;
 

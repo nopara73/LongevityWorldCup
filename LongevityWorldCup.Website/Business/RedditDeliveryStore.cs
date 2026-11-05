@@ -161,7 +161,7 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
         cmd.Parameters.AddWithValue("@plain", plainFingerprint);
         cmd.Parameters.AddWithValue("@html", htmlFingerprint);
         cmd.Parameters.AddWithValue("@since", (postedAt - RedditIftttPost.ConfirmationWindow).UtcDateTime.ToString("o"));
-        // IFTTT's trigger time is sent as whole Unix seconds.
+        // The applet sends the post time in whole Unix seconds.
         cmd.Parameters.AddWithValue("@before", postedAt.AddSeconds(1).UtcDateTime.ToString("o"));
         string key;
         using (var reader = cmd.ExecuteReader())

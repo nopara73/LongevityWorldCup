@@ -269,7 +269,7 @@ public sealed class RedditIntegrationTests
 
         var controller = IftttController(store, clock, config);
         var receipt = new RedditIftttReceiptsController.ReceiptRequest("LongevityWorldCup", "nopara73",
-            "https://www.reddit.com/r/LongevityWorldCup/comments/abc123/a_post/", delivery.Title,
+            "http://www.reddit.com/r/LongevityWorldCup/comments/abc123/a_post/", delivery.Title,
             outgoingBody, clock.Current.ToUnixTimeSeconds());
         controller.Request.Headers.Authorization = "Bearer incorrect";
         Assert.IsType<UnauthorizedResult>(controller.Receive(receipt));
@@ -288,6 +288,14 @@ public sealed class RedditIntegrationTests
         Assert.True(Matched(controller.Receive(receipt)));
         Assert.False(Matched(controller.Receive(receipt with { PostUrl = "https://www.reddit.com/r/LongevityWorldCup/comments/duplicate/" })));
         Assert.Equal("t3_abc123", store.Find(delivery.DeliveryId)!.PostId);
+        var canonicalUrl = fixture.Database.Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText = "SELECT RemoteUri FROM SocialDeliveries WHERE Platform = 'reddit' AND RecordKey = @key;";
+            command.Parameters.AddWithValue("@key", delivery.DeliveryId);
+            return (string?)command.ExecuteScalar();
+        });
+        Assert.Equal("https://www.reddit.com/r/LongevityWorldCup/comments/abc123/", canonicalUrl);
     }
 
     [Fact]
