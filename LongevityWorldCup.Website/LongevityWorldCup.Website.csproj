@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="DataCorrections/BiomarkerAudit20261018.json" />
+    <EmbeddedResource Include="Frontend/flag-icon-codes.json" LogicalName="flag-icon-codes.json" />
+    <Content Remove="Frontend/flag-icon-codes.json" />
     <TypeScriptSource Include="Frontend\*.ts" />
     <ClassicScriptSource Include="Frontend\*.js" />
     <NestedFrontendRuntimeSource Include="Frontend\**\*.ts;Frontend\**\*.js"

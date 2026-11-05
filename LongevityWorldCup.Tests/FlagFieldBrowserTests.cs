@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
@@ -11,6 +12,40 @@ public sealed class FlagFieldBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/apply", "flag", 1280)]
+    [InlineData("/edit-profile", "flagDisplayInput", 390)]
+    public async Task FlagsWithArtwork_AppearInSuggestionsAndTheSelectedSlot(string path, string id, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        using var client = App.CreateClient();
+        var page = await PrepareAsync(context, path);
+        var input = page.Locator("#" + id);
+        foreach (var (query, flag, code, artwork) in new[]
+        {
+            ("Liber", "Liberland", "liberland", "/assets/flags/liberland.webp"),
+            ("Belgi", "Belgium", "be", "/vendor/flag-icons/flags/4x3/be.svg")
+        })
+        {
+            await input.FillAsync(query);
+            var tile = page.Locator($"#{id}-autocomplete-list [role=option] .fi-{code}");
+            await Assertions.Expect(tile).ToBeVisibleAsync();
+            await Assertions.Expect(tile).ToHaveCSSAsync("background-image", new Regex(Regex.Escape(artwork)));
+            using var response = await client.GetAsync(artwork);
+            response.EnsureSuccessStatusCode();
+            Assert.StartsWith("image/", response.Content.Headers.ContentType?.MediaType);
+
+            await input.PressAsync("ArrowDown");
+            await input.PressAsync("Enter");
+            await Assertions.Expect(input).ToHaveValueAsync(flag);
+            await Assertions.Expect(page.Locator($".lwc-flag-slot .fi-{code}")).ToBeVisibleAsync();
+        }
+    }
+
     [Theory]
     [InlineData("/apply", "flag")]
     [InlineData("/edit-profile", "flagDisplayInput")]

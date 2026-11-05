@@ -1,3 +1,5 @@
+declare const EMBEDDED_FLAG_ICON_CODES: Readonly<Record<string, string>>;
+
 (function () {
     const flagAliases = new Map<string, string>([
         ["america", "United States"],
@@ -16,23 +18,9 @@
         ["usa", "United States"]
     ]);
 
-    const standardFlagIconCodes = new Map<string, string>([
-        ["argentina", "ar"], ["australia", "au"], ["austria", "at"],
-        ["bolivia", "bo"], ["brazil", "br"], ["bulgaria", "bg"],
-        ["canada", "ca"], ["czech republic", "cz"], ["ecuador", "ec"],
-        ["egypt", "eg"], ["estonia", "ee"], ["france", "fr"],
-        ["germany", "de"], ["greece", "gr"], ["honduras", "hn"],
-        ["hungary", "hu"], ["iceland", "is"], ["india", "in"],
-        ["iraq", "iq"], ["italy", "it"], ["japan", "jp"],
-        ["latvia", "lv"], ["malaysia", "my"], ["netherlands", "nl"],
-        ["new zealand", "nz"], ["norway", "no"], ["poland", "pl"],
-        ["portugal", "pt"], ["puerto rico", "pr"], ["romania", "ro"],
-        ["russia", "ru"], ["serbia", "rs"], ["sierra leone", "sl"],
-        ["singapore", "sg"], ["slovakia", "sk"], ["south africa", "za"],
-        ["sweden", "se"], ["switzerland", "ch"], ["thailand", "th"],
-        ["turkey", "tr"], ["united arab emirates", "ae"],
-        ["united kingdom", "gb"], ["united states", "us"]
-    ]);
+    const flagIconCodes = new Map<string, string>(
+        Object.entries(EMBEDDED_FLAG_ICON_CODES).map(([name, code]) => [normalizeFlagKey(name), code])
+    );
 
     function normalizeText(value: unknown): string {
         const input = String(value || "");
@@ -73,7 +61,7 @@
     }
 
     function getFlagIconCode(flag: unknown): string {
-        return standardFlagIconCodes.get(getFlagFilterKey(flag)) ?? "";
+        return flagIconCodes.get(getFlagFilterKey(flag)) ?? "";
     }
 
     function escapeHtml(text: unknown): string {

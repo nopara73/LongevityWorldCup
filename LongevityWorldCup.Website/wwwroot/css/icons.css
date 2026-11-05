@@ -315,3 +315,15 @@ i[data-lwc-icon-typed] { --lwc-icon-stroke: 2.2; }
     --lwc-icon-optical: 1.05;
     --lwc-icon-stroke: 2.6;
 }
+
+/* Public-domain flags outside the bundled flag-icons set. */
+/* https://commons.wikimedia.org/wiki/File:Flag_of_Christiania.svg */
+.fi-christiania { background-image: url("../assets/flags/christiania.svg"); }
+/* https://commons.wikimedia.org/wiki/File:Flag_of_Corsica.svg */
+.fi-corsica { background-image: url("../assets/flags/corsica.svg"); }
+/* https://liberland.org/about and https://docs.liberland.org/media/press-kit */
+.fi-liberland { background-image: url("../assets/flags/liberland.webp"); }
+/* https://commons.wikimedia.org/wiki/File:Flag_of_Rapa_Nui,_Chile.svg */
+.fi-rapa-nui { background-image: url("../assets/flags/rapa-nui.svg"); }
+/* https://commons.wikimedia.org/wiki/File:Flag_of_Sealand.svg */
+.fi-sealand { background-image: url("../assets/flags/sealand.svg"); }
