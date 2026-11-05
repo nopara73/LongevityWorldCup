@@ -74,6 +74,11 @@ public sealed class ScheduledJobConfigurationTests
         Assert.Equal(TimeSpan.FromMinutes(1), nostr.RepeatInterval);
         Assert.Equal(-1, nostr.RepeatCount);
         Assert.NotNull(await scheduler.GetJobDetail(nostr.JobKey));
+        var reddit = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("RedditIftttDispatchTrigger")));
+        Assert.Equal(new JobKey("RedditIftttDispatchJob"), reddit.JobKey);
+        Assert.Equal(TimeSpan.FromMinutes(1), reddit.RepeatInterval);
+        Assert.Equal(-1, reddit.RepeatCount);
+        Assert.NotNull(await scheduler.GetJobDetail(reddit.JobKey));
         var bluesky = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("BlueskyCustomPostTrigger")));
         Assert.Equal(new JobKey("BlueskyCustomPostJob"), bluesky.JobKey);
         Assert.Equal(TimeSpan.FromMinutes(1), bluesky.RepeatInterval);

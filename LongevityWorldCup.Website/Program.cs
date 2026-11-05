@@ -305,6 +305,20 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<NostrAnnouncementService>();
             builder.Services.AddSingleton<RedditDeliveryStore>();
             builder.Services.AddSingleton<RedditAnnouncementService>();
+            builder.Services.AddHttpClient(nameof(RedditIftttPublisher), client =>
+            {
+                client.BaseAddress = new Uri("https://maker.ifttt.com/");
+                client.Timeout = TimeSpan.FromSeconds(20);
+            })
+                // The Webhooks key is part of the request path.
+                .RemoveAllLoggers()
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    UseCookies = false,
+                    ActivityHeadersPropagator = null
+                });
+            builder.Services.AddSingleton<RedditIftttPublisher>();
             builder.Services.AddSingleton<XFillerPostLogService>();
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();

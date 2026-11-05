@@ -1,10 +1,12 @@
 using System.Globalization;
+using LongevityWorldCup.Website.Tools;
+using Microsoft.Data.Sqlite;
 
 namespace LongevityWorldCup.Website.Business;
 
 internal sealed record RedditDeliveryRecord(string EventId, string Status, string Json, string? PostId);
 
-internal enum RedditBeginResult { Started, AlreadyStarted, DailyLimit, NotPending }
+internal enum RedditBeginResult { Started, AlreadyStarted, DailyLimit, NotPending, IdenticalPostInReceiptWindow }
 
 public sealed class RedditDeliveryStore(DatabaseManager db)
 {
@@ -23,7 +25,11 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
         db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = "CREATE TABLE IF NOT EXISTS RedditDailyDeliveries (UtcDate TEXT PRIMARY KEY, EventId TEXT NOT NULL);";
+            cmd.CommandText = """
+                CREATE TABLE IF NOT EXISTS RedditDailyDeliveries (UtcDate TEXT PRIMARY KEY, EventId TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS RedditIftttAttempts (RecordKey TEXT PRIMARY KEY, Fingerprint TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS IX_RedditIftttAttempts_Fingerprint ON RedditIftttAttempts(Fingerprint);
+                """;
             cmd.ExecuteNonQuery();
         });
     }
@@ -56,7 +62,7 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
             reader.IsDBNull(3) ? null : reader.GetString(3)) : null;
     });
 
-    internal RedditBeginResult Begin(string key, DateTimeOffset now) => db.Run(sqlite =>
+    internal RedditBeginResult Begin(string key, DateTimeOffset now, string? iftttFingerprint = null) => db.Run(sqlite =>
     {
         using var tx = sqlite.BeginTransaction();
         using var cmd = sqlite.CreateCommand();
@@ -75,6 +81,20 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
             id = reader.GetString(0);
             custom = reader.GetInt32(1) == (int)EventType.CustomEvent;
         }
+        if (iftttFingerprint is not null)
+        {
+            // Keep receipt windows for identical copy from overlapping, even if the first post was already confirmed.
+            cmd.CommandText = """
+                SELECT EXISTS(
+                    SELECT 1 FROM RedditIftttAttempts a JOIN SocialDeliveries d
+                        ON d.Platform = 'reddit' AND d.RecordKey = a.RecordKey
+                    WHERE a.Fingerprint = @fingerprint AND d.FirstAttemptAtUtc >= @since
+                );
+                """;
+            cmd.Parameters.AddWithValue("@fingerprint", iftttFingerprint);
+            cmd.Parameters.AddWithValue("@since", (now - RedditIftttPost.ConfirmationWindow - TimeSpan.FromSeconds(1)).UtcDateTime.ToString("o"));
+            if (Convert.ToInt32(cmd.ExecuteScalar()) != 0) return RedditBeginResult.IdenticalPostInReceiptWindow;
+        }
         if (!custom)
         {
             cmd.CommandText = "INSERT OR IGNORE INTO RedditDailyDeliveries (UtcDate, EventId) VALUES (@date, @id);";
@@ -87,6 +107,11 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
         cmd.CommandText = "UPDATE SocialDeliveries SET FirstAttemptAtUtc = @now WHERE Platform = 'reddit' AND RecordKey = @key AND FirstAttemptAtUtc IS NULL AND Status = 'pending';";
         cmd.Parameters.AddWithValue("@now", now.UtcDateTime.ToString("o"));
         var updated = cmd.ExecuteNonQuery();
+        if (updated == 1 && iftttFingerprint is not null)
+        {
+            cmd.CommandText = "INSERT INTO RedditIftttAttempts (RecordKey, Fingerprint) VALUES (@key, @fingerprint);";
+            cmd.ExecuteNonQuery();
+        }
         tx.Commit();
         return updated == 1 ? RedditBeginResult.Started : RedditBeginResult.AlreadyStarted;
     });
@@ -104,14 +129,68 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
         return cmd.ExecuteNonQuery() == 1;
     });
 
+    internal void ExpireIftttAttempts(DateTimeOffset now) => db.Run(sqlite =>
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText = """
+            UPDATE SocialDeliveries SET Status = 'review', LastErrorCode = 'UnconfirmedPost', UpdatedAtUtc = @now
+            WHERE Platform = 'reddit' AND Status = 'pending' AND FirstAttemptAtUtc < @since
+                AND RecordKey IN (SELECT RecordKey FROM RedditIftttAttempts);
+            """;
+        cmd.Parameters.AddWithValue("@now", now.UtcDateTime.ToString("o"));
+        cmd.Parameters.AddWithValue("@since", (now - RedditIftttPost.ConfirmationWindow).UtcDateTime.ToString("o"));
+        cmd.ExecuteNonQuery();
+    });
+
+    internal bool ConfirmIfttt(string plainFingerprint, string htmlFingerprint, string postId,
+        DateTimeOffset postedAt, DateTimeOffset now) => db.Run(sqlite =>
+    {
+        using var tx = sqlite.BeginTransaction();
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'RedditIftttAttempts');";
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0) return false;
+
+        // Include confirmed attempts so a provider duplicate cannot complete another Event with the same copy.
+        cmd.CommandText = """
+            SELECT d.RecordKey
+            FROM RedditIftttAttempts a JOIN SocialDeliveries d ON d.Platform = 'reddit' AND d.RecordKey = a.RecordKey
+            WHERE a.Fingerprint IN (@plain, @html) AND d.FirstAttemptAtUtc >= @since AND d.FirstAttemptAtUtc < @before
+            LIMIT 2;
+            """;
+        cmd.Parameters.AddWithValue("@plain", plainFingerprint);
+        cmd.Parameters.AddWithValue("@html", htmlFingerprint);
+        cmd.Parameters.AddWithValue("@since", (postedAt - RedditIftttPost.ConfirmationWindow).UtcDateTime.ToString("o"));
+        // IFTTT's trigger time is sent as whole Unix seconds.
+        cmd.Parameters.AddWithValue("@before", postedAt.AddSeconds(1).UtcDateTime.ToString("o"));
+        string key;
+        using (var reader = cmd.ExecuteReader())
+        {
+            if (!reader.Read()) return false;
+            key = reader.GetString(0);
+            if (reader.Read()) return false;
+        }
+
+        var matched = Complete(cmd, key, postId, now);
+        tx.Commit();
+        return matched;
+    });
+
     internal bool Complete(string key, string postId, DateTimeOffset now) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
+        return Complete(cmd, key, postId, now);
+    });
+
+    private static bool Complete(SqliteCommand cmd, string key, string postId, DateTimeOffset now)
+    {
+        cmd.Parameters.Clear();
         cmd.CommandText = """
             UPDATE SocialDeliveries SET Status = 'sent', RemoteCid = @postId, RemoteUri = @url,
                 LastErrorCode = NULL, NextAttemptAtUtc = NULL, UpdatedAtUtc = @now
             WHERE Platform = 'reddit' AND RecordKey = @key AND RecordJson IS NOT NULL
-                AND FirstAttemptAtUtc IS NOT NULL AND Status IN ('pending', 'review');
+                AND FirstAttemptAtUtc IS NOT NULL AND Status IN ('pending', 'review')
+                AND NOT EXISTS (SELECT 1 FROM SocialDeliveries WHERE Platform = 'reddit' AND RemoteCid = @postId);
             """;
         cmd.Parameters.AddWithValue("@key", key);
         cmd.Parameters.AddWithValue("@postId", postId);
@@ -120,5 +199,5 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
         if (cmd.ExecuteNonQuery() == 1) return true;
         cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM SocialDeliveries WHERE Platform = 'reddit' AND RecordKey = @key AND Status = 'sent' AND RemoteCid = @postId);";
         return Convert.ToInt32(cmd.ExecuteScalar()) != 0;
-    });
+    }
 }

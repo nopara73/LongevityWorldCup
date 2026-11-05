@@ -70,6 +70,10 @@ namespace LongevityWorldCup.Website
         public string[] NostrRelayUrls { get; set; } = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nostr.mom"];
         public bool RedditEnabled { get; set; }
         public string? RedditBridgeSecretHash { get; set; }
+        public bool RedditUseIfttt { get; set; }
+        public string? RedditIftttWebhookKey { get; set; }
+        public string? RedditIftttReceiptSecretHash { get; set; }
+        internal bool RedditDispatchEnabled => RedditEnabled && (!RedditUseIfttt || RedditIftttPost.IsConfigured(this));
         public string? CustomEventDesignerSecretHash { get; set; }
         public LongevitymaxxingChallengeConfig? LongevitymaxxingChallenge { get; set; }
 

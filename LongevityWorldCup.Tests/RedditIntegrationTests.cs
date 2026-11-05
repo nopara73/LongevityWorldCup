@@ -1,5 +1,7 @@
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Controllers;
@@ -235,6 +237,127 @@ public sealed class RedditIntegrationTests
         Assert.Contains("Full body", post.Text);
         Assert.Contains("https://longevityworldcup.com/events?event=event-1", post.Text);
         Assert.False(char.IsHighSurrogate(post.Title[^2]));
+    }
+
+    [Fact]
+    public async Task IftttDispatch_BaselinesHistoryAndWaitsForTheMatchingRedditPost()
+    {
+        using var fixture = Fixture.Create();
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var config = IftttConfig();
+        var store = new RedditDeliveryStore(fixture.Database);
+        var announcements = Service(fixture, clock, config);
+        using var ifttt = new RecordingIftttClient();
+        var publisher = new RedditIftttPublisher(config, announcements, store, ifttt, clock, NullLogger<RedditIftttPublisher>.Instance);
+
+        fixture.Events.CreateCustomEvent("Historical", "Keep this out of Reddit", deliveryTargets: RedditOnly);
+        await publisher.DispatchAsync(default);
+        Assert.Empty(ifttt.Requests);
+        Assert.True(store.IsActive);
+
+        fixture.Events.CreateCustomEvent("IFTTT announcement", "One & two\n\nAnother paragraph", deliveryTargets: RedditOnly);
+        var delivery = Assert.IsType<RedditDeliveryPayload>(await announcements.GetNextAsync());
+        await publisher.DispatchAsync(default);
+        await publisher.DispatchAsync(default);
+        var sent = Assert.Single(ifttt.Requests);
+        Assert.Equal("/trigger/lwc_reddit_announcement/with/key/test-webhooks-key", sent.Path);
+        using var payload = JsonDocument.Parse(sent.Body);
+        Assert.Equal(delivery.Title, payload.RootElement.GetProperty("value1").GetString());
+        var outgoingBody = Assert.IsType<string>(payload.RootElement.GetProperty("value2").GetString());
+        Assert.Contains("One &amp; two<br><br>Another paragraph", outgoingBody);
+        Assert.Equal("pending", store.Find(delivery.DeliveryId)!.Status);
+
+        var controller = IftttController(store, clock, config);
+        var receipt = new RedditIftttReceiptsController.ReceiptRequest("LongevityWorldCup", "nopara73",
+            "https://www.reddit.com/r/LongevityWorldCup/comments/abc123/a_post/", delivery.Title,
+            outgoingBody, clock.Current.ToUnixTimeSeconds());
+        controller.Request.Headers.Authorization = "Bearer incorrect";
+        Assert.IsType<UnauthorizedResult>(controller.Receive(receipt));
+        controller.Request.Headers.Authorization = "Bearer test-only-reddit-key";
+        Assert.IsType<BadRequestResult>(controller.Receive(receipt with { Author = "someone-else" }));
+        Assert.IsType<BadRequestResult>(controller.Receive(receipt with { PostUrl = "https://www.reddit.com/r/elsewhere/comments/abc123/" }));
+        Assert.False(Matched(controller.Receive(receipt with { Text = "Different content" })));
+        Assert.False(Matched(controller.Receive(receipt with { PostedAtUnixSeconds = receipt.PostedAtUnixSeconds - 1 })));
+
+        clock.Current = clock.Current.AddHours(3);
+        await publisher.DispatchAsync(default);
+        Assert.Equal("review", store.Find(delivery.DeliveryId)!.Status);
+        Assert.Single(ifttt.Requests);
+        config.RedditEnabled = false;
+        Assert.True(Matched(controller.Receive(receipt)));
+        Assert.True(Matched(controller.Receive(receipt)));
+        Assert.False(Matched(controller.Receive(receipt with { PostUrl = "https://www.reddit.com/r/LongevityWorldCup/comments/duplicate/" })));
+        Assert.Equal("t3_abc123", store.Find(delivery.DeliveryId)!.PostId);
+    }
+
+    [Fact]
+    public async Task Ifttt_IdenticalCopyWaitsForANewReceiptWindowAndPostIdsAreNotReassigned()
+    {
+        using var fixture = Fixture.Create();
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var config = IftttConfig();
+        var store = new RedditDeliveryStore(fixture.Database);
+        var announcements = Service(fixture, clock, config);
+        using var ifttt = new RecordingIftttClient();
+        var publisher = new RedditIftttPublisher(config, announcements, store, ifttt, clock, NullLogger<RedditIftttPublisher>.Instance);
+        var controller = IftttController(store, clock, config);
+        await publisher.DispatchAsync(default);
+
+        fixture.Events.CreateCustomEvent("Repeated announcement", "Same copy", deliveryTargets: RedditOnly);
+        var first = Assert.IsType<RedditDeliveryPayload>(await announcements.GetNextAsync());
+        await publisher.DispatchAsync(default);
+        var receipt = new RedditIftttReceiptsController.ReceiptRequest("LongevityWorldCup", "nopara73",
+            "https://www.reddit.com/r/LongevityWorldCup/comments/abc123/", first.Title, first.Text, clock.Current.ToUnixTimeSeconds());
+        Assert.True(Matched(controller.Receive(receipt)));
+
+        clock.Current = clock.Current.AddMinutes(1);
+        fixture.Events.CreateCustomEvent("Repeated announcement", "Same copy", deliveryTargets: RedditOnly);
+        var second = Assert.IsType<RedditDeliveryPayload>(await announcements.GetNextAsync());
+        await publisher.DispatchAsync(default);
+        Assert.Single(ifttt.Requests);
+
+        clock.Current = clock.Current.AddHours(2);
+        await publisher.DispatchAsync(default);
+        Assert.Equal(2, ifttt.Requests.Count);
+        var nextReceipt = receipt with { PostedAtUnixSeconds = clock.Current.ToUnixTimeSeconds() };
+        Assert.False(Matched(controller.Receive(nextReceipt)));
+        Assert.True(Matched(controller.Receive(nextReceipt with { PostUrl = "https://www.reddit.com/r/LongevityWorldCup/comments/abc124/" })));
+        Assert.Equal("t3_abc124", store.Find(second.DeliveryId)!.PostId);
+    }
+
+    private static Config IftttConfig() => new()
+    {
+        RedditEnabled = true,
+        RedditUseIfttt = true,
+        RedditIftttWebhookKey = "test-webhooks-key",
+        RedditIftttReceiptSecretHash = TestHash()
+    };
+
+    private static RedditIftttReceiptsController IftttController(RedditDeliveryStore store, TimeProvider clock, Config config)
+    {
+        var controller = new RedditIftttReceiptsController(config, store, clock)
+            { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
+        controller.Request.Headers.Authorization = "Bearer test-only-reddit-key";
+        return controller;
+    }
+
+    private static bool Matched(IActionResult response) =>
+        JsonSerializer.SerializeToElement(Assert.IsType<OkObjectResult>(response).Value).GetProperty("matched").GetBoolean();
+
+    private sealed class RecordingIftttClient : HttpMessageHandler, IHttpClientFactory
+    {
+        internal List<(string Path, string Body)> Requests { get; } = [];
+
+        public HttpClient CreateClient(string name) => new(this, disposeHandler: false)
+        {
+            BaseAddress = new Uri("https://maker.ifttt.com/")
+        };
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add((request.RequestUri!.PathAndQuery, await request.Content!.ReadAsStringAsync(cancellationToken)));
+            return new HttpResponseMessage(HttpStatusCode.Accepted);
+        }
     }
 
     private static RedditAnnouncementService Service(Fixture fixture, TimeProvider clock, Config? config = null) => new(

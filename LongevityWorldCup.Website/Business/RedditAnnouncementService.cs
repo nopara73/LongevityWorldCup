@@ -21,7 +21,7 @@ public sealed class RedditAnnouncementService(
     public async Task PrepareDailyAsync(CancellationToken ct = default)
     {
         _ = events;
-        if (!config.RedditEnabled || !reddit.IsActive || !await _gate.WaitAsync(0, ct)) return;
+        if (!config.RedditDispatchEnabled || !reddit.IsActive || !await _gate.WaitAsync(0, ct)) return;
         try
         {
             var now = time.GetUtcNow();
@@ -41,7 +41,11 @@ public sealed class RedditAnnouncementService(
         finally { _gate.Release(); }
     }
 
-    public async Task<RedditDeliveryPayload?> GetNextAsync(CancellationToken ct = default)
+    public Task<RedditDeliveryPayload?> GetNextAsync(CancellationToken ct = default) => GetNextAsync(false, ct);
+
+    internal Task<RedditDeliveryPayload?> ClaimNextIftttAsync(CancellationToken ct) => GetNextAsync(true, ct);
+
+    private async Task<RedditDeliveryPayload?> GetNextAsync(bool ifttt, CancellationToken ct)
     {
         _ = events;
         await _gate.WaitAsync(ct);
@@ -49,9 +53,11 @@ public sealed class RedditAnnouncementService(
         {
             reddit.Activate();
             var now = time.GetUtcNow();
+            if (ifttt) reddit.ExpireIftttAttempts(now);
             foreach (var candidate in deliveries.GetPending(SocialDeliveryStore.Reddit, customOnly: true, now))
             {
                 ct.ThrowIfCancellationRequested();
+                if (ifttt && candidate.FirstAttemptAtUtc.HasValue) continue;
                 if (candidate.HiddenForMissingAthlete)
                 {
                     deliveries.Skip(SocialDeliveryStore.Reddit, candidate.Event.Id, "MissingAthlete", now);
@@ -68,6 +74,8 @@ public sealed class RedditAnnouncementService(
                 }
                 var prepared = JsonSerializer.Deserialize<RedditPostRequest>(json)
                     ?? throw new InvalidOperationException("The saved Reddit request is invalid.");
+                if (ifttt && reddit.Begin(key!, now, RedditIftttPost.Fingerprint(prepared.Title, prepared.Text)) != RedditBeginResult.Started)
+                    continue;
                 return new(key!, candidate.Event.Id, Subreddit, prepared.Title, prepared.Text);
             }
             return null;

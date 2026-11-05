@@ -87,7 +87,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
             return BadRequest("Select at least one destination.");
-        if (targets.SendToReddit && (!_config.RedditEnabled || reddit?.IsActive != true))
+        if (targets.SendToReddit && (!_config.RedditDispatchEnabled || reddit?.IsActive != true))
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Reddit announcements are not active yet.");
         if (targets.SendToWebPush && webPush?.IsConfigured != true)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Website notifications are not configured.");
