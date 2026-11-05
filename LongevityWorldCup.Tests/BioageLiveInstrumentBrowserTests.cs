@@ -34,6 +34,48 @@ public sealed class BioageLiveInstrumentBrowserTests(
     }
 
     [Theory]
+    [InlineData("pheno", 390)]
+    [InlineData("bortz", 390)]
+    [InlineData("pheno", 1280)]
+    [InlineData("bortz", 1280)]
+    public async Task JoinCaption_StaysClearOfItsArrowAtNormalAndLargeText(string clock, int width)
+    {
+        await using var context = await NewContextAsync(width: width);
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        foreach (var scale in new[] { 1, 2 })
+        {
+            if (scale == 2) await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+            await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock.refreshNow(); }");
+            await WaitForManagedActionStacksSettledAsync(page);
+            var problems = await page.Locator("#continueButton").EvaluateAsync<string[]>("""
+                button => {
+                    const label = button.querySelector('.flow-action__label');
+                    const range = document.createRange();
+                    range.selectNodeContents(label);
+                    const bounds = button.getBoundingClientRect(), arrow = button.querySelector('i').getBoundingClientRect();
+                    const errors = [];
+                    if (arrow.left < bounds.left || arrow.right > bounds.right) errors.push('Arrow escapes button');
+                    for (const text of range.getClientRects()) {
+                        if (text.left < bounds.left || text.right > bounds.right || text.top < bounds.top || text.bottom > bounds.bottom)
+                            errors.push('Caption escapes button');
+                        if (Math.min(text.bottom, arrow.bottom) > Math.max(text.top, arrow.top) && arrow.left - text.right < 4)
+                            errors.push(`Caption crowds arrow: ${arrow.left - text.right}px`);
+                    }
+                    return errors;
+                }
+                """);
+            Assert.Empty(problems);
+            if (Environment.GetEnvironmentVariable("LWC_CAPTURE_BIOAGE_DESIGN") == "1")
+            {
+                var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.artifacts/bioage-live"));
+                Directory.CreateDirectory(directory);
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"join-{clock}-{width}-{scale}x.png") });
+            }
+        }
+    }
+
+    [Theory]
     [InlineData("pheno", 1280)]
     [InlineData("bortz", 390)]
     [InlineData("pheno", 390)]

@@ -2681,8 +2681,19 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     transform: none;
 }
 
+.flow-action-stack.bioage-live-actions[data-flow-dock] > #continueButton {
+    gap: 0.5rem;
+}
+
+.flow-action-stack.bioage-live-actions #continueButton > .flow-action__label {
+    width: auto;
+    flex: 0 1 auto;
+}
+
 .flow-action-stack.bioage-live-actions #continueButton > i {
-    margin-inline-start: 0.35rem;
+    position: static;
+    transform: none;
+    flex: 0 0 1.25rem;
 }
 
 .bioage-live-readout {
