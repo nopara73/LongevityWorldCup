@@ -324,6 +324,6 @@ i[data-lwc-icon-typed] { --lwc-icon-stroke: 2.2; }
 /* https://liberland.org/about and https://docs.liberland.org/media/press-kit */
 .fi-liberland { background-image: url("../assets/flags/liberland.webp"); }
 /* https://commons.wikimedia.org/wiki/File:Flag_of_Rapa_Nui,_Chile.svg */
-.fi-rapa-nui { background-image: url("../assets/flags/rapa-nui.svg"); }
+.fi-rapa-nui { background-image: url("../assets/flags/rapa-nui.svg?v=2"); }
 /* https://commons.wikimedia.org/wiki/File:Flag_of_Sealand.svg */
 .fi-sealand { background-image: url("../assets/flags/sealand.svg"); }
