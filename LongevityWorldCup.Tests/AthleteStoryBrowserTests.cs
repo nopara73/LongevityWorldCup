@@ -125,7 +125,15 @@ public sealed class AthleteStoryBrowserTests(
             foreach (var index in new[] { 0, count - 1, 0 })
             {
                 await select.SelectOptionAsync(index.ToString());
-                await page.WaitForTimeoutAsync(100);
+                await page.WaitForFunctionAsync("""
+                    ({index, clock}) => {
+                        const gap = document.querySelector('#ageRadarFallback .age-story-gap');
+                        const diff = parseFloat(document.getElementById('ageRadarFallbackValue').textContent.replace('−', '-'));
+                        return [...document.querySelectorAll('.age-story-timeline-dot')].findIndex(dot => dot.classList.contains('is-selected')) === index
+                            && gap?.dataset.clock === clock
+                            && +gap.style.getPropertyValue('--story-gap') === Math.max(-1, Math.min(1, diff / 20));
+                    }
+                    """, new { index, clock = clock.ToLowerInvariant() });
                 var reading = await page.EvaluateAsync<JsonElement>("""
                     () => ({
                         text: document.getElementById('ageRadarFallbackValue').textContent,

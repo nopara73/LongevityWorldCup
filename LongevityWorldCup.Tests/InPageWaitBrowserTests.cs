@@ -55,7 +55,7 @@ public sealed class InPageWaitBrowserTests(
         // pixels catches overlays that computed background-color cannot see.
         var approved = before[before.Width / 2, 8];
         await page.EvaluateAsync("() => { LwcWait.start(save); save.disabled=true; }");
-        await page.WaitForTimeoutAsync(180);
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("""
             () => { for(const animation of document.querySelector('.lwc-wait-fill').getAnimations()) {
                 animation.pause(); animation.currentTime=3000;
@@ -225,7 +225,7 @@ public sealed class InPageWaitBrowserTests(
         var page = await OpenAsync(context);
         await page.Locator("#save").FocusAsync();
         await page.EvaluateAsync("() => { save.style.outline='3px solid blue'; LwcWait.start(save); LwcWait.region(board,true); }");
-        await page.WaitForTimeoutAsync(170);
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("() => { void LwcWait.finish(save,'error'); LwcWait.region(board,false); }");
         Assert.Equal("3px", await page.Locator("#save").EvaluateAsync<string>("el => getComputedStyle(el).outlineWidth"));
         Assert.Equal("rgb(0, 0, 255)", await page.Locator("#save").EvaluateAsync<string>("el => getComputedStyle(el).outlineColor"));
@@ -256,13 +256,11 @@ public sealed class InPageWaitBrowserTests(
         var page = await OpenAsync(context);
         await page.AddScriptTagAsync(new() { Url = "/js/motion.js" });
         await page.EvaluateAsync("() => { save.setAttribute('aria-busy','true'); }");
-        await page.WaitForTimeoutAsync(170);
-        Assert.Equal(1, await page.Locator(".lwc-wait-fill").CountAsync());
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("() => { window.dispatchEvent(new PageTransitionEvent('pagehide')); save.removeAttribute('aria-busy'); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true})); }");
         Assert.Equal(0, await page.Locator(".lwc-wait-fill").CountAsync());
         await page.EvaluateAsync("() => save.setAttribute('aria-busy','true')");
-        await page.WaitForTimeoutAsync(170);
-        Assert.Equal(1, await page.Locator(".lwc-wait-fill").CountAsync());
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("() => save.removeAttribute('aria-busy')");
         await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(0);
     }
@@ -297,7 +295,7 @@ public sealed class InPageWaitBrowserTests(
                 window.pendingSave=LwcWait.optimistic(()=>{},()=>new Promise(resolve=>window.resolveSave=resolve),save);
             }
             """);
-        await page.WaitForTimeoutAsync(180);
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         Assert.Null(await page.Locator("html").GetAttributeAsync("data-lwc-sync"));
         await page.EvaluateAsync("() => scrollTo(0,1400)");
         await page.WaitForFunctionAsync("() => document.documentElement.dataset.lwcSync==='on'");
