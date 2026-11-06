@@ -2464,6 +2464,7 @@
             const year = parseInt(document.getElementById('dob-year').value);
             const month = parseInt(document.getElementById('dob-month').value);
             const daySelect = document.getElementById('dob-day');
+            const selectedDay = parseInt(daySelect.value, 10);
 
             // Clear existing options
             daySelect.innerHTML = '<option value="" disabled selected>Select day</option>';
@@ -2478,7 +2479,7 @@
                     option.textContent = day;
                     daySelect.appendChild(option);
                 }
-                daySelect.value = lastDay;
+                daySelect.value = Math.min(selectedDay || lastDay, lastDay);
             } else {
                 // Default to 31 days
                 for (let day = 1; day <= 31; day++) {
@@ -2487,7 +2488,7 @@
                     option.textContent = day;
                     daySelect.appendChild(option);
                 }
-                daySelect.value = 31;
+                daySelect.value = selectedDay || 31;
             }
         }
 

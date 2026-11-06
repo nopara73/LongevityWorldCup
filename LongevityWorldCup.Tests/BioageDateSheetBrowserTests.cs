@@ -12,6 +12,50 @@ public sealed class BioageDateSheetBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/pheno-age", 1440, "en-US")]
+    [InlineData("/pheno-age", 390, "vi-VN")]
+    [InlineData("/bortz-age", 1440, "vi-VN")]
+    [InlineData("/bortz-age", 390, "en-US")]
+    public async Task BirthdayEdits_PreserveTheDayAndClampOnlyWhenNecessary(string path, int width, string locale)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            IsMobile = width < 600,
+            HasTouch = width < 600,
+            Locale = locale,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await page.WaitForSelectorAsync(".bioage-biomarker-entry-ready");
+        var day = page.Locator("#dob-day");
+        await page.SelectOptionAsync("#dob-year", "1980");
+        await page.SelectOptionAsync("#dob-month", "6");
+        await day.SelectOptionAsync("15");
+        await page.SelectOptionAsync("#dob-month", "7");
+        await Assertions.Expect(day).ToHaveValueAsync("15");
+        await page.SelectOptionAsync("#dob-year", "1981");
+        await Assertions.Expect(day).ToHaveValueAsync("15");
+        await page.ReloadAsync();
+        await Assertions.Expect(day).ToHaveValueAsync("15");
+        await page.SelectOptionAsync("#dob-month", "1");
+        await day.SelectOptionAsync("31");
+        await page.SelectOptionAsync("#dob-month", "4");
+        await Assertions.Expect(day).ToHaveValueAsync("30");
+        await page.SelectOptionAsync("#dob-year", "2000");
+        await page.SelectOptionAsync("#dob-month", "2");
+        await Assertions.Expect(day).ToHaveValueAsync("29");
+        await page.SelectOptionAsync("#dob-year", "2001");
+        await Assertions.Expect(day).ToHaveValueAsync("28");
+        await page.SelectOptionAsync("#dob-year", "2000");
+        await Assertions.Expect(day).ToHaveValueAsync("28");
+        await page.Locator("#lwcToStep2Btn").ClickAsync();
+        await Assertions.Expect(page.Locator("#lwc-step-2")).ToBeVisibleAsync();
+        await ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Theory]
     [InlineData("/pheno-age", 1440, 1)]
     [InlineData("/pheno-age", 390, 1)]
     [InlineData("/bortz-age", 1440, 1)]
@@ -122,6 +166,7 @@ public sealed class BioageDateSheetBrowserTests(
         Assert.True(await date.EvaluateAsync<bool>("e => e.validity.valid"));
         Assert.Equal(readyColor, await drawBand.EvaluateAsync<string>("e => getComputedStyle(e, '::after').backgroundColor"));
         await page.SelectOptionAsync("#dob-month", "12");
+        await page.SelectOptionAsync("#dob-day", "31");
         var locked = await page.Locator("#privacyNote").EvaluateAsync<string>("e => getComputedStyle(e, '::before').content");
         await page.SelectOptionAsync("#dob-day", "30");
         Assert.NotEqual(locked, await page.Locator("#privacyNote").EvaluateAsync<string>("e => getComputedStyle(e, '::before').content"));
