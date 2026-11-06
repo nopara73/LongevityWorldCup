@@ -84,9 +84,19 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToBluesky,
             request.SendToWebPush,
             request.SendToInstagram);
+        var blockedRedditLink = targets.SendToReddit
+            ? RedditLinkPolicy.FindBlockedLink($"{title}\n\n{content}", _config.RedditBlockedLinks)
+            : null;
+        if (blockedRedditLink is not null)
+            targets = targets with { SendToReddit = false };
+
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
+        {
+            if (blockedRedditLink is not null)
+                return BadRequest(new { message = "Change the blocked link or select another destination.", blockedRedditLink });
             return BadRequest("Select at least one destination.");
+        }
         if (targets.SendToReddit && (!_config.RedditDispatchEnabled || reddit?.IsActive != true))
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Reddit announcements are not active yet.");
         if (targets.SendToWebPush && webPush?.IsConfigured != true)
@@ -109,7 +119,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             success = true,
             eventId,
             queuedTargets = selectedTargets,
-            selectedTargets
+            selectedTargets,
+            blockedRedditLink
         });
     }
 

@@ -358,6 +358,7 @@
         .post-status:empty { display: none; }
         .post-status.is-success { color: var(--ok); }
         .post-status.is-error { color: #ffb7c9; }
+        #redditLinkNotice { overflow-wrap: anywhere; }
 
         button {
             min-height: 36px;
@@ -1108,6 +1109,7 @@
                     <button id="copyCleanupCommandBtn" class="secondary" type="button" disabled hidden>Copy Cleanup SQL</button>
                     <div id="directPostStatus" class="post-status" aria-live="polite"></div>
                 </div>
+                <div id="redditLinkNotice" class="validation-hint" role="status" hidden></div>
                 <textarea id="cleanupCommandOutput" class="token" aria-label="Generated cleanup SQL" readonly hidden></textarea>
                 <div id="postValidationHint" class="validation-hint" hidden>Title and at least one destination are required before queueing.</div>
             </section>
@@ -1191,6 +1193,7 @@
         const copyCleanupCommandBtn = document.getElementById("copyCleanupCommandBtn");
         const cleanupCommandOutput = document.getElementById("cleanupCommandOutput");
         const directPostStatus = document.getElementById("directPostStatus");
+        const redditLinkNotice = document.getElementById("redditLinkNotice");
         const postValidationHint = document.getElementById("postValidationHint");
         const webpagePreviewBlock = document.getElementById("webpagePreviewBlock");
         const webpagePreviewSurface = document.getElementById("webpagePreviewSurface");
@@ -2739,6 +2742,8 @@
 
             postEventBtn.disabled = true;
             setDirectPostStatus("Queueing...", "");
+            redditLinkNotice.hidden = true;
+            redditLinkNotice.textContent = "";
             clearCleanupCommand();
 
             try {
@@ -2758,6 +2763,11 @@
                 const body = contentType.includes("application/json")
                     ? await response.json()
                     : await response.text();
+
+                if (typeof body?.blockedRedditLink === "string") {
+                    redditLinkNotice.textContent = "Reddit blocked by link " + body.blockedRedditLink;
+                    redditLinkNotice.hidden = false;
+                }
 
                 if (!response.ok) {
                     const message = typeof body === "string"

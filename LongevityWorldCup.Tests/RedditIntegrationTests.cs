@@ -220,6 +220,31 @@ public sealed class RedditIntegrationTests
     }
 
     [Fact]
+    public async Task CustomEventApi_SkipsOnlyRedditAndReportsTheBlockedLink()
+    {
+        using var fixture = Fixture.Create();
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var config = new Config { RedditEnabled = true, CustomEventDesignerSecretHash = TestHash() };
+        var store = new RedditDeliveryStore(fixture.Database);
+        await Service(fixture, clock, config).GetNextAsync();
+        var controller = new CustomEventsController(fixture.Events, config, NullLogger<CustomEventsController>.Instance, store);
+        const string link = "https://IFT.TT./article";
+        var request = new CustomEventsController.CreateCustomEventRequest("test-only-reddit-key", "A new announcement",
+            $"[Source]({link})", true, false, false, false, false, SendToReddit: true);
+
+        var queued = JsonSerializer.SerializeToElement(Assert.IsType<OkObjectResult>(controller.Create(request)).Value);
+        Assert.Equal(link, queued.GetProperty("blockedRedditLink").GetString());
+        Assert.Equal("webpage", Assert.Single(queued.GetProperty("queuedTargets").EnumerateArray()).GetString());
+        Assert.True(fixture.Events.HasCustomEventWithTitle(request.Title!));
+        Assert.Null(await Service(fixture, clock, config).GetNextAsync());
+
+        var redditOnly = request with { Title = "Reddit only", SendToWebpage = false };
+        var rejected = JsonSerializer.SerializeToElement(Assert.IsType<BadRequestObjectResult>(controller.Create(redditOnly)).Value);
+        Assert.Equal(link, rejected.GetProperty("blockedRedditLink").GetString());
+        Assert.False(fixture.Events.HasCustomEventWithTitle(redditOnly.Title!));
+    }
+
+    [Fact]
     public void OversizedCustomText_IsRejectedInsteadOfDroppingTheBodyForAnImageCaption()
     {
         var item = new EventItem("event-oversized", EventType.CustomEvent,
@@ -296,6 +321,43 @@ public sealed class RedditIntegrationTests
             return (string?)command.ExecuteScalar();
         });
         Assert.Equal("https://www.reddit.com/r/LongevityWorldCup/comments/abc123/", canonicalUrl);
+    }
+
+    [Fact]
+    public async Task IftttDispatch_SkipsPreviouslyPreparedBannedLinkAndSendsTheNextAllowedLink()
+    {
+        using var fixture = Fixture.Create();
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var config = IftttConfig();
+        var announcements = Service(fixture, clock, config);
+        await announcements.GetNextAsync();
+        const string banned = "https://news.example/blocked?article=1";
+        fixture.Events.CreateCustomEvent("Prepared announcement", $"[Source]({banned})", deliveryTargets: RedditOnly);
+        var prepared = Assert.IsType<RedditDeliveryPayload>(await announcements.GetNextAsync());
+        config.RedditBlockedLinks = [banned, "blocked.example"];
+        fixture.Events.CreateCustomEvent("Blocked domain", "See https://www.blocked.example/article.", deliveryTargets: RedditOnly);
+        const string allowed = "https://news.example/blocked?article=2";
+        fixture.Events.CreateCustomEvent("Next announcement", $"See {allowed} or https://ift.tt.example/article.",
+            deliveryTargets: RedditOnly);
+        var store = new RedditDeliveryStore(fixture.Database);
+        using var ifttt = new RecordingIftttClient();
+        var publisher = new RedditIftttPublisher(config, announcements, store, ifttt, clock, NullLogger<RedditIftttPublisher>.Instance);
+
+        await publisher.DispatchAsync(default);
+        await publisher.DispatchAsync(default);
+
+        var sent = Assert.Single(ifttt.Requests);
+        using var payload = JsonDocument.Parse(sent.Body);
+        Assert.Equal("Next announcement", payload.RootElement.GetProperty("value1").GetString());
+        Assert.Contains(allowed, payload.RootElement.GetProperty("value2").GetString());
+        Assert.Equal("skipped", store.Find(prepared.DeliveryId)!.Status);
+        Assert.False(fixture.Database.Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText = "SELECT EXISTS(SELECT 1 FROM RedditIftttAttempts WHERE RecordKey = @key);";
+            command.Parameters.AddWithValue("@key", prepared.DeliveryId);
+            return (long)command.ExecuteScalar()! != 0;
+        }));
     }
 
     [Fact]

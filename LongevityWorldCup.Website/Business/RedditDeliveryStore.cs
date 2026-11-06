@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using LongevityWorldCup.Website.Tools;
 using Microsoft.Data.Sqlite;
 
@@ -8,7 +9,7 @@ internal sealed record RedditDeliveryRecord(string EventId, string Status, strin
 
 internal enum RedditBeginResult { Started, AlreadyStarted, DailyLimit, NotPending, IdenticalPostInReceiptWindow }
 
-public sealed class RedditDeliveryStore(DatabaseManager db)
+public sealed class RedditDeliveryStore(DatabaseManager db, ILogger<RedditDeliveryStore>? log = null)
 {
     internal bool IsActive => db.Run(sqlite =>
     {
@@ -62,24 +63,45 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
             reader.IsDBNull(3) ? null : reader.GetString(3)) : null;
     });
 
-    internal RedditBeginResult Begin(string key, DateTimeOffset now, string? iftttFingerprint = null) => db.Run(sqlite =>
+    internal void SkipBlockedLink(string eventId, string link, DateTimeOffset now) => db.Run(sqlite =>
+    {
+        if (MarkBlockedLink(sqlite, null, eventId, now))
+            LogBlockedLink(eventId, link);
+    });
+
+    internal RedditBeginResult Begin(string key, DateTimeOffset now, string? iftttFingerprint = null,
+        string[]? confirmedBans = null) => db.Run(sqlite =>
     {
         using var tx = sqlite.BeginTransaction();
         using var cmd = sqlite.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = """
-            SELECT d.EventId, e.Type, d.FirstAttemptAtUtc FROM SocialDeliveries d JOIN Events e ON e.Id = d.EventId
+            SELECT d.EventId, e.Type, d.FirstAttemptAtUtc, d.RecordJson, e.Text
+            FROM SocialDeliveries d JOIN Events e ON e.Id = d.EventId
             WHERE d.Platform = 'reddit' AND d.RecordKey = @key AND d.Status = 'pending' AND d.RecordJson IS NOT NULL;
             """;
         cmd.Parameters.AddWithValue("@key", key);
         string id;
         bool custom;
+        string? blockedLink;
         using (var reader = cmd.ExecuteReader())
         {
             if (!reader.Read()) return RedditBeginResult.NotPending;
             if (!reader.IsDBNull(2)) return RedditBeginResult.AlreadyStarted;
             id = reader.GetString(0);
             custom = reader.GetInt32(1) == (int)EventType.CustomEvent;
+            var prepared = JsonSerializer.Deserialize<RedditPostRequest>(reader.GetString(3))
+                ?? throw new InvalidOperationException("The saved Reddit request is invalid.");
+            blockedLink = RedditLinkPolicy.FindBlockedPostLink(prepared, confirmedBans);
+            if (blockedLink is null && custom)
+                blockedLink = RedditLinkPolicy.FindBlockedLink(reader.GetString(4), confirmedBans);
+        }
+        if (blockedLink is not null)
+        {
+            MarkBlockedLink(sqlite, tx, id, now);
+            tx.Commit();
+            LogBlockedLink(id, blockedLink);
+            return RedditBeginResult.NotPending;
         }
         if (iftttFingerprint is not null)
         {
@@ -115,6 +137,25 @@ public sealed class RedditDeliveryStore(DatabaseManager db)
         tx.Commit();
         return updated == 1 ? RedditBeginResult.Started : RedditBeginResult.AlreadyStarted;
     });
+
+    private static bool MarkBlockedLink(SqliteConnection sqlite, SqliteTransaction? tx, string eventId, DateTimeOffset now)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = """
+            INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
+            VALUES (@id, 'reddit', 'skipped', 'BlockedLink', @now)
+            ON CONFLICT(EventId, Platform) DO UPDATE SET
+                Status = 'skipped', LastErrorCode = 'BlockedLink', UpdatedAtUtc = @now
+            WHERE SocialDeliveries.Status = 'pending' AND SocialDeliveries.FirstAttemptAtUtc IS NULL;
+            """;
+        cmd.Parameters.AddWithValue("@id", eventId);
+        cmd.Parameters.AddWithValue("@now", now.UtcDateTime.ToString("o"));
+        return cmd.ExecuteNonQuery() == 1;
+    }
+
+    private void LogBlockedLink(string eventId, string link) =>
+        log?.LogInformation("Skipped Reddit delivery for Event {EventId} with blocked link {Link}.", eventId, link);
 
     internal bool RequireReview(string key, DateTimeOffset now) => db.Run(sqlite =>
     {

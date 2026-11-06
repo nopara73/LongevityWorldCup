@@ -28,7 +28,7 @@ public sealed partial class RedditBridgeController(Config config, RedditAnnounce
     {
         if (Authenticate() is { } rejected) return rejected;
         if (!ValidKey(request.DeliveryId)) return BadRequest();
-        var result = deliveries.Begin(request.DeliveryId!, time.GetUtcNow());
+        var result = deliveries.Begin(request.DeliveryId!, time.GetUtcNow(), confirmedBans: config.RedditBlockedLinks);
         return result == RedditBeginResult.Started ? Ok(new { started = true }) : Conflict(new { reason = result.ToString() });
     }
 

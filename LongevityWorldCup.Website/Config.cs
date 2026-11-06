@@ -69,6 +69,8 @@ namespace LongevityWorldCup.Website
         public string? NostrPublicKeyHex { get; set; }
         public string[] NostrRelayUrls { get; set; } = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nostr.mom"];
         public bool RedditEnabled { get; set; }
+        // Confirmed Reddit bans can be added as bare domains or exact HTTP(S) URLs.
+        public string[] RedditBlockedLinks { get; set; } = [];
         public string? RedditBridgeSecretHash { get; set; }
         public bool RedditUseIfttt { get; set; }
         public string? RedditIftttWebhookKey { get; set; }
