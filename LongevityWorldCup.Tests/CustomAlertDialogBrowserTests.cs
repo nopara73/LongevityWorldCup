@@ -53,7 +53,7 @@ public sealed class CustomAlertDialogBrowserTests(
         await page.EvaluateAsync("scrollTo(0, document.documentElement.scrollHeight)");
         await page.EvaluateAsync("() => { void customAlert('Proof files must be images or PDFs.'); }");
         await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
-        await page.WaitForTimeoutAsync(350);
+        await WaitForFiniteAnimationsAsync(page, "#custom-alert, .custom-alert-panel");
         Assert.True(await page.Locator("#custom-alert-close").EvaluateAsync<bool>("""
             button => {
                 const box = button.getBoundingClientRect();
@@ -66,7 +66,7 @@ public sealed class CustomAlertDialogBrowserTests(
 
         await page.EvaluateAsync("() => showLoading()");
         await Assertions.Expect(page.Locator("#loading-dialog")).ToBeVisibleAsync();
-        await page.WaitForTimeoutAsync(350);
+        await WaitForFiniteAnimationsAsync(page, "#loading-dialog, .loading-dialog-panel");
         Assert.True(await page.Locator("#loading-dialog").EvaluateAsync<bool>("""
             dialog => {
                 const box = dialog.querySelector('.loading-dialog-panel').getBoundingClientRect();
@@ -256,7 +256,8 @@ public sealed class CustomAlertDialogBrowserTests(
         await NavigateAndSettleAsync(page, "/apply");
         await page.EvaluateAsync("() => { void customAlert('Your application was received'); }");
         await Assertions.Expect(page.Locator("#custom-alert")).ToBeVisibleAsync();
-        await page.WaitForTimeoutAsync(700);
+        await WaitForFiniteAnimationsAsync(page, "#custom-alert, .custom-alert-panel");
+        await Assertions.Expect(page.Locator(".lwc-celebration-spark").Nth(3)).ToBeAttachedAsync();
 
         var card = await page.EvaluateAsync<string[]>(
             """

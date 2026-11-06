@@ -159,7 +159,9 @@ public sealed class EventLivingFeedBrowserTests(
         await using var context = await OpenAsync(events: JsonSerializer.Serialize(events), reduced: false);
         var page = context.Pages[0];
         await page.Locator(".main-row[data-event-id='item-10'] .custom-event-expander").ClickAsync();
-        await page.WaitForTimeoutAsync(350); // Let the deliberate user expansion finish.
+        const string expandedPanel = ".main-row[data-event-id='item-10'].is-open + .custom-event-details .custom-event-content";
+        await Assertions.Expect(page.Locator(expandedPanel)).ToHaveCSSAsync("opacity", "1");
+        await WaitForFiniteAnimationsAsync(page, expandedPanel);
         await page.EvaluateAsync("""
             () => {
                 const row = document.querySelector('.main-row[data-event-id="item-11"]');

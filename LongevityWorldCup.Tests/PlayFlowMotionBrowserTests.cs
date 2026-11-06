@@ -704,15 +704,17 @@ public sealed class PlayFlowMotionBrowserTests(
         var box = await back.BoundingBoxAsync();
         Assert.NotNull(box);
         await page.Mouse.MoveAsync(box!.X + box.Width / 2, box.Y + box.Height / 2);
-        await Task.Delay(250);
-        var hover = await back.EvaluateAsync<string>("button => getComputedStyle(button.querySelector('i')).translate");
-        Assert.StartsWith("-3px", hover);
+        await Assertions.Expect(back.Locator("i")).ToHaveCSSAsync("translate", new System.Text.RegularExpressions.Regex("^-3px"));
         await page.Mouse.DownAsync();
-        await Task.Delay(250);
-        var pressed = await back.EvaluateAsync<string>("button => getComputedStyle(button).scale");
-        await page.Mouse.MoveAsync(5, 5);
-        await page.Mouse.UpAsync();
-        Assert.Equal("0.965", pressed);
+        try
+        {
+            await Assertions.Expect(back).ToHaveCSSAsync("scale", "0.965");
+        }
+        finally
+        {
+            await page.Mouse.MoveAsync(5, 5);
+            await page.Mouse.UpAsync();
+        }
     }
 
     [Theory]

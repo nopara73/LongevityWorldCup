@@ -322,7 +322,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
             Assert.True(await page.EvaluateAsync<bool>(
                 "() => { const rows = window.__motion.animations.filter(entry => entry.tag === 'TR'); return new Set(rows.map(entry => entry.row)).size === rows.length; }"),
                 "The shared motion controller should animate each row only once.");
-            await page.WaitForTimeoutAsync(400);
+            await WaitForFiniteAnimationsAsync(page, Rows);
         }
     }
 
@@ -396,7 +396,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
         await page.WaitForTimeoutAsync(600);
         Assert.Equal("fixed", await page.EvaluateAsync<string>("() => document.body.style.position"));
         Assert.True(await page.Locator("#detailsModal").IsVisibleAsync());
-        Assert.Equal(1, await page.Locator("#detailsModal .modal-content").EvaluateAsync<double>("c => +getComputedStyle(c).opacity"));
+        await Assertions.Expect(page.Locator("#detailsModal .modal-content")).ToHaveCSSAsync("opacity", "1");
         Assert.Equal(0, await page.EvaluateAsync<int>("() => document.querySelector('.athlete-motion-layer')?.childElementCount || 0"));
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
@@ -441,7 +441,8 @@ public sealed class AthleteBrowseMotionBrowserTests(
         await page.Locator(Rows + "[data-tier='pro']:visible").Nth(4).Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
         await page.Locator("#athlete-stats").ScrollIntoViewIfNeededAsync();
-        await page.WaitForTimeoutAsync(600);
+        await page.WaitForFunctionAsync("() => window.__motion.visibility.some(c => c.id === 'lowestBortzAge' && c.visible)");
+        await Assertions.Expect(page.Locator("#lowestBortzAge")).Not.ToHaveAttributeAsync("data-lwc-count", new System.Text.RegularExpressions.Regex(".*"));
         // Synthetic values isolate formatting from the athlete calculation pipeline.
         foreach (var value in new[] { "−5.4", "+3.2", "0.84", "—" })
         {
@@ -449,11 +450,11 @@ public sealed class AthleteBrowseMotionBrowserTests(
             // recording window with the value change in one browser task.
             await page.Locator("#lowestBortzAge").EvaluateAsync(
                 "(f, value) => { window.__motion.animations.length = 0; window.__motion.counts.length = 0; window.__motion.visibility.length = 0; f.textContent = value; }", value);
-            // Visibility is delivered asynchronously. Start the settling window
-            // after this value actually starts counting, including on a busy renderer.
+            // Visibility is delivered asynchronously. Wait for the counter's
+            // cleanup only after this value has reached its visibility callback.
             await page.WaitForFunctionAsync(
                 "value => window.__motion.visibility.some(c => c.id === 'lowestBortzAge' && c.text === value && c.visible)", value);
-            await page.WaitForTimeoutAsync(600);
+            await Assertions.Expect(page.Locator("#lowestBortzAge")).Not.ToHaveAttributeAsync("data-lwc-count", new System.Text.RegularExpressions.Regex(".*"));
             Assert.Equal(value, await page.Locator("#lowestBortzAge").InnerTextAsync());
             Assert.False(await page.Locator("#lowestBortzAge").EvaluateAsync<bool>("f => f.hasAttribute('data-lwc-count')"));
             Assert.False(await page.EvaluateAsync<bool>("() => window.__motion.counts.some(c => c.id === 'lowestBortzAge' && c.text !== document.getElementById('lowestBortzAge').textContent)"));

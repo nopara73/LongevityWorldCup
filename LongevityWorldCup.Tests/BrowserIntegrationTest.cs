@@ -189,18 +189,20 @@ public abstract class BrowserIntegrationTest(
     // Scroll/view timelines settle at a scroll position, not after elapsed time.
     // Poll finite clock-driven effects with a deadline instead of awaiting every
     // animation's finished promise, which can leave the test host stuck forever.
-    protected static async Task WaitForFiniteAnimationsAsync(IPage page)
+    // A selector limits effect targets; include descendants explicitly when needed.
+    protected static async Task WaitForFiniteAnimationsAsync(IPage page, string? selector = null)
     {
         await page.WaitForFunctionAsync("""
-            () => {
+            selector => {
                 document.body.getBoundingClientRect();
                 return document.getAnimations()
                     .filter(animation => animation.timeline === document.timeline
-                        && Number.isFinite(animation.effect?.getComputedTiming().endTime))
+                        && Number.isFinite(animation.effect?.getComputedTiming().endTime)
+                        && (!selector || animation.effect?.target?.matches?.(selector)))
                     .every(animation => !animation.pending
                         && ['finished', 'idle'].includes(animation.playState));
             }
-            """, null, new() { Timeout = 10_000 });
+            """, selector, new() { Timeout = 10_000 });
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 

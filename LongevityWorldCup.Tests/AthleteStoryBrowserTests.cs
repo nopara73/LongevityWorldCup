@@ -18,12 +18,27 @@ public sealed class AthleteStoryBrowserTests(
     public async Task ComparisonToggles_NeverRearmSettledRowsOrRestartTheirCounters(int width, bool dark)
     {
         await using var context = await ContextAsync(width, dark);
+        await context.AddInitScriptAsync("""
+            window.registeredStoryRows = new Set();
+            new MutationObserver(records => records.forEach(({ target }) => {
+                if (target.matches('tr.result-summary[data-draw]')) registeredStoryRows.add(target);
+            })).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-draw'] });
+            """);
         var page = await OpenAsync(context);
         await page.Locator("tr.result-summary").Nth(2).ScrollIntoViewIfNeededAsync();
-        await page.WaitForTimeoutAsync(2200);
+        // A missing marker alone can mean the observer has not armed the row yet.
+        await page.WaitForFunctionAsync("""
+            () => {
+                const target = document.querySelectorAll('tr.result-summary')[2];
+                const settled = [...registeredStoryRows].filter(row => row.isConnected
+                    && !row.hasAttribute('data-draw') && !row.querySelector('[data-lwc-count]'));
+                return settled.includes(target) && settled.length >= 2;
+            }
+            """);
         await page.EvaluateAsync("""
             () => {
-                window.settled = [...document.querySelectorAll('tr.result-summary')].filter(row => !row.hasAttribute('data-draw'));
+                window.settled = [...registeredStoryRows].filter(row => row.isConnected
+                    && !row.hasAttribute('data-draw') && !row.querySelector('[data-lwc-count]'));
                 window.restarted = [];
                 window.rowValues = window.settled.map(row => row.textContent);
                 new MutationObserver(records => records.forEach(record => {
