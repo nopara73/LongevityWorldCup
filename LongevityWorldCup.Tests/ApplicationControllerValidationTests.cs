@@ -359,31 +359,22 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
     }
 
     [Theory]
-    [InlineData(false, "2026-11-05T09:59:59Z", "2026-11-06", false)]
-    [InlineData(false, "2026-11-05T10:00:00Z", "2026-11-06", true)]
-    [InlineData(false, "2026-11-05T18:00:00Z", "2026-11-06", true)]
-    [InlineData(true, "2026-11-05T18:00:00Z", "2026-11-06", true)]
-    [InlineData(false, "2026-11-05T18:00:00Z", "2026-11-07", false)]
-    [InlineData(true, "2026-11-05T18:00:00Z", "2026-11-07", false)]
-    [InlineData(false, "2026-12-31T18:00:00Z", "2027-01-01", true)]
-    [InlineData(true, "2026-11-06T02:00:00Z", "2026-11-05", true)]
-    public async Task SubmissionBiomarkerDate_UsesTheLatestLocalCalendarDate(
-        bool fullApplication, string utcNow, string drawDate, bool validDate)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SubmissionWithFutureBiomarkerDateContinuesToValueValidation(bool fullApplication)
     {
-        var clock = new FixedClock(DateTimeOffset.Parse(utcNow, System.Globalization.CultureInfo.InvariantCulture));
-        var controller = CreateController(sharedFactory, timeProvider: clock);
+        var controller = CreateController(sharedFactory);
         var application = fullApplication ? CreateValidFullApplication() : new ApplicantData
         {
             Name = "Applicant Ada",
             ProofPics = ["data:image/png;base64,AA=="]
         };
-        // Stop at the next validation rule after accepting the date, before any submission side effects.
-        application.Biomarkers = [new BiomarkerData { Date = drawDate }];
+        application.Biomarkers = [new BiomarkerData { Date = "2099-01-01" }];
 
         var result = await controller.Application(application, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal(validDate ? "Biomarker result value is required." : "Biomarker date cannot be in the future.", badRequest.Value);
+        Assert.Equal("Biomarker result value is required.", badRequest.Value);
     }
 
     [Fact]
@@ -1343,8 +1334,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         TestWebApplicationFactory factory,
         SiteStatisticsService? statistics = null,
         IBtcpayInvoiceClient? btcpayInvoices = null,
-        ILogger<ApplicationController>? logger = null,
-        TimeProvider? timeProvider = null)
+        ILogger<ApplicationController>? logger = null)
     {
         return new ApplicationController(
             factory.Services.GetRequiredService<IWebHostEnvironment>(),
@@ -1353,8 +1343,7 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
             factory.Services.GetRequiredService<ApplicationPaymentStore>(),
             btcpayInvoices ?? factory.Services.GetRequiredService<IBtcpayInvoiceClient>(),
             statistics: statistics,
-            athleteSnapshots: factory.Services.GetRequiredService<IAthleteSnapshotProvider>(),
-            timeProvider: timeProvider)
+            athleteSnapshots: factory.Services.GetRequiredService<IAthleteSnapshotProvider>())
         {
             ControllerContext = new ControllerContext
             {
@@ -1385,11 +1374,6 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
             Why = "I want to compete, learn, and improve my healthspan.",
             MediaContact = "media@example.test"
         };
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class RecordingLogger<T> : ILogger<T>

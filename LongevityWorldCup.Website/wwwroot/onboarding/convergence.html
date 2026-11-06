@@ -1646,11 +1646,7 @@
             const month = Number(match[2]);
             const day = Number(match[3]);
             const parsedDate = new Date(Date.UTC(year, month - 1, day));
-            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
-
-            const todayUtc = new Date();
-            todayUtc.setUTCHours(0, 0, 0, 0);
-            return parsedDate <= todayUtc;
+            return parsedDate.getUTCFullYear() === year && parsedDate.getUTCMonth() === month - 1 && parsedDate.getUTCDate() === day;
         }
 
         function readPendingPaymentOffer() {

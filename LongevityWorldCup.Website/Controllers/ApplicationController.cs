@@ -29,8 +29,7 @@ namespace LongevityWorldCup.Website.Controllers
         IBtcpayInvoiceClient btcpayInvoices,
         DiscountSignupReportService? discountSignupReports = null,
         SiteStatisticsService? statistics = null,
-        IAthleteSnapshotProvider? athleteSnapshots = null,
-        TimeProvider? timeProvider = null) : ControllerBase
+        IAthleteSnapshotProvider? athleteSnapshots = null) : ControllerBase
     {
         private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         private readonly ILogger<ApplicationController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -40,7 +39,6 @@ namespace LongevityWorldCup.Website.Controllers
         private readonly ApplicationPaymentStore _applicationPayments = applicationPayments;
         private readonly SiteStatisticsService? _statistics = statistics;
         private readonly IAthleteSnapshotProvider? _athleteSnapshots = athleteSnapshots;
-        private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
         private const string DefaultCommunitySlackInviteUrl = "https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ";
         private const string CommunitySlackInvitationText = "Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!";
         private const string ProMerchCouponCode = "TR784DS7";
@@ -395,15 +393,8 @@ namespace LongevityWorldCup.Website.Controllers
                 return await BadRequestWithStatsAsync("missing_biomarker_date", "Biomarker date is required.").ConfigureAwait(false);
             }
 
-            // Lab dates have no timezone. UTC+14 is the earliest place a calendar day begins.
-            var latestLocalDate = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime.AddHours(14));
-            if (applicantData.Biomarkers?.Any() is true && !HasValidBiomarkerDates(applicantData.Biomarkers, latestLocalDate))
+            if (applicantData.Biomarkers?.Any() is true && !HasValidBiomarkerDates(applicantData.Biomarkers))
             {
-                if (HasFutureBiomarkerDates(applicantData.Biomarkers, latestLocalDate))
-                {
-                    return await BadRequestWithStatsAsync("future_biomarker_date", "Biomarker date cannot be in the future.").ConfigureAwait(false);
-                }
-
                 return await BadRequestWithStatsAsync("invalid_biomarker_date", "Biomarker date is invalid.").ConfigureAwait(false);
             }
 
@@ -2619,7 +2610,7 @@ namespace LongevityWorldCup.Website.Controllers
             return biomarkers.All(biomarker => biomarker is not null && !string.IsNullOrWhiteSpace(biomarker.Date));
         }
 
-        private static bool HasValidBiomarkerDates(IEnumerable<BiomarkerData> biomarkers, DateOnly latestLocalDate)
+        private static bool HasValidBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
         {
             return biomarkers.All(biomarker =>
                 biomarker is not null &&
@@ -2628,21 +2619,7 @@ namespace LongevityWorldCup.Website.Controllers
                     "yyyy-MM-dd",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
-                    out var resultDate)
-                && resultDate <= latestLocalDate);
-        }
-
-        private static bool HasFutureBiomarkerDates(IEnumerable<BiomarkerData> biomarkers, DateOnly latestLocalDate)
-        {
-            return biomarkers.Any(biomarker =>
-                biomarker is not null &&
-                DateOnly.TryParseExact(
-                    biomarker.Date,
-                    "yyyy-MM-dd",
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.None,
-                    out var resultDate)
-                && resultDate > latestLocalDate);
+                    out _));
         }
 
         private static bool HasRequiredBiomarkerValues(IEnumerable<BiomarkerData> biomarkers)
