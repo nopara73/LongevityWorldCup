@@ -581,7 +581,8 @@ function initializeAthletePortraitMotion() {
         if (previous?.motion === motion && previous.wrapper === img.parentElement) return previous;
         previous?.dispose();
         const wrapper = img.parentElement;
-        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return null;
+        // The still photo remains usable without the optional motion visibility API.
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility?.()) return null;
         const root = document.createElement('span');
         root.className = 'athlete-portrait-motion';
         root.setAttribute('aria-hidden', 'true');
@@ -632,7 +633,7 @@ function initializeAthletePortraitMotion() {
         };
         const tick = now => {
             frame = 0;
-            if (disposed || playing || !img.checkVisibility()) return;
+            if (disposed || playing || !img.checkVisibility?.()) return;
             sync();
             if (now < until) frame = requestAnimationFrame(tick);
         };
@@ -703,7 +704,7 @@ function initializeAthletePortraitMotion() {
             return false;
         }
         const wrapper = img.parentElement;
-        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility?.()) return false;
         const portrait = surfaceFor(img, motion);
         if (!portrait?.ready) return false;
 
@@ -3262,7 +3263,8 @@ function getAthleteDialogBoardSequence() {
         // filtered team links form the sequence the visitor is browsing.
         const bySlug = new Map(athleteResults.map(athlete => [normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name), athlete]));
         return [...pageDocument.querySelectorAll('#flagLeaderboard .flag-athlete-link')]
-            .filter(link => link.checkVisibility())
+            .filter(link => link.checkVisibility?.() ?? (link.getClientRects().length > 0
+                && !link.closest('[hidden], details:not([open])')))
             .map(link => bySlug.get(getAthleteSlugFromProfileLink(link)))
             .filter(Boolean);
     }
