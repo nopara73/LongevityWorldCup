@@ -104,6 +104,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LEADERBOARD_PAGE_JS}}"] = "/js/leaderboard-page.js",
         ["{{ASSET_ATHLETE_BROWSE_MOTION_JS}}"] = "/js/athlete-browse-motion.js",
         ["{{ASSET_LEADERBOARD_FEEL_JS}}"] = "/js/leaderboard-feel.js",
+        ["{{ASSET_LEADERBOARD_FILTERS_CSS}}"] = "/css/leaderboard-filters.css",
         ["{{ASSET_LEADERBOARD_FEEL_CSS}}"] = "/css/leaderboard-feel.css",
         ["{{ASSET_LEADERBOARD_PODIUM_JS}}"] = "/js/leaderboard-podium.js",
         ["{{ASSET_LEADERBOARD_PODIUM_CSS}}"] = "/css/leaderboard-podium.css",
