@@ -1228,3 +1228,103 @@
         .ro-guide .ro-milestones li[data-ro-state='next'] time::before { top: 2px; }
     }
 }
+
+
+/* ---------- The chase: the pack measured against the podium ----------
+   The podium and pack share one centred column (a later list rule had pushed
+   them left), every row shares one score column so bars line up, and each bar
+   carries a bronze notch at third place's score: the distance still to run.
+   Pointing at a row lights that distance; the podium answers by lifting the
+   step it would take. */
+.ro-guide .ro-standings :is(.ro-podium, .ro-board) {
+    margin-inline: auto;
+}
+
+.ro-guide .ro-standings .ro-standings-title {
+    width: 100%;
+    max-width: 36rem;
+    text-align: center;
+}
+
+.ro-guide .ro-row-link {
+    grid-template-columns: 2rem 40px minmax(0, 1fr) minmax(3rem, 6rem) 6.5rem;
+}
+
+.ro-row-bar {
+    position: relative;
+    overflow: visible;
+    background:
+        linear-gradient(90deg,
+            transparent 0 calc(var(--ro-score, 0) * 100%),
+            var(--ro-gap, transparent) calc(var(--ro-score, 0) * 100%) calc(var(--ro-cut, 1) * 100%),
+            transparent 0),
+        var(--lwc-surface-muted);
+    transition: --ro-gap 200ms var(--lwc-ease, ease);
+}
+
+.ro-row-bar > span {
+    overflow: hidden;
+}
+
+/* The notch: third place's score, on every bar. */
+.ro-row-bar::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    left: calc(var(--ro-cut, 1) * 100% - 1px);
+    width: 2px;
+    border-radius: 2px;
+    background: var(--lwc-bronze);
+    opacity: 0;
+    transform: scaleY(0);
+    transition: opacity 240ms var(--lwc-ease, ease) 600ms, transform 320ms var(--ro-ease-out, ease) 600ms;
+}
+
+.ro-standings.is-in .ro-row-bar::after,
+.ro-standings.is-settled .ro-row-bar::after {
+    opacity: .9;
+    transform: none;
+}
+
+@property --ro-gap {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: transparent;
+}
+
+.ro-guide .ro-row-link:is(:hover, :focus-visible) .ro-row-bar {
+    --ro-gap: color-mix(in srgb, var(--lwc-bronze) 38%, transparent);
+}
+
+.ro-guide .ro-row-link:is(:hover, :focus-visible) .ro-row-bar::after {
+    transform: scaleY(1.35);
+}
+
+/* The podium answers: third place's plinth lifts while a chaser is pointed at. */
+.ro-standings:has(.ro-row-link:is(:hover, :focus-visible)) .ro-step[data-place='3'] .ro-step-block {
+    filter: brightness(1.04);
+    box-shadow: inset 0 3px 0 var(--lwc-bronze), 0 -6px 18px -8px var(--lwc-bronze);
+}
+
+.ro-standings:has(.ro-row-link:is(:hover, :focus-visible)) .ro-step[data-place='3'] .ro-step-portrait {
+    transform: translateY(-4px);
+}
+
+.ro-step-block {
+    transition: filter var(--lwc-duration-fast) var(--lwc-ease), box-shadow 220ms var(--lwc-ease, ease);
+}
+
+@media (max-width: 700px) {
+    .ro-guide .ro-row-link {
+        grid-template-columns: 1.5rem 36px minmax(0, 1fr) auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ro-row-bar,
+    .ro-row-bar::after,
+    .ro-step-block {
+        transition: none;
+    }
+}
