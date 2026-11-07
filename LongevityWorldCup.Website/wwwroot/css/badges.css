@@ -624,3 +624,113 @@ html .badge-class.badge-earned:not(.badge-family-domain){
     .badge-tip-rays{opacity:1}
     .badge-tip-stage::after{display:none}
 }
+
+/* ==========================================================================
+   Trophy cabinet (profile shelf)
+   The shelf reads as a lit cabinet: every row of badges stands on a ledge,
+   each medal with a soft pool of light under it. Choosing a badge lifts it off
+   its ledge under a spotlight instead of greying its cell, and its story opens
+   as a display card that carries a small replica of the medal (badges.ts).
+   ========================================================================== */
+#detailsModal .modal-badge-strip{
+    --cabinet-ledge:rgba(246,244,237,.16);
+    --cabinet-light:rgba(246,244,237,.14);
+    --cabinet-medal:56px;
+    position:relative;
+    align-content:start;
+    row-gap:.35rem;
+    /* Ledges bleed past their cells to join up; the cabinet walls trim them. */
+    overflow:clip;
+    overflow-clip-margin:0;
+    padding-bottom:.6rem;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -18px 30px -24px rgba(0,0,0,.6);
+}
+
+/* The ledge: a hairline under the medal that bridges the column gap, so a row
+   of cells reads as one shelf, with a pool of light where the medal stands. */
+#detailsModal .modal-badge-strip .modal-badge-item{position:relative;isolation:isolate}
+#detailsModal .modal-badge-strip .modal-badge-item::before{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    top:calc(.5rem + var(--cabinet-medal) + 3px);
+    left:-1.5rem;
+    right:-1.5rem;
+    height:14px;
+    background:
+        radial-gradient(ellipse 22% 100% at 50% 0,var(--cabinet-light),transparent 72%),
+        linear-gradient(var(--cabinet-ledge),var(--cabinet-ledge)) 0 0/100% 1px no-repeat;
+    pointer-events:none;
+    transform-origin:50% 0;
+    transition:filter 220ms var(--lwc-ease,ease),opacity 220ms var(--lwc-ease,ease);
+}
+
+/* No more grey cell: the chosen badge rises under a spotlight. */
+#detailsModal .modal-badge-strip .modal-badge-item:hover,
+#detailsModal .modal-badge-strip .modal-badge-item.expanded{background:transparent}
+#detailsModal .modal-badge-strip .modal-badge-item .badge-class{
+    transition:translate 260ms cubic-bezier(.2,.9,.3,1.3),box-shadow 260ms var(--lwc-ease,ease),filter 260ms var(--lwc-ease,ease);
+}
+#detailsModal .modal-badge-strip .modal-badge-item.expanded .badge-class{translate:0 -6px}
+#detailsModal .modal-badge-strip .modal-badge-item.expanded::before{
+    --cabinet-light:rgba(246,244,237,.34);
+    filter:brightness(1.25);
+}
+#detailsModal .modal-badge-strip .modal-badge-item.expanded .modal-badge-name{color:var(--athlete-modal-cream,rgba(246,244,237,.98))}
+/* Other badges step back a little while one is on display. */
+#detailsModal .modal-badge-strip:has(.modal-badge-item.expanded) .modal-badge-item:not(.expanded) .badge-class{filter:saturate(.9) brightness(.92)}
+@media (hover:hover){
+    #detailsModal .modal-badge-strip .modal-badge-item:hover{transform:none}
+    #detailsModal .modal-badge-strip .modal-badge-item:hover .badge-class{translate:0 -3px}
+}
+
+/* The display card: replica medal beside its title and story. */
+#detailsModal .modal-badge-explainer.has-badge-replica{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:center;
+    column-gap:.85rem;
+    margin:.35rem 0 .45rem;
+    padding:.8rem 1.1rem .85rem .85rem;
+    border-color:rgba(246,244,237,.26);
+    background:linear-gradient(180deg,rgba(246,244,237,.14),rgba(246,244,237,.07));
+    box-shadow:0 14px 30px -18px rgba(0,0,0,.7);
+    text-align:left;
+}
+#detailsModal .modal-badge-explainer.has-badge-replica>.badge-explainer-medal{grid-row:1/3}
+#detailsModal .modal-badge-explainer.has-badge-replica>:not(.badge-explainer-medal){grid-column:2}
+#detailsModal .modal-badge-explainer .badge-explainer-medal{
+    width:40px;
+    height:40px;
+    margin:0;
+    font-size:1.1rem;
+    pointer-events:none;
+    box-shadow:var(--badge-ring),0 6px 14px rgba(0,0,0,.35);
+}
+#detailsModal .modal-badge-explainer .badge-explainer-medal.badge-family-domain{width:44px}
+#detailsModal .modal-badge-explainer.has-badge-replica .modal-badge-explainer-title{font-size:.95rem;letter-spacing:.01em}
+#detailsModal .modal-badge-explainer.has-badge-replica .modal-badge-explainer-detail{margin-top:.1rem}
+
+@media (max-width:768px){
+    #detailsModal .modal-badge-strip{--cabinet-medal:50px;row-gap:.2rem;padding-bottom:.45rem}
+    #detailsModal .modal-badge-explainer.has-badge-replica{padding:.7rem .85rem .75rem .7rem;column-gap:.7rem}
+    #detailsModal .modal-badge-explainer .badge-explainer-medal{width:36px;height:36px;font-size:1rem}
+}
+
+@media (prefers-reduced-motion: no-preference){
+    /* The ledges draw outward as each badge unlocks onto the shelf. */
+    #detailsModal .modal-badge-item[data-unlock="open"]::before{animation:cabinet-ledge-in 520ms var(--badge-enter-ease) both}
+    #detailsModal .modal-badge-item[data-unlock="locked"]::before{opacity:0}
+    #detailsModal .modal-badge-explainer .badge-explainer-medal{animation:cabinet-replica-in 420ms cubic-bezier(.2,.9,.3,1.3) 80ms both}
+}
+@keyframes cabinet-ledge-in{
+    from{opacity:0;transform:scaleX(.2)}
+    to{opacity:1;transform:none}
+}
+@keyframes cabinet-replica-in{
+    from{opacity:0;scale:.5;rotate:-18deg}
+    to{opacity:1;scale:1;rotate:0deg}
+}
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .modal-badge-strip .modal-badge-item .badge-class{transition:none}
+}
