@@ -1414,7 +1414,7 @@ select:focus-visible,
     .stats-page[aria-busy="false"]:not([data-stats-settled]) .decision-support-grid > .stats-panel:nth-child(2),
     .stats-page[aria-busy="false"]:not([data-stats-settled]) .stats-main-grid > .stats-panel:nth-child(2) { animation-delay: 80ms; }
 
-    .funnel-fill,
+    .funnel[data-fresh] .funnel-fill,
     .stats-page:not([data-stats-settled]) .traffic-meter > i,
     .stacked-bar > span {
         transform-origin: left center;
@@ -1748,4 +1748,105 @@ html[data-stats-travel="back"]::view-transition-new(root) { animation-name: stat
     .stats-page *,
     .stats-page *::before,
     .stats-page *::after { transition: none; animation: none; }
+}
+
+
+/* ---------- Diagnostics funnel: where people fell off ----------
+   Behind every step's bar sits a faint red ghost at the previous step's
+   reach, so each drop reads as a leak you can see, not only a number. The
+   step under the pointer lifts its leak. Switching flows or filters morphs
+   the bars from their old widths (site-statistics.ts); a first render still
+   grows from the baseline. */
+.funnel-bar {
+    position: relative;
+}
+
+.funnel-leak {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    background: repeating-linear-gradient(135deg, rgba(255, 107, 107, 0.32) 0 4px, rgba(255, 107, 107, 0.18) 4px 8px);
+    transform-origin: left center;
+    transition: background-color 160ms ease, opacity 160ms ease;
+    opacity: 0.75;
+}
+
+.funnel-fill {
+    position: relative;
+    transform-origin: left center;
+}
+
+.funnel-row:is(:hover, :focus-visible, .active) .funnel-leak {
+    opacity: 1;
+    background: repeating-linear-gradient(135deg, rgba(255, 107, 107, 0.55) 0 4px, rgba(255, 107, 107, 0.3) 4px 8px);
+}
+
+.funnel-row:is(:hover, :focus-visible) .funnel-drop.high {
+    color: var(--red);
+}
+
+.funnel-number {
+    transition: color 160ms ease;
+}
+
+.funnel-row:is(:hover, :focus-visible) .funnel-number {
+    color: var(--cyan);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .funnel[data-fresh] .funnel-leak {
+        animation: stats-grow 620ms 60ms cubic-bezier(0.2, 0, 0, 1) backwards;
+    }
+
+    .funnel-row {
+        transition: background-color 140ms ease, border-color 140ms ease, transform 160ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .funnel-row:active {
+        transform: scale(0.995);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .funnel-leak,
+    .funnel-number {
+        transition: none;
+    }
+}
+
+
+/* ---------- Decision brief and investigations answer each other ----------
+   Pointing at a decision lights the investigation that follows it, and the
+   other way round: both lift with the cyan ring, the rest of each column
+   steps back. Cards still keep their severity stripe. */
+.decision-card,
+.investigation-row {
+    transition: background-color 140ms ease, box-shadow 180ms ease, opacity 180ms ease, transform 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.decision-card.is-paired,
+.investigation-row.is-paired {
+    background: var(--row-hover);
+    box-shadow: 0 0 0 1px var(--cyan), 0 10px 26px -14px rgba(0, 0, 0, 0.6);
+}
+
+.decision-card.high.is-paired { box-shadow: inset 4px 0 0 var(--red), 0 0 0 1px var(--cyan), 0 10px 26px -14px rgba(0, 0, 0, 0.6); }
+.decision-card.med.is-paired { box-shadow: inset 4px 0 0 var(--amber), 0 0 0 1px var(--cyan), 0 10px 26px -14px rgba(0, 0, 0, 0.6); }
+
+.decision-grid:has(.is-paired) :is(.decision-card, .investigation-row):not(.is-paired) {
+    opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .decision-card.is-paired,
+    .investigation-row.is-paired {
+        transform: translateY(-2px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .decision-card,
+    .investigation-row {
+        transition: none;
+    }
 }
