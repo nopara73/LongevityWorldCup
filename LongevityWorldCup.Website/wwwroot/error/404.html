@@ -11,13 +11,17 @@
             display: none !important;
         }
 
+        /* Fan-cam stage, shared with the outage pages: Herold sits in a round
+           portrait astride the card's top edge, and the scoreboard, the line
+           and Home stand centred beneath him. */
         .not-found-main {
+            --fan-cam: clamp(132px, 22vw, 184px);
             box-sizing: border-box;
             width: 100%;
-            max-width: 980px;
-            min-height: min(calc(100svh - 4.5rem), 60rem);
+            max-width: 640px;
+            min-height: min(calc(100svh - 4.5rem), 52rem);
             margin: 0 auto;
-            padding: clamp(1.25rem, 4vh, 3rem) 1rem;
+            padding: calc(var(--fan-cam) / 2 + clamp(1.25rem, 4vh, 2.5rem)) 1rem clamp(1.5rem, 5vh, 3rem);
             display: grid;
             align-content: center;
         }
@@ -29,69 +33,92 @@
 
         .not-found-card {
             display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-            min-height: clamp(20rem, 60vh, 34rem);
-            overflow: hidden;
+            justify-items: center;
+            padding: 0 clamp(1.25rem, 5vw, 2.75rem) clamp(1.5rem, 5vw, 2.5rem);
+            text-align: center;
             background: var(--lwc-surface);
             border: 1px solid var(--lwc-border);
             border-radius: var(--lwc-radius-lg);
-            box-shadow: var(--lwc-shadow-sm);
+            box-shadow: var(--lwc-shadow-sm), 0 24px 48px -32px rgba(15, 23, 42, 0.4);
         }
 
         .not-found-visual {
             position: relative;
-            min-height: 100%;
-            margin: 0;
-            background: var(--lwc-surface-muted);
+            width: var(--fan-cam);
+            height: var(--fan-cam);
+            margin: calc(var(--fan-cam) / -2) 0 1.25rem;
+            border-radius: 50%;
+            cursor: pointer;
+            perspective: 600px;
+        }
+
+        /* A quiet accent ring around the seat, like the outage retry ring at rest. */
+        .not-found-visual::before {
+            content: "";
+            position: absolute;
+            inset: -11px;
+            border-radius: 50%;
+            border: 3px solid var(--lwc-border);
+            border-top-color: var(--lwc-accent);
+            border-right-color: var(--lwc-accent);
+            rotate: -45deg;
+        }
+
+        .not-found-visual picture {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
 
         .not-found-visual .illustration {
-            position: absolute;
-            inset: 0;
+            display: block;
             width: 100%;
             height: 100%;
             max-width: none;
             margin: 0;
             border: 0;
-            border-radius: 0;
+            border-radius: 50%;
             object-fit: cover;
-            object-position: center 22%;
+            object-position: center 16%;
+            background: var(--lwc-surface-muted);
+            box-shadow: 0 0 0 5px var(--lwc-surface), 0 14px 30px -16px rgba(15, 23, 42, 0.6);
         }
 
         .not-found-body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 1.1rem;
+            display: grid;
+            justify-items: center;
+            gap: 0.9rem;
             min-width: 0;
-            padding: clamp(1.75rem, 4.5vw, 3.5rem);
         }
 
         .not-found-title {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25em 0.4em;
             margin: 0;
-            text-align: left;
-            font-size: clamp(2.25rem, 4.2vw, 3.25rem);
-            line-height: 1.02;
+            font-size: clamp(2rem, 5vw, 3rem);
+            line-height: 1.05;
+            text-align: center;
         }
 
         .not-found-copy {
-            max-width: 26ch;
+            max-width: 28ch;
             margin: 0;
-            color: var(--lwc-ink);
-            font-size: clamp(1.15rem, 1.6vw, 1.35rem);
-            line-height: 1.4;
-            text-align: left;
+            color: var(--lwc-muted);
+            font-size: clamp(1.1rem, 1.6vw, 1.25rem);
+            line-height: 1.45;
+            text-align: center;
+            text-wrap: balance;
         }
 
         .not-found-body .not-found-actions {
-            width: auto;
-            min-width: min(100%, 13rem);
-            max-width: 100%;
+            width: min(100%, 15rem);
             display: flex;
             flex-direction: column;
             align-items: stretch;
-            margin: 0.6rem 0 0;
+            margin: 0.5rem 0 0;
         }
 
         .not-found-actions .option-button {
@@ -107,65 +134,49 @@
             margin-left: 0;
         }
 
+        @media (prefers-color-scheme: dark) {
+            .not-found-visual .illustration {
+                box-shadow: 0 0 0 5px var(--lwc-surface), 0 14px 30px -16px rgba(0, 0, 0, 0.85);
+            }
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            /* The ring draws in around the seat as the camera cuts to Herold. */
+            .not-found-visual::before {
+                animation: nf-ring-in 700ms 200ms cubic-bezier(0.2, 0, 0, 1) backwards;
+            }
+        }
+
+        @keyframes nf-ring-in {
+            from { opacity: 0; rotate: -225deg; scale: 0.92; }
+        }
+
         @media (max-width: 719px) {
             .not-found-main {
                 min-height: 0;
-                padding: 1rem 0.75rem 2rem;
+                padding: calc(var(--fan-cam) / 2 + 1.5rem) 0.75rem 2rem;
                 align-content: start;
-            }
-
-            .not-found-card {
-                grid-template-columns: minmax(0, 1fr);
-                min-height: 0;
-            }
-
-            .not-found-visual {
-                min-height: 0;
-                aspect-ratio: 1;
-                max-height: 52svh;
-                border-bottom: 1px solid var(--lwc-border);
-            }
-
-            .not-found-body {
-                gap: 0.75rem;
-                padding: 1.25rem 1.1rem 1.35rem;
-            }
-
-            .not-found-title {
-                font-size: 2rem;
-            }
-
-            .not-found-copy {
-                max-width: none;
-                font-size: 1.1rem;
             }
 
             .not-found-body .not-found-actions {
                 width: 100%;
-                margin-top: 0.35rem;
             }
         }
 
+        /* Short landscape phones: a smaller seat keeps Home on screen. */
         @media (min-width: 560px) and (max-height: 480px) {
             .not-found-main {
+                --fan-cam: 96px;
                 min-height: 0;
-                padding-block: 0.75rem;
-            }
-
-            .not-found-card {
-                grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-                min-height: calc(100svh - 6rem);
+                padding-block: calc(var(--fan-cam) / 2 + 0.75rem) 0.75rem;
             }
 
             .not-found-visual {
-                aspect-ratio: auto;
-                max-height: none;
-                border-bottom: 0;
+                margin-bottom: 0.5rem;
             }
 
             .not-found-body {
-                gap: 0.6rem;
-                padding: 1.25rem 1.5rem;
+                gap: 0.5rem;
             }
 
             .not-found-title {
