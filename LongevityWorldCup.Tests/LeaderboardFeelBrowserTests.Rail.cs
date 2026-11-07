@@ -47,8 +47,9 @@ public sealed partial class LeaderboardFeelBrowserTests
                     && document.activeElement === window.railFocusedTick;
             }
             """));
+        var railHeight = await page.Locator(".lb-rail").EvaluateAsync<double>("rail => rail.getBoundingClientRect().height");
         await page.SetViewportSizeAsync(width, 700);
-        await page.WaitForTimeoutAsync(100);
+        await page.WaitForFunctionAsync("height => document.querySelector('.lb-rail').getBoundingClientRect().height !== height", railHeight);
         Assert.True(await page.EvaluateAsync<bool>("document.activeElement === window.railFocusedTick"));
     }
 
@@ -89,15 +90,14 @@ public sealed partial class LeaderboardFeelBrowserTests
         var lastRank = await last.TextContentAsync();
         await last.FocusAsync();
         await last.PressAsync("Enter");
-        await page.WaitForTimeoutAsync(100);
-        Assert.True(await page.EvaluateAsync<bool>("""
+        await page.WaitForFunctionAsync("""
             () => {
                 const rail = document.querySelector('.lb-rail');
                 const last = [...document.querySelectorAll('#athleteLeaderboard tbody tr[data-athlete-name]')].at(-1).getBoundingClientRect();
                 return rail.classList.contains('is-visible') && !rail.inert && rail.contains(document.activeElement)
                     && last.top >= document.querySelector('#athleteLeaderboard thead').getBoundingClientRect().bottom && last.bottom <= innerHeight;
             }
-            """));
+            """);
         var box = (await page.Locator(".lb-rail-track").BoundingBoxAsync())!;
         await page.Mouse.MoveAsync(box.X + box.Width - 2, box.Y + box.Height * .61f);
         await page.Mouse.DownAsync();
@@ -124,7 +124,9 @@ public sealed partial class LeaderboardFeelBrowserTests
         await page.Mouse.MoveAsync(x, y);
         await page.Mouse.DownAsync();
         await page.Mouse.MoveAsync(x, y + 70, new() { Steps = 4 });
-        await page.WaitForTimeoutAsync(100);
+        // Reduced-motion jumps are instant; allow the scroll event's queued rail
+        // refresh to run before recording the position that other pointers must retain.
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         Assert.True(await page.Locator(".lb-rail").EvaluateAsync<bool>("r => r.classList.contains('is-scrubbing')"));
         var scroll = await page.EvaluateAsync<double>("scrollY");
         await page.Locator(".lb-rail").DispatchEventAsync("pointermove", new { pointerId = 99, clientY = 150 });

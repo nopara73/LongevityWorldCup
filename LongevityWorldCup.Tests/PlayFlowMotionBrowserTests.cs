@@ -192,10 +192,10 @@ public sealed class PlayFlowMotionBrowserTests(
         });
         var page = await OpenAsync(context, "/play");
         var name = await PickAmateurAsync(page);
-        await Task.Delay(2000);
-
         var continueButton = page.Locator("#continueGameBtn");
+        await Assertions.Expect(continueButton).ToBeEnabledAsync();
         await continueButton.FocusAsync();
+        await Assertions.Expect(continueButton).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(page.Locator("#playAthleteInput")).ToBeFocusedAsync();
         await WaitForMoveToSettleAsync(page);

@@ -101,7 +101,7 @@ public sealed class ImageViewerBrowserTests(
         var viewer = page.Locator("dialog.lwc-viewer");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
         await page.EvaluateAsync("async () => { await document.querySelector('.lwc-viewer-picture').decode(); }").WaitAsync(TimeSpan.FromSeconds(10));
-        await page.WaitForTimeoutAsync(450);
+        await WaitForFiniteAnimationsAsync(page, ".lwc-viewer, .lwc-viewer *");
         if (!string.IsNullOrEmpty(directory))
             await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{path.Trim('/')}-{width}-{theme}-open.png") });
         var overflow = await viewer.EvaluateAsync<bool>("e => e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight");
@@ -391,7 +391,7 @@ public sealed class ImageViewerBrowserTests(
         {
             if (Environment.GetEnvironmentVariable("LWC_VIEWER_CAPTURE_DIR") is not { Length: > 0 } directory) return;
             Directory.CreateDirectory(directory);
-            await page.WaitForTimeoutAsync(450);
+            await WaitForFiniteAnimationsAsync(page, ".lwc-viewer, .lwc-viewer *");
             await page.ScreenshotAsync(new() { Path = Path.Combine(directory, name) });
         }
     }

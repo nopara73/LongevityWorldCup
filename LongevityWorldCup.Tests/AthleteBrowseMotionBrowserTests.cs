@@ -423,7 +423,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
         await NavigateToLeaderboardAsync(page, "/leaderboard");
         await page.Locator(Rows + ":visible").Nth(1).Locator("a.athlete-name").ClickAsync();
         await WaitForProfileAsync(page);
-        await page.WaitForTimeoutAsync(500);
+        await WaitForFiniteAnimationsAsync(page, "#detailsModal, #detailsModal *, .athlete-motion-layer *");
         Assert.DoesNotContain(errors, error => error.Contains("Animation unavailable", StringComparison.Ordinal));
         Assert.Equal(0, await page.EvaluateAsync<int>("() => document.querySelector('.athlete-motion-layer')?.childElementCount || 0"));
         Assert.Equal(1, await page.Locator("#modalProfilePic").EvaluateAsync<double>("p => +getComputedStyle(p).opacity"));

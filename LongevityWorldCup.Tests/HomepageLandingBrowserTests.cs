@@ -345,13 +345,13 @@ public sealed class HomepageLandingBrowserTests(
         await page.SetViewportSizeAsync(width, 900);
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForSelectorAsync("#events-root-index tr.main-row");
-        await page.EvaluateAsync("() => document.fonts.ready");
+        await FitInitialHighlightsAsync(page);
         await page.WaitForTimeoutAsync(1800);
         await page.EvaluateAsync("() => cancelAnimationFrame(highlightFrame)");
         Assert.Single(await page.EvaluateAsync<string[]>("highlightPaints"));
         Assert.Equal(0, await page.EvaluateAsync<int>("highlightGhosts"));
 
-        var stable = await page.EvaluateAsync<bool>("""
+        await page.EvaluateAsync("""
             async () => {
                 const root = document.querySelector('#events-root-index');
                 const images = [...root.querySelectorAll('img.avatar')];
@@ -364,14 +364,21 @@ public sealed class HomepageLandingBrowserTests(
                 });
                 observer.observe(root, { childList: true, subtree: true });
                 await fitHomepageHighlights();
+                window.highlightRefitComplete = false;
+                const fit = fitHomepageHighlightsNow;
+                fitHomepageHighlightsNow = async function () {
+                    await fit();
+                    observer.disconnect();
+                    window.highlightRefitStable = removals === 0 && rows.every(row => row.isConnected)
+                        && images.every(image => image.isConnected);
+                    window.highlightRefitComplete = true;
+                    fitHomepageHighlightsNow = fit;
+                };
                 document.fonts.dispatchEvent(new Event('loadingdone'));
-                await new Promise(resolve => setTimeout(resolve, 500));
-                observer.disconnect();
-                return removals === 0 && rows.every(row => row.isConnected)
-                    && images.every(image => image.isConnected);
             }
             """);
-        Assert.True(stable, "A layout refit must not detach decoded icons or replay feed animations.");
+        await page.WaitForFunctionAsync("() => window.highlightRefitComplete");
+        Assert.True(await page.EvaluateAsync<bool>("window.highlightRefitStable"), "A layout refit must not detach decoded icons or replay feed animations.");
     }
 
     private static Task FitInitialHighlightsAsync(IPage page) =>

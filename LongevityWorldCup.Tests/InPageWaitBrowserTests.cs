@@ -151,10 +151,9 @@ public sealed class InPageWaitBrowserTests(
                 LwcWait.region(board, true);
                 await new Promise(r => setTimeout(r, 60));
                 LwcWait.region(board, false);
-                await new Promise(r => setTimeout(r, 1200));
             }
             """, restartAt);
-        Assert.Equal(0, await page.Locator(".lwc-wait-line").CountAsync());
+        await Assertions.Expect(page.Locator(".lwc-wait-line")).ToHaveCountAsync(0, new() { Timeout = 1200 });
         Assert.Null(await page.Locator("#board").GetAttributeAsync("data-lwc-wait-region"));
     }
 
@@ -164,7 +163,8 @@ public sealed class InPageWaitBrowserTests(
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
         await page.EvaluateAsync("() => LwcWait.region(board, true)");
-        await page.WaitForTimeoutAsync(400);
+        await Assertions.Expect(page.Locator("#board")).ToHaveAttributeAsync("data-lwc-wait-region", "refresh");
+        await Assertions.Expect(page.Locator("#board .lwc-wait-line")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator("#hidden")).ToHaveCSSAsync("opacity", "0");
         Assert.True(await page.EvaluateAsync<bool>("""
             async () => {
@@ -183,15 +183,14 @@ public sealed class InPageWaitBrowserTests(
     {
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
+        await page.EvaluateAsync("() => { window.removedControl = save; LwcWait.start(save, {region: form}); }");
+        await Assertions.Expect(page.Locator("#save .lwc-wait-fill")).ToHaveCountAsync(1);
+        await page.EvaluateAsync("() => removedControl.remove()");
+        await page.WaitForFunctionAsync("() => !removedControl.hasAttribute('data-lwc-wait') && !removedControl.querySelector('.lwc-wait-fill') && !form.inert");
         Assert.True(await page.EvaluateAsync<bool>("""
-            async () => {
-                const control = save;
-                LwcWait.start(control, {region: form});
-                await new Promise(r => setTimeout(r, 160));
-                control.remove();
-                await new Promise(r => setTimeout(r, 40));
-                form.append(control);
-                return !control.hasAttribute('data-lwc-wait') && !control.querySelector('.lwc-wait-fill') && !form.inert;
+            () => {
+                form.append(removedControl);
+                return !removedControl.hasAttribute('data-lwc-wait') && !removedControl.querySelector('.lwc-wait-fill') && !form.inert;
             }
             """));
     }

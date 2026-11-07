@@ -49,7 +49,6 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
                     radio.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 """, selection);
-            await page.WaitForTimeoutAsync(400);
             var path = await page.EvaluateAsync<string>("() => location.pathname + location.search");
             Assert.NotEqual("/leaderboard", path);
             await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();

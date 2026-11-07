@@ -148,7 +148,7 @@ public sealed class WebPushRecoveryBrowserTests
         var directory = Environment.GetEnvironmentVariable("LWC_PUSH_REVIEW_DIR");
         if (directory is null) return;
         Directory.CreateDirectory(directory);
-        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => setTimeout(resolve, 1000)); scrollTo(0, 0); await new Promise(requestAnimationFrame); }");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; scrollTo({top:0, behavior:'instant'}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
         await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{state}-{width}.png"), Animations = ScreenshotAnimations.Disabled });
     }
 }

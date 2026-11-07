@@ -180,7 +180,7 @@ public sealed class AthleteStoryBrowserTests(
         var page = await OpenAsync(context);
         var track = page.Locator(".age-story-timeline");
         await track.ScrollIntoViewIfNeededAsync();
-        await page.WaitForTimeoutAsync(1000);
+        await WaitForFiniteAnimationsAsync(page, "#detailsModal, #detailsModal *");
         var cdp = await context.NewCDPSessionAsync(page);
         var bounds = (await track.BoundingBoxAsync())!;
         await DragAsync(cdp, bounds.X + bounds.Width - 10, bounds.Y + 22, bounds.X + 10, bounds.Y + 22);
@@ -238,7 +238,10 @@ public sealed class AthleteStoryBrowserTests(
         await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/benjamin-garden");
         await ReadyAsync(page);
         await page.Keyboard.PressAsync("Shift");
-        await page.WaitForTimeoutAsync(200);
+        // Trusted input opens the motion gate; chapter registration runs on a
+        // later timer, before any visible finite animations can be awaited.
+        await page.WaitForFunctionAsync("() => matchMedia('(prefers-reduced-motion: reduce)').matches || document.querySelector('#athlete-biomarkers[data-story], #athlete-biomarkers [data-draw]')");
+        await WaitForFiniteAnimationsAsync(page, "#detailsModal, #detailsModal *");
         return page;
     }
 

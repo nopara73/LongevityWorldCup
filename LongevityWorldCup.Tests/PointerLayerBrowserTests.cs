@@ -184,6 +184,7 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
                 }, true);
             }
             """);
+        await WaitForTooltipMotionAsync(page);
         var box = await tip.BoundingBoxAsync();
         Assert.NotNull(box);
         var x = box.X + box.Width / 2;
@@ -197,13 +198,15 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         }
         await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
         await cdp.DetachAsync();
-        await page.WaitForTimeoutAsync(250);
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-tip').scrollTop > 30");
         await Expect(tip).ToBeVisibleAsync();
         Assert.True(await tip.EvaluateAsync<bool>("e => e.scrollTop > 30"), "The native touch gesture must actually scroll the explanation.");
         Assert.False(await page.EvaluateAsync<bool>("window.tipInterrupted"), "Pointer capture or cancellation dismissed and reopened the tip during the gesture.");
         // Stay beyond Chromium's touch hit-test radius around the scrollable tip.
         if (ending == "touch") await page.Touchscreen.TapAsync(388, 885);
         else await page.Mouse.MoveAsync(388, 885);
+        await Expect(tip).ToBeHiddenAsync();
+        // Observe that dismissal remains in effect after the delayed hover window.
         await page.WaitForTimeoutAsync(750);
         await Expect(tip).ToBeHiddenAsync();
         Assert.Equal(ending == "touch" ? "touch" : "pointer", await page.EvaluateAsync<string>("window.LwcPointer.modality()"));
