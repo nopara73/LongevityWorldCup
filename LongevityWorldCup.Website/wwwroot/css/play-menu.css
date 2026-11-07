@@ -3358,3 +3358,144 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
     #playConfirmAthleteBtn.is-arming { animation: none; }
 }
+
+
+/* ===== Track choice, compared =====
+   The two tracks read as a comparison, not two leaflets. The card under the
+   pointer comes forward while the other steps back. In the Pro list, the nine
+   biomarkers Amateur already needs carry a check and the extra thirteen a
+   plus, so "what more does Pro need" is visible at a glance; pointing at a
+   biomarker lights its twin in the other track. Lists open with their height
+   and deal their items in. Icons only, no new words. */
+.play-join-card {
+    transition:
+        transform 240ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+        box-shadow 240ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+        opacity 200ms ease,
+        filter 200ms ease;
+}
+
+@media (hover: hover) and (min-width: 761px) {
+    .play-join-cards:has(.play-join-card:hover) .play-join-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 36px -18px rgba(15, 23, 42, 0.35);
+    }
+
+    .play-join-cards:has(.play-join-card:hover) .play-join-card:not(:hover) {
+        opacity: 0.82;
+        filter: saturate(0.85);
+        transform: scale(0.985);
+    }
+}
+
+/* A lit twin lives in the other card, so it stays at full strength. */
+@media (hover: hover) and (min-width: 761px) {
+    .play-join-cards:has(li.is-twin-lit) .play-join-card:not(:hover) {
+        opacity: 1;
+        filter: none;
+    }
+}
+
+/* Pro list markers: a check for the shared nine, a plus for the extra. */
+.play-join-card--pro .play-join-biomarkers ul {
+    padding-left: 0;
+    list-style: none;
+}
+
+.play-join-card--pro .play-join-biomarkers li {
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.play-join-card--pro .play-join-biomarkers li::before {
+    content: "\2b";
+    position: absolute;
+    left: 0.1rem;
+    top: 0.2em;
+    display: grid;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--lwc-success, #2e7d32);
+    color: #fff;
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.55rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.play-join-card--pro .play-join-biomarkers li[data-twin]::before {
+    content: "\f00c";
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 1.5px var(--lwc-border-strong, #71808d);
+    color: var(--lwc-muted, #52606d);
+}
+
+.play-join-card--pro .play-join-biomarkers li[data-twin] {
+    color: var(--lwc-muted, #52606d);
+}
+
+/* Twins: pointing at a biomarker lights it in both tracks. */
+.play-join-biomarkers li[data-twin] {
+    border-radius: 4px;
+    transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.play-join-biomarkers li.is-twin-lit {
+    background: var(--lwc-accent-soft, #dff5f7);
+    box-shadow: -4px 0 0 var(--lwc-accent-soft, #dff5f7), 4px 0 0 var(--lwc-accent-soft, #dff5f7);
+    color: var(--lwc-ink, #17212b);
+}
+
+.play-join-card--pro .play-join-biomarkers li.is-twin-lit::before {
+    background: var(--lwc-accent, #087685);
+    box-shadow: none;
+    color: #fff;
+}
+
+/* Lists open with their height and deal their items in. */
+@supports (interpolate-size: allow-keywords) {
+    .play-join-biomarkers { interpolate-size: allow-keywords; }
+
+    .play-join-biomarkers details::details-content {
+        block-size: 0;
+        overflow: clip;
+        transition: block-size 280ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)), content-visibility 280ms allow-discrete;
+    }
+
+    .play-join-biomarkers details[open]::details-content {
+        block-size: auto;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .play-join-biomarkers details[open] li {
+        animation: play-join-deal 260ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) backwards;
+        animation-delay: calc(var(--i, 0) * 16ms + 60ms);
+    }
+
+    .play-join-card--pro .play-join-biomarkers details[open] li:not([data-twin])::before {
+        animation: play-join-plus 360ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)) backwards;
+        animation-delay: calc(var(--i, 0) * 16ms + 200ms);
+    }
+}
+
+@keyframes play-join-deal {
+    from { opacity: 0; transform: translateY(6px); }
+}
+
+@keyframes play-join-plus {
+    from { transform: scale(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .play-join-card,
+    .play-join-biomarkers li[data-twin] {
+        transition: none;
+    }
+
+    .play-join-biomarkers details::details-content {
+        transition: none;
+    }
+}
