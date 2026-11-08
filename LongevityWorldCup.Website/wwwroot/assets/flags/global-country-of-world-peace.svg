@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 96">
+  <title>Global Country of World Peace</title>
+  <!-- Redrawn for flag tiles from the sunburst displayed at https://globalcountry.org/. -->
+  <defs>
+    <radialGradient id="field" gradientUnits="userSpaceOnUse" cx="64" cy="48" r="52">
+      <stop offset=".23" stop-color="#c32948"/>
+      <stop offset=".45" stop-color="#d64c26"/>
+      <stop offset=".75" stop-color="#e98c08"/>
+      <stop offset="1" stop-color="#ed9c0a"/>
+    </radialGradient>
+    <g id="ray">
+      <path d="M0-11V-82" stroke="#fff5bf" stroke-width="1.4"/>
+      <path d="M-1.7-10C-2.2-15-.4-16 0-21c1.4 4.5 0 6.5 1.7 11Z" fill="#ffe173"/>
+    </g>
+    <g id="quarter">
+      <use href="#ray"/>
+      <use href="#ray" transform="rotate(11.25)"/>
+      <use href="#ray" transform="rotate(22.5)"/>
+      <use href="#ray" transform="rotate(33.75)"/>
+      <use href="#ray" transform="rotate(45)"/>
+      <use href="#ray" transform="rotate(56.25)"/>
+      <use href="#ray" transform="rotate(67.5)"/>
+      <use href="#ray" transform="rotate(78.75)"/>
+    </g>
+  </defs>
+  <rect width="128" height="96" fill="url(#field)"/>
+  <g transform="translate(64 48)">
+    <use href="#quarter"/>
+    <use href="#quarter" transform="rotate(90)"/>
+    <use href="#quarter" transform="rotate(180)"/>
+    <use href="#quarter" transform="rotate(270)"/>
+    <circle r="11" fill="#ffe173"/>
+  </g>
+</svg>

@@ -961,6 +961,23 @@ function compactApplicationDataString(value: string): string {
 
 const PENDING_APPLICATION_SUBMISSION_STORAGE_KEY = 'pendingApplicationSubmission';
 const PENDING_APPLICATION_SUBMISSION_LIFETIME_MS = 24 * 24 * 60 * 60 * 1000;
+const APPLICATION_ENTRY_STORAGE_KEY = 'applicationEntryId';
+
+function readApplicationEntryId(): string | null {
+    try { return window.sessionStorage.getItem(APPLICATION_ENTRY_STORAGE_KEY); }
+    catch (_) { return null; }
+}
+
+// Joining from a calculator is a new intent, even when an older accepted
+// submission still has an unpaid invoice. Reloads within that intent keep its ID.
+window.beginApplicationEntry = function (): boolean {
+    const entryId = window.crypto?.randomUUID?.()
+        || `entry-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    try {
+        window.sessionStorage.setItem(APPLICATION_ENTRY_STORAGE_KEY, entryId);
+        return window.sessionStorage.getItem(APPLICATION_ENTRY_STORAGE_KEY) === entryId;
+    } catch (_) { return false; }
+};
 
 function readPendingApplicationSubmission(): PendingApplicationSubmission | null {
     let raw: string | null = null;
@@ -992,6 +1009,7 @@ function readPendingApplicationSubmission(): PendingApplicationSubmission | null
             submissionKind: parsed.submissionKind,
             applicantName: typeof parsed.applicantName === 'string' ? parsed.applicantName : null,
             accountEmail: typeof parsed.accountEmail === 'string' ? parsed.accountEmail : null,
+            entryId: typeof parsed.entryId === 'string' ? parsed.entryId : null,
             createdAt: parsed.createdAt
         };
     } catch (_) {
@@ -1101,7 +1119,9 @@ window.createApplicationSubmissionId = function (payloadFingerprint?: string) {
         : readPendingApplicationSubmission();
     if (storedSubmission
         && normalizedFingerprint !== undefined
-        && storedSubmission.payloadFingerprint === normalizedFingerprint) {
+        && storedSubmission.payloadFingerprint === normalizedFingerprint
+        && (storedSubmission.submissionKind !== 'full-application'
+            || storedSubmission.entryId === readApplicationEntryId())) {
         window.__pendingApplicationSubmissionId = storedSubmission.submissionId;
         window.__pendingApplicationSubmissionFingerprint = normalizedFingerprint;
         return storedSubmission.submissionId;
@@ -1135,6 +1155,7 @@ window.rememberPendingApplicationSubmission = function (details) {
         submissionKind,
         applicantName: typeof details.applicantName === 'string' ? details.applicantName.trim() || null : null,
         accountEmail: typeof details.accountEmail === 'string' ? details.accountEmail.trim() || null : null,
+        entryId: details.submissionKind === 'full-application' ? readApplicationEntryId() : null,
         createdAt: Date.now()
     };
     window.__pendingApplicationSubmissionId = submissionId;
@@ -1165,10 +1186,13 @@ window.clearPendingApplicationSubmission = function (submissionId?: string) {
 window.tryRecoverPendingApplicationSubmission = async function (submissionKind: string) {
     const pending = window.getPendingApplicationSubmission(submissionKind);
     if (!pending) return null;
+    const entryId = readApplicationEntryId();
+    if (submissionKind === 'full-application' && entryId && pending.entryId !== entryId) return null;
 
     const submitResult = await recoverApplicationSubmissionResponse(
         pending.submissionId,
         window.APPLICATION_SUBMISSION_TIMEOUT_MS || 310000);
+    if (submissionKind === 'full-application' && readApplicationEntryId() !== entryId) return null;
     return submitResult ? { pending, submitResult } : null;
 };
 

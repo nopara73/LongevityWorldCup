@@ -233,6 +233,8 @@ public sealed class FlowBackButtonBrowserTests(
                 const sizes = elements.map(e => [e, parseFloat(getComputedStyle(e).fontSize)]);
                 const labels = [...document.querySelectorAll('.back-button .flow-action__label')];
                 const before = labels.map(e => parseFloat(getComputedStyle(e).fontSize));
+                // Docking moves these same nodes in DOM order as text grows.
+                labels.forEach((label, index) => label.dataset.textScaleIndex = String(index));
                 for (const [e, size] of sizes) e.style.setProperty('font-size', `${size * 2}px`, 'important');
                 await document.fonts.ready;
                 return before;
@@ -242,7 +244,7 @@ public sealed class FlowBackButtonBrowserTests(
         await WaitForFiniteAnimationsAsync(page);
         var ratios = await page.EvaluateAsync<double[]>("""
             before => [...document.querySelectorAll('.back-button .flow-action__label')]
-                .map((element, index) => parseFloat(getComputedStyle(element).fontSize) / before[index])
+                .map(element => parseFloat(getComputedStyle(element).fontSize) / before[Number(element.dataset.textScaleIndex)])
             """, before);
         Assert.NotEmpty(ratios);
         Assert.All(ratios, ratio => Assert.InRange(ratio, 1.999, 2.001));

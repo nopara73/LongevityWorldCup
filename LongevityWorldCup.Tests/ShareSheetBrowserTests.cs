@@ -49,7 +49,6 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
                     radio.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 """, selection);
-            await page.WaitForTimeoutAsync(400);
             var path = await page.EvaluateAsync<string>("() => location.pathname + location.search");
             Assert.NotEqual("/leaderboard", path);
             await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();
@@ -146,7 +145,7 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await FlowActionDockBrowserTests.FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         if (path == "/pheno-age") await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
         else await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
-        await page.Locator("#calculateBioageButton").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await Assertions.Expect(page.Locator(".bioage-result-share")).ToBeVisibleAsync();
         var values = await page.Locator("form input, form select").EvaluateAllAsync<string[]>("fields => fields.map(e => e.id + '=' + e.value)");
         var result = await page.Locator(".bio-age-number-container").InnerTextAsync();

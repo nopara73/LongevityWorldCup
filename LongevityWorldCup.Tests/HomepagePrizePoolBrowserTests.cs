@@ -19,6 +19,7 @@ public sealed class HomepagePrizePoolBrowserTests(
         await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
         await context.AddInitScriptAsync("Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {} } });");
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.SetViewportSizeAsync(width, 844);
         await page.EmulateMediaAsync(new() { ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light });
         await page.GotoAsync("/contribute", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -26,6 +27,7 @@ public sealed class HomepagePrizePoolBrowserTests(
         await SettleLayoutAsync(page);
         var button = page.Locator("#bitcoinCopyButton");
         await Assertions.Expect(button).ToBeEnabledAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await button.FocusAsync();
         await button.PressAsync("Enter");
         await Assertions.Expect(page.Locator("#copiedText")).ToHaveTextAsync("Copied");
@@ -138,8 +140,11 @@ public sealed class HomepagePrizePoolBrowserTests(
             ContentType = "application/json", Body = "{\"totalReceivedSatoshis\":831766}"
         }));
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator(".btc-status-track")).ToHaveAttributeAsync("aria-valuetext", "0.0075 of 0.0100 BTC");
+        // Hold the rAF counter until the intended interruption reaches the page.
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator(".btc-status").ScrollIntoViewIfNeededAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('.btc-status').classList.contains('is-counting')");
         // The changing visual is decorative; the real DOM/accessibility value is stable.
@@ -180,9 +185,11 @@ public sealed class HomepagePrizePoolBrowserTests(
             document.execCommand = () => false;
             """);
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/contribute", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var button = page.Locator("#bitcoinCopyButton");
         await Assertions.Expect(button).ToBeEnabledAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await button.ClickAsync();
         await Assertions.Expect(page.Locator("#copiedText")).ToHaveTextAsync("Copied");
         Assert.True(await page.Locator(".btc-address").EvaluateAsync<bool>("e => e.classList.contains('is-copied')"));

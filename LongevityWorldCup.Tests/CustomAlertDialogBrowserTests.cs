@@ -53,7 +53,7 @@ public sealed class CustomAlertDialogBrowserTests(
         await page.EvaluateAsync("scrollTo(0, document.documentElement.scrollHeight)");
         await page.EvaluateAsync("() => { void customAlert('Proof files must be images or PDFs.'); }");
         await Assertions.Expect(page.Locator("#custom-alert-close")).ToBeFocusedAsync();
-        await page.WaitForTimeoutAsync(350);
+        await WaitForFiniteAnimationsAsync(page, "#custom-alert, .custom-alert-panel");
         Assert.True(await page.Locator("#custom-alert-close").EvaluateAsync<bool>("""
             button => {
                 const box = button.getBoundingClientRect();
@@ -66,7 +66,7 @@ public sealed class CustomAlertDialogBrowserTests(
 
         await page.EvaluateAsync("() => showLoading()");
         await Assertions.Expect(page.Locator("#loading-dialog")).ToBeVisibleAsync();
-        await page.WaitForTimeoutAsync(350);
+        await WaitForFiniteAnimationsAsync(page, "#loading-dialog, .loading-dialog-panel");
         Assert.True(await page.Locator("#loading-dialog").EvaluateAsync<bool>("""
             dialog => {
                 const box = dialog.querySelector('.loading-dialog-panel').getBoundingClientRect();
@@ -254,9 +254,24 @@ public sealed class CustomAlertDialogBrowserTests(
         });
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/apply");
-        await page.EvaluateAsync("() => { void customAlert('Your application was received'); }");
+        // Observe before opening: the decorative layer can finish and disappear
+        // while the test driver is between calls. Capture its values in the page.
+        var celebration = await page.EvaluateAsync<string[]>(
+            """
+            () => new Promise(resolve => {
+                const observer = new MutationObserver(() => {
+                    const layer = document.querySelector('.lwc-celebration');
+                    if (!layer) return;
+                    observer.disconnect();
+                    resolve([layer.getAttribute('aria-hidden'),
+                        String(layer.querySelectorAll('.lwc-celebration-spark').length), layer.dataset.level]);
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+                void customAlert('Your application was received');
+            })
+            """).WaitAsync(TimeSpan.FromSeconds(10));
         await Assertions.Expect(page.Locator("#custom-alert")).ToBeVisibleAsync();
-        await page.WaitForTimeoutAsync(700);
+        await WaitForFiniteAnimationsAsync(page, "#custom-alert, .custom-alert-panel");
 
         var card = await page.EvaluateAsync<string[]>(
             """
@@ -266,13 +281,11 @@ public sealed class CustomAlertDialogBrowserTests(
                 const style = getComputedStyle(panel);
                 const button = document.getElementById('custom-alert-close').getBoundingClientRect();
                 const mark = document.querySelector('.custom-alert-mark');
-                const layer = document.querySelector('.lwc-celebration');
                 const content = panel.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                 return [String(Math.abs((rect.left + rect.right) / 2 - innerWidth / 2)),
                     String(Math.abs((rect.top + rect.bottom) / 2 - innerHeight / 2)),
                     String(rect.width), String(Math.abs(button.width - content)), style.backgroundColor,
-                    layer?.getAttribute('aria-hidden'), String(layer?.querySelectorAll('.lwc-celebration-spark').length),
-                    String(mark.offsetWidth), layer?.dataset.level];
+                    String(mark.offsetWidth)];
             }
             """);
 
@@ -280,10 +293,10 @@ public sealed class CustomAlertDialogBrowserTests(
         Assert.InRange(double.Parse(card[2]), 380, 420);
         Assert.True(double.Parse(card[3]) <= 1, "OK should span the card's content.");
         Assert.Equal(surface, card[4]);
-        Assert.Equal("true", card[5]);
-        Assert.True(int.Parse(card[6]) >= 4, "Success should radiate decorative sparks.");
-        Assert.Equal("56", card[7]);
-        Assert.Equal("rise", card[8]);
+        Assert.Equal("true", celebration[0]);
+        Assert.True(int.Parse(celebration[1]) >= 4, "Success should radiate decorative sparks.");
+        Assert.Equal("56", card[5]);
+        Assert.Equal("rise", celebration[2]);
     }
 
     [Fact]

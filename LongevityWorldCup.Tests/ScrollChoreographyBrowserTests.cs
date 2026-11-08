@@ -23,6 +23,37 @@ public sealed class ScrollChoreographyBrowserTests(PlaywrightBrowserFixture brow
         return page;
     }
 
+    private static async Task ScrollToHeldEntranceAsync(IPage page, int currentTime)
+    {
+        var next = page.Locator("#next");
+        await Assertions.Expect(next).ToHaveCSSAsync("opacity", "0");
+
+        // Hold the JS cleanup deadline as well as the CSS entrance while the host sends input.
+        await page.Clock.InstallAsync();
+        var pauseAt = DateTime.UtcNow;
+        await page.Clock.SetFixedTimeAsync(pauseAt);
+        await page.Clock.PauseAtAsync(pauseAt);
+        await next.EvaluateAsync("""
+            (element, currentTime) => {
+                // Capture the real transitions as soon as the observer arms them, before another host call.
+                const observer = new MutationObserver(() => {
+                    if (element.getAttribute('data-lwc-enter-state') !== 'go') return;
+                    observer.disconnect();
+                    for (const animation of element.getAnimations()) {
+                        if (animation instanceof CSSTransition &&
+                            ['opacity', 'translate'].includes(animation.transitionProperty)) {
+                            animation.pause();
+                            animation.currentTime = currentTime;
+                        }
+                    }
+                });
+                observer.observe(element, { attributes: true, attributeFilter: ['data-lwc-enter-state'] });
+                window.scrollTo(0, 900);
+            }
+            """, currentTime);
+        await Assertions.Expect(next).ToHaveAttributeAsync("data-lwc-enter-state", "go");
+    }
+
     [Fact]
     public async Task MissingIntersectionObserver_NeverHidesContent()
     {
@@ -53,18 +84,8 @@ public sealed class ScrollChoreographyBrowserTests(PlaywrightBrowserFixture brow
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await Fixture(context, "<section>First viewport</section><section data-lwc-enter id='next'><button id='target'>Target</button></section><section data-lwc-enter>Last</section>");
-        await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
-        await page.EvaluateAsync("window.scrollTo(0, 900)");
-        await Assertions.Expect(page.Locator("#next")).ToHaveAttributeAsync("data-lwc-enter-state", "go");
-        // Pin a real CSS entrance mid-flight, independent of runner/frame timing.
-        var opacity = await page.Locator("#next").EvaluateAsync<double>("""
-            e => {
-                for (const animation of e.getAnimations()) {
-                    if (animation instanceof CSSTransition) { animation.pause(); animation.currentTime = 100; }
-                }
-                return Number(getComputedStyle(e).opacity);
-            }
-            """);
+        await ScrollToHeldEntranceAsync(page, 100);
+        var opacity = await page.Locator("#next").EvaluateAsync<double>("e => Number(getComputedStyle(e).opacity)");
         Assert.InRange(opacity, 0.001, 0.999);
         await page.EvaluateAsync("action => { if(action === 'focus') document.getElementById('target').focus(); else if(action === 'hash') { history.replaceState(null,'','#next'); dispatchEvent(new HashChangeEvent('hashchange')); } else dispatchEvent(new Event('beforeprint')); }", action);
         Assert.Equal(0, await page.Locator("[data-lwc-enter-state]").CountAsync());
@@ -76,10 +97,7 @@ public sealed class ScrollChoreographyBrowserTests(PlaywrightBrowserFixture brow
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await Fixture(context, "<section>First viewport</section><section data-lwc-enter id='next'><a id='target' href='#done'>Open destination</a></section><section id='done'>Destination</section>");
-        await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
-        await page.EvaluateAsync("window.scrollTo(0, 900)");
-        await Assertions.Expect(page.Locator("#next")).ToHaveAttributeAsync("data-lwc-enter-state", "go");
-        await page.Locator("#next").EvaluateAsync("e => e.getAnimations().forEach(a => { a.pause(); a.currentTime = 10; })");
+        await ScrollToHeldEntranceAsync(page, 10);
         Assert.InRange(await page.Locator("#next").EvaluateAsync<double>("e => Number(getComputedStyle(e).opacity)"), 0.001, 0.999);
         await page.Locator("#target").ClickAsync();
         Assert.Equal("#done", await page.EvaluateAsync<string>("location.hash"));

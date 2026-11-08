@@ -53,8 +53,10 @@ jobs:
         [[ "$REFERENCE_TESTS" =~ ^[a-f0-9]{40}$ ]]
         git fetch --no-tags --depth=1 origin "$REFERENCE_TESTS"
         git restore --source=FETCH_HEAD --staged --worktree -- LongevityWorldCup.Tests
-    - name: Verify CI accounting guards
-      run: python3 -B -m unittest discover -s .github/scripts -p test_ci_tests.py
+    - name: Verify CI guards
+      run: python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
+    - name: Reject unexplained browser-test waits
+      run: python3 -B .github/scripts/check_browser_waits.py
     - name: Reject tracked local artifacts
       shell: bash
       run: |

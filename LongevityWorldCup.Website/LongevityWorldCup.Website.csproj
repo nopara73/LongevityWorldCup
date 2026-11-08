@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="DataCorrections/BiomarkerAudit20261018.json" />
+    <EmbeddedResource Include="Frontend/flag-icon-codes.json" LogicalName="flag-icon-codes.json" />
+    <Content Remove="Frontend/flag-icon-codes.json" />
     <TypeScriptSource Include="Frontend\*.ts" />
     <ClassicScriptSource Include="Frontend\*.js" />
     <NestedFrontendRuntimeSource Include="Frontend\**\*.ts;Frontend\**\*.js"
@@ -41,7 +43,7 @@
     <PackageReference Include="MailKit" Version="4.18.2" />
     <PackageReference Include="NBitcoin.Secp256k1" Version="4.0.4" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />
-    <PackageReference Include="Quartz" Version="4.6.0" />
+    <PackageReference Include="Quartz" Version="4.6.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.2.0" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />

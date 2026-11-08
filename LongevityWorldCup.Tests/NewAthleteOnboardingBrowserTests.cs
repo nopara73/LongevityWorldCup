@@ -185,10 +185,11 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
     [Fact]
     public async Task ProOnboarding_SubmitsExpectedApplicationPayload()
     {
-        var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
+        const string bloodDrawDate = "2026-11-06";
 
         await RunOnboardingBrowserAsync(async (page, errors) =>
         {
+            await page.Clock.SetFixedTimeAsync(new DateTime(2026, 11, 5, 18, 0, 0, DateTimeKind.Utc));
             await CompleteProHandoffToApplicationAsync(page, bloodDrawDate);
 
             var payload = await SubmitFakeApplicationAndCapturePayloadAsync(page);
@@ -198,7 +199,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
             AssertSubmittedApplicantDateOfBirth(payload);
             AssertSubmittedBortzBiomarkers(payload, bloodDrawDate);
             Assert.Empty(errors);
-        });
+        }, timezoneId: "Asia/Bangkok");
     }
 
     [Fact]
@@ -423,7 +424,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
                         """);
                 }
 
-                await page.Locator("#calculateBioageButton").ClickAsync();
+                await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
                 await page.WaitForSelectorAsync($"{resultSelector}.show");
                 await page.WaitForFunctionAsync(
                     "selector => document.querySelector(selector)?.getAttribute('aria-busy') === 'false'",
@@ -582,7 +583,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
                 ["crpUnit"] = "10"
             }, unitDefaults: mislabeledUnits);
 
-        await page.Locator("#calculateBioageButton").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
     }
@@ -643,7 +644,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
         // Verify corrected canonical values in the real application handoff,
         // including both common ApoA1 mistakes and HbA1c's affine conversion.
-        await page.Locator("#calculateBioageButton").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync("#bortzAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
     }
