@@ -7469,7 +7469,7 @@ function syncSidebarDrawerBackdrop() {
         document.body.style.removeProperty('--sidebar-body-width');
     }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
-    sidebarPanel.setAttribute('role', isMobileDrawer ? 'dialog' : 'region');
+    sidebarPanel.setAttribute('role', isOpenMobileDrawer ? 'dialog' : 'region');
     if (isOpenMobileDrawer) sidebarPanel.setAttribute('aria-modal', 'true');
     else sidebarPanel.removeAttribute('aria-modal');
     syncSidebarPanelInteractivity();

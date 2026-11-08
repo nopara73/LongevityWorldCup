@@ -32,6 +32,7 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
             }
             """);
         await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "false");
+        await Assertions.Expect(page.Locator(".sidebar-panel")).ToHaveAttributeAsync("role", "region");
         await page.Locator(".sidebar-toggle").FocusAsync();
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(page.Locator(".sidebar-close")).ToBeFocusedAsync();
@@ -59,6 +60,7 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
         await page.Keyboard.PressAsync("Enter");
         await page.Mouse.ClickAsync(5, Math.Max(1, sheet.Y / 2));
         await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "false");
+        await Assertions.Expect(page.Locator(".sidebar-panel")).ToHaveAttributeAsync("role", "region");
     }
 
     [Theory]
