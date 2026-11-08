@@ -141,6 +141,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         }));
 
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -170,6 +171,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         await page.Locator("#gmaRange").EvaluateAsync(
             "range => { range.value = '41'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
 
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
 
@@ -207,6 +209,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         Assert.NotNull(await page.EvaluateAsync<string?>("() => localStorage.getItem('gmaHasPerfectGuess')"));
 
         await page.Keyboard.PressAsync("Escape");
+        await page.Clock.ResumeAsync();
         await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('.gma-exact-jackpot, .gma-exact-confetti-canvas')");
@@ -234,6 +237,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         }));
 
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -253,8 +257,9 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
         await page.Locator("#gmaRange").EvaluateAsync(
             "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
-        await page.WaitForFunctionAsync(
+        await AdvanceRevealUntilAsync(page,
             "() => document.getElementById('gmaRealBubble')?.classList.contains('is-travelling') === true");
 
         await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce });

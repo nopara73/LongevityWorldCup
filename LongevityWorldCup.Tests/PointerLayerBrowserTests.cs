@@ -64,7 +64,7 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         await page.Locator("#two").HoverAsync();
         var tip = page.Locator(".lwc-tip");
         await Expect(tip).ToBeVisibleAsync();
-        await page.WaitForTimeoutAsync(200);
+        await WaitForTooltipMotionAsync(page);
         var text = await page.Locator(".lwc-tip-text").BoundingBoxAsync();
         Assert.NotNull(text);
         await page.Mouse.MoveAsync(text.X + 10, text.Y + 8);
@@ -104,7 +104,7 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         await Expect(page.Locator(".lwc-tip")).ToHaveTextAsync("First tip");
         await page.Locator("#two").HoverAsync();
         await Expect(page.Locator(".lwc-tip")).ToHaveTextAsync(explanation);
-        await page.WaitForTimeoutAsync(200);
+        await WaitForTooltipMotionAsync(page);
         var geometry = await page.Locator(".lwc-tip").EvaluateAsync<double[]>("""
             e => { const r = e.getBoundingClientRect(); return [r.left, r.right, document.documentElement.clientWidth, e.scrollWidth - e.clientWidth, e.scrollHeight - e.clientHeight]; }
             """);
@@ -112,6 +112,12 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
             $"The complete tooltip must retain its viewport gutter: {string.Join(", ", geometry)}");
         Assert.Equal(0, geometry[3]);
         Assert.Equal(0, geometry[4]);
+    }
+
+    private static async Task WaitForTooltipMotionAsync(IPage page)
+    {
+        await Expect(page.Locator(".lwc-tip.is-open")).ToHaveCSSAsync("opacity", "1");
+        await WaitForFiniteAnimationsAsync(page, ".lwc-tip");
     }
 
     [Theory]
@@ -178,6 +184,7 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
                 }, true);
             }
             """);
+        await WaitForTooltipMotionAsync(page);
         var box = await tip.BoundingBoxAsync();
         Assert.NotNull(box);
         var x = box.X + box.Width / 2;
@@ -191,13 +198,15 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         }
         await cdp.SendAsync("Input.dispatchTouchEvent", new() { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
         await cdp.DetachAsync();
-        await page.WaitForTimeoutAsync(250);
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-tip').scrollTop > 30");
         await Expect(tip).ToBeVisibleAsync();
         Assert.True(await tip.EvaluateAsync<bool>("e => e.scrollTop > 30"), "The native touch gesture must actually scroll the explanation.");
         Assert.False(await page.EvaluateAsync<bool>("window.tipInterrupted"), "Pointer capture or cancellation dismissed and reopened the tip during the gesture.");
         // Stay beyond Chromium's touch hit-test radius around the scrollable tip.
         if (ending == "touch") await page.Touchscreen.TapAsync(388, 885);
         else await page.Mouse.MoveAsync(388, 885);
+        await Expect(tip).ToBeHiddenAsync();
+        // Observe that dismissal remains in effect after the delayed hover window.
         await page.WaitForTimeoutAsync(750);
         await Expect(tip).ToBeHiddenAsync();
         Assert.Equal(ending == "touch" ? "touch" : "pointer", await page.EvaluateAsync<string>("window.LwcPointer.modality()"));
@@ -315,6 +324,27 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         else await Expect(page.Locator(selector)).ToBeFocusedAsync();
     }
 
+    [Theory]
+    [InlineData(false, "ArrowDown")]
+    [InlineData(false, "End")]
+    [InlineData(true, "ArrowRight")]
+    public async Task TextCaret_KeepsNavigationKeysUntilSelectionIsCleared(bool line, string key)
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
+        if (line) await page.Locator("tbody").EvaluateAsync("e => e.dataset.lwcArrows = 'line'");
+        await page.Locator("#row1").FocusAsync();
+        await page.Locator("#row1").EvaluateAsync("e => getSelection().collapse(e.firstChild, 4)");
+        await page.EvaluateAsync("() => window.addEventListener('keydown', e => window.keyHandled = e.defaultPrevented, {once:true})");
+        await page.Keyboard.PressAsync(key);
+        Assert.False(await page.EvaluateAsync<bool>("window.keyHandled"));
+        await Expect(page.Locator("#row1")).ToBeFocusedAsync();
+
+        await page.EvaluateAsync("() => getSelection().removeAllRanges()");
+        await page.Keyboard.PressAsync(key);
+        await Expect(page.Locator("#row2")).ToBeFocusedAsync();
+    }
+
     [Fact]
     public async Task RowArrows_SkipInvisibleRowsAndRespectSelectionModifiersAndPageHandlers()
     {
@@ -370,6 +400,7 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         await page.Locator("#two").EvaluateAsync("e => e.title = 'Long content with all words preserved. '.repeat(180)");
         await page.Locator("#two").HoverAsync();
         await Expect(tip).ToContainTextAsync("Long content");
+        await WaitForTooltipMotionAsync(page);
         Assert.True(await tip.EvaluateAsync<bool>("e => { const r=e.getBoundingClientRect(); return r.top>=0 && r.bottom<=innerHeight && r.left>=0 && r.right<=innerWidth; }"));
         await page.Locator("#two").FocusAsync();
         Assert.True(await page.EvaluateAsync<bool>("""
@@ -383,7 +414,7 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
         await tip.FocusAsync();
         await page.Keyboard.PressAsync("Control+End");
         await Expect(tip).ToBeVisibleAsync();
-        await page.WaitForTimeoutAsync(300);
+        await page.WaitForFunctionAsync("e => e.scrollTop + e.clientHeight >= e.scrollHeight - 2", await tip.ElementHandleAsync());
         Assert.True(await tip.EvaluateAsync<bool>("e => e.scrollTop + e.clientHeight >= e.scrollHeight - 2"));
     }
 }

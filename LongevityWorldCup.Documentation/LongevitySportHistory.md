@@ -87,6 +87,10 @@ Season 2 of the Longevity World Cup was released with major competition-format u
 - Athlete pages and the leaderboard began surfacing new derived performance views like pace of aging / pace rank.
 - Entry evolved from an early “low-friction” model toward explicit pricing.
 
+### 2026 September - Rejuvenation Olympics announces closure
+
+Rejuvenation Olympics [announced it was closing](https://www.rapamycin.news/t/why-is-the-rejuvenation-olympics-closing/26779/1). New entrants had until October 30, 2026 to submit their first qualifying test. Final samples must reach the lab by March 30, 2027, and the final leaderboard will freeze on April 15, 2027.
+
 ### 2026 November (announced) - Super Age Games
 
 The [Super Age Games](https://games.superage.com/) announced an in-person longevity fitness competition for November 7, 2026 in New York City. Its format emphasizes functional healthspan markers, with eight trials spanning grip strength, aerobic capacity, agility, balance, functional strength, endurance under load, cognitive capacity under physical stress, and relational capacity.

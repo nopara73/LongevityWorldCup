@@ -163,9 +163,14 @@ public sealed class HomeScoreboardBrowserTests(
         await page.GotoAsync(App.BaseAddress.ToString());
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.EvaluateAsync("async () => { await document.fonts.ready; }");
-        await page.WaitForTimeoutAsync(2000);
-        await page.Locator(".podium-item.first").EvaluateAsync("e=>scrollTo(0,scrollY+e.getBoundingClientRect().top+40)");
-        await page.WaitForTimeoutAsync(100);
+        await Assertions.Expect(page.Locator(".homepage-main")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("home-scoreboard-live"));
+        await page.Locator(".podium-item.first").EvaluateAsync("""
+            async e => {
+                scrollTo({top:scrollY + e.getBoundingClientRect().top + 40, behavior:'instant'});
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
+        await page.WaitForFunctionAsync("() => Math.abs(document.querySelector('.podium-item.first').getBoundingClientRect().top + 40) < 1");
         var links = page.Locator(".podium a.athlete-name");
         var scores = page.Locator(".podium-score");
         foreach (var text in await scores.AllInnerTextsAsync()) Assert.Contains("\nreduced", text.Replace("\r\n", "\n"));

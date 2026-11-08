@@ -1,4 +1,5 @@
 using LongevityWorldCup.Website.Tools;
+using LongevityWorldCup.Website.Business;
 using Microsoft.Playwright;
 using System.Text.Json.Nodes;
 using Xunit;
@@ -162,6 +163,51 @@ public sealed class SocialContactPreviewBrowserTests(
     [Theory]
     [InlineData(1280)]
     [InlineData(390)]
+    public async Task TelegramPreview_KeepsTheLinkAndPersistsAnIndependentDestination(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/custom-event-designer.html");
+        foreach (var id in new[] { "sendWebpage", "sendSlack", "sendX", "sendThreads", "sendFacebook", "sendMastodon",
+            "sendNostr", "sendReddit", "sendBluesky", "sendWebPush", "sendInstagram" })
+            await page.Locator("#" + id).UncheckAsync();
+        await page.Locator("#sendTelegram").CheckAsync();
+        await page.Locator("#titleInput").FillAsync("Follow LWC by [RSS](https://longevityworldcup.com/feeds/events.rss)");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Telegram Preview", Exact = true }).WaitForAsync();
+        Assert.True(await page.EvaluateAsync<bool>("() => hasSelectedDestination(buildEventPayload()) && buildEventPayload().sendToTelegram"));
+        Assert.Equal("Follow LWC by RSS\n\nhttps://longevityworldcup.com/feeds/events.rss",
+            await page.EvaluateAsync<string>("() => buildPlan(titleInput.value, '', LIMITS.telegram, 'telegram', false).postText"));
+        foreach (var (title, body) in new[]
+        {
+            ("[Keep competing](https://longevityworldcup.com/rejuvenation-olympics)", ""),
+            ("[Flag league](https://longevityworldcup.com/leaderboard?group=flags)", ""),
+            ("[CrossFit vs HYROX](https://nopara73.medium.com/crossfit-vs-hyrox-4d151061c611)", ""),
+            ("[Keep competing](https://longevityworldcup.com/rejuvenation-olympics)", new string('x', 1500)),
+            ("Announcement", new string('x', 5000)),
+            ("[Read](https://example.com/" + new string('x', 1004) + ")", new string('x', 5000)),
+            ("[Read](https://example.com/" + new string('x', 1100) + ")", new string('x', 5000)),
+            (string.Concat(Enumerable.Repeat("👩‍🔬", 300)) + " [RSS](https://longevityworldcup.com/feeds/events.rss)", new string('x', 5000))
+        })
+        {
+            var raw = body.Length == 0 ? title : title + "\n\n" + body;
+            var expected = TelegramAnnouncementService.BuildCustomPlan(new EventItem("preview", EventType.CustomEvent, raw, DateTime.UtcNow, 15, false), slug => slug);
+            var preview = await page.EvaluateAsync<System.Text.Json.JsonElement>(
+                "([title, body]) => buildPlan(title, body, LIMITS.telegram, 'telegram', false)", new[] { title, body });
+            Assert.Equal(expected.Mode == CustomEventPostMode.Text ? "text" : "image", preview.GetProperty("mode").GetString());
+            Assert.Equal(expected.PostText, preview.GetProperty("postText").GetString());
+        }
+        await page.ReloadAsync();
+        Assert.True(await page.Locator("#sendTelegram").IsCheckedAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
     public async Task InstagramPreview_AlwaysShowsAnImageAndRetainsAnIndependentDestination(int width)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
@@ -239,7 +285,7 @@ public sealed class SocialContactPreviewBrowserTests(
         var link = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Follow Longevity World Cup on Nostr", Exact = true });
         await link.ScrollIntoViewIfNeededAsync();
         var labels = await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync();
-        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], labels.Select(label => label.Trim()));
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "Telegram"], labels.Select(label => label.Trim()));
         Assert.Equal(0, await page.Locator(".footer a[href*='bsky.app']").CountAsync());
         Assert.Equal("true", await link.Locator("svg").GetAttributeAsync("aria-hidden"));
         var box = Assert.IsType<LocatorBoundingBoxResult>(await link.BoundingBoxAsync());
