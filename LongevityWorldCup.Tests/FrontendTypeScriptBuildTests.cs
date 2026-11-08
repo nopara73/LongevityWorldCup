@@ -28,6 +28,7 @@ public sealed class FrontendTypeScriptBuildTests
         "leaderboard-podium",
         "layout-system",
         "longevitymaxxing",
+        "media-kit-feel",
         "pointer",
         "motion",
         "portrait-system",

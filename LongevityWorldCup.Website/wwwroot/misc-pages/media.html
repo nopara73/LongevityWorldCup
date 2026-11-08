@@ -876,6 +876,7 @@
                     const li = document.createElement('li');
                     // Documents share the download control and filename treatment.
                     li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row media-file-tile media-file-doc';
+                    if (document.querySelector('.media-kit-primary-download').hasAttribute('data-taken')) li.dataset.collected = '';
 
                     const thumb = document.createElement('span');
                     if (isPicture) {
@@ -909,6 +910,8 @@
                         const status = document.getElementById('downloadStatus');
                         // The ring runs while the file is pulled out of the archive.
                         if (btn.getAttribute('aria-busy') === 'true') return;
+                        clearTimeout(btn.downloadedTimer);
+                        btn.removeAttribute('data-downloaded');
                         btn.setAttribute('aria-busy', 'true');
                         try {
                             const extracted = await zip.file(path).async('blob');
