@@ -1212,6 +1212,7 @@ public sealed class AestheticSystemBrowserTests(
                     await AssertChallengeContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/bioageform.css":
+                case "css/bioage-dates.css":
                     foreach (var route in new[] { "/pheno-age", "/bortz-age" })
                     {
                         await AssertCalculatorContainerBoundariesAsync(page, route, source.ToArray());
@@ -2472,6 +2473,31 @@ public sealed class AestheticSystemBrowserTests(
             }
 
             Assert.Equal("bioage-form", condition.Name);
+            if (condition.Source == "css/bioage-dates.css")
+            {
+                await NavigateAndSettleAsync(page, route);
+                Assert.Equal("em", condition.Unit);
+                Assert.Contains(condition.Value, new[] { 19.0, 38.0 });
+                await page.Locator("form.bioageform").EvaluateAsync("form => form.style.fontSize = '20px'");
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = condition.Value * 20 + delta;
+                    var paired = condition.Value == 38;
+                    var result = await page.EvaluateAsync<bool>(
+                        """
+                        async ({ width, paired }) => {
+                            const form = document.querySelector('form.bioageform');
+                            form.style.boxSizing = 'content-box'; form.style.inlineSize = `${width}px`; form.style.maxInlineSize = 'none';
+                            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                            const dob = form.querySelector('#dobFieldset');
+                            return paired ? form.querySelector('#lwc-step-1 > fieldset:nth-of-type(2)').getBoundingClientRect().left > dob.getBoundingClientRect().left
+                                : getComputedStyle(dob).display === 'block';
+                        }
+                        """, new { width, paired });
+                    Assert.Equal(paired ? delta >= 0 : delta <= 0, result);
+                }
+                continue;
+            }
             Assert.Equal("max", condition.Bound);
             await NavigateAndSettleAsync(page, route);
             var selector = condition.Value switch
@@ -2517,7 +2543,8 @@ public sealed class AestheticSystemBrowserTests(
                     """,
                     new { InlineSize = inlineSize, Selector = selector, EmDateProbe = emDateProbe });
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
-                Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
+                var effectiveThreshold = condition.Value is 14 or 15 ? 19 * containerFontSize : thresholdPixels;
+                Assert.True(diagnostics.IsCompact == (inlineSize <= effectiveThreshold),
                     $"{route} {selector} did not cross its {condition.Value}{condition.Unit} boundary at {inlineSize}px.");
                 Assert.True(diagnostics.HorizontalOverflow <= 1,
                     $"{route} overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");

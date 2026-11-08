@@ -35,8 +35,9 @@ public sealed class BioageEntrySheetBrowserTests(
             Assert.InRange(band.Right, -1, 1);
         });
 
-        // Both dates open full-width sections on desktop and phone alike.
-        Assert.True(stepOne[1].Top > stepOne[0].Top + 40, $"{path}: the draw date band shares the birth date row.");
+        // Date bands fill their own matched cards, paired on desktop and stacked on phones.
+        if (width >= 960) Assert.InRange(stepOne[1].Top - stepOne[0].Top, -1, 1);
+        else Assert.True(stepOne[1].Top > stepOne[0].Top + 40);
         Assert.All(stepOne, band =>
         {
             Assert.InRange(band.Left, -1, 1);
@@ -338,7 +339,8 @@ public sealed class BioageEntrySheetBrowserTests(
                 const right = box.right - parseFloat(style.borderRightWidth);
                 return [...document.querySelectorAll(`${step} > fieldset > legend`)].map(legend => {
                     const band = legend.getBoundingClientRect();
-                    return [String(band.left - left), String(right - band.right), String(band.top), getComputedStyle(legend).backgroundColor, String(band.left), String(band.right)];
+                    const card = step === "#lwc-step-1" ? legend.parentElement.getBoundingClientRect() : null;
+                    return [String(band.left - (card?.left ?? left)), String((card?.right ?? right) - band.right), String(band.top), getComputedStyle(legend).backgroundColor, String(band.left), String(band.right)];
                 });
             }
             """,
