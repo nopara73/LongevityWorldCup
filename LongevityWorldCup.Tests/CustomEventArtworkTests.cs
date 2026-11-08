@@ -146,6 +146,31 @@ public sealed class CustomEventArtworkTests(TestWebApplicationFactory factory)
         }
     }
 
+    [Fact]
+    public async Task TelegramLaunchPreview_RendersThePlatformMark()
+    {
+        var client = factory.CreateClient();
+        using var response = await client.PostAsync("/api/custom-event-preview/image",
+            System.Net.Http.Json.JsonContent.Create(new
+            {
+                Title = "LWC is now on [Telegram](https://t.me/longevityworldcup)",
+                Content = "", Platform = "instagram"
+            }));
+        response.EnsureSuccessStatusCode();
+        using var image = await Image.LoadAsync<Rgba32>(await response.Content.ReadAsStreamAsync());
+        Assert.Equal(new Size(1080, 1350), image.Size);
+        var logoPixels = 0;
+        for (var y = 255; y < 555; y += 2)
+            for (var x = 390; x < 690; x += 2)
+                if (image[x, y].R > 240 && image[x, y].G > 240 && image[x, y].B > 240) logoPixels++;
+        Assert.True(logoPixels > 2000, "The Telegram logo must be visible above the announcement headline.");
+        if (Environment.GetEnvironmentVariable("LWC_TELEGRAM_PREVIEW_DIR") is { Length: > 0 } capture)
+        {
+            Directory.CreateDirectory(capture);
+            await image.SaveAsPngAsync(Path.Combine(capture, "telegram-instagram.png"));
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

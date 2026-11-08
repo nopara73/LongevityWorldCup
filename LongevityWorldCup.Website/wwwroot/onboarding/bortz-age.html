@@ -755,7 +755,7 @@
                     Open Ulta panel&nbsp;<i class="fas fa-external-link-alt" aria-hidden="true"></i>
                 </a>
             </section>
-            <form id="bortzAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <form id="bortzAgeForm" class="bioageform" autocomplete="off" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <div class="lwc-wizard-nav">
                     <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
                     <div class="lwc-dot" id="lwcDot2" role="button" tabindex="0" aria-label="Go to Step 2"></div>
@@ -1380,7 +1380,8 @@
                 && setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))
                 && setSessionItem('biomarkerData', serializedBiomarkerData)
                 && (!draftKey || setSessionItem('biomarkerDraftKey', draftKey))
-                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer));
+                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer))
+                && (isUpdate || window.beginApplicationEntry());
 
             if (!stored) {
                 clearStoredBiomarkerHandoff();
@@ -2307,116 +2308,18 @@
 
             correctCorrectableUnits();
 
-            // Build values array in BortzAge.features order (age already at index 0). Model expects raw values in model units; log is applied inside calculateBAA.
-            for (let i = 1; i < window.BortzAge.features.length; i++) {
-                const f = window.BortzAge.features[i];
-                const valueElement = document.getElementById(f.id);
-                const unitElement = document.getElementById(f.id + 'Unit');
-                if (!valueElement || !unitElement) {
-                    expandFieldCard(f.id);
-                    customAlert(`Missing field for ${f.name}.`).then(() => {
+            // The incomplete reading and the final result share unit conversion.
+            for (const marker of window.BortzAge.features.slice(1)) {
+                const value = bioageFlow.readBiomarkerModelValue(marker.id, 'bortz');
+                if (Number.isNaN(value)) {
+                    expandFieldCard(marker.id);
+                    customAlert(`Please enter a valid value for ${marker.name}.`).then(() => {
                         document.getElementById('continueButton').classList.remove('show');
                         updateCalculateButton();
                     });
                     return;
                 }
-                const rawValue = window.BortzAge.parseInput(valueElement.value);
-                if (isNaN(rawValue)) {
-                    expandFieldCard(f.id);
-                    customAlert(`Please enter a valid value for ${f.name}.`).then(() => {
-                        document.getElementById('continueButton').classList.remove('show');
-                        updateCalculateButton();
-                    });
-                    return;
-                }
-                const unitConversion = parseFloat(unitElement.value);
-                const unitText = unitElement.options[unitElement.selectedIndex].text.trim();
-                let adjustedValue;
-                // HbA1c: % → mmol/mol (IFCC): 10.929 * (pct - 2.15); eAG → A1C% then mmol/mol: A1C% = (eAG_mg_dL + 46.7) / 28.7
-                if (f.id === 'hba1c') {
-                    if (unitText.indexOf('%') !== -1) {
-                        adjustedValue = 10.929 * (rawValue - 2.15);
-                    } else if (unitText.indexOf('eAG') !== -1 && unitText.indexOf('mmol/L') !== -1) {
-                        const eAGmgdL = rawValue * 18.018;
-                        const a1cPct = (eAGmgdL + 46.7) / 28.7;
-                        adjustedValue = 10.929 * (a1cPct - 2.15);
-                    } else if (unitText.indexOf('eAG') !== -1 && unitText.indexOf('mg/dL') !== -1) {
-                        const a1cPct = (rawValue + 46.7) / 28.7;
-                        adjustedValue = 10.929 * (a1cPct - 2.15);
-                    } else {
-                        adjustedValue = rawValue / unitConversion;
-                    }
-                } else if (f.id === 'lymphocyte_percentage') {
-                    // Bortz expects Lymphocytes in %; convert from absolute (10³ cells/µL or 10⁹ cells/L) using WBC when needed
-                    if (unitText === '%') {
-                        adjustedValue = rawValue / unitConversion;
-                    } else {
-                        const wbcValEl = document.getElementById('wbc');
-                        const wbcUnitValEl = document.getElementById('wbcUnit');
-                        const wbcRaw = wbcValEl ? window.PhenoAge.parseInput(wbcValEl.value) : NaN;
-                        const wbcUnitVal = wbcUnitValEl ? parseFloat(wbcUnitValEl.value) : 0;
-                        if (!isNaN(wbcRaw) && wbcUnitVal) {
-                            const wbcCanonical = wbcRaw / wbcUnitVal;
-                            const lymphAbs = rawValue / unitConversion;
-                            adjustedValue = (lymphAbs / wbcCanonical) * 100;
-                        } else {
-                            expandFieldCard('wbc');
-                            customAlert('Enter White Blood Cell Count (WBC) to use Lymphocytes in absolute units.').then(() => {
-                                document.getElementById('wbc')?.focus();
-                                document.getElementById('continueButton').classList.remove('show');
-                                updateCalculateButton();
-                            });
-                            return;
-                        }
-                    }
-                } else if (f.id === 'neutrophil_percentage') {
-                    // Bortz expects count in 10⁹ cells/L; convert from % using WBC when needed
-                    if (unitText === '%') {
-                        const wbcValEl = document.getElementById('wbc');
-                        const wbcUnitValEl = document.getElementById('wbcUnit');
-                        const wbcRaw = wbcValEl ? window.PhenoAge.parseInput(wbcValEl.value) : NaN;
-                        const wbcUnitVal = wbcUnitValEl ? parseFloat(wbcUnitValEl.value) : 0;
-                        if (!isNaN(wbcRaw) && wbcUnitVal) {
-                            const wbcCanonical = wbcRaw / wbcUnitVal;
-                            adjustedValue = wbcCanonical * (rawValue / 100);
-                        } else {
-                            expandFieldCard('wbc');
-                            customAlert('Enter White Blood Cell Count (WBC) to use Neutrophils in %.').then(() => {
-                                document.getElementById('wbc')?.focus();
-                                document.getElementById('continueButton').classList.remove('show');
-                                updateCalculateButton();
-                            });
-                            return;
-                        }
-                    } else {
-                        adjustedValue = rawValue / unitConversion;
-                    }
-                } else if (f.id === 'monocyte_percentage') {
-                    // Bortz expects count in 10⁹ cells/L; convert from % using WBC when needed
-                    if (unitText === '%') {
-                        const wbcValEl = document.getElementById('wbc');
-                        const wbcUnitValEl = document.getElementById('wbcUnit');
-                        const wbcRaw = wbcValEl ? window.PhenoAge.parseInput(wbcValEl.value) : NaN;
-                        const wbcUnitVal = wbcUnitValEl ? parseFloat(wbcUnitValEl.value) : 0;
-                        if (!isNaN(wbcRaw) && wbcUnitVal) {
-                            const wbcCanonical = wbcRaw / wbcUnitVal;
-                            adjustedValue = wbcCanonical * (rawValue / 100);
-                        } else {
-                            expandFieldCard('wbc');
-                            customAlert('Enter White Blood Cell Count (WBC) to use Monocytes in %.').then(() => {
-                                document.getElementById('wbc')?.focus();
-                                document.getElementById('continueButton').classList.remove('show');
-                                updateCalculateButton();
-                            });
-                            return;
-                        }
-                    } else {
-                        adjustedValue = rawValue / unitConversion;
-                    }
-                } else {
-                    adjustedValue = rawValue / unitConversion;
-                }
-                markerValues.push(adjustedValue);
+                markerValues.push(value);
             }
 
             // Calculate bortz age: BAA = 10 * sum(centered * coeff), biological age = chronological age + BAA
@@ -2668,6 +2571,11 @@
             }
             const bd = getValidatedBloodDrawDate(silent);
             if (!bd) return false;
+            if (!bioageFlow.hasValidDates(document.getElementById('bortzAgeForm'))) {
+                if (!silent) customAlert('Your birth date must be on or before your blood draw date.')
+                    .then(() => yearSelect.focus());
+                return false;
+            }
             return true;
         }
 
@@ -2811,6 +2719,7 @@
             bioageFlow.bindLiveInstrument({
                 clock: 'bortz',
                 calculate: calculateResult,
+                prepare: correctCorrectableUnits,
                 hide: hideCalculatedResult,
                 getStep: () => lwcCurrentStep
             });
@@ -3158,6 +3067,7 @@
             const year = parseInt(document.getElementById('dob-year').value);
             const month = parseInt(document.getElementById('dob-month').value);
             const daySelect = document.getElementById('dob-day');
+            const selectedDay = parseInt(daySelect.value, 10);
 
             // Clear existing options
             daySelect.innerHTML = '<option value="" disabled selected>Select day</option>';
@@ -3172,7 +3082,7 @@
                     option.textContent = day;
                     daySelect.appendChild(option);
                 }
-                daySelect.value = lastDay;
+                daySelect.value = Math.min(selectedDay || lastDay, lastDay);
             } else {
                 // Default to 31 days
                 for (let day = 1; day <= 31; day++) {
@@ -3181,7 +3091,7 @@
                     option.textContent = day;
                     daySelect.appendChild(option);
                 }
-                daySelect.value = 31;
+                daySelect.value = selectedDay || 31;
             }
         }
 

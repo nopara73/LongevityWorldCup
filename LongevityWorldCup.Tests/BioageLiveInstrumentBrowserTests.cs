@@ -34,6 +34,294 @@ public sealed class BioageLiveInstrumentBrowserTests(
     }
 
     [Theory]
+    [InlineData("pheno", 390)]
+    [InlineData("bortz", 390)]
+    [InlineData("pheno", 820)]
+    [InlineData("bortz", 820)]
+    [InlineData("pheno", 1280)]
+    [InlineData("bortz", 1280)]
+    public async Task JoinCaption_StaysClearOfItsArrowAtNormalAndLargeText(string clock, int width)
+    {
+        await using var context = await NewContextAsync(width: width);
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        foreach (var scale in new[] { 1, 2 })
+        {
+            if (scale == 2) await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+            await page.EvaluateAsync("async () => { await document.fonts.ready; window.LwcFlowActionDock.refreshNow(); }");
+            await WaitForManagedActionStacksSettledAsync(page);
+            var problems = await page.Locator("#continueButton").EvaluateAsync<string[]>("""
+                button => {
+                    const label = button.querySelector('.flow-action__label');
+                    const range = document.createRange();
+                    range.selectNodeContents(label);
+                    const bounds = button.getBoundingClientRect(), arrow = button.querySelector('i').getBoundingClientRect();
+                    const errors = [];
+                    if (arrow.left < bounds.left || arrow.right > bounds.right) errors.push('Arrow escapes button');
+                    for (const text of range.getClientRects()) {
+                        if (text.left < bounds.left || text.right > bounds.right || text.top < bounds.top || text.bottom > bounds.bottom)
+                            errors.push('Caption escapes button');
+                        if (Math.min(text.bottom, arrow.bottom) > Math.max(text.top, arrow.top) && arrow.left - text.right < 4)
+                            errors.push(`Caption crowds arrow: ${arrow.left - text.right}px`);
+                    }
+                    return errors;
+                }
+                """);
+            Assert.Empty(problems);
+            if (Environment.GetEnvironmentVariable("LWC_CAPTURE_BIOAGE_DESIGN") == "1")
+            {
+                var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.artifacts/bioage-live"));
+                Directory.CreateDirectory(directory);
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"join-{clock}-{width}-{scale}x.png") });
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("pheno", 1280)]
+    [InlineData("bortz", 390)]
+    [InlineData("pheno", 390)]
+    [InlineData("bortz", 1280)]
+    public async Task BrowserBack_RecomputesRestoredFieldsAndKeepsJoinAvailable(string clock, int width)
+    {
+        await using var context = await NewContextAsync(width: width);
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        var reading = await page.Locator(".bioage-live-readout__value").InnerTextAsync();
+        var fields = await page.Locator("form input, form select").EvaluateAllAsync<string[]>("inputs => inputs.map(e => `${e.id}:${e.value}:${e.selectedIndex ?? e.checked}`)");
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        await page.GoBackAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync(reading);
+        Assert.Equal(fields, await page.Locator("form input, form select").EvaluateAllAsync<string[]>("inputs => inputs.map(e => `${e.id}:${e.value}:${e.selectedIndex ?? e.checked}`)"));
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeEnabledAsync();
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("pheno", false)]
+    [InlineData("pheno", true)]
+    [InlineData("bortz", false)]
+    [InlineData("bortz", true)]
+    public async Task HistoryRestoration_RecalculatesValuesRestoredWithoutInputEvents(string clock, bool cached)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        var reading = await page.Locator(".bioage-live-readout__value").InnerTextAsync();
+        await page.EvaluateAsync("""
+            ({clock, cached}) => {
+                hideCalculatedResult();
+                sessionStorage.removeItem(`bioageDraft:${clock}:v1`);
+                document.getElementById('glucose').value = '8';
+                window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: cached }));
+            }
+            """, new { clock, cached });
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeEnabledAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).Not.ToHaveTextAsync(reading);
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^\d+\.\d$"));
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task ClearedApplicationDraft_BackDoesNotMixNativeFieldsWithDefaultDates(string clock)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        await page.EvaluateAsync("clock => { sessionStorage.removeItem(`bioageDraft:${clock}:v1`); sessionStorage.removeItem('biomarkerData'); }", clock);
+        await page.GoBackAsync();
+        await Assertions.Expect(page.Locator("#lwc-step-1")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("#dob-year")).ToHaveValueAsync("");
+        Assert.All(await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"), value => Assert.Equal("", value));
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task RestoredInvalidDates_ShowTheDateStepAndPreserveTheLabPanel(string clock)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        var panel = await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)");
+        await page.EvaluateAsync("""
+            () => {
+                document.getElementById('dob-year').value = String(new Date().getFullYear());
+                document.getElementById('dob-month').value = '12';
+                document.getElementById('dob-day').value = '31';
+                window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}));
+            }
+            """);
+        await Assertions.Expect(page.Locator("#lwc-step-1")).ToBeVisibleAsync();
+        Assert.Equal(panel, await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"));
+        Assert.False(await page.EvaluateAsync<bool>("lwcValidateStep1(true)"));
+        await page.Locator("#dob-year").SelectOptionAsync("1980");
+        await page.Locator("#lwcToStep2Btn").ClickAsync();
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
+    }
+
+    [Theory]
+    [InlineData("pheno", 1280)]
+    [InlineData("bortz", 390)]
+    public async Task Join_StartsTheCurrentApplicationInsteadOfRecoveringAnOlderCheckout(string clock, int width)
+    {
+        await using var context = await NewContextAsync(width: width);
+        var recoveries = 0;
+        await context.RouteAsync("**/api/application/submission-status", route =>
+        {
+            Interlocked.Increment(ref recoveries);
+            return route.FulfillAsync(new()
+            {
+                ContentType = "application/json",
+                Body = """{"success":true,"paymentRequired":true,"checkoutLink":"/api/payments/stripe/checkout/old-order","invoiceId":"old-invoice"}"""
+            });
+        });
+        await context.RouteAsync("**/api/payments/stripe/checkout/old-order", route => route.FulfillAsync(new() { Status = 404, Body = "Retired checkout" }));
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, clock);
+        await page.EvaluateAsync("""
+            () => localStorage.setItem('pendingApplicationSubmission', JSON.stringify({
+                submissionId:'older-submission', payloadFingerprint:'older-payload', submissionKind:'full-application',
+                createdAt:Date.now() - 3 * 24 * 60 * 60 * 1000
+            }))
+            """);
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        Assert.EndsWith("/apply", page.Url);
+        Assert.Equal(0, recoveries);
+        Assert.True(await page.EvaluateAsync<bool>("sessionStorage.getItem('biomarkerData') !== null"));
+        Assert.True(await page.EvaluateAsync<bool>("clock => sessionStorage.getItem(`bioageDraft:${clock}:v1`) !== null", clock));
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        Assert.Equal(0, recoveries);
+        Assert.NotEqual("older-submission", await page.EvaluateAsync<string>("window.createApplicationSubmissionId('older-payload')"));
+    }
+
+    [Fact]
+    public async Task ApplicationReload_StillRecoversTheSubmissionFromItsOwnEntry()
+    {
+        await using var context = await NewContextAsync();
+        await context.RouteAsync("**/api/application/submission-status", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = """{"success":true,"paymentRequired":true,"checkoutLink":"/test-checkout","invoiceId":"current-invoice"}"""
+        }));
+        await context.RouteAsync("**/test-checkout", route => route.FulfillAsync(new() { Body = "Current checkout" }));
+        var page = await context.NewPageAsync();
+        await OpenPanelAsync(page, "pheno");
+        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#name")).ToBeVisibleAsync();
+        await page.EvaluateAsync("""
+            () => window.rememberPendingApplicationSubmission({
+                submissionId:'current-submission', payloadFingerprint:'current-payload', submissionKind:'full-application'
+            })
+            """);
+        await page.ReloadAsync();
+        await page.WaitForURLAsync("**/test-checkout");
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('biomarkerData')"));
+    }
+
+    [Fact]
+    public async Task RetiredCheckoutReview_ShowsUnavailableWithoutPollingTheWrongProvider()
+    {
+        await using var context = await NewContextAsync(width: 390);
+        var checks = 0;
+        await context.RouteAsync("**/api/application/payment-status", route =>
+        {
+            Interlocked.Increment(ref checks);
+            return route.FulfillAsync(new() { Status = 503 });
+        });
+        await context.AddInitScriptAsync("sessionStorage.setItem('pendingPaymentInvoice', JSON.stringify({invoiceId:'stripe_old-order'}))");
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/review?checkout=unavailable");
+        await Assertions.Expect(page.Locator("#review-payment-status")).ToHaveTextAsync("This checkout is no longer available. Check your confirmation email.");
+        await Assertions.Expect(page.Locator("[data-step='payment']")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-failed"));
+        Assert.Equal(0, checks);
+    }
+
+    [Theory]
+    [InlineData("pheno", 390, ColorScheme.Light)]
+    [InlineData("bortz", 390, ColorScheme.Dark)]
+    [InlineData("pheno", 1280, ColorScheme.Dark)]
+    [InlineData("bortz", 1280, ColorScheme.Light)]
+    public async Task IncompleteReading_FillsWithoutInventingInputsOrAllowingSubmission(string clock, int width, ColorScheme scheme)
+    {
+        await using var context = await NewContextAsync(true, width, 844);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = scheme });
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync($"/{clock}-age");
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        var readout = page.Locator(".bioage-live-readout");
+        var value = page.Locator(".bioage-live-readout__value");
+        await Assertions.Expect(value).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^\d+\.\d$"));
+        await Assertions.Expect(readout).ToHaveAttributeAsync("data-complete", "false");
+        await Assertions.Expect(page.Locator("#calculateBioageButton")).ToBeHiddenAsync();
+        Assert.All(await page.Locator(".biomarker-card input").EvaluateAllAsync<string[]>("inputs => inputs.map(input => input.value)"), value => Assert.Equal("", value));
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeHiddenAsync();
+        Assert.Equal("0%", await readout.EvaluateAsync<string>("element => element.style.getPropertyValue('--bioage-number-fill')"));
+        await WaitForManagedActionStacksSettledAsync(page);
+        var initialPosition = await readout.BoundingBoxAsync();
+        var baseline = await value.InnerTextAsync();
+        await CaptureAsync("empty");
+
+        await page.Locator("#glucoseUnit").SelectOptionAsync("1");
+        await page.Locator("#glucose").FillAsync("8");
+        await Assertions.Expect(value).Not.ToHaveTextAsync(baseline);
+        await Assertions.Expect(page.Locator("#glucose")).ToBeFocusedAsync();
+        var partial = await value.InnerTextAsync();
+        Assert.Equal(1, await page.Locator(".biomarker-card input").EvaluateAllAsync<int>("inputs => inputs.filter(input => input.value !== '').length"));
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('biomarkerData')"));
+        await page.ReloadAsync();
+        await Assertions.Expect(value).ToHaveTextAsync(partial);
+        await Assertions.Expect(page.Locator("#glucose")).ToHaveValueAsync("8");
+        Assert.Equal(1, await page.Locator(".biomarker-card input").EvaluateAllAsync<int>("inputs => inputs.filter(input => input.value !== '').length"));
+
+        if (clock == "pheno") await FillPhenoBiomarkersAsync(page);
+        else await FillBortzBiomarkersAsync(page);
+        await Assertions.Expect(readout).ToHaveAttributeAsync("data-complete", "true");
+        await Assertions.Expect(value).ToHaveTextAsync(await page.Locator("#animatedAge").InnerTextAsync());
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeEnabledAsync();
+        await WaitForManagedActionStacksSettledAsync(page);
+        var finalPosition = await readout.BoundingBoxAsync();
+        Assert.NotNull(initialPosition);
+        Assert.NotNull(finalPosition);
+        Assert.InRange(finalPosition.X, initialPosition.X - 2, initialPosition.X + 2);
+        Assert.InRange(finalPosition.Y, initialPosition.Y - 2, initialPosition.Y + 2);
+        await CaptureAsync("complete");
+
+        await page.Locator("#glucose").FillAsync("");
+        await Assertions.Expect(readout).ToHaveAttributeAsync("data-complete", "false");
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeHiddenAsync();
+        await Assertions.Expect(value).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^\d+\.\d$"));
+        Assert.False(await page.EvaluateAsync<bool>("() => { let sent = false; if (typeof storePhenoResultForNextStep === 'function') storePhenoResultForNextStep = () => { sent = true; }; else storeBortzResultForNextStep = () => { sent = true; }; proceedToNextPage(); return sent; }"));
+        await Assertions.Expect(page.Locator("#glucose")).ToHaveValueAsync("");
+        await CaptureAsync("partial");
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        Assert.Empty(errors);
+
+        async Task CaptureAsync(string state)
+        {
+            if (Environment.GetEnvironmentVariable("LWC_CAPTURE_BIOAGE_DESIGN") != "1") return;
+            var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.artifacts/bioage-live"));
+            Directory.CreateDirectory(directory);
+            await page.EvaluateAsync("scrollTo(0, 0)");
+            await WaitForManagedActionStacksSettledAsync(page);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{clock}-{width}-{state}.png") });
+        }
+    }
+
+    [Theory]
     [InlineData("pheno", "")]
     [InlineData("bortz", "")]
     [InlineData("pheno", "8")]
@@ -153,6 +441,8 @@ public sealed class BioageLiveInstrumentBrowserTests(
         Assert.True(await page.Locator("#continueButton").IsDisabledAsync());
         var handedOff = await page.EvaluateAsync<bool>("() => { let handedOff=false; storeBortzResultForNextStep=()=>{ handedOff=true; return false; }; proceedToNextPage(); return handedOff; }");
         Assert.False(handedOff);
+        await page.EvaluateAsync("() => { document.querySelectorAll('.biomarker-card input').forEach(input => { if (input.id !== 'wbc') input.value = ''; }); document.getElementById('wbc').dispatchEvent(new Event('change', { bubbles: true })); }");
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync("—");
     }
 
     [Theory]
@@ -168,6 +458,52 @@ public sealed class BioageLiveInstrumentBrowserTests(
         Assert.Equal("0.1", await page.Locator("#albuminUnit").InputValueAsync());
         await page.EvaluateAsync("calculateResult()");
         Assert.Equal("0.1", await page.Locator("#albuminUnit").InputValueAsync());
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout")).ToHaveAttributeAsync("data-complete", "true");
+        Assert.Equal("0.1", await page.Locator("#albuminUnit").InputValueAsync());
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task IncompleteReading_AutomaticUnitCorrectionSurvivesReload(string clock)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"/{clock}-age");
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        await page.Locator("#albumin").FillAsync("45");
+        await Assertions.Expect(page.Locator("#albuminUnit")).ToHaveValueAsync("1");
+        await page.WaitForFunctionAsync("clock => JSON.parse(sessionStorage.getItem(`bioageDraft:${clock}:v1`))?.fields?.albuminUnit?.value === '1'", clock);
+        var reading = await page.Locator(".bioage-live-readout__value").InnerTextAsync();
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-readout__value")).ToHaveTextAsync(reading);
+        await Assertions.Expect(page.Locator("#albuminUnit")).ToHaveValueAsync("1");
+        Assert.Equal(1, await page.Locator(".biomarker-card input").EvaluateAllAsync<int>("inputs => inputs.filter(input => input.value !== '').length"));
+    }
+
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task IncompleteReading_EquivalentUnitsKeepTheSameAge(string clock)
+    {
+        await using var context = await NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"/{clock}-age");
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        var value = page.Locator(".bioage-live-readout__value");
+        await Assertions.Expect(value).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^\d+\.\d$"));
+        var baseline = await value.InnerTextAsync();
+        await page.Locator("#glucoseUnit").SelectOptionAsync("18.016");
+        await page.WaitForTimeoutAsync(500);
+        Assert.Equal(baseline, await value.InnerTextAsync());
+        await SetFormValuesAsync(page, new() { ["glucose"] = "8", ["glucoseUnit"] = "1" });
+        await Assertions.Expect(value).Not.ToHaveTextAsync(baseline);
+        var metric = await value.InnerTextAsync();
+        await SetFormValuesAsync(page, new() { ["glucose"] = "144.128", ["glucoseUnit"] = "18.016" });
+        await page.WaitForTimeoutAsync(500);
+        Assert.Equal(metric, await value.InnerTextAsync());
+        await Assertions.Expect(page.Locator("#continueButton")).ToBeHiddenAsync();
     }
 
     [Theory]
@@ -185,7 +521,7 @@ public sealed class BioageLiveInstrumentBrowserTests(
         else await FillPhenoBiomarkersAsync(page);
         await page.WaitForTimeoutAsync(600);
         Assert.False(await page.Locator("#continueButton").IsVisibleAsync());
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await Assertions.Expect(page.Locator("#continueButton")).ToBeVisibleAsync();
         Assert.Equal(0, await page.Locator(".bioage-live-instrument, .bioage-live-readout, .bioage-gap-meter, [data-bioage-range], [data-bioage-wake]").CountAsync());
     }
@@ -269,12 +605,12 @@ public sealed class BioageLiveInstrumentBrowserTests(
     [Theory]
     [InlineData("pheno")]
     [InlineData("bortz")]
-    public async Task ReadoutClick_ReturnsToTheResultAfterAnExplicitCalculationAndManualScroll(string clock)
+    public async Task ReadoutClick_ReturnsToTheResultAfterManualScroll(string clock)
     {
         await using var context = await NewContextAsync(true, 390, 844);
         var page = await context.NewPageAsync();
         await OpenPanelAsync(page, clock);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await Assertions.Expect(page.Locator("#animatedAge")).ToBeInViewportAsync();
         await page.Locator("#wbc").FocusAsync();
         await Assertions.Expect(page.Locator(".bioage-live-readout--shown")).ToBeVisibleAsync();

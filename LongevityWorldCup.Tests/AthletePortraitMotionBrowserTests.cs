@@ -4,13 +4,15 @@ using Microsoft.Playwright;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadD)]
 public sealed class AthletePortraitMotionBrowserTests(
     PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
+    BrowserTestAppFixture appFixture,
+    ITestOutputHelper output)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const string ApprovedPhoto = "6683dd38d8317bb5a68b3053ca8dae7c53aad86cd1c6df1c1662e16fcbe83345";
@@ -562,6 +564,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await using var context = await NewContextAsync();
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true')");
         var page = await LoadAsync(context, "/leaderboard");
+        var nextAthleteName = await page.Locator(".leaderboard a.athlete-name").Nth(2).InnerTextAsync();
         await page.Locator(".leaderboard a.athlete-name").Nth(1).ClickAsync();
         await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
@@ -579,7 +582,30 @@ public sealed class AthletePortraitMotionBrowserTests(
             }
             """);
         await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
-        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync("Siim Land");
+        try
+        {
+            await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(nextAthleteName);
+        }
+        catch (PlaywrightException)
+        {
+            await WriteFailureDiagnosticsAsync(page, output, $"Paging expected {nextAthleteName}", """
+                () => ({
+                    status: document.querySelector('#leaderboardStatus')?.textContent,
+                    selection: document.querySelector('input[name="leaderboardView"]:checked')?.value,
+                    board: [...document.querySelectorAll('.leaderboard a.athlete-name')]
+                        .slice(0, 8).map(link => ({ name: link.textContent, href: link.getAttribute('href') })),
+                    modal: document.querySelector('#detailsModal .modal-content')?.dataset,
+                    modalClasses: document.querySelector('#detailsModal .modal-content')?.className,
+                    name: document.querySelector('#athleteName')?.textContent,
+                    steps: [...document.querySelectorAll('.modal-content > .athlete-steps [data-step]')]
+                        .map(button => ({ direction: button.dataset.step, disabled: button.disabled })),
+                    requests: performance.getEntriesByType('resource')
+                        .filter(entry => entry.name.includes('/api/') || entry.name.includes('leaderboard-page'))
+                        .slice(-12).map(entry => ({ url: entry.name, start: entry.startTime, duration: entry.duration }))
+                })
+                """);
+            throw;
+        }
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         Assert.Equal(0, await page.EvaluateAsync<int>("window.backgroundPortraitReads"));
     }

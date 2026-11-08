@@ -745,7 +745,7 @@
                     Open New Zealand panel&nbsp;<i class="fas fa-external-link-alt" aria-hidden="true"></i>
                 </a>
             </section>
-            <form id="phenoAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <form id="phenoAgeForm" class="bioageform" autocomplete="off" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <div class="lwc-wizard-nav">
                     <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
                     <div class="lwc-dot" id="lwcDot2" role="button" tabindex="0" aria-label="Go to Step 2"></div>
@@ -1163,7 +1163,8 @@
                 && setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))
                 && setSessionItem('biomarkerData', serializedBiomarkerData)
                 && (!draftKey || setSessionItem('biomarkerDraftKey', draftKey))
-                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer));
+                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer))
+                && (isUpdate || window.beginApplicationEntry());
 
             if (!stored) {
                 clearStoredBiomarkerHandoff();
@@ -1778,56 +1779,18 @@
 
             correctCorrectableUnits();
 
-            // Get biomarker values
-            for (let i = 1; i < window.PhenoAge.biomarkers.length; i++) {
-                const biomarker = window.PhenoAge.biomarkers[i];
-                const valueElement = document.getElementById(biomarker.id);
-                const unitElement = document.getElementById(biomarker.id + 'Unit');
-                const rawValue = window.PhenoAge.parseInput(valueElement.value);
-                const unitConversion = parseFloat(unitElement.value);
-                const unitText = unitElement.options[unitElement.selectedIndex].text;
-
-                // Check for invalid input
-                if (isNaN(rawValue)) {
-                    expandFieldCard(biomarker.id);
-                    customAlert(`Please enter a valid value for ${biomarker.name}.`).then(() => {
+            // The incomplete reading and the final result share unit conversion.
+            for (const marker of window.PhenoAge.biomarkers.slice(1)) {
+                const value = bioageFlow.readBiomarkerModelValue(marker.id, 'pheno');
+                if (Number.isNaN(value)) {
+                    expandFieldCard(marker.id);
+                    customAlert(`Please enter a valid value for ${marker.name}.`).then(() => {
                         document.getElementById('continueButton').classList.remove('show');
                         updateCalculateButton();
                     });
                     return;
                 }
-
-                // Apply unit conversion
-                let adjustedValue = rawValue / unitConversion;
-
-                // Special handling for CRP: PhenoAge expects ln(CRP in mg/dL) per Levine Table 1. Stored canonical is mg/L; convert by dividing by 10.
-                if (biomarker.id === 'crp') {
-                    const crpMgL = (rawValue / unitConversion) * 10;
-                    adjustedValue = Math.log(crpMgL / 10);
-                }
-
-                // Special handling for lymphocytes
-                if (biomarker.id === 'lymphocyte' && unitText !== '%') {
-                    const wbcValueElement = document.getElementById('wbc');
-                    const wbcUnitElement = document.getElementById('wbcUnit');
-                    const wbcRawValue = window.PhenoAge.parseInput(wbcValueElement.value);
-                    const wbcUnitConversion = parseFloat(wbcUnitElement.value);
-
-                    if (isNaN(wbcRawValue)) {
-                        expandFieldCard('wbc');
-                        expandFieldCard('lymphocyte');
-                        customAlert("Please provide white blood cell count to calculate lymphocyte percentage.").then(() => {
-                            document.getElementById('continueButton').classList.remove('show');
-                            updateCalculateButton();
-                        });
-                        return;
-                    }
-
-                    const wbcAdjustedValue = wbcRawValue / wbcUnitConversion;
-                    adjustedValue = (adjustedValue / wbcAdjustedValue) * 100;
-                }
-
-                markerValues.push(adjustedValue);
+                markerValues.push(value);
             }
 
             // Calculate PhenoAge using the helper function
@@ -2117,6 +2080,11 @@
             }
             const bd = getValidatedBloodDrawDate(silent);
             if (!bd) return false;
+            if (!bioageFlow.hasValidDates(document.getElementById('phenoAgeForm'))) {
+                if (!silent) customAlert('Your birth date must be on or before your blood draw date.')
+                    .then(() => yearSelect.focus());
+                return false;
+            }
             return true;
         }
 
@@ -2257,6 +2225,7 @@
             bioageFlow.bindLiveInstrument({
                 clock: 'pheno',
                 calculate: calculateResult,
+                prepare: correctCorrectableUnits,
                 hide: hideCalculatedResult,
                 getStep: () => lwcCurrentStep
             });
@@ -2497,6 +2466,7 @@
             const year = parseInt(document.getElementById('dob-year').value);
             const month = parseInt(document.getElementById('dob-month').value);
             const daySelect = document.getElementById('dob-day');
+            const selectedDay = parseInt(daySelect.value, 10);
 
             // Clear existing options
             daySelect.innerHTML = '<option value="" disabled selected>Select day</option>';
@@ -2511,7 +2481,7 @@
                     option.textContent = day;
                     daySelect.appendChild(option);
                 }
-                daySelect.value = lastDay;
+                daySelect.value = Math.min(selectedDay || lastDay, lastDay);
             } else {
                 // Default to 31 days
                 for (let day = 1; day <= 31; day++) {
@@ -2520,7 +2490,7 @@
                     option.textContent = day;
                     daySelect.appendChild(option);
                 }
-                daySelect.value = 31;
+                daySelect.value = selectedDay || 31;
             }
         }
 

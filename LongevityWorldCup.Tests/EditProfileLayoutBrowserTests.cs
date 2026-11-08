@@ -465,21 +465,6 @@ public sealed class EditProfileLayoutBrowserTests(
     public async Task PictureChanges_KeepTheHeadingAndDraft_AndRestoreReturnsFocus(int width, int height)
     {
         await using var context = await CreateContextAsync(width, height);
-        // The integration host stubs external scripts. Test the page's cropper
-        // contract with a real canvas; manual review also uses the pinned library.
-        await context.AddInitScriptAsync("""
-            window.LwcPortraitCropper = class {
-                ready = true;
-                constructor(image, options) { queueMicrotask(() => options.ready?.()); }
-                destroy() {}
-                disable() {}
-                toCanvas() {
-                    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32;
-                    const ctx = canvas.getContext('2d'); ctx.fillStyle = '#26766e'; ctx.fillRect(0, 0, 32, 32);
-                    return canvas;
-                }
-            };
-            """);
         var page = await OpenEditorAsync(context);
         var file = new FilePayload
         {

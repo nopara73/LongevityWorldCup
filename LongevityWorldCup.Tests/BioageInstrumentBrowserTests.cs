@@ -96,7 +96,7 @@ public sealed class BioageInstrumentBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForFunctionAsync("() => document.querySelector('[data-bioage-result-rank]')?.getAttribute('aria-busy') === 'false'");
 
         var layout = await page.EvaluateAsync<double[]>(
@@ -133,10 +133,10 @@ public sealed class BioageInstrumentBrowserTests(
     {
         var page = await OpenAsync(path, 390, 844, scheme);
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await page.EvaluateAsync("() => { window.getSharedAthletes = () => new Promise(() => {}); }");
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.EvaluateAsync("() => { window.getSharedAthletes = () => new Promise(() => {}); }");
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         var loading = page.Locator(".bioage-rank-loading");
         await loading.WaitForAsync();
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });

@@ -5,7 +5,7 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadC)]
-public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const string Rows = "#athleteLeaderboard > table > tbody > tr[data-athlete-name]";
@@ -66,13 +66,16 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
         var before = await page.EvaluateAsync<double>(rowDocumentTop);
         await page.Locator(Rows).Nth(20).ScrollIntoViewIfNeededAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'true'");
-        await page.WaitForTimeoutAsync(300); // include the normal-motion folding transition
+        await WaitForHeadingMotionAsync(page);
         Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
         await page.EvaluateAsync("scrollTo(0, 0)");
         await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'false'");
-        await page.WaitForTimeoutAsync(300);
+        await WaitForHeadingMotionAsync(page);
         Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
     }
+
+    private static Task WaitForHeadingMotionAsync(IPage page) => WaitForFiniteAnimationsAsync(
+        page, "#athleteLeaderboard > table > thead, #athleteLeaderboard > table > thead *");
 
     [Fact]
     public async Task ScrollIndicators_RespectInitialAndReducedMotionGates()
@@ -128,6 +131,8 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
         await page.EvaluateAsync("""
             () => { const row = document.querySelector('#athleteLeaderboard > table > tbody > tr[data-athlete-name]:not([style*="display: none"])'); scrollTo(0, row.getBoundingClientRect().top + scrollY - 220); }
             """);
+        await Assertions.Expect(page.Locator(".lb-rail")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-visible"));
+        await page.Locator(Rows + ":visible").Nth(20).ScrollIntoViewIfNeededAsync();
         await Assertions.Expect(page.Locator(".lb-rail")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-visible"));
         var tick = page.Locator("button.lb-rail-tick").Nth(2);
         await tick.FocusAsync();

@@ -6,6 +6,26 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class ApplicationSubmissionRetryStoreTests
 {
+    [Theory]
+    [InlineData("/api/payments/stripe/checkout/old-order")]
+    [InlineData("https://longevityworldcup.com/api/payments/stripe/checkout/old-order")]
+    public async Task RetiredCheckout_PreservesAcceptanceWithoutReplayingTheDeadLink(string checkoutLink)
+    {
+        using var fixture = new RetryStoreFixture();
+        var store = fixture.CreateStore();
+        await using (var first = await store.AcquireAsync("old-submission", "payload", CancellationToken.None))
+            first.Complete(new(true, true, checkoutLink, "stripe_old-order"));
+
+        foreach (var recoveredStore in new[] { store, fixture.CreateStore() })
+        {
+            var response = await recoveredStore.GetCompletedResponseAsync("old-submission", CancellationToken.None);
+            Assert.Equal(new(true, true, null, null, PaymentUnavailable: true), response);
+            await using var retry = await recoveredStore.AcquireAsync("old-submission", "payload", CancellationToken.None);
+            Assert.False(retry.ShouldProcess);
+            Assert.Equal(response, retry.CachedResponse);
+        }
+    }
+
     [Fact]
     public async Task CompletedSubmission_IsReturnedForTheSamePayload()
     {

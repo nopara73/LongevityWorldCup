@@ -47,8 +47,9 @@
 
 .lmx-page {
     min-width: 0;
-    max-width: 1280px;
+    max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
     color: var(--lmx-ink);
+    padding-inline: var(--lwc-gutter-start) var(--lwc-gutter-end);
     padding-block: 1.5rem 2.5rem;
 }
 
@@ -5262,7 +5263,7 @@ a.lmx-note-mention:focus-visible {
 
 @media (max-width: 520px) {
     .lmx-page {
-        padding-inline: 0.55rem;
+        padding-inline: max(0.55rem, env(safe-area-inset-left, 0px)) max(0.55rem, env(safe-area-inset-right, 0px));
     }
 
     .lmx-card {

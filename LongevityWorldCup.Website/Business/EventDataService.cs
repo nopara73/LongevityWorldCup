@@ -59,7 +59,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToReddit = false,
     bool SendToBluesky = false,
     bool SendToWebPush = false,
-    bool SendToInstagram = false)
+    bool SendToInstagram = false,
+    bool SendToTelegram = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -123,6 +124,7 @@ public sealed partial class EventDataService : IDisposable
     private readonly FacebookEventService _facebookEvents;
     private readonly ILogger<EventDataService> _log;
     private readonly bool _enableEventDispatch;
+    private readonly bool _telegramConfigured;
     private readonly AthleteDataCorrections _corrections;
     private int _processingImmediateCustomEvents;
 
@@ -132,7 +134,7 @@ public sealed partial class EventDataService : IDisposable
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log, IConfiguration configuration, AthleteDataCorrections? corrections = null)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log, IConfiguration configuration, AthleteDataCorrections? corrections = null, Config? config = null)
     {
         _slackEvents = slackEvents;
         _xEvents = xEvents;
@@ -141,6 +143,7 @@ public sealed partial class EventDataService : IDisposable
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _log = log;
         _enableEventDispatch = configuration.GetValue("EnableEventDispatch", !env.IsDevelopment());
+        _telegramConfigured = config?.Telegram is not null;
         _corrections = corrections ?? new AthleteDataCorrections();
 
         var dataDir = EnvironmentHelpers.GetDataDir();
@@ -284,6 +287,8 @@ public sealed partial class EventDataService : IDisposable
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Bluesky);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.WebPush);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Instagram);
+        if (_telegramConfigured)
+            SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Telegram, baselineSelectedTargets: true);
 
         if (_enableEventDispatch)
         {
@@ -1938,6 +1943,8 @@ public sealed partial class EventDataService : IDisposable
                 deliveryTargets?.SendToWebPush ?? false, SocialDeliveryStore.WebPush);
             SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
                 deliveryTargets?.SendToInstagram ?? true, SocialDeliveryStore.Instagram);
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToTelegram ?? _telegramConfigured, SocialDeliveryStore.Telegram);
 
             tx.Commit();
         });
