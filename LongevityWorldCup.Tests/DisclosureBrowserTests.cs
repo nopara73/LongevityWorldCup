@@ -133,19 +133,30 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
         await page.EvaluateAsync("""
             () => {
                 window.disclosureItems = [];
-                const animate = Element.prototype.animate;
-                Element.prototype.animate = function(...args) {
-                    const animation = animate.apply(this, args);
-                    if (this.matches('.play-join-biomarkers li')) {
-                        const item = { state: 'running' };
-                        window.disclosureItems.push(item);
-                        animation.finished.then(() => item.state = 'finished', () => item.state = 'cancelled');
+                window.disclosureAnimationCounts = [];
+                // Native details toggle after click dispatch; sample on the next
+                // frame so both native and enhanced disclosures have opened.
+                document.addEventListener('click', () => requestAnimationFrame(() => {
+                    const rows = document.querySelectorAll('.play-join-card--pro .play-join-biomarkers li');
+                    for (const row of rows) {
+                        // Observe CSS and Web Animations together, excluding the
+                        // decorative plus. Every row gets one entrance owner.
+                        const animations = row.getAnimations().filter(a => a.effect.target === row && !a.effect.pseudoElement);
+                        window.disclosureAnimationCounts.push(animations.length);
+                        for (const animation of animations) {
+                            const item = { state: 'running' };
+                            window.disclosureItems.push(item);
+                            animation.finished.then(() => item.state = 'finished', () => item.state = 'cancelled');
+                        }
                     }
-                    return animation;
-                };
+                }), { once: true });
             }
             """);
         await page.Locator(".play-join-biomarkers summary").Last.ClickAsync();
+        await page.WaitForFunctionAsync("() => window.disclosureAnimationCounts.length === 22");
+        var counts = await page.EvaluateAsync<int[]>("window.disclosureAnimationCounts");
+        Assert.Equal(22, counts.Length);
+        Assert.All(counts, count => Assert.Equal(1, count));
         await page.WaitForFunctionAsync("() => window.disclosureItems.length > 0 && window.disclosureItems.every(i => i.state !== 'running')");
         Assert.All(await page.EvaluateAsync<string[]>("window.disclosureItems.map(i => i.state)"), state => Assert.Equal("finished", state));
         await Assertions.Expect(page.Locator(".play-join-biomarkers details").Last).Not.ToHaveAttributeAsync("data-disclosure", "opening");

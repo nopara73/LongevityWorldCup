@@ -58,6 +58,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LEAGUE_ICONS_JS}}"] = "/js/leagueIcons.js",
         ["{{ASSET_LONGEVITYMAXXING_CSS}}"] = "/css/longevitymaxxing.css",
         ["{{ASSET_LONGEVITYMAXXING_JS}}"] = "/js/longevitymaxxing.js",
+        ["{{ASSET_MEDIA_KIT_FEEL_CSS}}"] = "/css/media-kit-feel.css",
+        ["{{ASSET_MEDIA_KIT_FEEL_JS}}"] = "/js/media-kit-feel.js",
         ["{{ASSET_HISTORY_TIMELINE_CSS}}"] = "/css/history-timeline.css",
         ["{{ASSET_HISTORY_TIMELINE_JS}}"] = "/js/history-timeline.js",
         ["{{ASSET_BIOAGE_DATES_CSS}}"] = "/css/bioage-dates.css",
