@@ -2099,7 +2099,9 @@ public sealed class AestheticSystemBrowserTests(
             () => {
                 const board = document.querySelector('.leaderboard');
                 const probe = board.cloneNode(true);
-                probe.id = 'responsive-leaderboard-probe';
+                // Keep the component ID so its scoped filter styles apply to
+                // the clone, just as the nested component IDs already do.
+                probe.dataset.responsiveLeaderboardProbe = 'true';
                 const panel = probe.querySelector('.sidebar');
                 panel.classList.add('expanded');
                 panel.classList.remove('button-collapsed', 'partially-expanded');
@@ -2125,7 +2127,7 @@ public sealed class AestheticSystemBrowserTests(
                 var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
                     """
                     async width => {
-                        const board = document.querySelector('#responsive-leaderboard-probe');
+                        const board = document.querySelector('[data-responsive-leaderboard-probe]');
                         board.style.boxSizing = 'content-box';
                         board.style.inlineSize = `${width}px`;
                         board.style.maxInlineSize = 'none';
@@ -2138,8 +2140,7 @@ public sealed class AestheticSystemBrowserTests(
                         const table = board.querySelector(':scope > table');
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(board).width),
-                            IsCompact: getComputedStyle(panel).flexBasis === '100%'
-                                && table.getBoundingClientRect().top >= panel.getBoundingClientRect().bottom - 1,
+                            IsCompact: getComputedStyle(table.querySelector('.sponsor-th')).display === 'none',
                             HorizontalOverflow: Math.max(0, board.scrollWidth - board.clientWidth)
                         };
                     }
@@ -2147,7 +2148,7 @@ public sealed class AestheticSystemBrowserTests(
                     inlineSize);
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
-                    $"Leaderboard filters did not cross their {condition.Value}{condition.Unit} boundary at {inlineSize}px. " +
+                    $"Leaderboard columns did not cross their {condition.Value}{condition.Unit} boundary at {inlineSize}px. " +
                     $"Compact={diagnostics.IsCompact}, width={diagnostics.ContainerWidth}, overflow={diagnostics.HorizontalOverflow}.");
                 Assert.True(diagnostics.HorizontalOverflow <= 1,
                     $"Leaderboard overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");

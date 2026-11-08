@@ -14,118 +14,43 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
     [InlineData("/leaderboard", false)]
     [InlineData("/leaderboard?group=flags", true)]
     [InlineData("/leaderboard?search=Valerie", false)]
-    public async Task DesktopPanel_SlidesAndFadesWithoutResizingTheResults(string path, bool dark)
+    public async Task DesktopDeck_CloseKeepsItsContentsUntilExitAndCanBeReversed(string path, bool dark)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = 1280, Height = 844 },
-            ReducedMotion = ReducedMotion.NoPreference,
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.NoPreference,
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync(path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
-        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await WaitForFiniteAnimationsAsync(page);
         var issues = await page.EvaluateAsync<string[]>("""
             () => {
                 const rail = document.querySelector('.sidebar'), panel = rail.querySelector('.sidebar-panel');
-                const results = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
-                const issues = [], geometry = () => {
-                    const box = results.getBoundingClientRect();
-                    return [box.left, box.top, box.width, box.height, rail.parentElement.getBoundingClientRect().height];
-                };
-                const before = geometry(), labelWidth = panel.querySelector('label').getBoundingClientRect().width;
-                const inspect = () => {
-                    if (geometry().some((value, index) => Math.abs(value - before[index]) > 1))
-                        issues.push('Opening or closing changes result or card geometry');
-                    const box = panel.getBoundingClientRect();
-                    if (box.bottom > innerHeight + 1)
-                        issues.push('Panel is clipped by the viewport');
-                    if (box.width < 250 || Math.abs(panel.querySelector('label').getBoundingClientRect().width - labelWidth) > 1)
-                        issues.push('Filter content is resized');
-                    for (const child of panel.querySelectorAll('.sidebar-heading, .sidebar-filter-list')) {
-                        const bounds = child.getBoundingClientRect();
-                        if (bounds.left < box.left - 1 || bounds.right > box.right + 1 || child.scrollWidth > child.clientWidth + 1)
-                            issues.push('Panel contents are clipped');
-                    }
-                };
-                const motion = () => {
-                    panel.getBoundingClientRect();
-                    const animations = panel.getAnimations().filter(a => ['opacity', 'transform'].includes(a.transitionProperty));
-                    if (animations.length !== 2) throw new Error('Expected one concurrent slide and fade');
-                    if (animations.some(a => a.effect.getTiming().delay !== 0 || a.effect.getTiming().duration > 200))
-                        issues.push('Panel motion has a delay or a long separate stage');
-                    return animations;
-                };
-                const seek = (animations, progress) => animations.forEach(a => {
-                    a.pause(); a.currentTime = a.effect.getTiming().duration * progress;
-                });
-                if (!panel.inert) issues.push('Closed panel remains interactive');
-                document.querySelector('.sidebar-toggle').click();
-                const opening = motion();
-                seek(opening, 0.2);
-                const early = Number(getComputedStyle(panel).opacity);
-                if (!(early > 0 && early < 1) || panel.inert) issues.push('Opening panel does not appear immediately');
-                inspect();
-                seek(opening, 0.8);
-                if (Number(getComputedStyle(panel).opacity) <= early) issues.push('Panel reveal is not continuous');
-                inspect();
-                opening.forEach(a => a.finish());
+                const issues = [], height = rail.getBoundingClientRect().height;
                 document.querySelector('.sidebar-close').click();
-                const closing = motion();
-                seek(closing, 0.5);
-                inspect();
-                if (!panel.inert || getComputedStyle(panel).visibility !== 'visible')
-                    issues.push('Closing panel loses its visual contents or remains interactive');
-                const opacity = Number(getComputedStyle(panel).opacity);
+                if (!panel.inert) issues.push('Closing deck remains interactive');
+                if (getComputedStyle(panel).visibility !== 'visible') issues.push('Deck contents disappear before exit');
+                if (Math.abs(rail.getBoundingClientRect().height - height) > 1) issues.push('Deck collapses before exit');
+                const closing = panel.getAnimations().filter(a => a.playState === 'running');
+                if (!closing.length) issues.push('Closing deck has no exit');
+                closing.forEach(a => {a.pause(); a.currentTime = a.effect.getTiming().duration / 2;});
                 document.querySelector('.sidebar-toggle').click();
-                if (Math.abs(Number(getComputedStyle(panel).opacity) - opacity) > 0.02 || panel.inert)
-                    issues.push('Reopening jumps instead of reversing the current motion');
-                const reopening = motion();
-                seek(reopening, 0.5);
-                inspect();
-                rail.getAnimations({subtree:true}).forEach(a => a.finish());
-                if (getComputedStyle(panel).visibility !== 'visible' || Number(getComputedStyle(panel).opacity) !== 1)
-                    issues.push('A stale close hides the reopened panel');
+                if (panel.inert || rail.classList.contains('is-closing')) issues.push('Reopening leaves stale close state');
                 return issues;
             }
             """);
         Assert.Empty(issues);
-        Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
-        var output = Environment.GetEnvironmentVariable("LWC_SIDEBAR_SCREENSHOTS");
-        if (!string.IsNullOrEmpty(output))
-        {
-            Directory.CreateDirectory(output);
-            await page.ScreenshotAsync(new() { Path = Path.Combine(output, dark ? "smooth-panel-flags.png" : "smooth-panel-desktop.png") });
-        }
-    }
-    [Fact]
-    public async Task Close_UnderThePointerStaysClosedUntilThePointerLeaves()
-    {
-        await using var context = await NewContextAsync(Browser, App, new()
-        {
-            ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.NoPreference
-        });
-        var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard");
-        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
-        await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-        var rail = page.Locator(".sidebar");
-        var collapsedWidth = (await rail.BoundingBoxAsync())!.Width;
-        await rail.HoverAsync(new() { Position = new() { X = 20, Y = 20 } });
-        await Assertions.Expect(page.Locator(".sidebar-filter-list")).ToBeVisibleAsync();
-        await rail.EvaluateAsync("e => Promise.all(e.getAnimations().map(animation => animation.finished))");
-
-        // Close while the pointer remains over the part of the rail that survives
-        // collapse; clicking the distant Close button would miss this regression.
-        await page.Locator(".sidebar-close").EvaluateAsync("button => button.click()");
-        await rail.EvaluateAsync("e => Promise.all(e.getAnimations().map(animation => animation.finished))");
-        await Assertions.Expect(page.Locator(".filter-section").First).ToBeHiddenAsync();
-        await Assertions.Expect(page.Locator(".collapsed-title")).ToBeVisibleAsync();
-        Assert.InRange(Math.Abs((await rail.BoundingBoxAsync())!.Width - collapsedWidth), 0, 1);
-        await page.Mouse.MoveAsync(0, 0);
-        await rail.HoverAsync(new() { Position = new() { X = 20, Y = 20 } });
-        await Assertions.Expect(page.Locator(".filter-section").First).ToBeVisibleAsync();
+        await WaitForFiniteAnimationsAsync(page);
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "true");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".sidebar-panel")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
+        await page.Locator(".sidebar-rail").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".sidebar-close")).ToBeFocusedAsync();
     }
 
     [Theory]

@@ -10,8 +10,9 @@
  * Motion: the deck unrolls and its sections arrive in a short cascade; a
  *   ticked tile stamps its check; counts glide their hairlines.
  *
- * Everything is scoped to #athleteLeaderboard so it outranks the shared
- * leaderboard-content.css rules without editing them. */
+ * Shared by the homepage preview and full leaderboard routes. */
+
+.sidebar-grab { display: none; }
 
 /* ===== Tiles (all sizes) ===== */
 #athleteLeaderboard .sidebar-filter-list .filter-section ul {
@@ -42,7 +43,7 @@
     border-radius: var(--lwc-radius-md, 8px);
     background: var(--lwc-surface);
     cursor: pointer;
-    overflow: hidden;
+    overflow: visible;
     transition:
         border-color 160ms var(--lwc-ease-standard, ease),
         background-color 160ms var(--lwc-ease-standard, ease),
@@ -110,7 +111,7 @@
 }
 
 #athleteLeaderboard .sidebar-filter-list .filter-label-copy {
-    display: flex;
+    display: flow-root;
     flex: 1 1 auto;
     align-items: center;
     gap: 0.45rem;
@@ -118,6 +119,7 @@
     color: var(--lwc-ink);
     font-size: 0.95rem;
     line-height: 1.25;
+    overflow-wrap: anywhere;
 }
 
 #athleteLeaderboard .sidebar-filter-list .filter-label-copy .filter-icon {
@@ -125,12 +127,18 @@
     width: 1.1em;
     color: var(--lwc-accent);
     text-align: center;
+    margin-right: 0.3em;
+}
+
+#athleteLeaderboard .sidebar-filter-list .filter-label-copy .lwc-flag-icon {
+    margin-inline-end: 0.3em;
 }
 
 /* Count: a quiet number at the tile's end, without its parentheses. */
 #athleteLeaderboard .sidebar-filter-list .filter-count-group {
-    margin-left: auto;
-    padding-left: 0.4rem;
+    float: inline-end;
+    margin-left: 0.35rem;
+    padding-left: 0;
     font-size: 0;
 }
 
@@ -174,12 +182,31 @@
 }
 
 #athleteLeaderboard .sidebar-filter-list .filter-label-copy {
-    overflow-wrap: normal;
+    overflow-wrap: anywhere;
     word-break: normal;
 }
 
 /* ===== Desktop deck ===== */
 @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
+    #athleteLeaderboard > .sidebar:not(.expanded) .sidebar-panel {
+        display: none;
+    }
+
+    #athleteLeaderboard .sidebar-rail {
+        appearance: none;
+        width: 50px;
+        padding: 0;
+        border: 0;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    #athleteLeaderboard .sidebar-rail:focus-visible {
+        outline: 3px solid var(--lwc-accent);
+        outline-offset: -3px;
+    }
+
     #athleteLeaderboard > .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) {
         flex-basis: 100%;
         width: 100%;
@@ -188,6 +215,8 @@
         min-height: 0;
         max-height: none;
         margin: 0;
+        position: relative;
+        top: auto;
     }
 
     #athleteLeaderboard > .sidebar.expanded .sidebar-rail {
@@ -203,6 +232,12 @@
         position: static;
         width: 100%;
         max-height: none;
+        overflow: visible;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        pointer-events: auto;
+        transition: none;
         border: 0;
         border-bottom: 1px solid var(--lwc-border);
         border-radius: 0;
@@ -214,16 +249,20 @@
     }
 
     #athleteLeaderboard > .sidebar.expanded .sidebar-heading {
-        padding: 0.85rem 1.25rem 0.35rem;
+        padding: 0.4rem 1rem;
+        position: sticky;
+        top: var(--site-sticky-height, 52px);
+        z-index: 3;
     }
 
     #athleteLeaderboard > .sidebar.expanded .sidebar-filter-list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));
         align-items: start;
-        gap: 1rem 1.25rem;
-        padding: 0.5rem 1.25rem 1.25rem;
+        gap: 1rem 0.75rem;
+        padding: 0.5rem 1rem 1rem;
         overflow: visible;
+        scrollbar-gutter: auto;
     }
 
     #athleteLeaderboard > .sidebar.expanded .filter-section {
@@ -240,13 +279,9 @@
     #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(5) { animation-delay: 160ms; }
     #athleteLeaderboard > .sidebar.expanded .filter-section:nth-child(6) { animation-delay: 200ms; }
 
-    /* Flags are many: they take two columns and scroll inside. */
-    #athleteLeaderboard > .sidebar.expanded #flag-filter-section {
-        grid-column: span 2;
-    }
-
+    /* Only the long flag list scrolls; the short groups keep their natural height. */
     #athleteLeaderboard > .sidebar.expanded #flag-filter-section ul {
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+        grid-template-columns: minmax(0, 1fr);
         max-height: 17rem;
         padding: 2px;
         overflow-y: auto;
@@ -290,6 +325,7 @@
         max-width: none;
         height: auto;
         max-height: min(88dvh, 760px);
+        margin: 0;
         padding-top: 1.35rem;
         border-radius: 22px 22px 0 0;
         transform: translateY(104%);
@@ -308,7 +344,15 @@
     }
 
     /* Grab handle. */
-    #athleteLeaderboard > .sidebar::before {
+    #athleteLeaderboard > .sidebar .sidebar-grab {
+        display: block;
+        position: absolute;
+        inset: 0 0 auto;
+        height: 1.35rem;
+        touch-action: pan-x;
+    }
+
+    #athleteLeaderboard > .sidebar .sidebar-grab::before {
         content: "";
         position: absolute;
         top: 0.55rem;
@@ -321,7 +365,7 @@
     }
 
     #athleteLeaderboard > .sidebar .sidebar-filter-list .filter-section ul {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
     }
 
     /* Long names keep whole words on one line. */
@@ -335,6 +379,10 @@
 
     #athleteLeaderboard > .sidebar .sidebar-filter-list .filter-label-copy {
         font-size: 0.9rem;
+    }
+
+    #athleteLeaderboard > .sidebar .sidebar-heading {
+        touch-action: pan-x;
     }
 
     #athleteLeaderboard > .sidebar.expanded .filter-section {
