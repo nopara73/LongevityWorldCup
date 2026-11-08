@@ -117,14 +117,135 @@ public sealed class TelegramIntegrationTests
     }
 
     [Fact]
-    public void LongPostKeepsACompleteLinkAndUnicodeText()
+    public void LongPostUsesAnImageAndKeepsACompleteLinkAndUnicodeCaption()
     {
-        var item = new EventItem("123", EventType.CustomEvent, Title + "\n\n" + string.Concat(Enumerable.Repeat("👩‍🔬", 1000)),
+        var item = new EventItem("123", EventType.CustomEvent, string.Concat(Enumerable.Repeat("👩‍🔬", 300)) + " " + Title + "\n\n" + new string('x', 5000),
             DateTime.UtcNow, 15, false);
-        var post = TelegramAnnouncementService.BuildCustomPost(item, slug => slug);
-        Assert.True(post.Length <= TelegramAnnouncementService.MaxLength);
-        Assert.EndsWith("…\n\nhttps://longevityworldcup.com/feeds/events.rss", post);
-        _ = new UTF8Encoding(false, throwOnInvalidBytes: true).GetBytes(post);
+        var plan = TelegramAnnouncementService.BuildCustomPlan(item, slug => slug);
+        Assert.Equal(CustomEventPostMode.Image, plan.Mode);
+        Assert.InRange(plan.PostText.Length, 1, TelegramAnnouncementService.CaptionLength);
+        Assert.EndsWith("…\n\nhttps://longevityworldcup.com/feeds/events.rss", plan.PostText);
+        _ = new UTF8Encoding(false, throwOnInvalidBytes: true).GetBytes(plan.PostText);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PhotosPreserveArtworkOrMilestoneAndRetryTheSamePreparedRequest(bool milestone)
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true);
+        var clock = new TestClock(DateTimeOffset.UtcNow);
+        SocialDeliveryStore.InitializeChannel(fixture.Database, SocialDeliveryStore.Telegram, baselineSelectedTargets: true);
+        var asset = milestone ? "assets/social/memes/athletes-404-not-found.jpg" : "assets/social/rejuvenation-olympics.png";
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "LongevityWorldCup.sln"))) repository = repository.Parent;
+        Assert.NotNull(repository);
+        var destination = Path.Combine(fixture.Env.WebRootPath, asset);
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(Path.Combine(repository.FullName, "LongevityWorldCup.Website", "wwwroot", asset), destination);
+        var id = milestone
+            ? fixture.InsertEvent(EventType.AthleteCountMilestone, "athletes[404]", clock.Now.UtcDateTime)
+            : Queue(fixture, "[Coming from the Rejuvenation Olympics?](https://longevityworldcup.com/rejuvenation-olympics)");
+        var bodies = new List<string>();
+        var service = CreateService(fixture, clock, async request =>
+        {
+            Assert.EndsWith("/sendPhoto", request.RequestUri!.AbsolutePath);
+            var body = await request.Content!.ReadAsStringAsync();
+            bodies.Add(body);
+            using var doc = JsonDocument.Parse(body);
+            var photo = doc.RootElement.GetProperty("photo").GetString()!;
+            Assert.StartsWith("https://longevityworldcup.com/", photo);
+            Assert.InRange(doc.RootElement.GetProperty("caption").GetString()!.Length, 1, 1024);
+            Assert.True(doc.RootElement.GetProperty("show_caption_above_media").GetBoolean());
+            if (milestone) Assert.EndsWith(asset, photo);
+            else Assert.True(File.Exists(Path.Combine(fixture.Env.WebRootPath, "generated", "custom-events", id + "-telegram.png")));
+            return bodies.Count == 1
+                ? Json(HttpStatusCode.TooManyRequests, """{"ok":false,"error_code":429,"parameters":{"retry_after":172800}}""")
+                : Json(HttpStatusCode.OK, """{"ok":true,"result":{"message_id":43,"chat":{"id":-1001234567890,"type":"channel","username":"longevityworldcup"}}}""");
+        });
+        await service.DispatchAsync(customOnly: !milestone);
+        Assert.Single(bodies);
+        clock.Now = clock.Now.AddDays(1);
+        await service.DispatchAsync(customOnly: true);
+        Assert.Single(bodies); // Retry-After must not be shortened to a day.
+        File.Delete(destination); // A safe retry must reuse its prepared image, not render it again.
+        clock.Now = clock.Now.AddDays(1);
+        await service.DispatchAsync(customOnly: true);
+        await service.DispatchAsync(customOnly: true);
+        Assert.Equal(2, bodies.Count);
+        Assert.Equal(bodies[0], bodies[1]);
+        Assert.Equal(("sent", "43", "https://t.me/longevityworldcup/43"), Delivery(fixture, id));
+    }
+
+    [Fact]
+    public async Task PreparationFailureRetriesBeforeStartingAnyTelegramRequest()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        var clock = new TestClock(DateTimeOffset.UtcNow);
+        SocialDeliveryStore.InitializeChannel(fixture.Database, SocialDeliveryStore.Telegram);
+        var id = Queue(fixture, "[Keep competing](https://longevityworldcup.com/rejuvenation-olympics)");
+        var requests = 0;
+        var service = CreateService(fixture, clock, _ => { requests++; throw new InvalidOperationException(); });
+        await service.DispatchAsync(customOnly: true);
+        Assert.Equal(0, requests);
+        var pending = Assert.Single(new SocialDeliveryStore(fixture.Database).GetPending(SocialDeliveryStore.Telegram, true, clock.Now.AddMinutes(10)));
+        Assert.Equal(id, pending.Event.Id);
+        Assert.Null(pending.FirstAttemptAtUtc);
+        Assert.Equal(1, pending.Attempts);
+    }
+
+    [Theory]
+    [InlineData(403, "failed")]
+    [InlineData(500, "review")]
+    [InlineData(200, "review")]
+    public async Task RejectionOrMismatchedReceiptDoesNotRetryBlindly(int status, string expected)
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        var clock = new TestClock(DateTimeOffset.UtcNow);
+        SocialDeliveryStore.InitializeChannel(fixture.Database, SocialDeliveryStore.Telegram);
+        var id = Queue(fixture, Title);
+        var calls = 0;
+        var service = CreateService(fixture, clock, _ =>
+        {
+            calls++;
+            return Task.FromResult(Json((HttpStatusCode)status, status == 200
+                ? """{"ok":true,"result":{"message_id":99,"chat":{"id":-1009999999999,"type":"channel"}}}"""
+                : "{\"ok\":false,\"error_code\":" + status + "}"));
+        });
+        await service.DispatchAsync(customOnly: true);
+        clock.Now = clock.Now.AddHours(1);
+        await service.DispatchAsync(customOnly: true);
+        Assert.Equal(1, calls);
+        Assert.Equal((expected, null, null), Delivery(fixture, id));
+    }
+
+    [Fact]
+    public async Task ConcurrentDispatchKeepsAnExistingPreparedTextRequestAndSendsOnce()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        var clock = new TestClock(DateTimeOffset.UtcNow);
+        SocialDeliveryStore.InitializeChannel(fixture.Database, SocialDeliveryStore.Telegram);
+        var id = Queue(fixture, Title);
+        new SocialDeliveryStore(fixture.Database).Prepare(SocialDeliveryStore.Telegram, id, JsonSerializer.Serialize(Post), null, clock.Now);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var service = CreateService(fixture, clock, async request =>
+        {
+            calls++;
+            Assert.Contains("Follow LWC by RSS", await request.Content!.ReadAsStringAsync());
+            entered.SetResult();
+            await finish.Task;
+            return Json(HttpStatusCode.OK, """{"ok":true,"result":{"message_id":42,"chat":{"id":-1001234567890,"type":"channel","username":"longevityworldcup"}}}""");
+        });
+        var first = service.DispatchAsync(customOnly: true);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await service.DispatchAsync(customOnly: true);
+        finish.SetResult();
+        await first;
+        await service.DispatchAsync(customOnly: true);
+        Assert.Equal(1, calls);
+        Assert.Equal("sent", Delivery(fixture, id).Status);
     }
 
     private static Config NewConfig() => new()
@@ -141,6 +262,7 @@ public sealed class TelegramIntegrationTests
         var config = NewConfig();
         return new(config, fixture.Events, new SocialDeliveryStore(fixture.Database),
             new TelegramApiClient(new ClientFactory(new Handler(send)), config), fixture.ThreadsEvents, fixture.Athletes,
+            new CustomEventImageService(fixture.Env, NullLogger<CustomEventImageService>.Instance), fixture.MilestoneMemes,
             clock, NullLogger<TelegramAnnouncementService>.Instance);
     }
 

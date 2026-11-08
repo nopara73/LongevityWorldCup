@@ -39,19 +39,30 @@ internal sealed class TelegramRejectedException(int code, int? retryAfterSeconds
     internal int? RetryAfterSeconds { get; } = retryAfterSeconds;
 }
 
+internal sealed record TelegramPostRequest(string Text, string? PhotoUrl = null);
+
 public sealed class TelegramApiClient(IHttpClientFactory clients, Config config)
 {
-    internal async Task<SocialPostReceipt> PublishAsync(string text, CancellationToken ct)
+    internal async Task<SocialPostReceipt> PublishAsync(TelegramPostRequest post, CancellationToken ct)
     {
         var credentials = config.Telegram ?? throw new InvalidOperationException("Telegram is not configured.");
         using var client = clients.CreateClient(nameof(TelegramApiClient));
-        var endpoint = new Uri($"/bot{credentials.BotToken}/sendMessage", UriKind.Relative);
-        using var response = await client.PostAsJsonAsync(endpoint, new
-        {
-            chat_id = credentials.ChannelId,
-            text,
-            link_preview_options = new { is_disabled = true }
-        }, ct);
+        var method = post.PhotoUrl is null ? "sendMessage" : "sendPhoto";
+        var endpoint = new Uri($"/bot{credentials.BotToken}/{method}", UriKind.Relative);
+        using var response = post.PhotoUrl is null
+            ? await client.PostAsJsonAsync(endpoint, new
+            {
+                chat_id = credentials.ChannelId,
+                text = post.Text,
+                link_preview_options = new { is_disabled = true }
+            }, ct)
+            : await client.PostAsJsonAsync(endpoint, new
+            {
+                chat_id = credentials.ChannelId,
+                caption = post.Text,
+                photo = post.PhotoUrl,
+                show_caption_above_media = true
+            }, ct);
 
         var result = await response.Content.ReadFromJsonAsync<BotResponse>(cancellationToken: ct);
         var status = (int)response.StatusCode;
