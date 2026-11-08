@@ -344,11 +344,23 @@
         if (!Array.isArray(rows) || rows.length < 3) throw new Error('No standings');
         const best = Math.max(...rows.map(row => Math.abs(Math.min(0, Number(row.ageReduction) || 0))), 1);
         const scaleOf = row => Math.max(0.04, Math.abs(Math.min(0, Number(row.ageReduction) || 0)) / best);
+        const bronze = rows[2].ageReduction;
+        const cut = scaleOf(rows[2]).toFixed(3);
         const steps = rows.slice(0, 3).map(row => renderStep(row, scaleOf(row)));
-        const boardRows = rows.slice(3).map(row => renderRow(row, scaleOf(row)));
+        const boardRows = rows.slice(3).map(row => {
+            const scale = scaleOf(row);
+            const item = renderRow(row, scale);
+            // A tie, a stronger fill (possible across tracks), or a placeholder
+            // score has no visible distance left to this bronze marker.
+            item.classList.toggle('is-chasing', Number.isFinite(bronze) && bronze < 0
+                && Number.isFinite(row.ageReduction) && Number(scale.toFixed(3)) < Number(cut));
+            return item;
+        });
         podium.replaceChildren(...steps);
         board.replaceChildren(...boardRows);
         board.start = 4;
+        // The chasing pack measures itself against the last podium place.
+        board.style.setProperty('--ro-cut', cut);
         standings.removeAttribute('aria-busy');
         standings.classList.add('is-ready');
         onReveal(standings, () => playEntrance(rows, steps, boardRows));
