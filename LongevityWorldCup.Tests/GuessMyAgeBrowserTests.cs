@@ -844,16 +844,10 @@ public sealed class GuessMyAgeBrowserTests(
         await range.EvaluateAsync(
             "range => { range.value = '50'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
 
-        var acceptedResponse = page.WaitForResponseAsync(response =>
-            response.Request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase)
-            && new Uri(response.Url).AbsolutePath.Equals(
-                "/api/Guess/athlete-age",
-                StringComparison.OrdinalIgnoreCase));
         await submit.ClickAsync();
-        var acceptedResultResponse = await acceptedResponse;
-        await acceptedResultResponse.FinishedAsync();
-        await page.Clock.RunForAsync(100);
-        Assert.Contains("First accepted guess!", await status.InnerTextAsync(), StringComparison.Ordinal);
+        // Network completion can precede JSON processing; observe the semantic
+        // result without advancing a reveal that these assertions do not need.
+        await Assertions.Expect(status).ToContainTextAsync("First accepted guess!");
         Assert.Contains("You guessed older — oof.", await status.InnerTextAsync());
         await page.WaitForFunctionAsync(
             "imageId => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['accepted-history-test']?.byImage?.[imageId]?.first === true",

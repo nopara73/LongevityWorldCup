@@ -309,6 +309,8 @@ public sealed class GuessMyAgeCelebrationBrowserTests(
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         var exactResultResponse = await exactResponse;
         await exactResultResponse.FinishedAsync();
+        // Do not spend the detour budget before the response arms the reveal.
+        await page.WaitForFunctionAsync("() => !!document.querySelector('#detailsModal .modal-content.gma-result-ready')");
         var exactDetourReady = false;
         for (var elapsed = 0; elapsed < 2500 && !exactDetourReady; elapsed += 100)
         {

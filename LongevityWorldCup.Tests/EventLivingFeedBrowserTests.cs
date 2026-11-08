@@ -31,7 +31,8 @@ public sealed class EventLivingFeedBrowserTests(
         """;
 
     private async Task<IBrowserContext> OpenAsync(string route = "/events", string? events = null, string? athletes = null,
-        int width = 1440, int height = 900, bool dark = false, bool reduced = true, IBrowser? browser = null, bool freezeTime = true)
+        int width = 1440, int height = 900, bool dark = false, bool reduced = true, IBrowser? browser = null, bool freezeTime = true,
+        bool pauseClock = false)
     {
         var context = await NewContextAsync(browser ?? Browser, App, new()
         {
@@ -44,7 +45,13 @@ public sealed class EventLivingFeedBrowserTests(
         await context.RouteAsync("**/api/events", r => r.FulfillAsync(new() { ContentType = "application/json", Body = events ?? Events }));
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
         var page = await context.NewPageAsync();
-        if (freezeTime) await page.Clock.SetFixedTimeAsync(new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc));
+        var clockTime = new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc);
+        if (pauseClock)
+        {
+            await page.Clock.InstallAsync(new() { TimeDate = clockTime.AddHours(-1) });
+            await page.Clock.PauseAtAsync(clockTime);
+        }
+        else if (freezeTime) await page.Clock.SetFixedTimeAsync(clockTime);
         await NavigateAndSettleAsync(page, route);
         await page.Locator("#eventsTable tr.main-row").First.WaitForAsync();
         return context;
@@ -298,10 +305,10 @@ public sealed class EventLivingFeedBrowserTests(
             Id = "idle-" + i, Type = 1, Text = "slug[feed-a]",
             OccurredAt = new DateTime(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc).AddDays(-i).ToString("O")
         });
-        await using var context = await OpenAsync(events:JsonSerializer.Serialize(events));
+        // Hold the first idle deadline before navigation can mount the feed.
+        await using var context = await OpenAsync(events:JsonSerializer.Serialize(events), pauseClock: true);
         var page = context.Pages[0];
-        await page.Clock.InstallAsync(new() { Time = "2026-10-24T04:00:00Z" });
-        await page.Clock.PauseAtAsync(new DateTime(2026, 10, 24, 4, 0, 1, DateTimeKind.Utc));
+        await page.WaitForFunctionAsync("() => !!document.querySelector('#eventsTable')?._feedIdleTimer");
         Assert.True(await page.Locator(".main-row").CountAsync() < 200);
         var link = page.Locator(".main-row[data-event-id='idle-30'] .event-message a[data-athlete-slug]");
         await page.Keyboard.PressAsync("Tab");
