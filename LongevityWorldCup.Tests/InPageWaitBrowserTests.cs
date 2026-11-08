@@ -55,7 +55,7 @@ public sealed class InPageWaitBrowserTests(
         // pixels catches overlays that computed background-color cannot see.
         var approved = before[before.Width / 2, 8];
         await page.EvaluateAsync("() => { LwcWait.start(save); save.disabled=true; }");
-        await page.WaitForTimeoutAsync(180);
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("""
             () => { for(const animation of document.querySelector('.lwc-wait-fill').getAnimations()) {
                 animation.pause(); animation.currentTime=3000;
@@ -88,9 +88,9 @@ public sealed class InPageWaitBrowserTests(
     {
         await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new());
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => !!window.LwcWait && typeof fetchWithTimeout==='function'");
-        await page.Clock.InstallAsync();
         await page.EvaluateAsync("""
             () => window.fetchWithTimeout = async (url, options) => ({
                 ok:true, status:200,
@@ -104,6 +104,7 @@ public sealed class InPageWaitBrowserTests(
             })
             """);
         await page.Locator("#emailInput").FillAsync("slow@example.test");
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator("#newsletter-form button[type=submit]").ClickAsync();
         await page.WaitForFunctionAsync("() => window.newsletterBodyStarted");
         await Assertions.Expect(page.Locator("#newsletter-form")).ToHaveAttributeAsync("aria-busy", "true");
@@ -151,10 +152,9 @@ public sealed class InPageWaitBrowserTests(
                 LwcWait.region(board, true);
                 await new Promise(r => setTimeout(r, 60));
                 LwcWait.region(board, false);
-                await new Promise(r => setTimeout(r, 1200));
             }
             """, restartAt);
-        Assert.Equal(0, await page.Locator(".lwc-wait-line").CountAsync());
+        await Assertions.Expect(page.Locator(".lwc-wait-line")).ToHaveCountAsync(0, new() { Timeout = 1200 });
         Assert.Null(await page.Locator("#board").GetAttributeAsync("data-lwc-wait-region"));
     }
 
@@ -164,7 +164,8 @@ public sealed class InPageWaitBrowserTests(
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
         await page.EvaluateAsync("() => LwcWait.region(board, true)");
-        await page.WaitForTimeoutAsync(400);
+        await Assertions.Expect(page.Locator("#board")).ToHaveAttributeAsync("data-lwc-wait-region", "refresh");
+        await Assertions.Expect(page.Locator("#board .lwc-wait-line")).ToHaveCountAsync(1);
         await Assertions.Expect(page.Locator("#hidden")).ToHaveCSSAsync("opacity", "0");
         Assert.True(await page.EvaluateAsync<bool>("""
             async () => {
@@ -183,15 +184,14 @@ public sealed class InPageWaitBrowserTests(
     {
         await using var context = await ContextAsync();
         var page = await OpenAsync(context);
+        await page.EvaluateAsync("() => { window.removedControl = save; LwcWait.start(save, {region: form}); }");
+        await Assertions.Expect(page.Locator("#save .lwc-wait-fill")).ToHaveCountAsync(1);
+        await page.EvaluateAsync("() => removedControl.remove()");
+        await page.WaitForFunctionAsync("() => !removedControl.hasAttribute('data-lwc-wait') && !removedControl.querySelector('.lwc-wait-fill') && !form.inert");
         Assert.True(await page.EvaluateAsync<bool>("""
-            async () => {
-                const control = save;
-                LwcWait.start(control, {region: form});
-                await new Promise(r => setTimeout(r, 160));
-                control.remove();
-                await new Promise(r => setTimeout(r, 40));
-                form.append(control);
-                return !control.hasAttribute('data-lwc-wait') && !control.querySelector('.lwc-wait-fill') && !form.inert;
+            () => {
+                form.append(removedControl);
+                return !removedControl.hasAttribute('data-lwc-wait') && !removedControl.querySelector('.lwc-wait-fill') && !form.inert;
             }
             """));
     }
@@ -225,7 +225,7 @@ public sealed class InPageWaitBrowserTests(
         var page = await OpenAsync(context);
         await page.Locator("#save").FocusAsync();
         await page.EvaluateAsync("() => { save.style.outline='3px solid blue'; LwcWait.start(save); LwcWait.region(board,true); }");
-        await page.WaitForTimeoutAsync(170);
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("() => { void LwcWait.finish(save,'error'); LwcWait.region(board,false); }");
         Assert.Equal("3px", await page.Locator("#save").EvaluateAsync<string>("el => getComputedStyle(el).outlineWidth"));
         Assert.Equal("rgb(0, 0, 255)", await page.Locator("#save").EvaluateAsync<string>("el => getComputedStyle(el).outlineColor"));
@@ -256,13 +256,11 @@ public sealed class InPageWaitBrowserTests(
         var page = await OpenAsync(context);
         await page.AddScriptTagAsync(new() { Url = "/js/motion.js" });
         await page.EvaluateAsync("() => { save.setAttribute('aria-busy','true'); }");
-        await page.WaitForTimeoutAsync(170);
-        Assert.Equal(1, await page.Locator(".lwc-wait-fill").CountAsync());
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("() => { window.dispatchEvent(new PageTransitionEvent('pagehide')); save.removeAttribute('aria-busy'); window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true})); }");
         Assert.Equal(0, await page.Locator(".lwc-wait-fill").CountAsync());
         await page.EvaluateAsync("() => save.setAttribute('aria-busy','true')");
-        await page.WaitForTimeoutAsync(170);
-        Assert.Equal(1, await page.Locator(".lwc-wait-fill").CountAsync());
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         await page.EvaluateAsync("() => save.removeAttribute('aria-busy')");
         await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(0);
     }
@@ -297,7 +295,7 @@ public sealed class InPageWaitBrowserTests(
                 window.pendingSave=LwcWait.optimistic(()=>{},()=>new Promise(resolve=>window.resolveSave=resolve),save);
             }
             """);
-        await page.WaitForTimeoutAsync(180);
+        await Assertions.Expect(page.Locator(".lwc-wait-fill")).ToHaveCountAsync(1);
         Assert.Null(await page.Locator("html").GetAttributeAsync("data-lwc-sync"));
         await page.EvaluateAsync("() => scrollTo(0,1400)");
         await page.WaitForFunctionAsync("() => document.documentElement.dataset.lwcSync==='on'");

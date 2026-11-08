@@ -12,13 +12,13 @@
         .documentation-page {
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: minmax(min(12rem, 26vw), min(15rem, 30vw)) minmax(0, 47rem);
-            gap: clamp(1.5rem, 3vw, 2.75rem);
+            grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
+            gap: var(--lwc-grid-gap-lg);
             align-items: start;
-            justify-content: center;
-            max-width: 72rem;
-            margin: 2.5rem auto 4rem;
-            padding: 0 clamp(1rem, 3vw, 1.5rem);
+            justify-content: stretch;
+            max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+            margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+            padding: 0 var(--lwc-gutter-end) 0 var(--lwc-gutter-start);
         }
 
         /* Contents: one rail. Every section link sits on it, and it fills with
@@ -796,8 +796,6 @@
         @media (max-width: 900px) {
             .documentation-page {
                 display: block;
-                margin: 1rem auto 3rem;
-                padding: 0 1rem;
             }
 
             /* Phones and tablets: the contents fold into a bar above the document
@@ -995,7 +993,7 @@
 
         @media (max-width: 600px) {
             .documentation-page {
-                padding-inline: min(1rem, 5vw);
+                padding-inline: max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-left, 0px)) max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-right, 0px));
             }
 
             .documentation-document {
@@ -1107,6 +1105,7 @@
             <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-january-1--first-place-finishes-across-major-longevity-leaderboards"><span class="documentation-nav-entry-date">2026 January 1</span><span class="documentation-timeline-separator"> – </span><span class="documentation-nav-entry-title">First place finishes across major longevity leaderboards</span></a>
             <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-january-15---longevity-world-cup-season-2025-ended"><span class="documentation-nav-entry-date">2026 January 15</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Longevity World Cup season 2025 ended</span></a>
             <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-february---longevity-world-cup-season-2026-started"><span class="documentation-nav-entry-date">2026 February</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Longevity World Cup season 2026 started</span></a>
+            <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-september---rejuvenation-olympics-announces-closure"><span class="documentation-nav-entry-date">2026 September</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Rejuvenation Olympics announces closure</span></a>
             <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2026-november-announced---super-age-games"><span class="documentation-nav-entry-date">2026 November (announced)</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Super Age Games</span></a>
             <a class="documentation-nav-level-3 documentation-nav-timeline" href="#2027-announced---younger-contest"><span class="documentation-nav-entry-date">2027 (announced)</span><span class="documentation-timeline-separator"> - </span><span class="documentation-nav-entry-title">Younger Contest</span></a>
             <a class="documentation-nav-level-2" href="#special-mentions">Special mentions</a>
@@ -1284,6 +1283,10 @@
 <li>Athlete pages and the leaderboard began surfacing new derived performance views like pace of aging / pace rank.</li>
 <li>Entry evolved from an early “low-friction” model toward explicit pricing.</li>
 </ul>
+</section>
+<section class="documentation-timeline-entry">
+<h3 id="2026-september---rejuvenation-olympics-announces-closure" class="documentation-timeline-heading"><span class="documentation-timeline-date">2026 September</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Rejuvenation Olympics announces closure</span></h3>
+<p>Rejuvenation Olympics <a href="https://www.rapamycin.news/t/why-is-the-rejuvenation-olympics-closing/26779/1" target="_blank" rel="noopener noreferrer">announced it was closing</a>. New entrants had until October 30, 2026 to submit their first qualifying test. Final samples must reach the lab by March 30, 2027, and the final leaderboard will freeze on April 15, 2027.</p>
 </section>
 <section class="documentation-timeline-entry is-announced">
 <h3 id="2026-november-announced---super-age-games" class="documentation-timeline-heading"><span class="documentation-timeline-date">2026 November (announced)</span><span class="documentation-timeline-separator"> - </span><span class="documentation-timeline-title">Super Age Games</span></h3>

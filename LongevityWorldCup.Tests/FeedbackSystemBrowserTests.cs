@@ -200,13 +200,14 @@ public sealed class FeedbackSystemBrowserTests(
             ContentType = "application/json", Body = "{\"address\":\"bc1qfeedbackfixture\"}"
         }));
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await NavigateAndSettleAsync(page, "/");
         await page.EvaluateAsync("""
             () => Object.defineProperty(navigator, 'clipboard', {
                 configurable: true, value: { writeText: async () => {} }
             })
             """);
-        await page.Clock.InstallAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator("#bitcoinCopyButton").ClickAsync();
         await Assertions.Expect(page.Locator("#copiedText")).ToHaveTextAsync("Copied");
         await Assertions.Expect(page.Locator("#bitcoinCopyStatus")).ToHaveAttributeAsync("role", "status");

@@ -108,7 +108,7 @@ public sealed class BioageMobileUxBrowserTests(
         await page.Locator("#lwcToStep2Btn").TapAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
-        await page.Locator("#calculateBioageButton").TapAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
         await Task.WhenAll(
             page.WaitForURLAsync(
@@ -261,7 +261,7 @@ public sealed class BioageMobileUxBrowserTests(
         Assert.Equal("1 new biomarker",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
 
-        await calculate.TapAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync($"{resultSelector}.show");
         Assert.Equal(path.Contains("update=1") ? "Next" : "Join the leaderboard",
             await page.Locator("#continueButton .flow-action__label").InnerTextAsync());
@@ -324,7 +324,7 @@ public sealed class BioageMobileUxBrowserTests(
 
         var calculate = page.Locator("#calculateBioageButton");
         Assert.False(await calculate.IsDisabledAsync());
-        await calculate.TapAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync($"{resultSelector}.show");
         Assert.Equal(path.Contains("update=1") ? "Next" : "Join the leaderboard",
             await page.Locator("#continueButton .flow-action__label").InnerTextAsync());

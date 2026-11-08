@@ -395,13 +395,13 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-page {
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: minmax(min(12rem, 26vw), min(15rem, 30vw)) minmax(0, 47rem);
-            gap: clamp(1.5rem, 3vw, 2.75rem);
+            grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
+            gap: var(--lwc-grid-gap-lg);
             align-items: start;
-            justify-content: center;
-            max-width: 72rem;
-            margin: 2.5rem auto 4rem;
-            padding: 0 clamp(1rem, 3vw, 1.5rem);
+            justify-content: stretch;
+            max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+            margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+            padding: 0 var(--lwc-gutter-end) 0 var(--lwc-gutter-start);
         }
 
         /* Contents: one rail. Every section link sits on it, and it fills with
@@ -1179,8 +1179,6 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         @media (max-width: 900px) {
             .documentation-page {
                 display: block;
-                margin: 1rem auto 3rem;
-                padding: 0 1rem;
             }
 
             /* Phones and tablets: the contents fold into a bar above the document
@@ -1378,7 +1376,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         @media (max-width: 600px) {
             .documentation-page {
-                padding-inline: min(1rem, 5vw);
+                padding-inline: max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-left, 0px)) max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-right, 0px));
             }
 
             .documentation-document {
