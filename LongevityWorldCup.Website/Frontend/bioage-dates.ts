@@ -6,8 +6,8 @@
 // - A field that changes answers with a short pulse.
 // - The blood draw card shows the chosen date as a small calendar page that
 //   flips when the date changes (an echo of the value, aria-hidden).
-// - Each section band carries the same completion pip as the biomarker
-//   domains, and Continue arms (one arrow nudge) once both sections are set.
+// - Continue arms (one arrow nudge) when the calculator accepts both dates.
+// The shared date sheet supplies the completion pips and privacy feedback.
 //
 // Nothing here changes wording, validation or navigation.
 
@@ -16,7 +16,7 @@ interface LwcBioageDatesApi {
 }
 
 interface Window {
-    LwcBioageDates: LwcBioageDatesApi;
+    LwcBioageDates?: LwcBioageDatesApi;
 }
 
 (() => {
@@ -81,55 +81,44 @@ interface Window {
         page.setAttribute("aria-hidden", "true");
         page.innerHTML = '<span class="bioage-cal-ring"></span><span class="bioage-cal-month"></span><span class="bioage-cal-day"></span>';
         drawSet.appendChild(page);
-        const monthFmt = new Intl.DateTimeFormat(document.documentElement.lang || undefined, { month: "short" });
-        let shown = "";
+        const monthFmt = new Intl.DateTimeFormat(document.documentElement.lang || undefined, { month: "short", timeZone: "UTC" });
+        let shown: string | null = null;
+        let flip: Animation | null = null;
         function paintCalendar(animate: boolean): void {
             const value = draw!.value;
-            const date = value ? new Date(`${value}T00:00:00`) : null;
-            const valid = !!date && !Number.isNaN(date.getTime());
+            // A date input represents a calendar day, independent of local DST.
+            const date = draw!.valueAsDate;
+            const valid = !!date;
             page.classList.toggle("is-empty", !valid);
             const key = valid ? value : "";
-            if (key === shown) return;
+            if (key === shown && animate) return;
+            if (flip) { flip.onfinish = null; flip.cancel(); flip = null; }
             shown = key;
             const m = page.querySelector<HTMLElement>(".bioage-cal-month")!;
             const d = page.querySelector<HTMLElement>(".bioage-cal-day")!;
             const apply = (): void => {
                 m.textContent = valid ? monthFmt.format(date!) : "";
-                d.textContent = valid ? String(date!.getDate()) : "";
+                d.textContent = valid ? String(date!.getUTCDate()) : "";
             };
-            if (!animate || reduced.matches) { apply(); return; }
-            const out = page.animate([{ transform: "rotateX(0)" }, { transform: "rotateX(-88deg)" }], { duration: 130, easing: "cubic-bezier(.3,0,1,1)" });
+            if (!animate || reduced.matches || !valid) { apply(); return; }
+            const out = flip = page.animate([{ transform: "rotateX(0)" }, { transform: "rotateX(-88deg)" }], { duration: 130, easing: "cubic-bezier(.3,0,1,1)" });
             out.onfinish = () => {
                 apply();
-                page.animate([{ transform: "rotateX(88deg)" }, { transform: "rotateX(0)" }], { duration: 260, easing: "cubic-bezier(.34,1.4,.64,1)" });
+                flip = page.animate([{ transform: "rotateX(88deg)" }, { transform: "rotateX(0)" }], { duration: 260, easing: "cubic-bezier(.34,1.4,.64,1)" });
             };
         }
 
         // ------------------------------------------------ completion pips + arming
-        function pipFor(set: HTMLFieldSetElement): HTMLElement {
-            const legend = set.querySelector<HTMLElement>(":scope > legend")!;
-            let pip = legend.querySelector<HTMLElement>(":scope > .bioage-domain-pip");
-            if (!pip) {
-                pip = document.createElement("span");
-                pip.className = "bioage-domain-pip bioage-date-pip";
-                pip.setAttribute("aria-hidden", "true");
-                legend.appendChild(pip);
-            }
-            return pip;
-        }
-        const dobPip = pipFor(dob);
-        const drawPip = pipFor(drawSet);
         let armed = false;
         function sync(animate: boolean): void {
-            const dobDone = !!year!.value;
+            const dobDone = !!year!.value && year!.validity.valid;
             const drawDone = !!draw!.value && draw!.validity.valid;
-            dobPip.classList.toggle("bioage-domain-pip--complete", dobDone);
-            drawPip.classList.toggle("bioage-domain-pip--complete", drawDone);
             dob!.classList.toggle("is-complete", dobDone);
             drawSet!.classList.toggle("is-complete", drawDone);
-            const ready = dobDone && drawDone;
+            const ready = window.LwcBioageFlow.hasValidDates(form!);
             if (next) {
                 next.classList.toggle("is-armed", ready);
+                if (!ready || reduced.matches) next.classList.remove("is-arming");
                 if (ready && !armed && animate && !reduced.matches) {
                     next.classList.remove("is-arming");
                     void next.offsetWidth;
@@ -141,17 +130,20 @@ interface Window {
             paintCalendar(animate);
         }
 
-        [...selects, draw].forEach(control => control.addEventListener("change", () => {
+        // Bubble after the calculators have clamped days and applied minor privacy.
+        form.addEventListener("change", event => {
+            const control = event.target;
+            if (!(control instanceof HTMLElement) || ![...selects, draw].includes(control as HTMLInputElement)) return;
             pulse(control);
             sync(true);
-        }));
+            if (current) place(current, true);
+        });
         draw.addEventListener("input", () => sync(true));
 
-        // Restored drafts and shared links fill the fields after load without events.
-        sync(false);
-        let checks = 0;
-        const settle = window.setInterval(() => { sync(false); if (++checks > 12) window.clearInterval(settle); }, 250);
         window.LwcBioageDates = { refresh: () => sync(false) };
+        window.addEventListener("pageshow", () => sync(false));
+        reduced.addEventListener("change", () => sync(false));
+        sync(false);
     }
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });

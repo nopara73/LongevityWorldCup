@@ -1479,6 +1479,7 @@ interface Window {
     }
 
     function completeInitialView(): void {
+        window.LwcBioageDates?.refresh();
         window.LwcInitialView.complete();
     }
 
