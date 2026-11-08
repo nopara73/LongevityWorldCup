@@ -11,6 +11,52 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
     PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task Chase_DoesNotDelayPointerExitAfterTheEntrance()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-settled"));
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var link = page.Locator(".ro-row.is-chasing .ro-row-link").First;
+        await link.HoverAsync();
+        await page.Mouse.MoveAsync(0, 0);
+        Assert.True(await link.EvaluateAsync<bool>("""
+            e => getComputedStyle(e.querySelector('.ro-row-bar'), '::after').transitionDelay
+                .split(',').every(delay => parseFloat(delay) === 0)
+            """), "Leaving a settled row must release the notch without replaying the entrance delay.");
+    }
+
+    [Fact]
+    public async Task Chase_TouchGapWaitsUntilTheEntranceHasFilledTheBars()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 320 }, IsMobile = true, HasTouch = true,
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-ready"));
+        var standings = page.Locator(".ro-standings");
+        await standings.EvaluateAsync("""
+            e => {
+                const observer = new MutationObserver(() => {
+                    if (!e.classList.contains('is-playing')) return;
+                    observer.disconnect();
+                    e.dataset.testGapAtEntrance = getComputedStyle(e.querySelector('.ro-row.is-chasing .ro-row-bar')).getPropertyValue('--ro-gap');
+                });
+                observer.observe(e, {attributes:true, attributeFilter:['class']});
+                e.scrollIntoView({block:'start'});
+            }
+            """);
+        await Assertions.Expect(standings).ToHaveAttributeAsync("data-test-gap-at-entrance", "rgba(0, 0, 0, 0)");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-settled"));
+        Assert.NotEqual("rgba(0, 0, 0, 0)", await page.Locator(".ro-row.is-chasing .ro-row-bar").First
+            .EvaluateAsync<string>("e => getComputedStyle(e).getPropertyValue('--ro-gap')"));
+    }
+
     [Theory]
     [InlineData(1440, 900, ColorScheme.Light)]
     [InlineData(1440, 900, ColorScheme.Dark)]

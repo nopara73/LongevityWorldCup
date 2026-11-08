@@ -1283,6 +1283,10 @@
     transform: none;
 }
 
+.ro-standings.is-settled .ro-row-bar::after {
+    transition-delay: 0s;
+}
+
 @property --ro-gap {
     syntax: "<color>";
     inherits: false;
@@ -1314,7 +1318,7 @@
 
 /* Touch readers can see the chase without having to hover a navigation link. */
 @media (hover: none) {
-    .ro-row.is-chasing .ro-row-bar {
+    .ro-standings.is-settled .ro-row.is-chasing .ro-row-bar {
         --ro-gap: color-mix(in srgb, var(--lwc-bronze) 38%, transparent);
     }
 }
