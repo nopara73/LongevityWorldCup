@@ -56,6 +56,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_HEADSHOT_WEBP}}"] = "/assets/content-images/headshot.webp",
         ["{{ASSET_JUST_TRACK_IT_IMAGE}}"] = "/assets/content-images/JustTrackIt.jpg",
         ["{{ASSET_LEAGUE_ICONS_JS}}"] = "/js/leagueIcons.js",
+        ["{{ASSET_LMX_DISCUSSION_CSS}}"] = "/css/lmx-discussion.css",
+        ["{{ASSET_LMX_DISCUSSION_JS}}"] = "/js/lmx-discussion.js",
         ["{{ASSET_LONGEVITYMAXXING_CSS}}"] = "/css/longevitymaxxing.css",
         ["{{ASSET_LONGEVITYMAXXING_JS}}"] = "/js/longevitymaxxing.js",
         ["{{ASSET_MEDIA_KIT_FEEL_CSS}}"] = "/css/media-kit-feel.css",

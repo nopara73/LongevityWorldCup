@@ -108,6 +108,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
         await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveCountAsync(0);
         await Assertions.Expect(posts.First).ToHaveAttributeAsync("data-discussion-post-participant-id", "p2");
+        await page.Mouse.MoveAsync(0, 0);
+        await WaitForFiniteAnimationsAsync(page);
         Assert.Equal(await posts.First.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"),
             await request.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
         await CaptureAdviceAsync(page, $"answered-request-{width}-{theme}.png", request);
@@ -137,10 +139,13 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var draft = ordinary.Locator("textarea");
         await draft.FillAsync("Keep this reply while the request changes.");
         await draft.EvaluateAsync("e => { e.setSelectionRange(5, 15); window.adviceRefreshDraft = e; }");
+        await WaitForFiniteAnimationsAsync(page);
         var newer = LargeDiscussionFeedState(100);
         state["notes"] = newer["notes"]!.DeepClone();
         state["public"]!["notes"] = newer["public"]!["notes"]!.DeepClone();
+        var revalidated = page.WaitForResponseAsync(response => response.Url.Contains("/discussion/thread?", StringComparison.Ordinal));
         await page.Clock.FastForwardAsync(61_000);
+        await revalidated;
         await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveTextAsync("Request withdrawn");
         await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
         await Assertions.Expect(request).Not.ToContainTextAsync(AdviceStory);
@@ -169,6 +174,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var draft = request.Locator("textarea");
         await draft.FillAsync("My advice is still being written.");
         await draft.EvaluateAsync("e => { e.setSelectionRange(3, 9); window.manyPinsDraft = e; }");
+        await WaitForFiniteAnimationsAsync(page);
         var top = await draft.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
         var answered = AdviceFeedBrowserState(true)["notes"]!.AsArray().Single(note => note!["advice"] != null)!;
         answered["advice"]!["betterAdviceParticipantIds"] = new JsonArray("p2", "p4");
