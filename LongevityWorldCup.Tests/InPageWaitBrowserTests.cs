@@ -319,6 +319,7 @@ public sealed class InPageWaitBrowserTests(
         await context.RouteAsync("**/api/**", route => route.Request.Method == "GET"
             ? route.FallbackAsync() : route.FulfillAsync(new() { Status = 503, Body = "Unrelated failure" }));
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => !!window.LwcWait && typeof fetchWithTimeout==='function'");
         await page.EvaluateAsync("""
@@ -335,10 +336,15 @@ public sealed class InPageWaitBrowserTests(
         await Assertions.Expect(button).ToHaveAttributeAsync("data-lwc-wait", new System.Text.RegularExpressions.Regex("^(pending|shown)$"));
         await page.Locator("#emailInput").FillAsync("newer@example.test");
         await page.EvaluateAsync("() => fetch('/api/unrelated', {method:'POST'}).catch(()=>{})");
+        // The outcome marker lasts only for the ending animation. Keep it observable
+        // across Playwright round trips, then explicitly verify its cleanup.
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.EvaluateAsync("value => releaseNewsletter(value)", new { status, body });
         await Assertions.Expect(button).ToHaveAttributeAsync("data-lwc-wait-end", outcome);
         await Assertions.Expect(button).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(page.Locator("#emailInput")).ToHaveValueAsync("newer@example.test");
         await Assertions.Expect(page.Locator("#emailInput")).ToBeFocusedAsync();
+        await page.Clock.RunForAsync(1000);
+        await Assertions.Expect(button).Not.ToHaveAttributeAsync("data-lwc-wait-end", new System.Text.RegularExpressions.Regex("."));
     }
 }
