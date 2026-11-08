@@ -358,22 +358,23 @@ public sealed class ApplicationControllerValidationTests(TestWebApplicationFacto
         Assert.Equal("Biomarker date is invalid.", badRequest.Value);
     }
 
-    [Fact]
-    public async Task ResultSubmissionFutureBiomarkerDateReturnsBadRequestBeforeProcessing()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SubmissionWithFutureBiomarkerDateContinuesToValueValidation(bool fullApplication)
     {
-        var factory = sharedFactory;
-        var controller = CreateController(factory);
-        var tomorrow = DateTime.UtcNow.Date.AddDays(1);
-
-        var result = await controller.Application(new ApplicantData
+        var controller = CreateController(sharedFactory);
+        var application = fullApplication ? CreateValidFullApplication() : new ApplicantData
         {
             Name = "Applicant Ada",
-            Biomarkers = [new BiomarkerData { Date = tomorrow.ToString("yyyy-MM-dd") }],
             ProofPics = ["data:image/png;base64,AA=="]
-        }, CancellationToken.None);
+        };
+        application.Biomarkers = [new BiomarkerData { Date = "2099-01-01" }];
+
+        var result = await controller.Application(application, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Biomarker date cannot be in the future.", badRequest.Value);
+        Assert.Equal("Biomarker result value is required.", badRequest.Value);
     }
 
     [Fact]

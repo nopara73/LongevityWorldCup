@@ -1,0 +1,262 @@
+/* Calculator date step (pheno and Bortz): two matched date cards.
+   Frontend/bioage-dates.ts adds the glide bar, change pulses, the calendar
+   page and Continue arming. The shared sheet owns band pips. Colours come only from --lwc-* and
+   the form's --bioage-* tokens. Scoped through [data-bioage-dates] so the
+   step keeps its previous look until the script runs. */
+
+/* ------------------------------------------------------------ the two cards */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active {
+    --date-card-pad: var(--lwc-space-3, .75rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--lwc-space-3, .75rem);
+    padding-top: var(--lwc-space-3, .75rem);
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset {
+    position: relative;
+    margin: 0;
+    padding: 0 var(--date-card-pad) var(--lwc-space-3, .75rem);
+    border: 0;
+    border-radius: var(--lwc-radius-md, 10px);
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 1px var(--bioage-hairline), 0 1px 2px rgba(15, 23, 42, .04);
+    overflow: clip;
+    transition: box-shadow 220ms var(--lwc-ease-standard, ease);
+}
+/* Each card opens with the sheet's band, now the full width of its card.
+   Floating the legend keeps it inside the card instead of straddling its edge;
+   the enhanced card owns its band geometry. */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset > legend,
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset#dobFieldset > legend,
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) > legend {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: var(--lwc-space-2, .5rem);
+    float: left;
+    box-sizing: border-box;
+    width: calc(100% + 2 * var(--date-card-pad));
+    min-height: 44px;
+    margin: 0 calc(-1 * var(--date-card-pad));
+    padding: .55rem var(--date-card-pad);
+    border: 0;
+    border-bottom: 1px solid var(--bioage-hairline);
+    border-radius: 0;
+    background: var(--bioage-band);
+    font-size: .8rem;
+    line-height: 1.3;
+}
+/* ------------------------------------------------------- Year | Month | Day */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > #dobFieldset > :is(label, select) { margin-top: 0; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset#dobFieldset {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.85fr) minmax(0, 1fr);
+    padding-inline: var(--date-card-pad);
+    column-gap: 0;
+    row-gap: .5rem;
+    align-content: start;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset#dobFieldset > legend { grid-column: 1 / -1; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > label {
+    grid-row: 2;
+    align-self: end;
+    margin: 0;
+    padding-inline: .5rem .125rem;
+    font-size: var(--lwc-type-sm, .875rem);
+    line-height: 1.25;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > label span {
+    display: block;
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-xs, .75rem);
+    white-space: normal;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > label[for="dob-year"] { grid-column: 1; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > #dob-month-label { grid-column: 2; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > #dob-day-label { grid-column: 3; }
+
+/* One joined strip: shared outer edge, hairline dividers between the parts. */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > select {
+    grid-row: 3;
+    position: relative;
+    min-height: 48px;
+    margin: 0;
+    padding-inline: .5rem 1.25rem;
+    background-position: right .4rem center;
+    background-size: 12px;
+    border-radius: 0;
+    border-color: var(--lwc-border-strong, #71808d);
+    background-color: var(--lwc-surface, #fff);
+    font-size: var(--lwc-type-body, 1rem);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > #dob-year { grid-column: 1; border-radius: var(--lwc-radius-md, 10px) 0 0 var(--lwc-radius-md, 10px); }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > #dob-month { grid-column: 2; margin-left: -1px; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > #dob-day { grid-column: 3; margin-left: -1px; border-radius: 0 var(--lwc-radius-md, 10px) var(--lwc-radius-md, 10px) 0; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > select:hover { background-color: var(--lwc-surface-accent, #e7f7f8); z-index: 1; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > select:focus-visible { z-index: 2; outline: none; border-color: var(--lwc-accent, #087685); box-shadow: inset 0 0 0 1px var(--lwc-accent, #087685); }
+/* Year is the one required part: until it is chosen it reads as the gap to fill. */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset:not(.is-complete) > #dob-year {
+    background-color: var(--lwc-surface-accent, #e7f7f8);
+    color: var(--lwc-accent-hover, #065d68);
+}
+
+/* The bar that glides to the part in hand. */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-date-glide {
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    top: 0;
+    width: var(--glide-w, 0px);
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: var(--lwc-accent, #087685);
+    translate: var(--glide-x, 0px) var(--glide-y, 0px);
+    opacity: 0;
+    pointer-events: none;
+    transition: translate 240ms cubic-bezier(.2, 0, 0, 1), width 240ms cubic-bezier(.2, 0, 0, 1), opacity 160ms ease;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset.has-glide > .bioage-date-glide { opacity: 1; }
+
+/* ------------------------------------------------------------ draw date */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset:nth-of-type(2) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--lwc-space-3, .75rem);
+    align-items: center;
+    align-content: start;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset:nth-of-type(2) > legend { grid-column: 1 / -1; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset:nth-of-type(2) .blood-draw-date-control,
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .blood-draw-date-control {
+    width: 100%;
+    padding-top: 0;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 .blood-draw-date-control input { min-height: 48px; font-weight: 600; }
+
+/* The chosen date as a small calendar page (an aria-hidden echo of the value). */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    width: 3.6rem;
+    height: 3.9rem;
+    border-radius: var(--lwc-radius-sm, 8px);
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 1px var(--bioage-hairline), 0 6px 14px -10px rgba(0, 0, 0, .5);
+    overflow: hidden;
+    text-align: center;
+    transform-origin: center top;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal-month {
+    padding: .2rem 0 .15rem;
+    background: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #fff);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    min-height: 1rem;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal-day {
+    display: grid;
+    place-items: center;
+    color: var(--lwc-ink, #17212b);
+    font: 800 1.45rem/1 Orbitron, Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal-ring { display: none; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal.is-empty { visibility: hidden; }
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal.is-empty .bioage-cal-month { background: var(--lwc-border-strong, #71808d); }
+
+/* ------------------------------------------------------------ feedback */
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 .is-ticked { animation: bioage-tick 480ms cubic-bezier(.2, 0, 0, 1); }
+@keyframes bioage-tick {
+    0% { box-shadow: inset 0 0 0 1px var(--lwc-accent, #087685), 0 0 0 0 color-mix(in srgb, var(--lwc-accent, #087685) 40%, transparent); }
+    100% { box-shadow: inset 0 0 0 1px transparent, 0 0 0 8px transparent; }
+}
+
+/* Continue arms once both cards are set: one nudge of its arrow and a soft glow. */
+#lwcToStep2Btn.is-armed { box-shadow: 0 8px 22px -12px color-mix(in srgb, var(--lwc-success, #1f7a38) 90%, transparent); }
+#lwcToStep2Btn.is-arming { animation: bioage-arm 620ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)); }
+#lwcToStep2Btn.is-arming > i { animation: bioage-arrow 620ms cubic-bezier(.2, 0, 0, 1); }
+@keyframes bioage-arm { 35% { scale: 1.035; } }
+@keyframes bioage-arrow { 40% { translate: 6px 0; } 70% { translate: -1px 0; } }
+
+/* ------------------------------------------------------------ desktop */
+@media (min-width: 960px) and (min-height: 640px) {
+    @container bioage-form (min-width: 38em) {
+        html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active {
+            grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr);
+            align-items: stretch;
+            column-gap: var(--lwc-space-3, .75rem);
+        }
+        html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > .lwc-step-actions { grid-column: 1 / -1; }
+        html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
+            grid-template-columns: minmax(0, 1fr);
+            justify-items: center;
+            row-gap: var(--lwc-space-3, .75rem);
+        }
+        html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) > legend { justify-self: stretch; }
+        html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .bioage-cal {
+            grid-row: 2;
+            width: 5rem;
+            height: 5.4rem;
+        }
+        html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .bioage-cal-day { font-size: 2rem; }
+        html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .blood-draw-date-control { grid-row: 3; }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-date-glide { transition: opacity 120ms linear; }
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 .is-ticked,
+    #lwcToStep2Btn.is-arming,
+    #lwcToStep2Btn.is-arming > i { animation: none; }
+}
+
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset::after {
+    left: 0;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > #privacyNote {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: .25rem;
+    padding-block: .6rem;
+}
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > .lwc-step-actions,
+html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > .lwc-flow-action-placeholder {
+    grid-column: 1 / -1;
+}
+/* Full month names and hints must fit before we join the three controls. */
+@container bioage-form (max-width: 19em) {
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active { --date-card-pad: clamp(0px, calc(5vw - 8px), .75rem); }
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset#dobFieldset {
+        display: block;
+    }
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > #dobFieldset > :is(label, select) {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        margin: .5rem 0 0;
+    }
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > :is(#dob-year, #dob-month, #dob-day) {
+        border-radius: var(--lwc-radius-md, 10px);
+        padding-inline: 4px 16px;
+        margin-left: 0;
+        background-position: right 4px center;
+    }
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #dobFieldset > label span { display: inline; }
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fieldset:nth-of-type(2) {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+    }
+    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal { margin-top: .75rem; }
+}
+/* The shared sheet also animates this action; this layer owns its ready state. */
+body:has([data-bioage-dates]) #lwcToStep2Btn.green { animation: none; }
+body:has([data-bioage-dates]) #lwcToStep2Btn.green.is-arming { animation: bioage-arm 620ms var(--lwc-ease-pop, ease); }
+@media (prefers-reduced-motion: reduce) {
+    body:has([data-bioage-dates]) #lwcToStep2Btn.green.is-arming { animation: none; }
+}

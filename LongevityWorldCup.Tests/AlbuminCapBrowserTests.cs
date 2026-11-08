@@ -53,7 +53,7 @@ public sealed class AlbuminCapBrowserTests(
                 }
             }
             """, fields);
-        await page.Locator("#calculateBioageButton").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
 
         using var client = App.CreateClient();
         var atCap = clock == "pheno"

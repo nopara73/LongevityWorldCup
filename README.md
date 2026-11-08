@@ -55,3 +55,24 @@ inside the existing route, calculator, and sitemap tests, including in CI. They 
 responses and parsed JSON already obtained by those tests, adding no HTTP requests,
 application hosts, browser launches, or subprocesses.
 
+Browser tests should wait for a locator, state, request/response, or fixture signal
+instead of guessing readiness with a sleep. CI rejects new or edited
+`WaitForTimeoutAsync`, `Task.Delay`, `Thread.Sleep`, and common inline JavaScript
+promise/`setTimeout` sleeps in Playwright test sources and browser helpers. Unchanged
+legacy waits and ordinary backend tests are left alone.
+
+If elapsed time is part of the test (an observation window, slow fixture, gesture,
+deadline, or bounded polling interval), give each wait its own reason immediately
+above it or in a trailing comment:
+
+```csharp
+// Intentional wait: Outlive the dismissal timer to catch an unwanted reopen.
+await page.WaitForTimeoutAsync(550);
+```
+
+Use the same comment immediately above an inline JavaScript sleep promise. Bare markers
+are rejected. Locator/signal waits, virtual-clock operations, and zero-delay JavaScript
+queue checkpoints need no opt-in. Indirect scripts and custom sleep wrappers still
+need review. To check a committed range locally (not uncommitted edits), run
+`python3 -B .github/scripts/check_browser_waits.py --base <base-commit> --head HEAD`.
+
