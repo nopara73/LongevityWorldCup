@@ -45,7 +45,8 @@ public sealed class TelegramApiClient(IHttpClientFactory clients, Config config)
     {
         var credentials = config.Telegram ?? throw new InvalidOperationException("Telegram is not configured.");
         using var client = clients.CreateClient(nameof(TelegramApiClient));
-        using var response = await client.PostAsJsonAsync($"bot{credentials.BotToken}/sendMessage", new
+        var endpoint = new Uri($"/bot{credentials.BotToken}/sendMessage", UriKind.Relative);
+        using var response = await client.PostAsJsonAsync(endpoint, new
         {
             chat_id = credentials.ChannelId,
             text,

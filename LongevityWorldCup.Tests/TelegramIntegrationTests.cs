@@ -129,7 +129,7 @@ public sealed class TelegramIntegrationTests
 
     private static Config NewConfig() => new()
     {
-        Telegram = new() { BotToken = "test-token", ChannelId = ChannelId }
+        Telegram = new() { BotToken = "123456:test-bot-token-with-colon", ChannelId = ChannelId }
     };
 
     private static string Queue(SocialJobIntegrationTests.SocialJobFixture fixture, string title) =>
