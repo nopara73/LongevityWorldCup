@@ -11,6 +11,40 @@ public sealed class LeaderboardSidebarMotionBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/")]
+    [InlineData("/leaderboard")]
+    public async Task DeckReflow_PreservesRevealedRowsWithoutReplayingTheirEntrance(string path)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator(".leaderboard tbody tr[data-athlete-name]").First.ScrollIntoViewIfNeededAsync();
+        await WaitForFiniteAnimationsAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                window.reviewRevealedRow = document.querySelector('.leaderboard tbody tr[data-athlete-name]');
+                window.reviewReplayedEntrances = [];
+                reviewRevealedRow.addEventListener('animationstart', event => reviewReplayedEntrances.push(event.animationName));
+                reviewRevealedRow.addEventListener('transitionrun', event => {
+                    if (['opacity', 'translate'].includes(event.propertyName)) reviewReplayedEntrances.push(event.propertyName);
+                });
+            }
+            """);
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await WaitForFiniteAnimationsAsync(page);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".sidebar-panel")).ToBeHiddenAsync();
+        await WaitForFiniteAnimationsAsync(page);
+        Assert.True(await page.EvaluateAsync<bool>("reviewRevealedRow === document.querySelector('.leaderboard tbody tr[data-athlete-name]')"));
+        Assert.Empty(await page.EvaluateAsync<string[]>("reviewReplayedEntrances"));
+        Assert.Equal("1", await page.EvaluateAsync<string>("getComputedStyle(reviewRevealedRow).opacity"));
+    }
+
+    [Theory]
     [InlineData("/leaderboard", false)]
     [InlineData("/leaderboard?group=flags", true)]
     [InlineData("/leaderboard?search=Valerie", false)]

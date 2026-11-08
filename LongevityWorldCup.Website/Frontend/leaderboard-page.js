@@ -7568,8 +7568,9 @@ function closeSidebar(options = {}) {
         // Preserve the visible result when the in-flow deck disappears. If the
         // reader is still inside the deck, return to its controlling button.
         const desktop = !isMobileDrawerViewport();
+        const stickyHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 52;
         const result = desktop && [...document.querySelectorAll('.leaderboard > table tbody tr, .flag-leaderboard .flag-team')]
-            .find(row => { const r = row.getBoundingClientRect(); return r.height > 0 && r.bottom > 60 && r.top < innerHeight; });
+            .find(row => { const r = row.getBoundingClientRect(); return r.height > 0 && r.bottom > stickyHeight && r.top < innerHeight; });
         const anchor = result || sidebarToggle;
         const before = anchor.getBoundingClientRect().top;
         sidebar.classList.remove('expanded', 'is-closing');
@@ -7578,7 +7579,7 @@ function closeSidebar(options = {}) {
         syncSidebarDrawerBackdrop();
         syncLeaderboardTableHeight();
         if (desktop) {
-            const desired = result ? before : Math.max(64, before);
+            const desired = result ? before : Math.max(stickyHeight + 12, before);
             ScrollGuard.trustedScrollTo({ top: scrollY + anchor.getBoundingClientRect().top - desired, behavior: 'instant' });
         }
     };

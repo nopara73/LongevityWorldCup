@@ -2100,14 +2100,14 @@ public sealed class AestheticSystemBrowserTests(
             () => {
                 const board = document.querySelector('.leaderboard');
                 const probe = board.cloneNode(true);
-                // Keep the component ID so its scoped filter styles apply to
-                // the clone, just as the nested component IDs already do.
+                // Preserve the component ID for its scoped filter styles,
+                // replacing the live node instead of duplicating its IDs.
                 probe.dataset.responsiveLeaderboardProbe = 'true';
                 const panel = probe.querySelector('.sidebar');
                 panel.classList.add('expanded');
                 panel.classList.remove('button-collapsed', 'partially-expanded');
                 panel.setAttribute('aria-hidden', 'false');
-                board.parentElement.append(probe);
+                board.replaceWith(probe);
             }
             """);
         var rootFontSize = await page.EvaluateAsync<double>(
