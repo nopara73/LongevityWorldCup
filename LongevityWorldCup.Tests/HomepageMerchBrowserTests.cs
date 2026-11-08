@@ -263,9 +263,9 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await Assertions.Expect(cards.Nth(2)).ToHaveAttributeAsync("aria-hidden", "false");
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
 
-        // The page gesture still opens filters when it starts outside a scroller.
+        // A horizontal page gesture must not open the bottom sheet either.
         await SwipeAsync(page, page.Locator(".lwc-merch-copy"), forward: false);
-        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "false");
     }
 
     [Fact]
