@@ -1097,6 +1097,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             line-height: 1.4;
         }
 
+        .documentation-timeline-title {
+            max-inline-size: 100%;
+        }
+
         .documentation-timeline-entry.is-announced .documentation-timeline-date {
             border: 1px dashed var(--lwc-accent, var(--primary-color));
             background: transparent;

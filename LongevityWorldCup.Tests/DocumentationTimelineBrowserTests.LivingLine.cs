@@ -13,6 +13,7 @@ public sealed partial class DocumentationTimelineBrowserTests
     [InlineData(390, 844, 100, false)]
     [InlineData(390, 844, 200, true)]
     [InlineData(320, 640, 200, false)]
+    [InlineData(305, 640, 200, false)] // 320px window with a native scrollbar gutter.
     [InlineData(820, 1180, 100, true)]
     [InlineData(844, 390, 100, false)]
     [InlineData(599, 900, 200, false)]
@@ -43,6 +44,9 @@ public sealed partial class DocumentationTimelineBrowserTests
                     const current = centers.findLastIndex(y => y <= line);
                     if (timeline.querySelectorAll('.is-current').length !== 1 || !entries[current]?.classList.contains('is-current')) issues.push('wrong current entry');
                     entries.forEach((e,i) => { if(e.classList.contains('is-passed') !== (i <= current)) issues.push('wrong passed entry'); });
+                    for (const heading of timeline.querySelectorAll('.documentation-timeline-heading')) {
+                        if (heading.scrollWidth > heading.clientWidth+1) issues.push('heading overflows its reading column');
+                    }
                     const year = timeline.querySelector('.documentation-timeline-year-face');
                     const yearBox = year.getBoundingClientRect();
                     const yearHost = year.parentElement.getBoundingClientRect();
