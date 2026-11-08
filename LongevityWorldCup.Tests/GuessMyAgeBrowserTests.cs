@@ -24,6 +24,15 @@ public sealed class GuessMyAgeBrowserTests(
         await page.Clock.PauseAtAsync(pauseAt);
     }
 
+    internal static async Task AdvanceRevealUntilAsync(IPage page, string predicate)
+    {
+        // A slow mocked response must not spend the reveal budget or its request deadline.
+        await page.WaitForFunctionAsync("() => !!document.querySelector('#detailsModal .modal-content.gma-result-ready')");
+        for (var elapsed = 0; elapsed < 12000 && !await page.EvaluateAsync<bool>(predicate); elapsed += 250)
+            await page.Clock.RunForAsync(250);
+        Assert.True(await page.EvaluateAsync<bool>(predicate), "The expected reveal state did not arrive within its animation budget.");
+    }
+
     [Fact]
     public async Task PatrickRoute_CompletesAFilteredGuessWithoutAddingItToCrowdAge()
     {
@@ -835,16 +844,10 @@ public sealed class GuessMyAgeBrowserTests(
         await range.EvaluateAsync(
             "range => { range.value = '50'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
 
-        var acceptedResponse = page.WaitForResponseAsync(response =>
-            response.Request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase)
-            && new Uri(response.Url).AbsolutePath.Equals(
-                "/api/Guess/athlete-age",
-                StringComparison.OrdinalIgnoreCase));
         await submit.ClickAsync();
-        var acceptedResultResponse = await acceptedResponse;
-        await acceptedResultResponse.FinishedAsync();
-        await page.Clock.RunForAsync(100);
-        Assert.Contains("First accepted guess!", await status.InnerTextAsync(), StringComparison.Ordinal);
+        // Network completion can precede JSON processing; observe the semantic
+        // result without advancing a reveal that these assertions do not need.
+        await Assertions.Expect(status).ToContainTextAsync("First accepted guess!");
         Assert.Contains("You guessed older — oof.", await status.InnerTextAsync());
         await page.WaitForFunctionAsync(
             "imageId => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['accepted-history-test']?.byImage?.[imageId]?.first === true",

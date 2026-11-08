@@ -857,7 +857,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const heading=document.createElement('tr');
         heading.className='events-month-row';
         heading.dataset.month=month;
-        heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span></th>`;
+        heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span><span class="events-day-chip" aria-hidden="true"></span></th>`;
         group.appendChild(heading);
         monthHeadingObserver?.observe(heading);
         observeMonthReveal(table, heading);
@@ -906,6 +906,7 @@ const eventsPageAssets = document.currentScript.dataset;
             previousDay=day;
             previousMonth=month;
         });
+        if (chapters) queueMonthHandoff();
     }
 
     // ---- Living feed -------------------------------------------------------
@@ -1041,6 +1042,8 @@ const eventsPageAssets = document.currentScript.dataset;
     // Months arrive as the reader reaches them.
     let monthRevealObserver = null;
     function observeMonthReveal(table, heading){
+        // Reading position is useful with or without reveal animations.
+        watchMonthHandoff();
         const revealed = table._revealedMonths || (table._revealedMonths = new Set());
         if (revealed.has(heading.dataset.month) || prefersReducedMotion() || typeof IntersectionObserver !== 'function') {
             // A rebuilt band of a month already shown stays still.
@@ -1055,7 +1058,6 @@ const eventsPageAssets = document.currentScript.dataset;
             monthRevealObserver.unobserve(row);
         }), { rootMargin: '0px 0px -8% 0px' });
         monthRevealObserver.observe(heading);
-        watchMonthHandoff();
     }
 
     // The pinned month band hands over to the next one: it is marked as pinned,
@@ -1066,11 +1068,12 @@ const eventsPageAssets = document.currentScript.dataset;
         if (monthHandoffWatching) return;
         monthHandoffWatching = true;
         let frame = 0;
+        let lastRow = null;
         const update = () => {
             frame = 0;
             const headings = document.querySelectorAll('.event-board-page tr.events-month-row');
-            if (!headings.length) return;
-            const stickyTop = parseFloat(getComputedStyle(headings[0]).top) || 0;
+            const stickyTop = headings.length ? parseFloat(getComputedStyle(headings[0]).top) || 0 : 0;
+            let current = null;
             headings.forEach(row => {
                 const body = row.parentElement;
                 const bodyRect = body.getBoundingClientRect();
@@ -1081,13 +1084,69 @@ const eventsPageAssets = document.currentScript.dataset;
                 if (row.classList.contains('is-pinned') !== pinned) row.classList.toggle('is-pinned', pinned);
                 const value = handoff.toFixed(2);
                 if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
+                const chip = row.querySelector('.events-day-chip');
+                let reading = null;
+                if (pinned) {
+                    // An expanded story belongs to its title's day until its
+                    // final paragraph passes under the band.
+                    reading = [...body.querySelectorAll('tr.main-row[data-day]')].find(event => {
+                        const end = event.classList.contains('is-open') && event.nextElementSibling?.classList.contains('details-row')
+                            ? event.nextElementSibling : event;
+                        return end.getBoundingClientRect().bottom > rect.bottom + 1;
+                    });
+                }
+                if (!reading) {
+                    if (chip?.hasChildNodes()) { chip.replaceChildren(); delete chip.dataset.day; }
+                    return;
+                }
+                current = reading;
+                if (!chip || chip.dataset.day === reading.dataset.day) return;
+                const previous = chip.dataset.day;
+                const direction = lastRow && (lastRow.compareDocumentPosition(reading) & Node.DOCUMENT_POSITION_PRECEDING) ? -1 : 1;
+                chip.dataset.day = reading.dataset.day;
+                const number = document.createElement('span');
+                // The existing date owns the reader's calendar, timezone and digits.
+                number.textContent = reading.querySelector('.event-date-day')?.textContent || '';
+                chip.replaceChildren(number);
+                if (previous && !prefersReducedMotion()) {
+                    number.animate([
+                        { transform: `translateY(${direction * 100}%)`, opacity: 0 },
+                        { transform: 'none', opacity: 1 }
+                    ], { duration: 220, easing: FEED_EASE });
+                }
             });
+            if (lastRow !== current) {
+                lastRow?.classList.remove('is-current-day');
+                lastRow = current;
+            }
+            current?.classList.add('is-current-day');
         };
-        const queue = () => { if (!frame) frame = requestAnimationFrame(update); };
+        const queue = () => { if (!frame && !document.hidden) frame = requestAnimationFrame(update); };
+        const stop = () => {
+            cancelAnimationFrame(frame);
+            frame = 0;
+            document.querySelectorAll('.events-day-chip').forEach(chip => chip.getAnimations({ subtree: true }).forEach(animation => animation.cancel()));
+        };
         queueMonthHandoff = queue;
         window.addEventListener('scroll', queue, { passive: true });
         window.addEventListener('resize', queue, { passive: true });
+        window.addEventListener('pagehide', stop);
+        window.addEventListener('pageshow', queue);
+        document.addEventListener('visibilitychange', () => document.hidden ? stop() : queue());
+        if (typeof ResizeObserver === 'function') {
+            const observer = new ResizeObserver(queue);
+            document.querySelectorAll('.event-board-page .events-board').forEach(board => observer.observe(board));
+        }
         queue();
+    }
+
+    function updateFreshHighlights(){
+        const now = Date.now();
+        document.querySelectorAll('.event-board-page tr.main-row').forEach(row => {
+            const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
+            const age = now - stamp;
+            row.classList.toggle('is-fresh', Number.isFinite(age) && age >= 0 && age < 86400000);
+        });
     }
 
     // /events grows in chunks: skeletons wait at the end and settle into rows.
@@ -1139,6 +1198,7 @@ const eventsPageAssets = document.currentScript.dataset;
             previous = row;
         });
         applyZebraStriping(group);
+        updateFreshHighlights();
     }
 
     function mountFeedMore(table){
@@ -1207,6 +1267,7 @@ const eventsPageAssets = document.currentScript.dataset;
     // Relative labels ("joined 3 days ago") follow the clock, rolling to the
     // new value instead of waiting for a reload.
     function tickRelativeLabels(){
+        updateFreshHighlights();
         const reduced = prefersReducedMotion();
         document.querySelectorAll('.event-rel[data-rel-at]').forEach(el => {
             const next = relativeDayLabel(el.dataset.relAt);
@@ -1289,7 +1350,7 @@ const eventsPageAssets = document.currentScript.dataset;
         monthRevealObserver?.disconnect();
         document.querySelectorAll('.events-board .row-appear').forEach(row => row.classList.add('is-visible'));
         document.querySelectorAll('.events-month-row').forEach(row => row.classList.add('is-revealed', 'is-settled'));
-        document.querySelectorAll('.events-board .main-row, .event-athlete-preview, .event-portrait-flight, .events-exit-ghost').forEach(el => {
+        document.querySelectorAll('.events-board .main-row, .events-day-chip > span, .event-athlete-preview, .event-portrait-flight, .events-exit-ghost').forEach(el => {
             el.getAnimations().forEach(animation => animation.cancel());
             el.classList.remove('is-arriving', 'is-launching');
             if (el.matches('.event-portrait-flight, .events-exit-ghost')) el.remove();

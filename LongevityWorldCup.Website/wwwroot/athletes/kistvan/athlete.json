@@ -1,0 +1,41 @@
+{
+  "Name": "KIstvan",
+  "DisplayName": null,
+  "MediaContact": "istvan.komondi@clear97.hu",
+  "DateOfBirth": {
+    "Year": 1970,
+    "Month": 10,
+    "Day": 22
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-20",
+      "AlbGL": 44,
+      "CreatUmolL": 88,
+      "GluMmolL": 5.6,
+      "CrpMgL": 0.5,
+      "LymPc": 38.3,
+      "McvFL": 96,
+      "RdwPc": 12.5,
+      "AlpUL": 71,
+      "Wbc1000cellsuL": 7,
+      "NeutrophilPc": 51.8,
+      "MonocytePc": 7.4,
+      "Rbc10e12L": 4.9,
+      "MchPg": 32,
+      "UreaMmolL": 6.7,
+      "CystatinCMgL": 0.96,
+      "Hba1cMmolMol": 35,
+      "CholesterolMmolL": 6.5,
+      "ApoA1GL": 1.74,
+      "AltUL": 16,
+      "GgtUL": 18,
+      "ShbgNmolL": 49.5,
+      "VitaminDNmolL": 132.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "Jól érezzem magam a bőrömben.",
+  "PersonalLink": "https://movefit.hu/"
+}

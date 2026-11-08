@@ -28,7 +28,7 @@ public sealed partial class RedditBridgeController(Config config, RedditAnnounce
     {
         if (Authenticate() is { } rejected) return rejected;
         if (!ValidKey(request.DeliveryId)) return BadRequest();
-        var result = deliveries.Begin(request.DeliveryId!, time.GetUtcNow());
+        var result = deliveries.Begin(request.DeliveryId!, time.GetUtcNow(), confirmedBans: config.RedditBlockedLinks);
         return result == RedditBeginResult.Started ? Ok(new { started = true }) : Conflict(new { reason = result.ToString() });
     }
 
@@ -50,7 +50,7 @@ public sealed partial class RedditBridgeController(Config config, RedditAnnounce
 
     private IActionResult? Authenticate()
     {
-        if (!config.RedditEnabled) return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        if (!config.RedditEnabled || config.RedditUseIfttt) return StatusCode(StatusCodes.Status503ServiceUnavailable);
         var header = Request.Headers.Authorization;
         if (header.Count != 1 || header[0] is not { Length: <= 1024 } value || !value.StartsWith("Bearer ", StringComparison.Ordinal)) return Unauthorized();
         var verification = SecretHashVerifier.Verify(value[7..], config.RedditBridgeSecretHash);

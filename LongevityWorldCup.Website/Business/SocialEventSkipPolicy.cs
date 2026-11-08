@@ -139,18 +139,6 @@ public static class SocialEventSkipPolicy
         return false;
     }
 
-    public static bool TryGetFacebookTerminalSkipReason(EventType type, out SocialEventSkipReason reason)
-    {
-        if (type is EventType.CustomEvent or EventType.DonationReceived)
-        {
-            reason = default;
-            return false;
-        }
-
-        reason = SocialEventSkipReason.FacebookSupportsCustomEventsOnly;
-        return true;
-    }
-
     private static bool IsSingleWinnerBadge(string norm)
     {
         return

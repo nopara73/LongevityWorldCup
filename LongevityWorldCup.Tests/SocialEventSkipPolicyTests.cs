@@ -39,21 +39,6 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Age reduction] cat[Division] val[Men's] place[1]", now, 1, freshCutoff, true, false, SocialEventSkipReason.None };
     }
 
-    public static IEnumerable<object[]> FacebookGoldenSkipRules()
-    {
-        yield return new object[] { EventType.CustomEvent, false, SocialEventSkipReason.None };
-        yield return new object[] { EventType.Joined, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.NewRank, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.BadgeAward, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.AthleteCountMilestone, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.BecamePro, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.TestResultAccepted, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.BiologicalAgeImproved, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.CrowdAgeTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.AgeImprovementTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.DonationReceived, false, SocialEventSkipReason.None };
-    }
-
     [Theory]
     [MemberData(nameof(XOrThreadsGoldenSkipRules))]
     public void XOrThreads_TerminalSkipRulesMatchGoldenMatrix(
@@ -77,41 +62,6 @@ public sealed class SocialEventSkipPolicyTests
 
         Assert.Equal(expectedSkipped, skipped);
         Assert.Equal(expectedReason, reason);
-    }
-
-    [Theory]
-    [MemberData(nameof(FacebookGoldenSkipRules))]
-    public void Facebook_TerminalSkipRulesMatchGoldenMatrix(
-        EventType type,
-        bool expectedSkipped,
-        SocialEventSkipReason expectedReason)
-    {
-        var skipped = SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(type, out var reason);
-
-        Assert.Equal(expectedSkipped, skipped);
-        Assert.Equal(expectedReason, reason);
-    }
-
-    [Fact]
-    public void Facebook_UnsupportedEventsAreTerminalSkips()
-    {
-        var skipped = SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(
-            EventType.NewRank,
-            out var reason);
-
-        Assert.True(skipped);
-        Assert.Equal(SocialEventSkipReason.FacebookSupportsCustomEventsOnly, reason);
-    }
-
-    [Fact]
-    public void Facebook_CustomEventsAreNotTerminalSkips()
-    {
-        var skipped = SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(
-            EventType.CustomEvent,
-            out var reason);
-
-        Assert.False(skipped);
-        Assert.Equal(SocialEventSkipReason.None, reason);
     }
 
     [Fact]

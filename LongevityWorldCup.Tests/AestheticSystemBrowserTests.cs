@@ -293,8 +293,8 @@ public sealed class AestheticSystemBrowserTests(
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         // Signed out, the habit tiles carry the daily questions, so their four icons are not repeated.
         Assert.True(iconCount >= 30, $"Expected at least 30 visible Challenge/footer icons, found {iconCount}.");
-        Assert.Equal(15, diagnostics.FooterIconCount);
-        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], diagnostics.FooterPlatforms);
+        Assert.Equal(16, diagnostics.FooterIconCount);
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "Telegram"], diagnostics.FooterPlatforms);
         Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");
         Assert.All(diagnostics.VectorIcons, icon =>
         {
@@ -1244,6 +1244,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/prize-pool.css":
                     await AssertPrizePoolContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/proof-desk.css":
+                    await ProofDeskBrowserTests.AssertContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
@@ -2006,7 +2009,7 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.Null(condition.Name);
                 Assert.Equal("max", condition.Bound);
                 Assert.Equal("rem", condition.Unit);
-                Assert.Equal(20, condition.Value);
+                Assert.Equal(24, condition.Value);
                 var threshold = condition.Value * fontSize;
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
                 {
@@ -2348,7 +2351,7 @@ public sealed class AestheticSystemBrowserTests(
                     page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
                 if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
                 else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
-                await page.Locator(".bioage-calculate-button").ClickAsync();
+                await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
                 await page.Locator(".bioage-rank-summary").WaitForAsync();
                 var rankThreshold = condition.Value * rootFontSize;
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
@@ -2374,6 +2377,52 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Equal(inlineSize <= rankThreshold, diagnostics.IsCompact);
                     Assert.True(diagnostics.HorizontalOverflow <= 1,
                         $"{route} rank preview overflowed at {inlineSize}px.");
+                }
+                continue;
+            }
+
+            if (condition.Name == "bioage-actions")
+            {
+                Assert.Equal("max", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Equal(18, condition.Value);
+                await NavigateAndSettleAsync(page, route);
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(
+                    page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+                var actionThreshold = condition.Value * rootFontSize;
+                foreach (var complete in new[] { false, true })
+                {
+                    if (complete)
+                    {
+                        if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
+                        else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
+                        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
+                    }
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var inlineSize = actionThreshold + delta;
+                        var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                            """
+                            async width => {
+                                const readout = document.querySelector('.bioage-live-readout');
+                                const actions = readout.parentElement;
+                                actions.style.boxSizing = 'content-box';
+                                actions.style.setProperty('inline-size', `${width}px`, 'important');
+                                actions.style.setProperty('max-inline-size', 'none', 'important');
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                const action = actions.querySelector('#continueButton, .bioage-live-progress');
+                                return {
+                                    ContainerWidth: parseFloat(getComputedStyle(actions).width),
+                                    IsCompact: getComputedStyle(action).gridRowStart === '2',
+                                    HorizontalOverflow: Math.max(0, actions.scrollWidth - actions.clientWidth)
+                                };
+                            }
+                            """, inlineSize);
+                        Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                        Assert.Equal(inlineSize <= actionThreshold, diagnostics.IsCompact);
+                        Assert.True(diagnostics.HorizontalOverflow <= 1,
+                            $"{route} live actions overflowed at {inlineSize}px (complete: {complete}).");
+                    }
                 }
                 continue;
             }
@@ -2427,12 +2476,16 @@ public sealed class AestheticSystemBrowserTests(
             await NavigateAndSettleAsync(page, route);
             var selector = condition.Value switch
             {
-                38 => "#lwc-step-1",
+                38 => "#lwc-step-2 .biomarker-card",
                 15 => "#dobFieldset",
                 14 when condition.Unit == "em" => "#dobFieldset",
                 _ => throw new InvalidOperationException(
                     $"Add a rendered calculator probe for {condition.Value}{condition.Unit}.")
             };
+            // Dates stay stacked on both sides of this boundary. The same
+            // query still changes biomarker rows between stacked and grid.
+            if (condition.Value == 38)
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
             // Em queries use the container's font, not the root font. Give the
             // date probe a distinct font size so a rem/em mix-up cannot pass.
             var emDateProbe = condition.Unit == "em";

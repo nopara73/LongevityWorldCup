@@ -126,12 +126,12 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
                     var leaderboardPath = GetRequestCanonicalPath(context);
-                    if ((leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)) &&
-                        string.Equals(context.Request.Query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase))
+                    if (leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath))
                     {
                         var selection = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date)
                             .Select(leaderboardPath, context.Request.Query);
-                        seo = seo with { PageTitle = $"{selection.RailTitle} | Longevity World Cup" };
+                        if (selection.ByFlag || selection.DocumentTitle.Length > 0)
+                            seo = seo with { PageTitle = $"{(selection.ByFlag ? selection.RailTitle : selection.DocumentTitle)} | Longevity World Cup" };
                     }
 
                     if (usesSharedHead)
@@ -205,6 +205,7 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent = InjectPointerLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
                         bodyContent = InjectDepthSystem(bodyContent);
+                        bodyContent = InjectScrollChoreography(bodyContent);
                         bodyContent = InjectImageViewer(bodyContent);
                         bodyContent = InjectDisclosureLayer(bodyContent);
                     }
@@ -451,6 +452,11 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                             .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     }
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
+                    if (selection.LeagueTitle.Length > 0)
+                    {
+                        html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardLeagueTitle", System.Net.WebUtility.HtmlEncode(selection.LeagueTitle))
+                            .Replace("id=\"leaderboardLeagueTitle\" hidden", "id=\"leaderboardLeagueTitle\"", StringComparison.Ordinal);
+                    }
                     html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
                         match => match.Groups[1].Value.TrimEnd('>') +
                             $" title=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\">" +
@@ -602,6 +608,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             // Shared interaction and type styles precede the palette, dark
             // lighting and the final depth scale. Component states retain priority.
+            // The layout system closes the group so every page shares its column.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
@@ -614,7 +621,9 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/type-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}"
-                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}";
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/layout-system.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/layout-system.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
         }
 
@@ -662,6 +671,21 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, assets);
+        }
+
+        // Sections, cards, lists and numbers arrive through one shared scroll vocabulary.
+        private string InjectScrollChoreography(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/scroll-choreography.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 
@@ -1522,6 +1546,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     "https://www.youtube.com/@longevityworldcup",
                     "https://www.instagram.com/LongevityWorldCup/",
                     "https://www.threads.com/@longevityworldcup",
+                    "https://t.me/longevityworldcup",
                     "https://primal.net/p/npub1dgxhzvhhca4hrpzmakc2n8hpvmawtvlacdy80r4wsaghf4h5486sg8tqtl"
                 },
                 ["knowsAbout"] = new[]

@@ -155,6 +155,7 @@ interface PendingApplicationSubmission {
     readonly applicantName: string | null;
     readonly accountEmail: string | null;
     readonly createdAt: number;
+    readonly entryId: string | null;
 }
 
 interface PendingApplicationSubmissionDetails {
@@ -455,6 +456,7 @@ interface Window {
     __pendingApplicationSubmissionFingerprint?: string;
     createApplicationSubmissionPayloadKey(applicantData: unknown): string;
     createApplicationSubmissionId(payloadFingerprint?: string): string;
+    beginApplicationEntry(): boolean;
     rememberPendingApplicationSubmission(details: PendingApplicationSubmissionDetails): void;
     getPendingApplicationSubmission(submissionKind?: string): PendingApplicationSubmission | null;
     clearPendingApplicationSubmission(submissionId?: string): void;
