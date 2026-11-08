@@ -293,8 +293,8 @@ public sealed class AestheticSystemBrowserTests(
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         // Signed out, the habit tiles carry the daily questions, so their four icons are not repeated.
         Assert.True(iconCount >= 30, $"Expected at least 30 visible Challenge/footer icons, found {iconCount}.");
-        Assert.Equal(15, diagnostics.FooterIconCount);
-        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], diagnostics.FooterPlatforms);
+        Assert.Equal(16, diagnostics.FooterIconCount);
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "Telegram"], diagnostics.FooterPlatforms);
         Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");
         Assert.All(diagnostics.VectorIcons, icon =>
         {
@@ -2009,7 +2009,7 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.Null(condition.Name);
                 Assert.Equal("max", condition.Bound);
                 Assert.Equal("rem", condition.Unit);
-                Assert.Equal(20, condition.Value);
+                Assert.Equal(24, condition.Value);
                 var threshold = condition.Value * fontSize;
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
                 {
