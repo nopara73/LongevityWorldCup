@@ -1,0 +1,95 @@
+Flag artwork sources
+
+These files were resized and adapted for flag tiles. Each image retains
+the license listed with its source.
+
+File | Creator | License | Source
+abkhazia.webp | Drawn by User:Achim1999 | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Republic_of_Abkhazia.svg
+adjara.webp | Urmas | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Adjara.svg
+aigues-mortes.webp | Government of the Principality of Aigues-Mortes, 燃灯 and Pce13 | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Principality_of_Aigues-Mortes.svg
+ainu.webp | Lexicon | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Ainu.svg
+ancap.webp | Rocket000 | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Anarcho-capitalism.svg
+andalusia.webp | Miguillen | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Andaluc%C3%ADa.svg
+artsakh.webp | See source | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Artsakh.svg
+asgardia.webp | Dmytrosk2024 | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Asgardia.svg
+atlantium.webp | Unknown author Unknown author | Public domain | https://commons.wikimedia.org/wiki/File:Bandera_d%27Atlantium.svg
+azad-kashmir.webp | Himasaram | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Azad_Kashmir.svg
+azores.webp | Tonyjeff | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Azores.svg
+belgian-german-community.webp | Precious alex | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_German_Community_in_Belgium.svg
+biafra.webp | Mysid | CC BY-SA 3.0 http://creativecommons.org/licenses/by-sa/3.0/ | https://commons.wikimedia.org/wiki/File:Flag_of_Biafra.svg
+bonaire.webp | Mike Rohsopht | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Bonaire.svg
+bougainville.webp | Aliasd | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Bougainville.svg
+buryatia.webp | Elvonudinium | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Buryatia.svg
+ceuta.webp | Ulaidh | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Ceuta.svg
+chagos.svg | Chagossian tricolour, adapted from the documented flag | Public domain | https://www.crwflags.com/fotw/flags/io-chago.html
+chechnya.webp | Lokal Profil | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Chechen_Republic.svg
+conch-republic.webp | Jmckean | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Key_West,_Florida.svg
+coral-sea-kingdom.webp | Guanaco and subsequent editors | Copyrighted free use | https://commons.wikimedia.org/wiki/File:Gay_Pride_Flag.svg
+cospaia.webp | Orange Tuesday | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Cospaia.svg
+druze.webp | Verdy p | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Druze.svg
+enclava.webp | Carnby | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Enclava_(simplified).png
+enenkio.webp | TeVe | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_EnenKio.svg
+filettino.webp | britannic124 | CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0 | https://commons.wikimedia.org/wiki/File:Flag_of_the_Principality_of_Filettino.png
+flanders.webp | Tom Lemmens | CC0 http://creativecommons.org/publicdomain/zero/1.0/deed.en | https://commons.wikimedia.org/wiki/File:Flag_of_Flanders.svg
+flandrensis.webp | Flandrensis | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Grand_Duchy_of_Flandrensis.svg
+forvik.webp | Ivan Sache | CC BY-SA 2.5 https://creativecommons.org/licenses/by-sa/2.5 | https://commons.wikimedia.org/wiki/File:Flag_of_Forvik.gif
+freedonia.webp | Yuma | CC BY 3.0 https://creativecommons.org/licenses/by/3.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Freedonia.svg
+gagauzia.webp | Urmas | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Gagauzia.svg
+galapagos.webp | See source | Public domain | https://commons.wikimedia.org/wiki/File:Bandera_Provincia_Gal%C3%A1pagos.svg
+gilgit-baltistan.webp | Azores191 | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Gilgit_Baltistan_(2011-Present).png
+hokkaido.webp | Monaneko | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Hokkaido_Prefecture.svg
+hutt-river.webp | Abigbro | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Hutt_River_Flag.svg
+isle-of-wight.webp | John Graney and The Flag Institute | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Isle_of_Wight.svg
+jamtland.webp | Bossk-Office at English Wikipedia | Public domain | https://commons.wikimedia.org/wiki/File:Unofficial_Flag_of_Jamtland.svg
+jeju.webp | Jeju Province Government | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Jeju_Province.svg
+johnston-atoll.webp | USA Gov. | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Johnston_Atoll.svg
+joseon.webp | Daniil Ivanov | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Korea_(1882%E2%80%931910).svg
+kaliningrad.webp | И.Д.Бакрымов, Э.И.Григо, С.А.Колеватов. | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Kaliningrad.svg
+karakalpakstan.webp | No machine-readable author provided. Urmas assumed (based on copyright claims). | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Karakalpakstan.svg
+kurdistan.webp | Unknown author Unknown author | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Kurdistan.svg
+ladonia.webp | User:Quilbert | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Ladonia.svg
+lord-howe.webp | ChaseKiwi | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_Lord_Howe_island_unoffical.svg
+madeira.webp | Original: Brian Boru Vector: Nuno Tavares | CC BY-SA 1.0 https://creativecommons.org/licenses/by-sa/1.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Madeira.svg
+melilla.webp | SanchoPanzaXXI | CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Melilla.svg
+midway.webp | See source | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Midway_Islands_(local).svg
+minerva.webp | Gene Poole | Public domain | https://commons.wikimedia.org/wiki/File:Flag_Minerva.svg
+molossia.webp | Makaristos | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Republic_of_Molossia.svg
+nevis.webp | See source | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Nevis.svg
+new-utopia.webp | Germenfer | CC0 http://creativecommons.org/publicdomain/zero/1.0/deed.en | https://commons.wikimedia.org/wiki/File:Flag_of_New_Utopia.svg
+northern-cyprus.webp | See File History , below for details. | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Turkish_Republic_of_Northern_Cyprus.svg
+nunavut.webp | Kooma (original) | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Nunavut.svg
+orkney.webp | Rab Knight from en.wikipedia | Public domain | https://commons.wikimedia.org/wiki/File:2007_Flag_of_Orkney.svg
+other-world-kingdom.webp | António Martins-Tuválkin | CC BY-SA 2.5 https://creativecommons.org/licenses/by-sa/2.5 | https://commons.wikimedia.org/wiki/File:Flag_of_Other_World_Kingdom.gif
+outer-baldonia.webp | CzarJobKhaya | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Outer_Baldonia.svg
+palmyra-atoll.webp | BlinxTheKitty | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Palmyra_Atoll_(1941-1947).svg
+pontinha.webp | Janones | CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0 | https://commons.wikimedia.org/wiki/File:Flag_of_the_Principality_of_Pontinha.svg
+poyais.webp | Zscout370 at English Wikipedia | CC BY-SA 3.0 http://creativecommons.org/licenses/by-sa/3.0/ | https://commons.wikimedia.org/wiki/File:Green_Cross_flag_of_Florida.svg
+redonda.webp | See source | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Kingdom_of_Redonda.svg
+republika-srpska.webp | See File history below for details. | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Republika_Srpska.svg
+rojava.webp | TEV-DEM | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Rojava.svg
+rose-island.webp | Elevatorrailfan | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Rose_Island_Micronation_flag.svg
+saba.webp | Mysid | CC BY-SA 3.0 http://creativecommons.org/licenses/by-sa/3.0/ | https://commons.wikimedia.org/wiki/File:Flag_of_Saba.svg
+saint-eustatius.webp | User:Andrwsc | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Sint_Eustatius.svg
+sardinia.webp | A ngelus | CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Sardinia,_Italy.svg
+saugeais.webp | Carnby | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Saugeais.svg
+seborga.webp | InfattiVedeteCheViDice | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_the_Principality_of_Seborga_(current).svg
+shetland.webp | See source | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Shetland.svg
+sicily.webp | Angelo Romano | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Sicily.svg
+snake-hill.webp | Principality of Snake Hill | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Principality_of_Snake_Hill.svg
+somaliland.webp | Government of Somaliland | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Somaliland.svg
+south-ossetia.webp | Various | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_South_Ossetia.svg
+talossa.webp | Robin van der Vliet | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Kingdom_of_Talossa.svg
+tamil-eelam.webp | Tyiqnqnenq | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Tamil_Eelam_Flag.svg
+tibet.webp | Unknown author Unknown author | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Tibet.svg
+timbo.webp | Prefeitura Municipal de Timbó (SC) | Public domain | https://commons.wikimedia.org/wiki/File:Bandeira_do_munic%C3%ADpio_de_Timb%C3%B3_(SC).svg
+transnistria.webp | See File history (below) for details. | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Transnistria_(state).svg
+transylvania.webp | BlinxTheKitty | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Transylvania_(Local_2-3).svg
+uzupis.webp | Jens Pattke | CC BY-SA 2.5 https://creativecommons.org/licenses/by-sa/2.5 | https://commons.wikimedia.org/wiki/File:Flag_of_Uzzupis.svg
+vojvodina.webp | Government of Vojvodina | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Vojvodina.svg
+wake-island.webp | User:Denelson83 | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Wake_Island.svg
+wallonia.webp | Tom Lemmens | CC0 http://creativecommons.org/publicdomain/zero/1.0/deed.en | https://commons.wikimedia.org/wiki/File:Flag_of_Wallonia.svg
+waveland.webp | Germenfer | CC0 http://creativecommons.org/publicdomain/zero/1.0/deed.en | https://commons.wikimedia.org/wiki/File:Flag_of_Waveland.svg
+west-papua.webp | Pumbaa80 | Public domain | https://commons.wikimedia.org/wiki/File:Morning_Star_flag.svg
+westarctica.webp | Travis McHenry | CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0 | https://commons.wikimedia.org/wiki/File:Flag_of_Westarctica.png
+wy.webp | Sangjinhwa | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_the_Principality_of_Wy.svg
+zanzibar.webp | Mysid | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Zanzibar.svg

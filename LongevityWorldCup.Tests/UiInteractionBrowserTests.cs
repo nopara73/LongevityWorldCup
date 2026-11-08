@@ -84,6 +84,40 @@ public sealed class UiInteractionBrowserTests(
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
+    public async Task Profile_TextCaretKeepsItsKeysWithoutChangingAthletes(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/athlete/michael-lustgarten");
+        var content = page.Locator("#detailsModal .modal-content");
+        await Assertions.Expect(content).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-loading"));
+        await page.Locator("#closeAthleteDetailsModal").FocusAsync();
+        var originalSlug = await content.GetAttributeAsync("data-athlete-slug");
+
+        foreach (var selected in new[] { false, true })
+        foreach (var key in new[] { "ArrowLeft", "ArrowRight", "Home", "End" })
+        {
+            await page.Locator("#athleteName").EvaluateAsync("""
+                (el, selected) => {
+                    const text = [...el.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+                    getSelection().collapse(text, 4);
+                    if (selected) getSelection().extend(text, 8);
+                }
+                """, selected);
+            await page.EvaluateAsync("() => window.addEventListener('keydown', e => window.keyHandled = e.defaultPrevented, {once:true})");
+            await page.Keyboard.PressAsync(key);
+            Assert.False(await page.EvaluateAsync<bool>("window.keyHandled"));
+            await Assertions.Expect(content).ToHaveAttributeAsync("data-athlete-slug", originalSlug!);
+        }
+
+        await page.EvaluateAsync("() => getSelection().removeAllRanges()");
+        await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(content).Not.ToHaveAttributeAsync("data-athlete-slug", originalSlug!);
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
     public async Task Profile_ReverseTabKeepsNestedFocusVisibleWhenTheEmbedGrows(int width)
     {
         await using var context = await NewContextAsync(width, 900);
@@ -287,20 +321,26 @@ public sealed class UiInteractionBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync("/athlete/michael-lustgarten");
         await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content').classList.contains('is-loading')");
-        await page.Clock.InstallAsync();
         await page.EvaluateAsync("openEnlargedView(document.querySelector('#modalProfilePic'), { pushHistory: false })");
-        await page.Clock.RunForAsync(32);
-        await page.EvaluateAsync("closeEnlargedView(document.querySelector('#athleteImageViewer'))");
-        Assert.True(await page.Locator("#athleteImageViewer").EvaluateAsync<bool>("e => e.inert"));
-        await page.Clock.RunForAsync(reversalMs);
-        await page.EvaluateAsync("openEnlargedView(document.querySelector('#modalProfilePic'), { pushHistory: false })");
-        await page.Clock.RunForAsync(300);
-        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToHaveAttributeAsync("aria-hidden", "false");
-        Assert.False(await page.Locator("#athleteImageViewer").EvaluateAsync<bool>("e => e.inert"));
-        Assert.True(await page.Locator(".modal-content").EvaluateAsync<bool>("e => e.inert"));
-        await page.EvaluateAsync("closeEnlargedView(document.querySelector('#athleteImageViewer'))");
-        await page.Clock.RunForAsync(300);
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToHaveAttributeAsync("data-state", "open");
+        // Native picture animations use the browser animation timeline, which
+        // Playwright's timer clock does not advance. Observe their real states.
+        Assert.True(await page.EvaluateAsync<bool>("""
+            delay => {
+                closeEnlargedView();
+                const stillModal = document.querySelector('.lwc-viewer').matches(':modal');
+                setTimeout(() => openEnlargedView(document.querySelector('#modalProfilePic'), { pushHistory: false }), delay);
+                return stillModal;
+            }
+            """, reversalMs));
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToHaveAttributeAsync("data-state", "open");
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToHaveAttributeAsync("aria-hidden", "false");
+        Assert.False(await page.Locator(".lwc-viewer").EvaluateAsync<bool>("e => e.inert"));
+        Assert.True(await page.Locator(".lwc-viewer").EvaluateAsync<bool>("e => e.matches(':modal')"));
+        await page.EvaluateAsync("closeEnlargedView(document.querySelector('.lwc-viewer'))");
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#modalProfilePic")).ToBeFocusedAsync();
+        await page.Clock.InstallAsync();
         await page.EvaluateAsync("closeModal({ fromHistory: true })");
         await page.Clock.RunForAsync(reversalMs);
         await page.EvaluateAsync("window.openAthleteModalBySlug('michael-lustgarten', { suppressGuessMyAge: true })");

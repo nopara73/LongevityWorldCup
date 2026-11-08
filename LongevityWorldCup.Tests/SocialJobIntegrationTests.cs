@@ -443,7 +443,7 @@ public sealed class SocialJobIntegrationTests
     [Theory]
     [InlineData("X", SocialEventSkipReason.UnsupportedEventPayload)]
     [InlineData("Threads", SocialEventSkipReason.UnsupportedEventPayload)]
-    [InlineData("Facebook", SocialEventSkipReason.EmptyMessage)]
+    [InlineData("Facebook", SocialEventSkipReason.UnsupportedEventPayload)]
     public async Task DonationReceivedEvent_InvalidReceiptDoesNotSend(string platform, SocialEventSkipReason expectedReason)
     {
         using var fixture = SocialJobFixture.Create(enableThreads: true);
@@ -542,10 +542,10 @@ public sealed class SocialJobIntegrationTests
     }
 
     [Fact]
-    public async Task FacebookJob_MarksNonCustomRowsSkippedBeforePostingCustomEvent()
+    public async Task FacebookJob_SkipsUnsupportedRowsBeforePostingCustomEvent()
     {
         using var fixture = SocialJobFixture.Create(facebookSendSucceeds: true);
-        var rankId = fixture.InsertEvent(EventType.NewRank, "slug[alice] rank[1]", DateTime.UtcNow, facebookProcessed: 0);
+        var rankId = fixture.InsertEvent(EventType.NewRank, "slug[alice] rank[4]", DateTime.UtcNow, facebookProcessed: 0);
         var badgeId = fixture.InsertEvent(EventType.BadgeAward, "slug[alice] badge[Crowd Age - lowest] cat[Global] val[] place[1]", DateTime.UtcNow.AddMinutes(-1), facebookProcessed: 0);
         var customId = fixture.InsertEvent(
             EventType.CustomEvent,
@@ -558,10 +558,36 @@ public sealed class SocialJobIntegrationTests
 
         await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
 
-        Assert.Equal((1, SocialEventSkipReason.FacebookSupportsCustomEventsOnly.ToString()), fixture.ReadPlatformState(rankId, "Facebook"));
-        Assert.Equal((1, SocialEventSkipReason.FacebookSupportsCustomEventsOnly.ToString()), fixture.ReadPlatformState(badgeId, "Facebook"));
+        Assert.Equal((1, SocialEventSkipReason.UnsupportedEventPayload.ToString()), fixture.ReadPlatformState(rankId, "Facebook"));
+        Assert.Equal((1, SocialEventSkipReason.YoungestLookingBadge.ToString()), fixture.ReadPlatformState(badgeId, "Facebook"));
         Assert.Equal((1, null), fixture.ReadPlatformState(customId, "Facebook"));
         Assert.Single(fixture.FacebookRequests);
+    }
+
+    [Theory]
+    [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]")]
+    [InlineData(EventType.CrowdAgeTop10Change, "slug[benjamin_garden] place[3] prevPlace[8] crowdAge[35.2] crowdCount[123]")]
+    [InlineData(EventType.AgeImprovementTop10Change, "slug[benjamin_garden] clock[bortz] place[3] prevPlace[8] improvement[-4.5] ageReduction[-20.4]")]
+    public async Task FacebookJob_PostsEligibleAthleteEventsOnceAndKeepsSubjectCooldown(EventType type, string raw)
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
+        BlockPeriodicReminders(fixture);
+        var id = fixture.InsertEvent(type, raw, DateTime.UtcNow, facebookProcessed: 0);
+        await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
+        Assert.Equal((1, null), fixture.ReadPlatformState(id, "Facebook"));
+        var request = Assert.Single(fixture.FacebookRequests);
+        var body = WebUtility.UrlDecode(await request.Content!.ReadAsStringAsync());
+        Assert.Contains("Benjamin Garden", body);
+        Assert.DoesNotContain("slug[", body);
+        // Force the startup-rescan ordering that used to recreate cleared milestones.
+        // This must not queue another post while the athlete is on subject cooldown.
+        await (Task)typeof(AthleteDataService)
+            .GetMethod("ReloadFromSourceAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(fixture.Athletes, [CancellationToken.None])!;
+        var duplicateSubject = fixture.InsertEvent(type, raw, DateTime.UtcNow.AddSeconds(1), facebookProcessed: 0);
+        await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
+        Assert.Single(fixture.FacebookRequests);
+        Assert.Equal((0, null), fixture.ReadPlatformState(duplicateSubject, "Facebook"));
     }
 
     [Fact]
@@ -1000,6 +1026,7 @@ public sealed class SocialJobIntegrationTests
             bool facebookSendSucceeds = true,
             Action? onFacebookRequest = null,
             bool seedLeaderboardAssets = false,
+            bool seedMatureRoster = false,
             bool xMediaUploadSucceeds = true,
             bool enableThreads = false,
             Func<HttpRequestMessage, HttpResponseMessage>? responseOverride = null)
@@ -1009,6 +1036,16 @@ public sealed class SocialJobIntegrationTests
             Directory.CreateDirectory(Path.Combine(root, "generated", "thumbs", "athletes"));
             if (seedLeaderboardAssets)
                 SeedLeaderboardFiles(root);
+            if (seedMatureRoster)
+            {
+                var source = Path.Combine(FindRepositoryRoot(), "LongevityWorldCup.Website", "wwwroot", "athletes");
+                foreach (var json in Directory.EnumerateFiles(source, "athlete.json", SearchOption.AllDirectories).Order().Take(40))
+                {
+                    var destination = Path.Combine(root, "athletes", Path.GetFileName(Path.GetDirectoryName(json)!), "athlete.json");
+                    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                    File.Copy(json, destination, overwrite: true);
+                }
+            }
 
             var env = new TestWebHostEnvironment(root);
             var database = new DatabaseManager(dbPath: Path.Combine(root, "test.db"));
@@ -1073,7 +1110,7 @@ public sealed class SocialJobIntegrationTests
             var customImages = new CustomEventImageService(env, NullLogger<CustomEventImageService>.Instance);
             var xEvents = new XEventService(xClient, NullLogger<XEventService>.Instance, serviceProvider, customImages);
             var threadsEvents = new ThreadsEventService(threadsClient, NullLogger<ThreadsEventService>.Instance, serviceProvider, customImages);
-            var facebookEvents = new FacebookEventService(facebookClient, NullLogger<FacebookEventService>.Instance, customImages);
+            var facebookEvents = new FacebookEventService(facebookClient, NullLogger<FacebookEventService>.Instance, customImages, threadsEvents);
             var slackEvents = new SlackEventService(
                 new SlackWebhookClient(new HttpClient(new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK), [])), config, NullLogger<SlackWebhookClient>.Instance),
                 NullLogger<SlackEventService>.Instance);
@@ -1091,7 +1128,16 @@ public sealed class SocialJobIntegrationTests
             database.Run(sqlite =>
             {
                 using var cmd = sqlite.CreateCommand();
-                cmd.CommandText = "DELETE FROM Events;";
+                // Keep startup history for event deduplication. Deleting it lets the
+                // asynchronous roster rescan recreate athlete-count milestones and
+                // race the events explicitly inserted by each dispatch test.
+                cmd.CommandText = """
+                    UPDATE Events SET SlackProcessed=1, XProcessed=1, ThreadsProcessed=1, FacebookProcessed=1;
+                    INSERT OR REPLACE INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
+                    SELECT e.Id, c.Platform, 'skipped', 'FixtureBaseline', @now
+                    FROM Events e CROSS JOIN SocialDeliveryChannels c;
+                    """;
+                cmd.Parameters.AddWithValue("@now", DateTime.UtcNow.ToString("o"));
                 cmd.ExecuteNonQuery();
             });
 

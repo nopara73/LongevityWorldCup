@@ -1,0 +1,41 @@
+{
+  "Name": "Drótosné Bodnár Anikó",
+  "DisplayName": null,
+  "MediaContact": "bodnarzacsi@gmail.com",
+  "DateOfBirth": {
+    "Year": 1980,
+    "Month": 6,
+    "Day": 9
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-20",
+      "AlbGL": 39,
+      "CreatUmolL": 69,
+      "GluMmolL": 4.6,
+      "CrpMgL": 0.7,
+      "LymPc": 39.7,
+      "McvFL": 98,
+      "RdwPc": 12.1,
+      "AlpUL": 39,
+      "Wbc1000cellsuL": 5.5,
+      "NeutrophilPc": 44.9,
+      "MonocytePc": 12.9,
+      "Rbc10e12L": 4,
+      "MchPg": 32,
+      "UreaMmolL": 5.8,
+      "CystatinCMgL": 0.72,
+      "Hba1cMmolMol": 35,
+      "CholesterolMmolL": 5.4,
+      "ApoA1GL": 2.16,
+      "AltUL": 8,
+      "GgtUL": 14,
+      "ShbgNmolL": 70.8,
+      "VitaminDNmolL": 182.8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Az motivál, hogy ne csupán meghosszabítsam az éveim számát, hanem maximális fizikai és szellemi életminőséget tartsak fenn. Célom a biológiai korom optimalizálása és a csúcsteljesítmény elérése a Spartan versenyeken.",
+  "PersonalLink": "https://movefit.hu/"
+}

@@ -60,17 +60,12 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
 
     private static async Task SubmitAndSettleAsync(IPage page)
     {
+        // Stop the reveal/cleanup timers before submitting, not after a response round trip.
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").EvaluateAsync("button => button.click()");
         await page.WaitForFunctionAsync(
             "() => document.getElementById('gmaStatus')?.textContent?.includes('Actual age:') === true");
-        await PauseClockAsync(page);
-        for (var elapsed = 0; elapsed < 12000
-             && !await page.EvaluateAsync<bool>("() => !!document.querySelector('#gmaRealBubble.is-settled')");
-             elapsed += 250)
-        {
-            await page.Clock.RunForAsync(250);
-        }
-        Assert.True(await page.EvaluateAsync<bool>("() => !!document.querySelector('#gmaRealBubble.is-settled')"));
+        await AdvanceRevealUntilAsync(page, "() => !!document.querySelector('#gmaRealBubble.is-settled')");
     }
 
     [Fact]

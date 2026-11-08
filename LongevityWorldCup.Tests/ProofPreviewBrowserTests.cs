@@ -27,16 +27,16 @@ public sealed class ProofPreviewBrowserTests(PlaywrightBrowserFixture browserFix
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
 
         await proofs.First.ClickAsync();
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage img")).ToHaveAttributeAsync("src", Original(1));
-        Assert.Equal(2400, await viewer.Locator(".image-viewer-stage img").EvaluateAsync<int>("i => i.naturalWidth"));
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync("src", Original(1));
+        Assert.Equal(2400, await viewer.Locator(".lwc-viewer-stage img").EvaluateAsync<int>("i => i.naturalWidth"));
         Assert.Equal([Original(1)], requests.Select(u => new Uri(u).PathAndQuery));
 
         await page.Keyboard.PressAsync("ArrowRight");
-        await Assertions.Expect(viewer.Locator(".image-position")).ToHaveTextAsync("Proof 2 of 3");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-position")).ToHaveTextAsync("Proof 2 of 3");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage img")).ToHaveAttributeAsync("src", Original(2));
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync("src", Original(2));
         Assert.Equal([Original(1), Original(2)], requests.Select(u => new Uri(u).PathAndQuery));
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(viewer).ToBeHiddenAsync();
@@ -44,7 +44,7 @@ public sealed class ProofPreviewBrowserTests(PlaywrightBrowserFixture browserFix
         await page.GoForwardAsync();
         await Assertions.Expect(viewer).ToBeVisibleAsync();
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage img")).ToHaveAttributeAsync("src", Original(2));
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync("src", Original(2));
         Assert.Equal(Original(2), await page.EvaluateAsync<string>("history.state.enlargedImage.source"));
     }
 
@@ -58,9 +58,9 @@ public sealed class ProofPreviewBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(page.Locator("#proofsGallery img").First).ToHaveAttributeAsync("src", Original(1));
         await page.Locator("#proofsGallery img").First.FocusAsync();
         await page.Keyboard.PressAsync("Enter");
-        var viewer = page.Locator("#athleteImageViewer");
+        var viewer = page.Locator(".lwc-viewer");
         await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
-        await Assertions.Expect(viewer.Locator(".image-viewer-stage img")).ToHaveAttributeAsync("src", Original(1));
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync("src", Original(1));
     }
 
     [Theory]
@@ -105,8 +105,8 @@ public sealed class ProofPreviewBrowserTests(PlaywrightBrowserFixture browserFix
         var original = await first.GetAttributeAsync("data-full-src");
         Assert.StartsWith("/athletes/", original);
         await first.ClickAsync();
-        await Assertions.Expect(page.Locator("#athleteImageViewer")).ToHaveAttributeAsync("data-image-state", "ready");
-        await Assertions.Expect(page.Locator("#athleteImageViewer .image-viewer-stage img")).ToHaveAttributeAsync("src", original!);
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToHaveAttributeAsync("data-image-state", "ready");
+        await Assertions.Expect(page.Locator(".lwc-viewer .lwc-viewer-stage img")).ToHaveAttributeAsync("src", original!);
         Assert.Contains(originals, url => new Uri(url).PathAndQuery == original);
     }
 

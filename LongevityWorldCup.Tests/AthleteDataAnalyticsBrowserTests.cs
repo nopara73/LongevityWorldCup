@@ -198,18 +198,18 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         var page = await OpenAsync(context);
         await page.Locator("#athlete-proofs").ScrollIntoViewIfNeededAsync();
         await page.Locator("#proofsGallery .proof-item img").First.ClickAsync();
-        await page.WaitForFunctionAsync("() => document.querySelector('.enlarged-portrait.is-proof-gallery.show .image-viewer-stage img:not([hidden])')?.complete");
-        await page.Locator(".image-zoom-fit").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-viewer[open][data-image-state=ready] .lwc-viewer-stage img:not([hidden])')?.complete");
+        await page.Locator(".lwc-viewer-zoom-fit").ClickAsync();
 
         var layout = await page.EvaluateAsync<string[]>("""
             () => {
                 const problems = [];
-                const stage = document.querySelector('.enlarged-portrait .image-viewer-stage');
+                const stage = document.querySelector('.lwc-viewer .lwc-viewer-stage');
                 const img = stage.querySelector('img');
                 const s = stage.getBoundingClientRect();
                 const i = img.getBoundingClientRect();
                 if (i.height < s.height - 2 && Math.abs((i.top + i.bottom) / 2 - (s.top + s.bottom) / 2) > 3) problems.push('page hangs from the top of the stage');
-                const controls = document.querySelector('.enlarged-portrait .image-zoom-controls');
+                const controls = document.querySelector('.lwc-viewer .lwc-viewer-zoom-controls');
                 const style = getComputedStyle(controls);
                 if (parseFloat(style.borderTopWidth) < 1 || parseFloat(style.borderTopLeftRadius) < 20) problems.push('zoom is not one toolbar');
                 for (const button of controls.querySelectorAll('button'))
@@ -450,6 +450,103 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Fact]
+    public async Task Radar_AnimationKeepsSelectedReadingsExactAndCancelsOnClose()
+    {
+        await using var context = await NewContextAsync(320, true, reducedMotion: false);
+        await context.RouteAsync("**/js/age-visualization.js*", async route =>
+        {
+            var response = await route.FetchAsync();
+            var script = await response.TextAsync();
+            var closureEnd = script.LastIndexOf("})();", StringComparison.Ordinal);
+            Assert.True(closureEnd > 0);
+            await route.FulfillAsync(new()
+            {
+                Response = response,
+                Body = script.Insert(closureEnd,
+                    "window.radarMotionTest = () => ({frame: radarTweenFrame, values: radarDisplayValues, folds: radarFoldAnimations.length});\n")
+            });
+        });
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        var failures = await page.EvaluateAsync<string[]>("""
+            async () => {
+                const failures = [], chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                const frame = () => new Promise(requestAnimationFrame);
+                const check = () => {
+                    const expectedCount = chart.canvas.dataset.clock === 'bortz' ? 6 : 5;
+                    if (chart.data.labels.length !== expectedCount) failures.push('previous clock domains remain selected');
+                    chart.data.labels.forEach((name, index) => {
+                        const value = chart.data.datasets[0].data[index];
+                        if (!chart.canvas.getAttribute('aria-label').includes(`${name}: ${value}`)) failures.push('animated data replaced the selected reading');
+                        const title = chart.options.plugins.tooltip.callbacks.title([{raw:value, dataIndex:index}]);
+                        if (title !== `${value}th percentile` || !Number.isInteger(value)) failures.push('tooltip presents an invented percentile');
+                    });
+                    if (window.radarMotionTest().values?.some(value => !Number.isFinite(value) || value < 0 || value > 100)) failures.push('visual percentile leaves its scale');
+                    const card = document.getElementById('ageVisualization');
+                    if (card.scrollWidth > card.clientWidth + 1) failures.push('animated radar overflows its card');
+                };
+                // Interrupt both a clock fold and a reading morph, including a
+                // result chosen from the same control used by story scrubbing.
+                for (const clock of ['Pheno','Bortz','Pheno','Bortz']) {
+                    document.getElementById(`ageTab${clock}`).click(); check();
+                    await frame(); check();
+                    const select = document.getElementById('ageResultSelect');
+                    select.value = select.value === '0' ? '1' : '0';
+                    select.dispatchEvent(new Event('change')); check();
+                }
+                const deadline = performance.now() + 5000;
+                while (window.radarMotionTest().frame && performance.now() < deadline) { await frame(); check(); }
+                if (window.radarMotionTest().frame) failures.push('animation did not settle');
+                if (window.radarMotionTest().folds) failures.push('finished fold animations retained');
+                for (const [index, point] of chart.getDatasetMeta(0).data.entries()) {
+                    const expected = chart.scales.r.getPointPositionForValue(index, chart.data.datasets[0].data[index]);
+                    if (Math.hypot(point.x-expected.x, point.y-expected.y) > .01) failures.push('settled web differs from the selected result');
+                }
+                document.getElementById('ageTabPheno').click();
+                document.dispatchEvent(new Event('athlete-dialog-close-requested'));
+                await frame(); await frame();
+                if (window.radarMotionTest().frame || window.radarMotionTest().folds) failures.push('close left radar work running');
+                return [...new Set(failures)];
+            }
+            """);
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task Radar_DisposesTabObserversAndKeepsWrappedUnderlineOnSelectedRow()
+    {
+        await using var context = await NewContextAsync(320, true);
+        await context.AddInitScriptAsync("""
+            (() => {
+                window.radarObservers = [];
+                const Native = ResizeObserver;
+                window.ResizeObserver = class extends Native {
+                    constructor(callback) { super(callback); this.targets = new Set(); window.radarObservers.push(this); }
+                    observe(target, options) { this.targets.add(target); super.observe(target, options); }
+                    disconnect() { this.targets.clear(); super.disconnect(); }
+                    unobserve(target) { this.targets.delete(target); super.unobserve(target); }
+                };
+            })();
+            """);
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        // Force the real responsive tabs into their wrapped state without
+        // replacing content or hiding overflow.
+        await page.AddStyleTagAsync(new() { Content = "#detailsModal #ageClockSwitch [role=tablist] { width: 7rem; }" });
+        await page.Locator("#ageTabPheno").ClickAsync();
+        await page.WaitForFunctionAsync("""
+            () => {
+                const tab = document.getElementById('ageTabPheno'), list = tab.parentElement;
+                return tab.offsetTop > document.getElementById('ageTabBortz').offsetTop
+                    && parseFloat(list.style.getPropertyValue('--clock-tab-y')) === tab.offsetTop + tab.offsetHeight - 2;
+            }
+            """);
+        Assert.Equal(1, await page.EvaluateAsync<int>("() => window.radarObservers.filter(o => o.targets.has(document.getElementById('ageTabBortz').parentElement)).length"));
+        await page.EvaluateAsync("() => window.destroyAgeRadarChart()");
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => window.radarObservers.filter(o => o.targets.has(document.getElementById('ageTabBortz').parentElement)).length"));
+    }
+
+    [Fact]
     public async Task ClockHistory_ScrollEdgesKeepWholeFiguresAndAllAccessibleDatedReadings()
     {
         await using var context = await NewContextAsync(390, true);
@@ -571,16 +668,16 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             """);
         Assert.Empty(galleryFailures);
         await page.Locator("#proofsGallery img").First.ClickAsync();
-        await page.WaitForFunctionAsync("() => document.getElementById('athleteImageViewer').dataset.imageState === 'ready'");
-        await page.Locator(".image-zoom-fit").ClickAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('.lwc-viewer').dataset.imageState === 'ready'");
+        await page.Locator(".lwc-viewer-zoom-fit").ClickAsync();
         var viewerFailures = await page.EvaluateAsync<string[]>("""
             () => {
                 const failures = [];
-                const viewer = document.getElementById('athleteImageViewer');
-                const stage = viewer.querySelector('.image-viewer-stage').getBoundingClientRect();
-                const image = viewer.querySelector('.image-viewer-stage img').getBoundingClientRect();
+                const viewer = document.querySelector('.lwc-viewer');
+                const stage = viewer.querySelector('.lwc-viewer-stage').getBoundingClientRect();
+                const image = viewer.querySelector('.lwc-viewer-stage img').getBoundingClientRect();
                 if (image.left < stage.left - 1 || image.right > stage.right + 1 || image.top < stage.top - 1 || image.bottom > stage.bottom + 1) failures.push('Fit crops the proof page');
-                const controls = [...viewer.querySelectorAll('button, .image-position, .image-viewer-hint')].filter(element => element.checkVisibility());
+                const controls = [...viewer.querySelectorAll('button')].filter(element => element.checkVisibility());
                 for (const control of controls) {
                     const box = control.getBoundingClientRect();
                     if (box.left < -.5 || box.top < -.5 || box.right > innerWidth + .5 || box.bottom > innerHeight + .5) failures.push('proof control escapes viewport');

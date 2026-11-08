@@ -164,19 +164,9 @@ button:hover {
     border-radius: 15px;
     padding: 2rem;
     margin: 2rem auto;
-    max-width: 1250px; /* Adjusted to better match the leaderboard width */
+    max-width: var(--lwc-container-page);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     text-align: center;
-}
-
-.section-container[data-aos]:not(.aos-animate) {
-    opacity: 1 !important;
-    transform: none !important;
-}
-
-.section-container [data-aos]:not(.aos-animate) {
-    opacity: 1 !important;
-    transform: none !important;
 }
 
     /* Heading style */
@@ -208,7 +198,7 @@ button:hover {
     }
 
 .homepage-faq-section {
-    max-width: 1250px;
+    max-width: var(--lwc-container-page);
     text-align: left;
 }
 
@@ -536,7 +526,7 @@ button:hover {
     border-radius: 15px;
     padding: 1.85rem 2rem 1.95rem;
     margin: 2rem auto;
-    max-width: 1250px;
+    max-width: var(--lwc-container-page);
     text-align: center;
 }
 
@@ -892,7 +882,7 @@ button:hover {
 /* ===== Season countdown next to events board ===== */
 
 .lwc-highlights-countdown-wrapper {
-    max-width: 1250px;
+    max-width: var(--lwc-container-page);
     margin: 2rem auto 2.25rem;
     display: flex;
     gap: 1.75rem;
