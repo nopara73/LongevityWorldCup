@@ -80,31 +80,34 @@ public sealed class BioageDateSheetBrowserTests(
         foreach (var year in new[] { "2000", "2020" })
         {
             await page.SelectOptionAsync("#dob-year", year);
-            var spacing = await page.EvaluateAsync<double[]>(
+            var issues = await page.EvaluateAsync<string[]>(
                 """
                 () => {
-                    const dob = document.querySelector('#dobFieldset');
-                    const draw = document.querySelector('#lwc-step-1 > fieldset:nth-of-type(2)');
-                    const lastDobField = [...dob.children].filter(e => e.getBoundingClientRect().height > 1).at(-1);
-                    const rect = e => e.getBoundingClientRect();
-                    const label = dob.querySelector('label[for="dob-year"]');
-                    const year = dob.querySelector('#dob-year');
-                    const input = draw.querySelector('input');
-                    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-                    return [
-                        (rect(dob).bottom - rect(lastDobField).bottom) / rem,
-                        (rect(draw).bottom - rect(input).bottom) / rem,
-                        (rect(year).top - rect(label).bottom) / rem,
-                        (rect(input).top - rect(draw.querySelector('legend')).bottom) / rem,
-                        rect(draw).top - rect(dob).bottom
-                    ];
+                    const issues = [];
+                    for (const card of document.querySelectorAll('#lwc-step-1 > fieldset')) {
+                        const box = card.getBoundingClientRect();
+                        const band = card.querySelector('legend').getBoundingClientRect();
+                        if (Math.abs(band.left - box.left) > 1 || Math.abs(band.right - box.right) > 1
+                            || Math.abs(band.top - box.top) > 1) issues.push('Band escapes its card');
+                        for (const child of card.querySelectorAll('input, select, label, #privacyNote, .bioage-cal')) {
+                            if (!child.checkVisibility()) continue;
+                            const r = child.getBoundingClientRect();
+                            if (r.left < box.left || r.right > box.right + 1 || r.top < band.bottom
+                                || r.bottom > box.bottom - 6) issues.push(child.id + ' escapes its card inset');
+                            if (child.scrollWidth > child.clientWidth + 1 || child.scrollHeight > child.clientHeight + 1)
+                                issues.push(child.id + ' clips its content');
+                        }
+                    }
+                    const dob = document.querySelector('#dobFieldset').getBoundingClientRect();
+                    const draw = document.querySelector('#lwc-step-1 > fieldset:nth-of-type(2)').getBoundingClientRect();
+                    if (draw.left > dob.left) {
+                        if (Math.abs(draw.height - dob.height) > 1 || Math.abs(draw.top - dob.top) > 1)
+                            issues.push('Paired cards are not matched');
+                    } else if (draw.top < dob.bottom + 6) issues.push('Stacked cards overlap');
+                    return issues;
                 }
                 """);
-            Assert.InRange(spacing[0], 0.5, 1);
-            Assert.InRange(spacing[1], 0.5, 1);
-            Assert.InRange(spacing[2], 0.4, 0.6);
-            Assert.InRange(spacing[3], 0.4, 0.6);
-            Assert.InRange(spacing[4], -1, 1);
+            Assert.True(issues.Length == 0, string.Join("; ", issues));
             await ExpectNoHorizontalOverflowAsync(page);
 
             if (Environment.GetEnvironmentVariable("LWC_CAPTURE_BIOAGE_DESIGN") == "1")

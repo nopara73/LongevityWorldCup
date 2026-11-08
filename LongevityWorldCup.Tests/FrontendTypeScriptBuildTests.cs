@@ -12,6 +12,7 @@ public sealed class FrontendTypeScriptBuildTests
         "apply-flow-feel",
         "athlete-browse-motion",
         "athlete-story",
+        "bioage-dates",
         "bioage-flow",
         "charts",
         "celebration",

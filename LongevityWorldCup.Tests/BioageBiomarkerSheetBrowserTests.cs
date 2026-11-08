@@ -135,7 +135,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
     [Theory]
     [InlineData("/pheno-age", 1440, 900)]
     [InlineData("/bortz-age", 1366, 768)]
-    public async Task DesktopDates_StackWithoutCoveringTheDateFields(string path, int width, int height)
+    public async Task DesktopDates_PairCardsWithoutCoveringTheDateFields(string path, int width, int height)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -160,8 +160,8 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                 document.querySelector('#lwcStepOneActions').getBoundingClientRect().top
             ]
             """);
-        Assert.True(rows[1] > rows[0] + 44, "The draw date follows the birth date section.");
-        Assert.True(rows[1] >= rows[4] - 1, "The draw date band must not cover the birth date section.");
+        Assert.InRange(rows[1] - rows[0], -1, 1);
+        Assert.True(rows[6] >= rows[4] + 6, "The actions must stay clear of both date cards.");
         Assert.True(rows[3] >= rows[1] + 44, "The draw date stays below its band.");
         Assert.True(rows[6] >= rows[5] + 6, "The actions must stay clear of the date input.");
     }
