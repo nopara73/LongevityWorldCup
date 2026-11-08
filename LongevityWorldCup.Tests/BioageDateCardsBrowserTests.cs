@@ -8,6 +8,34 @@ public sealed class BioageDateCardsBrowserTests(PlaywrightBrowserFixture browser
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData("/pheno-age")]
+    [InlineData("/bortz-age")]
+    public async Task UpdateMode_KeepsItsCompactDateFieldWithoutTheEntryCalendar(string path)
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("""
+            sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                Name:'Browser Test Athlete', DateOfBirth:{Year:1980,Month:5,Day:20}, Biomarkers:[]
+            }));
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path + "?update=1");
+        await page.WaitForSelectorAsync(".bioage-biomarker-entry-ready");
+        await Assertions.Expect(page.Locator("#lwc-step-2 #blood-draw-date")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".bioage-cal, .bioage-date-glide")).ToHaveCountAsync(0);
+        await page.Locator("#blood-draw-date").FillAsync("2024-02-29");
+        await page.WaitForFunctionAsync("() => Object.keys(sessionStorage).some(key => key.startsWith('bioageDraft:') && sessionStorage.getItem(key)?.includes('2024-02-29'))");
+        await page.ReloadAsync();
+        await page.WaitForSelectorAsync(".bioage-biomarker-entry-ready");
+        await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2024-02-29");
+        await Assertions.Expect(page.Locator(".bioage-cal")).ToHaveCountAsync(0);
+    }
+
+    [Theory]
     [InlineData("/pheno-age", "America/Los_Angeles")]
     [InlineData("/bortz-age", "Pacific/Apia")]
     public async Task Calendar_RestoresImmediatelyAndCancelsSupersededFlips(string path, string timezone)

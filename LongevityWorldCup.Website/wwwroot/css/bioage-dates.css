@@ -149,7 +149,6 @@ html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal {
     overflow: hidden;
     text-align: center;
     transform-origin: center top;
-    perspective: 400px;
 }
 html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal-month {
     padding: .2rem 0 .15rem;

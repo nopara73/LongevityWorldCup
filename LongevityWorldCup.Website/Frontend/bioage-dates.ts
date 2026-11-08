@@ -24,6 +24,9 @@ interface Window {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     function start(): void {
+        // Returning athletes enter biomarkers directly; their date field moves
+        // into that step and keeps its existing compact presentation.
+        if (window.LwcBioageFlow.isUpdateMode()) return;
         const form = document.querySelector<HTMLFormElement>("#phenoAgeForm, #bortzAgeForm");
         const step = form?.querySelector<HTMLElement>("#lwc-step-1");
         const dob = step?.querySelector<HTMLFieldSetElement>("#dobFieldset");
@@ -101,10 +104,14 @@ interface Window {
                 d.textContent = valid ? String(date!.getUTCDate()) : "";
             };
             if (!animate || reduced.matches || !valid) { apply(); return; }
-            const out = flip = page.animate([{ transform: "rotateX(0)" }, { transform: "rotateX(-88deg)" }], { duration: 130, easing: "cubic-bezier(.3,0,1,1)" });
+            const out = flip = page.animate([{ transform: "perspective(400px) rotateX(0)" }, { transform: "perspective(400px) rotateX(-88deg)" }], { duration: 130, easing: "cubic-bezier(.3,0,1,1)", fill: "forwards" });
             out.onfinish = () => {
                 apply();
-                flip = page.animate([{ transform: "rotateX(88deg)" }, { transform: "rotateX(0)" }], { duration: 260, easing: "cubic-bezier(.34,1.4,.64,1)" });
+                flip = page.animate([{ transform: "perspective(400px) rotateX(88deg)" }, { transform: "perspective(400px) rotateX(0)" }], { duration: 260, easing: "cubic-bezier(.34,1.4,.64,1)" });
+                // Hold the folded page until its replacement animation exists,
+                // then release the retained effect so later clears stay flat.
+                out.cancel();
+                flip.onfinish = () => { flip = null; };
             };
         }
 
