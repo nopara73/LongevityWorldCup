@@ -278,14 +278,13 @@ public sealed class GuessMyAgeReentryBrowserTests(
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
         await page.Locator("#gmaRange").EvaluateAsync(
             "range => { range.value = '41'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
-        await page.WaitForFunctionAsync(
-            "() => document.querySelectorAll('.gma-exact-jackpot').length === 1 && document.querySelectorAll('.gma-exact-time-icon').length === 240");
+        await AdvanceRevealUntilAsync(page, "() => !!document.querySelector('.gma-exact-jackpot')");
         Assert.Equal(1, await page.Locator(".gma-exact-jackpot").CountAsync());
         Assert.Equal(240, await page.Locator(".gma-exact-time-icon").CountAsync());
-        await page.EvaluateAsync(
-            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.Clock.RunForAsync(32);
         Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
             """
             element => {
@@ -310,7 +309,6 @@ public sealed class GuessMyAgeReentryBrowserTests(
         Assert.False(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
         // Exact outcomes dwell for 16000ms, then take 260ms to exit at normal motion.
         // Advancing beyond that full threshold proves the stale exit cannot close the reopen.
-        await PauseClockAsync(page);
         await page.Clock.RunForAsync(16600);
 
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
@@ -385,6 +383,7 @@ public sealed class GuessMyAgeReentryBrowserTests(
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
         await page.Locator("#gmaRange").EvaluateAsync(
             "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
 
         await page.WaitForFunctionAsync(
@@ -399,7 +398,6 @@ public sealed class GuessMyAgeReentryBrowserTests(
         Assert.DoesNotContain(
             "could not submit",
             (await page.Locator("#gmaStatus").InnerTextAsync()).ToLowerInvariant());
-        await PauseClockAsync(page);
         await page.Clock.RunForAsync(5100);
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");

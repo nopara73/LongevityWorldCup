@@ -88,9 +88,9 @@ public sealed class InPageWaitBrowserTests(
     {
         await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new());
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => !!window.LwcWait && typeof fetchWithTimeout==='function'");
-        await page.Clock.InstallAsync();
         await page.EvaluateAsync("""
             () => window.fetchWithTimeout = async (url, options) => ({
                 ok:true, status:200,
@@ -104,6 +104,7 @@ public sealed class InPageWaitBrowserTests(
             })
             """);
         await page.Locator("#emailInput").FillAsync("slow@example.test");
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator("#newsletter-form button[type=submit]").ClickAsync();
         await page.WaitForFunctionAsync("() => window.newsletterBodyStarted");
         await Assertions.Expect(page.Locator("#newsletter-form")).ToHaveAttributeAsync("aria-busy", "true");

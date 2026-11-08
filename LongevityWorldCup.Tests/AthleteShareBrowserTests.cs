@@ -47,7 +47,7 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     public async Task Copy_SerializesRequestsAndKeepsFocusAfterSuccess()
     {
         await using var context = await CreateContextAsync(copy: "hold");
-        var page = await OpenProfileAsync(context);
+        var page = await OpenProfileAsync(context, pauseClock: true);
         await page.Locator("#shareAthleteProfile").ClickAsync();
         var copy = page.Locator("#copyAthleteProfileLink");
         await copy.ClickAsync();
@@ -72,8 +72,7 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     public async Task CopyConfirmation_DoesNotResetANewNativeShare()
     {
         await using var context = await CreateContextAsync(native: "error");
-        var page = await OpenProfileAsync(context);
-        await page.Clock.InstallAsync();
+        var page = await OpenProfileAsync(context, pauseClock: true);
         var share = page.Locator("#shareAthleteProfile");
         await share.ClickAsync();
         await page.Locator("#copyAthleteProfileLink").ClickAsync();
@@ -303,15 +302,17 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
         return context;
     }
 
-    private static async Task<IPage> OpenProfileAsync(IBrowserContext context)
+    private static async Task<IPage> OpenProfileAsync(IBrowserContext context, bool pauseClock = false)
     {
         var page = await context.NewPageAsync();
+        if (pauseClock) await page.Clock.InstallAsync();
         await page.GotoAsync("/leaderboard?search=michael");
         await page.WaitForFunctionAsync("() => document.querySelector('#leaderboardStatus')?.textContent==='Leaderboard loaded.'");
         var rows = page.Locator(".leaderboard tbody .athlete-name:visible");
         await Assertions.Expect(rows).ToHaveCountAsync(2);
         await rows.First.ClickAsync();
         await WaitForProfileAsync(page, "michael-lustgarten");
+        if (pauseClock) await GuessMyAgeBrowserTests.PauseClockAsync(page);
         return page;
     }
 
