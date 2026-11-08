@@ -10,6 +10,52 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440, true, "/leaderboard")]
+    [InlineData(390, true, "/leaderboard")]
+    [InlineData(390, false, "/leaderboard")]
+    [InlineData(1440, true, "/")]
+    [InlineData(390, true, "/")]
+    public async Task FilteredLeague_KeepsItsIdentityAcrossClocksAndInitialRendering(int width, bool javaScript, string path)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce,
+            JavaScriptEnabled = javaScript
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path + "?filters=hungary,women%27s&view=pheno");
+        if (javaScript)
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var heading = page.Locator("#leaderboardLeagueTitle");
+        await Assertions.Expect(heading).ToHaveTextAsync("Hungary Women's League");
+        await Assertions.Expect(heading).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("HUNGARY WOMEN'S LEAGUE");
+        if (path == "/leaderboard")
+            Assert.Equal("Hungary Women's League · Pheno Age | Longevity World Cup", await page.TitleAsync());
+        Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
+        var output = Environment.GetEnvironmentVariable("LWC_LEAGUE_SCREENSHOTS");
+        if (!string.IsNullOrEmpty(output))
+        {
+            Directory.CreateDirectory(output);
+            await page.Locator(".leaderboard-controls").ScrollIntoViewIfNeededAsync();
+            await page.ScreenshotAsync(new() { Path = Path.Combine(output, $"league-{width}-{javaScript}-{(path == "/" ? "home" : "full")}.png") });
+        }
+        if (!javaScript) return;
+
+        await page.Locator("label[for=view-bortz]").ClickAsync();
+        await Assertions.Expect(heading).ToHaveTextAsync("Hungary Women's League");
+        if (path == "/leaderboard")
+            await Assertions.Expect(page).ToHaveTitleAsync("Hungary Women's League · Bortz Age | Longevity World Cup");
+        await page.Locator("#athleteSearch").FillAsync("nobody-matches-this-phrase");
+        await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
+        await Assertions.Expect(heading).ToHaveTextAsync("Hungary Women's League");
+        await page.Locator("#clearLeaderboardSelection").ClickAsync();
+        await Assertions.Expect(heading).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("ULTIMATE LEAGUE");
+    }
+
+    [Theory]
     [InlineData("ultimate", "ULTIMATE LEAGUE", 100)]
     [InlineData("pheno", "PHENO AGE LEAGUE", 100)]
     [InlineData("bortz", "BORTZ AGE LEAGUE", 100)]

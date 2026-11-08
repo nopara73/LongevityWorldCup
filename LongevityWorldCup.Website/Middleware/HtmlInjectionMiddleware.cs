@@ -126,12 +126,12 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
                     var leaderboardPath = GetRequestCanonicalPath(context);
-                    if ((leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)) &&
-                        string.Equals(context.Request.Query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase))
+                    if (leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath))
                     {
                         var selection = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date)
                             .Select(leaderboardPath, context.Request.Query);
-                        seo = seo with { PageTitle = $"{selection.RailTitle} | Longevity World Cup" };
+                        if (selection.ByFlag || selection.DocumentTitle.Length > 0)
+                            seo = seo with { PageTitle = $"{(selection.ByFlag ? selection.RailTitle : selection.DocumentTitle)} | Longevity World Cup" };
                     }
 
                     if (usesSharedHead)
@@ -452,6 +452,11 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                             .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     }
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
+                    if (selection.LeagueTitle.Length > 0)
+                    {
+                        html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardLeagueTitle", System.Net.WebUtility.HtmlEncode(selection.LeagueTitle))
+                            .Replace("id=\"leaderboardLeagueTitle\" hidden", "id=\"leaderboardLeagueTitle\"", StringComparison.Ordinal);
+                    }
                     html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
                         match => match.Groups[1].Value.TrimEnd('>') +
                             $" title=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\">" +

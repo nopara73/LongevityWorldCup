@@ -4517,38 +4517,27 @@ function buildLeaderboardPresentation(state) {
         const railText = [cohortLabel, clockLabel, state.view === 'ultimate' ? 'Flag League' : 'by Flag'].filter(Boolean).join(' ');
         return { railText, documentTitle: railText, accessibleLabel: railText };
     }
-    if (state.view !== 'ultimate') {
-        return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
-    }
-
     const flags = state.flags.filter(Boolean);
-    if (flags.length === 1) {
+    const cohortLabel = [
+        flags.length === 1 ? flags[0] : flags.length > 1 ? `${flags.length} Flags` : '',
+        state.exclusiveLeagues.length === 1 ? state.exclusiveLeagues[0] : state.exclusiveLeagues.length > 1 ? 'Exclusive Leagues' : '',
+        getGenerationLeagueLabel(state.generations),
+        getDivisionLeagueLabel(state.divisions),
+        state.leagueTracks.length === 1 ? getLeagueTrackLabel(state.leagueTracks[0]) : ''
+    ].filter(Boolean).join(' ');
+    const leagueTitle = cohortLabel ? (cohortLabel === 'Exclusive Leagues' ? cohortLabel : `${cohortLabel} League`) : '';
+    const onlyFlags = !state.exclusiveLeagues.length && !state.generations.length && !state.divisions.length && state.leagueTracks.length !== 1;
+    if (state.view === 'ultimate' && onlyFlags && flags.length === 1) {
         const documentTitle = `Leaderboard: ${flags[0]}`;
-        return { railText: flags[0], documentTitle, accessibleLabel: documentTitle };
+        return { railText: flags[0], leagueTitle, documentTitle, accessibleLabel: documentTitle };
     }
-    if (flags.length > 1) {
+    if (state.view === 'ultimate' && onlyFlags && flags.length > 1) {
         const documentTitle = `${flags.length} Flags Leaderboard`;
-        return { railText: `${flags.length} Flags`, documentTitle, accessibleLabel: documentTitle };
+        return { railText: `${flags.length} Flags`, leagueTitle, documentTitle, accessibleLabel: documentTitle };
     }
-
-    if (state.exclusiveLeagues.length > 0) {
-        const leagueLabel = state.exclusiveLeagues.length === 1
-            ? `${state.exclusiveLeagues[0]} League`
-            : 'Exclusive Leagues';
-        return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
-    }
-
-    const generationLabel = getGenerationLeagueLabel(state.generations);
-    const divisionLabel = getDivisionLeagueLabel(state.divisions);
-    if (generationLabel || divisionLabel) {
-        const leagueLabel = `${[generationLabel, divisionLabel].filter(Boolean).join(' ')} League`;
-        return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
-    }
-
-    if (state.leagueTracks.length === 1) {
-        const trackLabel = getLeagueTrackLabel(state.leagueTracks[0]);
-        const leagueLabel = `${trackLabel} League`;
-        return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+    if (leagueTitle) {
+        const documentTitle = state.view === 'ultimate' ? leagueTitle : `${leagueTitle} · ${viewPresentation.railText.replace(/ League$/, '')}`;
+        return { railText: leagueTitle, leagueTitle, documentTitle, accessibleLabel: documentTitle };
     }
 
     return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
@@ -4572,6 +4561,11 @@ function measureCollapsedTitleHeight() {
 
 function updateLeaderboardTitles(state) {
     const presentation = buildLeaderboardPresentation(state);
+    const leagueHeading = document.getElementById('leaderboardLeagueTitle');
+    if (leagueHeading) {
+        leagueHeading.textContent = presentation.leagueTitle || '';
+        leagueHeading.hidden = !presentation.leagueTitle;
+    }
     const collapsedTitle = document.querySelector('.collapsed-title');
     if (collapsedTitle) {
         const fullRailText = presentation.railText.toUpperCase();
