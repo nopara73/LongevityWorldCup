@@ -144,7 +144,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         state["notes"] = newer["notes"]!.DeepClone();
         state["public"]!["notes"] = newer["public"]!["notes"]!.DeepClone();
         var revalidated = page.WaitForResponseAsync(response => response.Url.Contains("/discussion/thread?", StringComparison.Ordinal));
-        await page.Clock.FastForwardAsync(61_000);
+        // Let the periodic refresh run on its scheduled tick before checking the rendered feed.
+        await page.Clock.RunForAsync(61_000);
         await revalidated;
         await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveTextAsync("Request withdrawn");
         await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);

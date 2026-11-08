@@ -367,7 +367,7 @@ public sealed class ImageViewerBrowserTests(
             var viewer = page.Locator(baseline is null ? "dialog.lwc-viewer" : "#athleteImageViewer");
             await Assertions.Expect(viewer).ToHaveAttributeAsync("data-image-state", "ready");
             if (baseline is null) await Assertions.Expect(viewer).ToHaveAttributeAsync("data-state", "open");
-            await viewer.Locator("img").EvaluateAsync("async e=>await e.decode()");
+            await DecodeViewerImageAsync(viewer);
             if (kind == "proof") await viewer.GetByRole(AriaRole.Button, new() { Name = "Fit proof to viewer", Exact = true }).ClickAsync();
             await CaptureAsync($"athlete-{kind}-{width}-{theme}.png");
             Assert.True(await viewer.EvaluateAsync<bool>("e=>e.scrollWidth<=e.clientWidth+1 && e.scrollHeight<=e.clientHeight+1"));
@@ -381,7 +381,7 @@ public sealed class ImageViewerBrowserTests(
         await qr.ClickAsync();
         var qrViewer = page.Locator("dialog.lwc-viewer");
         await Assertions.Expect(qrViewer).ToHaveAttributeAsync("data-state", "open");
-        await qrViewer.Locator("img").EvaluateAsync("async e=>await e.decode()");
+        await DecodeViewerImageAsync(qrViewer);
         await CaptureAsync($"donation-qr-{width}-{theme}.png");
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(qrViewer).ToBeHiddenAsync();
@@ -395,4 +395,21 @@ public sealed class ImageViewerBrowserTests(
             await page.ScreenshotAsync(new() { Path = Path.Combine(directory, name) });
         }
     }
+
+    private static Task DecodeViewerImageAsync(ILocator viewer) =>
+        viewer.Locator("img").EvaluateAsync(
+            """
+            async image => {
+                // The viewer can replace a loaded preview while decode is pending.
+                while (true) {
+                    const source = image.src;
+                    try {
+                        await image.decode();
+                        return;
+                    } catch (error) {
+                        if (image.src === source) throw error;
+                    }
+                }
+            }
+            """).WaitAsync(TimeSpan.FromSeconds(10));
 }
