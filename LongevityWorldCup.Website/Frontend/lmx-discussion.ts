@@ -79,7 +79,11 @@ interface Window {
             queued = false;
             const notes = document.getElementById("lmxNotes");
             if (!notes) return;
-            notes.querySelectorAll<HTMLElement>(":scope > .lmx-note").forEach(measureNote);
+            // Read layout boxes, not the temporary translate/scale of arrivals.
+            // Restore the animation before this frame is painted.
+            notes.classList.add("lmx-discussion-measuring");
+            try { notes.querySelectorAll<HTMLElement>(":scope > .lmx-note").forEach(measureNote); }
+            finally { notes.classList.remove("lmx-discussion-measuring"); }
         });
     }
 

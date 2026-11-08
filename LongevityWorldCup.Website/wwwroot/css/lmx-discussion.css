@@ -18,7 +18,7 @@
     border-top-color: color-mix(in srgb, var(--lmx-border) 70%, transparent);
 }
 @media (hover: hover) {
-    .lmx-page .lmx-note:hover {
+    .lmx-page .lmx-note:not(.lmx-announcement, .lmx-needs-advice):hover {
         background: color-mix(in srgb, var(--lmx-surface-accent) 38%, var(--lmx-surface));
     }
 }
@@ -185,6 +185,8 @@
 @keyframes lmx-node-wait { 50% { background: var(--lmx-accent); scale: .8; } }
 
 /* ------------------------------------------------------------ arrivals */
+/* Used synchronously while reading layout; arrivals keep their playback state. */
+.lmx-page .lmx-discussion-measuring .lmx-arriving { transform: none !important; }
 /* New replies draw their curve as they slide in. */
 .lmx-page .lmx-discussion-reply-item.lmx-arriving::before {
     animation: lmx-elbow-draw 320ms cubic-bezier(.2, 0, 0, 1) both;
@@ -194,12 +196,12 @@
 /* Jumping to a linked post or reply: a soft accent wash that fades. */
 .lmx-page .lmx-note.lmx-discussion-target,
 .lmx-page .lmx-discussion-reply-item.lmx-discussion-target {
-    animation: lmx-target-wash 1800ms cubic-bezier(.2, 0, 0, 1) both;
+    animation: lmx-target-wash 1800ms cubic-bezier(.2, 0, 0, 1);
     border-radius: var(--lwc-radius-sm, 6px);
 }
 @keyframes lmx-target-wash {
     0%, 25% { background-color: var(--lmx-accent-soft); box-shadow: 0 0 0 6px var(--lmx-accent-soft); }
-    100% { background-color: transparent; box-shadow: 0 0 0 6px transparent; }
+    /* The implicit endpoint restores each post's own surface and accent edge. */
 }
 
 /* The "New posts" pill floats in. */

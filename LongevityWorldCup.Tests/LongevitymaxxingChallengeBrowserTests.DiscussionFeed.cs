@@ -253,6 +253,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             }
             await older.ClickAsync();
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await WaitForFiniteAnimationsAsync(page);
             if (readerMovesAway) await page.Mouse.WheelAsync(0, -600);
             await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
             var anchor = await articles.EvaluateAllAsync<string>("items => items.find(e => e.getBoundingClientRect().bottom > 60 && e.getBoundingClientRect().top < innerHeight).dataset.feedKey");

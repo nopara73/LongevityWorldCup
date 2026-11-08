@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -7,6 +8,88 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Theory]
+    [InlineData(ColorScheme.Light, false)]
+    [InlineData(ColorScheme.Dark, false)]
+    [InlineData(ColorScheme.Light, true)]
+    [InlineData(ColorScheme.Dark, true)]
+    public async Task Threads_SpecialPostSurfacesSurviveHoverAndPermalinkWash(ColorScheme theme, bool hover)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ColorScheme = theme });
+        var state = AdviceBrowserState(0);
+        state["public"]!["systemDiscussionPosts"] = new JsonArray(new JsonObject
+        {
+            ["id"] = DiscussionAnnouncementId, ["kind"] = "announcement", ["participantId"] = "p2",
+            ["displayName"] = "Ari", ["date"] = "2026-07-01", ["occurredAtUtc"] = "2026-07-01T09:00:00Z",
+            ["lastActivityAtUtc"] = "2026-07-01T09:00:00Z", ["replyCount"] = 0, ["replies"] = new JsonArray(),
+            ["announcement"] = new JsonObject { ["eventId"] = DiscussionAnnouncementId, ["title"] = "A new round", ["content"] = "The next round is open." }
+        });
+        var page = await OpenDiscussionPolishAsync(context, state);
+        foreach (var selector in new[] { ".lmx-needs-advice", ".lmx-announcement" })
+        {
+            var post = page.Locator("#lmxNotes > " + selector);
+            await post.ScrollIntoViewIfNeededAsync();
+            await page.Mouse.MoveAsync(0, 0);
+            await WaitForFiniteAnimationsAsync(page);
+            var baseline = await post.EvaluateAsync<string[]>("e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).boxShadow]");
+            if (hover) await post.HoverAsync();
+            else await post.EvaluateAsync("e => e.classList.add('lmx-discussion-target')");
+            await WaitForFiniteAnimationsAsync(page);
+            Assert.Equal(baseline, await post.EvaluateAsync<string[]>("e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).boxShadow]"));
+        }
+    }
+
+    [Theory]
+    [InlineData(1440, false)]
+    [InlineData(390, false)]
+    [InlineData(1440, true)]
+    [InlineData(390, true)]
+    public async Task Threads_RailGeometryDoesNotJumpWhenArrivalsFinish(int width, bool newPost)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 900 } });
+        var page = await OpenDiscussionPolishAsync(context);
+        var thread = DiscussionThread(page, "p7", 5);
+        await page.EvaluateAsync("""
+            () => {
+                window.heldArrivals = [];
+                const animate = Element.prototype.animate;
+                Element.prototype.animate = function(...args) {
+                    const animation = animate.apply(this,args);
+                    if (this.matches('.lmx-note, .lmx-discussion-reply-item')) {
+                        animation.pause(); animation.currentTime = 0; window.heldArrivals.push(animation);
+                    }
+                    return animation;
+                };
+            }
+            """);
+        await thread.EvaluateAsync("""
+            (article, newPost) => {
+                const incoming = (newPost ? article : article.querySelector('.lmx-discussion-reply-item')).cloneNode(true);
+                incoming.querySelector('.lmx-discussion-permalink').href = '#unique-arrival';
+                incoming.dataset.arrivalFixture = '';
+                (newPost ? article.parentElement : article.querySelector('.lmx-discussion-reply-list')).append(incoming);
+            }
+            """, newPost);
+        var incoming = page.Locator("[data-arrival-fixture]");
+        await Assertions.Expect(incoming).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-arriving"));
+        const string readGeometry = """
+            e => {
+                const post=e.matches('.lmx-note')?e:e.closest('.lmx-note');
+                const replies=post.querySelector('[data-lmx-thread]');
+                const reply=e.matches('.lmx-note')?e.querySelector('.lmx-discussion-reply-item'):e;
+                return [replies.style.getPropertyValue('--lmx-rail-tail'), replies.style.getPropertyValue('--lmx-rail-reach'),
+                    reply.style.getPropertyValue('--lmx-elbow-x'), reply.style.getPropertyValue('--lmx-elbow-y'), reply.style.getPropertyValue('--lmx-elbow-w')].map(parseFloat);
+            }
+            """;
+        await page.EvaluateAsync("() => { window.LwcLmxDiscussion.measure(); return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
+        var during = await incoming.EvaluateAsync<double[]>(readGeometry);
+        await page.EvaluateAsync("() => window.heldArrivals.forEach(animation => animation.finish())");
+        await Assertions.Expect(incoming).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-arriving"));
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        var after = await incoming.EvaluateAsync<double[]>(readGeometry);
+        for (var i = 0; i < during.Length; i++) Assert.InRange(during[i] - after[i], -.5, .5);
+    }
+
     [Theory]
     [InlineData(ColorScheme.Light)]
     [InlineData(ColorScheme.Dark)]

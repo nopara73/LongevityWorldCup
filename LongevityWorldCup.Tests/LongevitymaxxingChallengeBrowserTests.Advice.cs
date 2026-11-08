@@ -142,7 +142,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var newer = LargeDiscussionFeedState(100);
         state["notes"] = newer["notes"]!.DeepClone();
         state["public"]!["notes"] = newer["public"]!["notes"]!.DeepClone();
+        var revalidated = page.WaitForResponseAsync(response => response.Url.Contains("/discussion/thread?", StringComparison.Ordinal));
         await page.Clock.FastForwardAsync(61_000);
+        await revalidated;
         await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveTextAsync("Request withdrawn");
         await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
         await Assertions.Expect(request).Not.ToContainTextAsync(AdviceStory);
