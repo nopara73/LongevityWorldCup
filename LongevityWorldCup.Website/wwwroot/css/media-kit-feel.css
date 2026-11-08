@@ -13,6 +13,11 @@
         color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
         box-shadow 200ms ease;
 }
+.media-kit-main .media-file-doc .media-file-button {
+    /* Anchor the ring without shifting the control out of its grid cell. */
+    position: relative;
+    inset: auto;
+}
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .media-kit-main .media-file-tile:hover .media-file-button { scale: 1.08; box-shadow: 0 6px 16px -6px rgba(15, 23, 42, .45); }
 }
@@ -56,7 +61,7 @@
 
 /* ------------------------------------------------------------ the tile */
 /* Pictures breathe a little toward the pointer. */
-.media-kit-main .media-file-tile .media-file-thumb img { transform: none; }
+.media-kit-main .media-file-tile .media-file-thumb[data-state="ready"] img { transform: none; }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .media-kit-main .media-file-tile:not(.media-file-doc):hover .media-file-thumb img { scale: 1.045; }
 }
@@ -102,7 +107,7 @@
         transition: background-color 140ms var(--lwc-ease, ease), color 140ms var(--lwc-ease, ease),
             scale 200ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)), box-shadow 200ms ease;
     }
-    .media-kit-main .media-file-button:active { scale: .9; }
+    .media-kit-main .media-file-tile .media-file-button:active { scale: .9; }
     .media-kit-main .media-file-thumb img {
         transition: opacity 220ms var(--lwc-ease, ease), filter 600ms var(--lwc-ease, ease), scale 700ms cubic-bezier(.2, 0, 0, 1);
     }

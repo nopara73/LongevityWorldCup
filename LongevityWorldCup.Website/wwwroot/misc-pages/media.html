@@ -906,6 +906,8 @@
                     btn.textContent = 'Download';
                     btn.setAttribute('aria-label', `Download ${filename}`);
                     btn.className = 'media-file-button';
+                    // This control owns its busy, success, and failure presentation.
+                    btn.dataset.lwcWaitSkip = '';
                     btn.addEventListener('click', async () => {
                         const status = document.getElementById('downloadStatus');
                         // The ring runs while the file is pulled out of the archive.

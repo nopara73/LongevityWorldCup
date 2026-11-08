@@ -7,6 +7,28 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class MediaKitBrowserTests
 {
     [Fact]
+    public async Task PointerFeedback_UsesOnePreviewScaleAndLetsPressOverrideHover()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        await InstallKitFixtureAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media");
+        var button = page.GetByRole(AriaRole.Button, new() { Name = "Download Transparent.png", Exact = true });
+        var image = button.Locator("..").Locator("img");
+        await image.ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(image.Locator("..")).ToHaveAttributeAsync("data-state", "ready");
+        await image.HoverAsync();
+        await Assertions.Expect(image).ToHaveCSSAsync("scale", "1.045");
+        await Assertions.Expect(image).ToHaveCSSAsync("transform", "none");
+        await button.HoverAsync();
+        await Assertions.Expect(button).ToHaveCSSAsync("scale", "1.08");
+        await page.Mouse.DownAsync();
+        await Assertions.Expect(button).ToHaveCSSAsync("scale", "0.9");
+        await page.Mouse.MoveAsync(0, 0);
+        await page.Mouse.UpAsync();
+    }
+
+    [Fact]
     public async Task ReducedMotion_KeepsDownloadAndPreviewGeometryStill()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
@@ -96,8 +118,15 @@ public sealed partial class MediaKitBrowserTests
         await page.GotoAsync("/media");
         var button = page.GetByRole(AriaRole.Button, new() { Name = "Download FactSheet.pdf", Exact = true });
         await button.FocusAsync();
+        // Layout offsets exclude the tile's independent entrance transform.
+        var idlePosition = await button.EvaluateAsync<int[]>("e => [e.offsetLeft, e.offsetTop]");
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(button).ToHaveAttributeAsync("aria-busy", "true");
+        var busyPosition = await button.EvaluateAsync<int[]>("e => [e.offsetLeft, e.offsetTop]");
+        Assert.Equal(idlePosition, busyPosition);
+        Assert.True(await button.EvaluateAsync<bool>("e => parseFloat(getComputedStyle(e, '::after').width) <= e.offsetWidth + 8"));
+        await Assertions.Expect(button).Not.ToHaveAttributeAsync("data-lwc-wait", "pending");
+        await Assertions.Expect(button.Locator(".lwc-wait-fill, .lwc-wait-ring")).ToHaveCountAsync(0);
         await page.Keyboard.PressAsync("Enter");
         Assert.Equal(1, await page.EvaluateAsync<int>("window.extractions"));
         var download = await page.RunAndWaitForDownloadAsync(() => page.EvaluateAsync("window.finishTake()"));
