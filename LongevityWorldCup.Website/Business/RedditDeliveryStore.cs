@@ -50,6 +50,26 @@ public sealed class RedditDeliveryStore(DatabaseManager db, ILogger<RedditDelive
         return reserved;
     });
 
+    internal bool HasNewerLeaderEvent(DateTime occurredAtUtc) =>
+        db.Run(sqlite => HasNewerLeaderEvent(sqlite, null, occurredAtUtc));
+
+    private static bool HasNewerLeaderEvent(SqliteConnection sqlite, SqliteTransaction? tx, DateTime occurredAtUtc)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = "SELECT Text FROM Events WHERE Type = @type AND OccurredAt > @occurred;";
+        cmd.Parameters.AddWithValue("@type", (int)EventType.NewRank);
+        cmd.Parameters.AddWithValue("@occurred", occurredAtUtc.ToString("o", CultureInfo.InvariantCulture));
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var text = reader.GetString(0);
+            if (EventHelpers.TryExtractRank(text, out var rank) && rank == 1 &&
+                EventHelpers.TryExtractSlug(text, out var slug) && !string.IsNullOrWhiteSpace(slug)) return true;
+        }
+        return false;
+    }
+
     internal RedditDeliveryRecord? Find(string key) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
@@ -63,10 +83,18 @@ public sealed class RedditDeliveryStore(DatabaseManager db, ILogger<RedditDelive
             reader.IsDBNull(3) ? null : reader.GetString(3)) : null;
     });
 
-    internal void SkipBlockedLink(string eventId, string link, DateTimeOffset now) => db.Run(sqlite =>
+    internal void SkipBlockedLink(string eventId, string link, DateTimeOffset now)
     {
-        if (MarkBlockedLink(sqlite, null, eventId, now))
+        if (SkipUnstarted(eventId, "BlockedLink", now))
             LogBlockedLink(eventId, link);
+    }
+
+    internal bool SkipUnstarted(string eventId, string reason, DateTimeOffset now) => db.Run(sqlite =>
+    {
+        using var tx = sqlite.BeginTransaction();
+        var skipped = MarkUnstartedSkipped(sqlite, tx, eventId, reason, now);
+        tx.Commit();
+        return skipped;
     });
 
     internal RedditBeginResult Begin(string key, DateTimeOffset now, string? iftttFingerprint = null,
@@ -76,29 +104,42 @@ public sealed class RedditDeliveryStore(DatabaseManager db, ILogger<RedditDelive
         using var cmd = sqlite.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = """
-            SELECT d.EventId, e.Type, d.FirstAttemptAtUtc, d.RecordJson, e.Text
+            SELECT d.EventId, e.Type, d.FirstAttemptAtUtc, d.RecordJson, e.Text, e.OccurredAt
             FROM SocialDeliveries d JOIN Events e ON e.Id = d.EventId
             WHERE d.Platform = 'reddit' AND d.RecordKey = @key AND d.Status = 'pending' AND d.RecordJson IS NOT NULL;
             """;
         cmd.Parameters.AddWithValue("@key", key);
         string id;
         bool custom;
+        DateTime occurredAt;
         string? blockedLink;
+        string? skipReason;
         using (var reader = cmd.ExecuteReader())
         {
             if (!reader.Read()) return RedditBeginResult.NotPending;
             if (!reader.IsDBNull(2)) return RedditBeginResult.AlreadyStarted;
             id = reader.GetString(0);
             custom = reader.GetInt32(1) == (int)EventType.CustomEvent;
+            occurredAt = DateTime.Parse(reader.GetString(5), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+            skipReason = RedditEventPolicy.SkipReason((EventType)reader.GetInt32(1), reader.GetString(4),
+                occurredAt, now);
             var prepared = JsonSerializer.Deserialize<RedditPostRequest>(reader.GetString(3))
                 ?? throw new InvalidOperationException("The saved Reddit request is invalid.");
             blockedLink = RedditLinkPolicy.FindBlockedPostLink(prepared, confirmedBans);
             if (blockedLink is null && custom)
                 blockedLink = RedditLinkPolicy.FindBlockedLink(reader.GetString(4), confirmedBans);
         }
+        if (skipReason is null && !custom && HasNewerLeaderEvent(sqlite, tx, occurredAt))
+            skipReason = "SupersededLeader";
+        if (skipReason is not null)
+        {
+            MarkUnstartedSkipped(sqlite, tx, id, skipReason, now);
+            tx.Commit();
+            return RedditBeginResult.NotPending;
+        }
         if (blockedLink is not null)
         {
-            MarkBlockedLink(sqlite, tx, id, now);
+            MarkUnstartedSkipped(sqlite, tx, id, "BlockedLink", now);
             tx.Commit();
             LogBlockedLink(id, blockedLink);
             return RedditBeginResult.NotPending;
@@ -138,20 +179,26 @@ public sealed class RedditDeliveryStore(DatabaseManager db, ILogger<RedditDelive
         return updated == 1 ? RedditBeginResult.Started : RedditBeginResult.AlreadyStarted;
     });
 
-    private static bool MarkBlockedLink(SqliteConnection sqlite, SqliteTransaction? tx, string eventId, DateTimeOffset now)
+    private static bool MarkUnstartedSkipped(SqliteConnection sqlite, SqliteTransaction tx, string eventId,
+        string reason, DateTimeOffset now)
     {
         using var cmd = sqlite.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = """
             INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
-            VALUES (@id, 'reddit', 'skipped', 'BlockedLink', @now)
+            VALUES (@id, 'reddit', 'skipped', @reason, @now)
             ON CONFLICT(EventId, Platform) DO UPDATE SET
-                Status = 'skipped', LastErrorCode = 'BlockedLink', UpdatedAtUtc = @now
+                Status = 'skipped', LastErrorCode = @reason, UpdatedAtUtc = @now
             WHERE SocialDeliveries.Status = 'pending' AND SocialDeliveries.FirstAttemptAtUtc IS NULL;
             """;
         cmd.Parameters.AddWithValue("@id", eventId);
+        cmd.Parameters.AddWithValue("@reason", reason);
         cmd.Parameters.AddWithValue("@now", now.UtcDateTime.ToString("o"));
-        return cmd.ExecuteNonQuery() == 1;
+        if (cmd.ExecuteNonQuery() == 0) return false;
+        // An abandoned reservation isn't a post. Never release one for an attempt.
+        cmd.CommandText = "DELETE FROM RedditDailyDeliveries WHERE EventId = @id;";
+        cmd.ExecuteNonQuery();
+        return true;
     }
 
     private void LogBlockedLink(string eventId, string link) =>

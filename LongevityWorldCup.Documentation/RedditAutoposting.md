@@ -2,7 +2,11 @@
 
 The `longevityworldcup` Devvit app publishes ordinary text posts to `r/LongevityWorldCup` as its app account. The LWC server selects Events and stores immutable prepared posts in `SocialDeliveries`; the app polls an authenticated bridge once per minute. It does not use the personal account's rejected external Data API application.
 
-The server's `RedditDailyPostJob` selects up to one ordinary eligible Event at 15:08 UTC (23:08 Asia/Singapore). Custom Events explicitly targeting Reddit are available at the next app poll, independently of their website visibility. Eligibility, seven-day freshness where applicable, and two-day athlete cooldowns match Mastodon/Nostr. There is no filler. All Events present at the first authenticated poll are baselined, including Custom Events selected before activation.
+The server's `RedditDailyPostJob` selects up to one ordinary eligible Event at 15:08 UTC (23:08 Asia/Singapore). Reddit's ordinary selection is limited to a new overall Ultimate League leader (`NewRank` at rank 1), still leading at selection and dispatch. Posts include the athlete's current submitted result and the ranking context. Donations, athlete-count milestones, badges, other rank changes, crowd-age updates, and routine profile updates are skipped for Reddit only. New ordinary Event types are excluded by default. Seven-day freshness and the two-day athlete cooldown remain in force. There is no filler.
+
+Custom Events explicitly targeting Reddit remain available at the next poll, independently of their website visibility or topic. The editorial filter adds no approval step and does not change destination selection or the existing blocked-link checks. All Events present at the first authenticated poll are baselined, including Custom Events selected before activation.
+
+The eligibility checks also cover previously prepared but unstarted ordinary posts. A skipped unstarted post releases its unused daily reservation. Already-started attempts keep their immutable copy, duplicate protections, and automatic receipt path, even when their Event type would now be excluded.
 
 The Custom Event API rejects a selected Reddit destination while the bridge is disabled or has not activated, preserving the user's draft rather than promising a delivery that would be baselined. The command-line Event queue also requires the Reddit activation marker.
 

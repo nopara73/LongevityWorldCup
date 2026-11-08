@@ -11,7 +11,6 @@ public sealed class RedditAnnouncementService(
     EventDataService events,
     SocialDeliveryStore deliveries,
     RedditDeliveryStore reddit,
-    ThreadsEventService messageComposer,
     AthleteDataService athletes,
     TimeProvider time)
 {
@@ -26,11 +25,12 @@ public sealed class RedditAnnouncementService(
         {
             var now = time.GetUtcNow();
             var pending = deliveries.GetPending(SocialDeliveryStore.Reddit, customOnly: false, now);
-            // Finish an earlier prepared announcement before selecting another ordinary Event.
-            if (pending.Any(x => x.Event.Type != EventType.CustomEvent && x.RecordJson is not null)) return;
             foreach (var candidate in pending.Where(x => x.Event.Type != EventType.CustomEvent))
             {
                 ct.ThrowIfCancellationRequested();
+                if (SkipIneligible(candidate, now)) continue;
+                // Recheck old prepared copy before it can block today's selection.
+                if (candidate.RecordJson is not null) return;
                 var request = BuildRequest(candidate, now);
                 if (request is null) continue;
                 if (!reddit.ReserveDailyDelivery(candidate.Event.Id, now)) return;
@@ -58,11 +58,7 @@ public sealed class RedditAnnouncementService(
             {
                 ct.ThrowIfCancellationRequested();
                 if (ifttt && candidate.FirstAttemptAtUtc.HasValue) continue;
-                if (candidate.HiddenForMissingAthlete)
-                {
-                    deliveries.Skip(SocialDeliveryStore.Reddit, candidate.Event.Id, "MissingAthlete", now);
-                    continue;
-                }
+                if (SkipIneligible(candidate, now)) continue;
                 var key = candidate.RecordKey;
                 var json = candidate.RecordJson;
                 if (json is null)
@@ -87,29 +83,17 @@ public sealed class RedditAnnouncementService(
     private RedditPostRequest? BuildRequest(PendingSocialDelivery candidate, DateTimeOffset now)
     {
         var item = candidate.Event;
-        if (candidate.HiddenForMissingAthlete)
-        {
-            deliveries.Skip(SocialDeliveryStore.Reddit, item.Id, "MissingAthlete", now);
-            return null;
-        }
-        if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(item.Type, item.Text, item.OccurredAtUtc,
-            candidate.Priority, now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
-        {
-            deliveries.Skip(SocialDeliveryStore.Reddit, item.Id, reason.ToString(), now);
-            return null;
-        }
         var subject = Subject(item);
         if (subject is not null && deliveries.IsSubjectOnCooldown(SocialDeliveryStore.Reddit, subject, now)) return null;
         var snapshot = athletes.GetAthletesForX();
-        messageComposer.SetAthletesForThreads(snapshot);
         var names = snapshot.ToDictionary(x => x.Slug, x => x.Name, StringComparer.OrdinalIgnoreCase);
         string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
             ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
-        var ordinaryText = item.Type == EventType.CustomEvent ? "" : messageComposer.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, ResolveName) ?? "";
+        var ordinaryText = item.Type == EventType.CustomEvent ? "" : RedditPost.BuildLeaderText(item, snapshot) ?? "";
         var request = RedditPost.Build(item, ordinaryText, ResolveName);
         if (request is null)
         {
-            deliveries.Skip(SocialDeliveryStore.Reddit, item.Id, SocialEventSkipReason.EmptyMessage.ToString(), now);
+            reddit.SkipUnstarted(item.Id, nameof(SocialEventSkipReason.EmptyMessage), now);
             return null;
         }
         var blockedLink = item.Type == EventType.CustomEvent
@@ -124,6 +108,23 @@ public sealed class RedditAnnouncementService(
         return request;
     }
 
-    private static string? Subject(EventItem item) => item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+    private bool SkipIneligible(PendingSocialDelivery candidate, DateTimeOffset now)
+    {
+        // A submission already started must keep its immutable copy and receipt path.
+        if (candidate.FirstAttemptAtUtc.HasValue) return false;
+        var item = candidate.Event;
+        var reason = candidate.HiddenForMissingAthlete ? "MissingAthlete"
+            : RedditEventPolicy.SkipReason(item.Type, item.Text, item.OccurredAtUtc, now);
+        if (reason is null && item.Type == EventType.NewRank &&
+            (reddit.HasNewerLeaderEvent(item.OccurredAtUtc) || !athletes.GetAthletesForX().Any(a => a.CurrentRank == 1 &&
+                EventHelpers.TryExtractSlug(item.Text, out var slug) &&
+                string.Equals(a.Slug, slug, StringComparison.OrdinalIgnoreCase))))
+            reason = "SupersededLeader";
+        if (reason is null) return false;
+        reddit.SkipUnstarted(item.Id, reason, now);
+        return true;
+    }
+
+    private static string? Subject(EventItem item) => item.Type == EventType.NewRank
         && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
 }

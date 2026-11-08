@@ -101,27 +101,25 @@ public sealed class RedditIntegrationTests
     }
 
     [Fact]
-    public async Task DailyQuota_SurvivesRestartAndDonationFreshnessDoesNotExpireAcknowledgments()
+    public async Task DailyQuota_SurvivesRestartAndDoesNotLimitSelectedCustomEvents()
     {
-        using var fixture = Fixture.Create();
+        using var fixture = Fixture.Create(seedLeaderboardAssets: true);
         var clock = new Clock(DateTimeOffset.UtcNow);
         var service = Service(fixture, clock);
         await service.GetNextAsync();
-        fixture.Events.CreateDonationReceivedEvents([("reddit-late-donation", clock.GetUtcNow().UtcDateTime.AddDays(-30), 8455L)]);
+        var leader = fixture.Athletes.GetAthletesForX().Single(a => a.CurrentRank == 1);
+        fixture.InsertEvent(EventType.NewRank, $"slug[{leader.Slug}] rank[1]", clock.GetUtcNow().UtcDateTime);
         await service.PrepareDailyAsync();
         var first = (await service.GetNextAsync())!;
-        Assert.Contains("0.00008455 BTC", first.Text);
         var store = new RedditDeliveryStore(fixture.Database);
         Assert.Equal(RedditBeginResult.Started, store.Begin(first.DeliveryId, clock.GetUtcNow()));
         Assert.True(store.Complete(first.DeliveryId, "t3_first", clock.GetUtcNow()));
-        fixture.Events.CreateDonationReceivedEvents([("reddit-second-donation", clock.GetUtcNow().UtcDateTime, 12000L)]);
-        await Service(fixture, clock).PrepareDailyAsync();
-        Assert.Null(await service.GetNextAsync());
-        clock.Current = clock.Current.AddDays(1);
-        await service.PrepareDailyAsync();
-        var second = (await service.GetNextAsync())!;
-        Assert.NotEqual(first.EventId, second.EventId);
-        Assert.Equal(RedditBeginResult.Started, store.Begin(second.DeliveryId, clock.GetUtcNow()));
+        Assert.False(new RedditDeliveryStore(fixture.Database).ReserveDailyDelivery("another-event", clock.GetUtcNow()));
+        var customId = fixture.Events.CreateCustomEvent("Competition announcement", "This is deliberately selected.", deliveryTargets: RedditOnly);
+        var custom = Assert.IsType<RedditDeliveryPayload>(await Service(fixture, clock).GetNextAsync());
+        Assert.Equal(customId, custom.EventId);
+        Assert.Equal(RedditBeginResult.Started, store.Begin(custom.DeliveryId, clock.GetUtcNow()));
+        Assert.True(store.ReserveDailyDelivery("tomorrows-event", clock.GetUtcNow().AddDays(1)));
     }
 
     [Fact]
@@ -146,10 +144,12 @@ public sealed class RedditIntegrationTests
         var clock = new Clock(DateTimeOffset.UtcNow);
         var service = Service(fixture, clock);
         await service.GetNextAsync();
-        fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[1]", clock.GetUtcNow().UtcDateTime.AddDays(-8));
+        var leader = fixture.Athletes.GetAthletesForX().Single(a => a.CurrentRank == 1);
+        var text = $"slug[{leader.Slug}] rank[1]";
+        fixture.InsertEvent(EventType.NewRank, text, clock.GetUtcNow().UtcDateTime.AddDays(-8));
         await service.PrepareDailyAsync();
         Assert.Null(await service.GetNextAsync());
-        var id = fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[1]", clock.GetUtcNow().UtcDateTime);
+        var id = fixture.InsertEvent(EventType.NewRank, text, clock.GetUtcNow().UtcDateTime);
         await service.PrepareDailyAsync();
         var first = Assert.IsType<RedditDeliveryPayload>(await service.GetNextAsync());
         Assert.Equal(id, first.EventId);
@@ -157,9 +157,7 @@ public sealed class RedditIntegrationTests
         Assert.Equal(RedditBeginResult.Started, store.Begin(first.DeliveryId, clock.GetUtcNow()));
         Assert.True(store.Complete(first.DeliveryId, "t3_benjamin", clock.GetUtcNow()));
         clock.Current = clock.Current.AddDays(1);
-        // The small-field social policy only announces first place; keep the next
-        // highlight eligible so this assertion measures the subject cooldown.
-        var nextId = fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[1]", clock.GetUtcNow().UtcDateTime);
+        var nextId = fixture.InsertEvent(EventType.NewRank, text, clock.GetUtcNow().UtcDateTime);
         await service.PrepareDailyAsync();
         Assert.Null(await service.GetNextAsync());
         clock.Current = clock.Current.AddDays(1).AddMinutes(1);
@@ -395,6 +393,170 @@ public sealed class RedditIntegrationTests
         Assert.Equal("t3_abc124", store.Find(second.DeliveryId)!.PostId);
     }
 
+    [Fact]
+    public async Task EditorialSelection_SkipsRoutineUpdatesOnlyOnRedditAndKeepsTheCurrentOverallLead()
+    {
+        using var fixture = Fixture.Create(seedLeaderboardAssets: true);
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var service = Service(fixture, clock);
+        await service.GetNextAsync();
+        var roster = fixture.Athletes.GetAthletesForX();
+        var leader = roster.Single(a => a.CurrentRank == 1);
+        var previous = roster.Single(a => a.CurrentRank == 2);
+        var excluded = new List<string>();
+        foreach (var type in Enum.GetValues<EventType>().Where(t => t is not EventType.NewRank and not EventType.CustomEvent))
+            excluded.Add(fixture.InsertEvent(type, "Routine update", clock.Current.UtcDateTime));
+        foreach (var rank in new[] { 2, 3, 10 })
+            excluded.Add(fixture.InsertEvent(EventType.NewRank, $"slug[{leader.Slug}] rank[{rank}]", clock.Current.UtcDateTime));
+        excluded.Add(fixture.InsertEvent(EventType.NewRank, $"slug[{previous.Slug}] rank[1]", clock.Current.UtcDateTime.AddMinutes(-2)));
+        var leadId = fixture.InsertEvent(EventType.NewRank, $"slug[{leader.Slug}] rank[1]", clock.Current.UtcDateTime);
+
+        await service.PrepareDailyAsync();
+        var post = Assert.IsType<RedditDeliveryPayload>(await service.GetNextAsync());
+        Assert.Equal(leadId, post.EventId);
+        Assert.Contains(leader.Name, post.Title);
+        Assert.Contains("lowest submitted", post.Text);
+        Assert.Contains("biological age minus chronological age", post.Text);
+        Assert.Contains(previous.Name, post.Text);
+        // A second selection drains lower-priority routine Events only after this
+        // prepared post is resolved, so exercise each through the dispatch gate too.
+        foreach (var id in excluded)
+        {
+            var prepared = new SocialDeliveryStore(fixture.Database);
+            var pending = prepared.GetPending(SocialDeliveryStore.Reddit, false, clock.Current).FirstOrDefault(x => x.Event.Id == id);
+            if (pending is not null)
+                prepared.Prepare(SocialDeliveryStore.Reddit, id, JsonSerializer.Serialize(new RedditPostRequest("Old caption", "Old body")), null, clock.Current);
+        }
+        var reddit = new RedditDeliveryStore(fixture.Database);
+        Assert.Equal(RedditBeginResult.Started, reddit.Begin(post.DeliveryId, clock.Current));
+        Assert.True(reddit.Complete(post.DeliveryId, "t3_leader", clock.Current));
+        Assert.Null(await service.GetNextAsync());
+        Assert.All(excluded, id => Assert.Equal("skipped", DeliveryState(fixture, id).Status));
+        Assert.All(excluded, id => Assert.Equal((1, null), fixture.ReadPlatformState(id, "X")));
+        Assert.Empty(fixture.ThreadsRequests);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EditorialSelection_RechecksLegacyPreparedPostsAndReleasesOnlyUnstartedReservations(bool beginDirectly)
+    {
+        using var fixture = Fixture.Create(seedLeaderboardAssets: true);
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var config = IftttConfig();
+        var service = Service(fixture, clock, config);
+        await service.GetNextAsync();
+        var oldId = fixture.InsertEvent(EventType.AthleteCountMilestone, "athletes[250]", clock.Current.UtcDateTime);
+        var store = new RedditDeliveryStore(fixture.Database);
+        var old = new SocialDeliveryStore(fixture.Database).Prepare(SocialDeliveryStore.Reddit, oldId,
+            JsonSerializer.Serialize(new RedditPostRequest("250 athletes", "Routine milestone")), null, clock.Current);
+        Assert.True(store.ReserveDailyDelivery(oldId, clock.Current));
+        if (beginDirectly)
+            Assert.Equal(RedditBeginResult.NotPending, store.Begin(old.Key, clock.Current, "unused-fingerprint"));
+        else
+            Assert.Null(await service.ClaimNextIftttAsync(default));
+        Assert.Equal(("skipped", RedditEventPolicy.RoutineUpdate, (string?)null), DeliveryState(fixture, oldId));
+        var leader = fixture.Athletes.GetAthletesForX().Single(a => a.CurrentRank == 1);
+        var newId = fixture.InsertEvent(EventType.NewRank, $"slug[{leader.Slug}] rank[1]", clock.Current.UtcDateTime);
+        await Service(fixture, clock, config).PrepareDailyAsync();
+        var next = Assert.IsType<RedditDeliveryPayload>(await service.ClaimNextIftttAsync(default));
+        Assert.Equal(newId, next.EventId);
+        Assert.NotNull(DeliveryState(fixture, newId).FirstAttempt);
+    }
+
+    [Fact]
+    public async Task EditorialSelection_DoesNotRewriteOrRetryAnOldAttemptAndItsAutomaticReceiptStillWorks()
+    {
+        using var fixture = Fixture.Create();
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var config = IftttConfig();
+        var service = Service(fixture, clock, config);
+        await service.GetNextAsync();
+        var oldId = fixture.InsertEvent(EventType.DonationReceived, "sats[8455]", clock.Current.UtcDateTime);
+        var post = new RedditPostRequest("Existing post", "Already submitted before the policy change");
+        var prepared = new SocialDeliveryStore(fixture.Database).Prepare(SocialDeliveryStore.Reddit, oldId,
+            JsonSerializer.Serialize(post), null, clock.Current);
+        var store = new RedditDeliveryStore(fixture.Database);
+        Assert.True(store.ReserveDailyDelivery(oldId, clock.Current));
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = """
+                UPDATE SocialDeliveries SET FirstAttemptAtUtc = @now WHERE RecordKey = @key AND Platform = 'reddit';
+                INSERT INTO RedditIftttAttempts (RecordKey, Fingerprint) VALUES (@key, @fingerprint);
+                """;
+            cmd.Parameters.AddWithValue("@now", clock.Current.UtcDateTime.ToString("o"));
+            cmd.Parameters.AddWithValue("@key", prepared.Key);
+            cmd.Parameters.AddWithValue("@fingerprint", RedditIftttPost.Fingerprint(post.Title, post.Text));
+            cmd.ExecuteNonQuery();
+        });
+        store.SkipUnstarted(oldId, RedditEventPolicy.RoutineUpdate, clock.Current);
+        await service.PrepareDailyAsync();
+        Assert.Null(await service.ClaimNextIftttAsync(default));
+        Assert.Equal("pending", DeliveryState(fixture, oldId).Status);
+        Assert.False(store.ReserveDailyDelivery("another", clock.Current));
+        Assert.Equal(prepared.Json, store.Find(prepared.Key)!.Json);
+        var receipt = new RedditIftttReceiptsController.ReceiptRequest("LongevityWorldCup", "nopara73",
+            "https://www.reddit.com/r/LongevityWorldCup/comments/existing/", post.Title, post.Text, clock.Current.ToUnixTimeSeconds());
+        Assert.True(Matched(IftttController(store, clock, config).Receive(receipt)));
+        store.SkipUnstarted(oldId, RedditEventPolicy.RoutineUpdate, clock.Current);
+        Assert.Equal("sent", DeliveryState(fixture, oldId).Status);
+        Assert.Equal("t3_existing", store.Find(prepared.Key)!.PostId);
+    }
+
+    [Fact]
+    public async Task SupersededLeadDoesNotResurfaceAfterTheAthleteCooldown()
+    {
+        using var fixture = Fixture.Create(seedLeaderboardAssets: true);
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var service = Service(fixture, clock);
+        await service.GetNextAsync();
+        var leader = fixture.Athletes.GetAthletesForX().Single(a => a.CurrentRank == 1);
+        var text = $"slug[{leader.Slug}] rank[1]";
+        var oldId = fixture.InsertEvent(EventType.NewRank, text, clock.Current.UtcDateTime.AddHours(-1));
+        var latestId = fixture.InsertEvent(EventType.NewRank, text, clock.Current.UtcDateTime);
+        await service.PrepareDailyAsync();
+        var latest = Assert.IsType<RedditDeliveryPayload>(await service.GetNextAsync());
+        Assert.Equal(latestId, latest.EventId);
+        var store = new RedditDeliveryStore(fixture.Database);
+        Assert.Equal(RedditBeginResult.Started, store.Begin(latest.DeliveryId, clock.Current));
+        Assert.True(store.Complete(latest.DeliveryId, "t3_latest", clock.Current));
+        clock.Current = clock.Current.AddDays(3);
+        await Service(fixture, clock).PrepareDailyAsync();
+        Assert.Null(await service.GetNextAsync());
+        Assert.Equal(("skipped", "SupersededLeader", (string?)null), DeliveryState(fixture, oldId));
+    }
+
+    [Theory]
+    [InlineData(true, "StalePrimaryEvent")]
+    [InlineData(false, "SupersededLeader")]
+    public async Task BeginRechecksALeadThatChangedSincePreparation(bool expired, string reason)
+    {
+        using var fixture = Fixture.Create(seedLeaderboardAssets: true);
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var service = Service(fixture, clock);
+        await service.GetNextAsync();
+        var leader = fixture.Athletes.GetAthletesForX().Single(a => a.CurrentRank == 1);
+        var text = $"slug[{leader.Slug}] rank[1]";
+        var id = fixture.InsertEvent(EventType.NewRank, text, clock.Current.UtcDateTime);
+        await service.PrepareDailyAsync();
+        var prepared = Assert.IsType<RedditDeliveryPayload>(await service.GetNextAsync());
+        if (expired) clock.Current = clock.Current.AddDays(8);
+        else fixture.InsertEvent(EventType.NewRank, text, clock.Current.UtcDateTime.AddSeconds(1));
+        Assert.Equal(RedditBeginResult.NotPending, new RedditDeliveryStore(fixture.Database).Begin(prepared.DeliveryId, clock.Current));
+        Assert.Equal(("skipped", reason, (string?)null), DeliveryState(fixture, id));
+    }
+
+    private static (string Status, string? Reason, string? FirstAttempt) DeliveryState(Fixture fixture, string id) => fixture.Database.Run(sqlite =>
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText = "SELECT Status, LastErrorCode, FirstAttemptAtUtc FROM SocialDeliveries WHERE Platform = 'reddit' AND EventId = @id;";
+        cmd.Parameters.AddWithValue("@id", id);
+        using var reader = cmd.ExecuteReader();
+        Assert.True(reader.Read());
+        return (reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2));
+    });
+
     private static Config IftttConfig() => new()
     {
         RedditEnabled = true,
@@ -432,7 +594,7 @@ public sealed class RedditIntegrationTests
 
     private static RedditAnnouncementService Service(Fixture fixture, TimeProvider clock, Config? config = null) => new(
         config ?? new Config { RedditEnabled = true }, fixture.Events, new SocialDeliveryStore(fixture.Database),
-        new RedditDeliveryStore(fixture.Database), fixture.ThreadsEvents, fixture.Athletes, clock);
+        new RedditDeliveryStore(fixture.Database), fixture.Athletes, clock);
 
     private static RedditBridgeController Controller(Fixture fixture, TimeProvider clock, Config config) => new(
         config, Service(fixture, clock, config), new RedditDeliveryStore(fixture.Database), clock)
