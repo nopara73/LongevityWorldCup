@@ -68,20 +68,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 844 }, ReducedMotion = ReducedMotion.Reduce });
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
-        if (view == "crowd")
-        {
-            await context.RouteAsync("**/api/data/athletes", async route =>
-            {
-                var response = await route.FetchAsync();
-                var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
-                foreach (var athlete in athletes.OfType<JsonObject>().Take(5))
-                {
-                    athlete["CrowdAge"] = 30;
-                    athlete["CrowdCount"] = 150;
-                }
-                await route.FulfillAsync(new() { ContentType = "application/json", Body = athletes.ToJsonString() });
-            });
-        }
+        await RouteSelectionRosterAsync(context);
 
         var page = await context.NewPageAsync();
         await page.GotoAsync(view == "ultimate" ? "/leaderboard" : $"/league/{view}");
@@ -89,10 +76,10 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(view == "ultimate" ? 0 : 1);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         var originalCount = await Rows(page).CountAsync();
-        var name = view == "pheno" ? "Max" : (await Rows(page).First.GetAttributeAsync("data-athlete-name"))!;
+        var name = (await Rows(page).First.GetAttributeAsync("data-athlete-name"))!;
         var row = Rows(page).Filter(new() { Has = page.Locator(".athlete-name").Filter(new() { HasText = name }) }).First;
         var originalHeight = (await row.BoundingBoxAsync())!.Height;
-        await page.Locator("#athleteSearch").FillAsync(view == "pheno" ? "Max -18.30" : name);
+        await page.Locator("#athleteSearch").FillAsync(name);
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
         await AssertVisibleRailAsync(page, title);
         Assert.InRange(Math.Abs((await Rows(page).BoundingBoxAsync())!.Height - originalHeight), 0, 1);
@@ -210,39 +197,23 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     public async Task SearchingByRank_UsesTheDisplayedRankAndRecomputesAfterAViewChange()
     {
         await using var context = await NewContextAsync(Browser, App, new());
-        await RouteAthleteFixtureAsync(context, athletes =>
-        {
-            // Keep the rank query distinct from score text: the growing real roster
-            // moved Michael to #42, which also matched his 42.x% pheno reduction.
-            var amateur = athletes.OfType<JsonObject>().Single(a => a["Name"]!.GetValue<string>() == "Michael Lustgarten").DeepClone();
-            var pro = athletes.OfType<JsonObject>().Single(a => a["Name"]!.GetValue<string>() == "Benjamin Garden");
-            athletes.Clear();
-            athletes.Add(amateur);
-            for (var i = 1; i <= 9; i++)
-            {
-                var competitor = pro.DeepClone().AsObject();
-                competitor["Name"] = $"Pro Rank Fixture {i}";
-                competitor["DisplayName"] = null;
-                competitor["AthleteSlug"] = $"pro_rank_fixture_{i}";
-                athletes.Add(competitor);
-            }
-        });
+        await RouteSelectionRosterAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/league/pheno?search=michael%20lustgarten%201");
+        await page.GotoAsync("/league/pheno?search=quartz%20runner%202");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
-        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("1");
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("2");
 
-        await page.Locator("#athleteSearch").FillAsync("michael lustgarten");
+        await page.Locator("#athleteSearch").FillAsync("quartz runner");
         await page.GetByRole(AriaRole.Button, new() { Name = "Remove Pheno age filter", Exact = true }).ClickAsync();
         await Assertions.Expect(page.Locator("#view-ultimate")).ToBeCheckedAsync();
         var ultimateRank = (await Rows(page).First.GetAttributeAsync("data-rank"))!;
-        Assert.Equal("10", ultimateRank);
+        Assert.Equal("4", ultimateRank);
         await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync(ultimateRank);
-        await page.Locator("#athleteSearch").FillAsync($"michael lustgarten {ultimateRank}");
+        await page.Locator("#athleteSearch").FillAsync($"quartz runner {ultimateRank}");
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
         await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync(ultimateRank);
-        await page.GotoAsync($"/league/pheno?search=michael%20lustgarten%20{ultimateRank}");
+        await page.GotoAsync($"/league/pheno?search=quartz%20runner%20{ultimateRank}");
         await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
     }
 
@@ -285,8 +256,9 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     public async Task SidebarViewSwitch_UsesTheProposedCompetitionRanksDuringSearch()
     {
         await using var context = await NewContextAsync(Browser, App, new());
+        await RouteSelectionRosterAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?search=Max%2011");
+        await page.GotoAsync("/leaderboard?search=quartz%20runner%202");
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator("#leaderboardResultCount")).ToHaveTextAsync("0 athletes");
         var toggle = page.Locator(".sidebar-toggle");
@@ -299,12 +271,12 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await pheno.CheckAsync();
         await Assertions.Expect(page.Locator("#view-pheno")).ToBeCheckedAsync();
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
-        await Assertions.Expect(Rows(page)).ToHaveAttributeAsync("data-athlete-name", "Max");
-        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("11");
-        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("Max 11");
+        await Assertions.Expect(Rows(page)).ToHaveAttributeAsync("data-athlete-name", "Quartz Runner");
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("2");
+        await Assertions.Expect(page.Locator("#athleteSearch")).ToHaveValueAsync("quartz runner 2");
         await page.ReloadAsync();
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
-        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("11");
+        await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("2");
     }
 
     [Theory]
@@ -336,8 +308,9 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     public async Task SidebarMultiSelect_CanChangeTheRankOfAnAlreadyMatchingAthlete()
     {
         await using var context = await NewContextAsync(Browser, App, new());
+        await RouteSelectionRosterAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/leaderboard?filters=open&search=michael%20lustgarten");
+        await page.GotoAsync("/leaderboard?filters=open&search=quartz%20runner");
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
         var originalRank = await Rows(page).Locator(".rank").InnerTextAsync();
@@ -359,8 +332,9 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
     public async Task SidebarMultiSelect_HidesEmptyFlagsThatCannotChangeTheResult()
     {
         await using var context = await NewContextAsync(Browser, App, new());
+        await RouteSelectionRosterAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/league/pheno?search=michael%20lustgarten");
+        await page.GotoAsync("/league/pheno?search=cedar%20runner");
         await Assertions.Expect(Rows(page)).ToHaveCountAsync(1);
         await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("1");
         await page.Locator(".sidebar-toggle").ClickAsync();
@@ -372,7 +346,7 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await Assertions.Expect(page.Locator("#flag-filter-section input:not(:disabled)")).ToHaveCountAsync(1);
         await Assertions.Expect(Rows(page).Locator(".rank")).ToHaveTextAsync("1");
 
-        // Clearing the search restores real alternative members in the same group.
+        // Clearing the search restores alternative members in the same group.
         await page.Locator("#athleteSearch").FillAsync("");
         await Assertions.Expect(page.Locator(".leaderboard-selection-chip")).ToHaveCountAsync(2);
         await Assertions.Expect(page.Locator("#flag-filter-section input:not(:disabled)")).ToHaveCountAsync(await flags.CountAsync());
@@ -521,6 +495,63 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await page.Mouse.MoveAsync(100, 100);
         await Assertions.Expect(page.Locator(".sidebar")).ToBeHiddenAsync();
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth>innerWidth"));
+    }
+
+    // Fixed identities, dates and biomarkers keep rank/unique-match assertions independent
+    // of athlete submissions. Quartz is #2 in Pheno and #4 in Ultimate (both pros lead
+    // the amateurs there); its score text contains neither rank digit. Only its name
+    // contains "quartz", so bios, flags, badges and other ranks cannot add matches.
+    private static Task RouteSelectionRosterAsync(IBrowserContext context)
+    {
+        var athletes = new JsonArray(
+            SelectionAthlete("Cedar Runner", "cedar_runner", "Open", "Canada", 0.05),
+            SelectionAthlete("Quartz Runner", "quartz_runner", "Open", "Hungary", 0.1),
+            SelectionAthlete("Birch Runner", "birch_runner", "Women's", "France", 2, professional: true),
+            SelectionAthlete("Willow Runner", "willow_runner", "Women's", "France", 3, professional: true));
+        return context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Status = 200, ContentType = "application/json", Body = athletes.ToJsonString()
+        }));
+    }
+
+    private static JsonObject SelectionAthlete(string name, string slug, string division, string flag, double crp, bool professional = false)
+    {
+        JsonObject Biomarkers(string date, double inflammation)
+        {
+            var markers = new JsonObject
+            {
+                ["Date"] = date, ["AlbGL"] = 48, ["CreatUmolL"] = 70,
+                ["GluMmolL"] = 5, ["CrpMgL"] = inflammation, ["LymPc"] = 35,
+                ["McvFL"] = 90, ["RdwPc"] = 12, ["AlpUL"] = 50, ["Wbc1000cellsuL"] = 5
+            };
+            if (professional)
+            {
+                markers["NeutrophilPc"] = 50;
+                markers["MonocytePc"] = 8;
+                markers["Rbc10e12L"] = 4.8;
+                markers["MchPg"] = 30;
+                markers["UreaMmolL"] = 5;
+                markers["CystatinCMgL"] = 0.8;
+                markers["Hba1cMmolMol"] = 32;
+                markers["CholesterolMmolL"] = 4;
+                markers["ApoA1GL"] = 1.5;
+                markers["AltUL"] = 20;
+                markers["GgtUL"] = 20;
+                markers["ShbgNmolL"] = 40;
+                markers["VitaminDNmolL"] = 100;
+            }
+            return markers;
+        }
+
+        return new JsonObject
+        {
+            ["Name"] = name, ["AthleteSlug"] = slug, ["DisplayName"] = null,
+            ["DateOfBirth"] = new JsonObject { ["Year"] = 1975, ["Month"] = 1, ["Day"] = 1 },
+            ["Division"] = division, ["Flag"] = flag, ["Why"] = "",
+            ["Biomarkers"] = new JsonArray(Biomarkers("2024-01-01", crp + 5), Biomarkers("2025-01-01", crp)),
+            ["CrowdAge"] = 30, ["CrowdCount"] = 150,
+            ["Placements"] = new JsonArray(), ["Badges"] = new JsonArray()
+        };
     }
 
     private static ILocator Rows(IPage page) => page.Locator(".leaderboard tbody tr[data-athlete-name]:visible");
