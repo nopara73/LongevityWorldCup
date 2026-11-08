@@ -4721,39 +4721,26 @@ document.getElementById('clearLeaderboardSelection')?.addEventListener('click', 
     showAllAthletes();
     document.getElementById('athleteSearch')?.focus({ preventScroll: true });
 });
-document.getElementById('showLeaderboardResults')?.addEventListener('click', () => closeSidebar({ restoreFocus: true }));
+document.getElementById('showLeaderboardResults')?.addEventListener('click', event => closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 }));
 clearSidebarFiltersButton?.addEventListener('click', function (event) {
     event.preventDefault();
     event.stopPropagation();
     clearSidebarFilters();
     if (!isMobileDrawerViewport()) {
-        closeSidebar({ restoreFocus: event.detail === 0 });
+        closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 });
     } else {
-        focusAfterClearingSidebarFilters();
+        focusAfterClearingSidebarFilters(event.detail === 0);
     }
 });
-function focusAfterClearingSidebarFilters() {
+function focusAfterClearingSidebarFilters(focusVisible) {
     const sidebar = document.querySelector('.sidebar');
     const sidebarClose = document.querySelector('.sidebar-close');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const isMobileDrawer = isMobileDrawerViewport();
-    const focusTarget = isMobileDrawer && sidebar?.classList.contains('expanded')
-        ? sidebarClose
-        : sidebarToggle;
-
-    if (!focusTarget) return;
-
     requestAnimationFrame(() => {
-        focusTarget.classList.add('is-keyboard-focus');
-        focusTarget.addEventListener('blur', () => {
-            focusTarget.classList.remove('is-keyboard-focus');
-        }, { once: true });
-        try {
-            focusTarget.focus({ preventScroll: true, focusVisible: true });
-        }
-        catch {
-            focusTarget.focus({ preventScroll: true });
-        }
+        const focusTarget = isMobileDrawerViewport() && sidebar?.classList.contains('expanded')
+            ? sidebarClose
+            : sidebarToggle;
+        if (focusTarget) focusSidebarControl(focusTarget, focusVisible);
     });
 }
 document.addEventListener('click', function (event) {
@@ -7377,7 +7364,8 @@ sidebarToggle?.addEventListener('click', (event) => {
 });
 
 sidebarRail?.addEventListener('click', (event) => {
-    openSidebar({ focusDrawerClose: event.detail === 0 });
+    // The rail disappears when opened, so transfer focus for pointer input too.
+    openSidebar({ focusDrawerClose: true, focusVisible: event.detail === 0 });
 });
 
 sidebar?.addEventListener('mouseleave', () => {
@@ -7387,7 +7375,7 @@ sidebar?.addEventListener('mouseleave', () => {
 });
 
 sidebarClose?.addEventListener('click', (event) => {
-    closeSidebar({ restoreFocus: event.detail === 0 });
+    closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 });
 });
 
 document.addEventListener('click', (event) => {
@@ -7489,12 +7477,16 @@ function getSidebarFocusableControls() {
         });
 }
 
-function focusSidebarControl(element) {
+function focusSidebarControl(element, focusVisible = true) {
+    element.classList.toggle('is-keyboard-focus', focusVisible);
+    if (focusVisible) element.addEventListener('blur', () => {
+        element.classList.remove('is-keyboard-focus');
+    }, { once: true });
     try {
-        element.focus({ focusVisible: true });
+        element.focus({ preventScroll: true, focusVisible });
     }
     catch {
-        element.focus();
+        element.focus({ preventScroll: true });
     }
 }
 
@@ -7542,19 +7534,13 @@ function openSidebar(options = {}) {
         if (top < stickyHeight || top >= innerHeight) {
             ScrollGuard.trustedScrollTo({ top: scrollY + sidebar.getBoundingClientRect().top - stickyHeight, behavior: 'instant' });
         }
-        if (options.focusDrawerClose) focusSidebarControl(sidebarClose);
+        if (options.focusDrawerClose) focusSidebarControl(sidebarClose, options.focusVisible);
     }
 
     if (isMobileDrawer) {
         requestAnimationFrame(() => {
-            if (options.focusDrawerClose) {
-                try {
-                    sidebarClose.focus({ preventScroll: true, focusVisible: true });
-                }
-                catch {
-                    sidebarClose.focus({ preventScroll: true });
-                }
-            }
+            if (!sidebar.classList.contains('expanded')) return;
+            focusSidebarControl(sidebarClose, options.focusVisible ?? !!options.focusDrawerClose);
             window.scrollTo({ left: drawerScrollX, top: drawerScrollY, behavior: 'instant' });
         });
     }
@@ -7563,7 +7549,8 @@ function openSidebar(options = {}) {
 function closeSidebar(options = {}) {
     if (!hasLeaderboardSidebar) return;
     if (sidebar.classList.contains('is-closing')) return;
-    const restoreFocus = options.restoreFocus || sidebar.contains(document.activeElement);
+    const restoreFocus = options.restoreFocus ?? sidebar.contains(document.activeElement);
+    const focusVisible = options.focusVisible ?? (options.restoreFocus === true);
     const collapse = () => {
         // Preserve the visible result when the in-flow deck disappears. If the
         // reader is still inside the deck, return to its controlling button.
@@ -7609,16 +7596,8 @@ function closeSidebar(options = {}) {
 
     if (restoreFocus) {
         requestAnimationFrame(() => {
-            sidebarToggle.classList.add('is-keyboard-focus');
-            sidebarToggle.addEventListener('blur', () => {
-                sidebarToggle.classList.remove('is-keyboard-focus');
-            }, { once: true });
-            try {
-                sidebarToggle.focus({ preventScroll: true, focusVisible: true });
-            }
-            catch {
-                sidebarToggle.focus({ preventScroll: true });
-            }
+            if (sidebar.classList.contains('expanded') && !sidebar.classList.contains('is-closing')) return;
+            focusSidebarControl(sidebarToggle, focusVisible);
         });
     }
 }
@@ -7660,7 +7639,7 @@ sidebar?.addEventListener('touchend', event => {
     if (!start || !isMobileDrawerViewport() || !event.changedTouches.length) return;
     const touch = event.changedTouches[0];
     const dy = touch.clientY - start.y;
-    if (dy > 50 && dy > Math.abs(touch.clientX - start.x)) closeSidebar({ restoreFocus: true });
+    if (dy > 50 && dy > Math.abs(touch.clientX - start.x)) closeSidebar({ restoreFocus: true, focusVisible: false });
 }, { passive: true });
 sidebar?.addEventListener('touchcancel', () => { sidebarDragStart = null; }, { passive: true });
 

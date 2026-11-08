@@ -9,6 +9,48 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task PointerAndKeyboard_FocusAVisibleControlWithTheMatchingIndicator(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        if (width > 768)
+        {
+            await page.Locator(".sidebar-rail").ClickAsync();
+            await Assertions.Expect(page.Locator(".sidebar-close")).ToBeFocusedAsync();
+            Assert.False(await page.Locator(".sidebar-close").EvaluateAsync<bool>("e => e.matches(':focus-visible')"));
+            await page.Keyboard.PressAsync("Tab");
+            Assert.True(await page.EvaluateAsync<bool>("document.activeElement.matches('.sidebar input')"));
+        }
+        else
+        {
+            await page.Locator(".sidebar-toggle").ClickAsync();
+            await Assertions.Expect(page.Locator(".sidebar-close")).ToBeFocusedAsync();
+            Assert.False(await page.Locator(".sidebar-close").EvaluateAsync<bool>("e => e.matches(':focus-visible')"));
+        }
+        await page.Locator(".sidebar-close").ClickAsync();
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
+        Assert.False(await page.Locator(".sidebar-toggle").EvaluateAsync<bool>("e => e.matches(':focus-visible') || e.classList.contains('is-keyboard-focus')"));
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".sidebar-close")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToBeFocusedAsync();
+        Assert.True(await page.Locator(".sidebar-toggle").EvaluateAsync<bool>("e => e.matches(':focus-visible') && e.classList.contains('is-keyboard-focus')"));
+        await page.Keyboard.PressAsync("Enter");
+        await page.Locator("input[name=leagueTrack][value=Amateur i]").CheckAsync();
+        await page.Locator("#clearSidebarFiltersBtn").ClickAsync();
+        var afterClear = page.Locator(width > 768 ? ".sidebar-toggle" : ".sidebar-close");
+        await Assertions.Expect(afterClear).ToBeFocusedAsync();
+        Assert.False(await afterClear.EvaluateAsync<bool>("e => e.matches(':focus-visible') || e.classList.contains('is-keyboard-focus')"));
+    }
+
+    [Theory]
     [InlineData(390, 844)]
     [InlineData(844, 390)]
     public async Task Sheet_ConfinesFocusAndOnlyDismissesADownwardHeadingDrag(int width, int height)
@@ -37,6 +79,13 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(page.Locator(".sidebar-close")).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator(".sidebar-panel")).ToHaveAttributeAsync("aria-modal", "true");
+        Assert.True(await page.Locator("#showLeaderboardResults").EvaluateAsync<bool>("""
+            button => {
+                const r=button.getBoundingClientRect(),sheet=button.closest('.sidebar').getBoundingClientRect();
+                return r.top>=sheet.top && r.bottom<=innerHeight && r.bottom<=sheet.bottom
+                    && button.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));
+            }
+            """));
         await page.Keyboard.PressAsync("Shift+Tab");
         await Assertions.Expect(page.Locator("#showLeaderboardResults")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
