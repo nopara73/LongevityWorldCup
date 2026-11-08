@@ -280,8 +280,8 @@ public sealed class GuessMyAgeReentryBrowserTests(
             "range => { range.value = '41'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
         await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
-        await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
         await AdvanceRevealUntilAsync(page, "() => !!document.querySelector('.gma-exact-jackpot')");
+        await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
         Assert.Equal(1, await page.Locator(".gma-exact-jackpot").CountAsync());
         Assert.Equal(240, await page.Locator(".gma-exact-time-icon").CountAsync());
         await page.Clock.RunForAsync(32);

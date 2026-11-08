@@ -56,7 +56,8 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
         await copy.PressAsync("Enter");
         await copy.PressAsync("Space");
         Assert.Equal([FirstUrl], await CopyCallsAsync(page));
-        await CompleteAsync(page, "copy");
+        // The clock is paused; the assertions below observe completion without a frame.
+        await page.EvaluateAsync("() => window.__gates.copy(false)");
         await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToHaveTextAsync("Copied");
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeFocusedAsync();
