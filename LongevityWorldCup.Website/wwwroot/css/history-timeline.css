@@ -16,6 +16,7 @@
     bottom: auto;
     height: calc(var(--timeline-now, 100%) - var(--timeline-rail-top, 0px));
 }
+.documentation-timeline[data-live]::after { content: none; }
 .documentation-timeline[data-live] > .documentation-timeline-future {
     position: absolute;
     left: var(--timeline-rail-x);
@@ -58,6 +59,7 @@
 /* Today: a quiet pulse where the past ends and the announced begins. */
 .documentation-timeline[data-live] > .documentation-timeline-now {
     position: absolute;
+    z-index: 2;
     left: calc(var(--timeline-rail-x) + var(--timeline-rail-w) / 2);
     top: var(--timeline-now, 100%);
     width: 9px;
@@ -120,9 +122,11 @@
 .documentation-timeline[data-live] > .documentation-timeline-year {
     position: sticky;
     z-index: 0;
-    top: 5.5rem;
+    top: max(5.5rem, calc(var(--documentation-anchor-offset, 0px) + .75rem));
     display: block;
     height: 0;
+    container-type: inline-size;
+    opacity: .09;
     pointer-events: none;
 }
 .documentation-timeline[data-live] .documentation-timeline-year-face {
@@ -131,19 +135,35 @@
     top: 0;
     color: var(--lwc-accent, #087685);
     font: 800 clamp(3.5rem, 8vw, 6.75rem)/1 Orbitron, Roboto, sans-serif;
+    font-size: min(clamp(3.5rem, 8vw, 6.75rem), 30cqi);
     font-variant-numeric: tabular-nums;
     letter-spacing: -.02em;
-    opacity: .09;
     user-select: none;
 }
 
-/* The narrow-sheet rail keeps its fixed gutter (see the page's container rule). */
-@container documentation-table (max-width: 24rem) {
+/* Match the generated page's fixed phone gutter, including enlarged text. */
+@media (max-width: 600px) {
     .documentation-timeline[data-live] { --timeline-rail-x: 5px; }
 }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .documentation-timeline[data-live] .documentation-timeline-year-face { opacity: .12; }
+    :root:not([data-theme="light"]) .documentation-timeline[data-live] > .documentation-timeline-year { opacity: .12; }
+}
+
+@media print {
+    .documentation-timeline[data-live] > :not(.documentation-timeline-entry) { display: none; }
+    .documentation-timeline[data-live]::before {
+        top: .55rem;
+        bottom: .35rem;
+        height: auto;
+    }
+    .documentation-timeline[data-live] > .documentation-timeline-entry::before {
+        scale: none;
+        box-shadow: none;
+        background: var(--lwc-accent, #087685);
+    }
+    .documentation-timeline[data-live] > .documentation-timeline-entry.is-announced::before { background: var(--lwc-surface, #fff); }
+    .documentation-timeline[data-live] > .documentation-timeline-entry .documentation-timeline-heading { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

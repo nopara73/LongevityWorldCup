@@ -52,18 +52,27 @@ interface Window {
         const firstAnnounced = entries.findIndex(entry => entry.classList.contains("is-announced"));
 
         let shownYear = "";
+        let yearAnimation: Animation | null = null;
+        function settleYear(): void {
+            yearAnimation?.cancel();
+            yearAnimation = null;
+            yearFace.textContent = shownYear;
+        }
         function rollYear(year: string): void {
             if (year === shownYear) return;
             const goingUp = shownYear !== "" && year < shownYear;
             shownYear = year;
-            if (reduced.matches || !yearFace.textContent) { yearFace.textContent = year; return; }
+            yearAnimation?.cancel();
+            if (reduced.matches || !yearFace.textContent) { settleYear(); return; }
             const out = yearFace.animate(
                 [{ transform: "none", opacity: 1 }, { transform: `translateY(${goingUp ? 40 : -40}%)`, opacity: 0 }],
                 { duration: 160, easing: "cubic-bezier(.3,0,1,1)" }
             );
+            yearAnimation = out;
             out.onfinish = () => {
+                if (yearAnimation !== out) return;
                 yearFace.textContent = year;
-                yearFace.animate(
+                yearAnimation = yearFace.animate(
                     [{ transform: `translateY(${goingUp ? -40 : 40}%)`, opacity: 0 }, { transform: "none", opacity: 1 }],
                     { duration: 320, easing: "cubic-bezier(.2,0,0,1)" }
                 );
@@ -105,6 +114,9 @@ interface Window {
         const schedule = (): void => { if (!queued) { queued = true; requestAnimationFrame(measure); } };
         window.addEventListener("scroll", schedule, { passive: true });
         window.addEventListener("resize", schedule, { passive: true });
+        window.addEventListener("pageshow", schedule);
+        window.addEventListener("pagehide", settleYear);
+        reduced.addEventListener("change", () => { if (reduced.matches) settleYear(); });
         new ResizeObserver(schedule).observe(timeline);
         timeline.addEventListener("load", schedule, true);
         measure();
