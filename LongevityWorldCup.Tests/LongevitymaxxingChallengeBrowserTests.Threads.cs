@@ -31,11 +31,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await post.ScrollIntoViewIfNeededAsync();
             await page.Mouse.MoveAsync(0, 0);
             await WaitForFiniteAnimationsAsync(page);
-            var baseline = await post.EvaluateAsync<string[]>("e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).boxShadow]");
+            var baseline = await post.EvaluateAsync<string[]>("e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).boxShadow, getComputedStyle(e).borderRadius]");
             if (hover) await post.HoverAsync();
             else await post.EvaluateAsync("e => e.classList.add('lmx-discussion-target')");
             await WaitForFiniteAnimationsAsync(page);
-            Assert.Equal(baseline, await post.EvaluateAsync<string[]>("e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).boxShadow]"));
+            Assert.Equal(baseline, await post.EvaluateAsync<string[]>("e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).boxShadow, getComputedStyle(e).borderRadius]"));
         }
     }
 

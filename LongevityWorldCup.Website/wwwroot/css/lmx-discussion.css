@@ -197,7 +197,6 @@
 .lmx-page .lmx-note.lmx-discussion-target,
 .lmx-page .lmx-discussion-reply-item.lmx-discussion-target {
     animation: lmx-target-wash 1800ms cubic-bezier(.2, 0, 0, 1);
-    border-radius: var(--lwc-radius-sm, 6px);
 }
 @keyframes lmx-target-wash {
     0%, 25% { background-color: var(--lmx-accent-soft); box-shadow: 0 0 0 6px var(--lmx-accent-soft); }
