@@ -21,6 +21,7 @@ public sealed class FrontendTypeScriptBuildTests
         "field-validation",
         "flow-action-dock",
         "form-controls",
+        "history-timeline",
         "initial-view",
         "icons",
         "leaderboard-feel",

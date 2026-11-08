@@ -60,6 +60,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LONGEVITYMAXXING_JS}}"] = "/js/longevitymaxxing.js",
         ["{{ASSET_LMX_DISCUSSION_CSS}}"] = "/css/lmx-discussion.css",
         ["{{ASSET_LMX_DISCUSSION_JS}}"] = "/js/lmx-discussion.js",
+        ["{{ASSET_HISTORY_TIMELINE_CSS}}"] = "/css/history-timeline.css",
+        ["{{ASSET_HISTORY_TIMELINE_JS}}"] = "/js/history-timeline.js",
         ["{{ASSET_BIOAGE_DATES_CSS}}"] = "/css/bioage-dates.css",
         ["{{ASSET_BIOAGE_DATES_JS}}"] = "/js/bioage-dates.js",
         ["{{ASSET_MARTIN_HELSTAB_PROFILE_IMAGE}}"] = "/athletes/martin_helstab/martin_helstab.webp",
