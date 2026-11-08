@@ -9,6 +9,41 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(1440, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    public async Task Threads_AnnouncementRailConnectsToTheAvatarAboveIndentedContent(int width, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ColorScheme = theme, ReducedMotion = ReducedMotion.Reduce
+        });
+        var state = ConversationWorkspaceState();
+        state["public"]!["systemDiscussionPosts"] = new JsonArray(new JsonObject
+        {
+            ["id"] = DiscussionAnnouncementId, ["kind"] = "announcement", ["participantId"] = "p2",
+            ["displayName"] = "Ari", ["date"] = "2026-07-01", ["occurredAtUtc"] = "2026-07-01T09:00:00Z",
+            ["lastActivityAtUtc"] = "2026-07-01T09:05:00Z", ["replyCount"] = 1,
+            ["replies"] = JsonSerializer.SerializeToNode(new[] { Reply("announcement-answer", "p1", "Browser Tester", "Ready for the next round.", "2026-07-01T09:05:00Z") }),
+            ["announcement"] = new JsonObject { ["eventId"] = DiscussionAnnouncementId, ["title"] = "A new round", ["content"] = "The next round is open. Keep showing up." }
+        });
+        var page = await OpenDiscussionPolishAsync(context, state);
+        var post = page.Locator("#lmxNotes > .lmx-announcement");
+        await AssertThreadRailAsync(post);
+        var geometry = await post.EvaluateAsync<double[]>("""
+            post => {
+                const avatar = post.querySelector('.lmx-discussion-post-header .lmx-discussion-author-avatar').getBoundingClientRect();
+                const replies = post.querySelector('[data-lmx-thread]'), box = replies.getBoundingClientRect();
+                const rail = getComputedStyle(replies, '::before');
+                return [box.left + parseFloat(rail.left) + parseFloat(rail.width) / 2,
+                    avatar.left + avatar.width / 2, box.left + 1,
+                    box.top + parseFloat(rail.top), avatar.bottom + 6, box.top];
+            }
+            """);
+        Assert.InRange(geometry[0] - geometry[width > 600 ? 1 : 2], -1, 1);
+        Assert.InRange(geometry[3] - geometry[width > 600 ? 4 : 5], -1, 1);
+    }
+
+    [Theory]
     [InlineData(ColorScheme.Light, false)]
     [InlineData(ColorScheme.Dark, false)]
     [InlineData(ColorScheme.Light, true)]

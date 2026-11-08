@@ -40,7 +40,11 @@ interface Window {
         // On phones the post text runs under the author row, so the line starts
         // at the replies instead of cutting through the text and media.
         const body = note.querySelector<HTMLElement>(":scope > p, :scope > .lmx-note-photo-grid, :scope > .lmx-announcement-content");
-        const stacked = visible(body) && body.getBoundingClientRect().left < ar.right - 2;
+        // Announcements indent their content with padding rather than margin.
+        const bodyStart = visible(body)
+            ? body.getBoundingClientRect().left + body.clientLeft + parseFloat(getComputedStyle(body).paddingLeft)
+            : Infinity;
+        const stacked = bodyStart < ar.right - 2;
         const railCenter = stacked ? rr.left + 1 : ar.left + ar.width / 2;
         const items = Array.from(replies.querySelectorAll<HTMLElement>(":scope > .lmx-discussion-reply-list > .lmx-discussion-reply-item")).filter(visible);
         // The line starts just under the post avatar and ends at the last reply's curve
