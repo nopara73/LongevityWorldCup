@@ -162,7 +162,7 @@ public sealed class InteractionMotionLifecycleBrowserTests(
         await NavigateAndSettleAsync(page, "/leaderboard");
         await page.Mouse.ClickAsync(4, 400);
         await page.EvaluateAsync("() => { customAlert('Saved'); }");
-        await page.WaitForTimeoutAsync(300);
+        await WaitForFiniteAnimationsAsync(page, "#custom-alert, .custom-alert-panel");
         Assert.True(await page.EvaluateAsync<bool>("""
             () => {
                 closeCustomAlert();
@@ -172,7 +172,7 @@ public sealed class InteractionMotionLifecycleBrowserTests(
             }
             """));
         await page.Locator("#leaderboardOrderToggle").ClickAsync();
-        await page.WaitForTimeoutAsync(300);
+        await WaitForFiniteAnimationsAsync(page, "#leaderboardOrderPanel");
         Assert.True(await page.EvaluateAsync<bool>("""
             () => {
                 document.getElementById('leaderboardOrderToggle').click();
@@ -196,7 +196,7 @@ public sealed class InteractionMotionLifecycleBrowserTests(
         await NavigateAndSettleAsync(page, "/leaderboard");
         await page.Mouse.ClickAsync(4, 400);
         await page.EvaluateAsync("() => { customAlert('First'); }");
-        await page.WaitForTimeoutAsync(300);
+        await WaitForFiniteAnimationsAsync(page, "#custom-alert, .custom-alert-panel");
         await page.EvaluateAsync("() => { closeCustomAlert(); customAlert('Latest'); showLoading(); hideLoading(); showLoading(); }");
         await page.WaitForTimeoutAsync(500);
         await Assertions.Expect(page.Locator("#custom-alert-message")).ToHaveTextAsync("Latest");
@@ -223,7 +223,7 @@ public sealed class InteractionMotionLifecycleBrowserTests(
                 details.open = true;
             }
             """);
-        await page.WaitForTimeoutAsync(300);
+        await WaitForFiniteAnimationsAsync(page, "#motion-close-probe, #motion-close-probe *");
         Assert.True(await page.EvaluateAsync<bool>("""
             () => {
                 const details = document.getElementById('motion-close-probe');

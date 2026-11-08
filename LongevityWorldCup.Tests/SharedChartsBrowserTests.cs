@@ -72,7 +72,11 @@ public sealed class SharedChartsBrowserTests(PlaywrightBrowserFixture browserFix
         }));
         var page = await context.NewPageAsync();
         var navigation = page.GotoAsync("/internal/site-statistics.html");
-        try { await requested.Task.WaitAsync(TimeSpan.FromSeconds(20)); await Task.Delay(250); }
+        try
+        {
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await Expect(page.Locator("main.stats-page")).ToHaveAttributeAsync("aria-busy", "true");
+        }
         finally { release.TrySetResult(); }
         await navigation;
         await page.Locator("#trafficDailyChart").FocusAsync();

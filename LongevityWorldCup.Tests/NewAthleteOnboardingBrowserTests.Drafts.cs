@@ -67,7 +67,7 @@ public sealed partial class NewAthleteOnboardingBrowserTests
             await page.Locator("#backButton").ClickAsync();
             await page.Locator("#backButton").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/pheno-age");
-            await page.Locator("#calculateBioageButton").ClickAsync();
+            await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
             await page.Locator("#continueButton.show").ClickAsync();
             await page.WaitForDomContentLoadedUrlAsync("**/apply");
             await AssertApplicationIdentityDraftAsync(page);
