@@ -127,6 +127,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await other.Locator("textarea").FillAsync("Continue writing while the first reply finishes.");
             await other.Locator("textarea").EvaluateAsync("e => e.setSelectionRange(9, 16)");
             await Assertions.Expect(other.Locator("[data-reply-action='submit']")).ToBeDisabledAsync();
+            await WaitForFiniteAnimationsAsync(page);
             var position = await other.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top");
             release.TrySetResult();
             await Assertions.Expect(other.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();
@@ -306,6 +307,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await target.Locator(editing ? "[data-discussion-reply-edit]" : "[data-discussion-reply]").ClickAsync();
             await target.Locator("textarea").FillAsync("Still writing when the order changes.");
             await target.Locator("textarea").EvaluateAsync("e => e.setSelectionRange(3, 7)");
+            await WaitForFiniteAnimationsAsync(page);
             var top = await target.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top");
             release.TrySetResult();
             await Assertions.Expect(target.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();

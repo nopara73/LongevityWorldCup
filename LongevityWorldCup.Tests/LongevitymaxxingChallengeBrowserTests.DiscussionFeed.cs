@@ -74,6 +74,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var textarea = original.Locator("textarea");
         await textarea.FillAsync("My reply stays exactly here.");
         await textarea.EvaluateAsync("e => { e.setSelectionRange(3, 8); window.feedDraft = e; }");
+        await WaitForFiniteAnimationsAsync(page);
         var top = await textarea.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
         foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
             var fresh = notes[0]!.DeepClone().AsObject();

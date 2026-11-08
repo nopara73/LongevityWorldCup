@@ -139,6 +139,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var draft = ordinary.Locator("textarea");
         await draft.FillAsync("Keep this reply while the request changes.");
         await draft.EvaluateAsync("e => { e.setSelectionRange(5, 15); window.adviceRefreshDraft = e; }");
+        await WaitForFiniteAnimationsAsync(page);
         var newer = LargeDiscussionFeedState(100);
         state["notes"] = newer["notes"]!.DeepClone();
         state["public"]!["notes"] = newer["public"]!["notes"]!.DeepClone();
@@ -173,6 +174,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var draft = request.Locator("textarea");
         await draft.FillAsync("My advice is still being written.");
         await draft.EvaluateAsync("e => { e.setSelectionRange(3, 9); window.manyPinsDraft = e; }");
+        await WaitForFiniteAnimationsAsync(page);
         var top = await draft.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
         var answered = AdviceFeedBrowserState(true)["notes"]!.AsArray().Single(note => note!["advice"] != null)!;
         answered["advice"]!["betterAdviceParticipantIds"] = new JsonArray("p2", "p4");
