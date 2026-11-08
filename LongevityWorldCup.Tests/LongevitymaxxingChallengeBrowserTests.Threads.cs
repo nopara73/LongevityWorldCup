@@ -34,7 +34,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const avatar = post.querySelector('.lmx-discussion-post-header .lmx-discussion-author-avatar').getBoundingClientRect();
                 const replies = post.querySelector('[data-lmx-thread]'), box = replies.getBoundingClientRect();
                 const rail = getComputedStyle(replies, '::before');
-                return [box.left + parseFloat(rail.left) + parseFloat(rail.width) / 2,
+                return [box.left + replies.clientLeft + parseFloat(rail.left) + parseFloat(rail.width) / 2,
                     avatar.left + avatar.width / 2, box.left + 1,
                     box.top + parseFloat(rail.top), avatar.bottom + 6, box.top];
             }
@@ -217,6 +217,17 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const last = items.at(-1), rail = getComputedStyle(replies, '::before'), elbow = getComputedStyle(last, '::before');
                 const railEnd = replies.getBoundingClientRect().top + replies.clientTop + parseFloat(rail.top) + parseFloat(rail.height);
                 const elbowTop = last.getBoundingClientRect().top + parseFloat(elbow.top);
+                const railAxis = replies.getBoundingClientRect().left + replies.clientLeft + parseFloat(rail.left) + parseFloat(rail.width) / 2;
+                const axes = items.map(e => {
+                    const curve = getComputedStyle(e, '::before');
+                    return e.getBoundingClientRect().left + e.clientLeft + parseFloat(curve.left) + parseFloat(curve.borderLeftWidth) / 2;
+                });
+                for (const toggle of replies.querySelectorAll(':scope > .lmx-discussion-replies-toggle:not(.lmx-discussion-collapse)')) {
+                    if (!toggle.getClientRects().length) continue;
+                    const node = getComputedStyle(toggle, '::before');
+                    axes.push(toggle.getBoundingClientRect().left + toggle.clientLeft + parseFloat(node.left) + parseFloat(node.width) / 2);
+                }
+                if (axes.some(axis => Math.abs(axis - railAxis) > .5)) throw new Error(`Rail axis ${railAxis} does not match curves/nodes: ${axes}`);
                 return [railEnd - elbowTop, ...items.map(e => {
                     const face = e.querySelector('.lmx-discussion-author-avatar').getBoundingClientRect();
                     return e.getBoundingClientRect().top + parseFloat(e.style.getPropertyValue('--lmx-elbow-y')) - face.top - face.height / 2;

@@ -50,7 +50,7 @@ interface Window {
         // The line starts just under the post avatar and ends at the last reply's curve
         // (or on the "earlier replies" node when nothing is expanded yet).
         replies.style.setProperty("--lmx-rail-reach", stacked ? "0px" : `${Math.max(0, rr.top - ar.bottom - 6)}px`);
-        replies.style.setProperty("--lmx-rail-x", `${railCenter - rr.left - 1}px`);
+        replies.style.setProperty("--lmx-rail-x", `${railCenter - rr.left - replies.clientLeft - 1}px`);
         replies.querySelectorAll<HTMLElement>(":scope > .lmx-discussion-replies-toggle").forEach(toggle => {
             if (visible(toggle)) toggle.style.setProperty("--lmx-node-x", `${railCenter - toggle.getBoundingClientRect().left}px`);
         });
