@@ -108,6 +108,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(page.Locator("#lmxNotes > .lmx-needs-advice")).ToHaveCountAsync(0);
         await Assertions.Expect(request.Locator(".lmx-advice-badge")).ToHaveCountAsync(0);
         await Assertions.Expect(posts.First).ToHaveAttributeAsync("data-discussion-post-participant-id", "p2");
+        await page.Mouse.MoveAsync(0, 0);
+        await WaitForFiniteAnimationsAsync(page);
         Assert.Equal(await posts.First.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"),
             await request.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
         await CaptureAdviceAsync(page, $"answered-request-{width}-{theme}.png", request);

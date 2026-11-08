@@ -9,7 +9,6 @@
 // - Arrivals: earlier replies, new replies, new posts and open composers
 //   settle in instead of popping. Only things the visitor has not seen yet
 //   move, so re-renders and live refreshes stay still.
-// - "Day N" in a post's meta line becomes a chip (same words).
 //
 // longevitymaxxing.ts keeps every behaviour; nothing here changes wording.
 
@@ -33,6 +32,9 @@ interface Window {
         const avatar = note.querySelector<HTMLElement>(":scope > .lmx-discussion-post-header .lmx-discussion-author-avatar");
         const replies = note.querySelector<HTMLElement>(":scope > .lmx-discussion-replies");
         if (!visible(avatar) || !visible(replies)) return;
+        // Advice has its own nested branches and archived conversations.
+        // Only the flat reply list has the geometry described by this rail.
+        if (replies.classList.contains("lmx-advice-replies")) return;
         const ar = avatar.getBoundingClientRect();
         const rr = replies.getBoundingClientRect();
         // On phones the post text runs under the author row, so the line starts
@@ -58,7 +60,8 @@ interface Window {
             item.style.setProperty("--lmx-elbow-y", `${cy - ir.top}px`);
             item.style.setProperty("--lmx-elbow-x", `${railCenter - 1 - ir.left}px`);
             item.style.setProperty("--lmx-elbow-w", `${Math.max(6, fr.left - railCenter - 3)}px`);
-            endY = Math.max(endY, cy - 12);
+            const elbowHeight = window.matchMedia("(max-width: 600px)").matches ? 10 : 14;
+            endY = Math.max(endY, cy - elbowHeight);
         });
         if (!items.length) {
             const node = Array.from(replies.querySelectorAll<HTMLElement>(":scope > .lmx-discussion-replies-toggle")).find(visible);
@@ -66,12 +69,6 @@ interface Window {
         }
         replies.style.setProperty("--lmx-rail-tail", `${Math.max(0, rr.bottom - endY)}px`);
         replies.dataset.lmxThread = "";
-    }
-
-    function chipDays(scope: ParentNode): void {
-        scope.querySelectorAll<HTMLElement>(".lmx-discussion-post-author small > span:not(.lmx-day-chip)").forEach(span => {
-            if (/^Day\s+\d+$/.test((span.textContent || "").trim())) span.classList.add("lmx-day-chip");
-        });
     }
 
     let queued = false;
@@ -82,13 +79,14 @@ interface Window {
             queued = false;
             const notes = document.getElementById("lmxNotes");
             if (!notes) return;
-            chipDays(notes);
             notes.querySelectorAll<HTMLElement>(":scope > .lmx-note").forEach(measureNote);
         });
     }
 
     // ------------------------------------------------------------ arrivals
     const seen = new Set<string>();
+    const composers = new WeakSet<HTMLElement>();
+    const arrivals = new Set<Animation>();
     let settled = false;
     const keyOf = (el: HTMLElement): string | null =>
         el.querySelector<HTMLAnchorElement>(":scope > .lmx-discussion-post-header .lmx-discussion-permalink, :scope > .lmx-discussion-reply-meta .lmx-discussion-permalink")?.getAttribute("href")
@@ -99,6 +97,7 @@ interface Window {
             const key = keyOf(el);
             if (key) seen.add(key);
         });
+        scope.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(el => composers.add(el));
     }
 
     function arrive(el: HTMLElement, index: number, kind: "reply" | "post" | "composer"): void {
@@ -109,30 +108,24 @@ interface Window {
                 ? [{ opacity: 0, transform: "translateY(-14px) scale(.985)" }, { opacity: 1, transform: "none" }]
                 : [{ opacity: 0, transform: "translateY(-6px)", clipPath: "inset(0 0 100% 0)" }, { opacity: 1, transform: "none", clipPath: "inset(0 0 0 0)" }];
         const anim = el.animate(frames, { duration: kind === "post" ? 340 : 260, delay: Math.min(index, 8) * 45, easing: EASE, fill: "backwards" });
+        arrivals.add(anim);
         // Lines are measured against settled boxes, so re-measure once it lands.
-        anim.onfinish = anim.oncancel = () => { el.classList.remove("lmx-arriving"); measure(); };
-    }
-
-    // The first render and live hydration finish before anything counts as new:
-    // the feed is "settled" once it has been quiet for a moment.
-    let settleTimer = 0;
-    function settleSoon(notes: HTMLElement): void {
-        window.clearTimeout(settleTimer);
-        settleTimer = window.setTimeout(() => { remember(notes); settled = true; }, 1200);
+        anim.onfinish = anim.oncancel = () => { arrivals.delete(anim); el.classList.remove("lmx-arriving"); measure(); };
     }
 
     function onMutations(records: MutationRecord[]): void {
         measure();
         const notes = document.getElementById("lmxNotes");
         if (!settled || reduced.matches) {
-            if (notes) { remember(notes); if (!settled) settleSoon(notes); }
+            // Network timing cannot turn the first populated render into arrivals.
+            if (notes) { remember(notes); settled = !!notes.querySelector("article.lmx-note"); }
             return;
         }
         let replyIndex = 0;
         let postIndex = 0;
         for (const record of records) {
             record.addedNodes.forEach(node => {
-                if (!(node instanceof HTMLElement)) return;
+                if (!(node instanceof HTMLElement) || !node.isConnected) return;
                 const candidates = node.matches(".lmx-note, .lmx-discussion-reply-item")
                     ? [node]
                     : Array.from(node.querySelectorAll<HTMLElement>(".lmx-discussion-reply-item"));
@@ -140,11 +133,16 @@ interface Window {
                     const key = keyOf(el);
                     if (!key || seen.has(key)) continue;
                     seen.add(key);
+                    if (!visible(el)) continue;
                     if (el.matches(".lmx-note")) arrive(el, postIndex++, "post");
                     else arrive(el, replyIndex++, "reply");
                 }
                 const slot = node.parentElement;
-                if (slot?.matches(".lmx-discussion-reply-slot, .lmx-discussion-reply-editor-slot") && node.childElementCount) arrive(node, 0, "composer");
+                if (slot?.matches(".lmx-discussion-reply-slot, .lmx-discussion-reply-editor-slot") && node.matches("[data-discussion-draft]") && !composers.has(node)) {
+                    composers.add(node);
+                    arrive(node, 0, "composer");
+                }
+                remember(node);
             });
         }
     }
@@ -153,15 +151,19 @@ interface Window {
         const notes = document.getElementById("lmxNotes");
         if (!notes) return;
         remember(notes);
-        new MutationObserver(onMutations).observe(notes, { childList: true, subtree: true });
+        settled = !!notes.querySelector("article.lmx-note");
+        new MutationObserver(onMutations).observe(notes, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
         const ro = new ResizeObserver(() => measure());
         ro.observe(notes);
         window.addEventListener("resize", measure, { passive: true });
         document.fonts?.ready.then(measure).catch(() => {});
         notes.addEventListener("load", measure, true);
         measure();
-        settleSoon(notes);
     }
+
+    reduced.addEventListener("change", () => {
+        if (reduced.matches) arrivals.forEach(animation => animation.cancel());
+    });
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
     else start();

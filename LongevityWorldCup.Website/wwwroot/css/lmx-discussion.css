@@ -73,10 +73,10 @@
 .lmx-page .lmx-note > p,
 .lmx-page .lmx-discussion-reply-item > p { max-width: 68ch; }
 
-/* Quiet actions wait at the edge until the post or reply is in play. */
+/* Copy links stay quiet without dimming the labels of reply and draft actions. */
 @media (hover: hover) {
-    .lmx-page .lmx-note .lmx-discussion-quiet-action {
-        opacity: .38;
+    .lmx-page .lmx-note .lmx-discussion-copy-link {
+        opacity: .8;
         transition: opacity 160ms var(--lwc-ease-standard, ease), background-color 140ms ease, color 140ms ease, scale 160ms var(--lwc-ease-pop, ease);
     }
     .lmx-page .lmx-note > .lmx-discussion-post-header:hover .lmx-discussion-quiet-action,

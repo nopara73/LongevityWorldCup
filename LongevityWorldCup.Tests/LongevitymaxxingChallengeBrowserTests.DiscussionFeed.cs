@@ -156,6 +156,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(articles).ToHaveCountAsync(expected);
         }
         var target = articles.Nth(32);
+        // Compare the reading position after the newly revealed posts have landed,
+        // rather than bookmarking a transient translate/scale frame.
+        await WaitForFiniteAnimationsAsync(page);
         await target.EvaluateAsync("e => window.scrollTo({top: e.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'})");
         var key = await target.GetAttributeAsync("data-feed-key");
         var top = await target.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
