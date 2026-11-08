@@ -115,18 +115,30 @@ public sealed partial class DocumentationTimelineBrowserTests
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/history");
+        await ScrollToEntryAsync(page, 4);
         await page.EmulateMediaAsync(new() { Media = Media.Print });
         Assert.Empty(await page.Locator(".documentation-timeline > :not(.documentation-timeline-entry)").EvaluateAllAsync<string[]>(
             "els=>els.filter(e=>getComputedStyle(e).display!=='none').map(e=>e.className)"));
-        await page.EmulateMediaAsync(new() { Media = Media.Screen });
-        Assert.True(await page.Locator(".documentation-timeline-year").EvaluateAsync<bool>("e=>getComputedStyle(e).display!=='none'"));
-
         await using var staticContext = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
         var staticPage = await staticContext.NewPageAsync();
         await staticPage.GotoAsync("/history");
         Assert.Equal(await page.Locator(".documentation-timeline-entry h3").AllTextContentsAsync(), await staticPage.Locator(".documentation-timeline-entry h3").AllTextContentsAsync());
         Assert.Null(await staticPage.Locator(".documentation-timeline").GetAttributeAsync("data-live"));
+        await staticPage.EmulateMediaAsync(new() { Media = Media.Print });
+        Assert.Equal(await TimelinePrintStylesAsync(staticPage), await TimelinePrintStylesAsync(page));
+        await page.EmulateMediaAsync(new() { Media = Media.Screen });
+        Assert.True(await page.Locator(".documentation-timeline-year").EvaluateAsync<bool>("e=>getComputedStyle(e).display!=='none'"));
     }
+
+    private static Task<string[]> TimelinePrintStylesAsync(IPage page) => page.Locator(".documentation-timeline-entry").EvaluateAllAsync<string[]>("""
+        entries => entries.map(entry => {
+            const marker = getComputedStyle(entry,'::before');
+            const heading = getComputedStyle(entry.querySelector('h3'));
+            const date = getComputedStyle(entry.querySelector('.documentation-timeline-date'));
+            return JSON.stringify({scale:marker.scale,shadow:marker.boxShadow,marker:marker.backgroundColor,
+                opacity:heading.opacity,dateBackground:date.backgroundColor,dateColor:date.color,dateBorder:date.borderTopStyle});
+        })
+        """);
 
     private static Task ScrollToEntryAsync(IPage page, int index) => page.EvaluateAsync("""
         async index => {

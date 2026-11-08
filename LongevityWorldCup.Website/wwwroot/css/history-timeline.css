@@ -2,7 +2,10 @@
    (--timeline-rail-top, --timeline-progress, --timeline-now, --timeline-end)
    and sets the entry states; this file owns the look. Only --lwc-* colours.
    Everything is scoped to [data-live], so the page reads as before without
-   the script. */
+   the script. Print uses the original document styles, independent of where
+   the reader last scrolled. */
+
+@media screen {
 
 .documentation-timeline[data-live] {
     --timeline-rail-x: 0.4rem;
@@ -150,25 +153,15 @@
     :root:not([data-theme="light"]) .documentation-timeline[data-live] > .documentation-timeline-year { opacity: .12; }
 }
 
-@media print {
-    .documentation-timeline[data-live] > :not(.documentation-timeline-entry) { display: none; }
-    .documentation-timeline[data-live]::before {
-        top: .55rem;
-        bottom: .35rem;
-        height: auto;
-    }
-    .documentation-timeline[data-live] > .documentation-timeline-entry::before {
-        scale: none;
-        box-shadow: none;
-        background: var(--lwc-accent, #087685);
-    }
-    .documentation-timeline[data-live] > .documentation-timeline-entry.is-announced::before { background: var(--lwc-surface, #fff); }
-    .documentation-timeline[data-live] > .documentation-timeline-entry .documentation-timeline-heading { opacity: 1; }
-}
-
 @media (prefers-reduced-motion: reduce) {
     .documentation-timeline[data-live] > .documentation-timeline-now::after { animation: none; opacity: .5; transform: scale(1.4); }
     .documentation-timeline[data-live] > .documentation-timeline-entry::before,
     .documentation-timeline[data-live] .documentation-timeline-date,
     .documentation-timeline[data-live] .documentation-timeline-heading { transition: none; }
+}
+}
+
+@media print {
+    .documentation-timeline[data-live] > :not(.documentation-timeline-entry) { display: none; }
+    .documentation-timeline[data-live]::after { content: none; }
 }
