@@ -3361,44 +3361,12 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
 
 /* ===== Track choice, compared =====
-   The two tracks read as a comparison, not two leaflets. The card under the
-   pointer comes forward while the other steps back. In the Pro list, the nine
-   biomarkers Amateur already needs carry a check and the extra thirteen a
-   plus, so "what more does Pro need" is visible at a glance; pointing at a
-   biomarker lights its twin in the other track. Lists open with their height
-   and deal their items in. Icons only, no new words. */
-.play-join-card {
-    transition:
-        transform 240ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
-        box-shadow 240ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
-        opacity 200ms ease,
-        filter 200ms ease;
-}
-
-@media (hover: hover) and (min-width: 761px) {
-    .play-join-cards:has(.play-join-card:hover) .play-join-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 18px 36px -18px rgba(15, 23, 42, 0.35);
-    }
-
-    .play-join-cards:has(.play-join-card:hover) .play-join-card:not(:hover) {
-        opacity: 0.82;
-        filter: saturate(0.85);
-        transform: scale(0.985);
-    }
-}
-
-/* A lit twin lives in the other card, so it stays at full strength. */
-@media (hover: hover) and (min-width: 761px) {
-    .play-join-cards:has(li.is-twin-lit) .play-join-card:not(:hover) {
-        opacity: 1;
-        filter: none;
-    }
-}
-
+   Checks mark the shared biomarkers; pluses mark the Pro extras. Pointing at
+   or tapping a shared biomarker lights its twin. The existing card hover and
+   chosen-track styles own the tiles; comparison keeps both at full strength. */
 /* Pro list markers: a check for the shared nine, a plus for the extra. */
-.play-join-card--pro .play-join-biomarkers ul {
-    padding-left: 0;
+.play-hub-main .play-join-card--pro .play-join-biomarkers ul {
+    padding-left: 0.9rem;
     list-style: none;
 }
 
@@ -3408,7 +3376,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 }
 
 .play-join-card--pro .play-join-biomarkers li::before {
-    content: "\2b";
+    content: "\2b" / "";
     position: absolute;
     left: 0.1rem;
     top: 0.2em;
@@ -3418,7 +3386,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     height: 1rem;
     border-radius: 50%;
     background: var(--lwc-success, #2e7d32);
-    color: #fff;
+    color: var(--lwc-on-accent, #fff);
     font-family: "Font Awesome 6 Free";
     font-size: 0.55rem;
     font-weight: 900;
@@ -3426,7 +3394,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 }
 
 .play-join-card--pro .play-join-biomarkers li[data-twin]::before {
-    content: "\f00c";
+    content: "\f00c" / "";
     background: var(--lwc-surface, #fff);
     box-shadow: inset 0 0 0 1.5px var(--lwc-border-strong, #71808d);
     color: var(--lwc-muted, #52606d);
@@ -3442,7 +3410,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
-.play-join-biomarkers li.is-twin-lit {
+.play-join-biomarkers li[data-twin].is-twin-lit {
     background: var(--lwc-accent-soft, #dff5f7);
     box-shadow: -4px 0 0 var(--lwc-accent-soft, #dff5f7), 4px 0 0 var(--lwc-accent-soft, #dff5f7);
     color: var(--lwc-ink, #17212b);
@@ -3451,7 +3419,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 .play-join-card--pro .play-join-biomarkers li.is-twin-lit::before {
     background: var(--lwc-accent, #087685);
     box-shadow: none;
-    color: #fff;
+    color: var(--lwc-on-accent, #fff);
 }
 
 /* Lists open with their height and deal their items in. */
@@ -3490,7 +3458,6 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .play-join-card,
     .play-join-biomarkers li[data-twin] {
         transition: none;
     }

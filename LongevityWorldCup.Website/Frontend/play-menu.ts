@@ -682,6 +682,7 @@
         const athleteSelection = requireAthleteSelection();
         clearPlayPanelHold();
         cancelPlayPanelMotion();
+        clearJoinComparison();
         const preparationRunId = playPanelPreparationRunId + 1;
         playPanelPreparationRunId = preparationRunId;
         const requested = isPlayPanelName(requestedPanelName) ? requestedPanelName : 'start';
@@ -695,6 +696,7 @@
 
         if (panelName === 'join') {
             athleteSelection.closeAllLists();
+            initializeJoinComparison();
             renderJoinPricing();
             showPanelByName(panelName, panelOptions);
             return;
@@ -812,6 +814,50 @@
     }
 
     // The chosen track holds its ring while the apply flow takes over.
+    let joinComparisonInitialized = false;
+    let clearJoinComparison = (): void => {};
+
+    function initializeJoinComparison(): void {
+        const panel = document.getElementById('joinTrackPanel');
+        if (!panel || joinComparisonInitialized) return;
+        joinComparisonInitialized = true;
+
+        panel.querySelectorAll('.play-join-biomarkers ul').forEach(list => {
+            Array.from(list.children).forEach((item, index) => {
+                if (item instanceof HTMLElement) item.style.setProperty('--i', String(index));
+            });
+        });
+        const markers = Array.from(panel.querySelectorAll<HTMLLIElement>('.play-join-biomarkers li[data-twin]'));
+        let lit: HTMLLIElement[] = [];
+        clearJoinComparison = (): void => {
+            lit.forEach(item => item.classList.remove('is-twin-lit'));
+            lit = [];
+        };
+        const lightPair = (target: EventTarget | null): void => {
+            const item = target instanceof Element ? target.closest<HTMLLIElement>('li[data-twin]') : null;
+            clearJoinComparison();
+            if (!item) return;
+            lit = markers.filter(twin => twin.dataset.twin === item.dataset.twin);
+            lit.forEach(twin => twin.classList.add('is-twin-lit'));
+        };
+        panel.addEventListener('pointerover', event => {
+            if (event.pointerType !== 'touch') lightPair(event.target);
+        });
+        panel.addEventListener('pointerleave', event => {
+            if (event.pointerType !== 'touch') clearJoinComparison();
+        });
+        // A tap persists so a phone visitor can scroll to the matching track.
+        // Scrolling cancels the pointer, so it cannot accidentally select a row.
+        panel.addEventListener('pointerup', event => {
+            if (event.pointerType === 'touch') lightPair(event.target);
+        });
+        panel.querySelectorAll('.play-join-biomarkers details').forEach(details => {
+            details.addEventListener('toggle', () => {
+                if (!details.hasAttribute('open')) clearJoinComparison();
+            });
+        });
+    }
+
     let joinChoiceTimer = 0;
     function markJoinChoice(choice: 'amateur' | 'pro'): void {
         window.clearTimeout(joinChoiceTimer);

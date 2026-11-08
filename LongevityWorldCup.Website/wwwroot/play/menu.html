@@ -212,28 +212,6 @@
             </div>
         </section>
 
-        <script>
-            // Track choice: the two biomarker lists answer each other. Pointing at
-            // a biomarker lights its twin in the other track; opened lists deal
-            // their items in. Pro marks which biomarkers Amateur already needs.
-            (function () {
-                const panel = document.getElementById('joinTrackPanel');
-                if (!panel) return;
-                panel.querySelectorAll('.play-join-biomarkers ul').forEach(list => {
-                    Array.from(list.children).forEach((item, index) => item.style.setProperty('--i', String(index)));
-                });
-                let lit = [];
-                const clear = () => { lit.forEach(item => item.classList.remove('is-twin-lit')); lit = []; };
-                panel.addEventListener('pointerover', event => {
-                    const item = event.target instanceof Element ? event.target.closest('li[data-twin]') : null;
-                    clear();
-                    if (!item) return;
-                    lit = Array.from(panel.querySelectorAll('li[data-twin="' + item.dataset.twin + '"]'));
-                    lit.forEach(twin => twin.classList.add('is-twin-lit'));
-                });
-                panel.addEventListener('pointerleave', clear);
-            })();
-        </script>
         <section id="athleteSelectionPanel" class="play-hub-panel play-athlete-panel" hidden>
             <div class="play-athlete-visual">
                 <div class="play-athlete-card">
