@@ -1,6 +1,7 @@
 <!--LEADERBOARD-STYLES-START-->
 <link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
 <link rel="stylesheet" href="{{ASSET_LEADERBOARD_ORDERING_CSS}}">
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_FILTERS_CSS}}">
 <!--LEADERBOARD-STYLES-END-->
 
 <div id="athleteDialogRuntime"
@@ -124,12 +125,13 @@
         </div>
 
         <div class="leaderboard" id="athleteLeaderboard">
-            <div class="sidebar" id="leaderboardFilters">
-                <div class="sidebar-rail" aria-hidden="true">
-                    <div class="sidebar-rail-icon"><i class="fa fa-trophy"></i></div>
-                    <div class="collapsed-title">ULTIMATE LEAGUE</div>
-                </div>
-                <div class="sidebar-panel" inert>
+            <div class="sidebar" id="leaderboardFilters" data-lwc-no-gesture>
+                <div class="sidebar-grab" aria-hidden="true"></div>
+                <button type="button" class="sidebar-rail" aria-label="Show league filters" aria-controls="leaderboardFilters" aria-expanded="false">
+                    <span class="sidebar-rail-icon" aria-hidden="true"><i class="fa fa-trophy"></i></span>
+                    <span class="collapsed-title" aria-hidden="true">ULTIMATE LEAGUE</span>
+                </button>
+                <div class="sidebar-panel" role="region" aria-label="Leagues" inert>
                 <div class="sidebar-heading">
                 <h2 class="sidebar-title">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>

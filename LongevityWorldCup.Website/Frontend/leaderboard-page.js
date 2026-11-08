@@ -4615,6 +4615,12 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
         });
         updateFilterCountLabel(label, count, count > 0 || changesResults);
     });
+    document.querySelectorAll('.sidebar .filter-section').forEach(section => {
+        const labels = [...section.querySelectorAll('li > label')];
+        const counts = labels.map(label => parseInt(label.querySelector('.filter-count')?.textContent, 10) || 0);
+        const max = Math.max(1, ...counts);
+        labels.forEach((label, index) => label.style.setProperty('--tile-share', String(counts[index] / max)));
+    });
 }
 
 function displayNoResults(tableRows, podiumItems, query) {
@@ -4707,39 +4713,26 @@ document.getElementById('clearLeaderboardSelection')?.addEventListener('click', 
     showAllAthletes();
     document.getElementById('athleteSearch')?.focus({ preventScroll: true });
 });
-document.getElementById('showLeaderboardResults')?.addEventListener('click', () => closeSidebar({ restoreFocus: true }));
+document.getElementById('showLeaderboardResults')?.addEventListener('click', event => closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 }));
 clearSidebarFiltersButton?.addEventListener('click', function (event) {
     event.preventDefault();
     event.stopPropagation();
     clearSidebarFilters();
     if (!isMobileDrawerViewport()) {
-        closeSidebar({ restoreFocus: event.detail === 0 });
+        closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 });
     } else {
-        focusAfterClearingSidebarFilters();
+        focusAfterClearingSidebarFilters(event.detail === 0);
     }
 });
-function focusAfterClearingSidebarFilters() {
+function focusAfterClearingSidebarFilters(focusVisible) {
     const sidebar = document.querySelector('.sidebar');
     const sidebarClose = document.querySelector('.sidebar-close');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const isMobileDrawer = isMobileDrawerViewport();
-    const focusTarget = isMobileDrawer && sidebar?.classList.contains('expanded')
-        ? sidebarClose
-        : sidebarToggle;
-
-    if (!focusTarget) return;
-
     requestAnimationFrame(() => {
-        focusTarget.classList.add('is-keyboard-focus');
-        focusTarget.addEventListener('blur', () => {
-            focusTarget.classList.remove('is-keyboard-focus');
-        }, { once: true });
-        try {
-            focusTarget.focus({ preventScroll: true, focusVisible: true });
-        }
-        catch {
-            focusTarget.focus({ preventScroll: true });
-        }
+        const focusTarget = isMobileDrawerViewport() && sidebar?.classList.contains('expanded')
+            ? sidebarClose
+            : sidebarToggle;
+        if (focusTarget) focusSidebarControl(focusTarget, focusVisible);
     });
 }
 document.addEventListener('click', function (event) {
@@ -7273,6 +7266,7 @@ window.addEventListener('popstate', function (event) {
 
 const sidebar = document.querySelector('.sidebar');
 const sidebarPanel = sidebar?.querySelector('.sidebar-panel');
+const sidebarRail = sidebar?.querySelector('.sidebar-rail');
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 const sidebarClose = document.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
@@ -7280,6 +7274,7 @@ const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width
 let leaderboardTableHeightFrame = 0;
 let leaderboardTableResizeObserver = null;
 let sidebarDrawerCloseTimer = 0;
+let sidebarDeckCloseAnimation = null;
 
 function isMobileDrawerViewport() {
     return mobileDrawerMediaQuery.matches;
@@ -7287,11 +7282,7 @@ function isMobileDrawerViewport() {
 
 function syncSidebarPanelInteractivity() {
     if (!sidebarPanel) return;
-    // An explicit opening is interactive immediately, including while enlarged
-    // text makes container queries refit the panel's computed layout.
-    const open = sidebar.classList.contains('expanded')
-        || (!isMobileDrawerViewport()
-            && getComputedStyle(sidebarPanel).getPropertyValue('--sidebar-panel-open').trim() === '1');
+    const open = sidebar.classList.contains('expanded') && !sidebar.classList.contains('is-closing');
     sidebarPanel.inert = !open;
     sidebarPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
 }
@@ -7351,6 +7342,10 @@ function installLeaderboardTableHeightObserver() {
         if (sidebarPanel) leaderboardTableResizeObserver.observe(sidebarPanel);
         const title = document.querySelector('.collapsed-title');
         if (title) leaderboardTableResizeObserver.observe(title);
+        // Updating the measured column-head height also resizes the rail icon.
+        // Include that second layout pass before caching the title footprint.
+        const icon = document.querySelector('.sidebar-rail-icon');
+        if (icon) leaderboardTableResizeObserver.observe(icon);
     }
 
     scheduleLeaderboardTableHeightSync();
@@ -7360,6 +7355,11 @@ sidebarToggle?.addEventListener('click', (event) => {
     toggleSidebar({ focusDrawerClose: event.detail === 0 });
 });
 
+sidebarRail?.addEventListener('click', (event) => {
+    // The rail disappears when opened, so transfer focus for pointer input too.
+    openSidebar({ focusDrawerClose: true, focusVisible: event.detail === 0 });
+});
+
 sidebar?.addEventListener('mouseleave', () => {
     // An explicit close wins over hover until the pointer leaves the rail.
     sidebar.classList.remove('button-collapsed');
@@ -7367,14 +7367,8 @@ sidebar?.addEventListener('mouseleave', () => {
 });
 
 sidebarClose?.addEventListener('click', (event) => {
-    closeSidebar({ restoreFocus: event.detail === 0 });
+    closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 });
 });
-
-sidebar?.addEventListener('change', (event) => {
-    if (!event.target.matches('input[type="checkbox"]')) return;
-
-    requestAnimationFrame(pinActiveDesktopSidebar);
-}, true);
 
 document.addEventListener('click', (event) => {
     if (!hasLeaderboardSidebar) return;
@@ -7382,7 +7376,7 @@ document.addEventListener('click', (event) => {
     if (!sidebar.classList.contains('expanded')) return;
     if (sidebar.contains(event.target) || sidebarToggle.contains(event.target)) return;
 
-    if (isMobileDrawer || hasActiveLeaderboardFilterState()) {
+    if (isMobileDrawer) {
         closeSidebar();
     }
 });
@@ -7424,8 +7418,7 @@ document.addEventListener('keydown', (event) => {
     const searchInput = document.getElementById('athleteSearch');
     if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
 
-    const isMobileDrawer = isMobileDrawerViewport();
-    if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+    if (!sidebar.classList.contains('expanded')) return;
 
     event.preventDefault();
     closeSidebar({ restoreFocus: true });
@@ -7456,6 +7449,9 @@ function syncSidebarDrawerBackdrop() {
         document.body.style.removeProperty('--sidebar-body-width');
     }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
+    sidebarPanel.setAttribute('role', isOpenMobileDrawer ? 'dialog' : 'region');
+    if (isOpenMobileDrawer) sidebarPanel.setAttribute('aria-modal', 'true');
+    else sidebarPanel.removeAttribute('aria-modal');
     syncSidebarPanelInteractivity();
 }
 
@@ -7473,12 +7469,16 @@ function getSidebarFocusableControls() {
         });
 }
 
-function focusSidebarControl(element) {
+function focusSidebarControl(element, focusVisible = true) {
+    element.classList.toggle('is-keyboard-focus', focusVisible);
+    if (focusVisible) element.addEventListener('blur', () => {
+        element.classList.remove('is-keyboard-focus');
+    }, { once: true });
     try {
-        element.focus({ focusVisible: true });
+        element.focus({ preventScroll: true, focusVisible });
     }
     catch {
-        element.focus();
+        element.focus({ preventScroll: true });
     }
 }
 
@@ -7688,7 +7688,7 @@ function markFlagSearchReasons(terms, teams, badgeTextByName) {
 
 function toggleSidebar(options = {}) {
     if (!hasLeaderboardSidebar) return;
-    if (sidebar.classList.contains('expanded')) {
+    if (sidebar.classList.contains('expanded') && !sidebar.classList.contains('is-closing')) {
         closeSidebar();
     }
     else {
@@ -7696,17 +7696,11 @@ function toggleSidebar(options = {}) {
     }
 }
 
-function pinActiveDesktopSidebar() {
-    if (!hasLeaderboardSidebar) return;
-    if (isMobileDrawerViewport()) return;
-    if (!hasActiveLeaderboardFilterState()) return;
-    if (sidebar.classList.contains('expanded')) return;
-
-    openSidebar();
-}
-
 function openSidebar(options = {}) {
     if (!hasLeaderboardSidebar) return;
+    sidebarDeckCloseAnimation?.cancel();
+    sidebarDeckCloseAnimation = null;
+    sidebar.classList.remove('is-closing');
     const isMobileDrawer = isMobileDrawerViewport();
     const drawerScrollX = window.scrollX;
     const drawerScrollY = window.scrollY;
@@ -7726,17 +7720,23 @@ function openSidebar(options = {}) {
     sidebarToggle.title = "Hide league filters";
     sidebarToggle.setAttribute('aria-label', 'Hide league filters');
     sidebarToggle.setAttribute('aria-expanded', 'true');
+    sidebarRail?.setAttribute('aria-expanded', 'true');
+
+    if (!isMobileDrawer) {
+        // A rail can be opened far down the results. Bring the deck back into
+        // reach without moving an already visible toolbar.
+        const top = sidebarToggle.getBoundingClientRect().top;
+        const stickyHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 52;
+        if (top < stickyHeight || top >= innerHeight) {
+            ScrollGuard.trustedScrollTo({ top: scrollY + sidebar.getBoundingClientRect().top - stickyHeight, behavior: 'instant' });
+        }
+        if (options.focusDrawerClose) focusSidebarControl(sidebarClose, options.focusVisible);
+    }
 
     if (isMobileDrawer) {
         requestAnimationFrame(() => {
-            if (options.focusDrawerClose) {
-                try {
-                    sidebarClose.focus({ preventScroll: true, focusVisible: true });
-                }
-                catch {
-                    sidebarClose.focus({ preventScroll: true });
-                }
-            }
+            if (!sidebar.classList.contains('expanded')) return;
+            focusSidebarControl(sidebarClose, options.focusVisible ?? !!options.focusDrawerClose);
             window.scrollTo({ left: drawerScrollX, top: drawerScrollY, behavior: 'instant' });
         });
     }
@@ -7744,30 +7744,56 @@ function openSidebar(options = {}) {
 
 function closeSidebar(options = {}) {
     if (!hasLeaderboardSidebar) return;
-    sidebar.classList.remove('expanded');
-    sidebar.setAttribute('aria-hidden', 'true');
-    sidebarToggle.classList.remove('active');
-    if (!sidebar.classList.contains('button-collapsed')) {
+    if (sidebar.classList.contains('is-closing')) return;
+    const restoreFocus = options.restoreFocus ?? sidebar.contains(document.activeElement);
+    const focusVisible = options.focusVisible ?? (options.restoreFocus === true);
+    const collapse = () => {
+        // Preserve the visible result when the in-flow deck disappears. If the
+        // reader is still inside the deck, return to its controlling button.
+        const desktop = !isMobileDrawerViewport();
+        const stickyHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 52;
+        const result = desktop && [...document.querySelectorAll('.leaderboard > table tbody tr, .flag-leaderboard .flag-team')]
+            .find(row => { const r = row.getBoundingClientRect(); return r.height > 0 && r.bottom > stickyHeight && r.top < innerHeight; });
+        const anchor = result || sidebarToggle;
+        const before = anchor.getBoundingClientRect().top;
+        sidebar.classList.remove('expanded', 'is-closing');
         sidebar.classList.add('button-collapsed');
-    }
+        sidebar.setAttribute('aria-hidden', 'true');
+        syncSidebarDrawerBackdrop();
+        syncLeaderboardTableHeight();
+        if (desktop) {
+            const desired = result ? before : Math.max(stickyHeight + 12, before);
+            ScrollGuard.trustedScrollTo({ top: scrollY + anchor.getBoundingClientRect().top - desired, behavior: 'instant' });
+        }
+    };
+    sidebarToggle.classList.remove('active');
     sidebarToggle.title = "Show league filters";
     sidebarToggle.setAttribute('aria-label', 'Show league filters');
     sidebarToggle.setAttribute('aria-expanded', 'false');
-    syncSidebarDrawerBackdrop();
-    requestAnimationFrame(syncCollapsedTitleHeight);
+    sidebarRail?.setAttribute('aria-expanded', 'false');
 
-    if (options.restoreFocus) {
+    if (!isMobileDrawerViewport() && sidebar.classList.contains('expanded') && !leaderboardReducedMotion.matches) {
+        sidebar.classList.add('is-closing');
+        syncSidebarPanelInteractivity();
+        const animation = sidebarPanel.animate([
+            { clipPath: 'inset(0)', opacity: 1 },
+            { clipPath: 'inset(0 0 100% 0)', opacity: 0 }
+        ], { duration: 180, easing: 'ease-in', fill: 'forwards' });
+        sidebarDeckCloseAnimation = animation;
+        void animation.finished.then(() => {
+            if (sidebarDeckCloseAnimation !== animation) return;
+            sidebarDeckCloseAnimation = null;
+            collapse();
+            animation.cancel();
+        }, () => {});
+    } else {
+        collapse();
+    }
+
+    if (restoreFocus) {
         requestAnimationFrame(() => {
-            sidebarToggle.classList.add('is-keyboard-focus');
-            sidebarToggle.addEventListener('blur', () => {
-                sidebarToggle.classList.remove('is-keyboard-focus');
-            }, { once: true });
-            try {
-                sidebarToggle.focus({ preventScroll: true, focusVisible: true });
-            }
-            catch {
-                sidebarToggle.focus({ preventScroll: true });
-            }
+            if (sidebar.classList.contains('expanded') && !sidebar.classList.contains('is-closing')) return;
+            focusSidebarControl(sidebarToggle, focusVisible);
         });
     }
 }
@@ -7791,63 +7817,27 @@ if (hasLeaderboardSidebar) {
     }
 }
 
-// Sidebar swipe gesture
-let startX = 0;
-let endX = 0;
-let startY = 0;
-let endY = 0;
-const SWIPE_THRESHOLD = 50; // Minimum distance to qualify as a swipe
-const TAP_THRESHOLD = 10; // Allowable movement for taps
-let sidebarSwipeEligible = false;
-
-document.addEventListener('touchstart', (e) => {
-    sidebarSwipeEligible = false;
-    if (!hasLeaderboardSidebar) return;
-    if (window.LwcImageViewer?.isOpen()) return;
-    if (modal.style.display === "block") return;
-    if (e.touches.length !== 1) return;
-    // Horizontal scrollers own their gestures, including the Swag carousel.
-    // A page-level right swipe must not open the filter drawer over them.
-    if (e.composedPath().some(node => node instanceof HTMLElement
-        && node.scrollWidth > node.clientWidth + 1
-        && ['auto', 'scroll'].includes(getComputedStyle(node).overflowX))) return;
-
-    sidebarSwipeEligible = true;
-    startX = e.changedTouches[0].clientX;
-    startY = e.changedTouches[0].clientY;
-}, false);
-
-document.addEventListener('touchend', (e) => {
-    if (!sidebarSwipeEligible) return;
-    sidebarSwipeEligible = false;
-    if (!hasLeaderboardSidebar) return;
-    if (window.LwcImageViewer?.isOpen()) return;
-    if (modal.style.display === "block") return;
-
-    endX = e.changedTouches[0].clientX;
-    endY = e.changedTouches[0].clientY;
-
-    const deltaX = endX - startX; // Horizontal movement
-    const deltaY = endY - startY; // Vertical movement
-
-    // Check if it's a tap (small movement)
-    if (Math.abs(deltaX) < TAP_THRESHOLD && Math.abs(deltaY) < TAP_THRESHOLD) {
-        return; // Do nothing, treat as a tap
-    }
-
-    // Check for swipe
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
-        if (deltaX > 0) {
-            // Swiped from left to right => open sidebar
-            openSidebar();
-        } else {
-            // Swiped from right to left => close sidebar
-            closeSidebar();
-        }
-    }
-}, false);
-
-document.addEventListener('touchcancel', () => { sidebarSwipeEligible = false; }, { passive: true });
+// The sheet owns only a downward drag from its heading or grab area. A page
+// swipe and scrolling the filter list must never toggle it.
+let sidebarDragStart = null;
+sidebar?.addEventListener('touchstart', event => {
+    sidebarDragStart = null;
+    if (!isMobileDrawerViewport() || !sidebar.classList.contains('expanded') || event.touches.length !== 1) return;
+    const target = event.target;
+    if (target.closest('button, input, a')) return;
+    if (!target.closest('.sidebar-grab, .sidebar-heading')) return;
+    const touch = event.touches[0];
+    sidebarDragStart = { x: touch.clientX, y: touch.clientY };
+}, { passive: true });
+sidebar?.addEventListener('touchend', event => {
+    const start = sidebarDragStart;
+    sidebarDragStart = null;
+    if (!start || !isMobileDrawerViewport() || !event.changedTouches.length) return;
+    const touch = event.changedTouches[0];
+    const dy = touch.clientY - start.y;
+    if (dy > 50 && dy > Math.abs(touch.clientX - start.x)) closeSidebar({ restoreFocus: true, focusVisible: false });
+}, { passive: true });
+sidebar?.addEventListener('touchcancel', () => { sidebarDragStart = null; }, { passive: true });
 
 // Updates the document title for the selected athlete.
 function updatePageTitleForAthlete(athleteName, athleteRank) {
