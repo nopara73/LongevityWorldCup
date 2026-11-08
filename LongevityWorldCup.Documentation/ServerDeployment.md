@@ -311,6 +311,12 @@ deployment artifacts, command arguments, or logs. Obtain an explicit server-only
 when the owner has reserved secret storage to themselves. The service verifies the derived
 public identity before sending; profile discovery exposes only its public key and relays.
 
+## Telegram announcements
+
+The production service reads its `lwc-telegram` systemd credential through `CREDENTIALS_DIRECTORY`. Use `LoadCredentialEncrypted=lwc-telegram` with a host-encrypted credential in `/etc/credstore.encrypted/`. The credential contains JSON with `botToken` and a numeric `channelId`. Keep the owner backup in their designated secret storage and pass the credential to `systemd-creds encrypt` through standard input.
+
+Verify the bot and the target channel with Telegram's `getMe`, `getChat`, and `getChatMember` methods before enabling delivery. The bot needs permission to post to the channel. The app baselines historical Events on activation. Use the `SocialDeliveries` row and its Telegram permalink to verify delivery. Investigate `review` rows in the channel before retrying an unconfirmed post.
+
 ## Scheduled Jobs
 
 IndexNow uses a separate hosted worker and an explicit Production opt-in. Its key and delivery ledger live beside the SQLite database in `indexnow-state.json`, outside the release tree. Preserve and back up that file; do not regenerate it during deployment. See [IndexNow.md](IndexNow.md) for enabling, retries, key verification and status inspection.

@@ -1089,6 +1089,7 @@
                     <label class="check"><input id="sendBluesky" type="checkbox" role="switch" /><span>Bluesky</span></label>
                     <label class="check"><input id="sendWebPush" type="checkbox" role="switch" /><span>Website push</span></label>
                     <label class="check"><input id="sendInstagram" type="checkbox" role="switch" /><span>Instagram</span></label>
+                    <label class="check"><input id="sendTelegram" type="checkbox" role="switch" /><span>Telegram</span></label>
                 </div>
             </section>
 
@@ -1165,7 +1166,7 @@
 
     <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"></script>
     <script>
-        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000, reddit: 40000, bluesky: 300, instagram: 2200 };
+        const LIMITS = { x: 280, threads: 500, mastodon: 500, nostr: 16000, reddit: 40000, bluesky: 300, instagram: 2200, telegram: 4096 };
         const SECRET_HASH_ALGORITHM = "pbkdf2-sha256";
         const SECRET_HASH_ITERATIONS = 210000;
         const SECRET_HASH_SALT_BYTES = 16;
@@ -1184,6 +1185,7 @@
         const sendBluesky = document.getElementById("sendBluesky");
         const sendWebPush = document.getElementById("sendWebPush");
         const sendInstagram = document.getElementById("sendInstagram");
+        const sendTelegram = document.getElementById("sendTelegram");
         const designerSecretInput = document.getElementById("designerSecretInput");
         const generateSecretHashBtn = document.getElementById("generateSecretHashBtn");
         const copySecretHashBtn = document.getElementById("copySecretHashBtn");
@@ -1229,7 +1231,8 @@
             { key: "nostr", label: "Nostr", checkbox: sendNostr, limit: LIMITS.nostr },
             { key: "reddit", label: "Reddit", checkbox: sendReddit, limit: LIMITS.reddit },
             { key: "bluesky", label: "Bluesky", checkbox: sendBluesky, limit: LIMITS.bluesky },
-            { key: "instagram", label: "Instagram", checkbox: sendInstagram, limit: LIMITS.instagram }
+            { key: "instagram", label: "Instagram", checkbox: sendInstagram, limit: LIMITS.instagram },
+            { key: "telegram", label: "Telegram", checkbox: sendTelegram, limit: LIMITS.telegram }
         ];
         const PLATFORM_PREVIEW_META = {
             slack: { name: "Longevity World Cup", handle: "#highlights", avatar: "LW", label: "Slack" },
@@ -1240,7 +1243,8 @@
             nostr: { name: "Longevity World Cup", handle: "longevityworldcup.com", avatar: "LW", label: "Nostr" },
             reddit: { name: "Longevity World Cup", handle: "r/LongevityWorldCup", avatar: "LW", label: "Reddit" },
             bluesky: { name: "Longevity World Cup", handle: "@longevityworldcup.bsky.social", avatar: "LW", label: "Bluesky" },
-            instagram: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Instagram" }
+            instagram: { name: "Longevity World Cup", handle: "@longevityworldcup", avatar: "LW", label: "Instagram" },
+            telegram: { name: "Longevity World Cup", handle: "", avatar: "LW", label: "Telegram" }
         };
 
         function renderPlatformAvatar(platformKey, sizeClass = "x-avatar") {
@@ -1460,7 +1464,7 @@
         }
 
         function getOgPreviewUrl(platformKey, plan) {
-            if (platformKey === "facebook" || platformKey === "webpage") {
+            if (platformKey === "facebook" || platformKey === "webpage" || platformKey === "telegram") {
                 return "";
             }
 
@@ -2097,7 +2101,7 @@
             return parts.slice(0, low).join("").trimEnd() + "…";
         }
 
-        function truncateInstagram(text, limit) {
+        function truncatePostText(text, limit) {
             if (text.length <= limit) return text;
             if (limit <= 0) return "";
             let clipped = "";
@@ -2110,13 +2114,13 @@
 
         function buildImageCaption(titleText, eventUrl, maxLength, platformKey) {
             const normalizedTitle = collapseWhitespace(titleText);
-            if (!eventUrl) return platformKey === "mastodon" ? truncateMastodon(normalizedTitle, maxLength) : platformKey === "bluesky" ? truncateBluesky(normalizedTitle, maxLength) : platformKey === "instagram" ? truncateInstagram(normalizedTitle, maxLength) : normalizedTitle;
+            if (!eventUrl) return platformKey === "mastodon" ? truncateMastodon(normalizedTitle, maxLength) : platformKey === "bluesky" ? truncateBluesky(normalizedTitle, maxLength) : platformKey === "instagram" ? truncatePostText(normalizedTitle, maxLength) : normalizedTitle;
             const reserved = postLength(eventUrl, platformKey) + 2;
             const maxTitleLength = Math.max(0, maxLength - reserved);
             let finalTitle = normalizedTitle;
             if (postLength(finalTitle, platformKey) > maxTitleLength) {
                 finalTitle = maxTitleLength <= 1 ? "" : platformKey === "mastodon"
-                    ? truncateMastodon(finalTitle, maxTitleLength) : platformKey === "bluesky" ? truncateBluesky(finalTitle, maxTitleLength) : platformKey === "instagram" ? truncateInstagram(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
+                    ? truncateMastodon(finalTitle, maxTitleLength) : platformKey === "bluesky" ? truncateBluesky(finalTitle, maxTitleLength) : platformKey === "instagram" ? truncatePostText(finalTitle, maxTitleLength) : `${finalTitle.slice(0, maxTitleLength - 1).trimEnd()}…`;
             }
             return finalTitle ? `${finalTitle}\n\n${eventUrl}` : eventUrl;
         }
@@ -2141,6 +2145,17 @@
             const hasHyperlinks = containsHyperlink(rawText);
             const textWithoutUrl = buildTextPost(titleText, bodyText, null);
 
+            if (platformKey === "telegram") {
+                const postText = (!hasHyperlinks || !eventUrl) && textWithoutUrl
+                    ? textWithoutUrl : buildTextPost(titleText, bodyText, eventUrl);
+                if (postText.length <= maxLength) return { mode: "text", postText };
+
+                const link = eventUrl.length + 2 < maxLength ? eventUrl
+                    : includeEventUrl ? buildPreviewEventUrl(titleRaw, contentRaw) : "";
+                const suffix = link ? "\n\n" + link : "";
+                return { mode: "text", postText: truncatePostText(textWithoutUrl || postText, maxLength - suffix.length) + suffix };
+            }
+
             if (platformKey === "reddit") {
                 let postText = buildTextPost(titleText, bodyText, hasHyperlinks ? eventUrl : null);
                 if (includeEventUrl && !postText.includes("https://longevityworldcup.com/")) {
@@ -2162,7 +2177,7 @@
             return {
                 mode: "image",
                 postText: platformKey === "instagram" && imageCaption.length > maxLength
-                    ? truncateInstagram(titleText || bodyText, maxLength) : imageCaption
+                    ? truncatePostText(titleText || bodyText, maxLength) : imageCaption
             };
         }
 
@@ -2179,7 +2194,7 @@
                 return plan.postText;
             }
 
-            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr" || platformKey === "reddit" || platformKey === "bluesky" || platformKey === "instagram") {
+            if (platformKey === "x" || platformKey === "threads" || platformKey === "facebook" || platformKey === "mastodon" || platformKey === "nostr" || platformKey === "reddit" || platformKey === "bluesky" || platformKey === "instagram" || platformKey === "telegram") {
                 const fallbackLimit = LIMITS[platformKey] ?? 63206;
                 const fallbackPlan = buildPlan(titleRaw, contentRaw, fallbackLimit, platformKey, includeEventUrl);
                 return fallbackPlan.postText || "";
@@ -2303,7 +2318,8 @@
                 sendToReddit: sendReddit.checked,
                 sendToBluesky: sendBluesky.checked,
                 sendToWebPush: sendWebPush.checked,
-                sendToInstagram: sendInstagram.checked
+                sendToInstagram: sendInstagram.checked,
+                sendToTelegram: sendTelegram.checked
             };
         }
 
@@ -2319,7 +2335,8 @@
                 payload.sendToReddit ||
                 payload.sendToBluesky ||
                 payload.sendToWebPush ||
-                payload.sendToInstagram
+                payload.sendToInstagram ||
+                payload.sendToTelegram
             );
         }
 
@@ -2365,6 +2382,7 @@
                 if (typeof data.sendBluesky === "boolean") sendBluesky.checked = data.sendBluesky;
                 if (typeof data.sendWebPush === "boolean") sendWebPush.checked = data.sendWebPush;
                 if (typeof data.sendInstagram === "boolean") sendInstagram.checked = data.sendInstagram;
+                if (typeof data.sendTelegram === "boolean") sendTelegram.checked = data.sendTelegram;
             } catch {
             }
         }
@@ -2382,7 +2400,8 @@
                     sendReddit: sendReddit.checked,
                     sendBluesky: sendBluesky.checked,
                     sendWebPush: sendWebPush.checked,
-                    sendInstagram: sendInstagram.checked
+                    sendInstagram: sendInstagram.checked,
+                    sendTelegram: sendTelegram.checked
                 }));
             } catch {
             }
@@ -2511,7 +2530,7 @@
                                 </div>
                                 <div class="x-text">${formatPlainPostTextToHtml(visibleText, clickableMentions)}</div>
                                 ${ogCardHtml}
-                                <div class="x-actions">${platformKey === "reddit" ? '<span>↑</span><span>↓</span><span>Comment</span><span>Share</span>' : '<span>Reply</span><span>Repost</span><span>Like</span><span>View</span>'}</div>
+                                ${platformKey === "telegram" ? "" : `<div class="x-actions">${platformKey === "reddit" ? '<span>↑</span><span>↓</span><span>Comment</span><span>Share</span>' : '<span>Reply</span><span>Repost</span><span>Like</span><span>View</span>'}</div>`}
                             </div>
                         </div>
                     </div>    
@@ -2897,7 +2916,7 @@
             }
         });
 
-        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit, sendBluesky, sendWebPush, sendInstagram].forEach(el => {
+        [titleInput, contentInput, sendWebpage, sendSlack, sendX, sendThreads, sendFacebook, sendMastodon, sendNostr, sendReddit, sendBluesky, sendWebPush, sendInstagram, sendTelegram].forEach(el => {
             el.addEventListener("input", event => {
                 if (event.target === titleInput || event.target === contentInput) {
                     updateMentionSuggestions(event.target);

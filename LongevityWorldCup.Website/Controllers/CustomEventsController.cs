@@ -34,7 +34,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToReddit = false,
         bool SendToBluesky = false,
         bool SendToWebPush = false,
-        bool SendToInstagram = false);
+        bool SendToInstagram = false,
+        bool SendToTelegram = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -83,7 +84,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToReddit,
             request.SendToBluesky,
             request.SendToWebPush,
-            request.SendToInstagram);
+            request.SendToInstagram,
+            request.SendToTelegram);
         var blockedRedditLink = targets.SendToReddit
             ? RedditLinkPolicy.FindBlockedLink($"{title}\n\n{content}", _config.RedditBlockedLinks)
             : null;
@@ -103,6 +105,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Website notifications are not configured.");
         if (targets.SendToInstagram && (string.IsNullOrWhiteSpace(_config.InstagramAccountId) || string.IsNullOrWhiteSpace(_config.InstagramAccessToken)))
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Instagram announcements are not configured.");
+        if (targets.SendToTelegram && _config.Telegram is null)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Telegram announcements are not configured.");
 
         var eventId = _events.CreateCustomEvent(
             titleRaw: title,
@@ -138,6 +142,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToBluesky) selected.Add("bluesky");
         if (targets.SendToWebPush) selected.Add("webpush");
         if (targets.SendToInstagram) selected.Add("instagram");
+        if (targets.SendToTelegram) selected.Add("telegram");
         return selected;
     }
 }

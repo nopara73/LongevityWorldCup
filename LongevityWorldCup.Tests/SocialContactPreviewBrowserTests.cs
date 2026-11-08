@@ -162,6 +162,32 @@ public sealed class SocialContactPreviewBrowserTests(
     [Theory]
     [InlineData(1280)]
     [InlineData(390)]
+    public async Task TelegramPreview_KeepsTheLinkAndPersistsAnIndependentDestination(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/custom-event-designer.html");
+        foreach (var id in new[] { "sendWebpage", "sendSlack", "sendX", "sendThreads", "sendFacebook", "sendMastodon",
+            "sendNostr", "sendReddit", "sendBluesky", "sendWebPush", "sendInstagram" })
+            await page.Locator("#" + id).UncheckAsync();
+        await page.Locator("#sendTelegram").CheckAsync();
+        await page.Locator("#titleInput").FillAsync("Follow LWC by [RSS](https://longevityworldcup.com/feeds/events.rss)");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Telegram Preview", Exact = true }).WaitForAsync();
+        Assert.True(await page.EvaluateAsync<bool>("() => hasSelectedDestination(buildEventPayload()) && buildEventPayload().sendToTelegram"));
+        Assert.Equal("Follow LWC by RSS\n\nhttps://longevityworldcup.com/feeds/events.rss",
+            await page.EvaluateAsync<string>("() => buildPlan(titleInput.value, '', LIMITS.telegram, 'telegram', false).postText"));
+        await page.ReloadAsync();
+        Assert.True(await page.Locator("#sendTelegram").IsCheckedAsync());
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
     public async Task InstagramPreview_AlwaysShowsAnImageAndRetainsAnIndependentDestination(int width)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions

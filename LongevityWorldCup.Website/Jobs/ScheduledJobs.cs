@@ -31,6 +31,7 @@ internal static class ScheduledJobs
         var webPushKey = new JobKey("WebPushPostJob");
         var instagramDailyKey = new JobKey("InstagramDailyPostJob");
         var instagramCustomKey = new JobKey("InstagramCustomPostJob");
+        var telegramKey = new JobKey("TelegramPostJob");
 
         scheduler.AddJob<InstagramDailyPostJob>(o => o.WithIdentity(instagramDailyKey));
         scheduler.AddTrigger(t => t.ForJob(instagramDailyKey)
@@ -39,6 +40,17 @@ internal static class ScheduledJobs
         scheduler.AddJob<InstagramCustomPostJob>(o => o.WithIdentity(instagramCustomKey));
         scheduler.AddTrigger(t => t.ForJob(instagramCustomKey)
             .WithIdentity("InstagramCustomPostTrigger")
+            .StartNow()
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
+
+        scheduler.AddJob<TelegramPostJob>(o => o.WithIdentity(telegramKey));
+        scheduler.AddTrigger(t => t.ForJob(telegramKey)
+            .WithIdentity("TelegramDailyPostTrigger")
+            .UsingJobData(TelegramPostJob.CustomOnlyKey, false)
+            .WithSchedule(CronScheduleBuilder.Create("0 14 15 * * ?").InTimeZone(TimeZoneInfo.Utc)));
+        scheduler.AddTrigger(t => t.ForJob(telegramKey)
+            .WithIdentity("TelegramCustomPostTrigger")
+            .UsingJobData(TelegramPostJob.CustomOnlyKey, true)
             .StartNow()
             .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
 

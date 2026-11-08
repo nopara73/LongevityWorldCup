@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website
@@ -76,6 +77,7 @@ namespace LongevityWorldCup.Website
         public string? RedditIftttWebhookKey { get; set; }
         public string? RedditIftttReceiptSecretHash { get; set; }
         internal bool RedditDispatchEnabled => RedditEnabled && (!RedditUseIfttt || RedditIftttPost.IsConfigured(this));
+        internal TelegramCredentials? Telegram { get; set; }
         public string? CustomEventDesignerSecretHash { get; set; }
         public LongevitymaxxingChallengeConfig? LongevitymaxxingChallenge { get; set; }
 
@@ -93,7 +95,9 @@ namespace LongevityWorldCup.Website
         // Load configuration from the file
         public static async Task<Config> LoadAsync()
         {
-            return await LoadAsync(DefaultConfigFilePath, GetDefaultRuntimeConfigFilePath());
+            var config = await LoadAsync(DefaultConfigFilePath, GetDefaultRuntimeConfigFilePath());
+            config.Telegram = await TelegramCredentials.LoadAsync();
+            return config;
         }
 
         internal static async Task<Config> LoadAsync(string configFilePath, string runtimeConfigFilePath)

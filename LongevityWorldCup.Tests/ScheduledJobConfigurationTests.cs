@@ -38,6 +38,7 @@ public sealed class ScheduledJobConfigurationTests
             ("RedditDailyPostTrigger", "RedditDailyPostJob", new(2030, 2, 1, 15, 8, 0, TimeSpan.Zero)),
             ("BlueskyDailyPostTrigger", "BlueskyDailyPostJob", new(2030, 2, 1, 15, 10, 0, TimeSpan.Zero)),
             ("InstagramDailyPostTrigger", "InstagramDailyPostJob", new(2030, 2, 1, 15, 12, 0, TimeSpan.Zero)),
+            ("TelegramDailyPostTrigger", "TelegramPostJob", new(2030, 2, 1, 15, 14, 0, TimeSpan.Zero)),
             ("LongevitymaxxingReminderTrigger", "LongevitymaxxingReminderJob", new(2030, 2, 1, 0, 0, 0, TimeSpan.Zero))
         ];
 
@@ -94,6 +95,11 @@ public sealed class ScheduledJobConfigurationTests
         Assert.Equal(TimeSpan.FromMinutes(1), instagram.RepeatInterval);
         Assert.Equal(-1, instagram.RepeatCount);
         Assert.NotNull(await scheduler.GetJobDetail(instagram.JobKey));
+        var telegram = Assert.IsAssignableFrom<ISimpleTrigger>(await scheduler.GetTrigger(new TriggerKey("TelegramCustomPostTrigger")));
+        Assert.Equal(new JobKey("TelegramPostJob"), telegram.JobKey);
+        Assert.Equal(TimeSpan.FromMinutes(1), telegram.RepeatInterval);
+        Assert.Equal(-1, telegram.RepeatCount);
+        Assert.True(telegram.JobDataMap.GetBoolean(TelegramPostJob.CustomOnlyKey));
     }
 
     [Fact]
