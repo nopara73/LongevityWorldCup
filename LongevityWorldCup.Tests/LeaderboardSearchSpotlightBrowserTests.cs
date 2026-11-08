@@ -50,6 +50,28 @@ public sealed class LeaderboardSearchSpotlightBrowserTests(PlaywrightBrowserFixt
     }
 
     [Fact]
+    public async Task Escape_DismissesSearchEvidenceBeforeTheOpenFilterDeck()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await OpenAsync(context, "mar");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var reason = page.Locator(Rows + "[data-athlete-name='Keith Blondin'] .search-reason--why");
+        await reason.FocusAsync();
+        await reason.PressAsync("Enter");
+        var panel = page.Locator(".search-reason-popover");
+        await Assertions.Expect(panel).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(panel).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".sidebar")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("\\bexpanded\\b"));
+        await Assertions.Expect(reason).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "false");
+    }
+
+    [Fact]
     public async Task Ordering_PreservesReasonsAndRankMarks_AndFlagTeamsExplainMemberMatches()
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
@@ -68,6 +90,48 @@ public sealed class LeaderboardSearchSpotlightBrowserTests(PlaywrightBrowserFixt
         await page.Locator("#flagLeaderboard .search-reason").First.ClickAsync();
         await Assertions.Expect(page.Locator(".search-reason-popover")).ToBeVisibleAsync();
         await AssertFitsAsync(page, page.Locator(".search-reason-popover"));
+    }
+
+    [Fact]
+    public async Task FlagMemberEvidence_KeepsLongNamesInsideTheirLayoutAtEveryTextBreakpoint()
+    {
+        const string flag = "CounterintuitiveLongevityResearchCollective";
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            var keith = athletes.First(a => a!["Name"]!.GetValue<string>() == "Keith Blondin")!;
+            keith["Flag"] = flag;
+        });
+        var page = await context.NewPageAsync();
+        foreach (var (width, textPercent) in new[] { (320, 100), (390, 200), (195, 100) })
+        {
+            await page.SetViewportSizeAsync(width, 844);
+            await NavigateAndSettleAsync(page, "/leaderboard?group=flags&search=blondin");
+            await LoadedAsync(page);
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textPercent);
+            var team = page.Locator($".flag-team[data-flag='{flag}']");
+            var reason = team.Locator(".search-reason");
+            await reason.ScrollIntoViewIfNeededAsync();
+            await Assertions.Expect(reason).ToBeVisibleAsync();
+            var captureDir = Environment.GetEnvironmentVariable("LWC_SEARCH_CAPTURE_DIR");
+            if (!string.IsNullOrEmpty(captureDir))
+                await page.ScreenshotAsync(new() { Path = Path.Combine(captureDir, $"flag-layout-{width}-{textPercent}.png") });
+            Assert.True(await team.EvaluateAsync<bool>("""
+                team => {
+                    const summary=team.querySelector('summary'), bounds=summary.getBoundingClientRect();
+                    const title=team.querySelector('.flag-team-name > span:last-of-type').getBoundingClientRect();
+                    const chip=team.querySelector('.search-reason').getBoundingClientRect();
+                    return summary.scrollWidth<=summary.clientWidth && title.left>=bounds.left && title.right<=bounds.right
+                        && chip.left>=title.left && chip.right<=title.right && chip.top>=title.top && chip.bottom<=title.bottom;
+                }
+                """), $"Flag title and disclosure must share the bounded name area at {width}px/{textPercent}% text.");
+            await reason.ClickAsync();
+            await Assertions.Expect(page.Locator(".search-reason-popover")).ToContainTextAsync("Keith Blondin");
+            Assert.Null(await team.GetAttributeAsync("open"));
+            await page.Keyboard.PressAsync("Escape");
+            await page.Locator("#athleteSearch").FillAsync("");
+            await Assertions.Expect(team.Locator(".flag-team-name > span:last-child")).ToHaveTextAsync(flag);
+        }
     }
 
     [Fact]

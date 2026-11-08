@@ -7414,6 +7414,8 @@ document.addEventListener('keydown', (event) => {
     if (!hasLeaderboardSidebar) return;
     if (event.key !== 'Escape' && event.key !== 'Esc') return;
     if (modal.style.display === "block") return;
+    // Let the native disclosure consume Escape before its underlying filter deck.
+    if (searchReasonPopover?.matches(':popover-open')) return;
 
     const searchInput = document.getElementById('athleteSearch');
     if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
@@ -7682,7 +7684,7 @@ function markFlagSearchReasons(terms, teams, badgeTextByName) {
                 }
             }
         });
-        if (evidence.size) appendSearchReason(row.querySelector('.flag-team-name'), { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
+        if (evidence.size) appendSearchReason(name, { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
     });
 }
 
