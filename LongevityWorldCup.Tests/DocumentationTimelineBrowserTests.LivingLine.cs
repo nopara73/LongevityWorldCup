@@ -80,7 +80,7 @@ public sealed partial class DocumentationTimelineBrowserTests
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/history");
         await ScrollToEntryAsync(page, 0);
-        await page.WaitForTimeoutAsync(550);
+        await page.WaitForFunctionAsync("() => document.querySelector('.documentation-timeline-year-face').getAnimations().every(a => a.playState === 'finished')");
         await ScrollToEntryAsync(page, 2);
         var maxOpacity = await page.EvaluateAsync<double>("""
             async () => {
@@ -99,6 +99,7 @@ public sealed partial class DocumentationTimelineBrowserTests
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await page.WaitForFunctionAsync("() => document.querySelector('.documentation-timeline-year-face').getAnimations().length === 0");
         Assert.Equal("2018", await page.Locator(".documentation-timeline-year-face").TextContentAsync());
+        // Intentional wait: a canceled outgoing/incoming animation must not overwrite the settled year after its full 480ms lifetime.
         await page.WaitForTimeoutAsync(550);
         Assert.Equal("2018", await page.Locator(".documentation-timeline-year-face").TextContentAsync());
         Assert.Equal("none", await page.Locator(".documentation-timeline-now").EvaluateAsync<string>("e=>getComputedStyle(e,'::after').animationName"));
