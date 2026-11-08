@@ -4132,7 +4132,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
 
         const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'))
             .map(badge => {
-                const title = badge.getAttribute('title') || '';
+                const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
                 const ariaLabel = badge.getAttribute('aria-label') || '';
                 const text = badge.textContent || '';
                 return `${title} ${ariaLabel} ${text}`.trim();
@@ -4140,7 +4140,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             .filter(Boolean)
             .join(' ');
 
-        athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
+        athleteBadgeTextByName.set(athleteName, badgeSearchText);
     });
 
     const searchTextByAthlete = orderingSnapshot ? null : new Map(athleteResults.map(athlete => [athlete, [
@@ -4177,19 +4177,8 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             metric: formatMetricForView(cohort, athlete, index, state.view)
         })).filter(entry => {
             if (showAll || !applySearch) return true;
-            const { athlete, rank, metric } = entry;
-            const value = getMetricValueForView(athlete, state.view);
-            const percent = state.view === 'pheno'
-                ? athlete.ageReductionPercent
-                : (state.view === 'improvement' || state.view === 'bortz-improvement')
-                    ? null
-                    : (Number.isFinite(athlete.bortzAgeReductionPercent) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
-            // Retain the old one-decimal form for existing shared searches as well.
-            const metricParts = [metric];
-            if (Number.isFinite(value)) metricParts.push(value.toFixed(1));
-            if (state.view !== 'crowd' && Number.isFinite(percent)) metricParts.push(percent.toFixed(1));
-            if (state.view === 'crowd' && Number.isFinite(athlete.crowdCount)) metricParts.push(String(athlete.crowdCount));
-            const metricText = window.normalizeString(metricParts.join(' ').toLowerCase());
+            const { athlete, rank } = entry;
+            const metricText = normalizeSearchText(getMetricSearchParts(entry, state.view).map(part => part.value).join(' '));
             return uniqueSearchTerms.every(term => searchTextByAthlete.get(athlete).includes(term) || metricText.includes(term) || String(rank).includes(term));
         });
     };
@@ -4209,6 +4198,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
         const matchingTeams = getMatchingFlagTeams(selectedState);
         renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
+        markFlagSearchReasons(uniqueSearchTerms, matchingTeams, athleteBadgeTextByName);
         updateViewAllAthletesButton(matchingTeams.length);
         updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
         updateLeaderboardTitles(selectedState);
@@ -4219,6 +4209,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     }
 
     const cohortEntries = orderingSnapshot ? orderingSnapshot.entries : getMatchingEntries(selectedState);
+    if (orderingSnapshot) closeSearchReason();
     leaderboardOrderingSnapshot = { key: filterKey, athletes: athleteResults, entries: cohortEntries };
     const matchingEntries = window.LwcLeaderboardOrder.sort(cohortEntries, selectedState.ordering);
     const tableBody = document.querySelector('.leaderboard table tbody');
@@ -4335,7 +4326,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
                 if (filteredNames.has(element.closest('[data-athlete-name]')?.dataset.athleteName)) window.highlightText(element, uniqueSearchTerms);
             });
         }
-        markSearchReasons(uniqueSearchTerms, matchingEntries);
+        markSearchReasons(uniqueSearchTerms, matchingEntries, currentLeaderboardView);
         updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
     }
 
@@ -7491,67 +7482,207 @@ function focusSidebarControl(element) {
     }
 }
 
-// Search spotlight: a row that matches through something other than its name
-// shows why, without words. A matching badge lights up; a match in the flag,
-// media contact or motivation adds a small glyph after the name whose
-// tooltip carries the matching snippet.
+// Keep search evidence aligned with the fields and legacy numeric forms used
+// by filtering. The disclosure also covers evidence hidden by compact layouts.
 const SEARCH_REASON_SOURCES = [
-    { kind: 'flag', icon: 'fa-flag', read: athlete => `${athlete.flag || ''} ${athlete.canonicalFlag || ''}` },
-    { kind: 'contact', icon: 'fa-at', read: athlete => athlete.mediaContact || '' },
-    { kind: 'why', icon: 'fa-quote-left', read: athlete => athlete.why || '' }
+    { kind: 'name', icon: 'fa-user', label: 'Name match', read: athlete => athlete.name },
+    { kind: 'flag', icon: 'fa-flag', label: 'Flag match', read: athlete => [...new Set([athlete.flag, athlete.canonicalFlag].filter(Boolean))].join(' · ') },
+    { kind: 'contact', icon: 'fa-at', label: 'Contact match', read: athlete => athlete.mediaContact || '' },
+    { kind: 'why', icon: 'fa-quote-left', label: 'Motivation match', read: athlete => athlete.why || '' }
 ];
+
+function normalizeSearchText(text) {
+    return window.normalizeString(String(text || ''));
+}
+
+function getMetricSearchParts(entry, view) {
+    const { athlete, metric, metricValue } = entry;
+    const percent = view === 'pheno' ? athlete.ageReductionPercent
+        : (view === 'improvement' || view === 'bortz-improvement') ? null
+        : (Number.isFinite(athlete.bortzAgeReductionPercent) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
+    const parts = [{ value: metric, label: metric }];
+    if (Number.isFinite(metricValue)) parts.push({ value: metricValue.toFixed(1), label: `${metricValue.toFixed(1)} years` });
+    if (view !== 'crowd' && Number.isFinite(percent)) parts.push({ value: percent.toFixed(1), label: `${percent.toFixed(1)}% age reduction` });
+    if (view === 'crowd' && Number.isFinite(athlete.crowdCount)) parts.push({ value: String(athlete.crowdCount), label: `${athlete.crowdCount} guesses` });
+    return parts;
+}
 
 function getSearchSnippet(text, term) {
     const source = String(text || '').replace(/\s+/g, ' ').trim();
-    if (source.length <= 72) return source;
-    const index = Math.max(0, window.normalizeString(source.toLowerCase()).indexOf(term));
-    const start = Math.max(0, index - 28);
-    const end = Math.min(source.length, index + term.length + 36);
+    if (source.length <= 96) return source;
+    // NFKD can expand ligatures or remove combining marks. Locate the match in
+    // original code points before slicing, rather than cutting at folded offsets.
+    const positions = [];
+    let offset = 0;
+    for (const character of source) {
+        for (let i = 0; i < normalizeSearchText(character).length; i++) positions.push([offset, offset + character.length]);
+        offset += character.length;
+    }
+    const index = Math.max(0, normalizeSearchText(source).indexOf(term));
+    const matchStart = positions[index]?.[0] || 0;
+    const matchEnd = positions[index + term.length - 1]?.[1] || source.length;
+    const start = matchStart - [...source.slice(0, matchStart)].slice(-28).join('').length;
+    const end = matchEnd + [...source.slice(matchEnd)].slice(0, 36).join('').length;
     return `${start > 0 ? '…' : ''}${source.slice(start, end).trim()}${end < source.length ? '…' : ''}`;
 }
 
-function markSearchReasons(terms, entries) {
+let searchReasonPopover;
+let searchReasonOwner;
+
+function closeSearchReason() {
+    if (searchReasonPopover?.matches(':popover-open')) searchReasonPopover.hidePopover();
+    searchReasonOwner?.setAttribute('aria-expanded', 'false');
+    searchReasonOwner?.removeAttribute('aria-describedby');
+    searchReasonOwner = null;
+}
+
+function placeSearchReason() {
+    if (!searchReasonOwner || !searchReasonPopover?.matches(':popover-open')) return;
+    const anchor = searchReasonOwner.getBoundingClientRect();
+    if (!searchReasonOwner.isConnected || !anchor.width || !anchor.height || anchor.bottom <= 0 || anchor.top >= innerHeight) {
+        closeSearchReason();
+        return;
+    }
+    const panel = searchReasonPopover;
+    const margin = 8;
+    panel.style.maxWidth = `${Math.min(360, pageDocument.documentElement.clientWidth - margin * 2)}px`;
+    panel.style.maxHeight = `${innerHeight - margin * 2}px`;
+    const left = Math.max(margin, Math.min(anchor.left + anchor.width / 2 - panel.offsetWidth / 2, pageDocument.documentElement.clientWidth - panel.offsetWidth - margin));
+    const below = anchor.bottom + 8;
+    const top = below + panel.offsetHeight <= innerHeight - margin ? below : anchor.top - panel.offsetHeight - 8;
+    panel.style.left = `${left}px`;
+    panel.style.top = `${Math.max(margin, Math.min(top, innerHeight - panel.offsetHeight - margin))}px`;
+    panel.tabIndex = panel.scrollHeight > panel.clientHeight ? 0 : -1;
+}
+
+function appendSearchReason(host, source, text, terms, className = '') {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `search-reason search-reason--${source.kind} ${className}`.trim();
+    chip.innerHTML = `<i class="fas ${source.icon}" aria-hidden="true"></i>`;
+    chip.setAttribute('aria-label', source.label);
+    chip.setAttribute('aria-expanded', 'false');
+    chip.setAttribute('aria-controls', 'leaderboardSearchReason');
+    chip.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const wasOpen = searchReasonOwner === chip && searchReasonPopover?.matches(':popover-open');
+        closeSearchReason();
+        if (wasOpen) return;
+        if (!searchReasonPopover) {
+            searchReasonPopover = document.createElement('div');
+            searchReasonPopover.id = 'leaderboardSearchReason';
+            searchReasonPopover.className = 'search-reason-popover';
+            searchReasonPopover.setAttribute('popover', 'auto');
+            searchReasonPopover.setAttribute('role', 'region');
+            athleteDialogRuntime.appendChild(searchReasonPopover);
+            searchReasonPopover.addEventListener('beforetoggle', event => {
+                if (event.newState === 'closed') {
+                    searchReasonOwner?.setAttribute('aria-expanded', 'false');
+                    searchReasonOwner?.removeAttribute('aria-describedby');
+                    searchReasonOwner = null;
+                }
+            });
+            // Font reflow, browser zoom and focus scrolling can settle after the
+            // click. Follow the button instead of dismissing the new disclosure.
+            window.addEventListener('resize', placeSearchReason, { passive: true });
+            pageDocument.addEventListener('scroll', event => {
+                if (!searchReasonPopover.contains(event.target)) placeSearchReason();
+            }, { capture: true, passive: true });
+        }
+        searchReasonPopover.setAttribute('aria-label', source.label);
+        searchReasonPopover.textContent = text;
+        window.highlightText(searchReasonPopover, terms);
+        searchReasonOwner = chip;
+        chip.setAttribute('aria-expanded', 'true');
+        chip.setAttribute('aria-describedby', searchReasonPopover.id);
+        searchReasonPopover.showPopover({ source: chip });
+        placeSearchReason();
+    });
+    host.appendChild(chip);
+}
+
+function clearSearchReasons(scope) {
+    closeSearchReason();
+    scope.querySelectorAll('.search-reason').forEach(element => element.remove());
+    scope.querySelectorAll('.is-search-hit, .is-search-value').forEach(element => element.classList.remove('is-search-hit', 'is-search-value'));
+}
+
+function markSearchReasons(terms, entries, view) {
     const board = document.querySelector('.leaderboard table tbody');
     if (!board) return;
-    board.querySelectorAll('.search-reason').forEach(element => element.remove());
-    board.querySelectorAll('.badge-class.is-search-hit').forEach(element => element.classList.remove('is-search-hit'));
+    clearSearchReasons(athleteDialogRuntime);
     if (!terms.length) return;
-    const normalize = text => window.normalizeString(String(text || '').toLowerCase());
     const entryByName = new Map(entries.map(entry => [entry.athlete.name, entry]));
     board.querySelectorAll('tr[data-athlete-name]').forEach(row => {
         const entry = entryByName.get(row.dataset.athleteName);
         if (!entry || row.style.display === 'none') return;
         const athlete = entry.athlete;
-        const nameText = normalize(`${athlete.name} ${athlete.displayName || ''}`);
+        const nameText = normalizeSearchText(row.querySelector('.athlete-name')?.textContent);
         let pending = terms.filter(term => !nameText.includes(term));
         if (!pending.length) return;
-
-        const badges = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'));
-        pending = pending.filter(term => {
-            const hits = badges.filter(badge => normalize(`${badge.getAttribute('title') || ''} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`).includes(term));
-            hits.forEach(badge => badge.classList.add('is-search-hit'));
-            return hits.length === 0;
-        });
-        if (!pending.length) return;
-
         const identity = row.querySelector('.athlete-identity');
         if (!identity) return;
-        SEARCH_REASON_SOURCES.forEach((source, index) => {
+
+        const badges = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'));
+        const badgeReasons = new Set();
+        const badgeTerms = [];
+        pending = pending.filter(term => {
+            const hits = badges.filter(badge => normalizeSearchText(`${badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || ''} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`).includes(term));
+            hits.forEach(badge => {
+                badge.classList.add('is-search-hit');
+                const text = [badge.getAttribute('title') || badge.getAttribute('data-badge-tip'), badge.getAttribute('aria-label'), badge.textContent]
+                    .find(value => normalizeSearchText(value).includes(term));
+                badgeReasons.add(getSearchSnippet(text, term));
+            });
+            if (hits.length) badgeTerms.push(term);
+            return hits.length === 0;
+        });
+        if (badgeTerms.length) appendSearchReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
+
+        SEARCH_REASON_SOURCES.forEach(source => {
             const text = source.read(athlete);
-            const normalized = normalize(text);
+            const normalized = normalizeSearchText(text);
             const hits = pending.filter(term => normalized.includes(term));
             if (!hits.length) return;
             pending = pending.filter(term => !hits.includes(term));
-            const chip = document.createElement('span');
-            chip.className = `search-reason search-reason--${source.kind}`;
-            chip.style.setProperty('--search-reason-index', String(index));
-            chip.innerHTML = `<i class="fas ${source.icon}" aria-hidden="true"></i>`;
-            const snippet = getSearchSnippet(text, hits[0]);
-            chip.title = snippet;
-            chip.setAttribute('role', 'note');
-            chip.setAttribute('aria-label', snippet);
-            identity.appendChild(chip);
+            appendSearchReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
         });
+        const metricParts = getMetricSearchParts(entry, view);
+        const metricHits = pending.filter(term => metricParts.some(part => normalizeSearchText(part.value).includes(term)));
+        if (metricHits.length) {
+            row.querySelector('.age-reduction')?.classList.add('is-search-value');
+            const hiddenHits = metricHits.filter(term => !normalizeSearchText(entry.metric).includes(term));
+            if (hiddenHits.length) appendSearchReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
+                [...new Set(metricParts.filter(part => hiddenHits.some(term => normalizeSearchText(part.value).includes(term))).map(part => part.label))].join('\n'), hiddenHits);
+        }
+        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) row.querySelector('.rank')?.classList.add('is-search-value');
+    });
+}
+
+function markFlagSearchReasons(terms, teams, badgeTextByName) {
+    clearSearchReasons(athleteDialogRuntime);
+    const board = document.getElementById('flagLeaderboard');
+    board.querySelectorAll('.flag-team').forEach(row => {
+        const team = teams.find(team => row.dataset.flag === team.flag);
+        if (!team) return;
+        const name = row.querySelector('.flag-team-name > span:last-child');
+        name.textContent = team.flag;
+        if (!terms.length) return;
+        window.highlightText(name, terms);
+        const pending = terms.filter(term => !normalizeSearchText(team.flag).includes(term));
+        const evidence = new Set();
+        pending.forEach(term => {
+            for (const entry of team.entries) {
+                const sources = [entry.athlete.displayName, ...SEARCH_REASON_SOURCES.map(source => source.read(entry.athlete)), badgeTextByName.get(entry.athlete.name)];
+                const source = sources.find(text => normalizeSearchText(text).includes(term));
+                if (source) {
+                    evidence.add(`${entry.athlete.displayName}: ${getSearchSnippet(source, term)}`);
+                    break;
+                }
+            }
+        });
+        if (evidence.size) appendSearchReason(row.querySelector('.flag-team-name'), { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
     });
 }
 

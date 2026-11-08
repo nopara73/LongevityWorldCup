@@ -5898,15 +5898,16 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
    chip after the name whose tooltip is the matching snippet. Rows that match
    arrive in a short cascade (see leaderboard-page.js markSearchReasons).
    ========================= */
-.leaderboard .athlete-name .highlight{
+.leaderboard .athlete-name .highlight,
+.flag-team-name .highlight,
+.search-reason-popover .highlight,
+.leaderboard .is-search-value{
     background:linear-gradient(var(--lwc-accent-soft, rgba(0,188,212,.16)), var(--lwc-accent-soft, rgba(0,188,212,.16))) left center / 100% 100% no-repeat;
     animation:lwc-search-sweep 280ms var(--lwc-ease-standard, ease) both;
 }
 .leaderboard table tbody .badge-class.is-search-hit{
     position:relative; z-index:1;
     box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 4px var(--lwc-accent);
-    border-radius:999px;
-    /* Shaped badges clip their box: a drop-shadow follows the shape instead. */
     filter:drop-shadow(0 0 1.5px var(--lwc-accent)) drop-shadow(0 0 4px color-mix(in srgb, var(--lwc-accent) 70%, transparent));
     animation:lwc-search-badge 520ms var(--lwc-ease-pop, ease-out) both;
 }
@@ -5914,17 +5915,39 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     opacity:.45; filter:saturate(.6);
     transition:opacity 200ms ease, filter 200ms ease;
 }
-.leaderboard .search-reason{
+.leaderboard table tbody .badge-class.badge-family-domain.is-search-hit{
+    background:var(--lwc-accent-bright, #19c3d1)!important;
+    box-shadow:none;
+}
+.leaderboard table tbody .badge-class.badge-family-domain.is-search-hit::before{ inset:3px; }
+.leaderboard .search-reason,
+.flag-leaderboard .search-reason{
     display:inline-grid; place-items:center; flex:0 0 auto;
-    width:1.55rem; height:1.55rem; margin-left:.4rem;
+    width:2rem; height:2rem; min-width:2rem; min-height:2rem; margin:0 0 0 .25rem; padding:0;
+    border:0;
     border-radius:50%;
     background:var(--lwc-accent-soft); color:var(--lwc-accent);
     box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--lwc-accent) 35%, transparent);
-    font-size:.68rem; cursor:help;
+    font-size:.75rem; line-height:1; cursor:pointer;
     animation:lwc-search-reason 320ms var(--lwc-ease-pop, ease-out) both;
     animation-delay:calc(var(--search-reason-index, 0) * 60ms + 80ms);
 }
-.leaderboard .search-reason:hover{ background:var(--lwc-accent); color:var(--lwc-on-accent, #fff); }
+.search-reason:is(:hover, [aria-expanded="true"]){ background:var(--lwc-accent); color:var(--lwc-on-accent, #fff); }
+.search-reason:focus-visible{ outline:2px solid var(--lwc-accent); outline-offset:2px; }
+.leaderboard .search-reason--badge{ display:none; }
+.search-reason-popover{
+    position:fixed; inset:auto; margin:0; box-sizing:border-box;
+    width:max-content; max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px);
+    padding:.8rem 1rem; border:1px solid var(--lwc-border-strong); border-radius:.75rem;
+    background:var(--lwc-surface); color:var(--lwc-ink);
+    box-shadow:0 8px 32px rgba(0,0,0,.22);
+    font:inherit; font-size:.9rem; line-height:1.5;
+    white-space:pre-line; overflow-wrap:anywhere; overflow:auto;
+}
+@media (max-width:900px), (max-width:932px) and (max-height:480px) and (orientation:landscape){
+    .leaderboard .search-reason--badge{ display:inline-grid; }
+    .leaderboard .search-reason, .flag-leaderboard .search-reason{ width:2.75rem; height:2.75rem; min-width:2.75rem; min-height:2.75rem; }
+}
 .leaderboard .search-reason--why i{ transform:translateY(-1px); }
 @keyframes lwc-search-sweep{
     from{ background-size:0% 100%; }
@@ -5940,7 +5963,11 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 }
 @media (prefers-reduced-motion: reduce){
     .leaderboard .athlete-name .highlight,
+    .flag-team-name .highlight,
+    .search-reason-popover .highlight,
+    .leaderboard .is-search-value,
     .leaderboard table tbody .badge-class.is-search-hit,
-    .leaderboard .search-reason{ animation:none; }
+    .leaderboard .search-reason,
+    .flag-leaderboard .search-reason{ animation:none; }
     .leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){ transition:none; }
 }
