@@ -2658,3 +2658,397 @@ html body main.homepage-main .btc-status-value {
 html.homepage-restoring {
     overflow-anchor: none;
 }
+
+/* ===== Act two: the champions' podium and the FAQ ledger =====
+   Each Hall of fame season stands as a podium, echoing the live podium at the
+   top of the page: the year and clock on an engraved plinth, then 2nd, 1st and
+   3rd as steps of their medal's height, each crowned with its medal coin (the
+   existing place label). Reading order stays 1st, 2nd, 3rd; only the steps are
+   arranged. As the section scrolls in, the steps rise 3rd, 2nd, 1st and the
+   gold step catches the light once. The FAQ below drops its heavy tiles for a
+   quiet ledger whose questions arrive in turn. */
+
+html body main.homepage-main #hall-of-fame {
+    --podium-step-1: 10.5rem;
+    --podium-step-2: 8.75rem;
+    --podium-step-3: 7.5rem;
+    --podium-coin: 2.6rem;
+}
+
+@media (min-width: 601px) {
+    html body main.homepage-main #hall-of-fame .archive-table-wrapper {
+        max-width: 54rem;
+        padding: var(--lwc-space-6, 2rem) var(--home-card-inset, 1.25rem) 0;
+        overflow: visible;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table,
+    html body main.homepage-main #hall-of-fame .archive-table tbody {
+        display: block;
+        width: 100%;
+        border: 0;
+        background: transparent;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(7.5rem, 0.8fr) repeat(3, minmax(0, 1fr));
+        grid-template-areas:
+            "year second first third"
+            "clock second first third";
+        grid-template-rows: 1fr auto;
+        align-items: end;
+        column-gap: 0.5rem;
+        border: 0;
+        background: transparent;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table tbody tr + tr {
+        margin-top: var(--lwc-space-6, 2rem);
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table tbody tr:hover {
+        background: transparent;
+    }
+
+    /* The plinth: the season's year engraved, its clock beneath. */
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(1) {
+        grid-area: year;
+        align-self: end;
+        width: auto;
+        padding: 0 0.75rem 0.15rem 0;
+        border: 0;
+        background: transparent;
+        color: var(--lwc-ink);
+        font-size: clamp(2rem, 4.5vw, 2.75rem);
+        line-height: 1;
+        letter-spacing: 0.04em;
+        text-align: left;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(2) {
+        grid-area: clock;
+        align-self: start;
+        width: auto;
+        padding: 0.4rem 0.75rem 1rem 0;
+        border: 0;
+        background: transparent;
+        text-align: left;
+    }
+
+    /* The steps. */
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3) {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.2rem;
+        width: auto;
+        box-sizing: border-box;
+        padding: calc(var(--podium-coin) / 2 + 0.85rem) 0.75rem 1rem;
+        border: 0;
+        border-top: 4px solid var(--archive-metal);
+        border-radius: var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) 0 0;
+        text-align: center;
+        overflow: visible;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(3) { grid-area: first; min-height: var(--podium-step-1); }
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(4) { grid-area: second; min-height: var(--podium-step-2); }
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(5) { grid-area: third; min-height: var(--podium-step-3); }
+
+    /* The medal coin sits on the step's lip, carrying the place label. */
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3)::before {
+        position: absolute;
+        top: calc(var(--podium-coin) / -2 - 2px);
+        left: 50%;
+        display: grid;
+        place-items: center;
+        width: var(--podium-coin);
+        height: var(--podium-coin);
+        margin: 0 0 0 calc(var(--podium-coin) / -2);
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.65), transparent 45%),
+            var(--archive-metal);
+        box-shadow: 0 0 0 3px var(--lwc-surface), 0 6px 14px -6px rgba(15, 23, 42, 0.45);
+        color: #17212b;
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+        text-transform: none;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3) a {
+        font-size: 1.05rem;
+        line-height: 1.25;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(3) a {
+        font-size: 1.2rem;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3) .age-reduction {
+        display: block;
+        font-weight: 700;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table tbody td:nth-child(3):hover { background-color: var(--archive-gold-surface); }
+    html body main.homepage-main #hall-of-fame .archive-table tbody td:nth-child(4):hover { background-color: var(--archive-silver-surface); }
+    html body main.homepage-main #hall-of-fame .archive-table tbody td:nth-child(5):hover { background-color: var(--archive-bronze-surface); }
+    html body main.homepage-main #hall-of-fame .archive-table tbody td:nth-child(-n + 2):hover { background-color: transparent; }
+}
+
+@media (min-width: 601px) and (max-width: 768px) {
+    html body main.homepage-main #hall-of-fame {
+        --podium-step-1: 9.5rem;
+        --podium-step-2: 8rem;
+        --podium-step-3: 7rem;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table tbody tr {
+        grid-template-columns: minmax(5.5rem, 0.6fr) repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Phones: the same podium, compact, under its plinth. */
+@media (max-width: 600px) {
+    html body main.homepage-main #hall-of-fame {
+        --podium-step-1: 8.25rem;
+        --podium-step-2: 7rem;
+        --podium-step-3: 6.25rem;
+        --podium-coin: 2.2rem;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winners {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-areas: "second first third";
+        align-items: end;
+        gap: 0.35rem;
+        margin-top: calc(var(--podium-coin) / 2 + 0.75rem);
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
+        box-sizing: border-box;
+        padding: calc(var(--podium-coin) / 2 + 0.6rem) 0.4rem 0.75rem;
+        border: 0;
+        border-top: 4px solid var(--archive-metal);
+        border-radius: var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) 0 0;
+        text-align: center;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(1) { grid-area: first; min-height: var(--podium-step-1); }
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(2) { grid-area: second; min-height: var(--podium-step-2); }
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(3) { grid-area: third; min-height: var(--podium-step-3); }
+
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-place {
+        position: absolute;
+        top: calc(var(--podium-coin) / -2 - 2px);
+        left: 50%;
+        display: grid;
+        place-items: center;
+        width: var(--podium-coin);
+        height: var(--podium-coin);
+        margin-left: calc(var(--podium-coin) / -2);
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.65), transparent 45%),
+            var(--archive-metal);
+        box-shadow: 0 0 0 3px var(--lwc-surface), 0 6px 12px -6px rgba(15, 23, 42, 0.45);
+        color: #17212b;
+        font-size: 0.66rem;
+        letter-spacing: 0;
+        text-transform: none;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+        min-width: 0;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner-name a {
+        font-size: 0.85rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-age-reduction {
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+}
+
+/* The medal coins keep their dark numerals on dark pages; the metal is light. */
+@media (prefers-color-scheme: dark) {
+    html body main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3)::before,
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-place {
+        color: #17212b;
+        box-shadow: 0 0 0 3px var(--lwc-surface), 0 6px 14px -6px rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* The FAQ ledger: questions on hairlines instead of bordered tiles. */
+html body main.homepage-main #faq .homepage-faq-grid {
+    column-gap: var(--lwc-space-6, 2rem);
+    row-gap: 0;
+}
+
+html body main.homepage-main #faq .homepage-faq-item:nth-child(n) {
+    position: relative;
+    padding: var(--lwc-space-4, 1rem) 0 var(--lwc-space-4, 1rem) 1.6rem;
+    border: 0;
+    border-top: 1px solid var(--lwc-border);
+    border-radius: 0;
+    background: transparent;
+}
+
+html body main.homepage-main #faq .homepage-faq-item:nth-child(-n + 2) {
+    border-top-color: transparent;
+}
+
+/* A short accent tick leads each question, where the heavy rail used to be. */
+html body main.homepage-main #faq .homepage-faq-item::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--lwc-space-4, 1rem) + 0.55em);
+    left: 0;
+    width: 0.85rem;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--lwc-accent);
+    transform-origin: left center;
+}
+
+@media (max-width: 600px) {
+    html body main.homepage-main #faq .homepage-faq-item:nth-child(n) {
+        padding-left: 1.4rem;
+        padding-right: 0;
+    }
+
+    html body main.homepage-main #faq .homepage-faq-item:nth-child(2) {
+        border-top-color: var(--lwc-border);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html body main.homepage-main #faq .homepage-faq-item:nth-child(n),
+    html body main.homepage-main #faq .homepage-faq-item:nth-child(n):hover {
+        translate: none;
+        box-shadow: none;
+    }
+
+    html body main.homepage-main #faq .homepage-faq-item::before {
+        transition: width var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease);
+    }
+
+    html body main.homepage-main #faq .homepage-faq-item:hover::before {
+        width: 1.25rem;
+    }
+
+    @supports (animation-timeline: view()) {
+        /* The steps rise out of the card floor: 3rd, then 2nd, then 1st. */
+        html body main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3),
+        html body main.homepage-main #hall-of-fame .archive-mobile-card-winner {
+            animation: podium-step-rise linear both;
+            animation-timeline: view();
+            transform-origin: 50% 100%;
+        }
+
+        html body main.homepage-main #hall-of-fame .archive-table td:nth-child(5),
+        html body main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(3) { animation-range: entry 10% cover 30%; }
+        html body main.homepage-main #hall-of-fame .archive-table td:nth-child(4),
+        html body main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(2) { animation-range: entry 20% cover 34%; }
+        html body main.homepage-main #hall-of-fame .archive-table td:nth-child(3),
+        html body main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(1) { animation-range: entry 30% cover 38%; }
+
+        /* The gold step catches the light once it has risen. */
+        html body main.homepage-main #hall-of-fame .archive-table td:nth-child(3)::after,
+        html body main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(1)::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%) no-repeat;
+            background-size: 220% 100%;
+            pointer-events: none;
+            animation: podium-gold-glint linear both;
+            animation-timeline: view();
+            animation-range: cover 34% cover 50%;
+        }
+
+        /* The FAQ questions arrive in reading order. */
+        html body main.homepage-main #faq .homepage-faq-item:nth-child(n) {
+            animation: faq-ledger-in linear both;
+            animation-timeline: view();
+            animation-range: entry 5% cover 25%;
+        }
+
+        html body main.homepage-main #faq .homepage-faq-item:nth-child(2) { animation-range: entry 12% cover 28%; }
+        html body main.homepage-main #faq .homepage-faq-item:nth-child(3) { animation-range: entry 18% cover 32%; }
+        html body main.homepage-main #faq .homepage-faq-item:nth-child(4) { animation-range: entry 24% cover 36%; }
+    }
+}
+
+@keyframes podium-step-rise {
+    from { opacity: 0; transform: translateY(1.5rem) scaleY(0.6); }
+    60% { opacity: 1; }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes podium-gold-glint {
+    from { background-position: 120% 0; }
+    to { background-position: -120% 0; }
+}
+
+@keyframes faq-ledger-in {
+    from { opacity: 0; translate: 0 0.75rem; }
+    to { opacity: 1; translate: 0 0; }
+}
+
+/* Act two fixes: the coin on the tallest step must clear the table's own
+   clip, the podium stands centred in its card, phone names centre on their
+   steps, and the phone FAQ keeps the ledger without a frame. */
+@media (min-width: 601px) {
+    html body main.homepage-main #hall-of-fame .archive-table-wrapper {
+        margin-inline: auto;
+        padding-top: calc(var(--podium-coin) / 2 + var(--lwc-space-5, 1.5rem));
+    }
+
+    html body main.homepage-main #hall-of-fame .archive-table,
+    html body main.homepage-main #hall-of-fame .archive-table tbody,
+    html body main.homepage-main #hall-of-fame .archive-table tbody tr {
+        overflow: visible;
+        border-radius: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner-name,
+    html body main.homepage-main #hall-of-fame .archive-mobile-card-winner-name a {
+        justify-content: center;
+        text-align: center;
+    }
+
+    html body main.homepage-main #faq .homepage-faq-grid {
+        row-gap: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+}
+
+html body main.homepage-main #faq .homepage-faq-item:nth-child(n) {
+    border-inline: 0;
+    border-bottom: 0;
+    background: transparent;
+    box-shadow: none;
+}
