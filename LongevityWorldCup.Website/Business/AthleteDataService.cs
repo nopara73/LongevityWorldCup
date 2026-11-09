@@ -25,14 +25,6 @@ public sealed record CrowdAgeLeaderboardEntry(
     double CrowdAgeDifference,
     int CrowdCount);
 
-public sealed record AgeImprovementLeaderboardEntry(
-    string Slug,
-    string Name,
-    string Clock,
-    int Rank,
-    double Improvement,
-    double AgeReduction);
-
 public sealed record BiologicalAgeLeaderboardEntry(
     string Slug,
     string Name,
@@ -1514,92 +1506,28 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     {
         entry = null!;
         var normalized = NormalizeAthleteSlug(athleteSlug);
-        if (string.IsNullOrWhiteSpace(normalized))
+        if (string.IsNullOrWhiteSpace(normalized) ||
+            (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)))
             return false;
 
-        if (string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
-        {
-            var sorted = CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates()).ToList();
-            var index = sorted.FindIndex(t => string.Equals(NormalizeAthleteSlug(t.Slug), normalized, StringComparison.Ordinal));
-            if (index < 0)
-                return false;
-
-            var candidate = sorted[index];
-            entry = new AgeImprovementLeaderboardEntry(
-                NormalizeAthleteSlug(candidate.Slug),
-                candidate.Name,
-                "bortz",
-                index + 1,
-                candidate.BortzAgeImprovement,
-                candidate.BortzAgeReduction);
-            return true;
-        }
-
-        var phenoSorted = CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates()).ToList();
-        var phenoIndex = phenoSorted.FindIndex(t => string.Equals(NormalizeAthleteSlug(t.Slug), normalized, StringComparison.Ordinal));
-        if (phenoIndex < 0)
+        var ranked = GetAgeImprovementStandings(clock);
+        var candidate = ranked.FirstOrDefault(row =>
+            string.Equals(NormalizeAthleteSlug(row.Slug), normalized, StringComparison.Ordinal));
+        if (candidate is null)
             return false;
 
-        var phenoCandidate = phenoSorted[phenoIndex];
-        entry = new AgeImprovementLeaderboardEntry(
-            NormalizeAthleteSlug(phenoCandidate.Slug),
-            phenoCandidate.Name,
-            "pheno",
-            phenoIndex + 1,
-            phenoCandidate.PhenoAgeImprovement,
-            phenoCandidate.PhenoAgeReduction);
+        entry = candidate with { Slug = normalized };
         return true;
     }
 
     public bool TryGetRedemptionArcEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
     {
+        if (TryGetAgeImprovementLeaderboardEntry(athleteSlug, clock, out entry) && entry.Improvement < 0)
+            return true;
+
         entry = null!;
-        var normalized = NormalizeAthleteSlug(athleteSlug);
-        if (string.IsNullOrWhiteSpace(normalized))
-            return false;
-
-        if (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var useBortz = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase);
-        var ranked = PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date)
-            .Values
-            .Select(result => new
-            {
-                Result = result,
-                Improvement = useBortz ? result.BortzAgeImprovementFromWorst : result.PhenoAgeImprovementFromWorst,
-                SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount,
-                AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction
-            })
-            .Where(row =>
-                row.SubmissionCount >= 2 &&
-                row.Improvement is < 0 &&
-                double.IsFinite(row.Improvement.Value))
-            .OrderBy(row => row.Improvement!.Value)
-            .ThenBy(row => row.Result.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var athlete = ranked.FirstOrDefault(row =>
-            string.Equals(NormalizeAthleteSlug(row.Result.Slug), normalized, StringComparison.Ordinal));
-        if (athlete is null || athlete.Improvement is not { } improvement)
-            return false;
-
-        var rank = ranked
-            .Select(row => row.Improvement!.Value)
-            .Distinct()
-            .TakeWhile(value => value < improvement)
-            .Count() + 1;
-        entry = new AgeImprovementLeaderboardEntry(
-            NormalizeAthleteSlug(athlete.Result.Slug),
-            athlete.Result.Name,
-            useBortz ? "bortz" : "pheno",
-            rank,
-            improvement,
-            athlete.AgeReduction is { } ageReduction && double.IsFinite(ageReduction)
-                ? ageReduction
-                : 0d);
-        return true;
+        return false;
     }
 
     public bool TryGetBiologicalAgeLeaderboardEntry(string athleteSlug, string clock, out BiologicalAgeLeaderboardEntry entry)
@@ -1789,92 +1717,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             _eventDataService.CreateCrowdAgeTop10ChangeEvents(changed);
     }
 
-    private IReadOnlyList<PhenoAgeImprovementRankCandidate> GetPhenoAgeImprovementRankCandidates()
-    {
-        var snapshot = GetAthletesSnapshot();
-        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
-        var list = new List<PhenoAgeImprovementRankCandidate>();
+    private IReadOnlyList<AgeImprovementLeaderboardEntry> GetAgeImprovementStandings(string clock) =>
+        AgeImprovementRanking.Rank(PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date).Values, clock);
 
-        foreach (var r in statsMap.Values)
-        {
-            if (!r.DobUtc.HasValue ||
-                !r.PhenoAgeImprovementFromWorst.HasValue ||
-                !double.IsFinite(r.PhenoAgeImprovementFromWorst.Value) ||
-                !r.AgeReduction.HasValue ||
-                !double.IsFinite(r.AgeReduction.Value))
-            {
-                continue;
-            }
-
-            list.Add(new PhenoAgeImprovementRankCandidate(
-                r.Slug,
-                r.Name ?? "",
-                r.PhenoAgeImprovementFromWorst.Value,
-                r.AgeReduction.Value,
-                r.DobUtc.Value));
-        }
-
-        return list;
-    }
-
-    private IReadOnlyList<BortzAgeImprovementRankCandidate> GetBortzAgeImprovementRankCandidates()
-    {
-        var snapshot = GetAthletesSnapshot();
-        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
-        var list = new List<BortzAgeImprovementRankCandidate>();
-
-        foreach (var r in statsMap.Values)
-        {
-            if (!r.DobUtc.HasValue ||
-                !r.BortzAgeImprovementFromWorst.HasValue ||
-                !double.IsFinite(r.BortzAgeImprovementFromWorst.Value) ||
-                !r.BortzAgeReduction.HasValue ||
-                !double.IsFinite(r.BortzAgeReduction.Value))
-            {
-                continue;
-            }
-
-            list.Add(new BortzAgeImprovementRankCandidate(
-                r.Slug,
-                r.Name ?? "",
-                r.BortzAgeImprovementFromWorst.Value,
-                r.BortzAgeReduction.Value,
-                r.DobUtc.Value));
-        }
-
-        return list;
-    }
-
-    private IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> GetAgeImprovementTop10Snapshot(string clock)
-    {
-        if (string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase))
-        {
-            return CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates())
-                .Take(10)
-                .Select((candidate, index) => (
-                    candidate.Slug,
-                    Place: index + 1,
-                    Clock: "pheno",
-                    Improvement: candidate.PhenoAgeImprovement,
-                    AgeReduction: candidate.PhenoAgeReduction))
-                .ToList();
-        }
-
-        if (string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
-        {
-            return CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates())
-                .Take(10)
-                .Select((candidate, index) => (
-                    candidate.Slug,
-                    Place: index + 1,
-                    Clock: "bortz",
-                    Improvement: candidate.BortzAgeImprovement,
-                    AgeReduction: candidate.BortzAgeReduction))
-                .ToList();
-        }
-
-        return [];
-    }
+    private IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> GetAgeImprovementTop10Snapshot(string clock) =>
+        GetAgeImprovementStandings(clock).Take(10)
+            .Select(row => (row.Slug, Place: row.Rank, row.Clock, row.Improvement, row.AgeReduction))
+            .ToList();
 
     private void SyncAgeImprovementTop10Placements(bool emitEvents, IEnumerable<string>? eventSubjectSlugs = null)
     {
@@ -2253,14 +2102,14 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             (string.Equals(leagueSlug, "improvement", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(leagueSlug, "pheno-improvement", StringComparison.OrdinalIgnoreCase)))
         {
-            return CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates())
+            return GetAgeImprovementStandings("pheno")
                 .Select(t => t.Slug)
                 .ToList();
         }
 
         if (!requireBortz && string.Equals(leagueSlug, "bortz-improvement", StringComparison.OrdinalIgnoreCase))
         {
-            return CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates())
+            return GetAgeImprovementStandings("bortz")
                 .Select(t => t.Slug)
                 .ToList();
         }

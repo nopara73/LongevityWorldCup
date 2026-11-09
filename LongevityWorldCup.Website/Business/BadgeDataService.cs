@@ -912,6 +912,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private sealed class AthleteStats
     {
+        public required PhenoStatsCalculator.Result Core { get; init; }
         public required string Slug { get; init; }
         public required string Name { get; init; }
         public DateTime? DobUtc { get; init; }
@@ -923,16 +924,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public double? PhenoPaceOfAging { get; init; }
         public double? BortzPaceOfAging { get; init; }
         public int SubmissionCount { get; init; }
-        public int BortzSubmissionCount { get; init; }
         public string? Division { get; init; }
         public string? Generation { get; init; }
         public string? Exclusive { get; init; }
         public double[]? BestMarkerValues { get; init; }
         public double[]? BestBortzValues { get; init; }
         public double? PhenoAgeDiffFromBaseline { get; init; }
-        public double? PhenoAgeImprovementFromWorst { get; init; }
         public double? BortzAgeDiffFromBaseline { get; init; }
-        public double? BortzAgeImprovementFromWorst { get; init; }
         public double? CrowdAge { get; init; }
         public int CrowdCount { get; init; }
     }
@@ -1120,6 +1118,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             var r = kv.Value;
             result[kv.Key] = new AthleteStats
             {
+                Core = r,
                 Slug = kv.Key,
                 Name = r.Name,
                 DobUtc = r.DobUtc,
@@ -1131,16 +1130,13 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 PhenoPaceOfAging = r.PhenoPaceOfAging,
                 BortzPaceOfAging = r.BortzPaceOfAging,
                 SubmissionCount = r.SubmissionCount,
-                BortzSubmissionCount = r.BortzSubmissionCount,
                 Division = r.Division,
                 Generation = r.Generation,
                 Exclusive = r.Exclusive,
                 BestMarkerValues = r.BestMarkerValues,
                 BestBortzValues = r.BestBortzValues,
                 PhenoAgeDiffFromBaseline = r.PhenoAgeDiffFromBaseline,
-                PhenoAgeImprovementFromWorst = r.PhenoAgeImprovementFromWorst,
                 BortzAgeDiffFromBaseline = r.BortzAgeDiffFromBaseline,
-                BortzAgeImprovementFromWorst = r.BortzAgeImprovementFromWorst,
                 CrowdAge = r.CrowdAge,
                 CrowdCount = r.CrowdCount
             };
@@ -1425,50 +1421,25 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        var phenoCandidates = stats.Values
-            .Where(s => s.PhenoAgeImprovementFromWorst is < 0 &&
-                        double.IsFinite(s.PhenoAgeImprovementFromWorst.Value) && s.SubmissionCount >= 2)
-            .Select(s => new { s.Slug, Diff = s.PhenoAgeImprovementFromWorst!.Value })
-            .ToList();
-
-        if (phenoCandidates.Count > 0)
+        foreach (var (clock, label) in new[]
         {
-            var best = phenoCandidates.Min(x => x.Diff);
-            var ruleHash = BuildImprovementRuleHash("Pheno Age best improvement", "pheno_latest_by_test_date_minus_worst");
-            foreach (var x in phenoCandidates.Where(x => x.Diff == best))
+            ("pheno", "Pheno Age best improvement"),
+            ("bortz", "Bortz Age best improvement")
+        })
+        {
+            var ruleHash = BuildImprovementRuleHash(label, $"{clock}_latest_by_test_date_minus_worst");
+            foreach (var winner in AgeImprovementRanking.RedemptionArcHolders(stats.Values.Select(s => s.Core), clock))
             {
                 awards.Add(new AwardRow
                 {
-                    BadgeLabel = "Pheno Age best improvement",
+                    BadgeLabel = label,
                     LeagueCategory = "Global",
                     LeagueValue = null,
                     Place = 1,
-                    AthleteSlug = x.Slug,
+                    AthleteSlug = winner.Slug,
                     DefinitionHash = ruleHash
                 });
             }
-        }
-
-        var bortzCandidates = stats.Values
-            .Where(s => s.BortzAgeImprovementFromWorst is < 0 &&
-                        double.IsFinite(s.BortzAgeImprovementFromWorst.Value) && s.BortzSubmissionCount >= 2)
-            .Select(s => new { s.Slug, Diff = s.BortzAgeImprovementFromWorst!.Value })
-            .ToList();
-        if (bortzCandidates.Count == 0) return;
-
-        var bortzBest = bortzCandidates.Min(x => x.Diff);
-        var bortzRuleHash = BuildImprovementRuleHash("Bortz Age best improvement", "bortz_latest_by_test_date_minus_worst");
-        foreach (var x in bortzCandidates.Where(x => x.Diff == bortzBest))
-        {
-            awards.Add(new AwardRow
-            {
-                BadgeLabel = "Bortz Age best improvement",
-                LeagueCategory = "Global",
-                LeagueValue = null,
-                Place = 1,
-                AthleteSlug = x.Slug,
-                DefinitionHash = bortzRuleHash
-            });
         }
     }
 

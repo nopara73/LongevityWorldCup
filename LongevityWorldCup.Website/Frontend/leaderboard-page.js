@@ -1467,43 +1467,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     }
                 });
 
-                let phenoAgeImprovement = null;
-                if (completeBiomarkerSets.length >= 2) {
-                    const phenoSubmissionAges = completeBiomarkerSets.map((submission, index) => {
-                        const submittedAt = getBiomarkerTestDate(submission.Date);
-                        const ageAtSubmission = window.calculateAgeAtDate(dob, submittedAt);
-                        const values = [
-                            ageAtSubmission,
-                            submission.AlbGL,
-                            submission.CreatUmolL,
-                            submission.GluMmolL,
-                            Math.log(submission.CrpMgL / 10),
-                            submission.Wbc1000cellsuL,
-                            submission.LymPc,
-                            submission.McvFL,
-                            submission.RdwPc,
-                            submission.AlpUL
-                        ];
-                        const phenoAge = values.every(Number.isFinite)
-                            ? window.PhenoAge.calculatePhenoAge(values)
-                            : null;
-                        return {
-                            submittedAt,
-                            index,
-                            phenoAge
-                        };
-                    }).filter(result => Number.isFinite(result.phenoAge));
-
-                    if (phenoSubmissionAges.length >= 2) {
-                        const latestSubmission = phenoSubmissionAges.slice().sort((a, b) => {
-                            const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
-                            return timeDiff !== 0 ? timeDiff : a.index - b.index;
-                        }).at(-1);
-                        const worstPhenoAge = Math.max(...phenoSubmissionAges.map(result => result.phenoAge));
-                        phenoAgeImprovement = latestSubmission.phenoAge - worstPhenoAge;
-                    }
-                }
-
                 const submissionCount = completeBiomarkerSets.length;
                 // Prepare the biomarker values array in the order required for the PhenoAge calculation
                 const bestBiomarkerValues = [
@@ -1594,7 +1557,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 let chronoAtLowestBortzAge = null;
                 let bortzAgeReduction = null;
                 let bortzAgeReductionPercent = null;
-                let bortzAgeImprovement = null;
                 let bestBortzValues = null;
                 if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                     let bortzMin = Infinity;
@@ -1634,28 +1596,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                             ]
                         };
                     };
-
-                    if (completeBortzBiomarkerSets.length >= 2) {
-                        const bortzSubmissionAges = completeBortzBiomarkerSets.map((entry, index) => {
-                            const submittedAt = new Date(entry.Date);
-                            const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
-                            const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
-                            return {
-                                submittedAt,
-                                index,
-                                bortzAge
-                            };
-                        }).filter(result => Number.isFinite(result.bortzAge));
-
-                        if (bortzSubmissionAges.length >= 2) {
-                            const latestSubmission = bortzSubmissionAges.slice().sort((a, b) => {
-                                const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
-                                return timeDiff !== 0 ? timeDiff : a.index - b.index;
-                            }).at(-1);
-                            const worstBortzAge = Math.max(...bortzSubmissionAges.map(result => result.bortzAge));
-                            bortzAgeImprovement = latestSubmission.bortzAge - worstBortzAge;
-                        }
-                    }
 
                     completeBortzBiomarkerSets.forEach(entry => {
                         const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
@@ -1725,10 +1665,10 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     submissionCount: submissionCount,
                     phenoAgeImprovement: Number.isFinite(athlete.PhenoAgeImprovementFromWorst)
                         ? athlete.PhenoAgeImprovementFromWorst
-                        : phenoAgeImprovement,
+                        : null,
                     bortzAgeImprovement: Number.isFinite(athlete.BortzAgeImprovementFromWorst)
                         ? athlete.BortzAgeImprovementFromWorst
-                        : bortzAgeImprovement,
+                        : null,
                     podcastLink: athlete.PodcastLink,
                     lastMonthRank: lastMonthRank,
                     placements: athlete.Placements || [],

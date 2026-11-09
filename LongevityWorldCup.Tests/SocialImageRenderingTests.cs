@@ -366,6 +366,7 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
         Assert.Equal("Improvement", baselinePayload.MetricLabel);
         Assert.Contains("from worst to latest eligible result", baselinePayload.Description);
         Assert.Equal(baselinePayload.AgeReduction, leaderboardPayload!.AgeReduction, 10);
+        Assert.Equal(baselinePayload.Rank, leaderboardPayload.Rank);
         Assert.Equal(leaderboardContext, leaderboardPayload!.LeagueSlug);
         Assert.Contains("from worst to latest eligible result", leaderboardPayload.Description);
 

@@ -14,7 +14,7 @@ public sealed partial class BadgeFamilyBrowserTests
     [InlineData(390, true)]
     [InlineData(1440, false)]
     [InlineData(390, false)]
-    public async Task RedemptionArcUsesWorstToLatestInProfileAndRawBadgeTooltips(int width, bool serverMetrics)
+    public async Task RedemptionArcAndImprovementViewsUseOnlyTheSharedServerScores(int width, bool serverMetrics)
     {
         await using var context = await NewBadgeContextAsync(width, 900, true);
         PhenoStatsCalculator.Result expected = null!;
@@ -51,7 +51,10 @@ public sealed partial class BadgeFamilyBrowserTests
             await toggles.Nth(i).ClickAsync();
             var explanation = shelf.Locator(".modal-badge-explainer");
             await Assertions.Expect(explanation).ToContainTextAsync("from worst submission to latest result");
-            await Assertions.Expect(explanation).ToContainTextAsync(values[i]!.Value.ToString("F1", CultureInfo.InvariantCulture) + " years");
+            if (serverMetrics)
+                await Assertions.Expect(explanation).ToContainTextAsync(values[i]!.Value.ToString("F1", CultureInfo.InvariantCulture) + " years");
+            else
+                await Assertions.Expect(explanation).Not.ToContainTextAsync(" years");
             await Assertions.Expect(explanation).Not.ToContainTextAsync("-99");
             Assert.True(await explanation.EvaluateAsync<bool>("""
                 el => {
@@ -71,5 +74,16 @@ public sealed partial class BadgeFamilyBrowserTests
         Assert.Contains("-7.3 years", rawTooltip);
         Assert.DoesNotContain("-99", rawTooltip);
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+
+        foreach (var view in new[] { "improvement", "bortz-improvement" })
+        {
+            await NavigateAndSettleAsync(page, $"/league/{view}?search=Michael%20Lustgarten");
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            var row = page.Locator(".leaderboard tbody tr[data-athlete-name='Michael Lustgarten']");
+            if (serverMetrics)
+                await Assertions.Expect(row).ToBeVisibleAsync();
+            else
+                await Assertions.Expect(row).ToBeHiddenAsync();
+        }
     }
 }

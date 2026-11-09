@@ -133,11 +133,16 @@ public sealed class PublicLeaderboardSnapshot
 
     public IReadOnlyList<PublicAthlete> Order(string view)
     {
+        if (view is "improvement" or "bortz-improvement")
+        {
+            var improvementAthletes = Athletes.ToDictionary(a => a.Row.Slug, StringComparer.OrdinalIgnoreCase);
+            return AgeImprovementRanking.Rank(Athletes.Select(a => a.Stats), view == "improvement" ? "pheno" : "bortz")
+                .Select(row => improvementAthletes[row.Slug]).ToList();
+        }
+
         var candidates = Athletes.Where(a => view switch
         {
             "bortz" => a.IsPro,
-            "improvement" => IsFinite(a.Stats.PhenoAgeImprovementFromWorst),
-            "bortz-improvement" => IsFinite(a.Stats.BortzAgeImprovementFromWorst),
             "crowd" => a.Stats.CrowdCount >= 100 && IsFinite(a.Metric("crowd")),
             _ => true
         }).ToList();
@@ -145,10 +150,6 @@ public sealed class PublicLeaderboardSnapshot
         {
             "crowd" => CompetitionRanking.SortByCrowdAgeRules(candidates.Select(a => new CrowdAgeRankCandidate(
                 a.Row.Slug, a.Stats.Name, a.Stats.CrowdAge!.Value, a.Metric(view)!.Value, a.Stats.CrowdCount, a.Stats.DobUtc!.Value))).Select(a => a.Slug),
-            "improvement" => CompetitionRanking.SortByPhenoAgeImprovementRules(candidates.Select(a => new PhenoAgeImprovementRankCandidate(
-                a.Row.Slug, a.Stats.Name, a.Metric(view)!.Value, a.Stats.AgeReduction ?? 0, a.Stats.DobUtc!.Value))).Select(a => a.Slug),
-            "bortz-improvement" => CompetitionRanking.SortByBortzAgeImprovementRules(candidates.Select(a => new BortzAgeImprovementRankCandidate(
-                a.Row.Slug, a.Stats.Name, a.Metric(view)!.Value, a.Stats.BortzAgeReduction ?? 0, a.Stats.DobUtc!.Value))).Select(a => a.Slug),
             _ => CompetitionRanking.SortByCompetitionRules(candidates.Select(a => new CompetitionRankCandidate(
                 a.Row.Slug, a.Stats.Name, view != "pheno" && a.IsPro, a.Metric(view) ?? 0, a.Stats.DobUtc!.Value))).Select(a => a.Slug)
         };
@@ -197,8 +198,8 @@ public sealed record PublicAthlete(LeaderboardSnapshotRow Row, PhenoStatsCalcula
     public double? Metric(string view) => view switch
     {
         "pheno" => Stats.AgeReduction,
-        "improvement" => Stats.PhenoAgeImprovementFromWorst,
-        "bortz-improvement" => Stats.BortzAgeImprovementFromWorst,
+        "improvement" => AgeImprovementRanking.Metric(Stats, "pheno"),
+        "bortz-improvement" => AgeImprovementRanking.Metric(Stats, "bortz"),
         "crowd" => Stats.CrowdAge - Stats.ChronoAge,
         _ => Stats.BortzAgeReduction ?? Stats.AgeReduction
     };
