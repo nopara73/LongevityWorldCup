@@ -1,0 +1,133 @@
+/* The shared alert's feel (Frontend/alert-feel.ts sets [data-feel] on
+   #custom-alert, .is-speaking + data-speak on the panel, .has-queue and
+   --alert-queue on the dialog). Colours come from the panel's own
+   --alert-tone tokens; site-header.css keeps the base look. */
+
+#custom-alert[data-feel] { perspective: 900px; }
+#custom-alert[data-feel] .custom-alert-panel { overflow: clip; }
+
+/* ------------------------------------------------------------ tone bar */
+/* The top edge draws in from the centre, in the tone's colour. */
+#custom-alert[data-feel] .custom-alert-panel { border-top-width: 0; padding-top: calc(clamp(1rem, 5dvh, 2rem) + 4px); }
+#custom-alert[data-feel] .custom-alert-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--alert-tone);
+    transform-origin: center;
+    animation: alert-bar-draw 520ms cubic-bezier(.2, 0, 0, 1) 80ms both;
+    pointer-events: none;
+}
+@keyframes alert-bar-draw { from { transform: scaleX(0); } }
+
+/* ------------------------------------------------------------ tone voices */
+/* Danger shakes its head. */
+#custom-alert[data-feel] .custom-alert-panel.is-speaking[data-speak="danger"] .custom-alert-mark i {
+    animation: alert-no 520ms cubic-bezier(.36, .07, .19, .97) 260ms both;
+}
+@keyframes alert-no {
+    15% { transform: translateX(-5px) rotate(-6deg); }
+    35% { transform: translateX(4px) rotate(5deg); }
+    55% { transform: translateX(-3px) rotate(-3deg); }
+    75% { transform: translateX(2px) rotate(1deg); }
+    100% { transform: none; }
+}
+/* Danger's ring pulses once in its colour. */
+#custom-alert[data-feel] .custom-alert-panel.is-speaking[data-speak="danger"] .custom-alert-mark::after,
+#custom-alert[data-feel] .custom-alert-panel.is-speaking[data-speak="warning"] .custom-alert-mark::after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+    border-radius: inherit;
+    border: 2px solid var(--alert-tone);
+    animation: alert-ring 760ms cubic-bezier(.2, 0, 0, 1) 240ms both;
+    pointer-events: none;
+}
+@keyframes alert-ring { from { opacity: .7; transform: scale(.85); } to { opacity: 0; transform: scale(1.45); } }
+
+/* Warning swings once, like a sign in the wind. */
+#custom-alert[data-feel] .custom-alert-panel.is-speaking[data-speak="warning"] .custom-alert-mark i {
+    transform-origin: 50% 0;
+    animation: alert-swing 800ms cubic-bezier(.2, 0, 0, 1) 240ms both;
+}
+@keyframes alert-swing {
+    20% { transform: rotate(16deg); }
+    45% { transform: rotate(-11deg); }
+    70% { transform: rotate(5deg); }
+    100% { transform: none; }
+}
+
+/* Info breathes. */
+#custom-alert[data-feel] .custom-alert-panel.is-speaking[data-speak="info"] .custom-alert-mark {
+    animation: customAlertMarkIn 420ms var(--lwc-ease, ease) both, alert-breathe 900ms ease-in-out 300ms;
+}
+@keyframes alert-breathe { 50% { box-shadow: 0 0 0 6px var(--lwc-surface), 0 0 0 11px var(--alert-tone-soft); } }
+
+/* ------------------------------------------------------------ the message */
+/* The message settles a beat after the medallion, so the eye reads in order. */
+#custom-alert[data-feel] .custom-alert-panel.is-speaking #custom-alert-message {
+    animation: alert-message-in 360ms cubic-bezier(.2, 0, 0, 1) 120ms backwards;
+}
+@keyframes alert-message-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* OK answers the press. */
+#custom-alert[data-feel] #custom-alert-close { transition: background-color 160ms ease, scale 160ms cubic-bezier(.34, 1.4, .64, 1), box-shadow 160ms ease; }
+#custom-alert[data-feel] #custom-alert-close:active { scale: .97; }
+
+/* ------------------------------------------------------------ hand-over */
+#custom-alert[data-feel] .custom-alert-ghost {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 5vw, 1.75rem);
+    max-width: 22rem;
+    color: var(--lwc-ink);
+    text-align: center;
+    pointer-events: none;
+}
+#custom-alert[data-feel] .custom-alert-panel.is-handing-over::before { animation: none; }
+/* While the medallion turns over it still wears the previous tone. */
+#custom-alert[data-feel] .custom-alert-panel[data-flip-tone="success"] .custom-alert-mark { background: var(--lwc-success-soft); color: var(--lwc-success); }
+#custom-alert[data-feel] .custom-alert-panel[data-flip-tone="warning"] .custom-alert-mark { background: var(--lwc-warning-soft); color: var(--lwc-warning); }
+#custom-alert[data-feel] .custom-alert-panel[data-flip-tone="danger"] .custom-alert-mark { background: var(--lwc-danger-soft); color: var(--lwc-danger); }
+#custom-alert[data-feel] .custom-alert-panel[data-flip-tone="info"] .custom-alert-mark { background: var(--lwc-accent-soft); color: var(--lwc-accent); }
+#custom-alert[data-feel] .custom-alert-mark { transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; backface-visibility: hidden; }
+
+/* ------------------------------------------------------------ the queue deck */
+/* Alerts still waiting sit as one or two cards behind the panel. */
+#custom-alert[data-feel] .custom-alert-deck {
+    position: fixed;
+    height: 0;
+    pointer-events: none;
+}
+#custom-alert[data-feel] .custom-alert-deck > span {
+    position: absolute;
+    left: 50%;
+    width: calc(100% - 1.5rem);
+    height: 3rem;
+    translate: -50% 0;
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--lwc-surface);
+    box-shadow: inset 0 0 0 1px var(--lwc-border-strong, var(--lwc-border)), 0 -4px 14px -6px rgba(15, 23, 42, .35);
+    opacity: 0;
+    transform-origin: 50% 0;
+    transition: opacity 240ms ease, transform 320ms cubic-bezier(.2, 0, 0, 1);
+}
+#custom-alert[data-feel].has-queue .custom-alert-deck > span:first-child { opacity: .92; transform: translateY(-11px) scale(.94); }
+#custom-alert[data-feel].has-queue-2 .custom-alert-deck > span:last-child { opacity: .7; transform: translateY(-21px) scale(.87); }
+
+@media (max-width: 600px) {
+    #custom-alert[data-feel] .custom-alert-deck { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #custom-alert[data-feel] .custom-alert-panel::before { animation: none; }
+    #custom-alert[data-feel] .custom-alert-panel.is-speaking .custom-alert-mark,
+    #custom-alert[data-feel] .custom-alert-panel.is-speaking .custom-alert-mark i,
+    #custom-alert[data-feel] .custom-alert-panel.is-speaking .custom-alert-mark::after,
+    #custom-alert[data-feel] .custom-alert-panel.is-speaking #custom-alert-message { animation: none !important; }
+}
