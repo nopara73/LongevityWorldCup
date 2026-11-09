@@ -41,7 +41,7 @@ public class FacebookDailyPostJob : IJob
                 continue;
             }
 
-            var subject = type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+            var subject = type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                 && EventHelpers.TryExtractSlug(text, out var slug) ? slug : null;
             if (subject is not null && _fillerLog.IsSubjectOnCooldown(subject, SubjectCooldown, DateTime.UtcNow))
                 continue;

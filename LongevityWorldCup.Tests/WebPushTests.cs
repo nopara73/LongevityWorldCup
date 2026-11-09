@@ -295,8 +295,10 @@ public sealed class WebPushTests
         return new() { WebPushVapidSubject = "mailto:testing@longevityworldcup.com", WebPushVapidPublicKey = WebPushTransport.Encode(WebPushTransport.PublicBytes(p)), WebPushVapidPrivateKey = WebPushTransport.Encode(p.D!) };
     }
 
-    [Fact]
-    public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverPodiumAndDonationWithoutDuplicates()
+    [Theory]
+    [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]")]
+    [InlineData(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[6] prevPlace[8] ageReduction[-20.4]")]
+    public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverRankAndDonationWithoutDuplicates(EventType type, string raw)
     {
         using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
         // This test owns its event history. Drain the startup rescan before
@@ -314,7 +316,7 @@ public sealed class WebPushTests
         await Service().DispatchAsync();
         Assert.Equal(0, requests);
 
-        var rank = fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]", now.GetUtcNow().UtcDateTime);
+        var rank = fixture.InsertEvent(type, raw, now.GetUtcNow().UtcDateTime);
         await Service().DispatchAsync();
         Assert.Equal(1, requests);
         Assert.Equal((1, 0, 1), store.Progress(rank));
@@ -323,6 +325,7 @@ public sealed class WebPushTests
         {
             Assert.Contains("Benjamin Garden", payload.RootElement.GetProperty("title").GetString());
             Assert.DoesNotContain("slug[", prepared.Payload);
+            if (type == EventType.PhenoAgeTop10Change) Assert.Contains("Pheno Age", prepared.Payload);
             Assert.Equal("/athlete/benjamin-garden", payload.RootElement.GetProperty("url").GetString());
         }
         store.Subscribe(Subscription("https://fcm.googleapis.com/send/late"), now.GetUtcNow().AddSeconds(1));

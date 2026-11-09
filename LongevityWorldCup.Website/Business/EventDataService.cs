@@ -45,7 +45,8 @@ public enum EventType
     BiologicalAgeImproved = 10,
     CrowdAgeTop10Change = 11,
     AgeImprovementTop10Change = 12,
-    TestResultAccepted = 13
+    TestResultAccepted = 13,
+    PhenoAgeTop10Change = 14
 }
 
 public sealed record CustomEventDeliveryTargets(
@@ -729,7 +730,7 @@ public sealed partial class EventDataService : IDisposable
             return 8;
         }
 
-        if (type == EventType.AgeImprovementTop10Change)
+        if (type is EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change)
         {
             return 8;
         }
@@ -2007,6 +2008,7 @@ public sealed partial class EventDataService : IDisposable
             $"WHEN Type = {(int)EventType.BiologicalAgeImproved} THEN 2 " +
             $"WHEN Type = {(int)EventType.CrowdAgeTop10Change} THEN 3 " +
             $"WHEN Type = {(int)EventType.AgeImprovementTop10Change} THEN 4 " +
+            $"WHEN Type = {(int)EventType.PhenoAgeTop10Change} THEN 4 " +
             $"WHEN Type = {(int)EventType.NewRank} THEN 5 " +
             $"WHEN Type = {(int)EventType.SeasonFinalResult} THEN 6 " +
             $"WHEN Type = {(int)EventType.LongevitymaxxingChallengeResult} THEN 7 " +
@@ -2278,6 +2280,7 @@ public sealed partial class EventDataService : IDisposable
             or EventType.BiologicalAgeImproved
             or EventType.CrowdAgeTop10Change
             or EventType.AgeImprovementTop10Change
+            or EventType.PhenoAgeTop10Change
             or EventType.TestResultAccepted;
 
     internal static IReadOnlyList<string> ExtractReferencedAthleteSlugs(string text)
@@ -2461,7 +2464,7 @@ public sealed partial class EventDataService : IDisposable
             return;
         }
 
-        if (type == EventType.AgeImprovementTop10Change)
+        if (type is EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change)
         {
             _ = _slackEvents.BufferAsync(type, rawText);
             return;

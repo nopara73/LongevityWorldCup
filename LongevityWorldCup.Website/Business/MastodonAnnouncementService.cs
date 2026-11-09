@@ -49,7 +49,7 @@ public sealed class MastodonAnnouncementService(
                     deliveries.Skip(SocialDeliveryStore.Mastodon, item.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                     && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
                 if (pending.RecordJson is null)
                 {

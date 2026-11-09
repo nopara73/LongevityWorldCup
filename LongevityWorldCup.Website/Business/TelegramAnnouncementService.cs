@@ -73,7 +73,7 @@ public sealed class TelegramAnnouncementService(
                         continue;
                     }
 
-                    string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+                    string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                         && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
                     if (subject is not null && deliveries.IsSubjectOnCooldown(Platform, subject, now)) continue;
 

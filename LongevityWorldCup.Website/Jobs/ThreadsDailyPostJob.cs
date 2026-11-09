@@ -397,7 +397,8 @@ public class ThreadsDailyPostJob : IJob
             type == EventType.BecamePro ||
             type == EventType.BiologicalAgeImproved ||
             type == EventType.CrowdAgeTop10Change ||
-            type == EventType.AgeImprovementTop10Change)
+            type == EventType.AgeImprovementTop10Change ||
+            type == EventType.PhenoAgeTop10Change)
         {
             if (EventHelpers.TryExtractSlug(rawText, out var slug) && !string.IsNullOrWhiteSpace(slug))
                 return slug.Trim();

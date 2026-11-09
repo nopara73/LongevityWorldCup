@@ -568,6 +568,7 @@ public sealed class SocialJobIntegrationTests
     [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]")]
     [InlineData(EventType.CrowdAgeTop10Change, "slug[benjamin_garden] place[3] prevPlace[8] crowdAge[35.2] crowdCount[123]")]
     [InlineData(EventType.AgeImprovementTop10Change, "slug[benjamin_garden] clock[bortz] place[3] prevPlace[8] improvement[-4.5] ageReduction[-20.4]")]
+    [InlineData(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[6] prevPlace[8] ageReduction[-20.4]")]
     public async Task FacebookJob_PostsEligibleAthleteEventsOnceAndKeepsSubjectCooldown(EventType type, string raw)
     {
         using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);

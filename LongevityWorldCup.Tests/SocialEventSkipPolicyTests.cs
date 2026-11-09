@@ -10,6 +10,10 @@ public sealed class SocialEventSkipPolicyTests
         var now = new DateTime(2026, 6, 6, 12, 0, 0, DateTimeKind.Utc);
         var freshCutoff = now.AddDays(-7);
 
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[6] prevPlace[8] ageReduction[-20.4]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[10] ageReduction[-10.4]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[11] ageReduction[-10.4]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[6]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.CustomEvent, "Title\n\nBody", now, 99, freshCutoff, true, false, SocialEventSkipReason.None };
         yield return new object[] { EventType.Joined, "slug[alice]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
         yield return new object[] { EventType.DonationReceived, "tx[abc] sats[1000]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };

@@ -1,7 +1,7 @@
 const eventsPageAssets = document.currentScript.dataset;
 (function(){
     window.initializeSharedPageData();
-    const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12, TestResultAccepted: 13 };
+    const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12, TestResultAccepted: 13, PhenoAgeTop10Change: 14 };
     const EVENT_TYPE_NAME_BY_ID = {};
     Object.keys(EVENT_TYPE).forEach(name => {
         EVENT_TYPE_NAME_BY_ID[String(EVENT_TYPE[name])] = name;
@@ -234,6 +234,7 @@ const eventsPageAssets = document.currentScript.dataset;
             [EVENT_TYPE.BecamePro]: ["pro", "fa-star"],
             [EVENT_TYPE.BiologicalAgeImproved]: ["younger", "fa-heart-pulse"],
             [EVENT_TYPE.CrowdAgeTop10Change]: ["crowd", lost ? "fa-arrow-trend-down" : "fa-users"],
+            [EVENT_TYPE.PhenoAgeTop10Change]: ["rank", lost ? "fa-arrow-trend-down" : "fa-arrow-trend-up"],
             [EVENT_TYPE.AgeImprovementTop10Change]: ["improvement", lost ? "fa-arrow-trend-down" : "fa-chart-line"],
             [EVENT_TYPE.TestResultAccepted]: ["test", "fa-vial"]
         };
@@ -787,7 +788,7 @@ const eventsPageAssets = document.currentScript.dataset;
     }
 
     function groupAthleteBursts(rows, windowMs=60000, respectLocalDays=false){
-        const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult, EVENT_TYPE.BecamePro, EVENT_TYPE.BiologicalAgeImproved, EVENT_TYPE.CrowdAgeTop10Change, EVENT_TYPE.AgeImprovementTop10Change]);
+        const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult, EVENT_TYPE.BecamePro, EVENT_TYPE.BiologicalAgeImproved, EVENT_TYPE.CrowdAgeTop10Change, EVENT_TYPE.AgeImprovementTop10Change, EVENT_TYPE.PhenoAgeTop10Change]);
 
         const timeOf=r=>{
             const t=+new Date(r && r.occurredAt ? r.occurredAt : 0);
@@ -1770,7 +1771,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
 
             let avatarHtml = "";
-            const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted)
+            const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.PhenoAgeTop10Change || r.type === EVENT_TYPE.TestResultAccepted)
                 && r.primarySlug
                 && url
                 && !isSelfRow
@@ -1784,7 +1785,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 ? ` data-athlete-slug="${esc(primaryKey)}"`
                 : ``;
 
-            if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
+            if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.PhenoAgeTop10Change || r.type === EVENT_TYPE.TestResultAccepted || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
                 const portrait = img
                     ? `<img class="avatar" data-lwc-image-role="athlete" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
                     : `<div class="avatar-fallback" data-lwc-image-role="athlete">${initialsFromName(name)}</div>`;
@@ -1963,7 +1964,7 @@ const eventsPageAssets = document.currentScript.dataset;
                     const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
                     msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(crowdAgeText)}</strong> years, ${esc(crowdCountText)} guesses)</span>`;
                 }
-            } else if (r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug) {
+            } else if ((r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.PhenoAgeTop10Change) && r.primarySlug) {
                 const nameWithRank = renderTextWithSlugLinks(
                     `slug[${r.primarySlug}]`,
                     linkNames,
@@ -1978,11 +1979,13 @@ const eventsPageAssets = document.currentScript.dataset;
                     : (placeN === 1 ? `took ${placeText} place` : `entered the top 10 at ${placeText}`);
                 const clockNorm = String(r.clockId || "").toLowerCase().replace(/\s+/g,"");
                 const isBortz = clockNorm === "bortz" || clockNorm === "bortzage";
-                const leagueHtml = isBortz
+                const isPhenoRank = r.type === EVENT_TYPE.PhenoAgeTop10Change;
+                const leagueHtml = isPhenoRank ? renderLeagueLink("Pheno Age", "pheno") : isBortz
                     ? renderLeagueLink("Bortz Improvement", "bortz-improvement")
                     : renderLeagueLink("Pheno Improvement", "improvement");
-                const improvementText = Number.isFinite(r.eventImprovement)
-                    ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 1, signDisplay: "exceptZero" }).format(r.eventImprovement)
+                const metric = isPhenoRank ? r.eventAgeReduction : r.eventImprovement;
+                const improvementText = Number.isFinite(metric)
+                    ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 1, signDisplay: "exceptZero" }).format(metric)
                     : "?";
                 if (r.improvementDirection === "lost") {
                     const toHtml = r.otherSlug
@@ -1996,7 +1999,7 @@ const eventsPageAssets = document.currentScript.dataset;
                         ? renderTextWithSlugLinks(`slug[${r.prevSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
                         : "";
                     const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
-                    msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
+                    msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(${isPhenoRank ? "age reduction: " : ""}<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
                 }
             } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                 const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
@@ -2459,7 +2462,8 @@ const eventsPageAssets = document.currentScript.dataset;
         EVENT_TYPE.BecamePro,
         EVENT_TYPE.BiologicalAgeImproved,
         EVENT_TYPE.CrowdAgeTop10Change,
-        EVENT_TYPE.AgeImprovementTop10Change
+        EVENT_TYPE.AgeImprovementTop10Change,
+        EVENT_TYPE.PhenoAgeTop10Change
     ]);
 
     function rowTimeMs(row){
@@ -2525,6 +2529,7 @@ const eventsPageAssets = document.currentScript.dataset;
                     : 0;
                 return 8700 + relevance + topPlaceBonus(row.place, 10)*45 + movement*10;
             }
+            case EVENT_TYPE.PhenoAgeTop10Change:
             case EVENT_TYPE.AgeImprovementTop10Change: {
                 const magnitude = Number.isFinite(row.eventImprovement) ? Math.min(Math.abs(row.eventImprovement), 25) : 0;
                 const movement = Number.isFinite(row.previousPlace) && Number.isFinite(row.place)
@@ -2745,7 +2750,7 @@ const eventsPageAssets = document.currentScript.dataset;
                         }
                     }
 
-                    if(r.type===EVENT_TYPE.AgeImprovementTop10Change){
+                    if(r.type===EVENT_TYPE.AgeImprovementTop10Change || r.type===EVENT_TYPE.PhenoAgeTop10Change){
                         if(r.prevSlug===target){
                             const winner = r.primarySlug;
 

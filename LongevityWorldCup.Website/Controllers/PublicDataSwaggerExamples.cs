@@ -59,6 +59,8 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                     | 12 | AgeImprovementTop10Change | Pheno/Bortz improvement top-10 placement; `slug`, `clock`, `place`, `improvement` (latest eligible age minus worst eligible age), `ageReduction` (biological minus chronological age; lower is better), optional `prevPlace` and `prev`. |
                     | 13 | TestResultAccepted | Profile-only accepted test; `slug`, `date` (ISO laboratory date). Includes partial, non-improving, and backfilled results; one Event per athlete/test date across clocks. |
 
+                    | 14 | PhenoAgeTop10Change | Entry or upward move in the Pheno Age top 10 after a result update; `slug`, `place`, `ageReduction`, optional `prevPlace` and `prev`. Current standings were silently baselined when tracking began. |
+
                     **Dates:** `OccurredAt` is an ISO 8601 UTC Event timestamp, not response generation time.
                     For type 13 it is first observed public announcement, while `date` is the laboratory measurement date.
                     Existing results were silently baselined when tracking began, so older publication dates remain unknown.

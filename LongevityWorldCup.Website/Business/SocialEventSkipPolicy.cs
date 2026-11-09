@@ -83,6 +83,16 @@ public static class SocialEventSkipPolicy
             return reason != default;
         }
 
+        if (type == EventType.PhenoAgeTop10Change)
+        {
+            reason = EventHelpers.TryExtractSlug(text, out var slug) &&
+                     !string.IsNullOrWhiteSpace(slug) &&
+                     EventHelpers.TryExtractPhenoAgeTop10Change(text, out _, out _, out _)
+                ? default
+                : SocialEventSkipReason.UnsupportedEventPayload;
+            return reason != default;
+        }
+
         if (type == EventType.NewRank)
         {
             reason = EventHelpers.TryExtractRank(text, out var rank) && rank is >= 1 and <= 3

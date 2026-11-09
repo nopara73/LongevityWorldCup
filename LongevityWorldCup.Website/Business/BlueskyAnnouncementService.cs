@@ -44,7 +44,7 @@ public sealed class BlueskyAnnouncementService(
                     deliveries.Skip(SocialDeliveryStore.Bluesky, e.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = e.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+                string? subject = e.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                     && EventHelpers.TryExtractSlug(e.Text, out var slug) ? slug.Trim() : null;
                 if (pending.RecordJson is null)
                 {

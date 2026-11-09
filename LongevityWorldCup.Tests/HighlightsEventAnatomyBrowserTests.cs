@@ -28,6 +28,43 @@ public sealed class HighlightsEventAnatomyBrowserTests(
         ]
         """;
 
+    [Theory]
+    [InlineData(1280, "light")]
+    [InlineData(390, "dark")]
+    public async Task PhenoTop10AppearsOnHomepageEventsAndAthleteHistory(int width, string scheme)
+    {
+        await using var context = await NewContextAsync(width, scheme);
+        const string phenoEvent = """
+            [{"Id":"pheno-top10","Type":14,"Text":"slug[ada_aging] place[6] prevPlace[8] prev[bo_biomarker] ageReduction[-20.4]","OccurredAt":"2026-11-09T10:00:00Z","Relevance":10}]
+            """;
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json", Body = phenoEvent
+        }));
+        var page = await context.NewPageAsync();
+        foreach (var path in new[] { "/", "/events" })
+        {
+            await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            var row = page.Locator("tr.main-row[data-event-id='pheno-top10']");
+            await Assertions.Expect(row).ToContainTextAsync("climbed from 8th to 6th in Pheno Age");
+            await Assertions.Expect(row).ToContainTextAsync("age reduction: -20.4");
+            await Assertions.Expect(row.GetByRole(AriaRole.Link, new() { Name = "Pheno Age", Exact = true }))
+                .ToHaveAttributeAsync("href", "/league/pheno");
+            Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+            if (path == "/events" && Environment.GetEnvironmentVariable("LWC_PHENO_CAPTURE_DIR") is { Length: > 0 } capture)
+            {
+                Directory.CreateDirectory(capture);
+                await row.ScrollIntoViewIfNeededAsync();
+                await row.ScreenshotAsync(new() { Path = Path.Combine(capture, $"pheno-{width}-{scheme}.png") });
+            }
+        }
+        await page.GotoAsync($"/event-board-embed.html?embed=1&athlete=bo-biomarker&rows=all&theme={scheme}",
+            new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var lost = page.Locator("tr.main-row[data-event-id='pheno-top10']");
+        await Assertions.Expect(lost).ToContainTextAsync("lost the 6th Pheno Age position to");
+        Assert.Equal(1, await lost.Locator(".fa-arrow-trend-down").CountAsync());
+    }
+
     private const string Athletes =
         """
         [
