@@ -55,19 +55,6 @@
     letter-spacing: .02em;
     line-height: 1.5;
 }
-.lmx-page .lmx-discussion-count {
-    display: inline-block;
-    padding: .05rem .5rem;
-    border-radius: var(--lwc-radius-pill, 999px);
-    background: var(--lmx-accent-soft);
-    color: var(--lmx-accent-hover);
-    font-size: var(--lwc-type-xs, .75rem);
-    font-weight: 700;
-    line-height: 1.5;
-    text-decoration: none;
-    transition: background-color 140ms ease, color 140ms ease;
-}
-.lmx-page .lmx-discussion-count:hover { background: var(--lmx-accent); color: var(--lmx-on-inverse); }
 
 /* Text keeps a readable measure beside the avatar column. */
 .lmx-page .lmx-note > p,
@@ -222,10 +209,4 @@
     .lmx-page .lmx-discussion-reply-item.lmx-arriving::before,
     .lmx-page .lmx-discussion-replies-toggle::before { animation: none; }
     .lmx-page .lmx-discussion-author-avatar { transition: none; }
-}
-
-/* Phones keep the reply count as a plain link: the touch-size rule would turn the pill into a tall capsule. */
-@media (max-width: 600px) {
-    .lmx-page .lmx-discussion-count { padding: 0; background: none; font-size: inherit; font-weight: 400; }
-    .lmx-page .lmx-discussion-count:hover { background: none; color: var(--lmx-accent-hover); }
 }
