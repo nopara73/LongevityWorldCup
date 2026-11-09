@@ -255,7 +255,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         AddLeagueRankingAwards(stats, awards);
         AddDomainAwards(stats, awards);
         AddSubmissionAwards(stats, awards);
-        AddPhenoDiffAwards(stats, awards);
+        AddImprovementAwards(stats, awards);
         AddCrowdAwards(stats, awards);
         AddEditorialAwards(stats, awards);
 
@@ -930,7 +930,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public double[]? BestMarkerValues { get; init; }
         public double[]? BestBortzValues { get; init; }
         public double? PhenoAgeDiffFromBaseline { get; init; }
+        public double? PhenoAgeImprovementFromWorst { get; init; }
         public double? BortzAgeDiffFromBaseline { get; init; }
+        public double? BortzAgeImprovementFromWorst { get; init; }
         public double? CrowdAge { get; init; }
         public int CrowdCount { get; init; }
     }
@@ -1008,7 +1010,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string BuildImprovementRuleHash(string label, string metricKey)
     {
-        var sig = $"label={label}|category=Global|metric={metricKey}|agg=min|requires_subs>=2|ties=allowed|place=1";
+        var sig = $"label={label}|category=Global|metric={metricKey}|agg=min|requires_subs>=2|requires_improvement<0|ties=allowed|place=1";
         return ComputeRuleHash(sig);
     }
 
@@ -1109,7 +1111,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         };
     }
 
-    private Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf, JsonArray snapshot)
+    private static Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf, JsonArray snapshot)
     {
         var core = PhenoStatsCalculator.BuildAll(snapshot, asOf);
         var result = new Dictionary<string, AthleteStats>(StringComparer.OrdinalIgnoreCase);
@@ -1136,7 +1138,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 BestMarkerValues = r.BestMarkerValues,
                 BestBortzValues = r.BestBortzValues,
                 PhenoAgeDiffFromBaseline = r.PhenoAgeDiffFromBaseline,
+                PhenoAgeImprovementFromWorst = r.PhenoAgeImprovementFromWorst,
                 BortzAgeDiffFromBaseline = r.BortzAgeDiffFromBaseline,
+                BortzAgeImprovementFromWorst = r.BortzAgeImprovementFromWorst,
                 CrowdAge = r.CrowdAge,
                 CrowdCount = r.CrowdCount
             };
@@ -1417,19 +1421,20 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
     }
 
-    private static void AddPhenoDiffAwards(
+    private static void AddImprovementAwards(
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
         var phenoCandidates = stats.Values
-            .Where(s => s.PhenoAgeDiffFromBaseline.HasValue && s.SubmissionCount >= 2)
-            .Select(s => new { s.Slug, Diff = s.PhenoAgeDiffFromBaseline!.Value })
+            .Where(s => s.PhenoAgeImprovementFromWorst is < 0 &&
+                        double.IsFinite(s.PhenoAgeImprovementFromWorst.Value) && s.SubmissionCount >= 2)
+            .Select(s => new { s.Slug, Diff = s.PhenoAgeImprovementFromWorst!.Value })
             .ToList();
 
         if (phenoCandidates.Count > 0)
         {
             var best = phenoCandidates.Min(x => x.Diff);
-            var ruleHash = BuildImprovementRuleHash("Pheno Age best improvement", "pheno_last_minus_baseline");
+            var ruleHash = BuildImprovementRuleHash("Pheno Age best improvement", "pheno_latest_by_test_date_minus_worst");
             foreach (var x in phenoCandidates.Where(x => x.Diff == best))
             {
                 awards.Add(new AwardRow
@@ -1445,13 +1450,14 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
 
         var bortzCandidates = stats.Values
-            .Where(s => s.BortzAgeDiffFromBaseline.HasValue && s.BortzSubmissionCount >= 2)
-            .Select(s => new { s.Slug, Diff = s.BortzAgeDiffFromBaseline!.Value })
+            .Where(s => s.BortzAgeImprovementFromWorst is < 0 &&
+                        double.IsFinite(s.BortzAgeImprovementFromWorst.Value) && s.BortzSubmissionCount >= 2)
+            .Select(s => new { s.Slug, Diff = s.BortzAgeImprovementFromWorst!.Value })
             .ToList();
         if (bortzCandidates.Count == 0) return;
 
         var bortzBest = bortzCandidates.Min(x => x.Diff);
-        var bortzRuleHash = BuildImprovementRuleHash("Bortz Age best improvement", "bortz_last_minus_baseline");
+        var bortzRuleHash = BuildImprovementRuleHash("Bortz Age best improvement", "bortz_latest_by_test_date_minus_worst");
         foreach (var x in bortzCandidates.Where(x => x.Diff == bortzBest))
         {
             awards.Add(new AwardRow

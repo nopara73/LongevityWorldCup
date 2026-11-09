@@ -1551,7 +1551,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return true;
     }
 
-    public bool TryGetBaselineImprovementLeaderboardEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
+    public bool TryGetRedemptionArcEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
     {
         entry = null!;
         var normalized = NormalizeAthleteSlug(athleteSlug);
@@ -1568,13 +1568,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             .Select(result => new
             {
                 Result = result,
-                Improvement = useBortz ? result.BortzAgeDiffFromBaseline : result.PhenoAgeDiffFromBaseline,
+                Improvement = useBortz ? result.BortzAgeImprovementFromWorst : result.PhenoAgeImprovementFromWorst,
                 SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount,
                 AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction
             })
             .Where(row =>
                 row.SubmissionCount >= 2 &&
-                row.Improvement.HasValue &&
+                row.Improvement is < 0 &&
                 double.IsFinite(row.Improvement.Value))
             .OrderBy(row => row.Improvement!.Value)
             .ThenBy(row => row.Result.Name, StringComparer.OrdinalIgnoreCase)

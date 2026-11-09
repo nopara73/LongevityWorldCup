@@ -76,10 +76,6 @@ public static class PhenoStatsCalculator
         double lowestBortz = double.PositiveInfinity;
         DateTime? lowestBortzDateUtc = null;
         double chronoAtLowestBortz = double.NaN;
-        double? firstPheno = null;
-        double? lastPheno = null;
-        double? firstBortz = null;
-        double? lastBortz = null;
         var phenoSubmissions = new List<(DateTime DateUtc, int Index, double PhenoAge)>();
         var bortzSubmissions = new List<(DateTime DateUtc, int Index, double BortzAge)>();
 
@@ -107,8 +103,6 @@ public static class PhenoStatsCalculator
                     if (!double.IsNaN(bortzAge) && !double.IsInfinity(bortzAge))
                     {
                         bortzSubmissionCount++;
-                        if (!firstBortz.HasValue) firstBortz = bortzAge;
-                        lastBortz = bortzAge;
                         bortzSubmissions.Add((entryDate, currentIndex, bortzAge));
                         if (bortzAge < lowestBortz)
                         {
@@ -138,8 +132,6 @@ public static class PhenoStatsCalculator
 
                     if (!double.IsNaN(ph) && !double.IsInfinity(ph))
                     {
-                        if (!firstPheno.HasValue) firstPheno = ph;
-                        lastPheno = ph;
                         phenoSubmissions.Add((entryDate, currentIndex, ph));
                         if (ph < lowestPheno)
                         {
@@ -210,30 +202,24 @@ public static class PhenoStatsCalculator
         }
 
         double? phenoDiffFromBaseline = null;
-        if (firstPheno.HasValue && lastPheno.HasValue)
-            phenoDiffFromBaseline = lastPheno.Value - firstPheno.Value;
+        var orderedPheno = phenoSubmissions.OrderBy(s => s.DateUtc).ThenBy(s => s.Index).ToArray();
+        if (orderedPheno.Length > 0)
+            phenoDiffFromBaseline = orderedPheno[^1].PhenoAge - orderedPheno[0].PhenoAge;
         double? phenoImprovementFromWorst = null;
         if (phenoSubmissions.Count >= 2)
         {
-            var latestPheno = phenoSubmissions
-                .OrderBy(s => s.DateUtc)
-                .ThenBy(s => s.Index)
-                .Last()
-                .PhenoAge;
+            var latestPheno = orderedPheno[^1].PhenoAge;
             var worstPheno = phenoSubmissions.Max(s => s.PhenoAge);
             phenoImprovementFromWorst = latestPheno - worstPheno;
         }
         double? bortzDiffFromBaseline = null;
-        if (firstBortz.HasValue && lastBortz.HasValue)
-            bortzDiffFromBaseline = lastBortz.Value - firstBortz.Value;
+        var orderedBortz = bortzSubmissions.OrderBy(s => s.DateUtc).ThenBy(s => s.Index).ToArray();
+        if (orderedBortz.Length > 0)
+            bortzDiffFromBaseline = orderedBortz[^1].BortzAge - orderedBortz[0].BortzAge;
         double? bortzImprovementFromWorst = null;
         if (bortzSubmissions.Count >= 2)
         {
-            var latestBortz = bortzSubmissions
-                .OrderBy(s => s.DateUtc)
-                .ThenBy(s => s.Index)
-                .Last()
-                .BortzAge;
+            var latestBortz = orderedBortz[^1].BortzAge;
             var worstBortz = bortzSubmissions.Max(s => s.BortzAge);
             bortzImprovementFromWorst = latestBortz - worstBortz;
         }

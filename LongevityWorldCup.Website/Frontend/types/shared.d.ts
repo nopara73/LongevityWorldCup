@@ -334,10 +334,10 @@ interface BadgeAthlete extends AgeVisualizationAthlete {
     readonly SubmissionCount?: unknown;
     readonly submissionCount?: unknown;
     readonly crowdCount?: unknown;
-    readonly bortzAgeDifference?: unknown;
-    readonly BortzAgeDiffFromBaseline?: unknown;
-    readonly phenoAgeDifference?: unknown;
-    readonly PhenoAgeDiffFromBaseline?: unknown;
+    readonly bortzAgeImprovement?: unknown;
+    readonly BortzAgeImprovementFromWorst?: unknown;
+    readonly phenoAgeImprovement?: unknown;
+    readonly PhenoAgeImprovementFromWorst?: unknown;
 }
 
 type DiscountComponentKind =
