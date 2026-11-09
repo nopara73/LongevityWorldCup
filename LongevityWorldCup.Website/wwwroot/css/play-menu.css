@@ -3466,3 +3466,168 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
         transition: none;
     }
 }
+
+/* ==========================================================================
+   Athlete dashboard as a command deck.
+   The commands (Edit profile, Longevitymaxxing, Update Pheno/Bortz Age, or
+   Submit new results / Go pro) become even tiles, two by two at every width:
+   an icon tile leads each label, so the deck reads at a glance instead of as
+   a column of identical bars. Change athlete stays a quiet back link below.
+   Motion: the banner photo settles in from a slight zoom, the name rises, and
+   the tiles deal in. The tiles reveal with opacity and clip only (never
+   transform), so the flow-action dock keeps measuring them in place.
+   Docked phone actions keep their existing bar.
+   ========================================================================== */
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) {
+    width: min(100%, 680px);
+    max-width: 680px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) #athleteDashboardDynamicActions {
+    display: contents;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: none;
+    min-height: 4.25rem;
+    margin: 0;
+    padding: 0.7rem 0.9rem;
+    text-align: left;
+    border-radius: var(--lwc-radius-md, 8px);
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+    position: static;
+    order: -1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    margin: 0;
+    border-radius: 12px;
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-accent);
+    font-size: 1.05rem;
+    transform: none;
+    transition: transform 240ms var(--lwc-ease-pop, ease-out), background-color 200ms ease;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .option-button.green.flow-action > i {
+    background: color-mix(in srgb, var(--lwc-on-accent, #fff) 22%, transparent);
+    color: inherit;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.25;
+}
+
+@media (hover: hover) {
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn):hover > i {
+        transform: rotate(-10deg) scale(1.1);
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .option-button.grey.flow-action:not(#playDashboardBackBtn):hover > i {
+        background: var(--lwc-accent);
+        color: var(--lwc-on-accent, #fff);
+    }
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) #playDashboardBackBtn {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: auto;
+    min-width: min(100%, 11rem);
+    margin-top: 0.15rem;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Phones: two by two as well, with the icon over the label. */
+@media (max-width: 760px) {
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) {
+        gap: 0.55rem;
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.6rem;
+        min-height: 6.25rem;
+        padding: 0.75rem 0.8rem 0.8rem;
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+        font-size: 0.95rem;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #athleteDashboardPanel:not([hidden]) .play-dashboard-card .athlete-picture-frame img {
+        animation: play-dashboard-settle 1100ms cubic-bezier(0.2, 0, 0, 1) both;
+    }
+
+    #athleteDashboardPanel:not([hidden]) .play-dashboard-title {
+        animation: play-dashboard-name 520ms cubic-bezier(0, 0, 0, 1) 180ms both;
+    }
+
+    #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action {
+        animation: play-dashboard-deal 420ms cubic-bezier(0, 0, 0, 1) both;
+    }
+
+    #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) > .flow-action:first-child { animation-delay: 260ms; }
+    #athleteDashboardPanel:not([hidden]) #athleteDashboardDynamicActions > .flow-action:nth-child(1) { animation-delay: 330ms; }
+    #athleteDashboardPanel:not([hidden]) #athleteDashboardDynamicActions > .flow-action:nth-child(2) { animation-delay: 400ms; }
+    #athleteDashboardPanel:not([hidden]) #athleteDashboardDynamicActions > .flow-action:nth-child(3) { animation-delay: 470ms; }
+    #athleteDashboardPanel:not([hidden]) #playDashboardBackBtn { animation-delay: 560ms; }
+
+    #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+        animation: play-dashboard-icon 520ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+        animation-delay: inherit;
+    }
+}
+
+@keyframes play-dashboard-settle {
+    from { transform: scale(1.08); filter: saturate(0.6) brightness(0.85); }
+}
+
+@keyframes play-dashboard-name {
+    from { opacity: 0; transform: translateY(12px); letter-spacing: 0.06em; }
+}
+
+@keyframes play-dashboard-deal {
+    /* The end state clips nothing, so focus rings and shadows stay whole. */
+    from { opacity: 0; clip-path: inset(-12px -12px 100% -12px); }
+    to { opacity: 1; clip-path: inset(-12px); }
+}
+
+@keyframes play-dashboard-icon {
+    0%, 40% { transform: scale(0.5) rotate(-25deg); }
+    100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #athleteDashboardPanel .play-dashboard-actions .flow-action > i {
+        transition: none;
+    }
+}
