@@ -2567,3 +2567,61 @@ html:has(#site-menu[open][data-page-scrollbar]) { scrollbar-gutter: stable; }
     transform: translateX(var(--footer-label-shift, 0px));
 }
 #site-menu .site-menu-follow .footer-link-label.is-below { bottom: auto; top: calc(100% + 0.55rem); }
+
+
+/* ===== The menu deals itself =====
+   The desktop panel opens straight onto the pages (the header's own toggle
+   is already the close control, so the panel's empty toolbar strip goes).
+   Page tiles land one after another, then the follow icons pop in, then the
+   indicator settles on the current page; a page that is not in the menu
+   leaves every tile equal instead of pre-selecting the first one. The sheet
+   keeps its grip and close button. Reduced motion keeps every state. */
+.site-menu[data-layout="panel"] .site-menu-toolbar {
+    display: none;
+}
+
+.site-menu[data-layout="panel"] .site-menu-body {
+    padding-top: 0.75rem;
+}
+
+/* The current page's tile keeps its accent even while the pointer is elsewhere. */
+#site-menu .site-menu-pages .footer-link[aria-current="page"] {
+    color: #ffffff;
+}
+
+#site-menu .site-menu-pages .footer-link[aria-current="page"] i,
+#site-menu .site-menu-pages .footer-link[aria-current="page"] svg {
+    color: var(--site-nav-accent, #19c3d1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .site-menu.is-open .site-menu-pages .footer-link {
+        animation: site-menu-tile-in 260ms var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
+        animation-delay: calc(60ms + var(--site-menu-i, 0) * 35ms);
+    }
+
+    .site-menu.is-open .site-menu-follow .footer-link {
+        animation: site-menu-icon-in 340ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)) backwards;
+        animation-delay: calc(120ms + var(--site-menu-i, 0) * 28ms);
+    }
+
+    .site-menu.is-open .nav-glide.is-shown {
+        animation-delay: 300ms;
+    }
+
+    /* Closing folds the tiles away quickly instead of fading the panel alone. */
+    .site-menu.is-closing .site-menu-pages .footer-link,
+    .site-menu.is-closing .site-menu-follow .footer-link {
+        opacity: 0;
+        transform: translateY(-4px);
+        transition: opacity 120ms ease, transform 160ms ease;
+    }
+}
+
+@keyframes site-menu-tile-in {
+    from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes site-menu-icon-in {
+    from { opacity: 0; transform: scale(0.6); }
+}
