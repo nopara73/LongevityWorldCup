@@ -439,6 +439,13 @@ public sealed class AestheticSystemBrowserTests(
                 () => {
                     const selected = document.querySelector('#lmxAccessTabs .lmx-tab[aria-selected="true"]');
                     const selectedStyle = getComputedStyle(selected);
+                    const glide = selected.parentElement.querySelector('.lwc-segment-glide[data-ready]');
+                    const selectedRect = selected.getBoundingClientRect();
+                    const glideRect = glide?.getBoundingClientRect();
+                    const glideHasUnderline = glide && getComputedStyle(glide).boxShadow !== 'none'
+                        && Math.abs(glideRect.left - selectedRect.left) <= 1
+                        && Math.abs(glideRect.bottom - selectedRect.bottom) <= 1
+                        && Math.abs(glideRect.width - selectedRect.width) <= 1;
                     const status = document.getElementById('lmxSignupStatus');
                     status.textContent = 'Signup ready — check your email for the next step.';
                     status.classList.add('success');
@@ -448,7 +455,9 @@ public sealed class AestheticSystemBrowserTests(
                         SelectedHasText: selected.textContent.trim().length > 0,
                         SelectedIsProgrammaticallyExposed: selected.getAttribute('aria-selected') === 'true',
                         SelectedHasShapeIndicator: selectedStyle.boxShadow !== 'none'
-                            || parseFloat(selectedStyle.borderBottomWidth) >= 2,
+                            || (parseFloat(selectedStyle.borderBottomWidth) >= 2
+                                && selectedStyle.borderBottomColor !== 'rgba(0, 0, 0, 0)')
+                            || Boolean(glideHasUnderline),
                         StatusHasText: status.textContent.trim().length > 0,
                         StatusHasShapeIndicator: parseFloat(statusStyle.borderLeftWidth) >= 4
                             || parseFloat(statusStyle.borderRightWidth) >= 4,

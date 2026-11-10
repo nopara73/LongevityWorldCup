@@ -1614,6 +1614,40 @@
     box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
 }
 
+/* The signup rail shares the card's width. Reflow the timezone controls when
+   that leaves little room, including when the reader enlarges the text. */
+[data-select-id="lmxSignupTimeZone"] {
+    container: lmx-signup-timezone / inline-size;
+}
+
+@container lmx-signup-timezone (max-width: 18rem) {
+    .lmx-timezone-button {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.25rem;
+        padding-inline: min(0.75rem, 12px);
+    }
+
+    .lmx-timezone-button span {
+        grid-column: 1 / -1;
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .lmx-timezone-popover {
+        padding: min(0.35rem, 6px);
+    }
+
+    .lmx-timezone-search {
+        grid-template-columns: minmax(0, 1fr);
+        padding-inline: min(0.35rem, 4px);
+    }
+
+    .lmx-timezone-search > i {
+        display: none;
+    }
+}
+
 .lmx-field .lmx-timezone-picker .lmx-timezone-search input[type="search"]:focus,
 .lmx-field .lmx-timezone-picker .lmx-timezone-search input[type="search"]:focus-visible {
     border: 0;
@@ -7170,38 +7204,26 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
    - Check your email: a paper plane crosses the card head and lands in a
      round tile; a sent sign-in link answers with the same plane.
    ========================= */
-.lmx-access-tabs {
-    position: relative;
-    isolation: isolate;
+/* The shared segment glider measures the actual selected tab, including wraps
+   and text resizing. Keep the original border until that enhancement is ready. */
+html body .lmx-page #lmxAccessTabs .lmx-tab {
+    border-bottom: 3px solid transparent;
 }
 
-.lmx-page .lmx-access-tabs.lmx-tabs .lmx-tab[aria-selected="true"],
-.lmx-access-tabs .lmx-tab[aria-selected="true"] {
+html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
+    border-bottom-color: var(--lmx-accent);
     box-shadow: none;
     background: transparent;
 }
 
-.lmx-access-tabs::after {
-    --lmx-tabs-pad: var(--lwc-space-2, 0.5rem);
-    content: '';
-    position: absolute;
-    left: var(--lmx-tabs-pad);
-    bottom: 0;
-    width: calc((100% - 2 * var(--lmx-tabs-pad)) / 2);
-    height: 3px;
-    border-radius: 3px 3px 0 0;
-    background: var(--lmx-accent);
-    transform: translateX(0);
-    transition: transform 280ms var(--lwc-ease-standard, ease);
-    pointer-events: none;
+html body .lmx-page #lmxAccessTabs:has(> .lwc-segment-glide[data-ready]) .lmx-tab[aria-selected="true"] {
+    border-bottom-color: transparent;
 }
 
-.lmx-access-tabs:has(#lmxSigninTab[aria-selected="true"])::after {
-    transform: translateX(100%);
-}
-
-.lmx-access-tabs:not(:has(.lmx-tab[aria-selected="true"]))::after {
-    opacity: 0;
+.lmx-access-tabs > .lwc-segment-glide {
+    border-radius: 0;
+    background: transparent;
+    box-shadow: inset 0 -3px 0 var(--lmx-accent);
 }
 
 .lmx-access-tabs .lmx-tab i {
@@ -7316,9 +7338,9 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .lmx-access-tabs::after,
     .lmx-access-tabs .lmx-tab i,
-    #lmxSignupForm > :is(.lmx-field, .lmx-identity-field)::after { transition: none; }
+    #lmxSignupForm > :is(.lmx-field, .lmx-identity-field)::after,
+    #lmxSignupForm > button[type="submit"] { transition: none; }
 
     #lmxSignupForm > :is(.lmx-field, .lmx-identity-field, button[type="submit"])::before,
     #lmxSignupDonePanel .lmx-card-head::before,
