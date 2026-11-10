@@ -5933,3 +5933,112 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     .flag-leaderboard .search-reason{ animation:none; }
     .leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){ transition:none; }
 }
+
+/* ===== Phone leaderboard rows =====
+   On phones the board is a list people thumb through, so its rows read as
+   one even rhythm: a 40px portrait, the name balanced over at most two lines
+   (never split letter by letter), and a tight tabular figure that leaves the
+   name room. The podium three carry a soft wash of their medal colour from
+   the left edge. A press answers at once: the row tints and its portrait
+   dips, then both spring back. */
+@media (max-width: 480px) {
+    html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
+        column-gap: 0.55rem;
+        min-height: 3.6rem;
+        padding: 0.45rem 0.6rem 0.45rem 0.4rem;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html body .leaderboard table tbody td.athlete-td {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        min-width: 0;
+    }
+
+    html body .leaderboard table tbody td.athlete-td > .portrait-wrapper {
+        flex: none;
+    }
+
+    html body .leaderboard table tbody td.athlete-td .portrait {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+
+    html body .leaderboard table tbody .athlete-identity {
+        min-width: 0;
+    }
+
+    /* The name centres on its portrait at any line count; the touch target stays. */
+    html body #athleteLeaderboard table tbody .athlete-identity {
+        align-self: stretch;
+        align-items: center;
+    }
+
+    html body #athleteLeaderboard table tbody .athlete-name {
+        display: flex;
+        align-items: center;
+        min-height: 2.75rem;
+        padding: 0;
+        font-size: 0.95rem;
+        line-height: 1.22;
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
+        text-wrap: balance;
+    }
+
+    html body .leaderboard table td.age-reduction-td .age-reduction {
+        font-size: 0.98rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    /* The podium three: a medal wash from the left edge. */
+    html body .leaderboard table tbody tr:has(.rank[data-place="1"]) { --row-metal: var(--lwc-gold); }
+    html body .leaderboard table tbody tr:has(.rank[data-place="2"]) { --row-metal: var(--lwc-silver); }
+    html body .leaderboard table tbody tr:has(.rank[data-place="3"]) { --row-metal: var(--lwc-bronze); }
+
+    html body .leaderboard table tbody tr:has(.rank[data-place]):not(.no-results):not(.tier-separator) {
+        background-image: linear-gradient(90deg, color-mix(in srgb, var(--row-metal) 22%, transparent), transparent 62%);
+    }
+
+    @media (hover: none) {
+        html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
+            transition: background-color 160ms var(--lwc-ease, ease);
+        }
+
+        html body .leaderboard table tbody td.athlete-td .portrait {
+            transition: transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+        }
+
+        html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator):active {
+            background-color: color-mix(in srgb, var(--lwc-accent) 10%, transparent);
+            transition-duration: 60ms;
+        }
+
+        html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator):active .portrait {
+            transform: scale(0.92);
+            transition-duration: 80ms;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator),
+        html body .leaderboard table tbody td.athlete-td .portrait {
+            transition: none;
+        }
+
+        html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator):active .portrait {
+            transform: none;
+        }
+    }
+}
+
+@media (max-width: 480px) and (prefers-color-scheme: dark) {
+    html body .leaderboard table tbody tr:has(.rank[data-place]):not(.no-results):not(.tier-separator) {
+        background-image: linear-gradient(90deg, color-mix(in srgb, var(--row-metal) 16%, transparent), transparent 62%);
+    }
+}
