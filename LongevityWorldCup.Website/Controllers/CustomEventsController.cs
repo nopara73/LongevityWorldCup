@@ -87,7 +87,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToInstagram,
             request.SendToTelegram);
         var blockedRedditLink = targets.SendToReddit
-            ? RedditLinkPolicy.FindBlockedLink($"{title}\n\n{content}", _config.RedditBlockedLinks)
+            ? RedditLinkPolicy.FindBlockedLink($"{title}\n\n{content}", reddit?.GetBlockedLinks(_config.RedditBlockedLinks) ?? _config.RedditBlockedLinks)
             : null;
         if (blockedRedditLink is not null)
             targets = targets with { SendToReddit = false };

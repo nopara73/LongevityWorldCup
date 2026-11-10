@@ -5,6 +5,23 @@ namespace LongevityWorldCup.Website.Tools;
 
 internal static partial class RedditLinkPolicy
 {
+    // Preventive subset of the AutoModerator URL Shortener Ban library, checked 2026-11-10:
+    // https://www.reddit.com/r/AutoModerator/wiki/library/#wiki_url_shortener_ban
+    // This is not Reddit's unpublished, definitive sitewide ban list. Direct publisher URLs
+    // remain allowed; never expand or disguise these links to evade a removal.
+    internal static readonly string[] PreventiveDomains =
+    [
+        "a.co", "adf.ly", "alturl.com", "amzn.to", "any.gs", "bc.vc", "bit.do", "bit.ly",
+        "bitly.com", "bl.ink", "buff.ly", "chilp.it", "clck.ru", "cli.gs", "cli.re", "clk.im",
+        "cutt.ly", "cutt.us", "db.tt", "dlvr.it", "ebay.to", "eepurl.com", "exe.io", "fb.me",
+        "gg.gg", "goo.gl", "ht.ly", "hubs.ly", "hyperurl.co", "ift.tt", "is.gd", "ity.im",
+        "j.gs", "j.mp", "lc.cx", "lnkd.in", "mcaf.ee", "ow.ly", "po.st", "q.gs", "qr.net",
+        "rb.gy", "reut.rs", "sh.st", "shar.es", "short.cm", "shorte.st", "shorturl.at",
+        "shorturl.com", "shrinke.me", "shrinkr.com", "smarturl.it", "snip.ly", "snipurl.com",
+        "snurl.com", "soo.gd", "t.co", "t.me", "t2m.io", "tiny.cc", "tinyurl.com", "tr.im",
+        "u.to", "ur1.ca", "v.gd", "v.ht", "x.co", "yourls.org"
+    ];
+
     internal static string? FindBlockedPostLink(RedditPostRequest post, string[]? confirmedBans) =>
         FindBlockedLink(post.Title, confirmedBans) ?? FindBlockedLink(post.Text, confirmedBans);
 
@@ -28,10 +45,11 @@ internal static partial class RedditLinkPolicy
 
     private static bool IsBlocked(string link, string[]? confirmedBans)
     {
-        if (!TryWebUrl(link, out var url)) return false;
+        var absolute = link.Contains("://", StringComparison.Ordinal) ? link : "https://" + link;
+        if (!TryWebUrl(absolute, out var url)) return false;
 
         var host = url.IdnHost.TrimEnd('.');
-        if (MatchesDomain(host, "ift.tt")) return true;
+        if (PreventiveDomains.Any(domain => MatchesDomain(host, domain))) return true;
 
         foreach (var entry in confirmedBans ?? [])
         {
@@ -72,6 +90,6 @@ internal static partial class RedditLinkPolicy
         return link;
     }
 
-    [GeneratedRegex(@"(?<![\w@./])https?://[^\s<>""'“”‘’]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?<![\w@./])(?:https?://[^\s<>""'“”‘’]+|(?:[a-z0-9-]+\.)+[a-z]{2,}/[^\s<>""'“”‘’]*)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex WebLinks();
 }
