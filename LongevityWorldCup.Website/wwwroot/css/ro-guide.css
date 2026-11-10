@@ -1330,3 +1330,188 @@
         transition: none;
     }
 }
+
+
+/* ---------- The race, page-long ----------
+   The poster's track does not stop at the poster. A dashed lane runs down
+   the gutter beside the sheet with a waypoint at every section; the runner
+   (the racing colour) follows the reader's line and fills the lane behind
+   it, each waypoint lights as it is passed, and at the chequered finish the
+   runner crosses and the whole lane turns to the racing colour. The two
+   facts paragraphs become lanes of their own, marked with a flag and a
+   caution sign, and they draw in as they enter the view. No new words. */
+.ro-guide {
+    position: relative;
+}
+
+.ro-lane {
+    --run: 0;
+    position: absolute;
+    z-index: 0;
+    width: 0;
+    pointer-events: none;
+}
+
+.ro-lane::before,
+.ro-lane-fill {
+    content: "";
+    position: absolute;
+    left: -40px;
+    top: 0;
+    width: 4px;
+    border-radius: 4px;
+}
+
+.ro-lane::before {
+    bottom: 0;
+    background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--ro-lane) 55%, transparent) 0 12px, transparent 12px 22px);
+}
+
+.ro-lane-fill {
+    height: calc(var(--run) * 100%);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--ro-racing) 30%, transparent), var(--ro-racing));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--ro-racing) 45%, transparent);
+}
+
+.ro-lane-runner {
+    position: absolute;
+    left: -47px;
+    top: calc(var(--run) * 100%);
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: var(--ro-field);
+    box-shadow: 0 0 0 3px var(--ro-racing), 0 0 18px 2px color-mix(in srgb, var(--ro-racing) 60%, transparent);
+    opacity: 0;
+    transition: opacity 200ms ease, box-shadow 220ms ease;
+}
+
+.ro-lane.is-started .ro-lane-runner {
+    opacity: 1;
+}
+
+.ro-lane-mark {
+    position: absolute;
+    left: -45px;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 2px var(--ro-lane);
+    transition: box-shadow 220ms ease, background-color 220ms ease, transform 280ms var(--ro-ease-settle);
+}
+
+.ro-lane-mark.is-passed {
+    background: var(--ro-racing);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ro-racing) 25%, transparent);
+    transform: scale(1.1);
+}
+
+/* The finish waypoint is a chequered flag tile. */
+.ro-lane-mark.is-finish {
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    left: -47px;
+    border-radius: 3px;
+    background: repeating-conic-gradient(var(--ro-field) 0 25%, var(--ro-field-ink) 0 50%) 0 0 / 9px 9px;
+    box-shadow: 0 0 0 2px var(--ro-lane);
+}
+
+.ro-lane.is-finished .ro-lane-fill {
+    background: var(--ro-racing);
+}
+
+.ro-lane.is-finished .ro-lane-runner {
+    box-shadow: 0 0 0 3px var(--lwc-gold, #f5c542), 0 0 22px 4px color-mix(in srgb, var(--lwc-gold, #f5c542) 55%, transparent);
+}
+
+/* The lane needs a gutter; narrow pages keep the race inside the sheet. */
+@media (max-width: 1023px) {
+    .ro-lane {
+        display: none;
+    }
+}
+
+/* The two facts become lanes: flag for what you get, caution for what does not carry over. */
+.ro-guide .ro-body {
+    display: grid;
+    gap: var(--lwc-space-4);
+}
+
+.ro-guide .ro-body p {
+    position: relative;
+    padding: var(--lwc-space-4) var(--lwc-space-5) var(--lwc-space-4) calc(var(--lwc-space-5) + 2.25rem);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface-muted, #eef2f5);
+    box-shadow: inset 4px 0 0 var(--ro-racing);
+}
+
+.ro-guide .ro-body p::before {
+    content: "\f11e";
+    position: absolute;
+    left: var(--lwc-space-4);
+    top: calc(var(--lwc-space-4) + 0.3em);
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--ro-field);
+    color: var(--ro-racing);
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.8rem;
+    font-weight: 900;
+}
+
+.ro-guide .ro-body p + p {
+    box-shadow: inset 4px 0 0 var(--lwc-warning, #b7791f);
+}
+
+.ro-guide .ro-body p + p::before {
+    content: "\f071";
+    color: var(--lwc-warning, #f0b429);
+}
+
+@supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+        .ro-guide .ro-body p {
+            animation: ro-lane-in linear both;
+            animation-timeline: view();
+            animation-range: entry 5% entry 70%;
+        }
+
+        .ro-guide .ro-body p::before {
+            animation: ro-lane-badge linear both;
+            animation-timeline: view();
+            animation-range: entry 30% entry 90%;
+        }
+    }
+}
+
+@keyframes ro-lane-in {
+    from { opacity: 0; transform: translateX(-18px); box-shadow: inset 0 0 0 var(--ro-racing); }
+}
+
+@keyframes ro-lane-badge {
+    from { transform: scale(0.4) rotate(-30deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ro-lane-runner,
+    .ro-lane-mark {
+        transition: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .ro-guide .ro-body p {
+        padding: var(--lwc-space-4) var(--lwc-space-4) var(--lwc-space-4) calc(var(--lwc-space-4) + 2rem);
+    }
+
+    .ro-guide .ro-body p::before {
+        left: var(--lwc-space-3);
+    }
+}
