@@ -6,11 +6,30 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
-    [InlineData(320, false)]
-    [InlineData(390, true)]
-    public async Task AccessSignup_EnlargedTimezoneControlsKeepShortContentReadable(int width, bool dark)
+    [InlineData(305, false, false)]
+    [InlineData(320, false, false)]
+    [InlineData(390, true, false)]
+    [InlineData(320, false, true)]
+    public async Task AccessSignup_EnlargedTimezoneControlsKeepShortContentReadable(int width, bool dark, bool nativeScrollbars)
     {
-        await using var context = await SignInContextAsync(width, dark);
+        await using var nativeBrowser = nativeScrollbars ? await Browser.BrowserType.LaunchAsync(new()
+        {
+            Headless = true,
+            IgnoreDefaultArgs = ["--hide-scrollbars"]
+        }) : null;
+        await using var context = nativeBrowser is null ? await SignInContextAsync(width, dark)
+            : await nativeBrowser.NewContextAsync(new()
+            {
+                BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 },
+                TimezoneId = "Asia/Bangkok", ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light,
+                ReducedMotion = ReducedMotion.Reduce
+            });
+        if (nativeBrowser is not null)
+        {
+            await BrowserTestApp.RouteExternalResourcesAsync(context);
+            await context.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route,
+                System.Text.Json.JsonSerializer.Serialize(BuildPublicState())));
+        }
         var page = await context.NewPageAsync();
         await page.GotoAsync("/longevitymaxxing");
         await Assertions.Expect(page.Locator("[data-select-id='lmxSignupTimeZone']")).ToHaveAttributeAsync("data-wired", "true");
@@ -24,6 +43,12 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.InRange(await search.EvaluateAsync<double>("e => e.scrollLeft"), 0, 1);
         Assert.True(await page.Locator("#lmxSignupTimeZoneList").EvaluateAsync<bool>(
             "e => e.scrollHeight <= e.clientHeight + 1 && e.scrollWidth <= e.clientWidth + 1"));
+        await search.FillAsync("America");
+        Assert.True(await page.Locator("#lmxSignupTimeZoneList").EvaluateAsync<bool>("""
+            list => [...list.children].every(option => option.scrollHeight <= option.clientHeight + 1
+                && option.scrollWidth <= option.clientWidth + 1)
+            """), "Long result lists must not compress multi-line timezone options into overlapping rows.");
+        await search.FillAsync("Tokyo");
         await search.PressAsync("ArrowDown");
         await search.PressAsync("Enter");
         await Assertions.Expect(page.Locator("#lmxSignupTimeZone")).ToHaveValueAsync("Asia/Tokyo");

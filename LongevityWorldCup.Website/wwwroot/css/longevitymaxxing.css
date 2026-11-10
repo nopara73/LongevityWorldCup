@@ -922,7 +922,9 @@
 /* Sign-up steps hang from one rail; each marker fills once its step is answered. */
 #lmxSignupForm {
     --lmx-step-size: 1.375rem;
-    --lmx-step-gutter: 2.15rem;
+    /* The marker scales with text; its decorative gap need not consume more
+       of the input width when a native scrollbar also takes space. */
+    --lmx-step-gutter: min(2.15rem, calc(var(--lmx-step-size) + 12px));
     gap: 1.1rem;
     padding-left: var(--lmx-step-gutter);
 }
@@ -1660,7 +1662,13 @@
     max-height: min(16rem, 42vh);
     overflow-y: auto;
     display: grid;
+    grid-auto-rows: max-content;
     gap: 0.1rem;
+}
+
+.lmx-timezone-list:has(> .lmx-timezone-option:only-child) {
+    /* One result belongs to the page's scroll, not a nested scroll box. */
+    max-height: none;
 }
 
 .lmx-timezone-option {
