@@ -80,7 +80,8 @@ public sealed class MastodonAnnouncementService(
                     }
                     var prepared = JsonSerializer.Deserialize<MastodonPostRequest>(json)
                         ?? throw new InvalidOperationException("The saved Mastodon request is invalid.");
-                    deliveries.BeginAttempt(SocialDeliveryStore.Mastodon, item.Id, time.GetUtcNow());
+                    if (deliveries.SuppressSupersededBadge(SocialDeliveryStore.Mastodon, item.Id, item.Type, item.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
+                    if (!deliveries.BeginAttempt(SocialDeliveryStore.Mastodon, item.Id, time.GetUtcNow())) continue;
                     postStarted = true;
                     var receipt = await api.PublishAsync(key!, prepared, ct);
                     deliveries.Complete(SocialDeliveryStore.Mastodon, item.Id, receipt, time.GetUtcNow());

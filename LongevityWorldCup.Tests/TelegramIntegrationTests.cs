@@ -19,6 +19,35 @@ public sealed class TelegramIntegrationTests
     private const string Title = "Follow LWC by [RSS](https://longevityworldcup.com/feeds/events.rss)";
     private const string Post = "Follow LWC by RSS\n\nhttps://longevityworldcup.com/feeds/events.rss";
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RoutineAwardsAreSkippedIncludingPreviouslyPreparedPosts(bool prepared)
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        var clock = new TestClock(DateTimeOffset.UtcNow);
+        SocialDeliveryStore.InitializeChannel(fixture.Database, SocialDeliveryStore.Telegram);
+        var id = fixture.InsertEvent(EventType.BadgeAward,
+            "slug[majoros_gabor] badge[Pheno Age best improvement] cat[Global] val[] place[1]", clock.Now.UtcDateTime);
+        var store = new SocialDeliveryStore(fixture.Database);
+        if (prepared) store.Prepare(SocialDeliveryStore.Telegram, id, JsonSerializer.Serialize("An old spotlight"), "majoros_gabor", clock.Now);
+        var requests = 0;
+        var service = CreateService(fixture, clock, _ => { requests++; throw new InvalidOperationException("Unexpected Telegram send"); });
+
+        await service.DispatchAsync(customOnly: prepared);
+        await service.DispatchAsync(customOnly: false);
+
+        Assert.Equal(0, requests);
+        Assert.Equal("skipped", Delivery(fixture, id).Status);
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT LastErrorCode FROM SocialDeliveries WHERE EventId=@id AND Platform='telegram';";
+            cmd.Parameters.AddWithValue("@id", id);
+            Assert.Equal(nameof(SocialEventSkipReason.RoutineConversationUpdate), cmd.ExecuteScalar());
+        });
+    }
+
     [Fact]
     public async Task DesignerQueuesOnlyTelegramAndRequiresAnActiveCredential()
     {

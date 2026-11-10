@@ -73,6 +73,7 @@ public sealed class BlueskyAnnouncementService(
                         json = record.ToJsonString();
                         (key, json) = deliveries.Prepare(SocialDeliveryStore.Bluesky, e.Id, json, subject, now, key);
                     }
+                    if (deliveries.SuppressSupersededBadge(SocialDeliveryStore.Bluesky, e.Id, e.Type, e.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
                     var receipt = await api.SendRecordAsync(key!, JsonNode.Parse(json)!.AsObject(), ct);
                     deliveries.Complete(SocialDeliveryStore.Bluesky, e.Id, new(receipt.Cid, receipt.Uri), time.GetUtcNow());
                     log.LogInformation("Bluesky delivered event {EventId}: {PostUri}", e.Id, receipt.Uri);

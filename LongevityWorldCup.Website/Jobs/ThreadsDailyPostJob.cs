@@ -53,7 +53,8 @@ public class ThreadsDailyPostJob : IJob
                     xPriority,
                     freshCutoff,
                     _athletes.HasSingleGlobalPlaceOneBadgeHolder,
-                    out var skipReason))
+                    out var skipReason,
+                    _athletes.IsCurrentBadgeAward))
             {
                 skippedEvents.Add((id, skipReason));
                 continue;

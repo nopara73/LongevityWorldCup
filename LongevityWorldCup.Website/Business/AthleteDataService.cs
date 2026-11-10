@@ -1943,6 +1943,36 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         };
     }
 
+    public bool IsCurrentBadgeAward(string text)
+    {
+        if (!EventHelpers.TryExtractBadgeLabel(text, out var label) ||
+            !EventHelpers.TryExtractSlug(text, out var slug) ||
+            !EventHelpers.TryExtractCategory(text, out var category)) return false;
+        EventHelpers.TryExtractValue(text, out var value);
+        var hasPlace = EventHelpers.TryExtractPlace(text, out var place);
+        var normalizedLabel = EventHelpers.NormalizeBadgeLabel(label);
+        var requiresSingleHolder = normalizedLabel is "Pheno Age best improvement" or "Bortz Age best improvement" ||
+            (EventHelpers.TryExtractSolo(text, out var solo) && solo);
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            var labels = AddBadgeLabelParameters(cmd, BadgeLabelQueryVariants(label));
+            cmd.CommandText = $"""
+                SELECT COUNT(DISTINCT AthleteSlug), COALESCE(MAX(AthleteSlug = @slug COLLATE NOCASE), 0)
+                    FROM BadgeAwards WHERE BadgeLabel IN ({labels})
+                      AND LeagueCategory = @category COLLATE NOCASE
+                      AND COALESCE(LeagueValue, '') = @value COLLATE NOCASE
+                      AND Place IS @place;
+                """;
+            cmd.Parameters.AddWithValue("@slug", slug);
+            cmd.Parameters.AddWithValue("@category", category);
+            cmd.Parameters.AddWithValue("@value", value ?? "");
+            cmd.Parameters.AddWithValue("@place", hasPlace ? place : DBNull.Value);
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() && reader.GetInt32(1) != 0 && (!requiresSingleHolder || reader.GetInt32(0) == 1);
+        });
+    }
+
     public bool HasSingleGlobalPlaceOneBadgeHolder(string badgeLabel)
     {
         if (string.IsNullOrWhiteSpace(badgeLabel))

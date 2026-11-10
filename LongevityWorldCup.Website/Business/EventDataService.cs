@@ -356,7 +356,7 @@ public sealed partial class EventDataService : IDisposable
                     if (affected != 1) continue;
 
                     var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
-                    if (ShouldSkipSlackNotification(type, occurredAtUtc, freshCutoffUtc))
+                    if (ShouldSkipSlackNotification(type, occurredAtUtc, freshCutoffUtc, text))
                         continue;
 
                     notify.Add((type, text));
@@ -369,13 +369,8 @@ public sealed partial class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
-    internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc)
-    {
-        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved or EventType.TestResultAccepted)
-            return true;
-
-        return type == EventType.AthleteCountMilestone && EnsureUtc(occurredAtUtc) < freshCutoffUtc;
-    }
+    internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc, string text = "") =>
+        SocialEventSkipPolicy.ConversationSkipReason(type, text, EnsureUtc(occurredAtUtc), freshCutoffUtc) is not null;
 
     private void ProcessPendingImmediateCustomEvents()
     {

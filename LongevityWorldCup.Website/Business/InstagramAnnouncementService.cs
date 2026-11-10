@@ -71,6 +71,10 @@ public sealed class InstagramAnnouncementService(
                     }
                     var prepared = JsonSerializer.Deserialize<InstagramPostRequest>(json)
                         ?? throw new InvalidOperationException("The saved Instagram request is invalid.");
+                    // An attempted publish can only recover its receipt or enter review.
+                    // Keep that recovery path available even after ownership changes.
+                    if (pending.FirstAttemptAtUtc is null && deliveries.SuppressSupersededBadge(
+                            SocialDeliveryStore.Instagram, item.Id, item.Type, item.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
                     var receipt = await publisher.PublishAsync(pending, prepared, ct);
                     deliveries.Complete(SocialDeliveryStore.Instagram, item.Id, receipt, time.GetUtcNow());
                     log.LogInformation("Instagram delivered event {EventId}: {PostUrl}", item.Id, receipt.Url);

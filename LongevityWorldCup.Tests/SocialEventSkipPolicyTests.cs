@@ -5,6 +5,26 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialEventSkipPolicyTests
 {
+    [Theory]
+    [InlineData(EventType.CustomEvent, "An authored announcement", false)]
+    [InlineData(EventType.AthleteCountMilestone, "athletes[500]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[1]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[2]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[3]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[4]", true)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[0]", true)]
+    [InlineData(EventType.Joined, "slug[alice]", true)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[1000]", true)]
+    [InlineData(EventType.BadgeAward, "slug[alice] badge[Pheno Age best improvement] cat[Global] val[] place[1]", true)]
+    [InlineData(EventType.CrowdAgeTop10Change, "slug[alice] place[1] prevPlace[2] crowdAge[25] crowdCount[100]", true)]
+    [InlineData(EventType.AgeImprovementTop10Change, "slug[alice] clock[pheno] place[1] improvement[-9.2] ageReduction[-12]", true)]
+    public void ConversationChannelsKeepAnnouncementsMilestonesAndOverallPodiums(EventType type, string text, bool skip)
+    {
+        var now = DateTime.UtcNow;
+        Assert.Equal(skip, EventDataService.ShouldSkipSlackNotification(type, now, now.AddDays(-7), text));
+        Assert.Equal(skip, SocialEventSkipPolicy.ConversationSkipReason(type, text, now, now.AddDays(-7)) is not null);
+    }
+
     public static IEnumerable<object[]> XOrThreadsGoldenSkipRules()
     {
         var now = new DateTime(2026, 6, 6, 12, 0, 0, DateTimeKind.Utc);

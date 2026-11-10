@@ -58,6 +58,8 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
             foreach (var announcement in store.Pending())
             {
                 ct.ThrowIfCancellationRequested();
+                if (deliveries.SuppressSupersededBadge(SocialDeliveryStore.WebPush, announcement.Id, announcement.Type,
+                        announcement.Text, athletes.IsCurrentBadgeAward, now)) continue;
                 var payload = announcement.Payload ?? store.Prepare(announcement, BuildPayload(announcement, assets,
                     announcement.Type == EventType.CustomEvent ? null : messageComposer.TryBuildMessage(
                         announcement.Type, announcement.Text, announcement.Id, announcement.VisibleOnWebsite, ResolveName)), now);

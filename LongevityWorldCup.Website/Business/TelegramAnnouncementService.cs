@@ -60,6 +60,15 @@ public sealed class TelegramAnnouncementService(
                 continue;
             }
 
+            // Apply the conversation policy to saved requests too, including safe retries
+            // prepared before this policy was introduced.
+            if (SocialEventSkipPolicy.ConversationSkipReason(item.Type, item.Text, item.OccurredAtUtc,
+                    now.UtcDateTime.AddDays(-7)) is { } conversationReason)
+            {
+                deliveries.Skip(Platform, item.Id, conversationReason.ToString(), now);
+                continue;
+            }
+
             var postStarted = false;
             try
             {
