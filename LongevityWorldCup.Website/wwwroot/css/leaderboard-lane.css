@@ -1,0 +1,77 @@
+/* Desktop leaderboard rows: one lane glides between athletes.
+   Frontend/leaderboard-lane.ts sets html[data-lb-lane], positions .lb-lane
+   inside #athleteLeaderboard (--lane-x/y/w/h), marks the row .is-laned and
+   sets the reach bar's --reach (0..1 of the view leader's figure).
+   Only --lwc-* colours. */
+
+@media (hover: hover) and (pointer: fine) and (min-width: 769px) {
+    #athleteLeaderboard { position: relative; }
+
+    /* Rows stop lighting one by one; the lane carries the highlight. */
+    :root[data-lb-lane] .leaderboard table tbody tr:hover,
+    :root[data-lb-lane] .leaderboard table tbody tr.tier-amateur:hover {
+        background: inherit;
+    }
+    :root[data-lb-lane] .leaderboard table tbody tr:hover > td { background: transparent; }
+
+    .lb-lane {
+        position: absolute;
+        z-index: 2;
+        top: 0;
+        left: 0;
+        width: var(--lane-w, 0px);
+        height: var(--lane-h, 0px);
+        translate: var(--lane-x, 0px) var(--lane-y, 0px);
+        background: color-mix(in srgb, var(--lwc-accent) 9%, transparent);
+        box-shadow: inset 3px 0 0 var(--lwc-accent), 0 10px 26px -18px color-mix(in srgb, var(--lwc-accent) 80%, transparent);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+            translate 260ms cubic-bezier(.2, 0, 0, 1),
+            height 260ms cubic-bezier(.2, 0, 0, 1),
+            opacity 180ms ease;
+    }
+    .lb-lane.is-on { opacity: 1; }
+    .lb-lane.is-snapping { transition: opacity 180ms ease; }
+
+    /* The reach: from the lane's left edge toward the leader's figure. */
+    .lb-lane-reach {
+        position: absolute;
+        left: 3px;
+        right: 0;
+        bottom: 0;
+        height: 3px;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--lwc-accent) 25%, transparent), var(--lwc-accent));
+        transform-origin: left center;
+        transform: scaleX(var(--reach, 0));
+        transition: transform 620ms cubic-bezier(.2, 0, 0, 1) 80ms;
+    }
+    .lb-lane-reach::after {
+        content: "";
+        position: absolute;
+        right: -4px;
+        top: 50%;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--lwc-accent);
+        box-shadow: 0 0 0 3px var(--lwc-surface);
+        translate: 0 -50%;
+        scale: calc(1 / max(var(--reach, 1), .05)) 1;
+    }
+
+    /* The athlete in the lane steps forward. */
+    :root[data-lb-lane] .leaderboard tbody tr .rank-td,
+    :root[data-lb-lane] .leaderboard tbody tr .athlete-td img,
+    :root[data-lb-lane] .leaderboard tbody tr .age-reduction {
+        transition: scale 240ms cubic-bezier(.34, 1.4, .64, 1), color 160ms ease;
+    }
+    :root[data-lb-lane] .leaderboard tbody tr.is-laned .rank-td { scale: 1.12; }
+    :root[data-lb-lane] .leaderboard tbody tr.is-laned .athlete-td img { scale: 1.08; }
+    :root[data-lb-lane] .leaderboard tbody tr.is-laned .age-reduction { scale: 1.06; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lb-lane, .lb-lane-reach { transition: none; }
+    :root[data-lb-lane] .leaderboard tbody tr.is-laned :is(.rank-td, .athlete-td img, .age-reduction) { scale: none; }
+}
