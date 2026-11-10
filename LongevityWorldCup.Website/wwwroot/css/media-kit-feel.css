@@ -125,3 +125,97 @@
     .media-kit-main .media-kit-primary-download:hover::before { animation: none; }
     .media-kit-main .media-file-thumb img { transition: opacity 120ms linear; }
 }
+
+/* ----------------------------------------------- one asset, many formats */
+/* Files that differ only by extension share one tile. A small segmented
+   switch, labelled with the extensions the files already carry, chooses
+   which one the download control takes; a pill glides to the choice and the
+   caption cross-fades its extension. A lone featured hero spans the stage. */
+.media-kit-main .media-file-tile[data-formats] {
+    grid-template-rows: auto auto auto;
+}
+.media-kit-main .media-format-switch {
+    --media-format-pad: 3px;
+    position: relative;
+    isolation: isolate;
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(2.75rem, 1fr);
+    justify-self: start;
+    margin: 0 var(--lwc-space-3, .75rem) var(--lwc-space-3, .75rem);
+    padding: var(--media-format-pad);
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface-muted);
+}
+.media-kit-main .media-format-switch::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: var(--media-format-pad);
+    bottom: var(--media-format-pad);
+    left: var(--media-format-pad);
+    width: calc((100% - 2 * var(--media-format-pad)) / var(--media-format-count, 2));
+    border-radius: inherit;
+    background: var(--lwc-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .12), inset 0 0 0 1px var(--lwc-accent);
+    transform: translateX(calc(100% * var(--media-format-index, 0)));
+}
+.media-kit-main .media-format-option {
+    min-height: 2rem;
+    margin: 0;
+    padding: 0 .7rem;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: none;
+    color: var(--lwc-muted);
+    font: inherit;
+    font-size: var(--lwc-type-xs, .75rem);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+.media-kit-main .media-format-option[aria-checked="true"] { color: var(--lwc-accent); }
+.media-kit-main .media-format-option:hover:not([aria-checked="true"]) { color: var(--lwc-ink); background: transparent; transform: none; }
+.media-kit-main .media-format-option:focus-visible {
+    outline: 2px solid var(--lwc-accent);
+    outline-offset: 2px;
+}
+
+/* Documents keep the switch beside their name. */
+.media-kit-main .media-file-doc[data-formats] .media-format-switch {
+    grid-column: 1 / -1;
+    margin: 0 0 var(--lwc-space-1, .25rem);
+}
+
+/* A single hero is featured once, at a width that keeps it whole on screen. */
+.media-kit-main .media-kit-featured:has(> .media-file-tile:only-child) {
+    max-width: 46rem;
+    margin-inline: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .media-kit-main .media-format-switch::before {
+        transition: transform 260ms cubic-bezier(.2, .9, .3, 1.15);
+    }
+    .media-kit-main .media-file-name.is-swapping {
+        animation: media-format-swap 260ms var(--lwc-ease, ease);
+    }
+    .media-kit-main .media-file-doc[data-formats] .media-file-icon {
+        transition: transform 220ms var(--lwc-ease, ease);
+    }
+    .media-kit-main .media-file-doc[data-formats]:has(.media-file-name.is-swapping) .media-file-icon {
+        animation: media-format-flip 320ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1));
+    }
+}
+@keyframes media-format-swap {
+    0% { opacity: .2; translate: 0 4px; }
+    100% { opacity: 1; translate: 0 0; }
+}
+@keyframes media-format-flip {
+    0% { rotate: y 90deg; }
+    100% { rotate: y 0deg; }
+}
