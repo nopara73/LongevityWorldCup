@@ -249,3 +249,58 @@ html:not([data-lwc-motion="on"]) .lb-rail-balloon, html:not([data-lwc-motion="on
     .lb-rail{ translate:0 0; }
     .lb-rail-balloon, .lb-rail-track::before{ transition:none !important; }
 }
+
+/* Ranking switch: a wordless chip beside each visible rank says how many
+   places the athlete moved (leaderboard-feel.ts playReshuffle). */
+main[data-leaderboard-page="full"] .leaderboard table tbody td[data-label="Rank"] {
+    position: relative;
+}
+
+main[data-leaderboard-page="full"] .leaderboard table tbody td[data-label="Rank"] .rank {
+    display: inline-block;
+    transform-origin: 50% 50%;
+    backface-visibility: hidden;
+}
+
+main[data-leaderboard-page="full"] .rank-shift {
+    position: absolute;
+    top: 0.2rem;
+    right: 0.1rem;
+    z-index: 2;
+    padding: 0 0.28rem;
+    border-radius: 999px;
+    background: var(--lwc-surface);
+    box-shadow: 0 0 0 1px var(--lwc-border), var(--lwc-shadow-sm);
+    font: 700 0.6rem/1rem Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+main[data-leaderboard-page="full"] .rank-shift[data-direction="up"] {
+    color: var(--lwc-success, #1f7a3a);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--lwc-success, #1f7a3a) 45%, transparent), var(--lwc-shadow-sm);
+}
+
+main[data-leaderboard-page="full"] .rank-shift[data-direction="down"] {
+    color: var(--lwc-muted);
+}
+
+/* Phones: the rank column is narrow, so the chip sits under the number. */
+@media (max-width: 600px) {
+    main[data-leaderboard-page="full"] .rank-shift {
+        /* The cell is only as tall as the number: hang the chip below it. */
+        top: calc(50% + 0.75rem);
+        right: auto;
+        bottom: auto;
+        left: 50%;
+        translate: -50% 0;
+        padding: 0 0.22rem;
+        font-size: 0.55rem;
+        line-height: 0.85rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    main[data-leaderboard-page="full"] .rank-shift { display: none; }
+}

@@ -631,6 +631,74 @@ function initializeLeaderboardFeel(): void {
                 { duration: token("--lwc-motion-base", 200), easing: ease("--lwc-ease-enter") });
         }
     });
+
+    // Ranking switch, shown as a reshuffle without crossing rows (crossing rows
+    // hides names): every visible rank turns over to its new value, and a small
+    // wordless chip says how many places that athlete moved, then fades.
+    const shownRankOf = (row: HTMLTableRowElement): number => {
+        const match = /\d+/.exec(row.querySelector('td[data-label="Rank"] .rank')?.textContent || "");
+        return match ? Number(match[0]) : NaN;
+    };
+    let previousRanks: Map<string, number> | null = null;
+    const recordRanks = (): void => {
+        if (byFlag?.checked) { previousRanks = null; return; }
+        previousRanks = new Map();
+        for (const row of Array.from(body.rows)) {
+            const name = row.dataset["athleteName"];
+            const rank = shownRankOf(row);
+            if (name && Number.isFinite(rank) && row.style.display !== "none") previousRanks.set(name, rank);
+        }
+    };
+    const playReshuffle = (): void => {
+        const before = previousRanks;
+        previousRanks = null;
+        if (!before || !moving() || byFlag?.checked) return;
+        const duration = token("--lwc-motion-slow", 280);
+        let order = 0;
+        for (const row of Array.from(body.rows)) {
+            if (row.style.display === "none") continue;
+            const box = row.getBoundingClientRect();
+            if (!box.height || box.bottom < 0 || box.top > innerHeight) continue;
+            const name = row.dataset["athleteName"];
+            const cell = row.querySelector<HTMLElement>('td[data-label="Rank"]');
+            const rank = shownRankOf(row);
+            if (!name || !cell || !Number.isFinite(rank)) continue;
+            const old = before.get(name);
+            const delay = Math.min(order++, 14) * 22;
+            const mark = cell.querySelector<HTMLElement>(".rank");
+            mark?.animate([
+                { transform: "rotateX(90deg)", opacity: 0 },
+                { transform: "rotateX(0deg)", opacity: 1 }
+            ], { duration, delay, easing: ease("--lwc-ease-pop"), fill: "backwards" });
+            cell.querySelector(".rank-shift")?.remove();
+            if (old === undefined || old === rank) continue;
+            const chip = document.createElement("span");
+            chip.className = "rank-shift";
+            chip.dataset["direction"] = rank < old ? "up" : "down";
+            chip.setAttribute("aria-hidden", "true");
+            chip.textContent = `${rank < old ? "↑" : "↓"}${Math.abs(old - rank)}`;
+            cell.appendChild(chip);
+            chip.animate([
+                { opacity: 0, transform: "translateY(4px) scale(.8)" },
+                { opacity: 1, transform: "none", offset: .15 },
+                { opacity: 1, transform: "none", offset: .8 },
+                { opacity: 0, transform: "translateY(-3px)" }
+            ], { duration: 1800, delay: delay + 120, easing: "ease-out", fill: "both" })
+                .finished.then(() => chip.remove(), () => chip.remove());
+        }
+    };
+    const switcher = document.querySelector(".leaderboard-view-switcher");
+    // Capture runs before the page's own change and click handlers re-rank the rows.
+    switcher?.addEventListener("click", event => {
+        if ((event.target as Element | null)?.closest(".view-badge")) recordRanks();
+    }, true);
+    switcher?.addEventListener("change", () => {
+        if (!previousRanks) recordRanks();
+    }, true);
+    switcher?.addEventListener("change", () => requestAnimationFrame(playReshuffle));
+    switcher?.addEventListener("click", event => {
+        if ((event.target as Element | null)?.closest(".view-badge")) requestAnimationFrame(() => requestAnimationFrame(playReshuffle));
+    });
     invalidateRows();
 }
 
