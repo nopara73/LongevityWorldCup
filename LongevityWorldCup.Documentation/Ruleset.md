@@ -17,8 +17,8 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
 ## Point system (ranking)
 - What counts is **biological age reduction**: the more your biological age is below your chronological age, the higher you rank.
 - You can submit as many tests as you want.
-  - For **all-time clocks** ([pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)), the site uses your **best (lowest) biological age** across your full submission history.
-  - For **seasonal clocks** ([bortz age](https://www.nature.com/articles/s42003-023-05456-z)), the site uses your **best (lowest) biological age** achieved during the 2026 season’s valid window.
+  - For **all-time clocks** ([pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)), the site uses your **greatest biological age reduction** across your full submission history, comparing each result with your chronological age at that test.
+  - For **seasonal clocks** ([bortz age](https://www.nature.com/articles/s42003-023-05456-z)), the site uses your **greatest biological age reduction** achieved during the 2026 season’s valid window, comparing each result with your chronological age at that test.
   - **Partial or non-same-day submissions are not allowed for a given clock**. Required biomarkers must come from the same blood draw or report date.
 - The competition also uses **leagues** (for example generation-based or other category-based rankings). You can rank globally and still compete within your generation league.
 

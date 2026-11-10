@@ -303,8 +303,8 @@ function assignBestRankCandidates(athletes) {
 
     assignRankedBestCandidates(
         orderByNumberDesc(
-            rows.filter(athlete => Number.isFinite(athlete.ageReductionPercent)),
-            athlete => athlete.ageReductionPercent),
+            rows.filter(athlete => Number.isFinite(athlete.phenoPaceOfAging)),
+            athlete => -athlete.phenoPaceOfAging),
         () => ({
             leagueName: 'Pheno pace of aging',
             leagueLabel: 'Pheno pace of aging ranking',
@@ -1491,6 +1491,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 // Compute the actually lowest PhenoAge across real submissions
                 let lowestPhenoAge = Infinity;
                 let valuesForLowestPhenoAge = null;
+                let phenoRankResult = null;
 
                 athlete.Biomarkers.forEach(entry => {
                     const entryDate = getBiomarkerTestDate(entry.Date);
@@ -1512,6 +1513,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     // Only consider submissions with complete numeric data
                     if (candidateValues.every(Number.isFinite)) {
                         const ph = window.PhenoAge.calculatePhenoAge(candidateValues);
+                        if (Number.isFinite(ph) && (!phenoRankResult ||
+                            ph - ageAtEntry < phenoRankResult.bio - phenoRankResult.chrono ||
+                            (ph - ageAtEntry === phenoRankResult.bio - phenoRankResult.chrono && ageAtEntry < phenoRankResult.chrono))) {
+                            phenoRankResult = { bio: ph, chrono: ageAtEntry };
+                        }
                         if (ph < lowestPhenoAge) {
                             lowestPhenoAge = ph;
                             valuesForLowestPhenoAge = candidateValues;
@@ -1548,9 +1554,9 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 }
 
                 // Calculate the age reduction
-                const ageReduction = lowestPhenoAge - chronoAtLowestPhenoAge;
+                const ageReduction = phenoRankResult ? phenoRankResult.bio - phenoRankResult.chrono : 0;
                 const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
-                const ageReductionPercent = (1 - biologicalAgePercent) * 100;
+                const ageReductionPercent = phenoRankResult?.chrono > 0 ? -100 * ageReduction / phenoRankResult.chrono : null;
 
                 // Lowest bortz age and bortz age reduction (only when submissions have full Bortz biomarkers)
                 let lowestBortzAge = null;
@@ -1558,6 +1564,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 let bortzAgeReduction = null;
                 let bortzAgeReductionPercent = null;
                 let bestBortzValues = null;
+                let bortzRankResult = null;
                 if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                     let bortzMin = Infinity;
                     let chronoAtBortzMin = null;
@@ -1600,6 +1607,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     completeBortzBiomarkerSets.forEach(entry => {
                         const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
                         const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
+                        if (Number.isFinite(bortzAge) && (!bortzRankResult ||
+                            bortzAge - ageAtEntry < bortzRankResult.bio - bortzRankResult.chrono ||
+                            (bortzAge - ageAtEntry === bortzRankResult.bio - bortzRankResult.chrono && ageAtEntry < bortzRankResult.chrono))) {
+                            bortzRankResult = { bio: bortzAge, chrono: ageAtEntry };
+                        }
                         if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                             bortzMin = bortzAge;
                             chronoAtBortzMin = ageAtEntry;
@@ -1609,8 +1621,8 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     if (Number.isFinite(bortzMin) && chronoAtBortzMin != null) {
                         lowestBortzAge = bortzMin;
                         chronoAtLowestBortzAge = chronoAtBortzMin;
-                        bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
-                        bortzAgeReductionPercent = (1 - lowestBortzAge / chronoAtLowestBortzAge) * 100;
+                        bortzAgeReduction = bortzRankResult.bio - bortzRankResult.chrono;
+                        bortzAgeReductionPercent = bortzRankResult.chrono > 0 ? -100 * bortzAgeReduction / bortzRankResult.chrono : null;
                     }
                 }
 
@@ -1649,8 +1661,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                     ageReduction: ageReduction,
                     ageReductionPercent: ageReductionPercent,
+                    phenoPaceOfAging: biologicalAgePercent,
                     bestBiomarkerValues: bestBiomarkerValues,
                     bestBortzValues: bestBortzValues,
+                    phenoRankResult: phenoRankResult,
+                    bortzRankResult: bortzRankResult,
                     personalLink: athlete.PersonalLink,
                     profilePic: athlete.ProfilePic,
                     profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
@@ -1787,7 +1802,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 });
             });
 
-            athletesOrderedByPace = orderByNumberDesc(athleteResults, a => a.ageReductionPercent);
+            athletesOrderedByPace = orderByNumberAsc(athleteResults, a => a.phenoPaceOfAging);
             athletesOrderedByBortzPace = orderByNumberAsc(
                 athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
                 a => a.lowestBortzAge / a.chronoAtLowestBortzAge
@@ -7886,10 +7901,8 @@ window.getLeaderboardPeek = name => {
     if (!athlete) return null;
     return Object.freeze({
         chronologicalAge: athlete.chronologicalAge,
-        lowestBortzAge: athlete.lowestBortzAge,
-        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
-        lowestPhenoAge: athlete.lowestPhenoAge,
-        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        bortzRankResult: athlete.bortzRankResult,
+        phenoRankResult: athlete.phenoRankResult,
         crowdAge: athlete.crowdAge,
         crowdCount: athlete.crowdCount,
         placements: athlete.placements

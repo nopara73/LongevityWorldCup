@@ -1560,7 +1560,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             .Select(result => new
             {
                 Result = result,
-                BiologicalAge = useBortz ? result.LowestBortzAge : result.LowestPhenoAge,
+                BiologicalAge = (useBortz ? result.BortzRankResult : result.PhenoRankResult)?.BiologicalAge,
                 AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction,
                 SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount
             })
