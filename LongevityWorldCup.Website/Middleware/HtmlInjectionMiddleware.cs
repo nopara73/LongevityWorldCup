@@ -853,6 +853,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     [
                         "/js/play-athlete-flow.js",
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
                         "/js/badges.js",

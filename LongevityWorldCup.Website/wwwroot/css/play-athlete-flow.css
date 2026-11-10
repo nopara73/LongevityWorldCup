@@ -64,3 +64,122 @@
         transition: none;
     }
 }
+
+/* Athlete picker: the suggestion tray matches the flag field's tray.
+   Each row is portrait, name, then a wordless meta cluster (flag tile and
+   division glyph) that tells similar names apart. One highlight glides
+   between rows, following the keyboard and the pointer, instead of a hover
+   wash and an active wash competing. The active portrait takes an accent
+   ring. Rows cascade in when the list opens. */
+#playAthleteInput-autocomplete-list {
+    isolation: isolate;
+}
+
+#playAthleteInput-autocomplete-list > [role="option"] {
+    position: relative;
+    background: transparent;
+    box-shadow: none;
+    transition: color 140ms var(--lwc-ease-standard, ease);
+}
+
+#playAthleteInput-autocomplete-list > [role="option"]:hover,
+#playAthleteInput-autocomplete-list > [role="option"].autocomplete-active {
+    background: transparent;
+    box-shadow: none;
+}
+
+#playAthleteInput-autocomplete-list .athlete-option-name {
+    flex: 1 1 auto;
+}
+
+#playAthleteInput-autocomplete-list .athlete-option-thumb {
+    transition:
+        box-shadow 200ms var(--lwc-ease-standard, ease),
+        transform 220ms var(--lwc-ease-pop, ease-out);
+}
+
+#playAthleteInput-autocomplete-list > [role="option"].autocomplete-active .athlete-option-thumb,
+#playAthleteInput-autocomplete-list > [role="option"]:hover .athlete-option-thumb {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent);
+    transform: scale(1.06);
+}
+
+.athlete-option-meta {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.45rem;
+    margin-left: auto;
+    padding-left: 0.5rem;
+    color: var(--lwc-muted);
+}
+
+.athlete-option-meta .athlete-option-flag {
+    width: 1.5rem;
+    line-height: 1.125rem;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--lwc-ink) 14%, transparent);
+}
+
+.athlete-option-meta .athlete-option-division {
+    width: 1rem;
+    font-size: 0.85rem;
+    text-align: center;
+    opacity: 0.75;
+}
+
+#playAthleteInput-autocomplete-list > [role="option"].autocomplete-active .athlete-option-division {
+    color: var(--lwc-accent);
+    opacity: 1;
+}
+
+.athlete-option-glider {
+    position: absolute;
+    top: 0;
+    left: 0.25rem;
+    right: 0.25rem;
+    z-index: -1;
+    height: 52px;
+    border-radius: var(--lwc-radius-sm, 6px);
+    background: var(--lwc-accent-soft);
+    box-shadow: inset 3px 0 var(--lwc-accent);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform 180ms var(--lwc-ease-standard, ease),
+        height 180ms var(--lwc-ease-standard, ease),
+        opacity 120ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #playAthleteInput-autocomplete-list:not(.autocomplete-items--leaving) > [role="option"] {
+        animation: athlete-option-arrive 260ms var(--lwc-ease-enter, ease-out) both;
+    }
+
+    #playAthleteInput-autocomplete-list > [role="option"]:nth-child(2) { animation-delay: 30ms; }
+    #playAthleteInput-autocomplete-list > [role="option"]:nth-child(3) { animation-delay: 60ms; }
+    #playAthleteInput-autocomplete-list > [role="option"]:nth-child(4) { animation-delay: 90ms; }
+    #playAthleteInput-autocomplete-list > [role="option"]:nth-child(5) { animation-delay: 120ms; }
+    #playAthleteInput-autocomplete-list > [role="option"]:nth-child(6) { animation-delay: 150ms; }
+
+    #playAthleteInput-autocomplete-list > [role="option"] .athlete-option-meta {
+        animation: athlete-option-meta 320ms var(--lwc-ease-pop, ease-out) both;
+        animation-delay: inherit;
+    }
+}
+
+@keyframes athlete-option-arrive {
+    from { opacity: 0; translate: 0 6px; }
+}
+
+@keyframes athlete-option-meta {
+    0%, 30% { opacity: 0; translate: 8px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .athlete-option-glider,
+    #playAthleteInput-autocomplete-list .athlete-option-thumb {
+        transition: none;
+    }
+}

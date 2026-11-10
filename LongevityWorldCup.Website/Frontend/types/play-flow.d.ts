@@ -7,6 +7,8 @@ interface PlayAthlete {
     ProfilePicLeaderboardThumb?: string;
     ProfilePicThumb?: string;
     Biomarkers?: unknown[];
+    Flag?: string | null;
+    Division?: string | null;
 }
 
 interface PendingPaymentOffer {
