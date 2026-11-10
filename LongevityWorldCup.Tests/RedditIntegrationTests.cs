@@ -243,6 +243,30 @@ public sealed class RedditIntegrationTests
     }
 
     [Fact]
+    public async Task LearnedBanStopsAnAlreadyPreparedPostWithoutResubmittingAnyAttempt()
+    {
+        using var fixture = Fixture.Create();
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        var config = IftttConfig();
+        var service = Service(fixture, clock, config);
+        await service.GetNextAsync();
+        const string link = "https://publisher.example/rejected-article";
+        fixture.Events.CreateCustomEvent("An announcement", $"[Source]({link})", deliveryTargets: RedditOnly);
+        var prepared = Assert.IsType<RedditDeliveryPayload>(await service.GetNextAsync());
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "CREATE TABLE RedditBlockedLinks(Link TEXT PRIMARY KEY); INSERT INTO RedditBlockedLinks VALUES (@link);";
+            cmd.Parameters.AddWithValue("@link", link);
+            cmd.ExecuteNonQuery();
+        });
+        Assert.Null(await service.ClaimNextIftttAsync(default));
+        Assert.Equal(("skipped", "BlockedLink", (string?)null), DeliveryState(fixture, prepared.EventId));
+        Assert.Equal(new[] { "existing.example", link }, new RedditDeliveryStore(fixture.Database).GetBlockedLinks(["existing.example"]));
+        Assert.Null(RedditLinkPolicy.FindBlockedLink("https://publisher.example/another-article", [link]));
+    }
+
+    [Fact]
     public void OversizedCustomText_IsRejectedInsteadOfDroppingTheBodyForAnImageCaption()
     {
         var item = new EventItem("event-oversized", EventType.CustomEvent,
