@@ -80,6 +80,10 @@ public sealed class InstagramAnnouncementService(
                     log.LogInformation("Instagram delivered event {EventId}: {PostUrl}", item.Id, receipt.Url);
                     return;
                 }
+                catch (InstagramApiException ex) when (ex.Code == "DeliverySuppressed")
+                {
+                    continue;
+                }
                 catch (Exception ex) when (!ct.IsCancellationRequested)
                 {
                     var error = ex as InstagramApiException;

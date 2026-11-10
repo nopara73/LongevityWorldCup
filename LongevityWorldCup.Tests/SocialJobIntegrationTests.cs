@@ -52,6 +52,9 @@ public sealed class SocialJobIntegrationTests
         badges.ComputeAndPersistAwards();
         badges.ComputeAndPersistAwards();
 
+        // A response from work already in flight must not undo the correction.
+        store.Fail(SocialDeliveryStore.Bluesky, id, "NetworkError", TimeSpan.FromMinutes(2), true, now);
+
         foreach (var platform in new[] { "X", "Threads", "Facebook" })
             Assert.Equal((1, "ScoringCorrection"), fixture.ReadPlatformState(id, platform));
         fixture.Database.Run(sqlite =>
@@ -129,6 +132,8 @@ public sealed class SocialJobIntegrationTests
         if (attempted) Assert.True(store.BeginAttempt(platform, id, now));
 
         Assert.True(store.SuppressSupersededBadge(platform, id, EventType.BadgeAward, text, _ => false, now));
+        store.Fail(platform, id, "NetworkError", TimeSpan.FromMinutes(2), true, now);
+        Assert.False(store.BeginAttempt(platform, id, now.AddMinutes(3)));
         Assert.Empty(store.GetPending(platform, customOnly: true, now));
         fixture.Database.Run(sqlite =>
         {

@@ -219,7 +219,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
                 NextAttemptAtUtc = @retry, AttemptCount = SocialDeliveries.AttemptCount + @failed,
                 FirstAttemptAtUtc = CASE WHEN @clear = 1 THEN NULL ELSE SocialDeliveries.FirstAttemptAtUtc END,
                 UpdatedAtUtc = @now
-            WHERE @status <> 'review' OR SocialDeliveries.Status = 'pending';
+            WHERE @status NOT IN ('review', 'pending') OR SocialDeliveries.Status = 'pending';
             """;
         cmd.Parameters.AddWithValue("@id", id);
         cmd.Parameters.AddWithValue("@platform", platform);
