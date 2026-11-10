@@ -17,11 +17,25 @@ public enum SocialEventSkipReason
     EmptyMessage,
     FacebookSupportsCustomEventsOnly,
     DeliveryRetriesExhausted,
-    PermanentDeliveryFailure
+    PermanentDeliveryFailure,
+    RoutineConversationUpdate,
+    SupersededBadgeAward
 }
 
 public static class SocialEventSkipPolicy
 {
+    internal static SocialEventSkipReason? ConversationSkipReason(EventType type, string text, DateTime occurredAtUtc, DateTime freshCutoffUtc)
+    {
+        if (type == EventType.CustomEvent) return null;
+        var newsworthy = type == EventType.AthleteCountMilestone ||
+            (type == EventType.NewRank && EventHelpers.TryExtractRank(text, out var rank) && rank is >= 1 and <= 3);
+        if (!newsworthy) return SocialEventSkipReason.RoutineConversationUpdate;
+        return occurredAtUtc < freshCutoffUtc ? SocialEventSkipReason.StalePrimaryEvent : null;
+    }
+
+    internal static bool IsSupersededBadgeAward(EventType type, string text, Func<string, bool> isCurrentBadgeAward) =>
+        type == EventType.BadgeAward && !isCurrentBadgeAward(text);
+
     public static bool TryGetXOrThreadsTerminalSkipReason(
         EventType type,
         string text,
@@ -29,7 +43,8 @@ public static class SocialEventSkipPolicy
         int priority,
         DateTime freshCutoffUtc,
         Func<string, bool> hasSingleGlobalPlaceOneBadgeHolder,
-        out SocialEventSkipReason reason)
+        out SocialEventSkipReason reason,
+        Func<string, bool>? isCurrentBadgeAward = null)
     {
         if (type == EventType.CustomEvent)
         {
@@ -142,6 +157,12 @@ public static class SocialEventSkipPolicy
         if (priority > EventDataService.XPriorityPrimaryMax)
         {
             reason = SocialEventSkipReason.UnsupportedBadgeAward;
+            return true;
+        }
+
+        if (isCurrentBadgeAward is not null && !isCurrentBadgeAward(text))
+        {
+            reason = SocialEventSkipReason.SupersededBadgeAward;
             return true;
         }
 

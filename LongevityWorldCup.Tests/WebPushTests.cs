@@ -356,6 +356,38 @@ public sealed class WebPushTests
         Assert.Contains("0.00961973 BTC", donationPayload.RootElement.GetProperty("title").GetString());
         Assert.Equal("/contribute", donationPayload.RootElement.GetProperty("url").GetString());
     }
+    [Fact]
+    public async Task PreparedPushStopsWhenTheAwardChangesHands()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true);
+        using var badges = new BadgeDataService(fixture.Athletes, fixture.Events, fixture.Database, NullLogger<BadgeDataService>.Instance);
+        var store = new WebPushStore(fixture.Database);
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        store.EnableAutomaticAnnouncements(clock.GetUtcNow());
+        store.Subscribe(Subscription(), clock.GetUtcNow().AddMinutes(-1));
+        var id = fixture.InsertEvent(EventType.BadgeAward,
+            "slug[former_holder] badge[Pheno Age best improvement] cat[Global] val[] place[1]", clock.GetUtcNow().UtcDateTime);
+        new SocialDeliveryStore(fixture.Database).Prepare(SocialDeliveryStore.WebPush, id,
+            "prepared before the scoring correction", "former_holder", clock.GetUtcNow());
+        var requests = 0;
+        var service = new WebPushAnnouncementService(fixture.Events, store,
+            Transport(Configured(), _ => { requests++; return new(HttpStatusCode.Created); }),
+            new(fixture.Database), new(fixture.Env), NullLogger<WebPushAnnouncementService>.Instance,
+            clock, fixture.Athletes, fixture.ThreadsEvents);
+
+        await service.DispatchAsync();
+
+        Assert.Equal(0, requests);
+        Assert.Empty(store.Pending());
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT LastErrorCode FROM SocialDeliveries WHERE EventId=@id AND Platform='webpush';";
+            cmd.Parameters.AddWithValue("@id", id);
+            Assert.Equal(nameof(SocialEventSkipReason.SupersededBadgeAward), cmd.ExecuteScalar());
+        });
+    }
+
     internal static WebPushSubscription Subscription(string endpoint = "https://fcm.googleapis.com/send/test")
     {
         using var key = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);

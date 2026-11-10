@@ -18,6 +18,139 @@ namespace LongevityWorldCup.Tests;
 public sealed class SocialJobIntegrationTests
 {
     [Fact]
+    public void ScoringRebaselineAtomicallyStopsQueuedAwardsAndPreservesPublishedReceipts()
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true);
+        using var badges = new BadgeDataService(fixture.Athletes, fixture.Events, fixture.Database, NullLogger<BadgeDataService>.Instance);
+        fixture.Athletes.Dispose();
+        var now = DateTimeOffset.UtcNow;
+        var id = fixture.InsertEvent(EventType.BadgeAward,
+            "slug[former_holder] badge[Pheno Age – lowest] cat[Global] val[] place[1]", now.UtcDateTime,
+            xProcessed: 0, threadsProcessed: 0, facebookProcessed: 0);
+        var store = new SocialDeliveryStore(fixture.Database);
+        store.Prepare(SocialDeliveryStore.Bluesky, id, "prepared under the old rule", "former_holder", now);
+        store.Complete(SocialDeliveryStore.Mastodon, id, new("published-id", "https://mastodon.social/@lwc/published"), now);
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = """
+                UPDATE BadgeAwards SET DefinitionHash='old-rule' WHERE BadgeLabel='Pheno Age – lowest';
+                CREATE TRIGGER FailAwards BEFORE INSERT ON BadgeAwards BEGIN SELECT RAISE(ABORT, 'test rollback'); END;
+                """;
+            cmd.ExecuteNonQuery();
+        });
+
+        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(badges.ComputeAndPersistAwards);
+        Assert.Equal((0, null), fixture.ReadPlatformState(id, "X"));
+        Assert.Contains(store.GetPending(SocialDeliveryStore.Bluesky, true, now), p => p.Event.Id == id);
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "DROP TRIGGER FailAwards;";
+            cmd.ExecuteNonQuery();
+        });
+        badges.ComputeAndPersistAwards();
+        badges.ComputeAndPersistAwards();
+
+        // A response from work already in flight must not undo the correction.
+        store.Fail(SocialDeliveryStore.Bluesky, id, "NetworkError", TimeSpan.FromMinutes(2), true, now);
+
+        foreach (var platform in new[] { "X", "Threads", "Facebook" })
+            Assert.Equal((1, "ScoringCorrection"), fixture.ReadPlatformState(id, platform));
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Platform,Status,LastErrorCode,RemoteUri FROM SocialDeliveries WHERE EventId=@id;";
+            cmd.Parameters.AddWithValue("@id", id);
+            using var reader = cmd.ExecuteReader();
+            var count = 0;
+            while (reader.Read())
+            {
+                count++;
+                if (reader.GetString(0) == SocialDeliveryStore.Mastodon)
+                {
+                    Assert.Equal("sent", reader.GetString(1));
+                    Assert.Equal("https://mastodon.social/@lwc/published", reader.GetString(3));
+                }
+                else
+                {
+                    Assert.Equal("skipped", reader.GetString(1));
+                    Assert.Equal("ScoringCorrection", reader.GetString(2));
+                }
+            }
+            Assert.Equal(7, count);
+        });
+    }
+
+    [Theory]
+    [InlineData("X", false)]
+    [InlineData("Threads", false)]
+    [InlineData("Facebook", false)]
+    [InlineData("X", true)]
+    [InlineData("Threads", true)]
+    [InlineData("Facebook", true)]
+    public async Task DailyJobsValidateTheAthleteWhoCurrentlyHoldsTheAward(string platform, bool current)
+    {
+        using var fixture = SocialJobFixture.Create(enableThreads: true, seedLeaderboardAssets: true);
+        using var badges = new BadgeDataService(fixture.Athletes, fixture.Events, fixture.Database, NullLogger<BadgeDataService>.Instance);
+        BlockPeriodicReminders(fixture);
+        var winner = fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT AthleteSlug FROM BadgeAwards WHERE BadgeLabel='Pheno Age – lowest' AND LeagueCategory='Global' AND Place=1 LIMIT 1;";
+            return (string)cmd.ExecuteScalar()!;
+        });
+        var subject = current ? winner : fixture.Athletes.GetAthletesForX().First(a => a.Slug != winner).Slug;
+        var id = fixture.InsertEvent(EventType.BadgeAward, $"slug[{subject}] badge[Pheno Age – lowest] cat[Global] val[] place[1]",
+            DateTime.UtcNow, xProcessed: 0, threadsProcessed: 0, facebookProcessed: 0);
+
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Equal((1, current ? null : nameof(SocialEventSkipReason.SupersededBadgeAward)), fixture.ReadPlatformState(id, platform));
+        if (current) Assert.NotEmpty(DonationRequests(fixture, platform));
+    }
+
+    [Theory]
+    [InlineData("bluesky", false)]
+    [InlineData("mastodon", false)]
+    [InlineData("nostr", false)]
+    [InlineData("instagram", false)]
+    [InlineData("webpush", false)]
+    [InlineData("mastodon", true)]
+    [InlineData("nostr", true)]
+    [InlineData("instagram", true)]
+    public void PreparedAwardsAreRecheckedAndUnconfirmedAttemptsRetainTheirHistory(string platform, bool attempted)
+    {
+        using var fixture = SocialJobFixture.Create();
+        var now = DateTimeOffset.UtcNow;
+        SocialDeliveryStore.InitializeChannel(fixture.Database, platform);
+        var text = "slug[alice] badge[Pheno Age best improvement] cat[Global] val[] place[1]";
+        var id = fixture.InsertEvent(EventType.BadgeAward, text, now.UtcDateTime);
+        var store = new SocialDeliveryStore(fixture.Database);
+        store.Prepare(platform, id, "saved immutable request", "alice", now);
+        Assert.False(store.SuppressSupersededBadge(platform, id, EventType.BadgeAward, text, _ => true, now));
+        if (attempted) Assert.True(store.BeginAttempt(platform, id, now));
+
+        Assert.True(store.SuppressSupersededBadge(platform, id, EventType.BadgeAward, text, _ => false, now));
+        store.Fail(platform, id, "NetworkError", TimeSpan.FromMinutes(2), true, now);
+        Assert.False(store.BeginAttempt(platform, id, now.AddMinutes(3)));
+        Assert.Empty(store.GetPending(platform, customOnly: true, now));
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Status,LastErrorCode,RecordJson,FirstAttemptAtUtc FROM SocialDeliveries WHERE EventId=@id AND Platform=@platform;";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@platform", platform);
+            using var reader = cmd.ExecuteReader();
+            Assert.True(reader.Read());
+            Assert.Equal(attempted ? "review" : "skipped", reader.GetString(0));
+            Assert.Equal(nameof(SocialEventSkipReason.SupersededBadgeAward), reader.GetString(1));
+            Assert.Equal("saved immutable request", reader.GetString(2));
+            Assert.Equal(attempted, !reader.IsDBNull(3));
+        });
+    }
+
+    [Fact]
     public async Task BlueskyDonation_FailedSendRetriesAndCompletesExactlyOnce()
     {
         using var fixture = SocialJobFixture.Create();
