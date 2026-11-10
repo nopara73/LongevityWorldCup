@@ -127,6 +127,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await other.Locator("textarea").FillAsync("Continue writing while the first reply finishes.");
             await other.Locator("textarea").EvaluateAsync("e => e.setSelectionRange(9, 16)");
             await Assertions.Expect(other.Locator("[data-reply-action='submit']")).ToBeDisabledAsync();
+            await WaitForFiniteAnimationsAsync(page);
             var position = await other.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top");
             release.TrySetResult();
             await Assertions.Expect(other.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();
@@ -210,6 +211,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(241, (await owned.Locator("textarea").InputValueAsync()).Length);
         await Assertions.Expect(owned.Locator("[data-reply-count]")).ToHaveTextAsync("1 over");
         await Assertions.Expect(owned.Locator("[data-reply-edit-submit]")).ToBeDisabledAsync();
+        await WaitForFiniteAnimationsAsync(page, "[data-discussion-reply-editor]");
         var controls = await owned.Locator("[data-reply-action]").EvaluateAllAsync<double[][]>("buttons => buttons.map(b => { const r=b.getBoundingClientRect();return [r.width,r.height,r.left,r.right,r.top] })");
         Assert.All(controls, box => { Assert.True(box[0] >= 44); Assert.True(box[1] >= 44); Assert.InRange(box[2], 0, width); Assert.InRange(box[3], 0, width); });
         Assert.Equal(controls[1][4], controls[2][4]);
@@ -306,6 +308,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await target.Locator(editing ? "[data-discussion-reply-edit]" : "[data-discussion-reply]").ClickAsync();
             await target.Locator("textarea").FillAsync("Still writing when the order changes.");
             await target.Locator("textarea").EvaluateAsync("e => e.setSelectionRange(3, 7)");
+            await WaitForFiniteAnimationsAsync(page);
             var top = await target.Locator("textarea").EvaluateAsync<double>("e => e.getBoundingClientRect().top");
             release.TrySetResult();
             await Assertions.Expect(target.Locator("[data-reply-action='submit']")).ToBeEnabledAsync();

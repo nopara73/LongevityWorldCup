@@ -84,7 +84,9 @@ public sealed class HomepageHighlightSelectionTests
             "Frontend",
             "events-page.js"));
 
-        var improvementStart = eventBoardHtml.IndexOf("r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug", StringComparison.Ordinal);
+        var improvementStart = eventBoardHtml.IndexOf(
+            "(r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.PhenoAgeTop10Change) && r.primarySlug",
+            StringComparison.Ordinal);
         Assert.True(improvementStart >= 0, "Could not find Improvement leaderboard event rendering.");
 
         var improvementEnd = eventBoardHtml.IndexOf("r.type === EVENT_TYPE.NewRank", improvementStart, StringComparison.Ordinal);

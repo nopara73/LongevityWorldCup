@@ -205,8 +205,13 @@ public sealed class EmptyStateBrowserTests(PlaywrightBrowserFixture browserFixtu
         await page.Locator("#playAthleteInput").FillAsync("zzzzemptyreview");
         await Assertions.Expect(page.Locator(".athlete-search-empty svg")).ToHaveCountAsync(1);
         await WaitForFiniteAnimationsAsync(page);
-        await page.EvaluateAsync("() => scrollTo(0, document.documentElement.scrollHeight)");
-        await page.WaitForTimeoutAsync(100);
+        await page.EvaluateAsync("""
+            async () => {
+                scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+                // Deliver scroll and the dock refresh it queues for the following frame.
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
         var metrics = await page.EvaluateAsync<double[]>("""
             () => {
                 const hint = document.querySelector('.athlete-search-empty').getBoundingClientRect();

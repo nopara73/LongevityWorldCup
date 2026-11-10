@@ -89,14 +89,27 @@ public sealed class PublicLeaderboardSnapshot
             "improvement" => "Pheno Improvement League", "bortz-improvement" => "Bortz Improvement League",
             "crowd" => "Crowd Age League", _ => "Ultimate League"
         };
-        if (view == "ultimate")
+        var flagLabel = flags.Count == 1
+            ? FlagCanonicalizer.GetCanonicalName(Athletes.First(a => flags.Contains(FlagKey(a.Row.Flag))).Row.Flag)
+            : flags.Count > 1 ? $"{flags.Count} Flags" : "";
+        var cohortTitle = string.Join(' ', new[]
         {
-            if (flags.Count == 1) railTitle = FlagCanonicalizer.GetCanonicalName(Athletes.First(a => flags.Contains(FlagKey(a.Row.Flag))).Row.Flag);
-            else if (flags.Count > 1) railTitle = $"{flags.Count} Flags";
-            else if (exclusive.Count > 0) railTitle = exclusive.Count == 1 ? exclusive.First() + " League" : "Exclusive Leagues";
-            else if (generations.Count > 0 || divisions.Count > 0)
-                railTitle = string.Join(' ', new[] { GenerationLabel(generations), DivisionLabel(divisions) }.Where(s => s.Length > 0)) + " League";
-            else if (tracks.Length == 1) railTitle = tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase) ? "Pro League" : "Amateur League";
+            flagLabel,
+            exclusive.Count == 1 ? exclusive.First() : exclusive.Count > 1 ? "Exclusive Leagues" : "",
+            GenerationLabel(generations), DivisionLabel(divisions),
+            tracks.Length == 1 ? tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase) ? "Pro" : "Amateur" : ""
+        }.Where(s => s.Length > 0));
+        var leagueTitle = !byFlag && cohortTitle.Length > 0 ? cohortTitle == "Exclusive Leagues" ? cohortTitle : cohortTitle + " League" : "";
+        var documentTitle = "";
+        if (leagueTitle.Length > 0)
+        {
+            documentTitle = view == "ultimate" ? leagueTitle : leagueTitle + " · " + railTitle[..^7];
+            railTitle = leagueTitle;
+            if (view == "ultimate" && flags.Count > 0 && exclusive.Count == 0 && generations.Count == 0 && divisions.Count == 0 && tracks.Length != 1)
+            {
+                railTitle = flagLabel;
+                documentTitle = flags.Count == 1 ? "Leaderboard: " + flagLabel : flagLabel + " Leaderboard";
+            }
         }
         var isDefault = view == "ultimate" && divisions.Count == 0 && generations.Count == 0 && exclusive.Count == 0 && flags.Count == 0 && tracks.Length != 1;
         if (byFlag)
@@ -111,6 +124,8 @@ public sealed class PublicLeaderboardSnapshot
         return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(LeaderboardOrdering.Apply(rows, byFlag ? new() : ordering)), railTitle, isDefault && !byFlag && !ordering.IsCustom)
         {
             Ordering = ordering,
+            LeagueTitle = leagueTitle,
+            DocumentTitle = documentTitle,
             ByFlag = byFlag,
             FlagTeams = byFlag ? FlagLeaderboard.Build(cohort, view!) : []
         };
@@ -118,11 +133,16 @@ public sealed class PublicLeaderboardSnapshot
 
     public IReadOnlyList<PublicAthlete> Order(string view)
     {
+        if (view is "improvement" or "bortz-improvement")
+        {
+            var improvementAthletes = Athletes.ToDictionary(a => a.Row.Slug, StringComparer.OrdinalIgnoreCase);
+            return AgeImprovementRanking.Rank(Athletes.Select(a => a.Stats), view == "improvement" ? "pheno" : "bortz")
+                .Select(row => improvementAthletes[row.Slug]).ToList();
+        }
+
         var candidates = Athletes.Where(a => view switch
         {
             "bortz" => a.IsPro,
-            "improvement" => IsFinite(a.Stats.PhenoAgeImprovementFromWorst),
-            "bortz-improvement" => IsFinite(a.Stats.BortzAgeImprovementFromWorst),
             "crowd" => a.Stats.CrowdCount >= 100 && IsFinite(a.Metric("crowd")),
             _ => true
         }).ToList();
@@ -130,10 +150,6 @@ public sealed class PublicLeaderboardSnapshot
         {
             "crowd" => CompetitionRanking.SortByCrowdAgeRules(candidates.Select(a => new CrowdAgeRankCandidate(
                 a.Row.Slug, a.Stats.Name, a.Stats.CrowdAge!.Value, a.Metric(view)!.Value, a.Stats.CrowdCount, a.Stats.DobUtc!.Value))).Select(a => a.Slug),
-            "improvement" => CompetitionRanking.SortByPhenoAgeImprovementRules(candidates.Select(a => new PhenoAgeImprovementRankCandidate(
-                a.Row.Slug, a.Stats.Name, a.Metric(view)!.Value, a.Stats.AgeReduction ?? 0, a.Stats.DobUtc!.Value))).Select(a => a.Slug),
-            "bortz-improvement" => CompetitionRanking.SortByBortzAgeImprovementRules(candidates.Select(a => new BortzAgeImprovementRankCandidate(
-                a.Row.Slug, a.Stats.Name, a.Metric(view)!.Value, a.Stats.BortzAgeReduction ?? 0, a.Stats.DobUtc!.Value))).Select(a => a.Slug),
             _ => CompetitionRanking.SortByCompetitionRules(candidates.Select(a => new CompetitionRankCandidate(
                 a.Row.Slug, a.Stats.Name, view != "pheno" && a.IsPro, a.Metric(view) ?? 0, a.Stats.DobUtc!.Value))).Select(a => a.Slug)
         };
@@ -182,8 +198,8 @@ public sealed record PublicAthlete(LeaderboardSnapshotRow Row, PhenoStatsCalcula
     public double? Metric(string view) => view switch
     {
         "pheno" => Stats.AgeReduction,
-        "improvement" => Stats.PhenoAgeImprovementFromWorst,
-        "bortz-improvement" => Stats.BortzAgeImprovementFromWorst,
+        "improvement" => AgeImprovementRanking.Metric(Stats, "pheno"),
+        "bortz-improvement" => AgeImprovementRanking.Metric(Stats, "bortz"),
         "crowd" => Stats.CrowdAge - Stats.ChronoAge,
         _ => Stats.BortzAgeReduction ?? Stats.AgeReduction
     };
@@ -191,6 +207,8 @@ public sealed record PublicAthlete(LeaderboardSnapshotRow Row, PhenoStatsCalcula
 
 public sealed record PublicLeaderboardSelection(string View, LeaderboardSnapshot Snapshot, string RailTitle, bool IsDefault)
 {
+    public string LeagueTitle { get; init; } = "";
+    public string DocumentTitle { get; init; } = "";
     public bool ByFlag { get; init; }
     public LeaderboardOrderState Ordering { get; init; } = new();
     public LeaderboardOrderState DisplayOrdering => ByFlag ? new() : Ordering;

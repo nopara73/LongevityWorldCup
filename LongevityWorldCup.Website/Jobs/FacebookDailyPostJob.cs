@@ -7,6 +7,7 @@ namespace LongevityWorldCup.Website.Jobs;
 [DisallowConcurrentExecution]
 public class FacebookDailyPostJob : IJob
 {
+    private static readonly TimeSpan SubjectCooldown = TimeSpan.FromDays(2);
     private readonly ILogger<FacebookDailyPostJob> _logger;
     private readonly EventDataService _events;
     private readonly AthleteDataService _athletes;
@@ -31,13 +32,19 @@ public class FacebookDailyPostJob : IJob
         var pending = _events.GetPendingFacebookEvents();
         var skippedEvents = new List<(string Id, SocialEventSkipReason Reason)>();
 
-        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, _) in pending)
+        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, priority) in pending)
         {
-            if (SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(type, out var skipReason))
+            if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(type, text, occurredAtUtc, priority,
+                    DateTime.UtcNow.AddDays(-7), _athletes.HasSingleGlobalPlaceOneBadgeHolder, out var skipReason, _athletes.IsCurrentBadgeAward))
             {
                 skippedEvents.Add((id, skipReason));
                 continue;
             }
+
+            var subject = type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
+                && EventHelpers.TryExtractSlug(text, out var slug) ? slug : null;
+            if (subject is not null && _fillerLog.IsSubjectOnCooldown(subject, SubjectCooldown, DateTime.UtcNow))
+                continue;
 
             var claimedCustomEvent = false;
             if (type == EventType.CustomEvent)
@@ -83,6 +90,7 @@ public class FacebookDailyPostJob : IJob
                 _events.FinalizeClaimedCustomEventForDispatch(id, SocialPlatform.Facebook, succeeded: true);
             else
                 _events.MarkEventsFacebookProcessed(new[] { id });
+            if (subject is not null) _fillerLog.LogSubjectPost(DateTime.UtcNow, $"event[{id}] type[{type}]", subject);
             _logger.LogInformation("FacebookDailyPostJob posted event {Id}", id);
             return;
         }

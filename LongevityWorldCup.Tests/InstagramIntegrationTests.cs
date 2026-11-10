@@ -19,6 +19,32 @@ public sealed class InstagramIntegrationTests
     private static readonly InstagramPostRequest Post = new("A sport for time 🏆", "https://longevityworldcup.com/generated/instagram/card.jpg", "Complete announcement");
 
     [Fact]
+    public async Task SuppressionDuringContainerPreparationPreventsPublication()
+    {
+        using var fixture = new DeliveryFixture();
+        var publishes = 0;
+        var api = Client(request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/me")) return Task.FromResult(Identity());
+            if (path.EndsWith("/media")) return Task.FromResult(Json("""{"id":"222"}"""));
+            if (path.EndsWith("/222"))
+            {
+                fixture.Deliveries.Skip(SocialDeliveryStore.Instagram, "new", "ScoringCorrection", Now);
+                return Task.FromResult(Json("""{"id":"222","status_code":"FINISHED"}"""));
+            }
+            publishes++;
+            return Task.FromResult(Json("""{"id":"333"}"""));
+        });
+
+        var error = await Assert.ThrowsAsync<InstagramApiException>(() => fixture.Publisher(api).PublishAsync(fixture.Pending(), Post, default));
+
+        Assert.Equal("DeliverySuppressed", error.Code);
+        Assert.Equal(0, publishes);
+        Assert.Empty(fixture.Deliveries.GetPending(SocialDeliveryStore.Instagram, true, Now));
+    }
+
+    [Fact]
     public void Captions_AlwaysUseAnImageAndRespectEmojiBoundaries()
     {
         var plan = InstagramPost.BuildPlan("event", "A new channel\n\nFollow [mention](alice_smith).", slug => "Alice Smith", false);

@@ -126,12 +126,12 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
                     var leaderboardPath = GetRequestCanonicalPath(context);
-                    if ((leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)) &&
-                        string.Equals(context.Request.Query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase))
+                    if (leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath))
                     {
                         var selection = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date)
                             .Select(leaderboardPath, context.Request.Query);
-                        seo = seo with { PageTitle = $"{selection.RailTitle} | Longevity World Cup" };
+                        if (selection.ByFlag || selection.DocumentTitle.Length > 0)
+                            seo = seo with { PageTitle = $"{(selection.ByFlag ? selection.RailTitle : selection.DocumentTitle)} | Longevity World Cup" };
                     }
 
                     if (usesSharedHead)
@@ -452,7 +452,12 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                             .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     }
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
-                    html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
+                    if (selection.LeagueTitle.Length > 0)
+                    {
+                        html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardLeagueTitle", System.Net.WebUtility.HtmlEncode(selection.LeagueTitle))
+                            .Replace("id=\"leaderboardLeagueTitle\" hidden", "id=\"leaderboardLeagueTitle\"", StringComparison.Ordinal);
+                    }
+                    html = Regex.Replace(html, "(<span class=\"collapsed-title\"[^>]*>).*?(</span>)",
                         match => match.Groups[1].Value.TrimEnd('>') +
                             $" title=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\">" +
                             System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
@@ -603,6 +608,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
 
             // Shared interaction and type styles precede the palette, dark
             // lighting and the final depth scale. Component states retain priority.
+            // The layout system closes the group so every page shares its column.
             var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
@@ -615,7 +621,9 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/type-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}"
-                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}";
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/layout-system.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/layout-system.js")}\" defer></script>{Environment.NewLine}";
             return html.Insert(closingHeadIndex, stylesheet);
         }
 
@@ -1538,6 +1546,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     "https://www.youtube.com/@longevityworldcup",
                     "https://www.instagram.com/LongevityWorldCup/",
                     "https://www.threads.com/@longevityworldcup",
+                    "https://t.me/longevityworldcup",
                     "https://primal.net/p/npub1dgxhzvhhca4hrpzmakc2n8hpvmawtvlacdy80r4wsaghf4h5486sg8tqtl"
                 },
                 ["knowsAbout"] = new[]

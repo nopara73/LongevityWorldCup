@@ -329,7 +329,7 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
     [Theory]
     [InlineData("pheno", "pheno-baseline-improvement", "improvement")]
     [InlineData("bortz", "bortz-baseline-improvement", "bortz-improvement")]
-    public async Task AthleteImprovementSharePreviews_DistinguishBaselineBadgesFromLeaderboardEvents(
+    public async Task AthleteImprovementSharePreviews_UseWorstToLatestForBadgesAndLeaderboardEvents(
         string clock,
         string baselineContext,
         string leaderboardContext)
@@ -345,7 +345,7 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
         {
             var slug = athlete["AthleteSlug"]?.GetValue<string>();
             if (!string.IsNullOrWhiteSpace(slug) &&
-                athletes.TryGetBaselineImprovementLeaderboardEntry(slug, clock, out var candidateEntry) &&
+                athletes.TryGetRedemptionArcEntry(slug, clock, out var candidateEntry) &&
                 athleteImages.TryGetCurrentPayload(slug, baselineContext, out var candidateBaseline) &&
                 athleteImages.TryGetCurrentPayload(slug, leaderboardContext, out var candidateLeaderboard))
             {
@@ -362,10 +362,11 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
         Assert.Equal(baselineContext, baselinePayload!.LeagueSlug);
         Assert.Equal(baselineEntry!.Rank, baselinePayload.Rank);
         Assert.Equal(baselineEntry.Improvement, baselinePayload.AgeReduction, 6);
-        Assert.Equal("Baseline rank", baselinePayload.RankLabel);
-        Assert.Equal("Baseline improvement", baselinePayload.MetricLabel);
-        Assert.Contains("from first to latest eligible result", baselinePayload.Description);
-        Assert.DoesNotContain("from worst", baselinePayload.Description);
+        Assert.Equal("Improvement rank", baselinePayload.RankLabel);
+        Assert.Equal("Improvement", baselinePayload.MetricLabel);
+        Assert.Contains("from worst to latest eligible result", baselinePayload.Description);
+        Assert.Equal(baselinePayload.AgeReduction, leaderboardPayload!.AgeReduction, 10);
+        Assert.Equal(baselinePayload.Rank, leaderboardPayload.Rank);
         Assert.Equal(leaderboardContext, leaderboardPayload!.LeagueSlug);
         Assert.Contains("from worst to latest eligible result", leaderboardPayload.Description);
 
