@@ -48,6 +48,8 @@ public sealed class BestResultRankingTests
             var row = Assert.Single(snapshot.Select($"/league/{view}", QueryCollection.Empty).Snapshot.Rows);
             var reduction = pro && view != "pheno" ? expected.BortzAgeReduction : expected.AgeReduction;
             Assert.Equal(reduction!.Value, row.EffectiveAgeReductionYears!.Value, precision: 2);
+            Assert.Equal(expected.PhenoRankResult!.AgeReductionPercent, row.OrderValues["phenoPercent"].Number);
+            Assert.Equal(expected.BortzRankResult?.AgeReductionPercent, row.OrderValues["bortzPercent"].Number);
         }
     }
 
