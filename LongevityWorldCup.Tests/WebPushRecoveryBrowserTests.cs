@@ -98,7 +98,11 @@ public sealed class WebPushRecoveryBrowserTests
             await Capture(page, width, "before");
             await context.UnrouteAsync("**/js/web-push.js*");
         }
-        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var renewal = await page.RunAndWaitForResponseAsync(
+            async () => await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded }),
+            response => response.Request.Method == "POST"
+                && response.Url.EndsWith("/api/web-push/subscribe", StringComparison.Ordinal));
+        Assert.Equal(503, renewal.Status);
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-busy", "false");
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "false");
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-label", "Turn off announcement notifications — sync pending");
@@ -117,7 +121,11 @@ public sealed class WebPushRecoveryBrowserTests
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "false");
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-label", "Retry notification preferences");
         Assert.Null(await page.EvaluateAsync<string?>("localStorage.getItem('subscription')"));
-        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var optOut = await page.RunAndWaitForResponseAsync(
+            async () => await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded }),
+            response => response.Request.Method == "POST"
+                && response.Url.EndsWith("/api/web-push/unsubscribe", StringComparison.Ordinal));
+        Assert.Equal(503, optOut.Status);
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-label", "Retry notification preferences");
         Assert.Equal("1", await page.EvaluateAsync<string>("localStorage.getItem('providerSubscribes')"));
         await context.UnrouteAsync("**/api/web-push/unsubscribe");
@@ -140,7 +148,7 @@ public sealed class WebPushRecoveryBrowserTests
         var directory = Environment.GetEnvironmentVariable("LWC_PUSH_REVIEW_DIR");
         if (directory is null) return;
         Directory.CreateDirectory(directory);
-        await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => setTimeout(resolve, 1000)); scrollTo(0, 0); await new Promise(requestAnimationFrame); }");
+        await page.EvaluateAsync("async () => { await document.fonts.ready; scrollTo({top:0, behavior:'instant'}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
         await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{state}-{width}.png"), Animations = ScreenshotAnimations.Disabled });
     }
 }

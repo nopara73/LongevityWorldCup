@@ -34,7 +34,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         bool SendToReddit = false,
         bool SendToBluesky = false,
         bool SendToWebPush = false,
-        bool SendToInstagram = false);
+        bool SendToInstagram = false,
+        bool SendToTelegram = false);
 
     [HttpPost]
     [RequestSizeLimit(MaxRequestBytes)]
@@ -83,16 +84,29 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             request.SendToReddit,
             request.SendToBluesky,
             request.SendToWebPush,
-            request.SendToInstagram);
+            request.SendToInstagram,
+            request.SendToTelegram);
+        var blockedRedditLink = targets.SendToReddit
+            ? RedditLinkPolicy.FindBlockedLink($"{title}\n\n{content}", reddit?.GetBlockedLinks(_config.RedditBlockedLinks) ?? _config.RedditBlockedLinks)
+            : null;
+        if (blockedRedditLink is not null)
+            targets = targets with { SendToReddit = false };
+
         var selectedTargets = GetSelectedTargets(targets);
         if (selectedTargets.Count == 0)
+        {
+            if (blockedRedditLink is not null)
+                return BadRequest(new { message = "Change the blocked link or select another destination.", blockedRedditLink });
             return BadRequest("Select at least one destination.");
-        if (targets.SendToReddit && (!_config.RedditEnabled || reddit?.IsActive != true))
+        }
+        if (targets.SendToReddit && (!_config.RedditDispatchEnabled || reddit?.IsActive != true))
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Reddit announcements are not active yet.");
         if (targets.SendToWebPush && webPush?.IsConfigured != true)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Website notifications are not configured.");
         if (targets.SendToInstagram && (string.IsNullOrWhiteSpace(_config.InstagramAccountId) || string.IsNullOrWhiteSpace(_config.InstagramAccessToken)))
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Instagram announcements are not configured.");
+        if (targets.SendToTelegram && _config.Telegram is null)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Telegram announcements are not configured.");
 
         var eventId = _events.CreateCustomEvent(
             titleRaw: title,
@@ -109,7 +123,8 @@ public sealed class CustomEventsController(EventDataService events, Config confi
             success = true,
             eventId,
             queuedTargets = selectedTargets,
-            selectedTargets
+            selectedTargets,
+            blockedRedditLink
         });
     }
 
@@ -127,6 +142,7 @@ public sealed class CustomEventsController(EventDataService events, Config confi
         if (targets.SendToBluesky) selected.Add("bluesky");
         if (targets.SendToWebPush) selected.Add("webpush");
         if (targets.SendToInstagram) selected.Add("instagram");
+        if (targets.SendToTelegram) selected.Add("telegram");
         return selected;
     }
 }

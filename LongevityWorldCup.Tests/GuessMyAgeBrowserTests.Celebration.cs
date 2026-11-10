@@ -309,6 +309,8 @@ public sealed class GuessMyAgeCelebrationBrowserTests(
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         var exactResultResponse = await exactResponse;
         await exactResultResponse.FinishedAsync();
+        // Do not spend the detour budget before the response arms the reveal.
+        await page.WaitForFunctionAsync("() => !!document.querySelector('#detailsModal .modal-content.gma-result-ready')");
         var exactDetourReady = false;
         for (var elapsed = 0; elapsed < 2500 && !exactDetourReady; elapsed += 100)
         {
@@ -565,6 +567,7 @@ public sealed class GuessMyAgeCelebrationBrowserTests(
             }
             """);
 
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
 
@@ -586,6 +589,7 @@ public sealed class GuessMyAgeCelebrationBrowserTests(
         Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
 
         await page.Keyboard.PressAsync("Escape");
+        await page.Clock.ResumeAsync();
         await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
         Assert.Empty(errors);
     }

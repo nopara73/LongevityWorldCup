@@ -12,6 +12,7 @@ public sealed class InstagramVisualTests
     [InlineData("Bluesky", "https://bsky.app/profile/longevityworldcup.bsky.social", "bluesky")]
     [InlineData("Instagram", "https://www.instagram.com/longevityworldcup/", "instagram")]
     [InlineData("Reddit", "https://www.reddit.com/r/LongevityWorldCup/", "reddit")]
+    [InlineData("Telegram", "https://t.me/longevityworldcup", "telegram")]
     public void LinkedLaunchHeadline_IdentifiesThePlatformWithoutABody(string label, string url, string platform)
     {
         var raw = $"LWC is now on [{label}]({url})";

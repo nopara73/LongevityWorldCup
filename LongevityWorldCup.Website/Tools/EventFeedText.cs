@@ -37,6 +37,9 @@ internal static class EventFeedText
             case EventType.AgeImprovementTop10Change when name.Length > 0:
                 if (!EventHelpers.TryExtractAgeImprovementTop10Change(raw, out var improvementClock, out var place, out var previousPlace, out var improvement, out _)) return null;
                 return SocialPostText.BuildAgeImprovementTop10Line(name, improvementClock, place, previousPlace, previous, improvement, "").TrimEnd();
+            case EventType.PhenoAgeTop10Change when name.Length > 0:
+                if (!EventHelpers.TryExtractPhenoAgeTop10Change(raw, out var phenoPlace, out var phenoPrevious, out var phenoReduction)) return null;
+                return SocialPostText.BuildPhenoAgeTop10Line(name, phenoPlace, phenoPrevious, phenoReduction, "").TrimEnd();
             case EventType.DonationReceived:
                 return DonationReceivedPost.BuildText(raw);
             case EventType.AthleteCountMilestone:

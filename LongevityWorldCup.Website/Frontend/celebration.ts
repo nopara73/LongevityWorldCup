@@ -108,7 +108,7 @@ interface Window {
     }
 
     function visible(target: Element): boolean {
-        if (!target.isConnected || document.hidden || !target.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
+        if (!target.isConnected || document.hidden || !target.checkVisibility?.({ checkOpacity: true, checkVisibilityCSS: true })) return false;
         const rect = target.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight
             && rect.right > 0 && rect.left < innerWidth;
@@ -245,7 +245,8 @@ interface Window {
     }
 
     function play(target: Element | null | undefined, options: LwcCelebrationOptions = {}): boolean {
-        if (!target || !target.isConnected) return false;
+        // This optional effect watches visibility each frame; keep older engines still.
+        if (!target || !target.isConnected || typeof target.checkVisibility !== 'function') return false;
         const key = options.once;
         if (key && (seen(key) || [...pending].some(entry => entry.key === key))) return false;
         for (const entry of pending) if (entry.target === target) entry.cancel();

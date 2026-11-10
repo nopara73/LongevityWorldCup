@@ -38,7 +38,7 @@ public sealed partial class BioageResultScoreboardBrowserTests(
             await FillBortzBiomarkersAsync(page);
         else
             await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForFunctionAsync("selector => document.querySelector(selector)?.classList.contains('show')", resultSelector);
         await page.WaitForFunctionAsync("() => /\\d/.test(document.getElementById('yearsText').textContent)");
 
@@ -249,7 +249,7 @@ public sealed partial class BioageResultScoreboardBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForFunctionAsync("() => document.querySelector('.bioageform.show') && /\\d|years/.test(document.getElementById('yearsText').textContent)");
     }
 }

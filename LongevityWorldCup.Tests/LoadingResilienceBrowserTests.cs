@@ -223,11 +223,17 @@ public sealed class LoadingResilienceBrowserTests(PlaywrightBrowserFixture brows
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 1280, Height = 800 } });
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await context.RouteAsync("**/*.woff2*", async route => { await release.Task; await route.ContinueAsync(); });
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/*.woff2*", async route => { requested.TrySetResult(); await release.Task; await route.ContinueAsync(); });
         var page = await context.NewPageAsync();
         try
         {
             await page.GotoAsync("/ruleset", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Assertions.Expect(page.Locator(".documentation-document p").First).ToBeVisibleAsync();
+            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            // Keep fonts late past the optional-font swap window, after fallback
+            // prose is visible and an actual font request is held.
             await page.WaitForTimeoutAsync(1500);
             await Assertions.Expect(page.Locator(".documentation-document p").First).ToBeVisibleAsync();
         }

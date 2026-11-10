@@ -119,6 +119,20 @@ public static class EventHelpers
         return true;
     }
 
+    public static bool TryExtractPhenoAgeTop10Change(
+        string raw, out int place, out int? previousPlace, out double ageReduction)
+    {
+        previousPlace = null;
+        ageReduction = 0;
+        if (!TryExtractPlace(raw, out place) || place is < 1 or > 10) return false;
+        if (TryExtractPreviousPlace(raw, out var previous))
+        {
+            if (previous is < 1 or > 10 || previous <= place) return false;
+            previousPlace = previous;
+        }
+        return TryExtractAgeReduction(raw, out ageReduction) && double.IsFinite(ageReduction);
+    }
+
     public static bool TryExtractCrowdAgeTop10Change(
         string raw,
         out int place,

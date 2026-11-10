@@ -803,9 +803,8 @@ public sealed partial class SiteStatisticsService : IHostedService
 
     private async Task FlushQueuedEventsAsync(CancellationToken ct)
     {
-        if (Volatile.Read(ref _queuedEventCount) <= 0)
-            return;
-
+        // An empty queue can still have a dequeued batch awaiting commit.
+        // Dashboard reads must wait for that writer before checking the queue.
         await _flushGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {

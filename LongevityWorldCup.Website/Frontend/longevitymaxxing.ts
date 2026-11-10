@@ -4218,11 +4218,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         document.addEventListener("focusout", hideTooltip);
         document.addEventListener("keydown", event => { if (event.key === "Escape") hideTooltip(); });
-        window.addEventListener("scroll", () => {
+        const repositionTooltip = () => {
             if (tooltipOwner && document.activeElement === tooltipOwner) showTooltip(tooltipOwner);
             else hideTooltip();
-        }, true);
-        window.addEventListener("resize", hideTooltip);
+        };
+        window.addEventListener("scroll", repositionTooltip, true);
+        window.addEventListener("resize", repositionTooltip);
     }
 
     async function navigateDiscussion(hash: string, localThread?: HTMLElement, readIntent: boolean | "conversation" = false): Promise<void> {
@@ -4768,7 +4769,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const permalink = discussionPermalink(note);
         const when = discussionTimeHtml(note.updatedAtUtc, permalink, note.kind === "participant-joined" ? "Joined" : "Post updated");
         const day = note.systemPostId ? ""
-            : `<span title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
+            : `<span class="lmx-day-chip" title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
         const replies = discussionNeedsAdvice(note) && !replyCount && !unreadLink ? "" : replyCount || canReply || unreadLink
             ? `<a class="lmx-discussion-count${unreadLink ? " lmx-unread-link" : ""}" data-discussion-link
                 data-read-label="${escAttr(replyLabel)}" data-read-href="${escAttr(`${permalink}/replies`)}" href="${escAttr(unreadLink?.href || `${permalink}/replies`)}"
@@ -8225,6 +8226,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function calculateQuotePhenoStats(athlete: AthleteRecord, dob: Date, chronologicalAge: number): QuotePhenoStats {
         let lowestPhenoAge = Infinity;
+        let bestAgeReduction = Infinity;
         let chronoAtLowestPhenoAge = chronologicalAge;
         const phenoAgeApi = readSharedWindowApi().PhenoAge;
         const phenoSubmissionAges = quoteBiomarkers(athlete)
@@ -8247,6 +8249,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const phenoAge = phenoAgeApi && typeof phenoAgeApi.calculatePhenoAge === "function"
                     ? phenoAgeApi.calculatePhenoAge(values)
                     : NaN;
+                if (Number.isFinite(phenoAge)) bestAgeReduction = Math.min(bestAgeReduction, phenoAge - ageAtEntry);
                 if (Number.isFinite(phenoAge) && phenoAge < lowestPhenoAge) {
                     lowestPhenoAge = phenoAge;
                     chronoAtLowestPhenoAge = ageAtEntry;
@@ -8260,9 +8263,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             chronoAtLowestPhenoAge = chronologicalAge;
         }
 
-        const ageReduction = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge)
-            ? lowestPhenoAge - chronoAtLowestPhenoAge
-            : null;
+        const ageReduction = Number.isFinite(bestAgeReduction) ? bestAgeReduction
+            : Number.isFinite(chronologicalAge) ? 0 : null;
         const ageReductionPercent = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge) && chronoAtLowestPhenoAge > 0
             ? (1 - lowestPhenoAge / chronoAtLowestPhenoAge) * 100
             : null;
@@ -8288,6 +8290,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let bortzAgeReduction = null;
         let bortzAgeImprovement = null;
         let bortzMin = Infinity;
+        let bestAgeReduction = Infinity;
         const bortzAgeApi = readSharedWindowApi().BortzAge;
 
         const bortzSubmissionAges = quoteBiomarkers(athlete)
@@ -8299,6 +8302,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const bortzAge = bortzAgeApi && typeof bortzAgeApi.calculateBortzAge === "function"
                     ? bortzAgeApi.calculateBortzAge(ageAtEntry, values)
                     : NaN;
+                if (Number.isFinite(bortzAge)) bestAgeReduction = Math.min(bestAgeReduction, bortzAge - ageAtEntry);
                 if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                     bortzMin = bortzAge;
                     chronoAtLowestBortzAge = ageAtEntry;
@@ -8309,7 +8313,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         if (Number.isFinite(bortzMin) && chronoAtLowestBortzAge !== null) {
             lowestBortzAge = bortzMin;
-            bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
+            bortzAgeReduction = bestAgeReduction;
         }
 
         if (bortzSubmissionAges.length >= 2) {

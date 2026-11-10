@@ -1,0 +1,28 @@
+{
+  "Name": "EB Móni",
+  "DisplayName": null,
+  "MediaContact": "borsicsm@gmail.com",
+  "DateOfBirth": {
+    "Year": 1986,
+    "Month": 8,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-20",
+      "AlbGL": 48,
+      "CreatUmolL": 112,
+      "GluMmolL": 5,
+      "CrpMgL": 1.2,
+      "LymPc": 36.5,
+      "McvFL": 89,
+      "RdwPc": 12.9,
+      "AlpUL": 48,
+      "Wbc1000cellsuL": 3.5
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Minden nap egyre jobb legyek.",
+  "PersonalLink": "https://movefit.hu/Eredics-Borsics_Monika"
+}

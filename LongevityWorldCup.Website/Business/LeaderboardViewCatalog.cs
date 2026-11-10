@@ -55,8 +55,6 @@ public static class LeaderboardViewCatalog
             "/league/gen-alpha" => rows.Where(row => string.Equals(row.Generation, "Gen Alpha", StringComparison.OrdinalIgnoreCase)),
             "/league/prosperan" => rows.Where(row => string.Equals(row.ExclusiveLeague, "Prosperan", StringComparison.OrdinalIgnoreCase)),
             "/league/bortz" => rows.Where(row => row.Track == "Pro"),
-            "/league/improvement" => rows.Where(row => Finite(stats[row.Slug].PhenoAgeImprovementFromWorst)),
-            "/league/bortz-improvement" => rows.Where(row => Finite(stats[row.Slug].BortzAgeImprovementFromWorst)),
             "/league/crowd" => rows.Where(row => stats[row.Slug].CrowdCount >= 100 && Finite(stats[row.Slug].CrowdAge)),
             _ => rows
         };
@@ -65,10 +63,8 @@ public static class LeaderboardViewCatalog
         {
             "/league/bortz" or "/league/pheno" => CompetitionRanking.SortByCompetitionRules(candidates.Select(s => new CompetitionRankCandidate(
                 s.Slug, s.Name, false, (path == "/league/pheno" ? s.AgeReduction : s.BortzAgeReduction) ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
-            "/league/improvement" => CompetitionRanking.SortByPhenoAgeImprovementRules(candidates.Select(s => new PhenoAgeImprovementRankCandidate(
-                s.Slug, s.Name, s.PhenoAgeImprovementFromWorst!.Value, s.AgeReduction ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
-            "/league/bortz-improvement" => CompetitionRanking.SortByBortzAgeImprovementRules(candidates.Select(s => new BortzAgeImprovementRankCandidate(
-                s.Slug, s.Name, s.BortzAgeImprovementFromWorst!.Value, s.BortzAgeReduction ?? 0, s.DobUtc!.Value))).Select(s => s.Slug),
+            "/league/improvement" or "/league/bortz-improvement" => AgeImprovementRanking.Rank(
+                candidates, path == "/league/improvement" ? "pheno" : "bortz").Select(row => row.Slug),
             "/league/crowd" => CompetitionRanking.SortByCrowdAgeRules(candidates.Select(s => new CrowdAgeRankCandidate(
                 s.Slug, s.Name, s.CrowdAge!.Value, s.CrowdAge.Value - (s.ChronoAge ?? 0), s.CrowdCount, s.DobUtc!.Value))).Select(s => s.Slug),
             _ => null
@@ -80,8 +76,8 @@ public static class LeaderboardViewCatalog
     public static double? Metric(string path, LeaderboardSnapshotRow row, PhenoStatsCalculator.Result stats) => path switch
     {
         "/league/pheno" => stats.AgeReduction,
-        "/league/improvement" => stats.PhenoAgeImprovementFromWorst,
-        "/league/bortz-improvement" => stats.BortzAgeImprovementFromWorst,
+        "/league/improvement" => AgeImprovementRanking.Metric(stats, "pheno"),
+        "/league/bortz-improvement" => AgeImprovementRanking.Metric(stats, "bortz"),
         "/league/crowd" => stats.CrowdAge - stats.ChronoAge,
         "/league/bortz" => stats.BortzAgeReduction,
         _ => row.EffectiveAgeReductionYears
