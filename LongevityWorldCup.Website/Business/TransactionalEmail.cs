@@ -6,6 +6,10 @@ namespace LongevityWorldCup.Website.Business;
 
 // The shared HTML frame for every email sent to athletes. Plain-text bodies stay the source of the copy;
 // this only arranges the same words into a masthead, a card, actions, panels and a footer.
+// The frame reads like a matchday ticket: a centred crest on the dark masthead with a soft accent glow,
+// an accent bar that brightens at its centre, a bevelled main action, perks as coupons with a dashed
+// edge, and a quiet foot. Clients that run CSS animation (Apple Mail, iOS Mail) play a one-time arrival:
+// the bar draws in, the crest rises, the action glows once. Reduced motion and other clients stay still.
 // Table layout and inline styles keep it readable in clients that drop <style>; the <style> block adds
 // dark-mode and phone refinements where clients support them.
 internal sealed partial class TransactionalEmail
@@ -24,6 +28,8 @@ internal sealed partial class TransactionalEmail
     private const string Border = "#d7e0e6";
     private const string Accent = "#087685";
     private const string AccentBright = "#19c3d1";
+    private const string AccentDeep = "#065d68";
+    private const string AccentLine = "#9fd8de";
     private const string Chrome = "#101820";
     private const string Warning = "#9a6700";
     private const string WarningSoft = "#fff4d6";
@@ -83,8 +89,8 @@ internal sealed partial class TransactionalEmail
     {
         _blocks.Append(
             "<table role=\"presentation\" class=\"lwc-email-action\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:8px 0 24px;border-collapse:separate;\">" +
-            $"<tr><td class=\"lwc-email-action-cell\" align=\"center\" bgcolor=\"{Accent}\" style=\"background:{Accent};border-radius:8px;mso-padding-alt:15px 20px;\">" +
-            $"<a href=\"{EncodeLinkUrl(url)}\" class=\"lwc-email-action-link\" style=\"display:block;padding:15px 20px;font-family:{FontStack};font-size:16px;line-height:1.4;font-weight:700;color:#ffffff;text-decoration:none;text-align:center;border-radius:8px;\">" +
+            $"<tr><td class=\"lwc-email-action-cell\" align=\"center\" bgcolor=\"{Accent}\" style=\"background:{Accent};border-radius:12px;border-bottom:3px solid {AccentDeep};box-shadow:0 10px 22px -12px rgba(8,118,133,0.75);mso-padding-alt:17px 22px;\">" +
+            $"<a href=\"{EncodeLinkUrl(url)}\" class=\"lwc-email-action-link\" style=\"display:block;padding:17px 22px;font-family:{FontStack};font-size:17px;line-height:1.4;font-weight:700;letter-spacing:0.01em;color:#ffffff;text-decoration:none;text-align:center;border-radius:12px;\">" +
             $"<font color=\"#ffffff\">{EncodeKeepingDatesWhole(label)}&nbsp;&rarr;</font></a></td></tr></table>");
         return this;
     }
@@ -103,7 +109,7 @@ internal sealed partial class TransactionalEmail
     {
         _blocks.Append(
             "<table role=\"presentation\" class=\"lwc-email-panel\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:8px 0 24px;border-collapse:separate;\">" +
-            $"<tr><td class=\"lwc-email-panel-cell\" bgcolor=\"{SurfaceAccent}\" style=\"background:{SurfaceAccent};border:1px solid {Border};border-radius:12px;padding:20px 22px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Ink};\">" +
+            $"<tr><td class=\"lwc-email-panel-cell\" bgcolor=\"{SurfaceAccent}\" style=\"background:{SurfaceAccent};border:2px dashed {AccentLine};border-radius:14px;padding:18px 22px 20px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Ink};\">" +
             $"<p class=\"lwc-email-panel-title lwc-email-ink\" style=\"margin:0 0 10px;font-size:16px;font-weight:700;color:{Ink};\">{Encode(heading)}</p>" +
             $"{bodyHtml}</td></tr></table>");
         return this;
@@ -128,12 +134,12 @@ internal sealed partial class TransactionalEmail
     internal TransactionalEmail Closing(string replyPrompt, string? communityHtml)
     {
         _blocks.Append($"<hr class=\"lwc-email-rule\" style=\"margin:8px 0 20px;border:0;border-top:1px solid {Border};height:0;\" />");
-        _blocks.Append($"<p class=\"lwc-email-reply lwc-email-muted\" style=\"margin:0 0 16px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Muted};\">{Encode(replyPrompt)}</p>");
+        _blocks.Append($"<p class=\"lwc-email-reply lwc-email-muted\" style=\"margin:0 0 16px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Muted};\"><span aria-hidden=\"true\" class=\"lwc-email-reply-mark\" style=\"display:inline-block;margin-right:8px;color:{Accent};font-size:16px;\">&#9993;</span>{Encode(replyPrompt)}</p>");
         if (communityHtml is not null)
         {
             _blocks.Append(
                 "<table role=\"presentation\" class=\"lwc-email-community\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:separate;\">" +
-                $"<tr><td class=\"lwc-email-community-cell\" bgcolor=\"{SurfaceMuted}\" style=\"background:{SurfaceMuted};border:1px solid {Border};border-radius:8px;padding:14px 18px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Ink};\">" +
+                $"<tr><td class=\"lwc-email-community-cell\" bgcolor=\"{SurfaceMuted}\" style=\"background:{SurfaceMuted};border:1px solid {Border};border-left:4px solid {AccentBright};border-radius:10px;padding:14px 18px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Ink};\">" +
                 $"{communityHtml}</td></tr></table>");
         }
         return this;
@@ -176,7 +182,18 @@ internal sealed partial class TransactionalEmail
             ".lwc-email-code{padding:3px 4px !important;letter-spacing:0.04em !important;}" +
             ".lwc-email-action-link{padding-left:10px !important;padding-right:10px !important;}" +
             "}" +
+            "@media (prefers-reduced-motion:no-preference){" +
+            ".lwc-email-accent{animation:lwc-email-bar 900ms cubic-bezier(.2,.8,.2,1) both;background-size:200% 100% !important;}" +
+            ".lwc-email-crest{animation:lwc-email-crest 700ms cubic-bezier(.2,.9,.3,1.2) 120ms both;}" +
+            ".lwc-email-action-cell{animation:lwc-email-glow 1600ms ease-out 700ms both;}" +
+            "@keyframes lwc-email-bar{from{background-position:100% 0;opacity:.4;}to{background-position:0 0;opacity:1;}}" +
+            "@keyframes lwc-email-crest{from{opacity:0;transform:translateY(8px) scale(.9);}to{opacity:1;transform:none;}}" +
+            "@keyframes lwc-email-glow{0%{box-shadow:0 10px 22px -12px rgba(8,118,133,.75);}35%{box-shadow:0 0 0 6px rgba(25,195,209,.28),0 10px 22px -12px rgba(8,118,133,.75);}100%{box-shadow:0 10px 22px -12px rgba(8,118,133,.75);}}" +
+            "}" +
             "@media (prefers-color-scheme:dark){" +
+            ".lwc-email-panel .lwc-email-panel-cell{border-color:#2f6f77 !important;}" +
+            ".lwc-email-reply-mark{color:#5bd5dd !important;}" +
+            ".lwc-email-action-cell{border-bottom-color:#04434b !important;}" +
             ".lwc-email-body,.lwc-email-canvas{background:#0d141b !important;}" +
             ".lwc-email-masthead{border:1px solid #42515e !important;border-bottom:0 !important;}" +
             ".lwc-email-card{background:#17212b !important;border-color:#42515e !important;}" +
@@ -198,14 +215,14 @@ internal sealed partial class TransactionalEmail
             "<tr><td class=\"lwc-email-pad\" align=\"center\" style=\"padding:32px 16px;\">" +
             "<!--[if mso]><table role=\"presentation\" width=\"560\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"width:560px;mso-table-lspace:0pt;mso-table-rspace:0pt;\"><tr><td><![endif]-->" +
             "<table role=\"presentation\" class=\"lwc-email-shell\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"width:100%;max-width:560px;table-layout:fixed;border-collapse:separate;mso-table-lspace:0pt;mso-table-rspace:0pt;\">" +
-            $"<tr><td class=\"lwc-email-masthead\" bgcolor=\"{Chrome}\" style=\"background:{Chrome};border-radius:12px 12px 0 0;padding:16px 32px;\">" +
-            $"<img src=\"{LogoUrl}\" width=\"44\" height=\"44\" alt=\"{SignOff}\" style=\"display:block;width:44px;height:44px;border:0;border-radius:8px;color:#ffffff;font-family:{FontStack};font-size:10px;\" /></td></tr>" +
-            $"<tr><td class=\"lwc-email-accent\" bgcolor=\"{AccentBright}\" style=\"background:{AccentBright};height:3px;line-height:3px;font-size:0;\">&nbsp;</td></tr>" +
-            $"<tr><td class=\"lwc-email-card\" bgcolor=\"{Surface}\" style=\"background:{Surface};border:1px solid {Border};border-top:0;border-radius:0 0 12px 12px;padding:32px 32px 28px;overflow-wrap:anywhere;word-break:break-word;\">" +
+            $"<tr><td class=\"lwc-email-masthead\" align=\"center\" bgcolor=\"{Chrome}\" style=\"background:{Chrome};background-image:radial-gradient(ellipse 60% 120% at 50% 100%,rgba(25,195,209,0.22),rgba(25,195,209,0) 70%);border-radius:14px 14px 0 0;padding:26px 32px 22px;text-align:center;\">" +
+            $"<img class=\"lwc-email-crest\" src=\"{LogoUrl}\" width=\"60\" height=\"60\" alt=\"{SignOff}\" style=\"display:block;margin:0 auto;width:60px;height:60px;border:0;border-radius:14px;box-shadow:0 0 0 3px rgba(25,195,209,0.18),0 10px 24px -10px rgba(0,0,0,0.8);color:#ffffff;font-family:{FontStack};font-size:10px;\" /></td></tr>" +
+            $"<tr><td class=\"lwc-email-accent\" bgcolor=\"{AccentBright}\" style=\"background:{AccentBright};background-image:linear-gradient(90deg,{Accent} 0%,{AccentBright} 35%,#8be6eb 50%,{AccentBright} 65%,{Accent} 100%);height:4px;line-height:4px;font-size:0;\">&nbsp;</td></tr>" +
+            $"<tr><td class=\"lwc-email-card\" bgcolor=\"{Surface}\" style=\"background:{Surface};border:1px solid {Border};border-top:0;border-radius:0 0 14px 14px;padding:32px 32px 28px;box-shadow:0 18px 40px -28px rgba(15,23,42,0.35);overflow-wrap:anywhere;word-break:break-word;\">" +
             _blocks +
             "</td></tr>" +
             $"<tr><td class=\"lwc-email-foot\" align=\"center\" style=\"padding:20px 32px 8px;font-family:{FontStack};font-size:13px;line-height:1.5;color:{Subtle};\">" +
-            $"<p style=\"margin:0;\">{SignOff}</p>{footerLinks}</td></tr>" +
+            $"<p class=\"lwc-email-signoff\" style=\"margin:0;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;font-size:11px;\">{SignOff}</p>{footerLinks}</td></tr>" +
             "</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>";
     }
 }
