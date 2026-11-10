@@ -27,7 +27,10 @@ public static class SocialEventSkipPolicy
     internal static SocialEventSkipReason? ConversationSkipReason(EventType type, string text, DateTime occurredAtUtc, DateTime freshCutoffUtc)
     {
         if (type == EventType.CustomEvent) return null;
-        var newsworthy = type == EventType.AthleteCountMilestone ||
+        if (type == EventType.DonationReceived && !DonationReceivedPost.TryGetAmountSatoshis(text, out _))
+            return SocialEventSkipReason.UnsupportedEventPayload;
+
+        var newsworthy = type is EventType.AthleteCountMilestone or EventType.DonationReceived ||
             (type == EventType.NewRank && EventHelpers.TryExtractRank(text, out var rank) && rank is >= 1 and <= 3);
         if (!newsworthy) return SocialEventSkipReason.RoutineConversationUpdate;
         return occurredAtUtc < freshCutoffUtc ? SocialEventSkipReason.StalePrimaryEvent : null;

@@ -14,11 +14,13 @@ public sealed class SocialEventSkipPolicyTests
     [InlineData(EventType.NewRank, "slug[alice] rank[4]", true)]
     [InlineData(EventType.NewRank, "slug[alice] rank[0]", true)]
     [InlineData(EventType.Joined, "slug[alice]", true)]
-    [InlineData(EventType.DonationReceived, "tx[abc] sats[1000]", true)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[1000]", false)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[0]", true)]
+    [InlineData(EventType.DonationReceived, "sats[1000]", true)]
     [InlineData(EventType.BadgeAward, "slug[alice] badge[Pheno Age best improvement] cat[Global] val[] place[1]", true)]
     [InlineData(EventType.CrowdAgeTop10Change, "slug[alice] place[1] prevPlace[2] crowdAge[25] crowdCount[100]", true)]
     [InlineData(EventType.AgeImprovementTop10Change, "slug[alice] clock[pheno] place[1] improvement[-9.2] ageReduction[-12]", true)]
-    public void ConversationChannelsKeepAnnouncementsMilestonesAndOverallPodiums(EventType type, string text, bool skip)
+    public void ConversationChannelsUseTheAnnouncementAllowlist(EventType type, string text, bool skip)
     {
         var now = DateTime.UtcNow;
         Assert.Equal(skip, EventDataService.ShouldSkipSlackNotification(type, now, now.AddDays(-7), text));
