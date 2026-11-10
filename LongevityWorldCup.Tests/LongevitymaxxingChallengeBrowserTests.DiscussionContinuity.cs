@@ -211,6 +211,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(241, (await owned.Locator("textarea").InputValueAsync()).Length);
         await Assertions.Expect(owned.Locator("[data-reply-count]")).ToHaveTextAsync("1 over");
         await Assertions.Expect(owned.Locator("[data-reply-edit-submit]")).ToBeDisabledAsync();
+        await WaitForFiniteAnimationsAsync(page, "[data-discussion-reply-editor]");
         var controls = await owned.Locator("[data-reply-action]").EvaluateAllAsync<double[][]>("buttons => buttons.map(b => { const r=b.getBoundingClientRect();return [r.width,r.height,r.left,r.right,r.top] })");
         Assert.All(controls, box => { Assert.True(box[0] >= 44); Assert.True(box[1] >= 44); Assert.InRange(box[2], 0, width); Assert.InRange(box[3], 0, width); });
         Assert.Equal(controls[1][4], controls[2][4]);
