@@ -46,7 +46,7 @@ def schema(db):
         EventId TEXT PRIMARY KEY, CheckedAtUtc TEXT NOT NULL, Outcome TEXT NOT NULL,
         Reason TEXT NOT NULL, EvidenceUrl TEXT NOT NULL, PostUrl TEXT)""")
     db.execute("""CREATE TABLE IF NOT EXISTS RedditDeliveryNotices (
-        NotificationKey TEXT PRIMARY KEY, EventId TEXT NOT NULL, Outcome TEXT NOT NULL,
+        NotificationKey TEXT PRIMARY KEY, EventId TEXT NOT NULL, Outcome TEXT NOT NULL, OutcomeKey TEXT NOT NULL,
         Reason TEXT NOT NULL, EvidenceUrl TEXT NOT NULL, PostUrl TEXT, CreatedAtUtc TEXT NOT NULL,
         NotifiedAtUtc TEXT)""")
     db.execute("""CREATE TABLE IF NOT EXISTS RedditBlockedLinks (
@@ -138,7 +138,7 @@ def observe(db, observation, now):
         if outcome == "blocked" and (row["FirstAttemptAtUtc"] or row["LastErrorCode"] != "BlockedLink"):
             raise ValueError("Cannot classify a submitted attempt as a preflight skip")
         schema(db)
-        previous = db.execute("SELECT * FROM RedditDeliveryChecks WHERE EventId=?", (event_id,)).fetchone()
+        previous_notice = db.execute("SELECT * FROM RedditDeliveryNotices WHERE EventId=? ORDER BY CreatedAtUtc DESC,rowid DESC LIMIT 1", (event_id,)).fetchone()
         status = row["Status"]
         if outcome in ("removed", "rejected"):
             code = "BannedDomain" if observation.get("reasonCode") == "BannedDomain" else "RemovedByReddit" if outcome == "removed" else "RejectedByIfttt"
@@ -164,12 +164,15 @@ def observe(db, observation, now):
                 raise ValueError("Blocked link is not part of the submitted public body")
             db.execute("INSERT OR IGNORE INTO RedditBlockedLinks VALUES (?,?,?,?)", (link, evidence, reason, now.isoformat()))
         notify = outcome in ("removed", "rejected", "blocked", "unconfirmed") or (outcome == "visible" and
-            (row["Status"] == "failed" or (previous and previous["Outcome"] == "unconfirmed")))
+            (row["Status"] == "failed" or (previous_notice and previous_notice["Outcome"] == "unconfirmed")))
         # Notification identity excludes changing check timestamps and prose, preventing repeat alerts.
         notice = hashlib.sha256(f"{event_id}|{outcome}|{post_url or ''}|{observation.get('reasonCode','')}".encode()).hexdigest() if notify else None
         if notice:
-            db.execute("INSERT OR IGNORE INTO RedditDeliveryNotices VALUES (?,?,?,?,?,?,?,NULL)",
-                       (notice, event_id, outcome, reason, evidence, post_url, now.isoformat()))
+            outcome_key = notice
+            if previous_notice:
+                notice = previous_notice["NotificationKey"] if previous_notice["OutcomeKey"] == outcome_key else hashlib.sha256((outcome_key + previous_notice["NotificationKey"]).encode()).hexdigest()
+            db.execute("INSERT OR IGNORE INTO RedditDeliveryNotices VALUES (?,?,?,?,?,?,?,?,NULL)",
+                       (notice, event_id, outcome, outcome_key, reason, evidence, post_url, now.isoformat()))
         db.execute("""INSERT INTO RedditDeliveryChecks(EventId,CheckedAtUtc,Outcome,Reason,EvidenceUrl,PostUrl)
             VALUES (?,?,?,?,?,?) ON CONFLICT(EventId) DO UPDATE SET CheckedAtUtc=excluded.CheckedAtUtc,
             Outcome=excluded.Outcome,Reason=excluded.Reason,EvidenceUrl=excluded.EvidenceUrl,

@@ -76,6 +76,10 @@ class RedditDeliveryAuditTests(unittest.TestCase):
         again = audit.observe(self.db, self.observation("removed", expectedStatus="failed"), self.now + dt.timedelta(minutes=30))
         self.assertEqual(result["notificationKey"], again["notificationKey"])
         self.assertFalse(again["notificationNeeded"])
+        audit.observe(self.db, self.observation("visible", expectedStatus="failed"), self.now + dt.timedelta(hours=1))
+        removed_again = audit.observe(self.db, self.observation("removed", expectedStatus="sent"), self.now + dt.timedelta(hours=2))
+        self.assertTrue(removed_again["notificationNeeded"])
+        self.assertNotEqual(result["notificationKey"], removed_again["notificationKey"])
 
     def test_generic_removal_cannot_poison_blocklist(self):
         with self.assertRaises(ValueError):
