@@ -24,12 +24,58 @@ interface Window {
     if (window.LwcHistoryTimeline) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+    // Evidence strip: the screenshots in an entry (old leaderboards, posters)
+    // gather into one row of cards under its story, instead of each running the
+    // full column width. The cards keep their images, so they still open in the
+    // shared image reader. Each card leans slightly, like a print pinned to the
+    // timeline, and straightens under the pointer; the strip deals its cards in
+    // once the entry comes into view.
+    function gatherEvidence(entries: readonly HTMLElement[]): void {
+        const isPicture = (node: Element | null): node is HTMLElement =>
+            node instanceof HTMLElement && node.tagName === "P"
+            && node.children.length === 1 && node.firstElementChild?.tagName === "IMG"
+            && !node.textContent?.trim();
+        for (const entry of entries) {
+            let index = 0;
+            for (const child of Array.from(entry.children)) {
+                if (!isPicture(child) || child.parentElement?.classList.contains("history-evidence")) continue;
+                const strip = document.createElement("div");
+                strip.className = "history-evidence";
+                child.before(strip);
+                let card: Element | null = child;
+                while (isPicture(card)) {
+                    const next: Element | null = card.nextElementSibling;
+                    card.classList.add("history-evidence-card");
+                    (card as HTMLElement).style.setProperty("--evidence-tilt", `${index++ % 2 ? 1.1 : -1.3}deg`);
+                    (card as HTMLElement).style.setProperty("--evidence-index", String(strip.childElementCount));
+                    strip.appendChild(card);
+                    card = next;
+                }
+                strip.dataset["count"] = String(strip.childElementCount);
+            }
+        }
+        const strips = Array.from(document.querySelectorAll<HTMLElement>(".history-evidence"));
+        if (!("IntersectionObserver" in window)) {
+            strips.forEach(strip => strip.classList.add("is-dealt"));
+            return;
+        }
+        const observer = new IntersectionObserver(seen => {
+            for (const item of seen) {
+                if (!item.isIntersecting) continue;
+                item.target.classList.add("is-dealt");
+                observer.unobserve(item.target);
+            }
+        }, { rootMargin: "0px 0px -12% 0px" });
+        strips.forEach(strip => observer.observe(strip));
+    }
+
     function start(): void {
         const timeline = document.querySelector<HTMLElement>(".documentation-timeline");
         if (!timeline) return;
         const entries = Array.from(timeline.querySelectorAll<HTMLElement>(":scope > .documentation-timeline-entry"));
         if (!entries.length) return;
         timeline.dataset.live = "";
+        gatherEvidence(entries);
 
         // Decorations (all aria-hidden).
         const fill = document.createElement("span");

@@ -165,3 +165,114 @@
     .documentation-timeline[data-live] > :not(.documentation-timeline-entry) { display: none; }
     .documentation-timeline[data-live]::after { content: none; }
 }
+
+/* ==========================================================================
+   Evidence strip (history-timeline.ts gatherEvidence): an entry's screenshots
+   sit in one row of cards under its story, leaning slightly like prints
+   pinned to the timeline. They straighten and lift under the pointer, and
+   still open full size in the shared image reader. Cards deal in when their
+   entry comes into view.
+   ========================================================================== */
+.documentation-timeline .history-evidence {
+    --evidence-height: 13rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem 1.25rem;
+    margin: 1rem 0 0.5rem;
+    padding: 0.5rem 0.25rem 0.75rem;
+}
+
+.documentation-timeline .history-evidence > .history-evidence-card {
+    flex: 0 1 auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.45rem;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface);
+    box-shadow: var(--lwc-shadow-md);
+    transform: rotate(var(--evidence-tilt, 0deg));
+    transition:
+        transform 260ms var(--lwc-ease-pop, ease-out),
+        box-shadow 220ms var(--lwc-ease-standard, ease);
+}
+
+.documentation-timeline .history-evidence > .history-evidence-card > img {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: var(--evidence-height);
+    margin: 0;
+    border-radius: calc(var(--lwc-radius-md, 8px) - 3px);
+    object-fit: contain;
+    background: var(--lwc-surface-muted);
+}
+
+/* Two prints from the same moment share the row evenly. */
+.documentation-timeline .history-evidence[data-count="2"] > .history-evidence-card {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.documentation-timeline .history-evidence[data-count="2"] > .history-evidence-card > img {
+    width: 100%;
+    object-fit: cover;
+    object-position: top left;
+}
+
+@media (hover: hover) {
+    .documentation-timeline .history-evidence > .history-evidence-card:hover {
+        transform: rotate(0deg) translateY(-4px) scale(1.02);
+        box-shadow: var(--lwc-shadow-md), 0 0 0 2px var(--lwc-accent);
+    }
+}
+
+.documentation-timeline .history-evidence > .history-evidence-card:has(> img:focus-visible) {
+    transform: none;
+    box-shadow: var(--lwc-shadow-md), 0 0 0 3px var(--lwc-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html.documentation-js .documentation-timeline .history-evidence:not(.is-dealt) > .history-evidence-card {
+        opacity: 0;
+        transform: translateY(24px) rotate(calc(var(--evidence-tilt, 0deg) * 4));
+    }
+
+    .documentation-timeline .history-evidence.is-dealt > .history-evidence-card {
+        transition:
+            opacity 380ms var(--lwc-ease-enter, ease-out),
+            transform 520ms var(--lwc-ease-pop, ease-out),
+            box-shadow 220ms var(--lwc-ease-standard, ease);
+        transition-delay: calc(var(--evidence-index, 0) * 110ms), calc(var(--evidence-index, 0) * 110ms), 0ms;
+    }
+}
+
+@media (max-width: 600px) {
+    .documentation-timeline .history-evidence {
+        --evidence-height: 10.5rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin-inline: -0.25rem;
+        padding-inline: 0.5rem;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+    }
+
+    .documentation-timeline .history-evidence > .history-evidence-card {
+        flex: 0 0 auto;
+        max-width: 85%;
+        scroll-snap-align: start;
+    }
+
+    .documentation-timeline .history-evidence[data-count="2"] > .history-evidence-card {
+        flex: 0 0 78%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .documentation-timeline .history-evidence > .history-evidence-card {
+        transform: none;
+        transition: none;
+    }
+}
