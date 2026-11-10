@@ -1,0 +1,139 @@
+/* /play title screen as an arena. Frontend/play-arena.ts inserts .play-arena
+   as the body's first child, sets --arena-px/py from the pointer, .is-lit once
+   the start panel is up and .is-dollying when a door is chosen.
+   Colours: the start screen's own dark ground, white light and the accent. */
+
+.play-arena {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    perspective: 900px;
+    --arena-px: 0;
+    --arena-py: 0;
+}
+body.play-start-active .play-arena,
+.play-arena.is-dollying {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 700ms ease;
+}
+body.play-start-active > .play-hub-main { position: relative; z-index: 1; }
+
+/* ------------------------------------------------------------ floodlights */
+.play-arena-beam {
+    position: absolute;
+    top: -20vh;
+    width: 70vmax;
+    height: 120vh;
+    background: conic-gradient(from 0deg at 50% 0%,
+        transparent 0deg 164deg,
+        rgba(255, 255, 255, .06) 174deg,
+        color-mix(in srgb, var(--lwc-accent-bright, var(--lwc-accent)) 18%, transparent) 180deg,
+        rgba(255, 255, 255, .06) 186deg,
+        transparent 196deg 360deg);
+    filter: blur(8px);
+    mix-blend-mode: screen;
+    opacity: 0;
+    transform-origin: 50% 0;
+    transition: opacity 1200ms ease 200ms;
+}
+.play-arena-beam--left {
+    left: -26vmax;
+    rotate: -32deg;
+    translate: calc(var(--arena-px) * -18px) 0;
+}
+.play-arena-beam--right {
+    right: -26vmax;
+    rotate: 32deg;
+    translate: calc(var(--arena-px) * -18px) 0;
+}
+.play-arena.is-lit .play-arena-beam { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+    .play-arena.is-lit .play-arena-beam--left { animation: arena-sway-left 9s ease-in-out 1.4s infinite alternate; }
+    .play-arena.is-lit .play-arena-beam--right { animation: arena-sway-right 11s ease-in-out 1.4s infinite alternate; }
+}
+@keyframes arena-sway-left { to { rotate: -24deg; } }
+@keyframes arena-sway-right { to { rotate: 40deg; } }
+
+/* ------------------------------------------------------------ haze */
+/* A soft accent haze sits where the crest stands. */
+.play-arena-haze {
+    position: absolute;
+    left: 50%;
+    top: 47%;
+    width: min(80vw, 820px);
+    height: min(60vh, 520px);
+    translate: calc(-50% + var(--arena-px) * -8px) calc(-50% + var(--arena-py) * -6px);
+    background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--lwc-accent) 22%, transparent), transparent 70%);
+    opacity: 0;
+    transition: opacity 1400ms ease;
+}
+.play-arena.is-lit .play-arena-haze { opacity: 1; }
+
+/* ------------------------------------------------------------ the track */
+/* A running track recedes under the crest; its lane marks drift toward us. */
+.play-arena-floor {
+    position: absolute;
+    left: 50%;
+    bottom: -8vh;
+    width: 180vmax;
+    height: 70vh;
+    translate: calc(-50% + var(--arena-px) * -26px) 0;
+    transform-origin: 50% 100%;
+    transform: rotateX(72deg);
+    mask: linear-gradient(to top, #000 0%, #000 35%, transparent 100%);
+    -webkit-mask: linear-gradient(to top, #000 0%, #000 35%, transparent 100%);
+    opacity: 0;
+    transition: opacity 1200ms ease 400ms;
+}
+.play-arena.is-lit .play-arena-floor { opacity: 1; }
+.play-arena-track {
+    position: absolute;
+    inset: 0;
+    background:
+        /* lane lines */
+        repeating-linear-gradient(90deg, transparent 0 calc(12.5% - 2px), rgba(255, 255, 255, .10) calc(12.5% - 2px) 12.5%) center / 60% 100% no-repeat,
+        /* cross marks */
+        repeating-linear-gradient(0deg, transparent 0 46px, rgba(255, 255, 255, .05) 46px 48px),
+        /* the infield glow */
+        radial-gradient(40% 60% at 50% 100%, color-mix(in srgb, var(--lwc-accent) 16%, transparent), transparent 70%);
+}
+@media (prefers-reduced-motion: no-preference) {
+    .play-arena.is-lit .play-arena-track { animation: arena-track-run 3.6s linear infinite; }
+}
+@keyframes arena-track-run { from { background-position: center 0, 0 0, 0 0; } to { background-position: center 0, 0 48px, 0 0; } }
+
+/* ------------------------------------------------------------ vignette */
+.play-arena-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, .55) 100%);
+}
+
+/* ------------------------------------------------------------ the crest joins the light */
+:root[data-play-arena] body.play-start-active .play-menu-crest {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 60px -10px color-mix(in srgb, var(--lwc-accent) 55%, transparent);
+}
+/* ------------------------------------------------------------ the camera move */
+.play-arena.is-dollying {
+    /* The camera passes through: the arena briefly sits over the incoming panel. */
+    z-index: 10040;
+    background: var(--play-track-it-bg, #101820);
+    animation: arena-dolly-out 820ms cubic-bezier(.4, 0, .2, 1) forwards;
+}
+.play-arena.is-dollying .play-arena-floor { animation: arena-floor-rush 820ms cubic-bezier(.5, 0, .2, 1) forwards; }
+.play-arena.is-dollying .play-arena-beam { animation: arena-beam-flare 820ms ease-out forwards; }
+.play-arena.is-dollying .play-arena-haze { animation: arena-haze-burst 820ms ease-out forwards; }
+@keyframes arena-dolly-out { 0%, 35% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes arena-floor-rush { to { transform: rotateX(72deg) translateY(30%) scale(1.35); } }
+@keyframes arena-beam-flare { 30% { opacity: 1; filter: blur(6px) brightness(1.8); } 100% { opacity: 0; } }
+@keyframes arena-haze-burst { 40% { scale: 1.6; opacity: 1; } 100% { scale: 2.2; opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .play-arena, .play-arena * { animation: none !important; transition: none !important; }
+    .play-arena.is-dollying { opacity: 0; }
+}
