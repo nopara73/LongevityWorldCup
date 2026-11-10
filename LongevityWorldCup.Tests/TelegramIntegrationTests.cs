@@ -19,6 +19,36 @@ public sealed class TelegramIntegrationTests
     private const string Title = "Follow LWC by [RSS](https://longevityworldcup.com/feeds/events.rss)";
     private const string Post = "Follow LWC by RSS\n\nhttps://longevityworldcup.com/feeds/events.rss";
 
+    [Fact]
+    public async Task RegularDispatchAnnouncesFreshBitcoinDonationsOnce()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create();
+        var clock = new TestClock(DateTimeOffset.UtcNow);
+        SocialDeliveryStore.InitializeChannel(fixture.Database, SocialDeliveryStore.Telegram);
+        var id = fixture.InsertEvent(EventType.DonationReceived, "tx[recent] sats[8455]", clock.Now.UtcDateTime);
+        var oldId = fixture.InsertEvent(EventType.DonationReceived, "tx[older] sats[20000]", clock.Now.UtcDateTime.AddDays(-8));
+        var requests = 0;
+        var service = CreateService(fixture, clock, async request =>
+        {
+            requests++;
+            Assert.EndsWith("/sendMessage", request.RequestUri!.AbsolutePath);
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+            var text = body.RootElement.GetProperty("text").GetString();
+            Assert.StartsWith("Someone has donated 0.00008455 BTC 🎉\n\nThank you for helping fund the prize pool!", text);
+            Assert.Contains("https://longevityworldcup.com/contribute", text);
+            return Json(HttpStatusCode.OK, """{"ok":true,"result":{"message_id":42,"chat":{"id":-1001234567890,"type":"channel","username":"longevityworldcup"}}}""");
+        });
+
+        await service.DispatchAsync(customOnly: true);
+        Assert.Equal(0, requests);
+        await service.DispatchAsync(customOnly: false);
+        await service.DispatchAsync(customOnly: false);
+
+        Assert.Equal(1, requests);
+        Assert.Equal(("sent", "42", "https://t.me/longevityworldcup/42"), Delivery(fixture, id));
+        Assert.Equal(("skipped", null, null), Delivery(fixture, oldId));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
