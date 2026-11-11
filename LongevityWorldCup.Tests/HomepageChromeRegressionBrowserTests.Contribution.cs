@@ -31,6 +31,7 @@ public sealed class HomepageContributionBrowserTests(
             // five-second cutoff, not only a fast local/CI response.
             await context.RouteAsync("**/api/events", async route =>
             {
+                // Intentional wait: deliver initial events after the fragment's old five-second deadline.
                 await Task.Delay(6500);
                 await route.ContinueAsync();
             });

@@ -43,6 +43,7 @@ public sealed class BrowserReadinessTests(
             if (javaScriptEnabled)
                 await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
             else
+                // Intentional wait: keep the image pending across the waiter's first poll without page callbacks.
                 await Task.Delay(100);
             Assert.False(loaded.IsCompleted, "DOM-ready must not satisfy the full-load wait while an image is pending.");
             releaseImage.TrySetResult();

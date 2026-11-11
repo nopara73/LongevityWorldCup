@@ -32,6 +32,7 @@ internal static class BrowserReadiness
             {
                 if (elapsed.Elapsed >= TimeSpan.FromSeconds(30))
                     throw new TimeoutException("Document did not finish loading with page scripts disabled.");
+                // Intentional wait: poll native state without scheduling disabled page callbacks.
                 await Task.Delay(25);
             }
             return;
