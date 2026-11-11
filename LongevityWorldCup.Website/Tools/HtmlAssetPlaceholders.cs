@@ -118,6 +118,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LEADERBOARD_PODIUM_JS}}"] = "/js/leaderboard-podium.js",
         ["{{ASSET_LEADERBOARD_PODIUM_CSS}}"] = "/css/leaderboard-podium.css",
         ["{{ASSET_ATHLETE_STORY_JS}}"] = "/js/athlete-story.js",
+        ["{{ASSET_PROFILE_STAGE_CSS}}"] = "/css/profile-stage.css",
+        ["{{ASSET_PROFILE_STAGE_JS}}"] = "/js/profile-stage.js",
         ["{{ASSET_LEADERBOARD_ORDERING_JS}}"] = "/js/leaderboard-ordering.js",
         ["{{ASSET_LEADERBOARD_ORDERING_CSS}}"] = "/css/leaderboard-ordering.css",
         ["{{ASSET_LEADERBOARD_EMBED_LISTENER_JS}}"] = "/js/leaderboard-embed-listener.js",
