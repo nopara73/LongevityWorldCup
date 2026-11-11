@@ -1,0 +1,28 @@
+{
+  "Name": "Barbaracska",
+  "DisplayName": null,
+  "MediaContact": "barbsek7@gmail.com",
+  "DateOfBirth": {
+    "Year": 1981,
+    "Month": 11,
+    "Day": 7
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-11-10",
+      "AlbGL": 43,
+      "CreatUmolL": 57,
+      "GluMmolL": 5,
+      "CrpMgL": 0.2,
+      "LymPc": 37.1,
+      "McvFL": 98,
+      "RdwPc": 12.3,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 4.3
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Maintain general health, feel vibrant and energetic.",
+  "PersonalLink": null
+}
