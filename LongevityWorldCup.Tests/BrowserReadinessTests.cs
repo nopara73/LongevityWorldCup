@@ -9,11 +9,12 @@ public sealed class BrowserReadinessTests(
     BrowserTestAppFixture appFixture) : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task DocumentReadiness_WaitsForPendingResourcesAndAcceptsCompletedEvents(bool installClock)
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task DocumentReadiness_WaitsForPendingResourcesAndAcceptsCompletedEvents(bool installClock, bool javaScriptEnabled)
     {
-        await using var context = await Browser.NewContextAsync();
+        await using var context = await Browser.NewContextAsync(new() { JavaScriptEnabled = javaScriptEnabled });
         await context.TrackDocumentReadinessAsync();
         var releaseImage = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("https://readiness.test/", route => route.FulfillAsync(new()
@@ -35,16 +36,20 @@ public sealed class BrowserReadinessTests(
         try
         {
             await page.GotoAsync("https://readiness.test/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await page.WaitForDocumentContentLoadedAsync();
+            if (javaScriptEnabled) await page.WaitForDocumentContentLoadedAsync();
             Assert.False(await page.Locator("img").EvaluateAsync<bool>("image => image.complete"));
-            var loaded = page.WaitForDocumentLoadedAsync();
-            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            var loaded = page.WaitForDocumentLoadedAsync(javaScriptEnabled);
+            // Let the first readiness check run while the resource is still held.
+            if (javaScriptEnabled)
+                await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            else
+                await Task.Delay(100);
             Assert.False(loaded.IsCompleted, "DOM-ready must not satisfy the full-load wait while an image is pending.");
             releaseImage.TrySetResult();
             await loaded;
             Assert.True(await page.Locator("img").EvaluateAsync<bool>("image => image.complete && image.naturalWidth > 0"));
-            await page.WaitForDocumentContentLoadedAsync();
-            await page.WaitForDocumentLoadedAsync();
+            if (javaScriptEnabled) await page.WaitForDocumentContentLoadedAsync();
+            await page.WaitForDocumentLoadedAsync(javaScriptEnabled);
         }
         finally
         {

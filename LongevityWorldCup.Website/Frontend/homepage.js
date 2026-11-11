@@ -100,7 +100,7 @@ function isHomepageVisitCounterRoute() {
     }
 }
 
-function stabilizeHomepageFragmentTarget() {
+function stabilizeHomepageFragmentTarget(initialContentReady) {
     const requestedHash = window.location.hash;
     if (!requestedHash || requestedHash === '#') return;
 
@@ -162,10 +162,18 @@ function stabilizeHomepageFragmentTarget() {
         window.addEventListener(eventName, stopTracking, { once: true, passive: true }));
 
     queueAlignment();
-    stopTimer = window.setTimeout(function () {
-        alignTarget();
-        stopTracking();
-    }, 5000);
+    const loaded = document.readyState === 'complete' ? Promise.resolve()
+        : new Promise(resolve => window.addEventListener('load', resolve, { once: true }));
+    // Slow initial data/fonts must not use up the settling window before they
+    // can change the layout. Interaction still cancels tracking immediately.
+    Promise.allSettled([initialContentReady, document.fonts.ready, loaded]).then(function () {
+        if (stopped) return;
+        queueAlignment();
+        stopTimer = window.setTimeout(function () {
+            alignTarget();
+            stopTracking();
+        }, 5000);
+    });
 }
 
 function placeHomepageHighlightsForVisit() {
@@ -340,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
     placeHomepageHighlightsForVisit();
     const highlightsReady = fitHomepageHighlights();
     const leaderboardReady = LoadLeaderboard(true, 10);
-    stabilizeHomepageFragmentTarget();
+    stabilizeHomepageFragmentTarget(Promise.allSettled([highlightsReady, leaderboardReady]));
 
     watchHomepageHighlightsLayout();
     if (document.documentElement.classList.contains('homepage-restoring')) {

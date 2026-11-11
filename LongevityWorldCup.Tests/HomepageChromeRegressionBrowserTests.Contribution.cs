@@ -11,10 +11,12 @@ public sealed class HomepageContributionBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
-    [InlineData("/#contribute")]
-    [InlineData("/contribute")]
-    [InlineData("/contribute?utm_content=donation-example")]
-    public async Task ContributeDeepLink_KeepsTheQrCodeAndAddressInThePreviewViewport(string path)
+    [InlineData("/#contribute", false)]
+    [InlineData("/contribute", false)]
+    [InlineData("/contribute?utm_content=donation-example", false)]
+    [InlineData("/#contribute", true)]
+    [InlineData("/contribute", true)]
+    public async Task ContributeDeepLink_KeepsTheQrCodeAndAddressInThePreviewViewport(string path, bool slowInitialContent)
     {
         const string donationAddress = "bc1qphwpd3mc9rts7vt4lrxxlxzs5jm3wh33w7hxz7";
         var app = App;
@@ -22,6 +24,17 @@ public sealed class HomepageContributionBrowserTests(
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
         await page.SetViewportSizeAsync(1194, 862);
+
+        if (slowInitialContent)
+        {
+            // The fragment must survive initial content arriving after the old
+            // five-second cutoff, not only a fast local/CI response.
+            await context.RouteAsync("**/api/events", async route =>
+            {
+                await Task.Delay(6500);
+                await route.ContinueAsync();
+            });
+        }
 
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
@@ -81,6 +94,49 @@ public sealed class HomepageContributionBrowserTests(
         Assert.InRange(preview.QrBottom, 0, preview.ViewportHeight);
         Assert.InRange(preview.AddressTop, 0, preview.ViewportHeight);
         Assert.InRange(preview.AddressBottom, 0, preview.ViewportHeight);
+    }
+
+    [Theory]
+    [InlineData("wheel")]
+    [InlineData("keyboard")]
+    [InlineData("hash")]
+    public async Task ContributeDeepLink_DoesNotResumeAlignmentAfterTheVisitorMovesOn(string interaction)
+    {
+        await using var context = await NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        var releaseEvents = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/events", async route =>
+        {
+            await releaseEvents.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/#contribute", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            Assert.NotEqual("Events loaded.", await page.Locator("#eventsStatus").TextContentAsync());
+            switch (interaction)
+            {
+                case "wheel": await page.Mouse.WheelAsync(0, -400); break;
+                case "keyboard": await page.Keyboard.PressAsync("Home"); break;
+                case "hash": await page.EvaluateAsync("location.hash = 'faq'"); break;
+            }
+            await SettleLayoutAsync(page);
+            await page.EvaluateAsync("scrollTo({ top: 0, behavior: 'instant' })");
+            releaseEvents.TrySetResult();
+            await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
+            await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+            await page.WaitForDocumentLoadedAsync();
+            await SettleLayoutAsync(page);
+            // Both the readiness continuation and a later ResizeObserver callback
+            // must respect the visitor's choice to leave the initial fragment.
+            await page.EvaluateAsync("document.querySelector('.homepage-panel-pair').style.marginTop = '520px'");
+            await SettleLayoutAsync(page);
+            Assert.InRange(await page.EvaluateAsync<double>("scrollY"), 0, 1);
+        }
+        finally
+        {
+            releaseEvents.TrySetResult();
+        }
     }
 
     [Theory]
