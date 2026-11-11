@@ -2581,6 +2581,36 @@ public sealed class AestheticSystemBrowserTests(
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
+            if (condition.Name == "lmx-signup-timezone")
+            {
+                await Assertions.Expect(page.Locator("[data-select-id='lmxSignupTimeZone']"))
+                    .ToHaveAttributeAsync("data-wired", "true");
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var inlineSize = thresholdPixels + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async inlineSize => {
+                            const picker = document.querySelector('[data-select-id="lmxSignupTimeZone"]');
+                            picker.style.boxSizing = 'content-box';
+                            picker.style.inlineSize = `${inlineSize}px`;
+                            picker.style.maxInlineSize = 'none';
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(picker).width),
+                                IsCompact: getComputedStyle(picker.querySelector('[data-timezone-display]')).whiteSpace === 'normal',
+                                HorizontalOverflow: Math.max(0, picker.scrollWidth - picker.clientWidth)
+                            };
+                        }
+                        """, inlineSize);
+                    Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"Signup timezone overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
+                }
+                await page.Locator("[data-select-id='lmxSignupTimeZone']").EvaluateAsync("e => e.removeAttribute('style')");
+                continue;
+            }
             if (condition.Name is null && (condition.Unit == "px" && condition.Value is 280 or 420
                 || condition.Unit == "rem" && condition.Value is 12 or 20))
             {
