@@ -7346,12 +7346,13 @@ html body .lmx-page #lmxAccessTabs:has(> .lwc-segment-glide[data-ready]) .lmx-ta
 }
 
 @media (prefers-reduced-motion: reduce) {
+    /* Accessibility overrides must beat the completed-state :has() selectors. */
     .lmx-access-tabs .lmx-tab i,
     #lmxSignupForm > :is(.lmx-field, .lmx-identity-field)::after,
-    #lmxSignupForm > button[type="submit"] { transition: none; }
+    #lmxSignupForm > button[type="submit"] { transition: none !important; }
 
     #lmxSignupForm > :is(.lmx-field, .lmx-identity-field, button[type="submit"])::before,
     #lmxSignupDonePanel .lmx-card-head::before,
     #lmxSignupDonePanel .lmx-card-head::after,
-    #lmxResendStatus.success::before { animation: none; }
+    #lmxResendStatus.success::before { animation: none !important; }
 }

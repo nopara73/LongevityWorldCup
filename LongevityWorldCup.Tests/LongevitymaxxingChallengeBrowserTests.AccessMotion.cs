@@ -5,6 +5,39 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
+    [Fact]
+    public async Task AccessFeedback_ReducedMotionKeepsCompletionAndSentArtworkStatic()
+    {
+        await using var context = await SignInContextAsync();
+        await context.RouteAsync("**/api/longevitymaxxing/signup", route => FulfillJsonAsync(route, "{\"message\":\"Check your email.\"}"));
+        await context.RouteAsync("**/api/longevitymaxxing/resend", route => FulfillJsonAsync(route, "{\"message\":\"Link sent.\"}"));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing");
+        await Assertions.Expect(page.Locator("[data-select-id='lmxSignupTimeZone']")).ToHaveAttributeAsync("data-wired", "true");
+        await page.Locator("#lmxSignupEmail").FillAsync("reader@example.test");
+        await page.Locator("#lmxSignupName").FillAsync("Browser Tester");
+        var stampAnimations = await page.Locator("#lmxSignupForm").EvaluateAsync<string[]>("""
+            form => [...form.children].filter(e => e.matches('.lmx-field, .lmx-identity-field, button[type=submit]'))
+                .map(e => getComputedStyle(e, '::before').animationName)
+            """);
+        Assert.All(stampAnimations, name => Assert.Equal("none", name));
+        await page.Locator("#lmxSignupForm button[type=submit]").ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxSignupDonePanel")).ToBeVisibleAsync();
+        Assert.True(await page.Locator("#lmxSignupDonePanel .lmx-card-head").EvaluateAsync<bool>("""
+            head => ['::before', '::after'].every(pseudo => {
+                const style = getComputedStyle(head, pseudo);
+                return style.animationName === 'none' && style.animationDelay === '0s'
+                    && style.opacity === '1' && style.transform === 'none';
+            })
+            """), "Reduced motion must show the sent artwork immediately, without a delayed tile or flight.");
+        await page.Locator("#lmxSigninTab").ClickAsync();
+        await page.Locator("#lmxResendEmail").FillAsync("reader@example.test");
+        await page.Locator("#lmxResendButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxResendStatus.success")).ToBeVisibleAsync();
+        Assert.Equal("none", await page.Locator("#lmxResendStatus").EvaluateAsync<string>(
+            "e => getComputedStyle(e, '::before').animationName"));
+    }
+
     [Theory]
     [InlineData(305, false, false)]
     [InlineData(320, false, false)]
