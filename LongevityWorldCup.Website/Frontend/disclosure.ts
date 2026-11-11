@@ -8,7 +8,9 @@
 // - Flag teams get the signature move: the stacked faces in the team row drop
 //   into the roster when it opens and climb back into the stack when it
 //   closes. Each member row also carries a thin bar for its share of the team
-//   total, so the roster reads as who carried the flag.
+//   total, so the roster reads as who carried the flag; the team row carries
+//   the same pieces stacked into one strip, as long as the team's total is
+//   against the board's best, and opening drops each piece into its bar.
 //
 // disclosure.css owns how every state looks. Nothing here changes wording or
 // what a control does. Reduced motion keeps every behaviour and drops travel.
@@ -147,20 +149,100 @@ interface Window {
         return out;
     }
 
-    // Each member's share of the team total, as a 0–1 custom property.
+    // Where a member's roster bar sits on screen, at its share of the track.
+    function shareBar(link: HTMLElement): DOMRect | null {
+        const cs = getComputedStyle(link, "::after");
+        if (cs.content === "none" || cs.display === "none") return null;
+        const box = link.getBoundingClientRect();
+        const left = parseFloat(cs.left), top = parseFloat(cs.top), width = parseFloat(cs.width), height = parseFloat(cs.height);
+        if (![left, top, width, height].every(Number.isFinite)) return null;
+        const share = parseFloat(link.parentElement?.style.getPropertyValue("--lwc-share") || "") || 0;
+        return new DOMRect(box.left + left, box.top + top, width * share, height);
+    }
+
+    // The team row's strip is the roster in miniature: opening drops each
+    // member's piece into their own bar, closing stacks them back up.
+    function flyShares(details: HTMLDetailsElement, opening: boolean, duration: number): Animation[] {
+        const pieces = Array.from(details.querySelectorAll<HTMLElement>(":scope > summary > .flag-team-strip > i"));
+        const links = Array.from(details.querySelectorAll<HTMLElement>(".flag-athlete-link"));
+        const out: Animation[] = [];
+        if (!pieces.length || !pieces.every(visible)) {
+            delete details.dataset.shareFlown;
+            return out;
+        }
+        links.forEach((link, i) => {
+            const piece = pieces[i];
+            const to = shareBar(link);
+            if (!piece || !to) return;
+            const from = piece.getBoundingClientRect();
+            if (!from.width || !to.width || !to.height) return;
+            const ghost = document.createElement("span");
+            ghost.className = "lwc-disclosure-ghost lwc-disclosure-ghost--share";
+            ghost.setAttribute("aria-hidden", "true");
+            Object.assign(ghost.style, {
+                left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`,
+                background: getComputedStyle(piece).backgroundColor,
+            });
+            document.body.appendChild(ghost);
+            const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+            const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+            const away = `translate(${dx}px, ${dy}px) scale(${from.width / to.width}, ${from.height / to.height})`;
+            const delay = opening ? 70 + i * 60 : (links.length - 1 - i) * 30;
+            const travel = opening ? duration + 180 : duration;
+            const flight = ghost.animate(
+                opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
+                { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
+            );
+            flight.oncancel = () => ghost.remove();
+            out.push(flight);
+        });
+        if (out.length) details.dataset.shareFlown = "";
+        else delete details.dataset.shareFlown;
+        return out;
+    }
+
+    // Each member's share of the team total, as a 0–1 custom property, and
+    // each team's total against the board's best (--lwc-reach), drawn as a
+    // stacked strip in the team row.
     function measureShares(scope: ParentNode): void {
-        scope.querySelectorAll<HTMLElement>(".flag-team").forEach(team => {
+        const teams = Array.from(scope.querySelectorAll<HTMLElement>(".flag-team"));
+        const totals = teams.map(team => {
             const rows = Array.from(team.querySelectorAll<HTMLElement>(".flag-team-athletes > li"));
             const values = rows.map(li => {
                 const n = parseFloat((li.querySelector(".flag-athlete-metric")?.textContent || "").replace(/[^\d.+-]/g, ""));
                 return Number.isFinite(n) ? Math.max(0, -n) : 0;
             });
             const best = values.reduce((sum, v) => sum + v, 0);
+            const shares = values.map(v => best > 0 ? v / best : 0);
             rows.forEach((li, i) => {
-                li.style.setProperty("--lwc-share", best > 0 ? ((values[i] ?? 0) / best).toFixed(3) : "0");
+                li.style.setProperty("--lwc-share", (shares[i] ?? 0).toFixed(3));
                 li.style.setProperty("--lwc-i", String(i));
             });
+            drawStrip(team, shares);
+            return best;
         });
+        const top = Math.max(0, ...totals);
+        teams.forEach((team, i) => {
+            team.style.setProperty("--lwc-reach", top > 0 ? ((totals[i] ?? 0) / top).toFixed(3) : "0");
+            team.style.setProperty("--lwc-row", String(Math.min(i, 14)));
+        });
+    }
+
+    function drawStrip(team: HTMLElement, shares: number[]): void {
+        const summary = team.querySelector<HTMLElement>(":scope > summary");
+        if (!summary) return;
+        let strip = summary.querySelector<HTMLElement>(":scope > .flag-team-strip");
+        if (!strip) {
+            strip = document.createElement("span");
+            strip.className = "flag-team-strip";
+            strip.setAttribute("aria-hidden", "true");
+            summary.appendChild(strip);
+        }
+        // Only add or drop pieces when the roster size changes, so the board's
+        // observer settles after one pass.
+        while (strip.children.length > shares.length) strip.lastElementChild?.remove();
+        while (strip.children.length < shares.length) strip.appendChild(document.createElement("i"));
+        shares.forEach((share, i) => (strip.children[i] as HTMLElement).style.setProperty("--lwc-share", share.toFixed(3)));
     }
 
     // ------------------------------------------------------------ <details>
@@ -170,24 +252,28 @@ interface Window {
     function toggle(details: HTMLDetailsElement, open = !(running.get(details)?.opening ?? details.open)): void {
         stop(details);
         if (!canAnimate()) {
+            delete details.dataset.shareFlown;
             details.open = open;
             return;
         }
         const isTeam = details.classList.contains("flag-team");
         const duration = open ? OPEN_MS : CLOSE_MS;
         const extras: Animation[] = [];
-        if (!open && isTeam) extras.push(...flyFaces(details, false, duration));
+        if (!open && isTeam) extras.push(...flyFaces(details, false, duration), ...flyShares(details, false, duration));
         details.dataset.disclosure = open ? "opening" : "closing";
         details.open = open;
         if (open) {
-            if (isTeam) extras.push(...flyFaces(details, true, duration));
+            if (isTeam) extras.push(...flyFaces(details, true, duration), ...flyShares(details, true, duration));
             contentOf(details).forEach(c => extras.push(...dealItems(c)));
         }
         // Follow the page's animation rate and let the last staggered item land.
         const end = Math.max(duration + (isTeam ? (open ? 220 : 70) : 40),
             ...extras.map(a => Number(a.effect?.getComputedTiming().endTime) || 0));
         const anim = details.animate([], { duration: end });
-        running.set(details, { anim, opening: open, extras, cleanup: () => { delete details.dataset.disclosure; } });
+        running.set(details, { anim, opening: open, extras, cleanup: () => {
+            delete details.dataset.disclosure;
+            if (!open) delete details.dataset.shareFlown;
+        } });
         anim.oncancel = () => {
             if (running.get(details)?.anim !== anim) return;
             stop(details);
