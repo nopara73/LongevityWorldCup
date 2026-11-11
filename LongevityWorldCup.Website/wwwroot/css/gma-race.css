@@ -1,0 +1,220 @@
+/* Guess My Age: the reveal as a race with a photo finish. gma-race.ts places
+   everything in the slider wrap's own coordinates: --gma-race-top is the
+   track's underside, and the finish panel takes the track's own box. The
+   dialog's game styles are scoped to #athleteDialogRuntime, so overrides of
+   existing elements carry #guessAgeContainer to stay ahead of them. Colours
+   are the game's own: the dialog's cream and the slider's cyan. */
+
+/* ------------------------------------------------------------ during the travel */
+/* The player's guess hangs under the track as a small numbered tab; the
+   crowd's is a wedge pointing up at the track behind it. */
+.gma-race-mark {
+    position: absolute;
+    top: calc(var(--gma-race-top, 3rem) + 2px);
+    z-index: 3;
+    translate: -50% 0;
+    pointer-events: none;
+    transition: opacity 240ms var(--lwc-ease, ease);
+}
+
+.gma-race-mark--you {
+    padding: 0.08rem 0.38rem;
+    border-radius: 0 0 0.45rem 0.45rem;
+    background: var(--athlete-modal-cream, rgba(246, 244, 237, 0.92));
+    color: rgba(12, 16, 16, 0.94);
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.45);
+}
+
+.gma-race-mark--crowd {
+    z-index: 2;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 9px solid rgba(246, 244, 237, 0.55);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+/* A taut dashed line from the guess to the travelling answer, exactly where
+   the miss line will draw once it lands. */
+.gma-race-tension {
+    position: absolute;
+    top: calc(var(--gma-race-top, 3rem) + 9px);
+    z-index: 1;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(246, 244, 237, 0.75) 0 6px, transparent 6px 10px);
+    pointer-events: none;
+    transition: left 160ms linear, width 160ms linear, opacity 240ms var(--lwc-ease, ease);
+}
+
+#guessAgeContainer.gma-race--finish :is(.gma-race-tension, .gma-race-mark) {
+    opacity: 0;
+}
+
+/* ------------------------------------------------------------ the photo finish */
+.gma-race-finish {
+    --gma-race-ppy: 4px;
+    position: absolute;
+    z-index: 6;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid rgba(246, 244, 237, 0.3);
+    border-radius: 14px;
+    background:
+        linear-gradient(90deg, rgba(246, 244, 237, 0.34) 0 1px, transparent 1px) var(--gma-race-minor-x, 0) 100% / var(--gma-race-ppy) 7px repeat-x,
+        linear-gradient(90deg, rgba(246, 244, 237, 0.72) 0 2px, transparent 2px) var(--gma-race-major-x, 0) 100% / calc(var(--gma-race-ppy) * 5) 12px repeat-x,
+        linear-gradient(180deg, rgba(20, 26, 26, 0.97), rgba(9, 12, 12, 0.97));
+    box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+    transition: opacity 260ms var(--lwc-ease, ease);
+}
+
+/* The answer's needle stands under the bubble's tail. */
+.gma-race-needle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--lwc-accent-bright, #19c3d1);
+    box-shadow: 0 0 0.8rem color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 70%, transparent);
+}
+
+/* Two lanes: the player's guess on top, the crowd's beneath. */
+.gma-race-chip {
+    position: absolute;
+    top: 5px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    height: 1.35rem;
+    box-sizing: border-box;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    background: var(--athlete-modal-cream, rgba(246, 244, 237, 0.92));
+    color: rgba(12, 16, 16, 0.94);
+    font-size: 0.85rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+    translate: -50% 0;
+    box-shadow: 0 0.25rem 0.7rem rgba(0, 0, 0, 0.4);
+    transition: opacity 280ms var(--lwc-ease, ease), box-shadow 280ms var(--lwc-ease, ease), filter 280ms var(--lwc-ease, ease);
+}
+
+.gma-race-chip--crowd {
+    top: calc(5px + 1.35rem + 3px);
+    border: 1px solid rgba(246, 244, 237, 0.45);
+    background: rgba(17, 22, 22, 0.98);
+    color: rgba(246, 244, 237, 0.85);
+    font-weight: 700;
+}
+
+.gma-race-glyph {
+    width: 1rem;
+    height: 0.7rem;
+    fill: currentColor;
+    flex: none;
+}
+
+.gma-race-line {
+    position: absolute;
+    top: calc(5px + 0.675rem - 1px);
+    z-index: 1;
+    height: 2px;
+    background: rgba(246, 244, 237, 0.8);
+}
+
+.gma-race-line--crowd {
+    top: calc(5px + 1.35rem + 3px + 0.675rem - 1px);
+    background: repeating-linear-gradient(90deg, rgba(246, 244, 237, 0.6) 0 5px, transparent 5px 8px);
+}
+
+/* ------------------------------------------------------------ the verdict */
+.gma-race-chip.is-closer {
+    box-shadow:
+        0 0 0 2px var(--lwc-accent-bright, #19c3d1),
+        0 0 1rem color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 55%, transparent),
+        0 0.25rem 0.7rem rgba(0, 0, 0, 0.4);
+}
+
+.gma-race-line.is-closer {
+    height: 3px;
+    background: var(--lwc-accent-bright, #19c3d1);
+    box-shadow: 0 0 0.6rem color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 60%, transparent);
+}
+
+.gma-race-chip.is-further,
+.gma-race-line.is-further {
+    opacity: 0.5;
+    filter: saturate(0.4);
+}
+
+/* The guess now reads from its chip, so the dimmed bubble above steps out. */
+#detailsModal #guessAgeContainer.gma-race--finish #gmaBubble {
+    opacity: 0;
+}
+
+.gma-race-finish.is-leaving,
+.gma-race-mark.is-leaving,
+.gma-race-tension.is-leaving {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .gma-race-mark.is-passed {
+        animation: gma-race-flinch 320ms cubic-bezier(0.3, 1.35, 0.45, 1);
+    }
+
+    .gma-race-finish {
+        animation: gma-race-finish-in 260ms var(--lwc-ease, ease) both;
+    }
+
+    .gma-race-chip {
+        animation: gma-race-chip-in 420ms cubic-bezier(0.3, 1.35, 0.45, 1) 120ms both;
+    }
+
+    .gma-race-chip--crowd {
+        animation-delay: 220ms;
+    }
+
+    /* Once the camera has pushed in, the closer guess takes a bow. */
+    .gma-race-chip.is-closer {
+        animation:
+            gma-race-chip-in 420ms cubic-bezier(0.3, 1.35, 0.45, 1) 120ms both,
+            gma-race-win 560ms cubic-bezier(0.3, 1.35, 0.45, 1) 700ms;
+    }
+
+    .gma-race-chip--crowd.is-closer {
+        animation-delay: 220ms, 700ms;
+    }
+
+    @keyframes gma-race-flinch {
+        0% { translate: -50% 0; scale: 1; }
+        40% { translate: -50% 3px; scale: 1.35; }
+        100% { translate: -50% 0; scale: 1; }
+    }
+
+    @keyframes gma-race-finish-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes gma-race-chip-in {
+        from { opacity: 0; scale: 0.6; }
+        to { opacity: 1; scale: 1; }
+    }
+
+    @keyframes gma-race-win {
+        0% { scale: 1; }
+        40% { scale: 1.2; }
+        70% { scale: 0.97; }
+        100% { scale: 1; }
+    }
+}

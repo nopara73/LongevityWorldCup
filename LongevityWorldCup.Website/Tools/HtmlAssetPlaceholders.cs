@@ -137,6 +137,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_ATHLETE_DIALOG_LEADERBOARD_CONTENT_CSS}}"] = "/css/athlete-dialog/leaderboard-content.css",
         ["{{ASSET_ATHLETE_DIALOG_GUESS_MY_AGE_CSS}}"] = "/css/athlete-dialog/guess-my-age.css",
         ["{{ASSET_ATHLETE_DIALOG_AGE_VISUALIZATION_CSS}}"] = "/css/athlete-dialog/age-visualization.css",
+        ["{{ASSET_GMA_RACE_CSS}}"] = "/css/gma-race.css",
+        ["{{ASSET_GMA_RACE_JS}}"] = "/js/gma-race.js",
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
     public static string Replace(string html, Func<string, string> appendVersion)
