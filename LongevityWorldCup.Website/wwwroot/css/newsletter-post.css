@@ -1,0 +1,168 @@
+/* The homepage's yearly newsletter sign-up as one posted letter.
+   newsletter-post.ts sets [data-newsletter-post] on the section and the state
+   classes used here. Colours are the site's tokens, so dark mode follows. */
+
+/* ------------------------------------------------------------ an addressed form */
+#newsletter[data-newsletter-post] #newsletter-form .shared-email-button i {
+    transition: transform 260ms cubic-bezier(0.3, 1.35, 0.45, 1);
+}
+
+#newsletter[data-newsletter-post] #newsletter-form.is-addressed .shared-email-button i {
+    transform: translate(2px, -2px) rotate(-14deg);
+}
+
+#newsletter[data-newsletter-post] #newsletter-form .shared-email-input {
+    transition: box-shadow 220ms var(--lwc-ease, ease);
+}
+
+#newsletter[data-newsletter-post] #newsletter-form.is-addressed .shared-email-input {
+    box-shadow: inset 0 -2px 0 var(--lwc-accent, #087685);
+}
+
+/* ------------------------------------------------------------ the panel resizes */
+#newsletter[data-newsletter-post] .newsletter-panel.is-sizing {
+    overflow: clip;
+}
+
+/* While the envelope flies, the confirmation waits out of sight but stays in
+   the accessibility tree, so it is announced at once. */
+section#newsletter[data-newsletter-post] .newsletter-panel.is-holding #newsletterStatus {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ the letter */
+.newsletter-post-slip {
+    position: fixed;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid var(--lwc-border-strong, #b7c4cd);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface, #fff);
+    color: var(--lwc-ink, #17212b);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transform-origin: 50% 50%;
+    pointer-events: none;
+}
+
+.newsletter-post-envelope {
+    position: fixed;
+    z-index: 2147483001;
+    box-sizing: border-box;
+    border: 1.5px solid var(--lwc-border-strong, #b7c4cd);
+    border-radius: 5px;
+    background:
+        linear-gradient(to top right, transparent calc(50% - 0.75px), var(--lwc-border-strong, #b7c4cd) calc(50% - 0.75px), var(--lwc-border-strong, #b7c4cd) calc(50% + 0.75px), transparent calc(50% + 0.75px)) 0 100% / 50% 62% no-repeat,
+        linear-gradient(to top left, transparent calc(50% - 0.75px), var(--lwc-border-strong, #b7c4cd) calc(50% - 0.75px), var(--lwc-border-strong, #b7c4cd) calc(50% + 0.75px), transparent calc(50% + 0.75px)) 100% 100% / 50% 62% no-repeat,
+        var(--lwc-surface, #fff);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    perspective: 240px;
+    transform-origin: 50% 50%;
+    pointer-events: none;
+}
+
+/* The flap: closed it points down over the letter; open it stands up behind. */
+.newsletter-post-flap {
+    position: absolute;
+    inset: -1.5px -1.5px auto;
+    height: 64%;
+    background: var(--lwc-accent, #087685);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: 50% 0;
+    backface-visibility: visible;
+}
+
+/* ------------------------------------------------------------ the heading takes it
+   Its words flash the accent and a line runs along the strip's edge. */
+#newsletter[data-newsletter-post] #newsletter-title {
+    background-image: linear-gradient(var(--lwc-accent, #087685), var(--lwc-accent, #087685));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0 2px;
+}
+
+#newsletter[data-newsletter-post] #newsletter-title.is-catching {
+    animation: newsletter-post-take 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes newsletter-post-take {
+    0% { background-size: 0 2px; }
+    12% { color: var(--lwc-accent, #087685); }
+    55% { background-size: 100% 2px; }
+    100% { background-size: 100% 0; }
+}
+
+/* ------------------------------------------------------------ the postmark
+   A cancellation stamp under the confirmation's words, in its own tone. */
+#newsletter[data-newsletter-post] #newsletterStatus:not(:empty) {
+    isolation: isolate;
+    overflow: hidden;
+}
+
+#newsletter[data-newsletter-post] #newsletterStatus.is-postmarked:not(.is-error):not(:empty)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    z-index: -1;
+    width: 104px;
+    height: 44px;
+    background: var(--lwc-feedback-tone, var(--lwc-success, #1f8a4c));
+    opacity: 0.32;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 104 44'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='80' cy='22' r='19'/%3E%3Ccircle cx='80' cy='22' r='13.5' stroke-dasharray='3 3'/%3E%3Cpath d='M2 12q7-5 14 0t14 0t14 0t14 0M2 22q7-5 14 0t14 0t14 0t14 0M2 32q7-5 14 0t14 0t14 0t14 0'/%3E%3C/g%3E%3Ccircle cx='80' cy='22' r='3' fill='%23000'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 104 44'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='80' cy='22' r='19'/%3E%3Ccircle cx='80' cy='22' r='13.5' stroke-dasharray='3 3'/%3E%3Cpath d='M2 12q7-5 14 0t14 0t14 0t14 0M2 22q7-5 14 0t14 0t14 0t14 0M2 32q7-5 14 0t14 0t14 0t14 0'/%3E%3C/g%3E%3Ccircle cx='80' cy='22' r='3' fill='%23000'/%3E%3C/svg%3E") center / contain no-repeat;
+    transform: translateY(-50%) rotate(-9deg);
+    pointer-events: none;
+}
+
+/* ------------------------------------------------------------ return to sender */
+#newsletter[data-newsletter-post] #newsletter-form.is-returned {
+    animation: newsletter-post-return 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes newsletter-post-return {
+    0%, 100% { transform: none; }
+    18% { transform: translateX(-7px); }
+    36% { transform: translateX(6px); }
+    54% { transform: translateX(-4px); }
+    72% { transform: translateX(2px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #newsletter[data-newsletter-post] #newsletterStatus.is-postmarked:not(.is-error):not(:empty)::after {
+        animation: newsletter-post-stamp 460ms cubic-bezier(0.3, 1.35, 0.45, 1) 120ms both;
+    }
+
+    #newsletter[data-newsletter-post] .newsletter-panel #newsletterStatus.is-postmarked:not(:empty) {
+        animation: newsletter-post-unfold 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes newsletter-post-stamp {
+        0% { opacity: 0; transform: translateY(-50%) rotate(-24deg) scale(1.9); }
+        60% { opacity: 0.42; transform: translateY(-50%) rotate(-7deg) scale(0.94); }
+        100% { opacity: 0.32; transform: translateY(-50%) rotate(-9deg) scale(1); }
+    }
+
+    @keyframes newsletter-post-unfold {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: none; }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #newsletter[data-newsletter-post] #newsletter-form.is-returned,
+    #newsletter[data-newsletter-post] #newsletter-title.is-catching {
+        animation: none;
+    }
+}

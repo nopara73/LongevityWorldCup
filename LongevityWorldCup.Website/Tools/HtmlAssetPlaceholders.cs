@@ -30,6 +30,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LANDING_PAGE_CSS}}"] = "/css/landing-page.css",
         ["{{ASSET_ENTRY_JOURNEY_CSS}}"] = "/css/entry-journey.css",
         ["{{ASSET_PRIZE_POOL_CSS}}"] = "/css/prize-pool.css",
+        ["{{ASSET_NEWSLETTER_POST_CSS}}"] = "/css/newsletter-post.css",
+        ["{{ASSET_NEWSLETTER_POST_JS}}"] = "/js/newsletter-post.js",
         ["{{ASSET_CUSTOM_EVENT_IMAGE}}"] = "/assets/custom_event.png",
         ["{{ASSET_CUSTOM_EVENT_MARKUP_JS}}"] = "/js/custom-event-markup.js",
         ["{{ASSET_DONATION_QR}}"] = "/assets/Donation25QR.png",
