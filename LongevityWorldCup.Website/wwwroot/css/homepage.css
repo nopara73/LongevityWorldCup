@@ -2658,3 +2658,431 @@ html body main.homepage-main .btc-status-value {
 html.homepage-restoring {
     overflow-anchor: none;
 }
+
+/* ===== Hall of fame: the season's podium =====
+   The champions stand where champions stand: second, first, third, each on a
+   step tinted in its own metal, the year and its clock as the plaque beside
+   them on the same floor. When the section scrolls in, the steps rise third to
+   first, the names land on top and the winner's step catches the light once.
+   The table and the phone card share the design; the table's header row stays
+   for assistive technology only. */
+#hall-of-fame {
+    --podium-1: 7.25rem;
+    --podium-2: 5.25rem;
+    --podium-3: 4rem;
+    --podium-floor: var(--lwc-border-strong, #b8c4cc);
+}
+
+#hall-of-fame :is(.archive-table td:nth-child(3), .archive-mobile-card-winner:nth-child(1)) {
+    grid-area: first;
+    --step: var(--podium-1);
+    --metal: var(--lwc-gold);
+    --step-surface: var(--archive-gold-surface);
+    --rise-delay: 380ms;
+}
+
+#hall-of-fame :is(.archive-table td:nth-child(4), .archive-mobile-card-winner:nth-child(2)) {
+    grid-area: second;
+    --step: var(--podium-2);
+    --metal: var(--lwc-silver);
+    --step-surface: var(--archive-silver-surface);
+    --rise-delay: 240ms;
+}
+
+#hall-of-fame :is(.archive-table td:nth-child(5), .archive-mobile-card-winner:nth-child(3)) {
+    grid-area: third;
+    --step: var(--podium-3);
+    --metal: var(--lwc-bronze);
+    --step-surface: var(--archive-bronze-surface);
+    --rise-delay: 100ms;
+}
+
+@media (min-width: 601px) {
+    main.homepage-main #hall-of-fame .archive-table-wrapper {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: 28px 24px 22px;
+        overflow: visible;
+    }
+
+    main.homepage-main #hall-of-fame :is(.archive-table, .archive-table tbody) {
+        display: block;
+        overflow: visible;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    main.homepage-main #hall-of-fame .archive-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(8.5rem, auto) repeat(3, minmax(0, 1fr));
+        grid-template-areas:
+            "year second first third"
+            "clock second first third";
+        grid-template-rows: 1fr auto;
+        align-items: end;
+        column-gap: 10px;
+        border-bottom: 3px solid var(--podium-floor);
+        background: transparent;
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        width: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        /* An older rule pins placings left with !important. */
+        text-align: center !important;
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(1) {
+        grid-area: year;
+        align-self: end;
+        align-items: flex-start;
+        padding: 0 0 2px;
+        font-size: 2.25rem;
+        line-height: 1;
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(2) {
+        grid-area: clock;
+        align-self: start;
+        align-items: flex-start;
+        padding: 6px 0 16px;
+        font-size: var(--lwc-type-sm, 0.875rem);
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3) a {
+        order: 0;
+        max-width: 100%;
+        padding: 0 6px;
+        font-size: 1.1rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3) .age-reduction {
+        order: 1;
+        margin: 4px 0 12px;
+        font-size: 0.95rem;
+    }
+
+    /* The step itself: the placing's own label, set in the competition face. */
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3)::before {
+        order: 2;
+        display: grid;
+        place-items: center;
+        align-self: stretch;
+        height: var(--step);
+        margin: 0;
+        border-radius: 12px 12px 0 0;
+        background: var(--step-surface);
+        box-shadow: inset 0 5px 0 var(--metal), inset 0 -1px 0 color-mix(in srgb, var(--metal) 35%, transparent);
+        color: var(--lwc-ink, #17212b);
+        font: 700 1.55rem/1 Orbitron, Roboto, sans-serif;
+        letter-spacing: 0.04em;
+        transform-origin: 50% 100%;
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(3)::before {
+        font-size: 2rem;
+    }
+
+    /* The winner's step catches the light once it stands. */
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(3)::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        height: var(--step);
+        border-radius: 12px 12px 0 0;
+        background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.6) 50%, transparent 62%) 140% 0 / 260% 100% no-repeat;
+        pointer-events: none;
+    }
+}
+
+@media (max-width: 600px) {
+    #hall-of-fame {
+        --podium-1: 5.5rem;
+        --podium-2: 4.1rem;
+        --podium-3: 3.2rem;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card {
+        padding: 12px 14px 18px;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-header {
+        margin-bottom: 18px;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-winners {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-areas: "second first third";
+        align-items: end;
+        gap: 0 6px;
+        border-bottom: 3px solid var(--podium-floor);
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        min-width: 0;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner-content {
+        order: 1;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner-name {
+        flex: 0 0 auto;
+        text-align: center;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner-name a {
+        justify-content: center;
+        min-height: 0;
+        padding: 2px 0;
+        font-size: 0.85rem;
+        line-height: 1.25;
+        text-align: center;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-age-reduction {
+        margin: 0;
+        font-size: 0.8rem;
+        text-align: center;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-place {
+        order: 2;
+        display: grid;
+        place-items: center;
+        height: var(--step);
+        min-width: 0;
+        border-radius: 10px 10px 0 0;
+        background: var(--step-surface);
+        box-shadow: inset 0 4px 0 var(--metal);
+        color: var(--lwc-ink, #17212b);
+        font: 700 1.05rem/1 Orbitron, Roboto, sans-serif;
+        letter-spacing: 0.04em;
+        transform-origin: 50% 100%;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(1) .archive-mobile-card-place {
+        font-size: 1.35rem;
+    }
+
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(1)::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        height: var(--step);
+        border-radius: 10px 10px 0 0;
+        background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.6) 50%, transparent 62%) 140% 0 / 260% 100% no-repeat;
+        pointer-events: none;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3)::before,
+    main.homepage-main #hall-of-fame .archive-mobile-card-place {
+        color: var(--metal);
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(3)::after,
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(1)::after {
+        background-image: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.18) 50%, transparent 62%);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(n + 3)::before,
+    main.homepage-main #hall-of-fame .archive-mobile-card-place {
+        animation: podium-rise 560ms cubic-bezier(0.2, 0.9, 0.3, 1.12) var(--rise-delay, 0ms) both;
+    }
+
+    main.homepage-main #hall-of-fame :is(.archive-table td:nth-child(n + 3) > *, .archive-mobile-card-winner-content) {
+        animation: podium-land 380ms cubic-bezier(0.34, 1.32, 0.64, 1) calc(var(--rise-delay, 0ms) + 300ms) both;
+    }
+
+    main.homepage-main #hall-of-fame .archive-table td:nth-child(3)::after,
+    main.homepage-main #hall-of-fame .archive-mobile-card-winner:nth-child(1)::after {
+        animation: podium-shine 1100ms cubic-bezier(0.4, 0, 0.2, 1) 1000ms both;
+    }
+
+    /* Held, set, until the section scrolls in (scroll-choreography holds it). */
+    main.homepage-main #hall-of-fame[data-lwc-enter-state="wait"] .archive-table td::before,
+    main.homepage-main #hall-of-fame[data-lwc-enter-state="wait"] .archive-table td::after,
+    main.homepage-main #hall-of-fame[data-lwc-enter-state="wait"] .archive-table td > *,
+    main.homepage-main #hall-of-fame[data-lwc-enter-state="wait"] .archive-mobile-card-place,
+    main.homepage-main #hall-of-fame[data-lwc-enter-state="wait"] .archive-mobile-card-winner::after,
+    main.homepage-main #hall-of-fame[data-lwc-enter-state="wait"] .archive-mobile-card-winner-content {
+        animation-play-state: paused;
+    }
+}
+
+@keyframes podium-rise {
+    from { transform: scaleY(0); }
+}
+
+@keyframes podium-land {
+    from { opacity: 0; translate: 0 -12px; }
+}
+
+@keyframes podium-shine {
+    from { background-position: 140% 0; }
+    to { background-position: -40% 0; }
+}
+
+/* ===== FAQ: questions first, answers on demand =====
+   Four always-open cards became a wall of grey text on phones. Each question
+   is now a row that opens in place with the site's shared disclosure motion
+   (grow, then the answer settles in); the first one starts open. Its marker
+   turns from plus to close with a little overshoot, and an open question
+   keeps the accent edge the cards already used. */
+main.homepage-main #faq .homepage-faq-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
+    padding: 20px;
+}
+
+main.homepage-main #faq .homepage-faq-item {
+    padding: 0;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface, var(--card-bg));
+    box-shadow: inset 3px 0 0 var(--lwc-border-strong, var(--lwc-border));
+    transition:
+        border-color 180ms var(--lwc-ease-standard, ease),
+        box-shadow 220ms var(--lwc-ease-standard, ease),
+        background-color 180ms var(--lwc-ease-standard, ease);
+}
+
+main.homepage-main #faq .homepage-faq-item[open] {
+    border-color: color-mix(in srgb, var(--lwc-accent) 40%, var(--lwc-border));
+    background: var(--lwc-surface-accent, var(--lwc-surface));
+    box-shadow: inset 3px 0 0 var(--lwc-accent), 0 12px 24px -20px rgba(0, 0, 0, 0.5);
+}
+
+main.homepage-main #faq .homepage-faq-question {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 12px 14px 12px 18px;
+    box-sizing: border-box;
+    border-radius: inherit;
+    cursor: pointer;
+    list-style: none;
+    color: var(--lwc-muted, #52606d);
+}
+
+main.homepage-main #faq .homepage-faq-question::-webkit-details-marker {
+    display: none;
+}
+
+main.homepage-main #faq .homepage-faq-question h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: var(--lwc-ink, #2d3748);
+    font-size: 1rem;
+    line-height: 1.35;
+    transition: color 140ms var(--lwc-ease-standard, ease);
+}
+
+/* Drawn plus that turns into a close mark. */
+main.homepage-main #faq .homepage-faq-question::after {
+    content: "";
+    flex: 0 0 28px;
+    height: 28px;
+    border-radius: 50%;
+    background:
+        linear-gradient(currentColor, currentColor) center / 11px 2px no-repeat,
+        linear-gradient(currentColor, currentColor) center / 2px 11px no-repeat;
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--lwc-border-strong, var(--lwc-border));
+    transition:
+        rotate 320ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)),
+        background-color 160ms var(--lwc-ease-standard, ease),
+        color 160ms var(--lwc-ease-standard, ease),
+        box-shadow 160ms var(--lwc-ease-standard, ease);
+}
+
+main.homepage-main #faq .homepage-faq-item[open] > .homepage-faq-question::after {
+    rotate: 135deg;
+    background-color: var(--lwc-accent);
+    color: var(--lwc-on-accent, #fff);
+    box-shadow: 0 0 0 4px var(--lwc-accent-soft, transparent);
+}
+
+main.homepage-main #faq .homepage-faq-question:active::after {
+    scale: 0.88;
+}
+
+main.homepage-main #faq .homepage-faq-question:focus-visible {
+    outline: 3px solid var(--lwc-accent);
+    outline-offset: -3px;
+}
+
+@media (hover: hover) {
+    main.homepage-main #faq .homepage-faq-question:hover h3 {
+        color: var(--lwc-accent-hover, var(--lwc-accent));
+    }
+
+    main.homepage-main #faq .homepage-faq-question:hover::after {
+        color: var(--lwc-accent);
+        box-shadow: inset 0 0 0 1px var(--lwc-accent);
+    }
+
+    main.homepage-main #faq .homepage-faq-item[open] > .homepage-faq-question:hover::after {
+        color: var(--lwc-on-accent, #fff);
+    }
+}
+
+main.homepage-main #faq .homepage-faq-item > p {
+    margin: 0;
+    padding: 0 18px 16px;
+}
+
+@media (max-width: 600px) {
+    main.homepage-main #faq .homepage-faq-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        padding: 14px;
+    }
+
+    main.homepage-main #faq .homepage-faq-question {
+        padding-left: 16px;
+    }
+
+    main.homepage-main #faq .homepage-faq-item > p {
+        padding: 0 16px 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    main.homepage-main #faq .homepage-faq-item,
+    main.homepage-main #faq .homepage-faq-question::after {
+        transition: none;
+    }
+}
