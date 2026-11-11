@@ -2585,6 +2585,8 @@ public sealed class AestheticSystemBrowserTests(
             {
                 await Assertions.Expect(page.Locator("[data-select-id='lmxSignupTimeZone']"))
                     .ToHaveAttributeAsync("data-wired", "true");
+                // Wiring precedes public-state loading; hidden containers do not evaluate their queries.
+                await Assertions.Expect(page.Locator("#lmxSignupTimeZoneButton")).ToBeVisibleAsync();
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
                 {
                     var inlineSize = thresholdPixels + delta;
