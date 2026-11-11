@@ -288,6 +288,94 @@ public sealed class IndexNowTests : IDisposable
     }
 
     [Fact]
+    public async Task RejectionDetailsSurviveRestartAndSuccessfulRetry()
+    {
+        var store = new IndexNowStateStore(StatePath);
+        var key = store.Key;
+        var handler = new FakeTransport(HttpStatusCode.Forbidden)
+        {
+            ConfigureResponse = response =>
+            {
+                response.ReasonPhrase = "Ownership rejected";
+                response.Headers.Date = Now.AddSeconds(1);
+                response.Headers.TryAddWithoutValidation("x-request-id", "provider-request-42");
+                response.Headers.TryAddWithoutValidation("X-Azure-Ref", "edge-reference-42");
+                response.Headers.TryAddWithoutValidation("Set-Cookie", "provider-session=private");
+                response.Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    request_id = "body-request-42",
+                    error = new { message = $"Invalid ownership key: {key.ToUpperInvariant()}", traceId = "body-trace-42" }
+                }), Encoding.UTF8, "application/json");
+            }
+        };
+        var options = new IndexNowOptions();
+        var submitter = Create(store, handler, options);
+        var url = Origin + "/events";
+        var content = new Dictionary<string, string> { [url] = "v1" };
+        submitter.Reconcile(content, Now);
+        await submitter.SubmitNextBatchAsync(Now, default);
+
+        store = new IndexNowStateStore(StatePath);
+        var paused = store.Read();
+        var receipt = Assert.IsType<IndexNowRejectionReceipt>(paused.LastRejection);
+        Assert.NotNull(paused.PausedReason);
+        Assert.True(paused.Urls[url].Pending);
+        Assert.Equal(Now, receipt.SubmittedAtUtc);
+        Assert.Equal(403, receipt.StatusCode);
+        Assert.Equal(1, receipt.UrlCount);
+        Assert.Equal("Ownership rejected", receipt.ReasonPhrase);
+        Assert.Equal("application/json", receipt.ContentType);
+        Assert.Equal(Now.AddSeconds(1), receipt.ResponseDate);
+        Assert.Equal("provider-request-42", receipt.RequestIds["X-Request-Id"]);
+        Assert.Equal("edge-reference-42", receipt.RequestIds["X-Azure-Ref"]);
+        Assert.Equal("body-request-42", receipt.RequestIds["body.requestid"]);
+        Assert.Equal("body-trace-42", receipt.RequestIds["body.error.traceid"]);
+        Assert.Contains("Invalid ownership key: [redacted]", receipt.BodyPreview);
+        Assert.False(receipt.BodyTruncated);
+        Assert.Null(receipt.BodyReadError);
+        var savedReceipt = JsonSerializer.Serialize(receipt);
+        Assert.DoesNotContain(key, savedReceipt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("provider-session", savedReceipt);
+
+        options.RetryVersion = "operator-verified";
+        handler.Code = HttpStatusCode.OK;
+        handler.ConfigureResponse = null;
+        submitter = Create(store, handler, options);
+        var retryTime = Now.AddMinutes(6);
+        submitter.Reconcile(content, retryTime);
+        await submitter.SubmitNextBatchAsync(retryTime, default);
+
+        var recovered = new IndexNowStateStore(StatePath).Read();
+        Assert.Equal(200, recovered.LastStatusCode);
+        Assert.False(recovered.Urls[url].Pending);
+        Assert.Null(recovered.PausedReason);
+        Assert.Equal(savedReceipt, JsonSerializer.Serialize(recovered.LastRejection));
+    }
+
+    [Fact]
+    public async Task OversizedRejectionKeepsProviderIdWithoutAClippedKey()
+    {
+        var store = new IndexNowStateStore(StatePath);
+        var text = new string('\u00e9', 4091);
+        var handler = new FakeTransport(HttpStatusCode.Forbidden)
+        {
+            ConfigureResponse = response =>
+            {
+                response.Headers.TryAddWithoutValidation("X-MSEdge-Ref", "edge-ref-42");
+                response.Content = new StringContent(text + store.Key + new string('x', 1000), Encoding.UTF8, "text/plain");
+            }
+        };
+        var submitter = Create(store, handler);
+        submitter.Reconcile(new Dictionary<string, string> { [Origin + "/"] = "v1" }, Now);
+        await submitter.SubmitNextBatchAsync(Now, default);
+
+        var receipt = Assert.IsType<IndexNowRejectionReceipt>(new IndexNowStateStore(StatePath).Read().LastRejection);
+        Assert.Equal("edge-ref-42", receipt.RequestIds["X-MSEdge-Ref"]);
+        Assert.Equal(text, receipt.BodyPreview);
+        Assert.True(receipt.BodyTruncated);
+    }
+
+    [Fact]
     public async Task TransportFailureAndShutdownKeepDurableWork()
     {
         var store = new IndexNowStateStore(StatePath);
@@ -319,6 +407,7 @@ public sealed class IndexNowTests : IDisposable
         public List<JsonElement> Requests { get; } = [];
         public RetryConditionHeaderValue? RetryAfter { get; init; }
         public Action? OnSend { get; set; }
+        public Action<HttpResponseMessage>? ConfigureResponse { get; set; }
         public Exception? Failure { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -328,7 +417,9 @@ public sealed class IndexNowTests : IDisposable
             Requests.Add(JsonDocument.Parse(await request.Content.ReadAsStringAsync(cancellationToken)).RootElement.Clone());
             OnSend?.Invoke();
             if (Failure is not null) throw Failure;
-            return new HttpResponseMessage(Code) { Headers = { RetryAfter = RetryAfter } };
+            var response = new HttpResponseMessage(Code) { Headers = { RetryAfter = RetryAfter } };
+            ConfigureResponse?.Invoke(response);
+            return response;
         }
     }
 
