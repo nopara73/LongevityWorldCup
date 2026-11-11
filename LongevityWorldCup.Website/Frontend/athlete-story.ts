@@ -452,6 +452,57 @@
         counters.delete(current);
     }
 
+    // --- Result tiles make room for the chart they open -------------------------------
+    // Biomarkers sit in a grid of tiles (charts.css). Opening one puts its chart
+    // on the next full row: the tiles that move glide to their new places and the
+    // chart unfolds from the tile it belongs to. Positions are measured against
+    // the list, so a scroll during the change does not read as travel.
+
+    function tileBoxes(list: HTMLElement): Map<HTMLElement, { x: number; y: number }> {
+        const origin = list.getBoundingClientRect();
+        const boxes = new Map<HTMLElement, { x: number; y: number }>();
+        list.querySelectorAll<HTMLElement>("tr.result-summary, tr.result-detail-row:not([hidden])").forEach(element => {
+            if (!shown(element)) return;
+            const box = element.getBoundingClientRect();
+            boxes.set(element, { x: box.left - origin.left, y: box.top - origin.top });
+        });
+        return boxes;
+    }
+
+    function glideTiles(event: Event): void {
+        if (event instanceof KeyboardEvent && event.key !== "Escape") return;
+        const target = event.target instanceof Element ? event.target : null;
+        const list = target?.closest<HTMLElement>("#biomarkerResultList");
+        if (!list || !target?.closest("tr.result-summary") || !enabled()) return;
+        const before = tileBoxes(list);
+        frame(() => {
+            if (!enabled() || !list.isConnected) return;
+            const origin = list.getBoundingClientRect();
+            tileBoxes(list).forEach((now, element) => {
+                const was = before.get(element);
+                if (!was && element.matches("tr.result-detail-row")) {
+                    // The chart opens from under its tile.
+                    const tile = element.previousElementSibling;
+                    const from = tile instanceof HTMLElement ? tile.getBoundingClientRect() : null;
+                    const x = from ? from.left - origin.left + from.width / 2 - now.x : 0;
+                    animate(element, [
+                        { opacity: 0, clipPath: `inset(0 calc(100% - ${x + 40}px) 100% ${Math.max(0, x - 40)}px round 10px)` },
+                        { opacity: 1, clipPath: "inset(0 0 0 0 round 10px)" },
+                    ], { duration: 340, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+                    return;
+                }
+                if (!was) return;
+                const dx = was.x - now.x;
+                const dy = was.y - now.y;
+                if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+                animate(element, [{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }],
+                    { duration: 320, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+            });
+        });
+    }
+    dialog.addEventListener("click", glideTiles, true);
+    dialog.addEventListener("keydown", glideTiles, true);
+
     // --- Links answer the press ------------------------------------------------------
 
     dialog.addEventListener("pointerdown", event => {

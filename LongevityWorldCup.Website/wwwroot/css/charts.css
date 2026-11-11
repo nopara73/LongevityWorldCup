@@ -244,3 +244,237 @@ canvas[data-lwc-chart="radar"][data-lwc-draw="in"] {
         content: none;
     }
 }
+
+/* ===== Results over time: one wall of result tiles =====
+   The two clocks keep their headline rows. Every biomarker below them was a
+   thin table row with a thumbnail trend, so a profile ran thirty rows deep. Now
+   each biomarker is a tile: name and unit, the latest value set as a figure with
+   its change, and the trend drawn across the tile's full width. Tiles flow two
+   or three across, so the whole panel reads at a glance. Opening a tile lights
+   its edge, the chart unfolds on the next full row under it, and the tiles that
+   make room glide there (athlete-story.ts). The table stays a table for
+   assistive technology; its column heads are kept off screen. */
+#detailsModal #biomarkerResultList > .biomarker-overview-table {
+    display: block;
+}
+
+#detailsModal #biomarkerResultList > .biomarker-overview-table > thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+#detailsModal #biomarkerResultList > .biomarker-overview-table > tbody {
+    --result-tiles: 2;
+    display: grid;
+    grid-template-columns: repeat(var(--result-tiles), minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    gap: 8px;
+    padding: 0 var(--result-content-inset, 1rem) 1rem;
+}
+
+@container athlete-results (min-width: 34rem) {
+    #detailsModal #biomarkerResultList > .biomarker-overview-table > tbody { --result-tiles: 3; }
+}
+
+@container athlete-results (max-width: 17rem) {
+    #detailsModal #biomarkerResultList > .biomarker-overview-table > tbody { --result-tiles: 1; }
+}
+
+/* The clocks: full-width headline rows, edge to edge as before. */
+#detailsModal #biomarkerResultList .result-clock,
+#detailsModal #biomarkerResultList .result-clock + .result-detail-row {
+    grid-column: 1 / -1;
+    margin-inline: calc(-1 * var(--result-content-inset, 1rem));
+}
+
+#detailsModal #biomarkerResultList .result-clock {
+    display: grid;
+    grid-template-columns: var(--result-name-width, 38%) minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+#detailsModal #biomarkerResultList .result-clock {
+    border-bottom: 1px solid var(--athlete-doc-rule, rgba(246, 244, 237, 0.1));
+}
+
+#detailsModal #biomarkerResultList .result-clock > :is(th, td) {
+    display: block;
+    width: auto;
+    min-width: 0;
+    border-bottom: 0;
+}
+
+/* The last clock row closes the headline band before the tiles start. */
+#detailsModal #biomarkerResultList .result-clock:not(:has(~ .result-clock)) {
+    margin-bottom: 8px;
+}
+
+#detailsModal #biomarkerResultList .result-detail-row {
+    grid-column: 1 / -1;
+    display: block;
+}
+
+#detailsModal #biomarkerResultList .result-detail-row > td {
+    display: block;
+}
+
+/* A biomarker tile. */
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "name value"
+        "trend trend";
+    align-items: start;
+    column-gap: 8px;
+    min-width: 0;
+    padding: 10px 12px 6px;
+    box-sizing: border-box;
+    border: 1px solid var(--athlete-modal-border);
+    border-radius: 10px;
+    background: rgba(246, 244, 237, 0.03);
+    transition:
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        box-shadow 200ms var(--lwc-ease, ease),
+        translate 220ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) > :is(th, td) {
+    display: block;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) > th {
+    grid-area: name;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) > th::before,
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) .biomarker-overview-arrow {
+    display: none;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) button {
+    min-height: 0;
+    font-size: 0.88rem;
+    line-height: 1.3;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) button::after {
+    /* The whole tile is the target. */
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) .biomarker-history-unit {
+    margin-top: 1px;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) > .biomarker-overview-result {
+    grid-area: value;
+    text-align: right;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) .biomarker-overview-current {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) > .biomarker-overview-history {
+    grid-area: trend;
+    margin: 6px -4px 0;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) .biomarker-overview-history svg {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    aspect-ratio: 3 / 1;
+    max-height: 64px;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) .sparkline-area path {
+    fill: color-mix(in srgb, var(--result-accent, var(--athlete-modal-chart-pheno)) 18%, transparent);
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock):has(button:enabled):hover,
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock):has(button:focus-visible) {
+    border-color: color-mix(in srgb, var(--result-accent, var(--athlete-modal-chart-pheno)) 55%, var(--athlete-modal-border));
+    background: rgba(246, 244, 237, 0.06);
+}
+
+@media (hover: hover) {
+    #detailsModal #biomarkerResultList .result-summary:not(.result-clock):has(button:enabled):hover {
+        translate: 0 -2px;
+        box-shadow: 0 10px 22px -16px rgba(0, 0, 0, 0.8);
+    }
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock):has(button:focus-visible) {
+    outline: 2px solid var(--result-accent, var(--athlete-modal-chart-pheno));
+    outline-offset: 2px;
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock):active {
+    translate: 0 1px;
+}
+
+/* The tile in hand: lit edge and a notch that points at its chart. */
+#detailsModal #biomarkerResultList .result-summary.is-expanded:not(.result-clock) {
+    border-color: var(--result-accent, var(--athlete-modal-chart-pheno));
+    background: var(--athlete-modal-chart-panel);
+    box-shadow: inset 0 0 0 1px var(--result-accent, var(--athlete-modal-chart-pheno));
+}
+
+#detailsModal #biomarkerResultList .result-summary.is-expanded:not(.result-clock)::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -9px;
+    width: 12px;
+    height: 12px;
+    border-right: 1px solid var(--result-accent, var(--athlete-modal-chart-pheno));
+    border-bottom: 1px solid var(--result-accent, var(--athlete-modal-chart-pheno));
+    background: var(--athlete-modal-chart-panel);
+    transform: translateX(-50%) rotate(45deg);
+}
+
+#detailsModal #biomarkerResultList .result-summary:not(.result-clock) + .result-detail-row .result-detail {
+    margin: 0;
+    border: 1px solid var(--result-accent, var(--athlete-modal-chart-pheno));
+    border-radius: 10px;
+}
+
+/* Tiles pop in as they scroll into view (athlete-story.ts sets data-draw). */
+#detailsModal #biomarkerResultList tr.result-summary:not(.result-clock)[data-draw="wait"] {
+    opacity: 0;
+}
+
+#detailsModal #biomarkerResultList tr.result-summary:not(.result-clock)[data-draw="in"] {
+    animation: lwc-result-tile-in 420ms cubic-bezier(0.34, 1.32, 0.64, 1) backwards;
+}
+
+@keyframes lwc-result-tile-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.94); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #detailsModal #biomarkerResultList .result-summary:not(.result-clock) {
+        transition: none;
+    }
+
+    #detailsModal #biomarkerResultList .result-summary:not(.result-clock):has(button:enabled):hover,
+    #detailsModal #biomarkerResultList .result-summary:not(.result-clock):active {
+        translate: none;
+    }
+}
