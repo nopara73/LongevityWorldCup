@@ -113,10 +113,14 @@ th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); 
     #athleteLeaderboard.leaderboard--ordered > table thead th.leaderboard-order-column { width:clamp(112px,15cqi,10.75rem); min-width:0; }
     #athleteLeaderboard.leaderboard--ordered > table thead .media-contact-th { width:clamp(72px,8cqi,6rem); min-width:0; word-break:normal; }
     .leaderboard--ordered > table th[data-order-key="name"], .leaderboard--ordered > table td.athlete-td { width:auto; }
+    /* Badges stay beside the name, packed, so an ordered row keeps the board's one-line height. */
     .leaderboard--ordered table tbody tr:not(.no-results):not(.tier-separator) .athlete-td {
-        grid-template-columns:var(--portrait-size) minmax(0,1fr); column-gap:.65rem;
+        grid-template-columns:var(--portrait-size) minmax(0,1fr) auto; column-gap:.65rem;
     }
-    .leaderboard--ordered table tbody .athlete-td .badge-section { grid-column:2; min-width:0; }
+    .leaderboard--ordered table tbody .athlete-td .badge-section { grid-column:3; grid-row:1; justify-self:end; min-width:0; gap:0; }
+    .leaderboard--ordered table tbody .athlete-td .badge-section > * + * { margin-inline-start:-5px; }
+    /* The sponsor placeholder steps aside while a field leads the board. */
+    #athleteLeaderboard.leaderboard--ordered > table :is(th.sponsor-th, td.sponsor-td) { display:none; }
     .leaderboard--ordered table tbody .athlete-td .badge-section:empty { display:none; }
     .leaderboard--ordered > table th[data-order-key="metric"], .leaderboard--ordered > table td.age-reduction-td { text-align:right; }
 }
@@ -224,4 +228,78 @@ th[data-order-direction="asc"] .order-indicator svg { transform:rotate(180deg); 
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] { padding-inline:.5rem; }
     #athleteLeaderboard.leaderboard--ordered > table > tbody > tr.tier-amateur[data-athlete-name] { padding-left:calc(.5rem - 4px); }
     #athleteLeaderboard.leaderboard--ordered table .age-reduction { font-size:.9rem; }
+}
+
+/* ===== Ordering as one flow =====
+   Choosing a field turns its column into the board's lead lane: a soft accent
+   tint down the column, the values set as bold figures, and under each one a
+   bar for where it sits between the board's lowest and highest value
+   (leaderboard-ordering.js sets --order-share). The official rank, which no
+   longer explains the order, goes quiet. The lane slides in row by row, the
+   bars grow from their figure, the direction arrows turn over and Swap trades
+   the two choices across the strip. */
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value { position:relative; }
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-level="1"],
+#athleteLeaderboard.leaderboard--ordered > table th.leaderboard-order-column[data-order-level="1"] {
+    background-color:color-mix(in srgb, var(--lwc-accent) 7%, transparent);
+}
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-level="1"] {
+    color:var(--lwc-ink); font-size:1.05rem; font-weight:700; letter-spacing:-.01em;
+}
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-level="2"] {
+    color:var(--lwc-muted); font-weight:600;
+}
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure] {
+    --order-bar-width:min(7rem, calc(100% - 2 * var(--order-cell-gutter, 12px)));
+}
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure]::before,
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure]::after {
+    content:""; position:absolute; right:var(--order-cell-gutter, 12px); bottom:9px; height:3px; border-radius:2px; pointer-events:none;
+}
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure]::before {
+    width:var(--order-bar-width); background:color-mix(in srgb, var(--lwc-border) 75%, transparent);
+}
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure]::after {
+    width:max(3px, calc(var(--order-bar-width) * var(--order-share, 0)));
+    background:var(--lwc-accent); transform-origin:right center;
+}
+#athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-level="2"][data-order-measure]::after {
+    background:color-mix(in srgb, var(--lwc-accent) 40%, transparent);
+}
+/* The official rank stays for reference, quieter while another field leads. */
+#athleteLeaderboard.leaderboard--ordered > table tbody td.rank-td > * { opacity:.5; }
+#athleteLeaderboard > table tbody td.rank-td > * { transition:opacity var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease); }
+
+@container leaderboard-results (max-width:55em) {
+    #athleteLeaderboard.leaderboard--ordered > table > tbody > tr[data-athlete-name] > .leaderboard-order-value[data-order-measure] {
+        --order-bar-width:min(5rem, 100%); padding-bottom:8px;
+    }
+    #athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure]::before,
+    #athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure]::after { right:0; bottom:0; }
+    #athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-level="1"],
+    #athleteLeaderboard.leaderboard--ordered > table th.leaderboard-order-column[data-order-level="1"] { background-color:transparent; }
+}
+
+/* Swap: the choices cross the strip as copies while the real fields update. */
+.lwc-order-ghost {
+    position:fixed; z-index:120; margin:0; box-sizing:border-box; pointer-events:none;
+    border-radius:var(--lwc-radius-sm, 6px); background:var(--lwc-surface);
+    box-shadow:0 10px 22px -12px color-mix(in srgb, var(--lwc-ink) 70%, transparent), 0 0 0 1px var(--lwc-accent);
+}
+.leaderboard-order-swap svg { rotate:var(--order-swap-turn, 0deg); }
+
+@media (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-motion="on"] #athleteLeaderboard.leaderboard--ordered > table td.leaderboard-order-value[data-order-measure]::after {
+        animation:lwc-order-measure 620ms cubic-bezier(.2, 0, 0, 1) both;
+        animation-delay:calc(var(--order-row, 0) * 28ms + 140ms);
+    }
+    :root[data-lwc-motion="on"] .leaderboard-order-swap svg { transition:rotate 420ms cubic-bezier(.34, 1.32, .64, 1); }
+    :root[data-lwc-motion="on"] :is(.leaderboard-order-direction, #athleteLeaderboard .order-indicator) svg {
+        transition:transform 320ms cubic-bezier(.34, 1.32, .64, 1);
+    }
+    :root[data-lwc-motion="on"] .leaderboard-order-swap:active:enabled svg { scale:.86; }
+}
+@keyframes lwc-order-measure { from { transform:scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+    #athleteLeaderboard > table tbody td.rank-td > * { transition:none; }
 }

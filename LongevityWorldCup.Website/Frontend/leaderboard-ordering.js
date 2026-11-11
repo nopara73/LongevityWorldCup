@@ -244,17 +244,65 @@
         }
         document.querySelectorAll('th[data-order-key]').forEach(header => decorateHeader(header, display, metricLabel));
     }
+    // Ordering is a flow you watch: the chosen column arrives row by row and each
+    // value carries a bar for where it sits between the board's lowest and highest.
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const motionOn = () => !reduceMotion.matches && document.documentElement.dataset.lwcMotion === 'on';
+    const easeEnter = 'cubic-bezier(0.2, 0, 0, 1)';
+    const easePop = 'cubic-bezier(0.34, 1.32, 0.64, 1)';
+    const amountOf = (field, value) => field.kind === 'date' ? Date.parse(String(value).slice(0, 10) + 'T00:00:00Z')
+        : typeof value === 'number' && Number.isFinite(value) ? value : null;
+    function rangeOf(field, entries) {
+        let min = Infinity;
+        let max = -Infinity;
+        for (const entry of entries) {
+            const value = unwrap(rawValue(entry, field.key));
+            if (missing(value)) continue;
+            const amount = amountOf(field, value);
+            if (!Number.isFinite(amount)) continue;
+            if (amount < min) min = amount;
+            if (amount > max) max = amount;
+        }
+        return max > min ? { min, max } : null;
+    }
+    function measure(cell, field, value, range, level) {
+        if (cell.dataset.orderLevel !== level) cell.dataset.orderLevel = level;
+        const amount = range && !missing(value) ? amountOf(field, value) : null;
+        if (!Number.isFinite(amount)) {
+            delete cell.dataset.orderMeasure;
+            cell.style.removeProperty('--order-share');
+            return;
+        }
+        const share = ((amount - range.min) / (range.max - range.min)).toFixed(3);
+        if (cell.style.getPropertyValue('--order-share') !== share) cell.style.setProperty('--order-share', share);
+        if (!('orderMeasure' in cell.dataset)) cell.dataset.orderMeasure = '';
+    }
+    // A newly chosen column slides in on the rows in view, top to bottom.
+    function arrive(cells) {
+        if (!cells.length || !motionOn()) return;
+        const viewport = document.documentElement.clientHeight;
+        const visible = cells.map(cell => ({ cell, top: cell.parentElement.getBoundingClientRect().top }))
+            .filter(item => item.top < viewport && item.top > -120).sort((a, b) => a.top - b.top);
+        visible.forEach(({ cell }, index) => {
+            const step = Math.min(index, 12);
+            cell.style.setProperty('--order-row', String(step));
+            cell.animate([{ opacity: 0, transform: 'translateX(18px)' }, { opacity: 1, transform: 'none' }],
+                { duration: 340, delay: step * 28, easing: easeEnter, fill: 'backwards' });
+        });
+    }
     function renderValues(entries, state = current, rowsByName) {
         const selected = columns(state);
         if (!selected.length) return;
         rowsByName ||= new Map(Array.from(document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]'), row => [row.dataset.athleteName, row]));
+        const ranges = new Map(selected.map(field => [field.key, rangeOf(field, entries)]));
+        const fresh = [];
         for (const entry of entries) {
             const row = rowsByName.get(entry.athlete.name);
             if (!row) continue;
             let previous = row.querySelector('.age-reduction-td');
             for (const field of selected) {
                 let cell = row.querySelector(`td[data-order-key="${field.key}"]`);
-                if (!cell) { cell = document.createElement('td'); cell.className = 'leaderboard-order-value'; cell.dataset.orderKey = field.key; }
+                if (!cell) { cell = document.createElement('td'); cell.className = 'leaderboard-order-value'; cell.dataset.orderKey = field.key; fresh.push(cell); }
                 const label = field.label + (field.unit ? ` (${field.unit})` : '');
                 if (cell.dataset.label !== label) cell.dataset.label = label;
                 const item = rawValue(entry, field.key);
@@ -270,10 +318,51 @@
                     if (cell.title !== title) { cell.title = title; cell.setAttribute('aria-label', title); }
                 }
                 else { cell.removeAttribute('title'); cell.removeAttribute('aria-label'); }
+                measure(cell, field, value, ranges.get(field.key), field.key === state.sort ? '1' : '2');
                 if (previous?.nextElementSibling !== cell) previous?.after(cell);
                 previous = cell;
             }
         }
+        arrive(fresh);
+    }
+    // Swapping trades the two fields in place: each choice travels to the other
+    // field while the arrows between them turn over.
+    function crossFields(apply) {
+        const labels = [primary, secondary].map(select => select.parentElement.querySelector('.order-selected-value'));
+        const before = labels.map(label => label?.getBoundingClientRect());
+        const ghosts = motionOn() ? labels.map((label, index) => {
+            const box = before[index];
+            if (!label || !box?.width) return null;
+            const ghost = label.cloneNode(true);
+            const style = getComputedStyle(label);
+            ghost.className = 'order-selected-value lwc-order-ghost';
+            ghost.setAttribute('aria-hidden', 'true');
+            Object.assign(ghost.style, {
+                left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`,
+                font: style.font, color: style.color, padding: style.padding,
+            });
+            document.body.appendChild(ghost);
+            return ghost;
+        }) : [];
+        apply();
+        const turns = Number(swap.dataset.turns || 0) + 1;
+        swap.dataset.turns = String(turns);
+        swap.style.setProperty('--order-swap-turn', `${turns * 180}deg`);
+        ghosts.forEach((ghost, index) => {
+            const label = labels[index];
+            const to = before[1 - index];
+            if (!ghost || !label || !to) { ghost?.remove(); return; }
+            const from = before[index];
+            const flight = ghost.animate([
+                { transform: 'none', opacity: 1 },
+                { transform: `translate(${(to.left - from.left) / 2}px, ${(to.top - from.top) / 2 + (index ? 10 : -10)}px) scale(.96)`, opacity: .9, offset: .5 },
+                { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px)`, opacity: 1 },
+            ], { duration: 420, easing: easePop });
+            const settle = () => ghost.remove();
+            flight.finished.then(settle, settle);
+            // The real labels already hold their new choice; show them as the copies land.
+            labels[1 - index]?.animate([{ opacity: 0 }, { opacity: 0 }], { duration: 420 });
+        });
     }
     function commit(next) {
         current = normalize(next);
@@ -318,7 +407,7 @@
         primaryDirection.addEventListener('click', () => commit({ ...current, direction: current.direction === 'asc' ? 'desc' : 'asc' }));
         secondaryDirection.addEventListener('click', () => commit({ ...current, thenDirection: current.thenDirection === 'asc' ? 'desc' : 'asc' }));
         swap.addEventListener('click', () => {
-            commit({ sort: current.then, direction: current.thenDirection, then: current.sort, thenDirection: current.direction });
+            crossFields(() => commit({ sort: current.then, direction: current.thenDirection, then: current.sort, thenDirection: current.direction }));
         });
         primaryClear.addEventListener('click', () => {
             primary.focus({ preventScroll: true });
