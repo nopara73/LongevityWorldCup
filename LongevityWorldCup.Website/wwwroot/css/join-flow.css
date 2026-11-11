@@ -1,0 +1,150 @@
+/* /join "Choose your track" as one flow. Frontend/join-flow.ts sets
+   [data-join-flow] on #joinTrackPanel, .is-dealing while the cards arrive,
+   .is-twin-row on matching rows, .join-twin-beam between them, and
+   [data-join-chosen] + .is-stamped when a track is picked.
+   Colours: the cards' own accent/green tokens. play-menu.css keeps the base. */
+
+/* ------------------------------------------------------------ arrival */
+@media (prefers-reduced-motion: no-preference) {
+    /* The cards are dealt in from the middle, like two tickets slid across. */
+    .play-join-panel[data-join-flow].is-dealing .play-join-card {
+        animation: join-deal-amateur 640ms cubic-bezier(.2, 0, 0, 1) 120ms both;
+        transform-origin: 100% 60%;
+    }
+    .play-join-panel[data-join-flow].is-dealing .play-join-card--pro {
+        animation-name: join-deal-pro;
+        animation-delay: 200ms;
+        transform-origin: 0% 60%;
+    }
+    /* The prize ribbon swings on last. */
+    .play-join-panel[data-join-flow].is-dealing .play-join-ribbon {
+        animation: join-ribbon-swing 700ms cubic-bezier(.34, 1.4, .64, 1) 620ms both;
+        transform-origin: 100% 0;
+    }
+    /* Rows of each card settle in under its head. */
+    .play-join-panel[data-join-flow].is-dealing .play-join-meta > :is(dt, dd) {
+        animation: join-row-in 420ms cubic-bezier(.2, 0, 0, 1) both;
+        animation-delay: 420ms;
+    }
+    .play-join-panel[data-join-flow].is-dealing .play-join-meta > :is(dt, dd):nth-of-type(2) { animation-delay: 470ms; }
+    .play-join-panel[data-join-flow].is-dealing .play-join-meta > :is(dt, dd):nth-of-type(3) { animation-delay: 520ms; }
+    .play-join-panel[data-join-flow].is-dealing .play-join-meta > :is(dt, dd):nth-of-type(4) { animation-delay: 570ms; }
+}
+@keyframes join-deal-amateur {
+    from { opacity: 0; transform: translateX(18%) rotate(4deg) scale(.94); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes join-deal-pro {
+    from { opacity: 0; transform: translateX(-18%) rotate(-4deg) scale(.94); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes join-ribbon-swing {
+    from { opacity: 0; transform: rotate(-35deg) scale(.6); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes join-row-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* Prices counting up keep their width so the row does not jitter. */
+.play-join-panel[data-join-flow] :is(.pro-new-price, #joinProEntryPrice).is-counting {
+    display: inline-block;
+    min-width: 3.2ch;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ comparing */
+.play-join-panel[data-join-flow] .play-join-cards { position: relative; }
+.play-join-panel[data-join-flow] .play-join-meta > :is(dt, dd) {
+    transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+/* The same row lights in both cards. */
+.play-join-panel[data-join-flow] .play-join-meta > dt { position: relative; }
+/* The row's bar sits just outside the label, so no letter is covered. */
+.play-join-panel[data-join-flow] .play-join-meta > dt::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--lwc-accent, #087685);
+    transform: scaleY(0);
+    transition: transform 200ms cubic-bezier(.34, 1.4, .64, 1);
+}
+.play-join-panel[data-join-flow] .play-join-meta > dt.is-twin-row::before { transform: scaleY(1); }
+.play-join-panel[data-join-flow] .play-join-card--pro .play-join-meta > dt::before { background: var(--lwc-success, #1f7a38); }
+.play-join-panel[data-join-flow] .play-join-meta > dt.is-twin-row {
+    color: var(--lwc-accent, #087685);
+    background: color-mix(in srgb, var(--lwc-accent, #087685) 8%, transparent);
+}
+.play-join-panel[data-join-flow] .play-join-meta > dd.is-twin-row {
+    background: color-mix(in srgb, var(--lwc-accent, #087685) 8%, transparent);
+}
+.play-join-panel[data-join-flow] .play-join-card--pro .play-join-meta > dt.is-twin-row {
+    color: var(--lwc-success, #1f7a38);
+    background: color-mix(in srgb, var(--lwc-success, #1f7a38) 8%, transparent);
+}
+.play-join-panel[data-join-flow] .play-join-card--pro .play-join-meta > dd.is-twin-row {
+    background: color-mix(in srgb, var(--lwc-success, #1f7a38) 8%, transparent);
+}
+
+/* A beam joins the two rows across the gap, amateur colour to pro colour. */
+.play-join-panel[data-join-flow] .join-twin-beam {
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    top: 0;
+    width: var(--beam-w, 0px);
+    height: 3px;
+    translate: var(--beam-x, 0px) calc(var(--beam-y, 0px) - 1.5px);
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--lwc-accent, #087685), var(--lwc-success, #1f7a38));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--lwc-accent, #087685) 60%, transparent);
+    transform-origin: left center;
+    transform: scaleX(0);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 260ms cubic-bezier(.2, 0, 0, 1), opacity 160ms ease, translate 200ms cubic-bezier(.2, 0, 0, 1);
+}
+.play-join-panel[data-join-flow] .join-twin-beam.is-on { transform: scaleX(1); opacity: 1; }
+.play-join-panel[data-join-flow] .join-twin-beam::before,
+.play-join-panel[data-join-flow] .join-twin-beam::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    translate: 0 -50%;
+}
+.play-join-panel[data-join-flow] .join-twin-beam::before { left: -4px; background: var(--lwc-accent, #087685); }
+.play-join-panel[data-join-flow] .join-twin-beam::after { right: -4px; background: var(--lwc-success, #1f7a38); }
+
+/* ------------------------------------------------------------ choosing */
+@media (prefers-reduced-motion: no-preference) {
+    /* The chosen card is stamped; the other folds away. */
+    .play-join-panel[data-join-flow] .play-join-card.is-stamped {
+        animation: join-stamp 520ms cubic-bezier(.34, 1.4, .64, 1) both;
+        z-index: 2;
+    }
+    .play-join-panel[data-join-flow][data-join-chosen="pro"] .play-join-card:not(.play-join-card--pro),
+    .play-join-panel[data-join-flow][data-join-chosen="amateur"] .play-join-card--pro {
+        animation: join-fold-away 420ms cubic-bezier(.4, 0, 1, 1) both;
+        pointer-events: none;
+    }
+    .play-join-panel[data-join-flow][data-join-chosen="pro"] .play-join-card:not(.play-join-card--pro) { transform-origin: 0% 50%; }
+    .play-join-panel[data-join-flow][data-join-chosen="amateur"] .play-join-card--pro { transform-origin: 100% 50%; }
+}
+@keyframes join-stamp {
+    0% { transform: scale(1); }
+    30% { transform: scale(.97); }
+    65% { transform: scale(1.03); box-shadow: 0 0 0 6px color-mix(in srgb, var(--lwc-success, #1f7a38) 30%, transparent), 0 24px 48px -24px rgba(15, 23, 42, .5); }
+    100% { transform: scale(1.02); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lwc-success, #1f7a38) 40%, transparent), 0 24px 48px -24px rgba(15, 23, 42, .5); }
+}
+@keyframes join-fold-away {
+    to { opacity: 0; transform: perspective(900px) rotateY(28deg) scale(.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .play-join-panel[data-join-flow] .join-twin-beam { transition: opacity 120ms linear; transform: scaleX(1); }
+}

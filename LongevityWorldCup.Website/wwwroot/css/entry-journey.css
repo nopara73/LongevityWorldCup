@@ -35,6 +35,24 @@
     :root::view-transition-new(root) {
         animation: lwc-journey-arrive 260ms var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1)) 70ms both;
     }
+
+    /* The track card chosen on /join carries over into the calculator's form
+       (join-flow.ts names the card when it is picked). */
+    :root:active-view-transition :is(#phenoAgeForm, #bortzAgeForm) {
+        view-transition-name: lwc-join-ticket;
+    }
+
+    :root::view-transition-group(lwc-join-ticket) {
+        animation-duration: 460ms;
+        animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    :root::view-transition-old(lwc-join-ticket),
+    :root::view-transition-new(lwc-join-ticket) {
+        height: 100%;
+        object-fit: cover;
+        object-position: top;
+    }
 }
 
 @keyframes lwc-journey-leave {
