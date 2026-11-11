@@ -2566,5 +2566,225 @@
             calculateResult();
         });
     </script>
+    <style>
+        /* ===== New results, against the last ones =====
+           Only for a returning athlete submitting new results (?update=1).
+           The counter becomes the card's header band instead of floating under
+           an empty strip. The comparison chip each changed value already gets
+           leaves the input's frame and sits under it, now showing the last value
+           struck through before the change; the row gains an edge in the chip's
+           own verdict colour (improved, regressed or neutral). The chip drops in,
+           the edge draws down, the counter's glyph turns over as it grows.
+           Reduced motion keeps every state. */
+        html[data-bioage-update] :is(#phenoAgeForm, #bortzAgeForm).bioageform {
+            padding-top: 0;
+        }
+
+        html[data-bioage-update] .bioage-biomarker-progress {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.6rem;
+            min-height: 52px;
+            margin-top: 0;
+            border-radius: calc(var(--lwc-radius-lg, 12px) - 1px) calc(var(--lwc-radius-lg, 12px) - 1px) 0 0;
+            color: var(--lwc-ink, #17212b);
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            text-align: left;
+        }
+
+        html[data-bioage-update] .bioage-biomarker-progress::before {
+            content: "\f021";
+            display: inline-grid;
+            place-items: center;
+            flex: 0 0 auto;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--lwc-surface, #fff);
+            box-shadow: inset 0 0 0 1px var(--bioage-hairline, #d7e0e6);
+            color: var(--lwc-accent, #087685);
+            font-family: "Font Awesome 6 Free";
+            font-size: 0.75rem;
+            font-weight: 900;
+            transition: background-color 180ms ease, color 180ms ease;
+        }
+
+        html[data-bioage-update] .bioage-biomarker-progress[data-updates]:not([data-updates="0"])::before {
+            background: var(--lwc-accent, #087685);
+            box-shadow: none;
+            color: var(--lwc-on-accent, #fff);
+        }
+
+        /* The chip leaves the input's frame: it hangs just below it. */
+        html[data-bioage-update] :is(#phenoAgeForm, #bortzAgeForm).bioageform #lwc-step-2 .biomarker-card .input-group:has(.bioage-input-has-comparison) {
+            position: relative;
+            overflow: visible !important;
+        }
+
+        /* With the frame no longer clipping, the field and unit round their own outer corners. */
+        html[data-bioage-update] .biomarker-card .input-group:has(.bioage-input-has-comparison) > :first-child {
+            border-radius: var(--lwc-radius-md, 8px) 0 0 var(--lwc-radius-md, 8px);
+        }
+
+        html[data-bioage-update] .biomarker-card .input-group:has(.bioage-input-has-comparison) > :is(select, .bioage-fixed-unit) {
+            border-radius: 0 var(--lwc-radius-md, 8px) var(--lwc-radius-md, 8px) 0;
+        }
+
+        html[data-bioage-update] .biomarker-card .input-group:has(.bioage-input-has-comparison) {
+            position: relative;
+        }
+
+        html[data-bioage-update] .biomarker-card .input-group > .bioage-input-comparison-chip {
+            position: absolute;
+            top: calc(100% + 0.4rem);
+            left: 0;
+            margin: 0;
+            padding: 0.18rem 0.55rem;
+            font-size: 0.76rem;
+            white-space: nowrap;
+        }
+
+        html[data-bioage-update] :is(#phenoAgeForm, #bortzAgeForm).bioageform #lwc-step-2 .biomarker-card .biomarker-card-content:has(.bioage-input-has-comparison) {
+            padding-bottom: 2.1rem !important;
+        }
+
+        /* The last value, struck through, leads the chip. */
+        html[data-bioage-update] .bioage-input-comparison-chip[data-was]::before {
+            content: attr(data-was);
+            margin-right: 0.25rem;
+            padding-right: 0.4rem;
+            border-right: 1px solid currentColor;
+            opacity: 0.7;
+            text-decoration: line-through;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* The row carries the chip's verdict as an edge. */
+        html[data-bioage-update] .biomarker-card {
+            position: relative;
+        }
+
+        html[data-bioage-update] .biomarker-card::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 3px;
+            background: var(--lwc-accent, #087685);
+            transform: scaleY(0);
+            transform-origin: 50% 0;
+            transition: transform 260ms cubic-bezier(0.2, 0, 0, 1), background-color 200ms ease;
+            pointer-events: none;
+        }
+
+        html[data-bioage-update] .biomarker-card:has(.bioage-input-has-comparison)::after {
+            transform: none;
+        }
+
+        html[data-bioage-update] .biomarker-card:has(.bioage-input-comparison-chip.is-improved:not([hidden]))::after {
+            background: var(--lwc-success, #2e7d32);
+        }
+
+        html[data-bioage-update] .biomarker-card:has(.bioage-input-comparison-chip.is-regressed:not([hidden]))::after {
+            background: var(--lwc-danger, #b4233b);
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            html[data-bioage-update] .bioage-input-comparison-chip.is-fresh {
+                animation: bioageChipIn 260ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+            }
+
+            html[data-bioage-update] .bioage-input-comparison-chip {
+                transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+            }
+
+            html[data-bioage-update] .biomarker-card .biomarker-card-content {
+                transition: padding-bottom 200ms cubic-bezier(0.2, 0, 0, 1);
+            }
+
+            html[data-bioage-update] .bioage-biomarker-progress.is-bumped::before {
+                animation: bioageBump 420ms cubic-bezier(0.34, 1.4, 0.64, 1);
+            }
+        }
+
+        @keyframes bioageChipIn {
+            from { opacity: 0; transform: translateY(-6px) scale(0.9); }
+        }
+
+        @keyframes bioageBump {
+            40% { transform: scale(1.3) rotate(120deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html[data-bioage-update] .biomarker-card::after,
+            html[data-bioage-update] .bioage-biomarker-progress::before {
+                transition: none;
+            }
+        }
+    </style>
+    <script>
+        // New results, against the last ones: the comparison chips already know
+        // the last value (in their title); show it, and drop each chip in as it
+        // first appears.
+        (function () {
+            if (new URLSearchParams(window.location.search).get('update') !== '1') return;
+            document.documentElement.setAttribute('data-bioage-update', '');
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+            function syncChip(chip) {
+                const was = (chip.getAttribute('title') || '').replace(/^\D+\s/, '').trim();
+                if (was) chip.dataset.was = was;
+                else delete chip.dataset.was;
+                const shown = !chip.hidden;
+                if (shown && chip.dataset.shown !== 'true' && !reduced.matches) {
+                    chip.classList.remove('is-fresh');
+                    void chip.offsetWidth;
+                    chip.classList.add('is-fresh');
+                }
+                chip.dataset.shown = String(shown);
+            }
+
+            function start() {
+                const form = document.querySelector('#phenoAgeForm, #bortzAgeForm');
+                if (!form) return;
+                new MutationObserver(records => {
+                    const chips = new Set();
+                    records.forEach(record => {
+                        const node = record.target instanceof Element ? record.target : record.target.parentElement;
+                        const chip = node && node.closest('.bioage-input-comparison-chip');
+                        if (chip) chips.add(chip);
+                        record.addedNodes.forEach(added => {
+                            if (added instanceof Element && added.matches('.bioage-input-comparison-chip')) chips.add(added);
+                        });
+                    });
+                    chips.forEach(syncChip);
+                }).observe(form, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'title', 'class'] });
+                form.querySelectorAll('.bioage-input-comparison-chip').forEach(syncChip);
+
+                // The counter is the page's own; its glyph turns over when it grows.
+                const progress = form.querySelector('.bioage-biomarker-progress');
+                if (!progress) return;
+                let last = parseInt(progress.textContent, 10) || 0;
+                progress.dataset.updates = String(last);
+                new MutationObserver(() => {
+                    const count = parseInt(progress.textContent, 10) || 0;
+                    progress.dataset.updates = String(count);
+                    if (count > last && !reduced.matches) {
+                        progress.classList.remove('is-bumped');
+                        void progress.offsetWidth;
+                        progress.classList.add('is-bumped');
+                    }
+                    last = count;
+                }).observe(progress, { childList: true, characterData: true, subtree: true });
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+            else start();
+        })();
+    </script>
 </body>
 </html>
