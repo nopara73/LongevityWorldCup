@@ -1636,13 +1636,47 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireAccessTabs() {
         document.querySelectorAll<HTMLButtonElement>("[data-lmx-access-tab]").forEach(button => {
             button.addEventListener("click", () => {
-                accessTab = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
-                renderPanels(publicState || {});
+                setAccessTab(button.dataset.lmxAccessTab === "signin" ? "signin" : "signup");
             });
             button.addEventListener("keydown", event => {
                 handleAccessTabKeydown(event, button);
             });
         });
+    }
+
+    let accessCardAnimations: Animation[] = [];
+
+    function setAccessTab(next: AccessTab): void {
+        if (next === accessTab) return;
+        const card = document.querySelector<HTMLElement>(".lmx-action-card");
+        // Capture the visible height before canceling only our previous effects.
+        // Measure the new natural height after cancellation so rapid reversals
+        // cannot keep animating toward the panel that was just hidden.
+        const before = card?.getBoundingClientRect().height || 0;
+        accessCardAnimations.forEach(animation => animation.cancel());
+        accessCardAnimations = [];
+        accessTab = next;
+        renderPanels(publicState || {});
+        morphAccessCard(card, before, next);
+    }
+
+    // Switching between Sign up and Sign in: the card glides to its new height
+    // and the incoming panel slides in from the side of its tab.
+    function morphAccessCard(card: HTMLElement | null, before: number, tab: "signin" | "signup"): void {
+        if (!card || !before || typeof card.animate !== "function"
+            || window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            || document.documentElement.dataset.lwcMotion === "off") return;
+        const after = card.getBoundingClientRect().height;
+        if (Math.abs(after - before) > 1) {
+            accessCardAnimations.push(card.animate(
+                [{ height: `${before}px`, overflow: "hidden" }, { height: `${after}px`, overflow: "hidden" }],
+                { duration: 280, easing: "cubic-bezier(0.2, 0, 0, 1)" }));
+        }
+        const panel = document.getElementById(tab === "signin" ? "lmxResendPanel" : "lmxSignupPanel");
+        const from = tab === "signin" ? 18 : -18;
+        if (panel) accessCardAnimations.push(panel.animate(
+            [{ transform: `translateX(${from}px)` }, { transform: "none" }],
+            { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" }));
     }
 
     function wireIdentityControls() {
@@ -2958,8 +2992,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         event.preventDefault();
         const nextTab = tabs[nextIndex];
         if (!nextTab) return;
-        accessTab = nextTab;
-        renderPanels(publicState || {});
+        setAccessTab(nextTab);
         document.querySelector<HTMLElement>(`[data-lmx-access-tab="${accessTab}"]`)?.focus();
     }
 
