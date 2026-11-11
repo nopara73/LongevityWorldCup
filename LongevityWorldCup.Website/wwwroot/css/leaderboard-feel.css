@@ -249,3 +249,35 @@ html:not([data-lwc-motion="on"]) .lb-rail-balloon, html:not([data-lwc-motion="on
     .lb-rail{ translate:0 0; }
     .lb-rail-balloon, .lb-rail-track::before{ transition:none !important; }
 }
+
+/* League masthead (leaderboard-feel.ts): on a league, its name is the board's
+   title, set large in its own colour, beside a small podium of the league's
+   top three faces in their medal rings: second, first raised in the middle,
+   third. The ranking explanation stays under the name. */
+main[data-leaderboard-page="full"][data-league] .leaderboard-identity{
+    display:grid; grid-template-columns:auto minmax(0, 1fr); grid-template-areas:"crest title" "crest text";
+    align-items:center; column-gap:var(--lwc-space-4, 16px); row-gap:2px;
+}
+main[data-leaderboard-page="full"] .league-crest{ display:none; }
+main[data-leaderboard-page="full"][data-league] .league-crest{
+    grid-area:crest; display:flex; align-items:flex-end; padding:4px 0 2px 12px;
+}
+main[data-leaderboard-page="full"][data-league] .league-crest:empty{ display:none; }
+main[data-leaderboard-page="full"][data-league] .leaderboard-league-title{
+    grid-area:title; align-self:end; margin:0;
+    font-size:clamp(1.35rem, 1.1rem + 1vw, 1.85rem); font-weight:800; line-height:1.15; letter-spacing:-.01em;
+}
+main[data-leaderboard-page="full"][data-league] .leaderboard-identity > .ranking-explanation{ grid-area:text; align-self:start; }
+.league-crest-face{
+    width:40px; height:40px; margin-left:-12px; box-sizing:border-box; border-radius:50%; object-fit:cover;
+    background:var(--lwc-surface-muted); box-shadow:0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--league-medal, var(--lwc-border));
+}
+.league-crest-face--1{ --league-medal:var(--lwc-gold); order:2; z-index:3; width:52px; height:52px; margin-bottom:8px; }
+.league-crest-face--2{ --league-medal:var(--lwc-silver); order:1; z-index:2; }
+.league-crest-face--3{ --league-medal:var(--lwc-bronze); order:3; z-index:1; }
+.league-crest-face--2, .league-crest > .league-crest-face:only-child{ margin-left:0; }
+@media (max-width:600px){
+    main[data-leaderboard-page="full"][data-league] .leaderboard-identity{ column-gap:var(--lwc-space-3, 12px); }
+    .league-crest-face{ width:32px; height:32px; margin-left:-10px; }
+    .league-crest-face--1{ width:42px; height:42px; margin-bottom:6px; }
+}
