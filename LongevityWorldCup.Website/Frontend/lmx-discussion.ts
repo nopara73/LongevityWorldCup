@@ -95,6 +95,7 @@ interface Window {
     const seen = new Set<string>();
     const composers = new WeakSet<HTMLElement>();
     const arrivals = new Set<Animation>();
+    type ArrivalKind = "reply" | "post" | "composer";
     let settled = false;
     const keyOf = (el: HTMLElement): string | null =>
         el.querySelector<HTMLAnchorElement>(":scope > .lmx-discussion-post-header .lmx-discussion-permalink, :scope > .lmx-discussion-reply-meta .lmx-discussion-permalink")?.getAttribute("href")
@@ -108,7 +109,7 @@ interface Window {
         scope.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(el => composers.add(el));
     }
 
-    function arrive(el: HTMLElement, index: number, kind: "reply" | "post" | "composer"): void {
+    function arrive(el: HTMLElement, index: number, kind: ArrivalKind): void {
         el.classList.add("lmx-arriving");
         const frames = kind === "reply"
             ? [{ opacity: 0, transform: "translateX(-10px)" }, { opacity: 1, transform: "none" }]
@@ -129,6 +130,8 @@ interface Window {
             if (notes) { remember(notes); settled = !!notes.querySelector("article.lmx-note"); }
             return;
         }
+        // Read visibility for the whole batch before any animation invalidates layout.
+        const pendingArrivals: { element: HTMLElement; index: number; kind: ArrivalKind }[] = [];
         let replyIndex = 0;
         let postIndex = 0;
         for (const record of records) {
@@ -142,17 +145,18 @@ interface Window {
                     if (!key || seen.has(key)) continue;
                     seen.add(key);
                     if (!visible(el)) continue;
-                    if (el.matches(".lmx-note")) arrive(el, postIndex++, "post");
-                    else arrive(el, replyIndex++, "reply");
+                    if (el.matches(".lmx-note")) pendingArrivals.push({ element: el, index: postIndex++, kind: "post" });
+                    else pendingArrivals.push({ element: el, index: replyIndex++, kind: "reply" });
                 }
                 const slot = node.parentElement;
                 if (slot?.matches(".lmx-discussion-reply-slot, .lmx-discussion-reply-editor-slot") && node.matches("[data-discussion-draft]") && !composers.has(node)) {
                     composers.add(node);
-                    arrive(node, 0, "composer");
+                    pendingArrivals.push({ element: node, index: 0, kind: "composer" });
                 }
                 remember(node);
             });
         }
+        for (const { element, index, kind } of pendingArrivals) arrive(element, index, kind);
     }
 
     function start(): void {

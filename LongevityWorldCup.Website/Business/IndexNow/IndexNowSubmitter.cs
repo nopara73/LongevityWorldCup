@@ -108,7 +108,8 @@ public sealed class IndexNowSubmitter(
                     RecordResult(batch, now, status, "Transient failure; retry pending", retryAfter: retryAfter);
                     break;
                 default:
-                    RecordResult(batch, now, status, "Protocol error; submission paused", permanent: true);
+                    var rejection = IndexNowRejectionReceipt.Capture(response, now, batch.Count, state.Key);
+                    RecordResult(batch, now, status, "Protocol error; submission paused", permanent: true, rejection: rejection);
                     break;
             }
         }
@@ -124,7 +125,8 @@ public sealed class IndexNowSubmitter(
     }
 
     private void RecordResult(IReadOnlyDictionary<string, string> batch, DateTimeOffset now,
-        int? status, string outcome, bool permanent = false, DateTimeOffset? retryAfter = null)
+        int? status, string outcome, bool permanent = false, DateTimeOffset? retryAfter = null,
+        IndexNowRejectionReceipt? rejection = null)
     {
         store.Update(state =>
         {
@@ -132,6 +134,7 @@ public sealed class IndexNowSubmitter(
             state.LastStatusCode = status;
             state.LastOutcome = outcome;
             state.LastBatchSize = batch.Count;
+            if (rejection is not null) state.LastRejection = rejection;
             state.ConsecutiveFailures = status == 200 ? 0 : Math.Min(state.ConsecutiveFailures + 1, 20);
             state.PausedReason = permanent ? $"{outcome} (HTTP {status?.ToString() ?? "none"})" : null;
             if (status == 200)

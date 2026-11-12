@@ -1463,7 +1463,7 @@
                                     type: `HTTP ${responseStatus}`,
                                     message: txt
                                 });
-                                customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
+                                customAlert(responseStatus === 413 ? txt : `Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
                                     isEditProfileSubmitting = false;
                                     updateSubmitButtonState();
                                     submitButton.disabled = false;
