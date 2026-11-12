@@ -187,7 +187,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("application")]
-        [RequestSizeLimit(50 * 1024 * 1024)] // Match the public proxy's existing 50 MiB upload limit.
+        [RequestSizeLimit(Middleware.ApplicationUploadLimitMiddleware.MaxBodyBytes)]
         [RequestTimeout(PublicRequestTimeoutPolicies.ApplicationSubmission)]
         public async Task<IActionResult> Application([FromBody] ApplicantData applicantData, CancellationToken ct)
         {

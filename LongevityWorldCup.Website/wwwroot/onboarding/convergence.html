@@ -2445,7 +2445,7 @@
                                     type: `HTTP ${responseStatus}`,
                                     message: badResponse
                                 });
-                                customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
+                                customAlert(responseStatus === 413 ? badResponse : `Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                     isApplicationSubmitting = false;
                                     applyButton.disabled = false;
                                     accountEmailInput.disabled = false;
