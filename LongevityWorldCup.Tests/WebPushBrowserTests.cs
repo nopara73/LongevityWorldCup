@@ -52,7 +52,7 @@ public sealed class WebPushBrowserTests
         var bounds = await bell.BoundingBoxAsync();
         Assert.True(bounds!.Width >= 44 && bounds.Height >= 44);
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > window.innerWidth"));
-        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "Telegram"], await page.Locator(".footer-follow-links .footer-link").AllTextContentsAsync().ContinueWith(t => t.Result.Select(s => s.Trim()).ToArray()));
         var footerShortcut = page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Get browser notifications on Highlights", Exact = true });
         Assert.Null(await footerShortcut.GetAttributeAsync("aria-current"));
         await footerShortcut.ClickAsync();
@@ -61,7 +61,13 @@ public sealed class WebPushBrowserTests
         await bell.ClickAsync();
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "true");
         Assert.Equal(1, await page.EvaluateAsync<int>("window.pushPermissionRequests"));
-        await page.ReloadAsync();
+        // Reload starts an asynchronous preference refresh after document load.
+        // Observe its final configuration response before asserting the restored UI.
+        var refreshed = await page.RunAndWaitForResponseAsync(async () => await page.ReloadAsync(),
+            response => response.Request.Method == "GET"
+                && response.Url.EndsWith("/api/web-push/configuration", StringComparison.Ordinal));
+        Assert.True(refreshed.Ok);
+        await refreshed.FinishedAsync();
         await Assertions.Expect(bell).ToHaveAttributeAsync("aria-pressed", "true");
         Assert.Equal(0, await page.EvaluateAsync<int>("window.pushPermissionRequests"));
         await bell.ClickAsync();

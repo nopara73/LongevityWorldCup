@@ -74,6 +74,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var textarea = original.Locator("textarea");
         await textarea.FillAsync("My reply stays exactly here.");
         await textarea.EvaluateAsync("e => { e.setSelectionRange(3, 8); window.feedDraft = e; }");
+        await WaitForFiniteAnimationsAsync(page);
         var top = await textarea.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
         foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
             var fresh = notes[0]!.DeepClone().AsObject();
@@ -156,6 +157,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(articles).ToHaveCountAsync(expected);
         }
         var target = articles.Nth(32);
+        // Compare the reading position after the newly revealed posts have landed,
+        // rather than bookmarking a transient translate/scale frame.
+        await WaitForFiniteAnimationsAsync(page);
         await target.EvaluateAsync("e => window.scrollTo({top: e.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'})");
         var key = await target.GetAttributeAsync("data-feed-key");
         var top = await target.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
@@ -250,6 +254,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             }
             await older.ClickAsync();
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await WaitForFiniteAnimationsAsync(page);
             if (readerMovesAway) await page.Mouse.WheelAsync(0, -600);
             await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
             var anchor = await articles.EvaluateAllAsync<string>("items => items.find(e => e.getBoundingClientRect().bottom > 60 && e.getBoundingClientRect().top < innerHeight).dataset.feedKey");

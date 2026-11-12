@@ -303,8 +303,8 @@ function assignBestRankCandidates(athletes) {
 
     assignRankedBestCandidates(
         orderByNumberDesc(
-            rows.filter(athlete => Number.isFinite(athlete.ageReductionPercent)),
-            athlete => athlete.ageReductionPercent),
+            rows.filter(athlete => Number.isFinite(athlete.phenoPaceOfAging)),
+            athlete => -athlete.phenoPaceOfAging),
         () => ({
             leagueName: 'Pheno pace of aging',
             leagueLabel: 'Pheno pace of aging ranking',
@@ -581,7 +581,8 @@ function initializeAthletePortraitMotion() {
         if (previous?.motion === motion && previous.wrapper === img.parentElement) return previous;
         previous?.dispose();
         const wrapper = img.parentElement;
-        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return null;
+        // The still photo remains usable without the optional motion visibility API.
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility?.()) return null;
         const root = document.createElement('span');
         root.className = 'athlete-portrait-motion';
         root.setAttribute('aria-hidden', 'true');
@@ -632,7 +633,7 @@ function initializeAthletePortraitMotion() {
         };
         const tick = now => {
             frame = 0;
-            if (disposed || playing || !img.checkVisibility()) return;
+            if (disposed || playing || !img.checkVisibility?.()) return;
             sync();
             if (now < until) frame = requestAnimationFrame(tick);
         };
@@ -703,7 +704,7 @@ function initializeAthletePortraitMotion() {
             return false;
         }
         const wrapper = img.parentElement;
-        if (!wrapper || !img.naturalWidth || !img.checkVisibility()) return false;
+        if (!wrapper || !img.naturalWidth || !img.checkVisibility?.()) return false;
         const portrait = surfaceFor(img, motion);
         if (!portrait?.ready) return false;
 
@@ -1466,84 +1467,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     }
                 });
 
-                let phenoAgeDifference = 0;
-                let phenoAgeImprovement = null;
-                // Only proceed if there are submissions.
-                if (completeBiomarkerSets.length > 0) {
-                    const firstSubmission = completeBiomarkerSets[0];
-                    const lastSubmission  = completeBiomarkerSets[completeBiomarkerSets.length - 1];
-
-                    const ageAtFirst = window.calculateAgeAtDate(dob, getBiomarkerTestDate(firstSubmission.Date));
-                    const ageAtLast  = window.calculateAgeAtDate(dob, getBiomarkerTestDate(lastSubmission.Date));
-
-                    const firstSubmissionValues = [
-                        ageAtFirst,
-                        firstSubmission.AlbGL,
-                        firstSubmission.CreatUmolL,
-                        firstSubmission.GluMmolL,
-                        Math.log(firstSubmission.CrpMgL / 10),
-                        firstSubmission.Wbc1000cellsuL,
-                        firstSubmission.LymPc,
-                        firstSubmission.McvFL,
-                        firstSubmission.RdwPc,
-                        firstSubmission.AlpUL
-                    ];
-
-                    const lastSubmissionValues = [
-                        ageAtLast,
-                        lastSubmission.AlbGL,
-                        lastSubmission.CreatUmolL,
-                        lastSubmission.GluMmolL,
-                        Math.log(lastSubmission.CrpMgL / 10),
-                        lastSubmission.Wbc1000cellsuL,
-                        lastSubmission.LymPc,
-                        lastSubmission.McvFL,
-                        lastSubmission.RdwPc,
-                        lastSubmission.AlpUL
-                    ];
-
-                    const firstPhenoAge = window.PhenoAge.calculatePhenoAge(firstSubmissionValues);
-                    const lastPhenoAge = window.PhenoAge.calculatePhenoAge(lastSubmissionValues);
-
-                    phenoAgeDifference = lastPhenoAge - firstPhenoAge;
-                }
-
-                if (completeBiomarkerSets.length >= 2) {
-                    const phenoSubmissionAges = completeBiomarkerSets.map((submission, index) => {
-                        const submittedAt = getBiomarkerTestDate(submission.Date);
-                        const ageAtSubmission = window.calculateAgeAtDate(dob, submittedAt);
-                        const values = [
-                            ageAtSubmission,
-                            submission.AlbGL,
-                            submission.CreatUmolL,
-                            submission.GluMmolL,
-                            Math.log(submission.CrpMgL / 10),
-                            submission.Wbc1000cellsuL,
-                            submission.LymPc,
-                            submission.McvFL,
-                            submission.RdwPc,
-                            submission.AlpUL
-                        ];
-                        const phenoAge = values.every(Number.isFinite)
-                            ? window.PhenoAge.calculatePhenoAge(values)
-                            : null;
-                        return {
-                            submittedAt,
-                            index,
-                            phenoAge
-                        };
-                    }).filter(result => Number.isFinite(result.phenoAge));
-
-                    if (phenoSubmissionAges.length >= 2) {
-                        const latestSubmission = phenoSubmissionAges.slice().sort((a, b) => {
-                            const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
-                            return timeDiff !== 0 ? timeDiff : a.index - b.index;
-                        }).at(-1);
-                        const worstPhenoAge = Math.max(...phenoSubmissionAges.map(result => result.phenoAge));
-                        phenoAgeImprovement = latestSubmission.phenoAge - worstPhenoAge;
-                    }
-                }
-
                 const submissionCount = completeBiomarkerSets.length;
                 // Prepare the biomarker values array in the order required for the PhenoAge calculation
                 const bestBiomarkerValues = [
@@ -1568,6 +1491,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 // Compute the actually lowest PhenoAge across real submissions
                 let lowestPhenoAge = Infinity;
                 let valuesForLowestPhenoAge = null;
+                let phenoRankResult = null;
 
                 athlete.Biomarkers.forEach(entry => {
                     const entryDate = getBiomarkerTestDate(entry.Date);
@@ -1589,6 +1513,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     // Only consider submissions with complete numeric data
                     if (candidateValues.every(Number.isFinite)) {
                         const ph = window.PhenoAge.calculatePhenoAge(candidateValues);
+                        if (Number.isFinite(ph) && (!phenoRankResult ||
+                            ph - ageAtEntry < phenoRankResult.bio - phenoRankResult.chrono ||
+                            (ph - ageAtEntry === phenoRankResult.bio - phenoRankResult.chrono && ageAtEntry < phenoRankResult.chrono))) {
+                            phenoRankResult = { bio: ph, chrono: ageAtEntry };
+                        }
                         if (ph < lowestPhenoAge) {
                             lowestPhenoAge = ph;
                             valuesForLowestPhenoAge = candidateValues;
@@ -1625,18 +1554,17 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 }
 
                 // Calculate the age reduction
-                const ageReduction = lowestPhenoAge - chronoAtLowestPhenoAge;
+                const ageReduction = phenoRankResult ? phenoRankResult.bio - phenoRankResult.chrono : 0;
                 const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
-                const ageReductionPercent = (1 - biologicalAgePercent) * 100;
+                const ageReductionPercent = phenoRankResult?.chrono > 0 ? -100 * ageReduction / phenoRankResult.chrono : null;
 
                 // Lowest bortz age and bortz age reduction (only when submissions have full Bortz biomarkers)
                 let lowestBortzAge = null;
                 let chronoAtLowestBortzAge = null;
                 let bortzAgeReduction = null;
                 let bortzAgeReductionPercent = null;
-                let bortzAgeDifference = null;
-                let bortzAgeImprovement = null;
                 let bestBortzValues = null;
+                let bortzRankResult = null;
                 if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                     let bortzMin = Infinity;
                     let chronoAtBortzMin = null;
@@ -1676,41 +1604,14 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                         };
                     };
 
-                    if (completeBortzBiomarkerSets.length > 0) {
-                        const firstBortzSubmission = buildBortzValues(completeBortzBiomarkerSets[0]);
-                        const lastBortzSubmission = buildBortzValues(completeBortzBiomarkerSets[completeBortzBiomarkerSets.length - 1]);
-                        const firstBortzAge = window.BortzAge.calculateBortzAge(firstBortzSubmission.ageAtEntry, firstBortzSubmission.values);
-                        const lastBortzAge = window.BortzAge.calculateBortzAge(lastBortzSubmission.ageAtEntry, lastBortzSubmission.values);
-                        if (Number.isFinite(firstBortzAge) && Number.isFinite(lastBortzAge)) {
-                            bortzAgeDifference = lastBortzAge - firstBortzAge;
-                        }
-                    }
-
-                    if (completeBortzBiomarkerSets.length >= 2) {
-                        const bortzSubmissionAges = completeBortzBiomarkerSets.map((entry, index) => {
-                            const submittedAt = new Date(entry.Date);
-                            const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
-                            const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
-                            return {
-                                submittedAt,
-                                index,
-                                bortzAge
-                            };
-                        }).filter(result => Number.isFinite(result.bortzAge));
-
-                        if (bortzSubmissionAges.length >= 2) {
-                            const latestSubmission = bortzSubmissionAges.slice().sort((a, b) => {
-                                const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
-                                return timeDiff !== 0 ? timeDiff : a.index - b.index;
-                            }).at(-1);
-                            const worstBortzAge = Math.max(...bortzSubmissionAges.map(result => result.bortzAge));
-                            bortzAgeImprovement = latestSubmission.bortzAge - worstBortzAge;
-                        }
-                    }
-
                     completeBortzBiomarkerSets.forEach(entry => {
                         const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
                         const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
+                        if (Number.isFinite(bortzAge) && (!bortzRankResult ||
+                            bortzAge - ageAtEntry < bortzRankResult.bio - bortzRankResult.chrono ||
+                            (bortzAge - ageAtEntry === bortzRankResult.bio - bortzRankResult.chrono && ageAtEntry < bortzRankResult.chrono))) {
+                            bortzRankResult = { bio: bortzAge, chrono: ageAtEntry };
+                        }
                         if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                             bortzMin = bortzAge;
                             chronoAtBortzMin = ageAtEntry;
@@ -1720,8 +1621,8 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     if (Number.isFinite(bortzMin) && chronoAtBortzMin != null) {
                         lowestBortzAge = bortzMin;
                         chronoAtLowestBortzAge = chronoAtBortzMin;
-                        bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
-                        bortzAgeReductionPercent = (1 - lowestBortzAge / chronoAtLowestBortzAge) * 100;
+                        bortzAgeReduction = bortzRankResult.bio - bortzRankResult.chrono;
+                        bortzAgeReductionPercent = bortzRankResult.chrono > 0 ? -100 * bortzAgeReduction / bortzRankResult.chrono : null;
                     }
                 }
 
@@ -1760,8 +1661,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                     ageReduction: ageReduction,
                     ageReductionPercent: ageReductionPercent,
+                    phenoPaceOfAging: biologicalAgePercent,
                     bestBiomarkerValues: bestBiomarkerValues,
                     bestBortzValues: bestBortzValues,
+                    phenoRankResult: phenoRankResult,
+                    bortzRankResult: bortzRankResult,
                     personalLink: athlete.PersonalLink,
                     profilePic: athlete.ProfilePic,
                     profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
@@ -1774,17 +1678,12 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     generation: generation,
                     exclusiveLeague: athlete.ExclusiveLeague,
                     submissionCount: submissionCount,
-                    phenoAgeDifference: phenoAgeDifference,
                     phenoAgeImprovement: Number.isFinite(athlete.PhenoAgeImprovementFromWorst)
                         ? athlete.PhenoAgeImprovementFromWorst
-                        : phenoAgeImprovement,
+                        : null,
                     bortzAgeImprovement: Number.isFinite(athlete.BortzAgeImprovementFromWorst)
                         ? athlete.BortzAgeImprovementFromWorst
-                        : bortzAgeImprovement,
-                    PhenoAgeDiffFromBaseline: athlete.PhenoAgeDiffFromBaseline,
-                    BortzAgeDiffFromBaseline: Number.isFinite(athlete.BortzAgeDiffFromBaseline)
-                        ? athlete.BortzAgeDiffFromBaseline
-                        : bortzAgeDifference,
+                        : null,
                     podcastLink: athlete.PodcastLink,
                     lastMonthRank: lastMonthRank,
                     placements: athlete.Placements || [],
@@ -1903,7 +1802,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 });
             });
 
-            athletesOrderedByPace = orderByNumberDesc(athleteResults, a => a.ageReductionPercent);
+            athletesOrderedByPace = orderByNumberAsc(athleteResults, a => a.phenoPaceOfAging);
             athletesOrderedByBortzPace = orderByNumberAsc(
                 athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
                 a => a.lowestBortzAge / a.chronoAtLowestBortzAge
@@ -3181,6 +3080,8 @@ function setupModalKeyboardNavigation() {
         if (event.defaultPrevented || (window.LwcImageViewer?.isOpen() || modal.querySelector('#athleteShareMenu:not([hidden])'))) return;
         if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
         if (modalContent.classList.contains('guess-mode')) return;
+        if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
+            && window.LwcPointer?.hasTextSelection(modalContent)) return;
 
         // Home key - scroll to top
         if (event.key === 'Home' && !event.ctrlKey && !event.metaKey) {
@@ -3260,7 +3161,8 @@ function getAthleteDialogBoardSequence() {
         // filtered team links form the sequence the visitor is browsing.
         const bySlug = new Map(athleteResults.map(athlete => [normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name), athlete]));
         return [...pageDocument.querySelectorAll('#flagLeaderboard .flag-athlete-link')]
-            .filter(link => link.checkVisibility())
+            .filter(link => link.checkVisibility?.() ?? (link.getClientRects().length > 0
+                && !link.closest('[hidden], details:not([open])')))
             .map(link => bySlug.get(getAthleteSlugFromProfileLink(link)))
             .filter(Boolean);
     }
@@ -4128,7 +4030,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
 
         const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'))
             .map(badge => {
-                const title = badge.getAttribute('title') || '';
+                const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
                 const ariaLabel = badge.getAttribute('aria-label') || '';
                 const text = badge.textContent || '';
                 return `${title} ${ariaLabel} ${text}`.trim();
@@ -4136,7 +4038,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             .filter(Boolean)
             .join(' ');
 
-        athleteBadgeTextByName.set(athleteName, window.normalizeString(badgeSearchText.toLowerCase()));
+        athleteBadgeTextByName.set(athleteName, badgeSearchText);
     });
 
     const searchTextByAthlete = orderingSnapshot ? null : new Map(athleteResults.map(athlete => [athlete, [
@@ -4173,19 +4075,8 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             metric: formatMetricForView(cohort, athlete, index, state.view)
         })).filter(entry => {
             if (showAll || !applySearch) return true;
-            const { athlete, rank, metric } = entry;
-            const value = getMetricValueForView(athlete, state.view);
-            const percent = state.view === 'pheno'
-                ? athlete.ageReductionPercent
-                : (state.view === 'improvement' || state.view === 'bortz-improvement')
-                    ? null
-                    : (Number.isFinite(athlete.bortzAgeReductionPercent) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
-            // Retain the old one-decimal form for existing shared searches as well.
-            const metricParts = [metric];
-            if (Number.isFinite(value)) metricParts.push(value.toFixed(1));
-            if (state.view !== 'crowd' && Number.isFinite(percent)) metricParts.push(percent.toFixed(1));
-            if (state.view === 'crowd' && Number.isFinite(athlete.crowdCount)) metricParts.push(String(athlete.crowdCount));
-            const metricText = window.normalizeString(metricParts.join(' ').toLowerCase());
+            const { athlete, rank } = entry;
+            const metricText = normalizeSearchText(getMetricSearchParts(entry, state.view).map(part => part.value).join(' '));
             return uniqueSearchTerms.every(term => searchTextByAthlete.get(athlete).includes(term) || metricText.includes(term) || String(rank).includes(term));
         });
     };
@@ -4205,6 +4096,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
         const matchingTeams = getMatchingFlagTeams(selectedState);
         renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
+        markFlagSearchReasons(uniqueSearchTerms, matchingTeams, athleteBadgeTextByName);
         updateViewAllAthletesButton(matchingTeams.length);
         updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
         updateLeaderboardTitles(selectedState);
@@ -4215,6 +4107,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     }
 
     const cohortEntries = orderingSnapshot ? orderingSnapshot.entries : getMatchingEntries(selectedState);
+    if (orderingSnapshot) closeSearchReason();
     leaderboardOrderingSnapshot = { key: filterKey, athletes: athleteResults, entries: cohortEntries };
     const matchingEntries = window.LwcLeaderboardOrder.sort(cohortEntries, selectedState.ordering);
     const tableBody = document.querySelector('.leaderboard table tbody');
@@ -4331,6 +4224,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
                 if (filteredNames.has(element.closest('[data-athlete-name]')?.dataset.athleteName)) window.highlightText(element, uniqueSearchTerms);
             });
         }
+        markSearchReasons(uniqueSearchTerms, matchingEntries, currentLeaderboardView);
         updateFilterCounts(selectedState, getMatchingEntries, matchingEntries);
     }
 
@@ -4513,38 +4407,27 @@ function buildLeaderboardPresentation(state) {
         const railText = [cohortLabel, clockLabel, state.view === 'ultimate' ? 'Flag League' : 'by Flag'].filter(Boolean).join(' ');
         return { railText, documentTitle: railText, accessibleLabel: railText };
     }
-    if (state.view !== 'ultimate') {
-        return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
-    }
-
     const flags = state.flags.filter(Boolean);
-    if (flags.length === 1) {
+    const cohortLabel = [
+        flags.length === 1 ? flags[0] : flags.length > 1 ? `${flags.length} Flags` : '',
+        state.exclusiveLeagues.length === 1 ? state.exclusiveLeagues[0] : state.exclusiveLeagues.length > 1 ? 'Exclusive Leagues' : '',
+        getGenerationLeagueLabel(state.generations),
+        getDivisionLeagueLabel(state.divisions),
+        state.leagueTracks.length === 1 ? getLeagueTrackLabel(state.leagueTracks[0]) : ''
+    ].filter(Boolean).join(' ');
+    const leagueTitle = cohortLabel ? (cohortLabel === 'Exclusive Leagues' ? cohortLabel : `${cohortLabel} League`) : '';
+    const onlyFlags = !state.exclusiveLeagues.length && !state.generations.length && !state.divisions.length && state.leagueTracks.length !== 1;
+    if (state.view === 'ultimate' && onlyFlags && flags.length === 1) {
         const documentTitle = `Leaderboard: ${flags[0]}`;
-        return { railText: flags[0], documentTitle, accessibleLabel: documentTitle };
+        return { railText: flags[0], leagueTitle, documentTitle, accessibleLabel: documentTitle };
     }
-    if (flags.length > 1) {
+    if (state.view === 'ultimate' && onlyFlags && flags.length > 1) {
         const documentTitle = `${flags.length} Flags Leaderboard`;
-        return { railText: `${flags.length} Flags`, documentTitle, accessibleLabel: documentTitle };
+        return { railText: `${flags.length} Flags`, leagueTitle, documentTitle, accessibleLabel: documentTitle };
     }
-
-    if (state.exclusiveLeagues.length > 0) {
-        const leagueLabel = state.exclusiveLeagues.length === 1
-            ? `${state.exclusiveLeagues[0]} League`
-            : 'Exclusive Leagues';
-        return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
-    }
-
-    const generationLabel = getGenerationLeagueLabel(state.generations);
-    const divisionLabel = getDivisionLeagueLabel(state.divisions);
-    if (generationLabel || divisionLabel) {
-        const leagueLabel = `${[generationLabel, divisionLabel].filter(Boolean).join(' ')} League`;
-        return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
-    }
-
-    if (state.leagueTracks.length === 1) {
-        const trackLabel = getLeagueTrackLabel(state.leagueTracks[0]);
-        const leagueLabel = `${trackLabel} League`;
-        return { railText: leagueLabel, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+    if (leagueTitle) {
+        const documentTitle = state.view === 'ultimate' ? leagueTitle : `${leagueTitle} · ${viewPresentation.railText.replace(/ League$/, '')}`;
+        return { railText: leagueTitle, leagueTitle, documentTitle, accessibleLabel: documentTitle };
     }
 
     return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
@@ -4568,6 +4451,11 @@ function measureCollapsedTitleHeight() {
 
 function updateLeaderboardTitles(state) {
     const presentation = buildLeaderboardPresentation(state);
+    const leagueHeading = document.getElementById('leaderboardLeagueTitle');
+    if (leagueHeading) {
+        leagueHeading.textContent = presentation.leagueTitle || '';
+        leagueHeading.hidden = !presentation.leagueTitle;
+    }
     const collapsedTitle = document.querySelector('.collapsed-title');
     if (collapsedTitle) {
         const fullRailText = presentation.railText.toUpperCase();
@@ -4624,6 +4512,12 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
             return !current || current.rank !== entry.rank || current.metric !== entry.metric;
         });
         updateFilterCountLabel(label, count, count > 0 || changesResults);
+    });
+    document.querySelectorAll('.sidebar .filter-section').forEach(section => {
+        const labels = [...section.querySelectorAll('li > label')];
+        const counts = labels.map(label => parseInt(label.querySelector('.filter-count')?.textContent, 10) || 0);
+        const max = Math.max(1, ...counts);
+        labels.forEach((label, index) => label.style.setProperty('--tile-share', String(counts[index] / max)));
     });
 }
 
@@ -4717,39 +4611,26 @@ document.getElementById('clearLeaderboardSelection')?.addEventListener('click', 
     showAllAthletes();
     document.getElementById('athleteSearch')?.focus({ preventScroll: true });
 });
-document.getElementById('showLeaderboardResults')?.addEventListener('click', () => closeSidebar({ restoreFocus: true }));
+document.getElementById('showLeaderboardResults')?.addEventListener('click', event => closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 }));
 clearSidebarFiltersButton?.addEventListener('click', function (event) {
     event.preventDefault();
     event.stopPropagation();
     clearSidebarFilters();
     if (!isMobileDrawerViewport()) {
-        closeSidebar({ restoreFocus: event.detail === 0 });
+        closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 });
     } else {
-        focusAfterClearingSidebarFilters();
+        focusAfterClearingSidebarFilters(event.detail === 0);
     }
 });
-function focusAfterClearingSidebarFilters() {
+function focusAfterClearingSidebarFilters(focusVisible) {
     const sidebar = document.querySelector('.sidebar');
     const sidebarClose = document.querySelector('.sidebar-close');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const isMobileDrawer = isMobileDrawerViewport();
-    const focusTarget = isMobileDrawer && sidebar?.classList.contains('expanded')
-        ? sidebarClose
-        : sidebarToggle;
-
-    if (!focusTarget) return;
-
     requestAnimationFrame(() => {
-        focusTarget.classList.add('is-keyboard-focus');
-        focusTarget.addEventListener('blur', () => {
-            focusTarget.classList.remove('is-keyboard-focus');
-        }, { once: true });
-        try {
-            focusTarget.focus({ preventScroll: true, focusVisible: true });
-        }
-        catch {
-            focusTarget.focus({ preventScroll: true });
-        }
+        const focusTarget = isMobileDrawerViewport() && sidebar?.classList.contains('expanded')
+            ? sidebarClose
+            : sidebarToggle;
+        if (focusTarget) focusSidebarControl(focusTarget, focusVisible);
     });
 }
 document.addEventListener('click', function (event) {
@@ -4813,6 +4694,12 @@ document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(labe
     });
 });
 
+function isRequestedNamedFilter(value) {
+    const raw = new URLSearchParams(location.search).get('filters');
+    const requested = raw ? parseFiltersParam(raw) : [getLeagueRouteState(location.pathname).filterLabel || ''];
+    return requested.some(filter => filter.toLowerCase() === value.toLowerCase());
+}
+
 function generateDivisionFilters(athletes) {
     const filterSection = document.querySelector('#division-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
@@ -4822,6 +4709,9 @@ function generateDivisionFilters(athletes) {
         acc[athlete.division] = (acc[athlete.division] || 0) + 1;
         return acc;
     }, {});
+    ["Women's", "Men's", "Open"].forEach(division => {
+        if (isRequestedNamedFilter(division)) divisionCounts[division] ??= 0;
+    });
 
     // Generate the filter items with icons and counts
     Object.keys(divisionCounts).forEach(division => {
@@ -4883,7 +4773,7 @@ function generateGenerationFilters(athletes) {
 
     orderedGenerations.forEach(generation => {
         const count = generationCounts[generation] || 0;
-        if (count > 0) { // Only show generations with at least one athlete
+        if (count > 0 || isRequestedNamedFilter(generation)) {
             const icon = window.TryGetGenerationFaIcon ? window.TryGetGenerationFaIcon(generation) : '';
 
             const li = document.createElement('li');
@@ -4911,7 +4801,7 @@ function generateExclusiveFilters(athletes) {
         return athlete.exclusiveLeague === "Prosperan" ? count + 1 : count;
     }, 0);
 
-    if (prosperanCount > 0) {
+    if (prosperanCount > 0 || isRequestedNamedFilter('Prosperan')) {
         const li = document.createElement('li');
         li.innerHTML = `
         <label data-exclusive-league="Prosperan">
@@ -7283,6 +7173,7 @@ window.addEventListener('popstate', function (event) {
 
 const sidebar = document.querySelector('.sidebar');
 const sidebarPanel = sidebar?.querySelector('.sidebar-panel');
+const sidebarRail = sidebar?.querySelector('.sidebar-rail');
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 const sidebarClose = document.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
@@ -7290,6 +7181,7 @@ const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width
 let leaderboardTableHeightFrame = 0;
 let leaderboardTableResizeObserver = null;
 let sidebarDrawerCloseTimer = 0;
+let sidebarDeckCloseAnimation = null;
 
 function isMobileDrawerViewport() {
     return mobileDrawerMediaQuery.matches;
@@ -7297,11 +7189,7 @@ function isMobileDrawerViewport() {
 
 function syncSidebarPanelInteractivity() {
     if (!sidebarPanel) return;
-    // An explicit opening is interactive immediately, including while enlarged
-    // text makes container queries refit the panel's computed layout.
-    const open = sidebar.classList.contains('expanded')
-        || (!isMobileDrawerViewport()
-            && getComputedStyle(sidebarPanel).getPropertyValue('--sidebar-panel-open').trim() === '1');
+    const open = sidebar.classList.contains('expanded') && !sidebar.classList.contains('is-closing');
     sidebarPanel.inert = !open;
     sidebarPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
 }
@@ -7361,6 +7249,10 @@ function installLeaderboardTableHeightObserver() {
         if (sidebarPanel) leaderboardTableResizeObserver.observe(sidebarPanel);
         const title = document.querySelector('.collapsed-title');
         if (title) leaderboardTableResizeObserver.observe(title);
+        // Updating the measured column-head height also resizes the rail icon.
+        // Include that second layout pass before caching the title footprint.
+        const icon = document.querySelector('.sidebar-rail-icon');
+        if (icon) leaderboardTableResizeObserver.observe(icon);
     }
 
     scheduleLeaderboardTableHeightSync();
@@ -7370,6 +7262,11 @@ sidebarToggle?.addEventListener('click', (event) => {
     toggleSidebar({ focusDrawerClose: event.detail === 0 });
 });
 
+sidebarRail?.addEventListener('click', (event) => {
+    // The rail disappears when opened, so transfer focus for pointer input too.
+    openSidebar({ focusDrawerClose: true, focusVisible: event.detail === 0 });
+});
+
 sidebar?.addEventListener('mouseleave', () => {
     // An explicit close wins over hover until the pointer leaves the rail.
     sidebar.classList.remove('button-collapsed');
@@ -7377,14 +7274,8 @@ sidebar?.addEventListener('mouseleave', () => {
 });
 
 sidebarClose?.addEventListener('click', (event) => {
-    closeSidebar({ restoreFocus: event.detail === 0 });
+    closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 });
 });
-
-sidebar?.addEventListener('change', (event) => {
-    if (!event.target.matches('input[type="checkbox"]')) return;
-
-    requestAnimationFrame(pinActiveDesktopSidebar);
-}, true);
 
 document.addEventListener('click', (event) => {
     if (!hasLeaderboardSidebar) return;
@@ -7392,7 +7283,7 @@ document.addEventListener('click', (event) => {
     if (!sidebar.classList.contains('expanded')) return;
     if (sidebar.contains(event.target) || sidebarToggle.contains(event.target)) return;
 
-    if (isMobileDrawer || hasActiveLeaderboardFilterState()) {
+    if (isMobileDrawer) {
         closeSidebar();
     }
 });
@@ -7430,12 +7321,13 @@ document.addEventListener('keydown', (event) => {
     if (!hasLeaderboardSidebar) return;
     if (event.key !== 'Escape' && event.key !== 'Esc') return;
     if (modal.style.display === "block") return;
+    // Let the native disclosure consume Escape before its underlying filter deck.
+    if (searchReasonPopover?.matches(':popover-open')) return;
 
     const searchInput = document.getElementById('athleteSearch');
     if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
 
-    const isMobileDrawer = isMobileDrawerViewport();
-    if (!isMobileDrawer || !sidebar.classList.contains('expanded')) return;
+    if (!sidebar.classList.contains('expanded')) return;
 
     event.preventDefault();
     closeSidebar({ restoreFocus: true });
@@ -7466,6 +7358,9 @@ function syncSidebarDrawerBackdrop() {
         document.body.style.removeProperty('--sidebar-body-width');
     }
     sidebar.setAttribute('aria-hidden', isMobileDrawer && !isOpenMobileDrawer ? 'true' : 'false');
+    sidebarPanel.setAttribute('role', isOpenMobileDrawer ? 'dialog' : 'region');
+    if (isOpenMobileDrawer) sidebarPanel.setAttribute('aria-modal', 'true');
+    else sidebarPanel.removeAttribute('aria-modal');
     syncSidebarPanelInteractivity();
 }
 
@@ -7483,18 +7378,226 @@ function getSidebarFocusableControls() {
         });
 }
 
-function focusSidebarControl(element) {
+function focusSidebarControl(element, focusVisible = true) {
+    element.classList.toggle('is-keyboard-focus', focusVisible);
+    if (focusVisible) element.addEventListener('blur', () => {
+        element.classList.remove('is-keyboard-focus');
+    }, { once: true });
     try {
-        element.focus({ focusVisible: true });
+        element.focus({ preventScroll: true, focusVisible });
     }
     catch {
-        element.focus();
+        element.focus({ preventScroll: true });
     }
+}
+
+// Keep search evidence aligned with the fields and legacy numeric forms used
+// by filtering. The disclosure also covers evidence hidden by compact layouts.
+const SEARCH_REASON_SOURCES = [
+    { kind: 'name', icon: 'fa-user', label: 'Name match', read: athlete => athlete.name },
+    { kind: 'flag', icon: 'fa-flag', label: 'Flag match', read: athlete => [...new Set([athlete.flag, athlete.canonicalFlag].filter(Boolean))].join(' · ') },
+    { kind: 'contact', icon: 'fa-at', label: 'Contact match', read: athlete => athlete.mediaContact || '' },
+    { kind: 'why', icon: 'fa-quote-left', label: 'Motivation match', read: athlete => athlete.why || '' }
+];
+
+function normalizeSearchText(text) {
+    return window.normalizeString(String(text || ''));
+}
+
+function getMetricSearchParts(entry, view) {
+    const { athlete, metric, metricValue } = entry;
+    const percent = view === 'pheno' ? athlete.ageReductionPercent
+        : (view === 'improvement' || view === 'bortz-improvement') ? null
+        : (Number.isFinite(athlete.bortzAgeReductionPercent) ? athlete.bortzAgeReductionPercent : athlete.ageReductionPercent);
+    const parts = [{ value: metric, label: metric }];
+    if (Number.isFinite(metricValue)) parts.push({ value: metricValue.toFixed(1), label: `${metricValue.toFixed(1)} years` });
+    if (view !== 'crowd' && Number.isFinite(percent)) parts.push({ value: percent.toFixed(1), label: `${percent.toFixed(1)}% age reduction` });
+    if (view === 'crowd' && Number.isFinite(athlete.crowdCount)) parts.push({ value: String(athlete.crowdCount), label: `${athlete.crowdCount} guesses` });
+    return parts;
+}
+
+function getSearchSnippet(text, term) {
+    const source = String(text || '').replace(/\s+/g, ' ').trim();
+    if (source.length <= 96) return source;
+    // NFKD can expand ligatures or remove combining marks. Locate the match in
+    // original code points before slicing, rather than cutting at folded offsets.
+    const positions = [];
+    let offset = 0;
+    for (const character of source) {
+        for (let i = 0; i < normalizeSearchText(character).length; i++) positions.push([offset, offset + character.length]);
+        offset += character.length;
+    }
+    const index = Math.max(0, normalizeSearchText(source).indexOf(term));
+    const matchStart = positions[index]?.[0] || 0;
+    const matchEnd = positions[index + term.length - 1]?.[1] || source.length;
+    const start = matchStart - [...source.slice(0, matchStart)].slice(-28).join('').length;
+    const end = matchEnd + [...source.slice(matchEnd)].slice(0, 36).join('').length;
+    return `${start > 0 ? '…' : ''}${source.slice(start, end).trim()}${end < source.length ? '…' : ''}`;
+}
+
+let searchReasonPopover;
+let searchReasonOwner;
+
+function closeSearchReason() {
+    if (searchReasonPopover?.matches(':popover-open')) searchReasonPopover.hidePopover();
+    searchReasonOwner?.setAttribute('aria-expanded', 'false');
+    searchReasonOwner?.removeAttribute('aria-describedby');
+    searchReasonOwner = null;
+}
+
+function placeSearchReason() {
+    if (!searchReasonOwner || !searchReasonPopover?.matches(':popover-open')) return;
+    const anchor = searchReasonOwner.getBoundingClientRect();
+    if (!searchReasonOwner.isConnected || !anchor.width || !anchor.height || anchor.bottom <= 0 || anchor.top >= innerHeight) {
+        closeSearchReason();
+        return;
+    }
+    const panel = searchReasonPopover;
+    const margin = 8;
+    panel.style.maxWidth = `${Math.min(360, pageDocument.documentElement.clientWidth - margin * 2)}px`;
+    panel.style.maxHeight = `${innerHeight - margin * 2}px`;
+    const left = Math.max(margin, Math.min(anchor.left + anchor.width / 2 - panel.offsetWidth / 2, pageDocument.documentElement.clientWidth - panel.offsetWidth - margin));
+    const below = anchor.bottom + 8;
+    const top = below + panel.offsetHeight <= innerHeight - margin ? below : anchor.top - panel.offsetHeight - 8;
+    panel.style.left = `${left}px`;
+    panel.style.top = `${Math.max(margin, Math.min(top, innerHeight - panel.offsetHeight - margin))}px`;
+    panel.tabIndex = panel.scrollHeight > panel.clientHeight ? 0 : -1;
+}
+
+function appendSearchReason(host, source, text, terms, className = '') {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `search-reason search-reason--${source.kind} ${className}`.trim();
+    chip.innerHTML = `<i class="fas ${source.icon}" aria-hidden="true"></i>`;
+    chip.setAttribute('aria-label', source.label);
+    chip.setAttribute('aria-expanded', 'false');
+    chip.setAttribute('aria-controls', 'leaderboardSearchReason');
+    chip.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const wasOpen = searchReasonOwner === chip && searchReasonPopover?.matches(':popover-open');
+        closeSearchReason();
+        if (wasOpen) return;
+        if (!searchReasonPopover) {
+            searchReasonPopover = document.createElement('div');
+            searchReasonPopover.id = 'leaderboardSearchReason';
+            searchReasonPopover.className = 'search-reason-popover';
+            searchReasonPopover.setAttribute('popover', 'auto');
+            searchReasonPopover.setAttribute('role', 'region');
+            athleteDialogRuntime.appendChild(searchReasonPopover);
+            searchReasonPopover.addEventListener('beforetoggle', event => {
+                if (event.newState === 'closed') {
+                    searchReasonOwner?.setAttribute('aria-expanded', 'false');
+                    searchReasonOwner?.removeAttribute('aria-describedby');
+                    searchReasonOwner = null;
+                }
+            });
+            // Font reflow, browser zoom and focus scrolling can settle after the
+            // click. Follow the button instead of dismissing the new disclosure.
+            window.addEventListener('resize', placeSearchReason, { passive: true });
+            pageDocument.addEventListener('scroll', event => {
+                if (!searchReasonPopover.contains(event.target)) placeSearchReason();
+            }, { capture: true, passive: true });
+        }
+        searchReasonPopover.setAttribute('aria-label', source.label);
+        searchReasonPopover.textContent = text;
+        window.highlightText(searchReasonPopover, terms);
+        searchReasonOwner = chip;
+        chip.setAttribute('aria-expanded', 'true');
+        chip.setAttribute('aria-describedby', searchReasonPopover.id);
+        searchReasonPopover.showPopover({ source: chip });
+        placeSearchReason();
+    });
+    host.appendChild(chip);
+}
+
+function clearSearchReasons(scope) {
+    closeSearchReason();
+    scope.querySelectorAll('.search-reason').forEach(element => element.remove());
+    scope.querySelectorAll('.is-search-hit, .is-search-value').forEach(element => element.classList.remove('is-search-hit', 'is-search-value'));
+}
+
+function markSearchReasons(terms, entries, view) {
+    const board = document.querySelector('.leaderboard table tbody');
+    if (!board) return;
+    clearSearchReasons(athleteDialogRuntime);
+    if (!terms.length) return;
+    const entryByName = new Map(entries.map(entry => [entry.athlete.name, entry]));
+    board.querySelectorAll('tr[data-athlete-name]').forEach(row => {
+        const entry = entryByName.get(row.dataset.athleteName);
+        if (!entry || row.style.display === 'none') return;
+        const athlete = entry.athlete;
+        const nameText = normalizeSearchText(row.querySelector('.athlete-name')?.textContent);
+        let pending = terms.filter(term => !nameText.includes(term));
+        if (!pending.length) return;
+        const identity = row.querySelector('.athlete-identity');
+        if (!identity) return;
+
+        const badges = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'));
+        const badgeReasons = new Set();
+        const badgeTerms = [];
+        pending = pending.filter(term => {
+            const hits = badges.filter(badge => normalizeSearchText(`${badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || ''} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`).includes(term));
+            hits.forEach(badge => {
+                badge.classList.add('is-search-hit');
+                const text = [badge.getAttribute('title') || badge.getAttribute('data-badge-tip'), badge.getAttribute('aria-label'), badge.textContent]
+                    .find(value => normalizeSearchText(value).includes(term));
+                badgeReasons.add(getSearchSnippet(text, term));
+            });
+            if (hits.length) badgeTerms.push(term);
+            return hits.length === 0;
+        });
+        if (badgeTerms.length) appendSearchReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
+
+        SEARCH_REASON_SOURCES.forEach(source => {
+            const text = source.read(athlete);
+            const normalized = normalizeSearchText(text);
+            const hits = pending.filter(term => normalized.includes(term));
+            if (!hits.length) return;
+            pending = pending.filter(term => !hits.includes(term));
+            appendSearchReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
+        });
+        const metricParts = getMetricSearchParts(entry, view);
+        const metricHits = pending.filter(term => metricParts.some(part => normalizeSearchText(part.value).includes(term)));
+        if (metricHits.length) {
+            row.querySelector('.age-reduction')?.classList.add('is-search-value');
+            const hiddenHits = metricHits.filter(term => !normalizeSearchText(entry.metric).includes(term));
+            if (hiddenHits.length) appendSearchReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
+                [...new Set(metricParts.filter(part => hiddenHits.some(term => normalizeSearchText(part.value).includes(term))).map(part => part.label))].join('\n'), hiddenHits);
+        }
+        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) row.querySelector('.rank')?.classList.add('is-search-value');
+    });
+}
+
+function markFlagSearchReasons(terms, teams, badgeTextByName) {
+    clearSearchReasons(athleteDialogRuntime);
+    const board = document.getElementById('flagLeaderboard');
+    board.querySelectorAll('.flag-team').forEach(row => {
+        const team = teams.find(team => row.dataset.flag === team.flag);
+        if (!team) return;
+        const name = row.querySelector('.flag-team-name > span:last-child');
+        name.textContent = team.flag;
+        if (!terms.length) return;
+        window.highlightText(name, terms);
+        const pending = terms.filter(term => !normalizeSearchText(team.flag).includes(term));
+        const evidence = new Set();
+        pending.forEach(term => {
+            for (const entry of team.entries) {
+                const sources = [entry.athlete.displayName, ...SEARCH_REASON_SOURCES.map(source => source.read(entry.athlete)), badgeTextByName.get(entry.athlete.name)];
+                const source = sources.find(text => normalizeSearchText(text).includes(term));
+                if (source) {
+                    evidence.add(`${entry.athlete.displayName}: ${getSearchSnippet(source, term)}`);
+                    break;
+                }
+            }
+        });
+        if (evidence.size) appendSearchReason(name, { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
+    });
 }
 
 function toggleSidebar(options = {}) {
     if (!hasLeaderboardSidebar) return;
-    if (sidebar.classList.contains('expanded')) {
+    if (sidebar.classList.contains('expanded') && !sidebar.classList.contains('is-closing')) {
         closeSidebar();
     }
     else {
@@ -7502,17 +7605,11 @@ function toggleSidebar(options = {}) {
     }
 }
 
-function pinActiveDesktopSidebar() {
-    if (!hasLeaderboardSidebar) return;
-    if (isMobileDrawerViewport()) return;
-    if (!hasActiveLeaderboardFilterState()) return;
-    if (sidebar.classList.contains('expanded')) return;
-
-    openSidebar();
-}
-
 function openSidebar(options = {}) {
     if (!hasLeaderboardSidebar) return;
+    sidebarDeckCloseAnimation?.cancel();
+    sidebarDeckCloseAnimation = null;
+    sidebar.classList.remove('is-closing');
     const isMobileDrawer = isMobileDrawerViewport();
     const drawerScrollX = window.scrollX;
     const drawerScrollY = window.scrollY;
@@ -7532,17 +7629,23 @@ function openSidebar(options = {}) {
     sidebarToggle.title = "Hide league filters";
     sidebarToggle.setAttribute('aria-label', 'Hide league filters');
     sidebarToggle.setAttribute('aria-expanded', 'true');
+    sidebarRail?.setAttribute('aria-expanded', 'true');
+
+    if (!isMobileDrawer) {
+        // A rail can be opened far down the results. Bring the deck back into
+        // reach without moving an already visible toolbar.
+        const top = sidebarToggle.getBoundingClientRect().top;
+        const stickyHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 52;
+        if (top < stickyHeight || top >= innerHeight) {
+            ScrollGuard.trustedScrollTo({ top: scrollY + sidebar.getBoundingClientRect().top - stickyHeight, behavior: 'instant' });
+        }
+        if (options.focusDrawerClose) focusSidebarControl(sidebarClose, options.focusVisible);
+    }
 
     if (isMobileDrawer) {
         requestAnimationFrame(() => {
-            if (options.focusDrawerClose) {
-                try {
-                    sidebarClose.focus({ preventScroll: true, focusVisible: true });
-                }
-                catch {
-                    sidebarClose.focus({ preventScroll: true });
-                }
-            }
+            if (!sidebar.classList.contains('expanded')) return;
+            focusSidebarControl(sidebarClose, options.focusVisible ?? !!options.focusDrawerClose);
             window.scrollTo({ left: drawerScrollX, top: drawerScrollY, behavior: 'instant' });
         });
     }
@@ -7550,30 +7653,56 @@ function openSidebar(options = {}) {
 
 function closeSidebar(options = {}) {
     if (!hasLeaderboardSidebar) return;
-    sidebar.classList.remove('expanded');
-    sidebar.setAttribute('aria-hidden', 'true');
-    sidebarToggle.classList.remove('active');
-    if (!sidebar.classList.contains('button-collapsed')) {
+    if (sidebar.classList.contains('is-closing')) return;
+    const restoreFocus = options.restoreFocus ?? sidebar.contains(document.activeElement);
+    const focusVisible = options.focusVisible ?? (options.restoreFocus === true);
+    const collapse = () => {
+        // Preserve the visible result when the in-flow deck disappears. If the
+        // reader is still inside the deck, return to its controlling button.
+        const desktop = !isMobileDrawerViewport();
+        const stickyHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 52;
+        const result = desktop && [...document.querySelectorAll('.leaderboard > table tbody tr, .flag-leaderboard .flag-team')]
+            .find(row => { const r = row.getBoundingClientRect(); return r.height > 0 && r.bottom > stickyHeight && r.top < innerHeight; });
+        const anchor = result || sidebarToggle;
+        const before = anchor.getBoundingClientRect().top;
+        sidebar.classList.remove('expanded', 'is-closing');
         sidebar.classList.add('button-collapsed');
-    }
+        sidebar.setAttribute('aria-hidden', 'true');
+        syncSidebarDrawerBackdrop();
+        syncLeaderboardTableHeight();
+        if (desktop) {
+            const desired = result ? before : Math.max(stickyHeight + 12, before);
+            ScrollGuard.trustedScrollTo({ top: scrollY + anchor.getBoundingClientRect().top - desired, behavior: 'instant' });
+        }
+    };
+    sidebarToggle.classList.remove('active');
     sidebarToggle.title = "Show league filters";
     sidebarToggle.setAttribute('aria-label', 'Show league filters');
     sidebarToggle.setAttribute('aria-expanded', 'false');
-    syncSidebarDrawerBackdrop();
-    requestAnimationFrame(syncCollapsedTitleHeight);
+    sidebarRail?.setAttribute('aria-expanded', 'false');
 
-    if (options.restoreFocus) {
+    if (!isMobileDrawerViewport() && sidebar.classList.contains('expanded') && !leaderboardReducedMotion.matches) {
+        sidebar.classList.add('is-closing');
+        syncSidebarPanelInteractivity();
+        const animation = sidebarPanel.animate([
+            { clipPath: 'inset(0)', opacity: 1 },
+            { clipPath: 'inset(0 0 100% 0)', opacity: 0 }
+        ], { duration: 180, easing: 'ease-in', fill: 'forwards' });
+        sidebarDeckCloseAnimation = animation;
+        void animation.finished.then(() => {
+            if (sidebarDeckCloseAnimation !== animation) return;
+            sidebarDeckCloseAnimation = null;
+            collapse();
+            animation.cancel();
+        }, () => {});
+    } else {
+        collapse();
+    }
+
+    if (restoreFocus) {
         requestAnimationFrame(() => {
-            sidebarToggle.classList.add('is-keyboard-focus');
-            sidebarToggle.addEventListener('blur', () => {
-                sidebarToggle.classList.remove('is-keyboard-focus');
-            }, { once: true });
-            try {
-                sidebarToggle.focus({ preventScroll: true, focusVisible: true });
-            }
-            catch {
-                sidebarToggle.focus({ preventScroll: true });
-            }
+            if (sidebar.classList.contains('expanded') && !sidebar.classList.contains('is-closing')) return;
+            focusSidebarControl(sidebarToggle, focusVisible);
         });
     }
 }
@@ -7597,63 +7726,27 @@ if (hasLeaderboardSidebar) {
     }
 }
 
-// Sidebar swipe gesture
-let startX = 0;
-let endX = 0;
-let startY = 0;
-let endY = 0;
-const SWIPE_THRESHOLD = 50; // Minimum distance to qualify as a swipe
-const TAP_THRESHOLD = 10; // Allowable movement for taps
-let sidebarSwipeEligible = false;
-
-document.addEventListener('touchstart', (e) => {
-    sidebarSwipeEligible = false;
-    if (!hasLeaderboardSidebar) return;
-    if (window.LwcImageViewer?.isOpen()) return;
-    if (modal.style.display === "block") return;
-    if (e.touches.length !== 1) return;
-    // Horizontal scrollers own their gestures, including the Swag carousel.
-    // A page-level right swipe must not open the filter drawer over them.
-    if (e.composedPath().some(node => node instanceof HTMLElement
-        && node.scrollWidth > node.clientWidth + 1
-        && ['auto', 'scroll'].includes(getComputedStyle(node).overflowX))) return;
-
-    sidebarSwipeEligible = true;
-    startX = e.changedTouches[0].clientX;
-    startY = e.changedTouches[0].clientY;
-}, false);
-
-document.addEventListener('touchend', (e) => {
-    if (!sidebarSwipeEligible) return;
-    sidebarSwipeEligible = false;
-    if (!hasLeaderboardSidebar) return;
-    if (window.LwcImageViewer?.isOpen()) return;
-    if (modal.style.display === "block") return;
-
-    endX = e.changedTouches[0].clientX;
-    endY = e.changedTouches[0].clientY;
-
-    const deltaX = endX - startX; // Horizontal movement
-    const deltaY = endY - startY; // Vertical movement
-
-    // Check if it's a tap (small movement)
-    if (Math.abs(deltaX) < TAP_THRESHOLD && Math.abs(deltaY) < TAP_THRESHOLD) {
-        return; // Do nothing, treat as a tap
-    }
-
-    // Check for swipe
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
-        if (deltaX > 0) {
-            // Swiped from left to right => open sidebar
-            openSidebar();
-        } else {
-            // Swiped from right to left => close sidebar
-            closeSidebar();
-        }
-    }
-}, false);
-
-document.addEventListener('touchcancel', () => { sidebarSwipeEligible = false; }, { passive: true });
+// The sheet owns only a downward drag from its heading or grab area. A page
+// swipe and scrolling the filter list must never toggle it.
+let sidebarDragStart = null;
+sidebar?.addEventListener('touchstart', event => {
+    sidebarDragStart = null;
+    if (!isMobileDrawerViewport() || !sidebar.classList.contains('expanded') || event.touches.length !== 1) return;
+    const target = event.target;
+    if (target.closest('button, input, a')) return;
+    if (!target.closest('.sidebar-grab, .sidebar-heading')) return;
+    const touch = event.touches[0];
+    sidebarDragStart = { x: touch.clientX, y: touch.clientY };
+}, { passive: true });
+sidebar?.addEventListener('touchend', event => {
+    const start = sidebarDragStart;
+    sidebarDragStart = null;
+    if (!start || !isMobileDrawerViewport() || !event.changedTouches.length) return;
+    const touch = event.changedTouches[0];
+    const dy = touch.clientY - start.y;
+    if (dy > 50 && dy > Math.abs(touch.clientX - start.x)) closeSidebar({ restoreFocus: true, focusVisible: false });
+}, { passive: true });
+sidebar?.addEventListener('touchcancel', () => { sidebarDragStart = null; }, { passive: true });
 
 // Updates the document title for the selected athlete.
 function updatePageTitleForAthlete(athleteName, athleteRank) {
@@ -7817,10 +7910,8 @@ window.getLeaderboardPeek = name => {
     if (!athlete) return null;
     return Object.freeze({
         chronologicalAge: athlete.chronologicalAge,
-        lowestBortzAge: athlete.lowestBortzAge,
-        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
-        lowestPhenoAge: athlete.lowestPhenoAge,
-        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        bortzRankResult: athlete.bortzRankResult,
+        phenoRankResult: athlete.phenoRankResult,
         crowdAge: athlete.crowdAge,
         crowdCount: athlete.crowdCount,
         placements: athlete.placements

@@ -83,7 +83,7 @@ public static class PublicProfileHtmlRenderer
         html = SetContent(html, "chronologicalAge", completedAge.ToString(System.Globalization.CultureInfo.InvariantCulture));
         html = SetContent(html, "lowestPhenoAge", PublicHtmlFormat.Fixed(stats.LowestPhenoAge));
         html = SetContent(html, "ageReduction", SignedProfile(stats.AgeReduction));
-        html = SetContent(html, "ageReductionPercent", PublicHtmlFormat.Fixed((1 - stats.PhenoPaceOfAging) * 100));
+        html = SetContent(html, "ageReductionPercent", PublicHtmlFormat.Fixed(stats.PhenoRankResult?.AgeReductionPercent));
         if (stats.PhenoPaceOfAging is not double phenoPace || !double.IsFinite(phenoPace))
             html = html.Replace("id=\"ageReductionShare\"", "id=\"ageReductionShare\" hidden", StringComparison.Ordinal);
         html = SetContent(html, "ageReductionAccelerationLabel", stats.AgeReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration");
@@ -99,7 +99,7 @@ public static class PublicProfileHtmlRenderer
         {
             html = SetContent(html, prefix + "Value", PublicHtmlFormat.Signed(effectiveReduction) + " years");
             html = SetContent(html, prefix + "Label", effectiveReduction < 0 ? "age reduction" : "age acceleration");
-            html = SetContent(html, prefix + "Bio", "biological age: " + PublicHtmlFormat.Fixed(stats.LowestBortzAge ?? stats.LowestPhenoAge));
+            html = SetContent(html, prefix + "Bio", "biological age: " + PublicHtmlFormat.Fixed((stats.BortzRankResult ?? stats.PhenoRankResult)?.BiologicalAge));
         }
         if (athlete.IsPro)
         {
@@ -107,7 +107,7 @@ public static class PublicProfileHtmlRenderer
             html = ShowRow(html, "bortzAgeReductionContainer");
             html = SetContent(html, "lowestBortzAge", PublicHtmlFormat.Fixed(stats.LowestBortzAge));
             html = SetContent(html, "bortzAgeReduction", SignedProfile(stats.BortzAgeReduction));
-            html = SetContent(html, "bortzAgeReductionPercent", PublicHtmlFormat.Fixed((1 - stats.BortzPaceOfAging) * 100));
+            html = SetContent(html, "bortzAgeReductionPercent", PublicHtmlFormat.Fixed(stats.BortzRankResult?.AgeReductionPercent));
             if (stats.BortzPaceOfAging is not double bortzPace || !double.IsFinite(bortzPace))
                 html = html.Replace("id=\"bortzAgeReductionShare\"", "id=\"bortzAgeReductionShare\" hidden", StringComparison.Ordinal);
             html = SetContent(html, "bortzAgeReductionAccelerationLabel", stats.BortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration");

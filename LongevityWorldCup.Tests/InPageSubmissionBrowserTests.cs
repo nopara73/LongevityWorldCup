@@ -168,6 +168,7 @@ public sealed class InPageSubmissionBrowserTests(
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => typeof window.submitApplicationWithRecovery==='function'");
         await page.Clock.InstallAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.EvaluateAsync("""
             stalled => {
                 const originalFetch=window.fetch;
@@ -200,7 +201,9 @@ public sealed class InPageSubmissionBrowserTests(
                     .then(attempt=>window.deadlineResult={ok:attempt.ok,recovered:attempt.recovered});
             }
             """, stalled);
-        await page.WaitForFunctionAsync("() => applicationRequests.length>0");
+        // Recovery has its own deadline, armed only after the first response
+        // body is consumed. Wait for the request whose body the fixture stalls.
+        await page.WaitForFunctionAsync("count => applicationRequests.length === count", stalled == "recovery" ? 2 : 1);
         await page.Clock.RunForAsync(1001);
         await page.WaitForFunctionAsync("() => window.deadlineResult!==null", options: new() { Timeout = 1500 });
         Assert.True(await page.EvaluateAsync<bool>("() => deadlineResult.ok"));

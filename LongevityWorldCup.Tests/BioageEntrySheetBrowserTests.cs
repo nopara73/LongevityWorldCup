@@ -35,21 +35,14 @@ public sealed class BioageEntrySheetBrowserTests(
             Assert.InRange(band.Right, -1, 1);
         });
 
-        Assert.InRange(stepOne[0].Left, -1, 1);
-        Assert.InRange(stepOne[1].Right, -1, 1);
-        if (width >= 960)
+        // Date bands fill their own matched cards, paired on desktop and stacked on phones.
+        if (width >= 960) Assert.InRange(stepOne[1].Top - stepOne[0].Top, -1, 1);
+        else Assert.True(stepOne[1].Top > stepOne[0].Top + 40);
+        Assert.All(stepOne, band =>
         {
-            // On a desktop the two date sections share one band row across the card.
-            Assert.InRange(stepOne[1].Top - stepOne[0].Top, -1, 1);
-            Assert.InRange(stepOne[1].AbsoluteLeft - stepOne[0].AbsoluteRight, -1, 1);
-        }
-        else
-        {
-            // On a phone the draw date follows the birth date like the domains do.
-            Assert.True(stepOne[1].Top > stepOne[0].Top + 40, $"{path}: the draw date band shares the birth date row.");
-            Assert.InRange(stepOne[0].Right, -1, 1);
-            Assert.InRange(stepOne[1].Left, -1, 1);
-        }
+            Assert.InRange(band.Left, -1, 1);
+            Assert.InRange(band.Right, -1, 1);
+        });
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
@@ -274,7 +267,7 @@ public sealed class BioageEntrySheetBrowserTests(
         else await FillPhenoBiomarkersAsync(page);
         var entryWidth = await page.Locator("form.bioageform").EvaluateAsync<double>("form => form.getBoundingClientRect().width");
 
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeVisibleAsync();
         var initialAge = await page.EvaluateAsync<double>("clock => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge", clock);
         await page.Locator("#wbc").FillAsync("7.54");
@@ -346,7 +339,8 @@ public sealed class BioageEntrySheetBrowserTests(
                 const right = box.right - parseFloat(style.borderRightWidth);
                 return [...document.querySelectorAll(`${step} > fieldset > legend`)].map(legend => {
                     const band = legend.getBoundingClientRect();
-                    return [String(band.left - left), String(right - band.right), String(band.top), getComputedStyle(legend).backgroundColor, String(band.left), String(band.right)];
+                    const card = step === "#lwc-step-1" ? legend.parentElement.getBoundingClientRect() : null;
+                    return [String(band.left - (card?.left ?? left)), String((card?.right ?? right) - band.right), String(band.top), getComputedStyle(legend).backgroundColor, String(band.left), String(band.right)];
                 });
             }
             """,

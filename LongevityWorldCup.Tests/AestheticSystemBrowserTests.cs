@@ -293,8 +293,8 @@ public sealed class AestheticSystemBrowserTests(
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         // Signed out, the habit tiles carry the daily questions, so their four icons are not repeated.
         Assert.True(iconCount >= 30, $"Expected at least 30 visible Challenge/footer icons, found {iconCount}.");
-        Assert.Equal(15, diagnostics.FooterIconCount);
-        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon"], diagnostics.FooterPlatforms);
+        Assert.Equal(16, diagnostics.FooterIconCount);
+        Assert.Equal(["Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "Telegram"], diagnostics.FooterPlatforms);
         Assert.Contains(diagnostics.VectorIcons, icon => icon.Label == "Nostr");
         Assert.All(diagnostics.VectorIcons, icon =>
         {
@@ -439,6 +439,13 @@ public sealed class AestheticSystemBrowserTests(
                 () => {
                     const selected = document.querySelector('#lmxAccessTabs .lmx-tab[aria-selected="true"]');
                     const selectedStyle = getComputedStyle(selected);
+                    const glide = selected.parentElement.querySelector('.lwc-segment-glide[data-ready]');
+                    const selectedRect = selected.getBoundingClientRect();
+                    const glideRect = glide?.getBoundingClientRect();
+                    const glideHasUnderline = glide && getComputedStyle(glide).boxShadow !== 'none'
+                        && Math.abs(glideRect.left - selectedRect.left) <= 1
+                        && Math.abs(glideRect.bottom - selectedRect.bottom) <= 1
+                        && Math.abs(glideRect.width - selectedRect.width) <= 1;
                     const status = document.getElementById('lmxSignupStatus');
                     status.textContent = 'Signup ready — check your email for the next step.';
                     status.classList.add('success');
@@ -448,7 +455,9 @@ public sealed class AestheticSystemBrowserTests(
                         SelectedHasText: selected.textContent.trim().length > 0,
                         SelectedIsProgrammaticallyExposed: selected.getAttribute('aria-selected') === 'true',
                         SelectedHasShapeIndicator: selectedStyle.boxShadow !== 'none'
-                            || parseFloat(selectedStyle.borderBottomWidth) >= 2,
+                            || (parseFloat(selectedStyle.borderBottomWidth) >= 2
+                                && selectedStyle.borderBottomColor !== 'rgba(0, 0, 0, 0)')
+                            || Boolean(glideHasUnderline),
                         StatusHasText: status.textContent.trim().length > 0,
                         StatusHasShapeIndicator: parseFloat(statusStyle.borderLeftWidth) >= 4
                             || parseFloat(statusStyle.borderRightWidth) >= 4,
@@ -1212,6 +1221,7 @@ public sealed class AestheticSystemBrowserTests(
                     await AssertChallengeContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/bioageform.css":
+                case "css/bioage-dates.css":
                     foreach (var route in new[] { "/pheno-age", "/bortz-age" })
                     {
                         await AssertCalculatorContainerBoundariesAsync(page, route, source.ToArray());
@@ -1243,6 +1253,9 @@ public sealed class AestheticSystemBrowserTests(
                     break;
                 case "css/prize-pool.css":
                     await AssertPrizePoolContainerBoundariesAsync(page, source.ToArray());
+                    break;
+                case "css/proof-desk.css":
+                    await ProofDeskBrowserTests.AssertContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
@@ -2006,7 +2019,7 @@ public sealed class AestheticSystemBrowserTests(
                 Assert.Null(condition.Name);
                 Assert.Equal("max", condition.Bound);
                 Assert.Equal("rem", condition.Unit);
-                Assert.Equal(20, condition.Value);
+                Assert.Equal(24, condition.Value);
                 var threshold = condition.Value * fontSize;
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
                 {
@@ -2096,12 +2109,14 @@ public sealed class AestheticSystemBrowserTests(
             () => {
                 const board = document.querySelector('.leaderboard');
                 const probe = board.cloneNode(true);
-                probe.id = 'responsive-leaderboard-probe';
+                // Preserve the component ID for its scoped filter styles,
+                // replacing the live node instead of duplicating its IDs.
+                probe.dataset.responsiveLeaderboardProbe = 'true';
                 const panel = probe.querySelector('.sidebar');
                 panel.classList.add('expanded');
                 panel.classList.remove('button-collapsed', 'partially-expanded');
                 panel.setAttribute('aria-hidden', 'false');
-                board.parentElement.append(probe);
+                board.replaceWith(probe);
             }
             """);
         var rootFontSize = await page.EvaluateAsync<double>(
@@ -2122,7 +2137,7 @@ public sealed class AestheticSystemBrowserTests(
                 var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
                     """
                     async width => {
-                        const board = document.querySelector('#responsive-leaderboard-probe');
+                        const board = document.querySelector('[data-responsive-leaderboard-probe]');
                         board.style.boxSizing = 'content-box';
                         board.style.inlineSize = `${width}px`;
                         board.style.maxInlineSize = 'none';
@@ -2135,8 +2150,7 @@ public sealed class AestheticSystemBrowserTests(
                         const table = board.querySelector(':scope > table');
                         return {
                             ContainerWidth: parseFloat(getComputedStyle(board).width),
-                            IsCompact: getComputedStyle(panel).flexBasis === '100%'
-                                && table.getBoundingClientRect().top >= panel.getBoundingClientRect().bottom - 1,
+                            IsCompact: getComputedStyle(table.querySelector('.sponsor-th')).display === 'none',
                             HorizontalOverflow: Math.max(0, board.scrollWidth - board.clientWidth)
                         };
                     }
@@ -2144,7 +2158,7 @@ public sealed class AestheticSystemBrowserTests(
                     inlineSize);
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
                 Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
-                    $"Leaderboard filters did not cross their {condition.Value}{condition.Unit} boundary at {inlineSize}px. " +
+                    $"Leaderboard columns did not cross their {condition.Value}{condition.Unit} boundary at {inlineSize}px. " +
                     $"Compact={diagnostics.IsCompact}, width={diagnostics.ContainerWidth}, overflow={diagnostics.HorizontalOverflow}.");
                 Assert.True(diagnostics.HorizontalOverflow <= 1,
                     $"Leaderboard overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
@@ -2348,7 +2362,7 @@ public sealed class AestheticSystemBrowserTests(
                     page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
                 if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
                 else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
-                await page.Locator(".bioage-calculate-button").ClickAsync();
+                await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
                 await page.Locator(".bioage-rank-summary").WaitForAsync();
                 var rankThreshold = condition.Value * rootFontSize;
                 foreach (var delta in new[] { -1, 0, 1, 0, -1 })
@@ -2374,6 +2388,52 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Equal(inlineSize <= rankThreshold, diagnostics.IsCompact);
                     Assert.True(diagnostics.HorizontalOverflow <= 1,
                         $"{route} rank preview overflowed at {inlineSize}px.");
+                }
+                continue;
+            }
+
+            if (condition.Name == "bioage-actions")
+            {
+                Assert.Equal("max", condition.Bound);
+                Assert.Equal("rem", condition.Unit);
+                Assert.Equal(18, condition.Value);
+                await NavigateAndSettleAsync(page, route);
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(
+                    page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+                var actionThreshold = condition.Value * rootFontSize;
+                foreach (var complete in new[] { false, true })
+                {
+                    if (complete)
+                    {
+                        if (route == "/bortz-age") await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
+                        else await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
+                        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
+                    }
+                    foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                    {
+                        var inlineSize = actionThreshold + delta;
+                        var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                            """
+                            async width => {
+                                const readout = document.querySelector('.bioage-live-readout');
+                                const actions = readout.parentElement;
+                                actions.style.boxSizing = 'content-box';
+                                actions.style.setProperty('inline-size', `${width}px`, 'important');
+                                actions.style.setProperty('max-inline-size', 'none', 'important');
+                                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                                const action = actions.querySelector('#continueButton, .bioage-live-progress');
+                                return {
+                                    ContainerWidth: parseFloat(getComputedStyle(actions).width),
+                                    IsCompact: getComputedStyle(action).gridRowStart === '2',
+                                    HorizontalOverflow: Math.max(0, actions.scrollWidth - actions.clientWidth)
+                                };
+                            }
+                            """, inlineSize);
+                        Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                        Assert.Equal(inlineSize <= actionThreshold, diagnostics.IsCompact);
+                        Assert.True(diagnostics.HorizontalOverflow <= 1,
+                            $"{route} live actions overflowed at {inlineSize}px (complete: {complete}).");
+                    }
                 }
                 continue;
             }
@@ -2423,16 +2483,45 @@ public sealed class AestheticSystemBrowserTests(
             }
 
             Assert.Equal("bioage-form", condition.Name);
+            if (condition.Source == "css/bioage-dates.css")
+            {
+                await NavigateAndSettleAsync(page, route);
+                Assert.Equal("em", condition.Unit);
+                Assert.Contains(condition.Value, new[] { 19.0, 38.0 });
+                await page.Locator("form.bioageform").EvaluateAsync("form => form.style.fontSize = '20px'");
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = condition.Value * 20 + delta;
+                    var paired = condition.Value == 38;
+                    var result = await page.EvaluateAsync<bool>(
+                        """
+                        async ({ width, paired }) => {
+                            const form = document.querySelector('form.bioageform');
+                            form.style.boxSizing = 'content-box'; form.style.inlineSize = `${width}px`; form.style.maxInlineSize = 'none';
+                            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                            const dob = form.querySelector('#dobFieldset');
+                            return paired ? form.querySelector('#lwc-step-1 > fieldset:nth-of-type(2)').getBoundingClientRect().left > dob.getBoundingClientRect().left
+                                : getComputedStyle(dob).display === 'block';
+                        }
+                        """, new { width, paired });
+                    Assert.Equal(paired ? delta >= 0 : delta <= 0, result);
+                }
+                continue;
+            }
             Assert.Equal("max", condition.Bound);
             await NavigateAndSettleAsync(page, route);
             var selector = condition.Value switch
             {
-                38 => "#lwc-step-1",
+                38 => "#lwc-step-2 .biomarker-card",
                 15 => "#dobFieldset",
                 14 when condition.Unit == "em" => "#dobFieldset",
                 _ => throw new InvalidOperationException(
                     $"Add a rendered calculator probe for {condition.Value}{condition.Unit}.")
             };
+            // Dates stay stacked on both sides of this boundary. The same
+            // query still changes biomarker rows between stacked and grid.
+            if (condition.Value == 38)
+                await FlowActionDockBrowserTests.FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
             // Em queries use the container's font, not the root font. Give the
             // date probe a distinct font size so a rem/em mix-up cannot pass.
             var emDateProbe = condition.Unit == "em";
@@ -2464,7 +2553,8 @@ public sealed class AestheticSystemBrowserTests(
                     """,
                     new { InlineSize = inlineSize, Selector = selector, EmDateProbe = emDateProbe });
                 Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
-                Assert.True(diagnostics.IsCompact == (inlineSize <= thresholdPixels),
+                var effectiveThreshold = condition.Value is 14 or 15 ? 19 * containerFontSize : thresholdPixels;
+                Assert.True(diagnostics.IsCompact == (inlineSize <= effectiveThreshold),
                     $"{route} {selector} did not cross its {condition.Value}{condition.Unit} boundary at {inlineSize}px.");
                 Assert.True(diagnostics.HorizontalOverflow <= 1,
                     $"{route} overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
@@ -2491,6 +2581,38 @@ public sealed class AestheticSystemBrowserTests(
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
+            if (condition.Name == "lmx-signup-timezone")
+            {
+                await Assertions.Expect(page.Locator("[data-select-id='lmxSignupTimeZone']"))
+                    .ToHaveAttributeAsync("data-wired", "true");
+                // Wiring precedes public-state loading; hidden containers do not evaluate their queries.
+                await Assertions.Expect(page.Locator("#lmxSignupTimeZoneButton")).ToBeVisibleAsync();
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var inlineSize = thresholdPixels + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async inlineSize => {
+                            const picker = document.querySelector('[data-select-id="lmxSignupTimeZone"]');
+                            picker.style.boxSizing = 'content-box';
+                            picker.style.inlineSize = `${inlineSize}px`;
+                            picker.style.maxInlineSize = 'none';
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(picker).width),
+                                IsCompact: getComputedStyle(picker.querySelector('[data-timezone-display]')).whiteSpace === 'normal',
+                                HorizontalOverflow: Math.max(0, picker.scrollWidth - picker.clientWidth)
+                            };
+                        }
+                        """, inlineSize);
+                    Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"Signup timezone overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
+                }
+                await page.Locator("[data-select-id='lmxSignupTimeZone']").EvaluateAsync("e => e.removeAttribute('style')");
+                continue;
+            }
             if (condition.Name is null && (condition.Unit == "px" && condition.Value is 280 or 420
                 || condition.Unit == "rem" && condition.Value is 12 or 20))
             {

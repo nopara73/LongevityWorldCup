@@ -113,11 +113,11 @@ public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFa
     [InlineData("/rejuvenation-olympics", "/og/page/rejuvenation-olympics.png?v=")]
     [InlineData("/ruleset", "/og/page/ruleset.png?v=")]
     [InlineData("/longevitymaxxing", "/og/page/longevitymaxxing.png?v=")]
-    [InlineData("/league/bortz", "/og/page/view-bortz.png?v=")]
-    [InlineData("/league/pheno", "/og/page/view-pheno.png?v=")]
-    [InlineData("/league/improvement", "/og/page/view-improvement.png?v=")]
-    [InlineData("/league/bortz-improvement", "/og/page/view-bortz-improvement.png?v=")]
-    [InlineData("/league/crowd", "/og/page/view-crowd.png?v=")]
+    [InlineData("/league/bortz", "/og/league/bortz.png?v=")]
+    [InlineData("/league/pheno", "/og/league/pheno.png?v=")]
+    [InlineData("/league/improvement", "/og/league/improvement.png?v=")]
+    [InlineData("/league/bortz-improvement", "/og/league/bortz-improvement.png?v=")]
+    [InlineData("/league/crowd", "/og/league/crowd.png?v=")]
     public async Task PublicPages_UseGeneratedPageSharePreviewImages(string path, string expectedImagePath)
     {
         var factory = sharedFactory;
@@ -210,10 +210,11 @@ public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFa
     }
 
     [Theory]
-    [InlineData("pheno-baseline-improvement", "Pheno Age best improvement")]
-    [InlineData("bortz-baseline-improvement", "Bortz Age best improvement")]
+    [InlineData("pheno-baseline-improvement", "improvement", "Pheno Age best improvement")]
+    [InlineData("bortz-baseline-improvement", "bortz-improvement", "Bortz Age best improvement")]
     public async Task AthleteProfile_BaselineImprovementContextUsesBadgeSpecificSharePreviewMetadata(
         string context,
+        string leaderboardContext,
         string expectedTitle)
     {
         var factory = sharedFactory;
@@ -233,12 +234,15 @@ public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFa
         }
 
         Assert.NotNull(payload);
+        Assert.True(athleteImages.TryGetCurrentPayload(payload.InternalSlug, leaderboardContext, out var leaderboardPayload));
+        Assert.Equal(leaderboardPayload!.Rank, payload.Rank);
+        Assert.Equal(leaderboardPayload.MetricValue, payload.MetricValue);
         using var client = factory.CreateClient();
-        var html = await client.GetStringAsync($"/athlete/{payload!.RouteSlug}?ctx={context}");
+        var html = await client.GetStringAsync($"/athlete/{payload.RouteSlug}?ctx={context}");
 
         Assert.Contains(expectedTitle, html);
-        Assert.Contains("from first to latest eligible result", html);
-        Assert.DoesNotContain("from worst to latest eligible result", html);
+        Assert.Contains($"Improvement {payload.MetricValue} years from worst to latest eligible result", html);
+        Assert.DoesNotContain("from first to latest eligible result", html);
         Assert.Contains($"&amp;ctx={context}", html);
     }
 

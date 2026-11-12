@@ -30,6 +30,9 @@ public sealed record CustomEventArtwork(string AssetPath, string AltText, string
                 "CrossFit's red line falls as HYROX's yellow line rises behind a flexing Longevity World Cup athlete.",
                 PreviewTitle: "CrossFit vs HYROX",
                 PreviewDescription: "What can Longevity World Cup learn from their growth?"),
+            ("open.spotify.com", "/episode/0CaM0p28Lvyutei1FWiP9I") => new("assets/social/buky-anna-kulturfitnesz-20261103.png",
+                "Büky Anna in a turquoise top beside the title Kultúrfitnesz · Petőfi Rádió.",
+                InstagramAssetPath: "assets/social/buky-anna-kulturfitnesz-20261103-instagram.png"),
             _ => null
         };
     }

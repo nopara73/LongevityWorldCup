@@ -5,11 +5,37 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialEventSkipPolicyTests
 {
+    [Theory]
+    [InlineData(EventType.CustomEvent, "An authored announcement", false)]
+    [InlineData(EventType.AthleteCountMilestone, "athletes[500]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[1]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[2]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[3]", false)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[4]", true)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[0]", true)]
+    [InlineData(EventType.Joined, "slug[alice]", true)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[1000]", false)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[0]", true)]
+    [InlineData(EventType.DonationReceived, "sats[1000]", true)]
+    [InlineData(EventType.BadgeAward, "slug[alice] badge[Pheno Age best improvement] cat[Global] val[] place[1]", true)]
+    [InlineData(EventType.CrowdAgeTop10Change, "slug[alice] place[1] prevPlace[2] crowdAge[25] crowdCount[100]", true)]
+    [InlineData(EventType.AgeImprovementTop10Change, "slug[alice] clock[pheno] place[1] improvement[-9.2] ageReduction[-12]", true)]
+    public void ConversationChannelsUseTheAnnouncementAllowlist(EventType type, string text, bool skip)
+    {
+        var now = DateTime.UtcNow;
+        Assert.Equal(skip, EventDataService.ShouldSkipSlackNotification(type, now, now.AddDays(-7), text));
+        Assert.Equal(skip, SocialEventSkipPolicy.ConversationSkipReason(type, text, now, now.AddDays(-7)) is not null);
+    }
+
     public static IEnumerable<object[]> XOrThreadsGoldenSkipRules()
     {
         var now = new DateTime(2026, 6, 6, 12, 0, 0, DateTimeKind.Utc);
         var freshCutoff = now.AddDays(-7);
 
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[6] prevPlace[8] ageReduction[-20.4]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[10] ageReduction[-10.4]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[11] ageReduction[-10.4]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
+        yield return new object[] { EventType.PhenoAgeTop10Change, "slug[alice] place[6]", now, 8, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventPayload };
         yield return new object[] { EventType.CustomEvent, "Title\n\nBody", now, 99, freshCutoff, true, false, SocialEventSkipReason.None };
         yield return new object[] { EventType.Joined, "slug[alice]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedEventType };
         yield return new object[] { EventType.DonationReceived, "tx[abc] sats[1000]", now, 8, freshCutoff, true, false, SocialEventSkipReason.None };
@@ -39,21 +65,6 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Age reduction] cat[Division] val[Men's] place[1]", now, 1, freshCutoff, true, false, SocialEventSkipReason.None };
     }
 
-    public static IEnumerable<object[]> FacebookGoldenSkipRules()
-    {
-        yield return new object[] { EventType.CustomEvent, false, SocialEventSkipReason.None };
-        yield return new object[] { EventType.Joined, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.NewRank, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.BadgeAward, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.AthleteCountMilestone, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.BecamePro, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.TestResultAccepted, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.BiologicalAgeImproved, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.CrowdAgeTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.AgeImprovementTop10Change, true, SocialEventSkipReason.FacebookSupportsCustomEventsOnly };
-        yield return new object[] { EventType.DonationReceived, false, SocialEventSkipReason.None };
-    }
-
     [Theory]
     [MemberData(nameof(XOrThreadsGoldenSkipRules))]
     public void XOrThreads_TerminalSkipRulesMatchGoldenMatrix(
@@ -77,41 +88,6 @@ public sealed class SocialEventSkipPolicyTests
 
         Assert.Equal(expectedSkipped, skipped);
         Assert.Equal(expectedReason, reason);
-    }
-
-    [Theory]
-    [MemberData(nameof(FacebookGoldenSkipRules))]
-    public void Facebook_TerminalSkipRulesMatchGoldenMatrix(
-        EventType type,
-        bool expectedSkipped,
-        SocialEventSkipReason expectedReason)
-    {
-        var skipped = SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(type, out var reason);
-
-        Assert.Equal(expectedSkipped, skipped);
-        Assert.Equal(expectedReason, reason);
-    }
-
-    [Fact]
-    public void Facebook_UnsupportedEventsAreTerminalSkips()
-    {
-        var skipped = SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(
-            EventType.NewRank,
-            out var reason);
-
-        Assert.True(skipped);
-        Assert.Equal(SocialEventSkipReason.FacebookSupportsCustomEventsOnly, reason);
-    }
-
-    [Fact]
-    public void Facebook_CustomEventsAreNotTerminalSkips()
-    {
-        var skipped = SocialEventSkipPolicy.TryGetFacebookTerminalSkipReason(
-            EventType.CustomEvent,
-            out var reason);
-
-        Assert.False(skipped);
-        Assert.Equal(SocialEventSkipReason.None, reason);
     }
 
     [Fact]

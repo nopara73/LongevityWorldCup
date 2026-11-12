@@ -23,6 +23,7 @@ public static class SlackMessageBuilder
             EventType.BiologicalAgeImproved => BuildBiologicalAgeImprovement(slug, rawText, slugToName),
             EventType.CrowdAgeTop10Change => BuildCrowdAgeTop10Change(slug, rawText, slugToName, getChronoAgeForSlug),
             EventType.AgeImprovementTop10Change => BuildAgeImprovementTop10Change(slug, rawText, slugToName),
+            EventType.PhenoAgeTop10Change => BuildPhenoAgeTop10Change(slug, rawText, slugToName),
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
             EventType.BadgeAward => BuildBadgeAward(rawText, getPodcastLinkForSlug),
@@ -41,6 +42,19 @@ public static class SlackMessageBuilder
         Func<string, string?>? getPodcastLinkForSlug = null)
     {
         var list = items as List<(EventType Type, string Raw)> ?? items.ToList();
+        var phenoRanks = list.Where(item => item.Type == EventType.PhenoAgeTop10Change).ToList();
+        if (phenoRanks.Count > 0)
+        {
+            // A simultaneous Ultimate rank or badge must not swallow the Pheno placement.
+            var others = list.Where(item => item.Type != EventType.PhenoAgeTop10Change).ToList();
+            var merged = ForMergedGroup(others, slugToName, getChronoAgeForSlug,
+                getLowestPhenoAgeForSlug, getLowestBortzAgeForSlug, getPodcastLinkForSlug);
+            var lines = string.IsNullOrWhiteSpace(merged)
+                ? others.Select(item => ForEventText(item.Type, item.Raw, slugToName, getPodcastLinkForSlug, getChronoAgeForSlug)).ToList()
+                : new List<string> { merged };
+            lines.AddRange(phenoRanks.Select(item => ForEventText(item.Type, item.Raw, slugToName)));
+            return string.Join("\n", lines.Where(line => !string.IsNullOrWhiteSpace(line)));
+        }
 
         string slug = "";
         foreach (var it in list)
@@ -418,6 +432,15 @@ public static class SlackMessageBuilder
         var improvementText = FormatSignedYears(improvement);
 
         return $"{nameLink} {movement} in {leaderboardName}{prevText} ({improvementText} years)";
+    }
+
+    private static string BuildPhenoAgeTop10Change(string? slug, string rawText, Func<string, string> slugToName)
+    {
+        if (slug is null ||
+            !EventHelpers.TryExtractPhenoAgeTop10Change(rawText, out var place, out var previousPlace, out var ageReduction))
+            return Escape(rawText);
+        return SocialPostText.BuildPhenoAgeTop10Line(
+            Link(SocialPostLinks.AthleteUrl(slug, "pheno"), slugToName(slug)), place, previousPlace, ageReduction, "").TrimEnd();
     }
 
     private static string BuildDonation(string rawText)

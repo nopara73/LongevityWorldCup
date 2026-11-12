@@ -22,6 +22,7 @@ interface LwcPointerApi {
     readonly modality: () => "pointer" | "keyboard" | "touch";
     readonly refreshRing: () => void;
     readonly hideTip: () => void;
+    readonly hasTextSelection: (scope: Node) => boolean;
 }
 
 interface Window {
@@ -539,6 +540,21 @@ interface Window {
         "[data-lwc-arrows='line']",
     ].join(", ");
 
+    // Browser caret navigation uses a collapsed selection in ordinary text.
+    // Let it keep the arrow/Home/End keys even inside our navigable lists.
+    function hasTextSelection(scope: Node): boolean {
+        const selection = window.getSelection();
+        if (!selection?.rangeCount) return false;
+        if (!selection.isCollapsed) {
+            return !!selection.toString().trim()
+                && (scope.contains(selection.anchorNode) || scope.contains(selection.focusNode));
+        }
+        const anchor = selection.anchorNode;
+        const element = anchor?.parentElement;
+        return !!anchor && anchor.nodeType === Node.TEXT_NODE && !!anchor.textContent?.trim()
+            && scope.contains(anchor) && !!element && getComputedStyle(element).userSelect !== "none";
+    }
+
     function visible(element: Element): boolean {
         if (!(element instanceof HTMLElement)) return false;
         if (element.hidden || element.closest("[hidden], [inert], [aria-hidden='true']")) return false;
@@ -647,6 +663,7 @@ interface Window {
         const body = current.closest(rowLists);
         // The innermost list wins, so a tab strip inside a row still moves sideways.
         const lineInside = line && (!body || body.contains(line));
+        if (hasTextSelection((lineInside ? line : body) || current)) return;
         const handled = lineInside
             ? moveInLine(line, current, event.key)
             : body ? moveInRows(body, current, event.key) : false;
@@ -710,5 +727,6 @@ interface Window {
         modality: () => modality,
         refreshRing,
         hideTip: () => hideTip(true),
+        hasTextSelection,
     };
 })();

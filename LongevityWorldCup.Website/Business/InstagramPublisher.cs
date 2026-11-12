@@ -28,7 +28,8 @@ public sealed class InstagramPublisher(InstagramApiClient api, InstagramPublishi
         if (status != "FINISHED")
             throw new InstagramApiException(status == "IN_PROGRESS" ? "ContainerProcessingTimedOut" : "Container" + status, outcomeUnknown: true);
 
-        deliveries.BeginAttempt(SocialDeliveryStore.Instagram, id, time.GetUtcNow());
+        if (!deliveries.BeginAttempt(SocialDeliveryStore.Instagram, id, time.GetUtcNow()))
+            throw new InstagramApiException("DeliverySuppressed");
         mediaId = await api.PublishContainerAsync(saved.ContainerId, ct);
         // Persist the ID before fetching a permalink. Receipt retries are read-only.
         progress.SaveMedia(id, saved.ContainerId, mediaId);

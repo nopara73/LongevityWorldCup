@@ -246,8 +246,7 @@ declare global {
         const calculatePhenoAge = clock?.calculatePhenoAge;
         if (typeof calculatePhenoAge !== 'function') return null;
 
-        var bestAge = Infinity;
-        var bestChrono: number | null = null;
+        var bestReduction = Infinity;
         athlete.Biomarkers.forEach(function (entry: unknown) {
             if (!isCompletePhenoBiomarkerSet(entry)) return;
 
@@ -267,14 +266,11 @@ declare global {
             if (!values.every(Number.isFinite)) return;
 
             var phenoAge = calculatePhenoAge.call(clock, values);
-            if (Number.isFinite(phenoAge) && phenoAge < bestAge) {
-                bestAge = phenoAge;
-                bestChrono = ageAtEntry;
-            }
+            if (Number.isFinite(phenoAge)) bestReduction = Math.min(bestReduction, phenoAge - ageAtEntry);
         });
 
-        return Number.isFinite(bestAge) && typeof bestChrono === 'number' && Number.isFinite(bestChrono)
-            ? { ageReduction: bestAge - bestChrono }
+        return Number.isFinite(bestReduction)
+            ? { ageReduction: bestReduction }
             : null;
     }
 
@@ -283,8 +279,7 @@ declare global {
         const calculateBortzAge = clock?.calculateBortzAge;
         if (typeof calculateBortzAge !== 'function') return null;
 
-        var bestAge = Infinity;
-        var bestChrono: number | null = null;
+        var bestReduction = Infinity;
         athlete.Biomarkers.forEach(function (entry: unknown) {
             if (!isCompleteBortzBiomarkerSet(entry)) return;
 
@@ -317,14 +312,11 @@ declare global {
             if (!values.every(Number.isFinite)) return;
 
             var bortzAge = calculateBortzAge.call(clock, ageAtEntry, values);
-            if (Number.isFinite(bortzAge) && bortzAge < bestAge) {
-                bestAge = bortzAge;
-                bestChrono = ageAtEntry;
-            }
+            if (Number.isFinite(bortzAge)) bestReduction = Math.min(bestReduction, bortzAge - ageAtEntry);
         });
 
-        return Number.isFinite(bestAge) && typeof bestChrono === 'number' && Number.isFinite(bestChrono)
-            ? { ageReduction: bestAge - bestChrono }
+        return Number.isFinite(bestReduction)
+            ? { ageReduction: bestReduction }
             : null;
     }
 
@@ -526,10 +518,9 @@ declare global {
             '</div>';
     }
 
-    // Reveal: the rank counts in from the back of the field to your place while
-    // the field rises and the marker travels; neighbours close in around You.
-    function playRankReveal(target: HTMLElement, rank: number, fieldSize: number, renderToken: number): void {
-        var number = target.querySelector<HTMLElement>('.bioage-rank-number');
+    // The actual rank and marker position are available immediately. Only the
+    // decorative field and nearby rows animate into place.
+    function playRankReveal(target: HTMLElement, renderToken: number): void {
         target.classList.remove('bioage-rank-revealing');
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         void target.offsetWidth;
@@ -537,23 +528,6 @@ declare global {
         window.setTimeout(function () {
             if (isCurrentTargetRenderToken(target.id, renderToken)) target.classList.remove('bioage-rank-revealing');
         }, 1600);
-        if (!number || fieldSize <= rank) return;
-        const counter: HTMLElement = number;
-        var start = performance.now();
-        var duration = 900;
-        // The status region announces once, with the final rank.
-        target.setAttribute('aria-busy', 'true');
-        var step = function (now: number): void {
-            if (!isCurrentTargetRenderToken(target.id, renderToken)) return;
-            var t = Math.min(1, (now - start) / duration);
-            var eased = 1 - Math.pow(1 - t, 3);
-            var value = Math.round(fieldSize - (fieldSize - rank) * eased);
-            if (counter.isConnected) counter.textContent = '#' + value;
-            if (t < 1 && counter.isConnected) requestAnimationFrame(step);
-            else target.setAttribute('aria-busy', 'false');
-        };
-        number.textContent = '#' + fieldSize;
-        requestAnimationFrame(step);
     }
 
     function trackRankPreview(eventName: string, clock: BioageRankClock, outcome: string): void {
@@ -604,6 +578,7 @@ declare global {
         const target = document.getElementById(targetId);
         if (!(target instanceof HTMLElement) || !options) return Promise.resolve();
         var renderToken = advanceTargetRenderToken(targetId);
+        target.classList.remove('bioage-rank-revealing');
 
         var clock: BioageRankClock = options.clock === 'bortz' ? 'bortz' : 'pheno';
         var ageReduction = Number(options.ageReduction);
@@ -655,7 +630,7 @@ declare global {
                 target.innerHTML = buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex);
                 installAvatarFallbacks(target);
                 target.setAttribute('aria-busy', 'false');
-                playRankReveal(target, rank, rankedFieldSize, renderToken);
+                playRankReveal(target, renderToken);
             })
             .catch(function () {
                 if (!isCurrentTargetRenderToken(targetId, renderToken)) return;
@@ -674,6 +649,7 @@ declare global {
         var target = document.getElementById(targetId);
         if (!(target instanceof HTMLElement)) return;
         advanceTargetRenderToken(targetId);
+        target.classList.remove('bioage-rank-revealing');
         target.hidden = true;
         target.innerHTML = '';
         clearTargetAccessibilityState(target);

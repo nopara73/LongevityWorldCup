@@ -37,7 +37,9 @@ public sealed class CustomEventPreviewController(
         var rawText = string.IsNullOrWhiteSpace(content)
             ? title
             : $"{title}\n\n{content}";
-        var plan = CustomEventSocialComposer.BuildPlan("preview", rawText, platform switch
+        var plan = platform == SocialPlatform.Telegram
+            ? TelegramAnnouncementService.BuildCustomPlan(new EventItem("preview", EventType.CustomEvent, rawText, DateTime.UtcNow, 15, true), slug => ResolveMention(slug, platform))
+            : CustomEventSocialComposer.BuildPlan("preview", rawText, platform switch
         {
             SocialPlatform.X => 280,
             SocialPlatform.Bluesky => 300,
@@ -78,6 +80,7 @@ public sealed class CustomEventPreviewController(
             "nostr" => SocialPlatform.Nostr,
             "bluesky" => SocialPlatform.Bluesky,
             "instagram" => SocialPlatform.Instagram,
+            "telegram" => SocialPlatform.Telegram,
             _ => SocialPlatform.X
         };
     }

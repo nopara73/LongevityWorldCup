@@ -15,8 +15,11 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
     [InlineData(320, 200, false)]
     [InlineData(320, 200, true)]
     [InlineData(390, 200, false)]
+    [InlineData(577, 200, false)]
+    [InlineData(577, 200, true)]
     [InlineData(1280, 100, false)]
     [InlineData(1280, 200, false)]
+    [InlineData(1280, 200, true)]
     public async Task Swag_ProductsRemainReadableAndKeyboardAccessible(int width, int textPercent, bool dark)
     {
         await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
@@ -263,9 +266,9 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await Assertions.Expect(cards.Nth(2)).ToHaveAttributeAsync("aria-hidden", "false");
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
 
-        // The page gesture still opens filters when it starts outside a scroller.
+        // A horizontal page gesture must not open the bottom sheet either.
         await SwipeAsync(page, page.Locator(".lwc-merch-copy"), forward: false);
-        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "false");
     }
 
     [Fact]

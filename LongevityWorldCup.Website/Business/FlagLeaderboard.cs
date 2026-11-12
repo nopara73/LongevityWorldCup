@@ -65,12 +65,8 @@ public static class FlagLeaderboard
             "crowd" => CompetitionRanking.SortByCrowdAgeRules(candidates.Select(athlete => new CrowdAgeRankCandidate(
                 athlete.Row.Slug, athlete.Stats.Name, athlete.Stats.CrowdAge!.Value, athlete.Metric(view)!.Value,
                 athlete.Stats.CrowdCount, athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug),
-            "improvement" => CompetitionRanking.SortByPhenoAgeImprovementRules(candidates.Select(athlete => new PhenoAgeImprovementRankCandidate(
-                athlete.Row.Slug, athlete.Stats.Name, athlete.Metric(view)!.Value, athlete.Stats.AgeReduction ?? 0,
-                athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug),
-            "bortz-improvement" => CompetitionRanking.SortByBortzAgeImprovementRules(candidates.Select(athlete => new BortzAgeImprovementRankCandidate(
-                athlete.Row.Slug, athlete.Stats.Name, athlete.Metric(view)!.Value, athlete.Stats.BortzAgeReduction ?? 0,
-                athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug),
+            "improvement" or "bortz-improvement" => AgeImprovementRanking.Rank(
+                candidates.Select(athlete => athlete.Stats), view == "improvement" ? "pheno" : "bortz").Select(row => row.Slug),
             _ => CompetitionRanking.SortByCompetitionRules(candidates.Select(athlete => new CompetitionRankCandidate(
                 athlete.Row.Slug, athlete.Stats.Name, false, athlete.Metric(view)!.Value,
                 athlete.Stats.DobUtc!.Value))).Select(athlete => athlete.Slug)

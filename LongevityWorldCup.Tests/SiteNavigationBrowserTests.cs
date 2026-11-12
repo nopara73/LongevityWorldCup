@@ -67,7 +67,7 @@ public sealed class SiteNavigationBrowserTests(
             }
             """);
         Assert.Empty(issues);
-        Assert.Equal(15, await page.Locator("#site-menu .footer-link").CountAsync());
+        Assert.Equal(16, await page.Locator("#site-menu .footer-link").CountAsync());
         if (textPercent == 100 && height >= 640 && width >= 320)
             Assert.True(await page.Locator(".site-menu-body").EvaluateAsync<bool>("b => b.scrollHeight <= b.clientHeight + 1"), "Ordinary short navigation should not need an internal scrollbar.");
 

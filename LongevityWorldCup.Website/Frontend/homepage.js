@@ -100,7 +100,7 @@ function isHomepageVisitCounterRoute() {
     }
 }
 
-function stabilizeHomepageFragmentTarget() {
+function stabilizeHomepageFragmentTarget(initialContentReady) {
     const requestedHash = window.location.hash;
     if (!requestedHash || requestedHash === '#') return;
 
@@ -162,10 +162,18 @@ function stabilizeHomepageFragmentTarget() {
         window.addEventListener(eventName, stopTracking, { once: true, passive: true }));
 
     queueAlignment();
-    stopTimer = window.setTimeout(function () {
-        alignTarget();
-        stopTracking();
-    }, 5000);
+    const loaded = document.readyState === 'complete' ? Promise.resolve()
+        : new Promise(resolve => window.addEventListener('load', resolve, { once: true }));
+    // Slow initial data/fonts must not use up the settling window before they
+    // can change the layout. Interaction still cancels tracking immediately.
+    Promise.allSettled([initialContentReady, document.fonts.ready, loaded]).then(function () {
+        if (stopped) return;
+        queueAlignment();
+        stopTimer = window.setTimeout(function () {
+            alignTarget();
+            stopTracking();
+        }, 5000);
+    });
 }
 
 function placeHomepageHighlightsForVisit() {
@@ -223,10 +231,17 @@ function homepageHighlightsTargetHeight() {
     const card = document.getElementById('lwc-countdown-box');
     const body = card?.querySelector('.lwc-merch-body');
     if (!card || !body) return 0;
-    const children = [...body.children].filter(child => child.getClientRects().length);
-    const bottom = Math.max(body.getBoundingClientRect().top, ...children.map(child => child.getBoundingClientRect().bottom));
-    return bottom - card.getBoundingClientRect().top
-        + (parseFloat(getComputedStyle(body).paddingBottom) || 0)
+    const children = [...body.children].filter(child => child.getClientRects().length)
+        .map(child => child.getBoundingClientRect());
+    const contentHeight = children.length
+        ? Math.max(...children.map(rect => rect.bottom)) - Math.min(...children.map(rect => rect.top))
+        : 0;
+    const bodyStyle = getComputedStyle(body);
+    // Centered content moves down when Highlights stretches the paired card.
+    // Exclude that free space so growing and shrinking converge on the same fit.
+    return body.getBoundingClientRect().top - card.getBoundingClientRect().top
+        + (parseFloat(bodyStyle.paddingTop) || 0) + contentHeight
+        + (parseFloat(bodyStyle.paddingBottom) || 0)
         + (parseFloat(getComputedStyle(card).borderBottomWidth) || 0);
 }
 
@@ -333,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
     placeHomepageHighlightsForVisit();
     const highlightsReady = fitHomepageHighlights();
     const leaderboardReady = LoadLeaderboard(true, 10);
-    stabilizeHomepageFragmentTarget();
+    stabilizeHomepageFragmentTarget(Promise.allSettled([highlightsReady, leaderboardReady]));
 
     watchHomepageHighlightsLayout();
     if (document.documentElement.classList.contains('homepage-restoring')) {

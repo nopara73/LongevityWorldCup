@@ -1,7 +1,7 @@
 const eventsPageAssets = document.currentScript.dataset;
 (function(){
     window.initializeSharedPageData();
-    const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12, TestResultAccepted: 13 };
+    const EVENT_TYPE = { General: 0, Joined: 1, NewRank: 2, DonationReceived: 3, AthleteCountMilestone: 4, BadgeAward: 5, CustomEvent: 6, SeasonFinalResult: 7, LongevitymaxxingChallengeResult: 8, BecamePro: 9, BiologicalAgeImproved: 10, CrowdAgeTop10Change: 11, AgeImprovementTop10Change: 12, TestResultAccepted: 13, PhenoAgeTop10Change: 14 };
     const EVENT_TYPE_NAME_BY_ID = {};
     Object.keys(EVENT_TYPE).forEach(name => {
         EVENT_TYPE_NAME_BY_ID[String(EVENT_TYPE[name])] = name;
@@ -234,6 +234,7 @@ const eventsPageAssets = document.currentScript.dataset;
             [EVENT_TYPE.BecamePro]: ["pro", "fa-star"],
             [EVENT_TYPE.BiologicalAgeImproved]: ["younger", "fa-heart-pulse"],
             [EVENT_TYPE.CrowdAgeTop10Change]: ["crowd", lost ? "fa-arrow-trend-down" : "fa-users"],
+            [EVENT_TYPE.PhenoAgeTop10Change]: ["rank", lost ? "fa-arrow-trend-down" : "fa-arrow-trend-up"],
             [EVENT_TYPE.AgeImprovementTop10Change]: ["improvement", lost ? "fa-arrow-trend-down" : "fa-chart-line"],
             [EVENT_TYPE.TestResultAccepted]: ["test", "fa-vial"]
         };
@@ -787,7 +788,7 @@ const eventsPageAssets = document.currentScript.dataset;
     }
 
     function groupAthleteBursts(rows, windowMs=60000, respectLocalDays=false){
-        const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult, EVENT_TYPE.BecamePro, EVENT_TYPE.BiologicalAgeImproved, EVENT_TYPE.CrowdAgeTop10Change, EVENT_TYPE.AgeImprovementTop10Change]);
+        const eligibleTypes=new Set([EVENT_TYPE.Joined, EVENT_TYPE.NewRank, EVENT_TYPE.DonationReceived, EVENT_TYPE.BadgeAward, EVENT_TYPE.LongevitymaxxingChallengeResult, EVENT_TYPE.BecamePro, EVENT_TYPE.BiologicalAgeImproved, EVENT_TYPE.CrowdAgeTop10Change, EVENT_TYPE.AgeImprovementTop10Change, EVENT_TYPE.PhenoAgeTop10Change]);
 
         const timeOf=r=>{
             const t=+new Date(r && r.occurredAt ? r.occurredAt : 0);
@@ -857,7 +858,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const heading=document.createElement('tr');
         heading.className='events-month-row';
         heading.dataset.month=month;
-        heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span></th>`;
+        heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span><span class="events-day-chip" aria-hidden="true"></span></th>`;
         group.appendChild(heading);
         monthHeadingObserver?.observe(heading);
         observeMonthReveal(table, heading);
@@ -906,6 +907,7 @@ const eventsPageAssets = document.currentScript.dataset;
             previousDay=day;
             previousMonth=month;
         });
+        if (chapters) queueMonthHandoff();
     }
 
     // ---- Living feed -------------------------------------------------------
@@ -1041,6 +1043,8 @@ const eventsPageAssets = document.currentScript.dataset;
     // Months arrive as the reader reaches them.
     let monthRevealObserver = null;
     function observeMonthReveal(table, heading){
+        // Reading position is useful with or without reveal animations.
+        watchMonthHandoff();
         const revealed = table._revealedMonths || (table._revealedMonths = new Set());
         if (revealed.has(heading.dataset.month) || prefersReducedMotion() || typeof IntersectionObserver !== 'function') {
             // A rebuilt band of a month already shown stays still.
@@ -1055,7 +1059,6 @@ const eventsPageAssets = document.currentScript.dataset;
             monthRevealObserver.unobserve(row);
         }), { rootMargin: '0px 0px -8% 0px' });
         monthRevealObserver.observe(heading);
-        watchMonthHandoff();
     }
 
     // The pinned month band hands over to the next one: it is marked as pinned,
@@ -1066,11 +1069,12 @@ const eventsPageAssets = document.currentScript.dataset;
         if (monthHandoffWatching) return;
         monthHandoffWatching = true;
         let frame = 0;
+        let lastRow = null;
         const update = () => {
             frame = 0;
             const headings = document.querySelectorAll('.event-board-page tr.events-month-row');
-            if (!headings.length) return;
-            const stickyTop = parseFloat(getComputedStyle(headings[0]).top) || 0;
+            const stickyTop = headings.length ? parseFloat(getComputedStyle(headings[0]).top) || 0 : 0;
+            let current = null;
             headings.forEach(row => {
                 const body = row.parentElement;
                 const bodyRect = body.getBoundingClientRect();
@@ -1081,13 +1085,69 @@ const eventsPageAssets = document.currentScript.dataset;
                 if (row.classList.contains('is-pinned') !== pinned) row.classList.toggle('is-pinned', pinned);
                 const value = handoff.toFixed(2);
                 if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
+                const chip = row.querySelector('.events-day-chip');
+                let reading = null;
+                if (pinned) {
+                    // An expanded story belongs to its title's day until its
+                    // final paragraph passes under the band.
+                    reading = [...body.querySelectorAll('tr.main-row[data-day]')].find(event => {
+                        const end = event.classList.contains('is-open') && event.nextElementSibling?.classList.contains('details-row')
+                            ? event.nextElementSibling : event;
+                        return end.getBoundingClientRect().bottom > rect.bottom + 1;
+                    });
+                }
+                if (!reading) {
+                    if (chip?.hasChildNodes()) { chip.replaceChildren(); delete chip.dataset.day; }
+                    return;
+                }
+                current = reading;
+                if (!chip || chip.dataset.day === reading.dataset.day) return;
+                const previous = chip.dataset.day;
+                const direction = lastRow && (lastRow.compareDocumentPosition(reading) & Node.DOCUMENT_POSITION_PRECEDING) ? -1 : 1;
+                chip.dataset.day = reading.dataset.day;
+                const number = document.createElement('span');
+                // The existing date owns the reader's calendar, timezone and digits.
+                number.textContent = reading.querySelector('.event-date-day')?.textContent || '';
+                chip.replaceChildren(number);
+                if (previous && !prefersReducedMotion()) {
+                    number.animate([
+                        { transform: `translateY(${direction * 100}%)`, opacity: 0 },
+                        { transform: 'none', opacity: 1 }
+                    ], { duration: 220, easing: FEED_EASE });
+                }
             });
+            if (lastRow !== current) {
+                lastRow?.classList.remove('is-current-day');
+                lastRow = current;
+            }
+            current?.classList.add('is-current-day');
         };
-        const queue = () => { if (!frame) frame = requestAnimationFrame(update); };
+        const queue = () => { if (!frame && !document.hidden) frame = requestAnimationFrame(update); };
+        const stop = () => {
+            cancelAnimationFrame(frame);
+            frame = 0;
+            document.querySelectorAll('.events-day-chip').forEach(chip => chip.getAnimations({ subtree: true }).forEach(animation => animation.cancel()));
+        };
         queueMonthHandoff = queue;
         window.addEventListener('scroll', queue, { passive: true });
         window.addEventListener('resize', queue, { passive: true });
+        window.addEventListener('pagehide', stop);
+        window.addEventListener('pageshow', queue);
+        document.addEventListener('visibilitychange', () => document.hidden ? stop() : queue());
+        if (typeof ResizeObserver === 'function') {
+            const observer = new ResizeObserver(queue);
+            document.querySelectorAll('.event-board-page .events-board').forEach(board => observer.observe(board));
+        }
         queue();
+    }
+
+    function updateFreshHighlights(){
+        const now = Date.now();
+        document.querySelectorAll('.event-board-page tr.main-row').forEach(row => {
+            const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
+            const age = now - stamp;
+            row.classList.toggle('is-fresh', Number.isFinite(age) && age >= 0 && age < 86400000);
+        });
     }
 
     // /events grows in chunks: skeletons wait at the end and settle into rows.
@@ -1139,6 +1199,7 @@ const eventsPageAssets = document.currentScript.dataset;
             previous = row;
         });
         applyZebraStriping(group);
+        updateFreshHighlights();
     }
 
     function mountFeedMore(table){
@@ -1207,6 +1268,7 @@ const eventsPageAssets = document.currentScript.dataset;
     // Relative labels ("joined 3 days ago") follow the clock, rolling to the
     // new value instead of waiting for a reload.
     function tickRelativeLabels(){
+        updateFreshHighlights();
         const reduced = prefersReducedMotion();
         document.querySelectorAll('.event-rel[data-rel-at]').forEach(el => {
             const next = relativeDayLabel(el.dataset.relAt);
@@ -1289,7 +1351,7 @@ const eventsPageAssets = document.currentScript.dataset;
         monthRevealObserver?.disconnect();
         document.querySelectorAll('.events-board .row-appear').forEach(row => row.classList.add('is-visible'));
         document.querySelectorAll('.events-month-row').forEach(row => row.classList.add('is-revealed', 'is-settled'));
-        document.querySelectorAll('.events-board .main-row, .event-athlete-preview, .event-portrait-flight, .events-exit-ghost').forEach(el => {
+        document.querySelectorAll('.events-board .main-row, .events-day-chip > span, .event-athlete-preview, .event-portrait-flight, .events-exit-ghost').forEach(el => {
             el.getAnimations().forEach(animation => animation.cancel());
             el.classList.remove('is-arriving', 'is-launching');
             if (el.matches('.event-portrait-flight, .events-exit-ghost')) el.remove();
@@ -1709,7 +1771,7 @@ const eventsPageAssets = document.currentScript.dataset;
             const isSelfRow = athletePageTargetSlug && primaryKey===athletePageTargetSlug;
 
             let avatarHtml = "";
-            const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted)
+            const canLinkAvatar = (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.LongevitymaxxingChallengeResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.PhenoAgeTop10Change || r.type === EVENT_TYPE.TestResultAccepted)
                 && r.primarySlug
                 && url
                 && !isSelfRow
@@ -1723,7 +1785,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 ? ` data-athlete-slug="${esc(primaryKey)}"`
                 : ``;
 
-            if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.TestResultAccepted || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
+            if (r.type === EVENT_TYPE.Joined || r.type === EVENT_TYPE.NewRank || r.type === EVENT_TYPE.BadgeAward || r.type === EVENT_TYPE.SeasonFinalResult || r.type === EVENT_TYPE.BecamePro || r.type === EVENT_TYPE.BiologicalAgeImproved || r.type === EVENT_TYPE.CrowdAgeTop10Change || r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.PhenoAgeTop10Change || r.type === EVENT_TYPE.TestResultAccepted || (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult && r.primarySlug)) {
                 const portrait = img
                     ? `<img class="avatar" data-lwc-image-role="athlete" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
                     : `<div class="avatar-fallback" data-lwc-image-role="athlete">${initialsFromName(name)}</div>`;
@@ -1902,7 +1964,7 @@ const eventsPageAssets = document.currentScript.dataset;
                     const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
                     msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(crowdAgeText)}</strong> years, ${esc(crowdCountText)} guesses)</span>`;
                 }
-            } else if (r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug) {
+            } else if ((r.type === EVENT_TYPE.AgeImprovementTop10Change || r.type === EVENT_TYPE.PhenoAgeTop10Change) && r.primarySlug) {
                 const nameWithRank = renderTextWithSlugLinks(
                     `slug[${r.primarySlug}]`,
                     linkNames,
@@ -1917,11 +1979,13 @@ const eventsPageAssets = document.currentScript.dataset;
                     : (placeN === 1 ? `took ${placeText} place` : `entered the top 10 at ${placeText}`);
                 const clockNorm = String(r.clockId || "").toLowerCase().replace(/\s+/g,"");
                 const isBortz = clockNorm === "bortz" || clockNorm === "bortzage";
-                const leagueHtml = isBortz
+                const isPhenoRank = r.type === EVENT_TYPE.PhenoAgeTop10Change;
+                const leagueHtml = isPhenoRank ? renderLeagueLink("Pheno Age", "pheno") : isBortz
                     ? renderLeagueLink("Bortz Improvement", "bortz-improvement")
                     : renderLeagueLink("Pheno Improvement", "improvement");
-                const improvementText = Number.isFinite(r.eventImprovement)
-                    ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 1, signDisplay: "exceptZero" }).format(r.eventImprovement)
+                const metric = isPhenoRank ? r.eventAgeReduction : r.eventImprovement;
+                const improvementText = Number.isFinite(metric)
+                    ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 1, signDisplay: "exceptZero" }).format(metric)
                     : "?";
                 if (r.improvementDirection === "lost") {
                     const toHtml = r.otherSlug
@@ -1935,7 +1999,7 @@ const eventsPageAssets = document.currentScript.dataset;
                         ? renderTextWithSlugLinks(`slug[${r.prevSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
                         : "";
                     const prevText = prevHtml ? `, ahead&nbsp;of ${prevHtml}` : "";
-                    msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
+                    msgHtml = `${nameWithRank} ${esc(movementText)} in ${leagueHtml}${prevText} <span class="event-inline-text event-measurement">(${isPhenoRank ? "age reduction: " : ""}<strong class="age-years-accent">${esc(improvementText)}</strong> years)</span>`;
                 }
             } else if (r.type === EVENT_TYPE.NewRank && r.primarySlug) {
                 const taken = Number.isFinite(r.rank) ? r.rank : getCurrentPlacement(a);
@@ -2398,7 +2462,8 @@ const eventsPageAssets = document.currentScript.dataset;
         EVENT_TYPE.BecamePro,
         EVENT_TYPE.BiologicalAgeImproved,
         EVENT_TYPE.CrowdAgeTop10Change,
-        EVENT_TYPE.AgeImprovementTop10Change
+        EVENT_TYPE.AgeImprovementTop10Change,
+        EVENT_TYPE.PhenoAgeTop10Change
     ]);
 
     function rowTimeMs(row){
@@ -2464,6 +2529,7 @@ const eventsPageAssets = document.currentScript.dataset;
                     : 0;
                 return 8700 + relevance + topPlaceBonus(row.place, 10)*45 + movement*10;
             }
+            case EVENT_TYPE.PhenoAgeTop10Change:
             case EVENT_TYPE.AgeImprovementTop10Change: {
                 const magnitude = Number.isFinite(row.eventImprovement) ? Math.min(Math.abs(row.eventImprovement), 25) : 0;
                 const movement = Number.isFinite(row.previousPlace) && Number.isFinite(row.place)
@@ -2684,7 +2750,7 @@ const eventsPageAssets = document.currentScript.dataset;
                         }
                     }
 
-                    if(r.type===EVENT_TYPE.AgeImprovementTop10Change){
+                    if(r.type===EVENT_TYPE.AgeImprovementTop10Change || r.type===EVENT_TYPE.PhenoAgeTop10Change){
                         if(r.prevSlug===target){
                             const winner = r.primarySlug;
 

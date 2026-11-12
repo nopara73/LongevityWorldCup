@@ -1,0 +1,167 @@
+/* History timeline as a living line. Frontend/history-timeline.ts measures
+   (--timeline-rail-top, --timeline-progress, --timeline-now, --timeline-end)
+   and sets the entry states; this file owns the look. Only --lwc-* colours.
+   Everything is scoped to [data-live], so the page reads as before without
+   the script. Print uses the original document styles, independent of where
+   the reader last scrolled. */
+
+@media screen {
+
+.documentation-timeline[data-live] {
+    --timeline-rail-x: 0.4rem;
+    --timeline-rail-w: 2px;
+    isolation: isolate;
+}
+
+/* The past rail runs from the first entry to today; the future is dashed. */
+.documentation-timeline[data-live]::before {
+    top: var(--timeline-rail-top, 0.55rem);
+    bottom: auto;
+    height: calc(var(--timeline-now, 100%) - var(--timeline-rail-top, 0px));
+}
+.documentation-timeline[data-live]::after { content: none; }
+.documentation-timeline[data-live] > .documentation-timeline-future {
+    position: absolute;
+    left: var(--timeline-rail-x);
+    top: var(--timeline-now, 100%);
+    height: calc(var(--timeline-end, 100%) - var(--timeline-now, 100%));
+    width: var(--timeline-rail-w);
+    background: repeating-linear-gradient(to bottom, var(--lwc-border-strong, #71808d) 0 5px, transparent 5px 11px);
+    opacity: .55;
+    pointer-events: none;
+}
+.documentation-timeline[data-live]:not(.has-future) > .documentation-timeline-future,
+.documentation-timeline[data-live]:not(.has-future) > .documentation-timeline-now { display: none; }
+
+/* The reader's progress, in accent, with a bright tip. */
+.documentation-timeline[data-live] > .documentation-timeline-fill {
+    position: absolute;
+    z-index: 0;
+    left: calc(var(--timeline-rail-x) - 1px);
+    top: var(--timeline-rail-top, 0.55rem);
+    width: calc(var(--timeline-rail-w) + 2px);
+    height: var(--timeline-progress, 0px);
+    border-radius: 3px;
+    background: linear-gradient(to bottom, var(--lwc-accent, #087685), var(--lwc-accent-bright, var(--lwc-accent, #087685)));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--lwc-accent, #087685) 45%, transparent);
+    pointer-events: none;
+}
+.documentation-timeline[data-live] > .documentation-timeline-fill::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    translate: -50% 0;
+    background: var(--lwc-accent-bright, var(--lwc-accent, #087685));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--lwc-accent, #087685) 22%, transparent);
+}
+
+/* Today: a quiet pulse where the past ends and the announced begins. */
+.documentation-timeline[data-live] > .documentation-timeline-now {
+    position: absolute;
+    z-index: 2;
+    left: calc(var(--timeline-rail-x) + var(--timeline-rail-w) / 2);
+    top: var(--timeline-now, 100%);
+    width: 9px;
+    height: 9px;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: var(--lwc-accent, #087685);
+    box-shadow: 0 0 0 4px var(--lwc-surface, #fff);
+    pointer-events: none;
+}
+.documentation-timeline[data-live] > .documentation-timeline-now::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid var(--lwc-accent, #087685);
+    opacity: 0;
+    animation: timeline-now-pulse 2.4s cubic-bezier(.2, 0, 0, 1) infinite;
+}
+@keyframes timeline-now-pulse {
+    0% { opacity: .7; transform: scale(.6); }
+    70%, 100% { opacity: 0; transform: scale(1.9); }
+}
+
+/* Markers: waiting entries are hollow; passed ones fill; the current one rings. */
+.documentation-timeline[data-live] > .documentation-timeline-entry { z-index: 1; }
+.documentation-timeline[data-live] > .documentation-timeline-entry::before {
+    z-index: 2;
+    border-color: var(--lwc-border-strong, #71808d);
+    background: var(--lwc-surface, #fff);
+    transition: background-color 260ms ease, border-color 260ms ease, scale 320ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)), box-shadow 260ms ease;
+}
+.documentation-timeline[data-live] > .documentation-timeline-entry.is-passed::before {
+    border-color: var(--lwc-accent, #087685);
+    background: var(--lwc-accent, #087685);
+}
+.documentation-timeline[data-live] > .documentation-timeline-entry.is-announced::before { border-style: dashed; }
+.documentation-timeline[data-live] > .documentation-timeline-entry.is-announced.is-passed::before {
+    border-color: var(--lwc-accent, #087685);
+    background: var(--lwc-surface, #fff);
+}
+.documentation-timeline[data-live] > .documentation-timeline-entry.is-current::before {
+    scale: 1.35;
+    box-shadow: 0 0 0 4px var(--lwc-surface, #fff), 0 0 0 7px color-mix(in srgb, var(--lwc-accent, #087685) 25%, transparent);
+}
+
+/* The current entry's date pill turns solid; the others stay soft. */
+.documentation-timeline[data-live] .documentation-timeline-date {
+    transition: background-color 260ms ease, color 260ms ease, border-color 260ms ease;
+}
+.documentation-timeline[data-live] > .documentation-timeline-entry.is-current .documentation-timeline-date {
+    background: var(--lwc-accent, #087685);
+    border-color: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #fff);
+}
+.documentation-timeline[data-live] > .documentation-timeline-entry:not(.is-passed) .documentation-timeline-heading { opacity: .82; }
+.documentation-timeline[data-live] .documentation-timeline-heading { transition: opacity 260ms ease; }
+
+/* The year in hand, as a large watermark that sticks beside the entries. */
+.documentation-timeline[data-live] > .documentation-timeline-year {
+    position: sticky;
+    z-index: 0;
+    top: max(5.5rem, calc(var(--documentation-anchor-offset, 0px) + .75rem));
+    display: block;
+    height: 0;
+    container-type: inline-size;
+    opacity: .09;
+    pointer-events: none;
+}
+.documentation-timeline[data-live] .documentation-timeline-year-face {
+    position: absolute;
+    right: 0;
+    top: 0;
+    color: var(--lwc-accent, #087685);
+    font: 800 clamp(3.5rem, 8vw, 6.75rem)/1 Orbitron, Roboto, sans-serif;
+    font-size: min(clamp(3.5rem, 8vw, 6.75rem), 30cqi);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+    user-select: none;
+}
+
+/* Match the generated page's fixed phone gutter, including enlarged text. */
+@media (max-width: 600px) {
+    .documentation-timeline[data-live] { --timeline-rail-x: 5px; }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .documentation-timeline[data-live] > .documentation-timeline-year { opacity: .12; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .documentation-timeline[data-live] > .documentation-timeline-now::after { animation: none; opacity: .5; transform: scale(1.4); }
+    .documentation-timeline[data-live] > .documentation-timeline-entry::before,
+    .documentation-timeline[data-live] .documentation-timeline-date,
+    .documentation-timeline[data-live] .documentation-timeline-heading { transition: none; }
+}
+}
+
+@media print {
+    .documentation-timeline[data-live] > :not(.documentation-timeline-entry) { display: none; }
+    .documentation-timeline[data-live]::after { content: none; }
+}

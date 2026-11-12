@@ -49,7 +49,7 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                     | 2 | NewRank | Historical Ultimate League placement; `slug`, `rank`, optional `prev`. Not a current live rank. |
                     | 3 | DonationReceived | Bitcoin donation; `tx` (transaction ID), `sats` (amount). |
                     | 4 | AthleteCountMilestone | Participation milestone; `athletes` (count). |
-                    | 5 | BadgeAward | Computed badge award; `slug`, `badge` (label), `cat` (league category), `val` (league value, may be empty), `place` (may be empty), optional `solo[1]`, `prev` or `prevs`. Best-improvement badges compare latest with first eligible result. |
+                    | 5 | BadgeAward | Computed badge award; `slug`, `badge` (label), `cat` (league category), `val` (league value, may be empty), `place` (may be empty), optional `solo[1]`, `prev` or `prevs`. Best-improvement badges use the same latest-to-worst eligible age comparison as the improvement leaderboards. |
                     | 6 | CustomEvent | Admin-created public announcement; title followed by a blank line and body. Optional markup includes `[bold](text)`, `[strong](text)`, `[label](https://...)`, and `[mention](athlete_slug)`. |
                     | 7 | SeasonFinalResult | Completed-season placement; `slug`, `season`, `place`, `clock`, `ageDiff` (biological minus chronological age; lower is better). |
                     | 8 | LongevitymaxxingChallengeResult | Original Challenge award; `challenge`, `pid` (public participant ID), `name`, `place`, `checkedIn` (days), `points`, `days` (duration), optional `slug` and `completed[1]`. Separate from current ongoing Challenge ranks. |
@@ -58,6 +58,8 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                     | 11 | CrowdAgeTop10Change | Entry or upward move in the crowd age top 10; `slug`, `place`, `crowdAge`, `crowdCount`, optional `prevPlace` and `prev`. Historical published placement, not live rank. |
                     | 12 | AgeImprovementTop10Change | Pheno/Bortz improvement top-10 placement; `slug`, `clock`, `place`, `improvement` (latest eligible age minus worst eligible age), `ageReduction` (biological minus chronological age; lower is better), optional `prevPlace` and `prev`. |
                     | 13 | TestResultAccepted | Profile-only accepted test; `slug`, `date` (ISO laboratory date). Includes partial, non-improving, and backfilled results; one Event per athlete/test date across clocks. |
+
+                    | 14 | PhenoAgeTop10Change | Entry or upward move in the Pheno Age top 10 after a result update; `slug`, `place`, `ageReduction`, optional `prevPlace` and `prev`. Current standings were silently baselined when tracking began. |
 
                     **Dates:** `OccurredAt` is an ISO 8601 UTC Event timestamp, not response generation time.
                     For type 13 it is first observed public announcement, while `date` is the laboratory measurement date.
@@ -68,6 +70,7 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                 SetResponseDescription(operation, "200", "Complete website-visible Event history, newest first; includes profile-only accepted results. Property names are case-sensitive.");
                 SetResponseExample(operation, "200", """
                     [
+                      {"Id":"example-pheno-place","Type":14,"Text":"slug[example_athlete] place[6] ageReduction[-7.3] prevPlace[8]","OccurredAt":"2026-01-21T12:00:00Z","Relevance":10,"VisibleOnWebsite":true},
                       {"Id":"accepted-result:example_athlete:2026-01-15","Type":13,"Text":"slug[example_athlete] date[2026-01-15]","OccurredAt":"2026-01-20T12:00:00Z","Relevance":5,"VisibleOnWebsite":true},
                       {"Id":"example-improvement-place","Type":12,"Text":"slug[example_athlete] clock[pheno] place[3] prevPlace[5] improvement[-2.5] ageReduction[-7.3]","OccurredAt":"2026-01-19T12:00:00Z","Relevance":10,"VisibleOnWebsite":true},
                       {"Id":"example-crowd","Type":11,"Text":"slug[example_athlete] place[6] prevPlace[8] crowdAge[39] crowdCount[128]","OccurredAt":"2026-01-18T12:00:00Z","Relevance":8,"VisibleOnWebsite":true},

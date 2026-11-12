@@ -309,7 +309,7 @@ public sealed class EntryJourneyBrowserTests(
             $"() => parseFloat(getComputedStyle(document.querySelector('{chosen}')).transitionDuration) > 0"),
             "the track tile does not ease its hover lift");
         await page.Locator(chosen).HoverAsync();
-        await page.WaitForTimeoutAsync(400);
+        await WaitForFiniteAnimationsAsync(page, chosen);
         var lift = await page.EvaluateAsync<double>($"() => new DOMMatrix(getComputedStyle(document.querySelector('{chosen}')).transform).m42");
         Assert.True(lift <= -2, $"hovered tile lifts {lift}px");
 

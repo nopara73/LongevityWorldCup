@@ -836,14 +836,26 @@ window.optimizeImageClient = async function (dataUri, options) {
     }
     const blob = new Blob([bytes], { type: contentType });
 
-    let img: ImageBitmap;
+    let img: ImageBitmap | HTMLImageElement;
     try {
         img = await createImageBitmap(blob);
     } catch (_) {
-        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] ?? null };
+        // Some browsers can display a photo even when ImageBitmap cannot decode it.
+        // Still compress that photo instead of silently submitting the full original.
+        const image = new Image();
+        const url = URL.createObjectURL(blob);
+        try {
+            image.src = url;
+            await image.decode();
+            img = image;
+        } catch (_) {
+            return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] ?? null };
+        } finally {
+            URL.revokeObjectURL(url);
+        }
     }
 
-    const targetContentType = settings.contentType || 'image/webp';
+    let targetContentType = settings.contentType || 'image/webp';
     const initialQuality = typeof settings.quality === 'number' && Number.isFinite(settings.quality)
         ? settings.quality
         : 0.8;
@@ -866,7 +878,8 @@ window.optimizeImageClient = async function (dataUri, options) {
         : 2048;
 
     const encode = async (maxSize: number, quality: number): Promise<Blob | null> => {
-        let { width, height } = img;
+        let width = img instanceof HTMLImageElement ? img.naturalWidth : img.width;
+        let height = img instanceof HTMLImageElement ? img.naturalHeight : img.height;
         if (width > maxSize || height > maxSize) {
             const ratio = Math.min(maxSize / width, maxSize / height);
             width = Math.max(1, Math.round(width * ratio));
@@ -878,32 +891,49 @@ window.optimizeImageClient = async function (dataUri, options) {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
+        if (targetContentType === 'image/jpeg') {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, width, height);
+        }
         ctx.drawImage(img, 0, 0, width, height);
-        return await new Promise<Blob | null>(resolve =>
-            canvas.toBlob(resolve, targetContentType, quality)
-        );
+        const encodeCanvas = () => new Promise<Blob | null>(resolve =>
+            canvas.toBlob(resolve, targetContentType, quality));
+        let result = await encodeCanvas();
+        if (targetContentType === 'image/webp' && result?.type !== targetContentType) {
+            // Unsupported canvas encodings can silently produce a much larger PNG.
+            // JPEG is the fallback for photos and report screenshots; flatten alpha
+            // onto white so transparent report backgrounds remain readable.
+            targetContentType = 'image/jpeg';
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, width, height);
+            result = await encodeCanvas();
+        }
+        return result?.type === targetContentType ? result : null;
     };
 
     let optimizedBlob: Blob | null = null;
     let maxSize = initialMaxSize;
     let quality = initialQuality;
-    for (let attempt = 0; attempt < 8; attempt++) {
-        optimizedBlob = await encode(maxSize, quality);
-        if (!optimizedBlob || !targetMaxBytes || optimizedBlob.size <= targetMaxBytes) {
-            break;
-        }
+    try {
+        for (let attempt = 0; attempt < 8; attempt++) {
+            optimizedBlob = await encode(maxSize, quality);
+            if (!optimizedBlob || !targetMaxBytes || optimizedBlob.size <= targetMaxBytes) {
+                break;
+            }
 
-        if (quality > minQuality) {
-            quality = Math.max(minQuality, quality - 0.06);
-        } else if (maxSize > minMaxSize) {
-            maxSize = Math.max(minMaxSize, Math.round(maxSize * 0.86));
-            quality = Math.max(minResizeQuality, quality - 0.04);
-        } else {
-            break;
+            if (quality > minQuality) {
+                quality = Math.max(minQuality, quality - 0.06);
+            } else if (maxSize > minMaxSize) {
+                maxSize = Math.max(minMaxSize, Math.round(maxSize * 0.86));
+                quality = Math.max(minResizeQuality, quality - 0.04);
+            } else {
+                break;
+            }
         }
+    } finally {
+        if ('close' in img) img.close();
     }
-
-    if (typeof img.close === 'function') img.close();
 
     if (!optimizedBlob) {
         // fallback to original if conversion failed
@@ -961,6 +991,23 @@ function compactApplicationDataString(value: string): string {
 
 const PENDING_APPLICATION_SUBMISSION_STORAGE_KEY = 'pendingApplicationSubmission';
 const PENDING_APPLICATION_SUBMISSION_LIFETIME_MS = 24 * 24 * 60 * 60 * 1000;
+const APPLICATION_ENTRY_STORAGE_KEY = 'applicationEntryId';
+
+function readApplicationEntryId(): string | null {
+    try { return window.sessionStorage.getItem(APPLICATION_ENTRY_STORAGE_KEY); }
+    catch (_) { return null; }
+}
+
+// Joining from a calculator is a new intent, even when an older accepted
+// submission still has an unpaid invoice. Reloads within that intent keep its ID.
+window.beginApplicationEntry = function (): boolean {
+    const entryId = window.crypto?.randomUUID?.()
+        || `entry-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    try {
+        window.sessionStorage.setItem(APPLICATION_ENTRY_STORAGE_KEY, entryId);
+        return window.sessionStorage.getItem(APPLICATION_ENTRY_STORAGE_KEY) === entryId;
+    } catch (_) { return false; }
+};
 
 function readPendingApplicationSubmission(): PendingApplicationSubmission | null {
     let raw: string | null = null;
@@ -992,6 +1039,7 @@ function readPendingApplicationSubmission(): PendingApplicationSubmission | null
             submissionKind: parsed.submissionKind,
             applicantName: typeof parsed.applicantName === 'string' ? parsed.applicantName : null,
             accountEmail: typeof parsed.accountEmail === 'string' ? parsed.accountEmail : null,
+            entryId: typeof parsed.entryId === 'string' ? parsed.entryId : null,
             createdAt: parsed.createdAt
         };
     } catch (_) {
@@ -1101,7 +1149,9 @@ window.createApplicationSubmissionId = function (payloadFingerprint?: string) {
         : readPendingApplicationSubmission();
     if (storedSubmission
         && normalizedFingerprint !== undefined
-        && storedSubmission.payloadFingerprint === normalizedFingerprint) {
+        && storedSubmission.payloadFingerprint === normalizedFingerprint
+        && (storedSubmission.submissionKind !== 'full-application'
+            || storedSubmission.entryId === readApplicationEntryId())) {
         window.__pendingApplicationSubmissionId = storedSubmission.submissionId;
         window.__pendingApplicationSubmissionFingerprint = normalizedFingerprint;
         return storedSubmission.submissionId;
@@ -1135,6 +1185,7 @@ window.rememberPendingApplicationSubmission = function (details) {
         submissionKind,
         applicantName: typeof details.applicantName === 'string' ? details.applicantName.trim() || null : null,
         accountEmail: typeof details.accountEmail === 'string' ? details.accountEmail.trim() || null : null,
+        entryId: details.submissionKind === 'full-application' ? readApplicationEntryId() : null,
         createdAt: Date.now()
     };
     window.__pendingApplicationSubmissionId = submissionId;
@@ -1165,12 +1216,19 @@ window.clearPendingApplicationSubmission = function (submissionId?: string) {
 window.tryRecoverPendingApplicationSubmission = async function (submissionKind: string) {
     const pending = window.getPendingApplicationSubmission(submissionKind);
     if (!pending) return null;
+    const entryId = readApplicationEntryId();
+    if (submissionKind === 'full-application' && entryId && pending.entryId !== entryId) return null;
 
     const submitResult = await recoverApplicationSubmissionResponse(
         pending.submissionId,
         window.APPLICATION_SUBMISSION_TIMEOUT_MS || 310000);
+    if (submissionKind === 'full-application' && readApplicationEntryId() !== entryId) return null;
     return submitResult ? { pending, submitResult } : null;
 };
+
+// Keep aligned with ApplicationUploadLimitMiddleware and the public proxy.
+const maxApplicationBodyBytes = 50 * 1024 * 1024;
+const applicationSizeError = 'These files exceed the 50 MB upload limit. Your selections are still here. Remove duplicate pages or choose smaller files, then try again.';
 
 window.submitApplicationWithRecovery = async function (applicantData: unknown, timeoutMs?: number) {
     const data = isRecord(applicantData) ? applicantData : {};
@@ -1178,10 +1236,21 @@ window.submitApplicationWithRecovery = async function (applicantData: unknown, t
     const requestTimeout = Number.isFinite(timeoutMs) && Number(timeoutMs) > 0
         ? Number(timeoutMs)
         : window.APPLICATION_SUBMISSION_TIMEOUT_MS || 310000;
+    const body = JSON.stringify(data);
+    // Measure the actual UTF-8 JSON, including base64 and profile data. Character
+    // counts alone undercount non-ASCII text. Do not mutate the selected proofs.
+    if (new Blob([body]).size > maxApplicationBodyBytes) {
+        return {
+            ok: false,
+            response: new Response(applicationSizeError, { status: 413 }),
+            submitResult: null,
+            recovered: false
+        };
+    }
     const requestInit: RequestInit = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body
     };
     let lastResponse: Response | null = null;
     let lastError: unknown = null;
@@ -1255,6 +1324,8 @@ window.focusProfileImageRecovery = async function (control, feedback) {
 };
 
 window.readApplicationError = async function (response) {
+    // Proxies can return an HTML 413 instead of the application's JSON response.
+    if (response?.status === 413) return { message: applicationSizeError, field: null };
     const fallback = response && response.statusText
         ? response.statusText
         : response && Number.isFinite(response.status)

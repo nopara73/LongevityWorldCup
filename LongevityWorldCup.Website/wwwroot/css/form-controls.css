@@ -19,6 +19,8 @@
  */
 
 :root {
+    /* Hide browsing carets in page text without changing selection or focus. */
+    caret-color: transparent;
     --lwc-control-ring: rgba(25, 195, 209, 0.28);
     --lwc-control-ring-width: 3px;
     --lwc-control-hover: color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border-strong));
@@ -40,8 +42,17 @@
 /* ------------------------------------------------------------------------- */
 
 :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"]), select, textarea) {
-    caret-color: var(--lwc-accent);
     accent-color: var(--lwc-accent);
+}
+
+/* Only editable controls get a typing caret, including rich-text editors. */
+:where(input:read-write, textarea:read-write, [contenteditable]:read-write) {
+    caret-color: var(--lwc-accent);
+}
+
+/* Read-only regions may be nested inside an editor with a visible caret. */
+:where(input:read-only, textarea:read-only, [contenteditable="false" i]) {
+    caret-color: transparent;
 }
 
 /* The ring is always present at zero width, outside the edge, so focus can

@@ -25,8 +25,8 @@ public sealed partial class MediaKitBrowserTests
         await group.EvaluateAsync("e => scrollTo({top:e.getBoundingClientRect().top + scrollY + 100,behavior:'instant'})");
         var head = group.Locator(".media-kit-group-head");
         await Assertions.Expect(head).ToHaveAttributeAsync("data-lwc-stuck", "");
-        Assert.True(await head.EvaluateAsync<bool>("e => Math.abs(e.getBoundingClientRect().top - parseFloat(getComputedStyle(e).top)) < 2"));
         await Assertions.Expect(head).ToHaveCSSAsync("opacity", "1");
+        Assert.True(await head.EvaluateAsync<bool>("e => Math.abs(e.getBoundingClientRect().top - parseFloat(getComputedStyle(e).top)) < 2"));
         Assert.DoesNotContain("rgba", await head.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
         await page.EvaluateAsync("scrollTo({top:0,behavior:'instant'})");
         await Assertions.Expect(head).Not.ToHaveAttributeAsync("data-lwc-stuck", "");

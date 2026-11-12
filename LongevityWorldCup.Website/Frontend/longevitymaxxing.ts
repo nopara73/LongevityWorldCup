@@ -1636,13 +1636,47 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireAccessTabs() {
         document.querySelectorAll<HTMLButtonElement>("[data-lmx-access-tab]").forEach(button => {
             button.addEventListener("click", () => {
-                accessTab = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
-                renderPanels(publicState || {});
+                setAccessTab(button.dataset.lmxAccessTab === "signin" ? "signin" : "signup");
             });
             button.addEventListener("keydown", event => {
                 handleAccessTabKeydown(event, button);
             });
         });
+    }
+
+    let accessCardAnimations: Animation[] = [];
+
+    function setAccessTab(next: AccessTab): void {
+        if (next === accessTab) return;
+        const card = document.querySelector<HTMLElement>(".lmx-action-card");
+        // Capture the visible height before canceling only our previous effects.
+        // Measure the new natural height after cancellation so rapid reversals
+        // cannot keep animating toward the panel that was just hidden.
+        const before = card?.getBoundingClientRect().height || 0;
+        accessCardAnimations.forEach(animation => animation.cancel());
+        accessCardAnimations = [];
+        accessTab = next;
+        renderPanels(publicState || {});
+        morphAccessCard(card, before, next);
+    }
+
+    // Switching between Sign up and Sign in: the card glides to its new height
+    // and the incoming panel slides in from the side of its tab.
+    function morphAccessCard(card: HTMLElement | null, before: number, tab: "signin" | "signup"): void {
+        if (!card || !before || typeof card.animate !== "function"
+            || window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            || document.documentElement.dataset.lwcMotion === "off") return;
+        const after = card.getBoundingClientRect().height;
+        if (Math.abs(after - before) > 1) {
+            accessCardAnimations.push(card.animate(
+                [{ height: `${before}px`, overflow: "hidden" }, { height: `${after}px`, overflow: "hidden" }],
+                { duration: 280, easing: "cubic-bezier(0.2, 0, 0, 1)" }));
+        }
+        const panel = document.getElementById(tab === "signin" ? "lmxResendPanel" : "lmxSignupPanel");
+        const from = tab === "signin" ? 18 : -18;
+        if (panel) accessCardAnimations.push(panel.animate(
+            [{ transform: `translateX(${from}px)` }, { transform: "none" }],
+            { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" }));
     }
 
     function wireIdentityControls() {
@@ -2958,8 +2992,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         event.preventDefault();
         const nextTab = tabs[nextIndex];
         if (!nextTab) return;
-        accessTab = nextTab;
-        renderPanels(publicState || {});
+        setAccessTab(nextTab);
         document.querySelector<HTMLElement>(`[data-lmx-access-tab="${accessTab}"]`)?.focus();
     }
 
@@ -4198,11 +4231,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         document.addEventListener("focusout", hideTooltip);
         document.addEventListener("keydown", event => { if (event.key === "Escape") hideTooltip(); });
-        window.addEventListener("scroll", () => {
+        const repositionTooltip = () => {
             if (tooltipOwner && document.activeElement === tooltipOwner) showTooltip(tooltipOwner);
             else hideTooltip();
-        }, true);
-        window.addEventListener("resize", hideTooltip);
+        };
+        window.addEventListener("scroll", repositionTooltip, true);
+        window.addEventListener("resize", repositionTooltip);
     }
 
     async function navigateDiscussion(hash: string, localThread?: HTMLElement, readIntent: boolean | "conversation" = false): Promise<void> {
@@ -4748,7 +4782,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const permalink = discussionPermalink(note);
         const when = discussionTimeHtml(note.updatedAtUtc, permalink, note.kind === "participant-joined" ? "Joined" : "Post updated");
         const day = note.systemPostId ? ""
-            : `<span title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
+            : `<span class="lmx-day-chip" title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
         const replies = discussionNeedsAdvice(note) && !replyCount && !unreadLink ? "" : replyCount || canReply || unreadLink
             ? `<a class="lmx-discussion-count${unreadLink ? " lmx-unread-link" : ""}" data-discussion-link
                 data-read-label="${escAttr(replyLabel)}" data-read-href="${escAttr(`${permalink}/replies`)}" href="${escAttr(unreadLink?.href || `${permalink}/replies`)}"
@@ -8205,6 +8239,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function calculateQuotePhenoStats(athlete: AthleteRecord, dob: Date, chronologicalAge: number): QuotePhenoStats {
         let lowestPhenoAge = Infinity;
+        let bestAgeReduction = Infinity;
         let chronoAtLowestPhenoAge = chronologicalAge;
         const phenoAgeApi = readSharedWindowApi().PhenoAge;
         const phenoSubmissionAges = quoteBiomarkers(athlete)
@@ -8227,6 +8262,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const phenoAge = phenoAgeApi && typeof phenoAgeApi.calculatePhenoAge === "function"
                     ? phenoAgeApi.calculatePhenoAge(values)
                     : NaN;
+                if (Number.isFinite(phenoAge)) bestAgeReduction = Math.min(bestAgeReduction, phenoAge - ageAtEntry);
                 if (Number.isFinite(phenoAge) && phenoAge < lowestPhenoAge) {
                     lowestPhenoAge = phenoAge;
                     chronoAtLowestPhenoAge = ageAtEntry;
@@ -8240,9 +8276,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             chronoAtLowestPhenoAge = chronologicalAge;
         }
 
-        const ageReduction = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge)
-            ? lowestPhenoAge - chronoAtLowestPhenoAge
-            : null;
+        const ageReduction = Number.isFinite(bestAgeReduction) ? bestAgeReduction
+            : Number.isFinite(chronologicalAge) ? 0 : null;
         const ageReductionPercent = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge) && chronoAtLowestPhenoAge > 0
             ? (1 - lowestPhenoAge / chronoAtLowestPhenoAge) * 100
             : null;
@@ -8268,6 +8303,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let bortzAgeReduction = null;
         let bortzAgeImprovement = null;
         let bortzMin = Infinity;
+        let bestAgeReduction = Infinity;
         const bortzAgeApi = readSharedWindowApi().BortzAge;
 
         const bortzSubmissionAges = quoteBiomarkers(athlete)
@@ -8279,6 +8315,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const bortzAge = bortzAgeApi && typeof bortzAgeApi.calculateBortzAge === "function"
                     ? bortzAgeApi.calculateBortzAge(ageAtEntry, values)
                     : NaN;
+                if (Number.isFinite(bortzAge)) bestAgeReduction = Math.min(bestAgeReduction, bortzAge - ageAtEntry);
                 if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                     bortzMin = bortzAge;
                     chronoAtLowestBortzAge = ageAtEntry;
@@ -8289,7 +8326,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         if (Number.isFinite(bortzMin) && chronoAtLowestBortzAge !== null) {
             lowestBortzAge = bortzMin;
-            bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
+            bortzAgeReduction = bestAgeReduction;
         }
 
         if (bortzSubmissionAges.length >= 2) {

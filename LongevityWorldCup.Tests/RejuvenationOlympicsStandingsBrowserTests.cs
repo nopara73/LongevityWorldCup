@@ -11,6 +11,133 @@ public sealed class RejuvenationOlympicsStandingsBrowserTests(
     PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task Chase_DoesNotDelayPointerExitAfterTheEntrance()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-settled"));
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var link = page.Locator(".ro-row.is-chasing .ro-row-link").First;
+        await link.HoverAsync();
+        await page.Mouse.MoveAsync(0, 0);
+        Assert.True(await link.EvaluateAsync<bool>("""
+            e => getComputedStyle(e.querySelector('.ro-row-bar'), '::after').transitionDelay
+                .split(',').every(delay => parseFloat(delay) === 0)
+            """), "Leaving a settled row must release the notch without replaying the entrance delay.");
+    }
+
+    [Fact]
+    public async Task Chase_TouchGapWaitsUntilTheEntranceHasFilledTheBars()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 320 }, IsMobile = true, HasTouch = true,
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-ready"));
+        var standings = page.Locator(".ro-standings");
+        await standings.EvaluateAsync("""
+            e => {
+                const observer = new MutationObserver(() => {
+                    if (!e.classList.contains('is-playing')) return;
+                    observer.disconnect();
+                    e.dataset.testGapAtEntrance = getComputedStyle(e.querySelector('.ro-row.is-chasing .ro-row-bar')).getPropertyValue('--ro-gap');
+                });
+                observer.observe(e, {attributes:true, attributeFilter:['class']});
+                e.scrollIntoView({block:'start'});
+            }
+            """);
+        await Assertions.Expect(standings).ToHaveAttributeAsync("data-test-gap-at-entrance", "rgba(0, 0, 0, 0)");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-settled"));
+        Assert.NotEqual("rgba(0, 0, 0, 0)", await page.Locator(".ro-row.is-chasing .ro-row-bar").First
+            .EvaluateAsync<string>("e => getComputedStyle(e).getPropertyValue('--ro-gap')"));
+    }
+
+    [Theory]
+    [InlineData(1440, 900, ColorScheme.Light)]
+    [InlineData(1440, 900, ColorScheme.Dark)]
+    [InlineData(390, 844, ColorScheme.Light)]
+    [InlineData(390, 844, ColorScheme.Dark)]
+    public async Task Chase_KeepsPodiumCentredAndBarEdgesAligned(int width, int height, ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ColorScheme = theme, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-ready"));
+        await page.EvaluateAsync("() => document.fonts.ready");
+        Assert.True(await page.Locator(".ro-standings").EvaluateAsync<bool>("""
+            e => {
+                const centre = r => r.left + r.width / 2;
+                const bounds = e.getBoundingClientRect();
+                const lists = [...e.querySelectorAll('.ro-podium,.ro-board')];
+                const bars = [...e.querySelectorAll('.ro-row-bar')].map(b => b.getBoundingClientRect());
+                return lists.every(l => Math.abs(centre(l.getBoundingClientRect()) - centre(bounds)) <= 2)
+                    && bars.every(b => Math.abs(b.left - bars[0].left) <= 1 && Math.abs(b.right - bars[0].right) <= 1);
+            }
+            """));
+    }
+
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task Chase_ShowsTheGapWithoutHoverOnTouchScreens(ColorScheme theme)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, ColorScheme = theme,
+            IsMobile = true, HasTouch = true, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-ready"));
+        Assert.True(await page.Locator(".ro-row.is-chasing .ro-row-bar").First.EvaluateAsync<bool>("""
+            e => matchMedia('(hover: none)').matches
+                && getComputedStyle(e).getPropertyValue('--ro-gap') !== 'rgba(0, 0, 0, 0)'
+            """));
+    }
+
+    [Theory]
+    [InlineData(-10d, 2)]
+    [InlineData(2d, 0)]
+    [InlineData(0d, 0)]
+    [InlineData(null, 0)]
+    public async Task Chase_OnlyMarksAVisibleGapToAValidBronzeScore(double? bronze, int expectedChasers)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        using var client = App.CreateClient();
+        var rows = JsonNode.Parse(await client.GetStringAsync("/api/data/standings"))!.AsArray();
+        double?[] scores = [-20, -15, bronze, -8, -10, -12, null, 2];
+        for (var i = 0; i < rows.Count; i++) rows[i]!["ageReduction"] = scores[i];
+        await context.RouteAsync("**/api/data/standings", route => route.FulfillAsync(new()
+        { Status = 200, ContentType = "application/json", Body = rows.ToJsonString() }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/rejuvenation-olympics");
+        await Assertions.Expect(page.Locator(".ro-standings")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-ready"));
+        await Assertions.Expect(page.Locator(".ro-row.is-chasing")).ToHaveCountAsync(expectedChasers);
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => [...document.querySelectorAll('.ro-row:not(.is-chasing) .ro-row-bar')]
+                .every(e => getComputedStyle(e, '::after').content === 'none')
+            """), "Ties, stronger fills and unavailable scores must not advertise a remaining podium gap.");
+        if (expectedChasers == 0) return;
+        Assert.Equal("0.500", await page.Locator(".ro-board").EvaluateAsync<string>("e => e.style.getPropertyValue('--ro-cut')"));
+        var link = page.Locator(".ro-row.is-chasing .ro-row-link").First;
+        await link.FocusAsync();
+        Assert.True(await link.EvaluateAsync<bool>("""
+            e => getComputedStyle(e.querySelector('.ro-row-bar')).getPropertyValue('--ro-gap') !== 'rgba(0, 0, 0, 0)'
+                && getComputedStyle(e.querySelector('.ro-row-bar'), '::after').opacity === '0.9'
+            """));
+        await Assertions.Expect(link).ToHaveAttributeAsync("href", rows[3]!["path"]!.GetValue<string>());
+        await Assertions.Expect(link).ToContainTextAsync(rows[3]!["name"]!.GetValue<string>());
+        Assert.Equal(0, await page.Locator(".ro-standings").EvaluateAsync<int>("e => e.getAnimations({subtree:true}).filter(a=>a.playState==='running').length"));
+    }
+
     [Theory]
     [InlineData(1440, 900, ColorScheme.Light, 100)]
     [InlineData(1440, 900, ColorScheme.Dark, 200)]

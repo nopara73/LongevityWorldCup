@@ -243,13 +243,14 @@ public sealed class AthleteShareSheetBrowserTests(
     public async Task CopiedLink_IsConfirmedWithACheckOnTheShareAction()
     {
         await using var context = await CreateAsync(1280, 760, dark: false, copyFails: false);
-        var page = await OpenShareSheetAsync(context);
+        var page = await OpenShareSheetAsync(context, pauseClock: true);
         await page.Locator("#copyAthleteProfileLink").ClickAsync();
 
         var share = page.Locator("#shareAthleteProfile");
         await Assertions.Expect(share).ToHaveTextAsync("Copied");
         await Assertions.Expect(share.Locator("i.fa-check")).ToHaveCountAsync(1);
         await Assertions.Expect(share).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bis-copied\b"));
+        await page.Clock.FastForwardAsync(1600);
         await Assertions.Expect(share).ToHaveTextAsync("Share", new() { Timeout = 5000 });
         await Assertions.Expect(share.Locator("i.fa-share-nodes")).ToHaveCountAsync(1);
         await Assertions.Expect(share).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bis-copied\b"));
@@ -314,9 +315,10 @@ public sealed class AthleteShareSheetBrowserTests(
         return context;
     }
 
-    private static async Task<IPage> OpenShareSheetAsync(IBrowserContext context)
+    private static async Task<IPage> OpenShareSheetAsync(IBrowserContext context, bool pauseClock = false)
     {
         var page = await context.NewPageAsync();
+        if (pauseClock) await page.Clock.InstallAsync();
         await page.GotoAsync("/athlete/michael-lustgarten", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             "() => { const c = document.querySelector('#detailsModal .modal-content'); return c?.dataset.athleteSlug === 'michael-lustgarten' && !c.matches('.is-loading,.has-load-error'); }");
@@ -324,6 +326,7 @@ public sealed class AthleteShareSheetBrowserTests(
         await share.ScrollIntoViewIfNeededAsync();
         await share.ClickAsync();
         await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeVisibleAsync();
+        if (pauseClock) await GuessMyAgeBrowserTests.PauseClockAsync(page);
         return page;
     }
 

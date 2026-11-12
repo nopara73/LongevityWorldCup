@@ -12,13 +12,13 @@
         .documentation-page {
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: minmax(min(12rem, 26vw), min(15rem, 30vw)) minmax(0, 47rem);
-            gap: clamp(1.5rem, 3vw, 2.75rem);
+            grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
+            gap: var(--lwc-grid-gap-lg);
             align-items: start;
-            justify-content: center;
-            max-width: 72rem;
-            margin: 2.5rem auto 4rem;
-            padding: 0 clamp(1rem, 3vw, 1.5rem);
+            justify-content: stretch;
+            max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+            margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+            padding: 0 var(--lwc-gutter-end) 0 var(--lwc-gutter-start);
         }
 
         /* Contents: one rail. Every section link sits on it, and it fills with
@@ -714,6 +714,10 @@
             line-height: 1.4;
         }
 
+        .documentation-timeline-title {
+            max-inline-size: 100%;
+        }
+
         .documentation-timeline-entry.is-announced .documentation-timeline-date {
             border: 1px dashed var(--lwc-accent, var(--primary-color));
             background: transparent;
@@ -796,8 +800,6 @@
         @media (max-width: 900px) {
             .documentation-page {
                 display: block;
-                margin: 1rem auto 3rem;
-                padding: 0 1rem;
             }
 
             /* Phones and tablets: the contents fold into a bar above the document
@@ -995,7 +997,7 @@
 
         @media (max-width: 600px) {
             .documentation-page {
-                padding-inline: min(1rem, 5vw);
+                padding-inline: max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-left, 0px)) max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-right, 0px));
             }
 
             .documentation-document {
@@ -1476,8 +1478,8 @@
 <li>What counts is <strong>biological age reduction</strong>: the more your biological age is below your chronological age, the higher you rank.</li>
 <li>You can submit as many tests as you want.
 <ul>
-<li>For <strong>all-time clocks</strong> (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a>), the site uses your <strong>best (lowest) biological age</strong> across your full submission history.</li>
-<li>For <strong>seasonal clocks</strong> (<a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a>), the site uses your <strong>best (lowest) biological age</strong> achieved during the 2026 season’s valid window.</li>
+<li>For <strong>all-time clocks</strong> (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf" target="_blank" rel="noopener noreferrer">pheno age</a>), the site uses your <strong>greatest biological age reduction</strong> across your full submission history, comparing each result with your chronological age at that test.</li>
+<li>For <strong>seasonal clocks</strong> (<a href="https://www.nature.com/articles/s42003-023-05456-z" target="_blank" rel="noopener noreferrer">bortz age</a>), the site uses your <strong>greatest biological age reduction</strong> achieved during the 2026 season’s valid window, comparing each result with your chronological age at that test.</li>
 <li><strong>Partial or non-same-day submissions are not allowed for a given clock</strong>. Required biomarkers must come from the same blood draw or report date.</li>
 </ul>
 </li>

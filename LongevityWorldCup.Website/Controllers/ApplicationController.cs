@@ -187,6 +187,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("application")]
+        [RequestSizeLimit(Middleware.ApplicationUploadLimitMiddleware.MaxBodyBytes)]
         [RequestTimeout(PublicRequestTimeoutPolicies.ApplicationSubmission)]
         public async Task<IActionResult> Application([FromBody] ApplicantData applicantData, CancellationToken ct)
         {
@@ -395,11 +396,6 @@ namespace LongevityWorldCup.Website.Controllers
 
             if (applicantData.Biomarkers?.Any() is true && !HasValidBiomarkerDates(applicantData.Biomarkers))
             {
-                if (HasFutureBiomarkerDates(applicantData.Biomarkers))
-                {
-                    return await BadRequestWithStatsAsync("future_biomarker_date", "Biomarker date cannot be in the future.").ConfigureAwait(false);
-                }
-
                 return await BadRequestWithStatsAsync("invalid_biomarker_date", "Biomarker date is invalid.").ConfigureAwait(false);
             }
 
@@ -1087,6 +1083,17 @@ namespace LongevityWorldCup.Website.Controllers
             return completedResponse is null
                 ? NotFound(new { status = "pending" })
                 : Ok(completedResponse);
+        }
+
+        [HttpGet("/api/payments/stripe/checkout/{orderId}")]
+        public IActionResult RetiredStripeCheckout(string orderId)
+        {
+            Response.Headers.CacheControl = "no-store";
+            Response.Headers["Referrer-Policy"] = "no-referrer";
+            var payment = _applicationPayments.GetByOrder(orderId);
+            return payment?.InvoiceId?.StartsWith("stripe_", StringComparison.Ordinal) == true
+                ? LocalRedirect("/review?checkout=unavailable")
+                : NotFound();
         }
 
         private Task TrackApplicationSubmitEventAsync(
@@ -2606,7 +2613,6 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static bool HasValidBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
         {
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
             return biomarkers.All(biomarker =>
                 biomarker is not null &&
                 DateOnly.TryParseExact(
@@ -2614,22 +2620,7 @@ namespace LongevityWorldCup.Website.Controllers
                     "yyyy-MM-dd",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
-                    out var resultDate)
-                && resultDate <= today);
-        }
-
-        private static bool HasFutureBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
-        {
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            return biomarkers.Any(biomarker =>
-                biomarker is not null &&
-                DateOnly.TryParseExact(
-                    biomarker.Date,
-                    "yyyy-MM-dd",
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.None,
-                    out var resultDate)
-                && resultDate > today);
+                    out _));
         }
 
         private static bool HasRequiredBiomarkerValues(IEnumerable<BiomarkerData> biomarkers)
