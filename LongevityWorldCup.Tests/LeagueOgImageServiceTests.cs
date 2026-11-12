@@ -15,6 +15,8 @@ public sealed class LeagueOgImageServiceTests
     [InlineData("gen x", "gen-x")]
     [InlineData("gen-z", "gen-z")]
     [InlineData("Gen Alpha League", "gen-alpha")]
+    [InlineData("pheno", "pheno")]
+    [InlineData("crowd", "crowd")]
     public void TryNormalizeLeagueSlug_AcceptsRouteAndDisplayAliases(string raw, string expectedSlug)
     {
         var normalized = LeagueOgImageService.TryNormalizeLeagueSlug(raw, out var slug);
@@ -27,8 +29,6 @@ public sealed class LeagueOgImageServiceTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("unknown")]
-    [InlineData("crowd")]
-    [InlineData("pheno")]
     public void TryNormalizeLeagueSlug_RejectsUnsupportedShareCardLeagues(string? raw)
     {
         var normalized = LeagueOgImageService.TryNormalizeLeagueSlug(raw, out var slug);

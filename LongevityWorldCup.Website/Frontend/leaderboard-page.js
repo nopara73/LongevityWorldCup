@@ -4694,6 +4694,12 @@ document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(labe
     });
 });
 
+function isRequestedNamedFilter(value) {
+    const raw = new URLSearchParams(location.search).get('filters');
+    const requested = raw ? parseFiltersParam(raw) : [getLeagueRouteState(location.pathname).filterLabel || ''];
+    return requested.some(filter => filter.toLowerCase() === value.toLowerCase());
+}
+
 function generateDivisionFilters(athletes) {
     const filterSection = document.querySelector('#division-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
@@ -4703,6 +4709,9 @@ function generateDivisionFilters(athletes) {
         acc[athlete.division] = (acc[athlete.division] || 0) + 1;
         return acc;
     }, {});
+    ["Women's", "Men's", "Open"].forEach(division => {
+        if (isRequestedNamedFilter(division)) divisionCounts[division] ??= 0;
+    });
 
     // Generate the filter items with icons and counts
     Object.keys(divisionCounts).forEach(division => {
@@ -4764,7 +4773,7 @@ function generateGenerationFilters(athletes) {
 
     orderedGenerations.forEach(generation => {
         const count = generationCounts[generation] || 0;
-        if (count > 0) { // Only show generations with at least one athlete
+        if (count > 0 || isRequestedNamedFilter(generation)) {
             const icon = window.TryGetGenerationFaIcon ? window.TryGetGenerationFaIcon(generation) : '';
 
             const li = document.createElement('li');
@@ -4792,7 +4801,7 @@ function generateExclusiveFilters(athletes) {
         return athlete.exclusiveLeague === "Prosperan" ? count + 1 : count;
     }, 0);
 
-    if (prosperanCount > 0) {
+    if (prosperanCount > 0 || isRequestedNamedFilter('Prosperan')) {
         const li = document.createElement('li');
         li.innerHTML = `
         <label data-exclusive-league="Prosperan">

@@ -21,6 +21,22 @@ public sealed class LeagueOgController(LeagueOgImageService leagueOgImages) : Co
         if (!_leagueOgImages.TryGetCurrentPayload(slug, out var payload))
             return NotFound();
 
+        return await RenderAsync(payload, ct);
+    }
+
+    [HttpGet("/og/leaderboard.png")]
+    public async Task<IActionResult> GetLeaderboardOgImage(CancellationToken ct)
+    {
+        var path = Request.Query["path"].FirstOrDefault() ?? "/leaderboard";
+        if (!_leagueOgImages.IsConfigured) return NotFound();
+        if (!_leagueOgImages.TryGetLeaderboardPayload(path, Request.Query, out var payload))
+            return path is "/" or "/leaderboard" ? Redirect("/assets/og-image.png") : NotFound();
+        return await RenderAsync(payload, ct);
+    }
+
+    private async Task<IActionResult> RenderAsync(LeagueOgImageService.LeagueOgPayload payload, CancellationToken ct)
+    {
+
         var path = await _leagueOgImages.EnsureRenderedImageAsync(payload, ct);
         if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
             return NotFound();
