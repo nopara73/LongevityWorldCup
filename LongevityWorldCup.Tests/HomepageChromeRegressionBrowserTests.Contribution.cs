@@ -118,7 +118,13 @@ public sealed class HomepageContributionBrowserTests(
             switch (interaction)
             {
                 case "wheel": await page.Mouse.WheelAsync(0, -400); break;
-                case "keyboard": await page.Keyboard.PressAsync("Home"); break;
+                case "keyboard":
+                    await page.Keyboard.PressAsync("Home");
+                    // Native keyboard scrolling can outlive two layout frames even
+                    // with reduced motion. Finish the visitor's move before releasing
+                    // late content, so its cancellation assertion measures that content.
+                    await page.WaitForFunctionAsync("() => scrollY <= 1");
+                    break;
                 case "hash": await page.EvaluateAsync("location.hash = 'faq'"); break;
             }
             await SettleLayoutAsync(page);
