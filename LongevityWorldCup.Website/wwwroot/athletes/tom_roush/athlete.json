@@ -1,0 +1,28 @@
+{
+  "Name": "Tom Roush",
+  "DisplayName": null,
+  "MediaContact": "thomasroush@gmail.com",
+  "DateOfBirth": {
+    "Year": 1963,
+    "Month": 9,
+    "Day": 3
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-08-07",
+      "AlbGL": 43,
+      "CreatUmolL": 116.81,
+      "GluMmolL": 5.16,
+      "CrpMgL": 0.2,
+      "LymPc": 34.1,
+      "McvFL": 91.6,
+      "RdwPc": 12.1,
+      "AlpUL": 36,
+      "Wbc1000cellsuL": 4.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "I love life and want to keep learning and growing and getting smarter and better. Also, work is important to me and I need to have a youthful profile to stay in the marketplace of ideas.",
+  "PersonalLink": "https://tomroushonline.com/"
+}
