@@ -374,9 +374,11 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         var rankSelector = isBortz ? "#bortzAgeRankPreview" : "#phenoAgeRankPreview";
         var expectedAge = isBortz ? "39.4" : "38.0";
         var expectedReduction = isBortz ? "- 6.5 years 🚀" : "- 8.0 years 🚀";
-        var expectedRank = isBortz ? "#27" : "#156";
-        var expectedMeta = isBortz ? "Bortz Age · 27 of 30" : "Pheno Age · 156 of 217";
-        var expectedPercentile = isBortz ? "Top 90%" : "Top 72%";
+        // Kelvin's October panel has the better reduction (-8.162y), even though
+        // July has his lowest biological age. Rank by reduction, as the leaderboard does.
+        var expectedRank = isBortz ? "#27" : "#157";
+        var expectedMeta = isBortz ? "Bortz Age · 27 of 30" : "Pheno Age · 157 of 217";
+        var expectedPercentile = isBortz ? "Top 90%" : "Top 73%";
         var expectedNeighbors = isBortz
             ? new[]
             {
@@ -388,11 +390,11 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
             }
             : new[]
             {
-                "#154 Yuhwen -8.095y",
-                "#155 Benjamin Woosley -7.964y",
-                "#156 You -7.962y",
-                "#157 Kelvin Nicholson -7.953y",
-                "#158 Mathias -7.919y"
+                "#155 Yuhwen -8.095y",
+                "#156 Benjamin Woosley -7.964y",
+                "#157 You -7.962y",
+                "#158 Mathias -7.919y",
+                "#159 Mathias -7.919y"
             };
         var approvedRankFieldJson = BuildApprovedRankFieldJson(clock);
 
