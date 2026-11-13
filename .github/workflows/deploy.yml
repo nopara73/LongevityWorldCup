@@ -345,15 +345,20 @@ jobs:
 
             downloaded_script="$frontend_stage/deployed-script.js"
             for script_path in "$publish_output"/wwwroot/js/*.js; do
-              curl -fsS --max-time 10 \
-                "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
-                -o "$downloaded_script"
+              script_name="$(basename "$script_path")"
+              # Retry a temporary transfer failure before judging the deployed bytes.
+              if ! script_status="$(curl -fsS --max-time 10 --retry 1 --retry-delay 1 --retry-max-time 12 --write-out '%{http_code}' \
+                "https://www.longevityworldcup.com/js/$script_name?v=$verified_sha" \
+                -o "$downloaded_script")" || [ "$script_status" != 200 ]; then
+                echo "Could not download deployed script: $script_name (HTTP $script_status)" >&2
+                exit 1
+              fi
               expected_hash="$(sha256sum "$script_path")"
               expected_hash="${expected_hash%% *}"
               actual_hash="$(sha256sum "$downloaded_script")"
               actual_hash="${actual_hash%% *}"
               if [ "$expected_hash" != "$actual_hash" ]; then
-                echo "Deployed script content differs from the verified artifact: $(basename "$script_path")" >&2
+                echo "Deployed script content differs from the verified artifact: $script_name" >&2
                 exit 1
               fi
             done
