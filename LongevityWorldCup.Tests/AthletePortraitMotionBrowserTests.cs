@@ -47,8 +47,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
         await InsertPortraitAsync(page, slug: slug);
         await page.WaitForFunctionAsync("() => window.motionStarts === 1");
-        Assert.Equal("none", await page.Locator("video.athlete-portrait-motion")
-            .EvaluateAsync<string>("video => getComputedStyle(video).pointerEvents"));
+        Assert.Equal(new[] { "none" }, await page.EvaluateAsync<string[]>("window.motionPointerEvents"));
         await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#motionFixture")).ToBeVisibleAsync();
         Assert.Equal(1, await page.EvaluateAsync<int>("window.motionEnds"));
@@ -637,6 +636,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await context.AddInitScriptAsync("""
             window.motionStarts = 0;
             window.motionEnds = 0;
+            window.motionPointerEvents = [];
             window.profileMotionStarts = 0;
             window.profileMotionEnds = 0;
             const started = new WeakSet();
@@ -646,6 +646,9 @@ public sealed class AthletePortraitMotionBrowserTests(
                     if (event === 'playing') {
                         if (started.has(e.target)) return;
                         started.add(e.target);
+                        // Capture while attached: natural playback can remove this short-lived
+                        // video between a locator lookup and a later computed-style read.
+                        window.motionPointerEvents.push(getComputedStyle(e.target).pointerEvents);
                     }
                     window[key]++;
                     if (e.target.previousElementSibling?.id === 'modalProfilePic')

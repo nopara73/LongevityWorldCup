@@ -101,6 +101,34 @@ public sealed partial class BioageResultScoreboardBrowserTests(
     }
 
     [Theory]
+    [InlineData(390, true)]
+    [InlineData(1440, false)]
+    public async Task Result_LateRankPreservesTheReadersManualScroll(int width, bool reducedMotion)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("""
+            window.__rankGate = new Promise(resolve => window.__releaseRank = resolve);
+            window.getSharedAthletes = () => window.__rankGate.then(() => fetch('/api/data/athletes').then(response => response.json()));
+            """);
+        var page = await context.NewPageAsync();
+        await CalculateAsync(page, "/pheno-age");
+        await page.WaitForFunctionAsync("() => document.querySelector('.bioageform.show')?.dataset.bioageResultStage === 'rank'");
+        await page.WaitForFunctionAsync("() => { const age = document.querySelector('#animatedAge').getBoundingClientRect(); return age.top >= 0 && age.bottom <= innerHeight; }");
+        var initialY = await page.EvaluateAsync<double>("scrollY");
+        await page.Mouse.WheelAsync(0, -120);
+        await page.WaitForFunctionAsync("y => scrollY < y - 20", initialY);
+        var readerY = await page.EvaluateAsync<double>("scrollY");
+        await page.EvaluateAsync("window.__releaseRank()");
+        await Assertions.Expect(page.Locator("[data-bioage-result-rank]")).ToHaveAttributeAsync("aria-busy", "false");
+        await WaitForFiniteAnimationsAsync(page);
+        Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("scrollY") - readerY), 0, 1);
+    }
+
+    [Theory]
     [InlineData("/pheno-age", 320, 200, -12345.6)]
     [InlineData("/bortz-age", 390, 200, 1234567890.1)]
     [InlineData("/pheno-age", 390, 200, 0)]
