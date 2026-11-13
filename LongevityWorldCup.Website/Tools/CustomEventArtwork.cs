@@ -33,6 +33,9 @@ public sealed record CustomEventArtwork(string AssetPath, string AltText, string
             ("open.spotify.com", "/episode/0CaM0p28Lvyutei1FWiP9I") => new("assets/social/buky-anna-kulturfitnesz-20261103.png",
                 "Büky Anna in a turquoise top beside the title Kultúrfitnesz · Petőfi Rádió.",
                 InstagramAssetPath: "assets/social/buky-anna-kulturfitnesz-20261103-instagram.png"),
+            ("www.fvmglobal.com" or "fvmglobal.com", "/science-of-longevity") => new("assets/social/siim-land-fvm-20261109.png",
+                "Siim Land beside the title Longevity Summit India, with copper track lines on a dark background.",
+                InstagramAssetPath: "assets/social/siim-land-fvm-20261109-instagram.png"),
             _ => null
         };
     }
