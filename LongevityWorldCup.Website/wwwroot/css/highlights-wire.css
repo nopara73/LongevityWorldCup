@@ -1,0 +1,174 @@
+/* The homepage Highlights card as a small version of the /events timeline.
+   highlights-wire.ts sets [data-highlights-wire] and the state classes used
+   here. Colours are the site's tokens and the event board's own kind chips. */
+
+#events-root-index[data-highlights-wire] {
+    --wire-avatar: 30px;
+    --wire-gutter: 18px;
+    --wire-x: calc(var(--wire-gutter) + var(--wire-avatar) / 2);
+    --wire-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ------------------------------------------------------------ one band, grouped by day */
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row,
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row > td {
+    background: transparent;
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row.day-start:not(:first-child) > td {
+    border-top: 1px solid var(--lwc-border, #d7e0e6);
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row.day-repeat > td {
+    border-top: 0;
+}
+
+/* The date stands once, at the start of its day. */
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row.day-repeat > td.col-date {
+    color: transparent;
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row.day-start > td.col-date {
+    color: var(--lwc-muted, #52606d);
+    font-weight: 600;
+    vertical-align: top;
+    padding-top: 0.85rem;
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row.is-wire-fresh.day-start > td.col-date {
+    color: var(--lwc-accent, #087685);
+}
+
+/* ------------------------------------------------------------ the spine and its portraits */
+#events-root-index[data-highlights-wire] .events-board tbody td.col-avatar {
+    position: relative;
+    padding-inline: var(--wire-gutter) 8px;
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody td.col-avatar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--wire-x) - 1px);
+    width: 2px;
+    background: color-mix(in srgb, var(--lwc-accent, #087685) 30%, var(--lwc-border, #d7e0e6));
+    transform-origin: 50% 0;
+    pointer-events: none;
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row:first-child > td.col-avatar::before {
+    top: 50%;
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row:last-child > td.col-avatar::before {
+    bottom: 50%;
+}
+
+#events-root-index[data-highlights-wire] .events-board tbody tr.main-row:only-child > td.col-avatar::before {
+    display: none;
+}
+
+#events-root-index[data-highlights-wire] .events-board .event-avatar-frame {
+    position: relative;
+    z-index: 1;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--lwc-surface, #fff);
+    transition: transform 200ms var(--wire-ease);
+}
+
+#events-root-index[data-highlights-wire] .events-board .event-avatar-frame img.avatar {
+    width: var(--wire-avatar);
+    height: var(--wire-avatar);
+}
+
+/* Each portrait wears its kind chip, as on /events. */
+#events-root-index[data-highlights-wire] .events-board .event-kind {
+    --event-kind-size: 14px;
+    display: grid;
+    right: -4px;
+    bottom: -3px;
+    box-shadow: 0 0 0 2px var(--lwc-surface, #fff);
+}
+
+/* Today's events wear a ring on the spine. */
+#events-root-index[data-highlights-wire] .events-board tr.main-row.is-wire-fresh .event-avatar-frame::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--lwc-accent, #087685);
+    pointer-events: none;
+}
+
+@media (hover: hover) {
+    #events-root-index[data-highlights-wire] .events-board tr.main-row:hover .event-avatar-frame {
+        transform: scale(1.1);
+    }
+}
+
+/* ------------------------------------------------------------ wiring in */
+@media (prefers-reduced-motion: no-preference) {
+    /* Before the card is seen, the spine and portraits wait. */
+    #events-root-index[data-highlights-wire]:not(.is-wiring):not(.is-wired) .events-board tbody td.col-avatar::before {
+        transform: scaleY(0);
+    }
+
+    #events-root-index[data-highlights-wire]:not(.is-wiring):not(.is-wired) .events-board tbody tr.main-row :is(.event-avatar-frame, .event-message-cell, td.col-date) {
+        opacity: 0;
+    }
+
+    #events-root-index.is-wiring .events-board tbody td.col-avatar::before {
+        animation: wire-spine 260ms linear both;
+        animation-delay: calc(var(--wire-i, 0) * 70ms);
+    }
+
+    #events-root-index.is-wiring .events-board tbody tr.main-row .event-avatar-frame {
+        animation: wire-node 420ms cubic-bezier(0.3, 1.35, 0.45, 1) both;
+        animation-delay: calc(var(--wire-i, 0) * 70ms + 60ms);
+    }
+
+    #events-root-index.is-wiring .events-board tbody tr.main-row .event-message-cell {
+        animation: wire-line 460ms var(--wire-ease) both;
+        animation-delay: calc(var(--wire-i, 0) * 70ms + 110ms);
+    }
+
+    #events-root-index.is-wiring .events-board tbody tr.main-row.day-start > td.col-date {
+        animation: wire-date 460ms var(--wire-ease) both;
+        animation-delay: calc(var(--wire-i, 0) * 70ms + 160ms);
+    }
+
+    #events-root-index.is-wiring .events-board tbody tr.main-row.day-repeat > td.col-date {
+        opacity: 1;
+    }
+
+    /* Today's ring breathes once it has arrived. */
+    #events-root-index.is-wired .events-board tr.main-row.is-wire-fresh .event-avatar-frame::before {
+        animation: wire-fresh 2.4s ease-in-out 3;
+    }
+
+    @keyframes wire-spine {
+        from { transform: scaleY(0); }
+        to { transform: scaleY(1); }
+    }
+
+    @keyframes wire-node {
+        from { opacity: 0; transform: scale(0.4); }
+        to { opacity: 1; transform: none; }
+    }
+
+    @keyframes wire-line {
+        from { opacity: 0; transform: translateX(-12px); }
+        to { opacity: 1; transform: none; }
+    }
+
+    @keyframes wire-date {
+        from { opacity: 0; transform: translateX(10px); }
+        to { opacity: 1; transform: none; }
+    }
+
+    @keyframes wire-fresh {
+        0%, 100% { box-shadow: 0 0 0 2px var(--lwc-accent, #087685); }
+        50% { box-shadow: 0 0 0 2px var(--lwc-accent, #087685), 0 0 0 7px color-mix(in srgb, var(--lwc-accent, #087685) 18%, transparent); }
+    }
+}

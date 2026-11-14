@@ -61,6 +61,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LONGEVITYMAXXING_CSS}}"] = "/css/longevitymaxxing.css",
         ["{{ASSET_LONGEVITYMAXXING_JS}}"] = "/js/longevitymaxxing.js",
         ["{{ASSET_MERCH_SHELF_CSS}}"] = "/css/merch-shelf.css",
+        ["{{ASSET_HIGHLIGHTS_WIRE_CSS}}"] = "/css/highlights-wire.css",
+        ["{{ASSET_HIGHLIGHTS_WIRE_JS}}"] = "/js/highlights-wire.js",
         ["{{ASSET_MEDIA_KIT_FEEL_CSS}}"] = "/css/media-kit-feel.css",
         ["{{ASSET_MEDIA_KIT_FEEL_JS}}"] = "/js/media-kit-feel.js",
         ["{{ASSET_HISTORY_TIMELINE_CSS}}"] = "/css/history-timeline.css",
