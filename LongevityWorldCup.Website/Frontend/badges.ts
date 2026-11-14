@@ -1482,6 +1482,28 @@ if (!window.LwcBadges) {
     window.addEventListener('pagehide', clearBadgeMotion);
 }
 
+// Trophy cabinet: the profile shelf's open story becomes a display card that
+// carries a small replica of the chosen medal (badges.css "Trophy cabinet").
+// The shelf markup and its explainer belong to the profile dialog; this only
+// decorates the explainer it inserts after a badge is chosen.
+function decorateBadgeExplainer(strip: Element): void {
+    const explainer = strip.querySelector<HTMLElement>('.modal-badge-explainer:not(.has-badge-replica)');
+    const source = strip.querySelector('.modal-badge-item.expanded .badge-class');
+    if (!explainer || !source) return;
+    explainer.prepend(makeBadgeMedal(source, 'badge-explainer-medal'));
+    explainer.classList.add('has-badge-replica');
+}
+
+if (!window.__lwcBadgeCabinetBound) {
+    window.__lwcBadgeCabinetBound = true;
+    document.addEventListener('click', event => {
+        const strip = event.target instanceof Element ? event.target.closest('.modal-badge-strip') : null;
+        if (!strip) return;
+        // The dialog inserts its explainer in the same task; decorate on the next frame.
+        requestAnimationFrame(() => decorateBadgeExplainer(strip));
+    });
+}
+
 window.computeBadges = window.computeBadges || function () {};
 window.pickIconForServerBadge = pickIconForServerBadge;
 window.pickBackgroundForServerBadge = pickBackgroundForServerBadge;
