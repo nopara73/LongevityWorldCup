@@ -620,7 +620,11 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
         panel.getBoundingClientRect();
         menu.classList.add('is-open');
-        const current = body.querySelector('.site-menu-pages [aria-current="page"]') || body.querySelector('.footer-link');
+        // A keyboard opening lands on the first link; a pointer opening rests
+        // on the current page (or the panel) so no link looks pre-selected.
+        const fromKeyboard = Boolean(opener && opener.matches && opener.matches(':focus-visible'));
+        const current = body.querySelector('.site-menu-pages [aria-current="page"]')
+            || (fromKeyboard ? body.querySelector('.footer-link') : null);
         (current || panel).focus({ preventScroll: true });
         if (current) {
             const link = current.getBoundingClientRect(), viewport = body.getBoundingClientRect();
