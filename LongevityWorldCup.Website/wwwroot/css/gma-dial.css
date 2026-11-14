@@ -1,0 +1,178 @@
+/* Guess My Age: the stopwatch bezel counts the guess. gma-dial.ts writes
+   --gma-years (the guess) and --gma-frac (its place on the slider). Colours
+   are the round's own: the slider's cyan ring and the dialog's cream. */
+
+.gma-dial,
+.gma-ruler-lit {
+    display: none;
+}
+
+/* ------------------------------------------------------------ the bezel */
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial {
+    --gma-years: 33;
+    --gma-lit: var(--lwc-accent-bright, #19c3d1);
+    --gma-lap: var(--athlete-modal-cream, rgba(246, 244, 237, 0.92));
+    display: block;
+    position: absolute;
+    inset: calc(-1 * var(--gma-bezel-gap, 12px));
+    z-index: 1;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: filter 220ms var(--lwc-ease, ease), scale 260ms cubic-bezier(0.3, 1.35, 0.45, 1);
+}
+
+/* Each lap is the bezel's own tick pattern, lit and cut to a wedge from twelve o'clock. */
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial-lap {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+        repeating-conic-gradient(from -1.4deg, var(--gma-tick-major) 0 2.8deg, transparent 2.8deg 30deg),
+        repeating-conic-gradient(from -0.9deg, var(--gma-tick-minor) 0 1.8deg, transparent 1.8deg 6deg);
+    -webkit-mask:
+        radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px)),
+        conic-gradient(#000 var(--gma-wedge), transparent 0);
+    -webkit-mask-composite: source-in;
+    mask:
+        radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px)),
+        conic-gradient(#000 var(--gma-wedge), transparent 0);
+    mask-composite: intersect;
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial-lap--one {
+    --gma-tick-major: var(--gma-lit);
+    --gma-tick-minor: var(--gma-lit);
+    --gma-wedge: calc(min(var(--gma-years), 60) * 6deg + 0.9deg);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--gma-lit) 70%, transparent));
+}
+
+/* Past sixty the second lap lights in cream over the first. */
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial-lap--two {
+    --gma-tick-major: var(--gma-lap);
+    --gma-tick-minor: var(--gma-lap);
+    --gma-wedge: calc(clamp(0, var(--gma-years) - 60, 60) * 6deg + 0.9deg);
+    filter: drop-shadow(0 0 5px rgba(246, 244, 237, 0.7));
+    opacity: min(1, max(0, calc(var(--gma-years) - 60)));
+}
+
+/* The hand rides the ring and points at the guess. */
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial-hand {
+    position: absolute;
+    inset: 0;
+    rotate: calc(var(--gma-years) * 6deg);
+    transition: rotate 320ms cubic-bezier(0.3, 1.35, 0.45, 1);
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial-hand::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 9px;
+    height: 20px;
+    margin-left: -4.5px;
+    border-radius: 5px;
+    background: var(--athlete-modal-cream, rgba(246, 244, 237, 0.92));
+    box-shadow:
+        0 0 0 2px var(--gma-lit),
+        0 0 14px 2px color-mix(in srgb, var(--gma-lit) 60%, transparent);
+    transform-origin: 50% 100%;
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial-hand.is-clicking::before {
+    animation: gma-dial-click 240ms cubic-bezier(0.3, 1.35, 0.45, 1);
+}
+
+@keyframes gma-dial-click {
+    0% { scale: 1; }
+    40% { scale: 1.35 1.15; }
+    100% { scale: 1; }
+}
+
+/* Before the first touch the hand breathes and the lit ticks shimmer, to invite a drag. */
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial:not(.is-touched) .gma-dial-hand::before {
+    animation: gma-dial-beckon 1.8s ease-in-out infinite;
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial:not(.is-touched) .gma-dial-lap--one {
+    animation: gma-dial-shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes gma-dial-beckon {
+    0%, 100% { scale: 1; translate: 0 0; }
+    50% { scale: 1.18; translate: 0 -2px; }
+}
+
+@keyframes gma-dial-shimmer {
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+}
+
+/* Holding the thumb tightens the hand to the finger and brightens the bezel. */
+#detailsModal .modal-content.guess-mode.gma-dial-grab #athlete-profile .gma-dial {
+    scale: 1.015;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 45%, transparent));
+}
+
+#detailsModal .modal-content.guess-mode.gma-dial-grab #athlete-profile .gma-dial-hand {
+    transition-duration: 70ms;
+}
+
+/* While the real age travels, the guess stays lit but steps back. */
+#detailsModal .modal-content.guess-mode:has(.gma-card:is(.is-submitting, .is-revealing)) #athlete-profile .gma-dial,
+#detailsModal .modal-content.guess-mode.gma-result-ready #athlete-profile .gma-dial {
+    opacity: 0.55;
+    transition: opacity 300ms var(--lwc-ease, ease);
+}
+
+/* ------------------------------------------------------------ the ruler */
+#detailsModal .modal-content.guess-mode .gma-ruler-lit {
+    --gma-frac: 0.25;
+    display: block;
+    position: absolute;
+    left: calc(var(--gma-thumb, 64px) / 2);
+    right: calc(var(--gma-thumb, 64px) / 2);
+    bottom: 0;
+    height: 0.5rem;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, var(--lwc-accent-bright, #19c3d1) 0 2px, transparent 2px) 0 0 / calc((100% - 2px) / 13) 100% repeat-x,
+        linear-gradient(90deg, var(--lwc-accent-bright, #19c3d1) 0 1px, transparent 1px) calc((100% - 2px) / 26) 100% / calc((100% - 2px) / 13) 50% repeat-x;
+    clip-path: inset(0 calc((1 - var(--gma-frac)) * 100% - 1px) 0 0);
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 60%, transparent));
+    transition: clip-path 140ms var(--lwc-ease, ease);
+}
+
+#detailsModal .modal-content.guess-mode.gma-dial-grab .gma-ruler-lit {
+    transition-duration: 40ms;
+}
+
+/* ------------------------------------------------------------ the number rolls */
+#gmaBubble.gma-roll-up {
+    animation: gma-roll-up 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#gmaBubble.gma-roll-down {
+    animation: gma-roll-down 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes gma-roll-up {
+    from { translate: 0 9px; }
+    to { translate: 0 0; }
+}
+
+@keyframes gma-roll-down {
+    from { translate: 0 -9px; }
+    to { translate: 0 0; }
+}
+
+/* ------------------------------------------------------------ reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    #detailsModal .modal-content.guess-mode #athlete-profile :is(.gma-dial, .gma-dial-hand, .gma-dial-lap),
+    #detailsModal .modal-content.guess-mode #athlete-profile .gma-dial-hand::before,
+    #detailsModal .modal-content.guess-mode .gma-ruler-lit,
+    #gmaBubble:is(.gma-roll-up, .gma-roll-down) {
+        animation: none !important;
+        transition: none !important;
+    }
+}
