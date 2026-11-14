@@ -631,6 +631,80 @@ function initializeLeaderboardFeel(): void {
         }
     });
     invalidateRows();
+
+    // --- League masthead ---------------------------------------------------------
+    // A league (a generation, division, flag or any other) is a place people land
+    // on and share, so its name becomes the board's title, beside a small podium
+    // of the league's top three faces. When the league changes, those faces rise
+    // out of their rows into the podium and the title rolls in.
+    const leagueTitle = document.getElementById("leaderboardLeagueTitle");
+    const identity = leagueTitle?.closest<HTMLElement>(".leaderboard-identity");
+    if (leagueTitle && identity) {
+        const crest = document.createElement("span");
+        crest.className = "league-crest";
+        crest.setAttribute("aria-hidden", "true");
+        identity.prepend(crest);
+        let shownTitle = "";
+        let pending = 0;
+        const topPortraits = (): HTMLImageElement[] => Array.from(body.querySelectorAll<HTMLTableRowElement>("tr[data-athlete-name]"))
+            .filter(row => row.getClientRects().length > 0)
+            .slice(0, 3)
+            .map(row => row.querySelector<HTMLImageElement>("img.portrait"))
+            .filter((image): image is HTMLImageElement => !!image);
+        const settleLeague = (): void => {
+            pending = 0;
+            const title = leagueTitle.hidden ? "" : (leagueTitle.textContent || "").trim();
+            main!.toggleAttribute("data-league", !!title);
+            if (!title) {
+                crest.replaceChildren();
+                delete crest.dataset["signature"];
+                shownTitle = "";
+                return;
+            }
+            const sources = topPortraits();
+            const signature = sources.map(image => image.currentSrc || image.src).join("|");
+            const changed = title !== shownTitle;
+            if (!changed && crest.dataset["signature"] === signature) return;
+            crest.dataset["signature"] = signature;
+            const faces = sources.map((source, index) => {
+                const face = document.createElement("img");
+                face.src = source.currentSrc || source.src;
+                face.alt = "";
+                face.decoding = "async";
+                face.className = `league-crest-face league-crest-face--${index + 1}`;
+                return face;
+            });
+            crest.replaceChildren(...faces);
+            if (!changed) return;
+            shownTitle = title;
+            if (!moving()) return;
+            const viewport = document.documentElement.clientHeight;
+            faces.forEach((face, index) => {
+                const from = sources[index]!.getBoundingClientRect();
+                const to = face.getBoundingClientRect();
+                const inView = from.width > 0 && from.bottom > 0 && from.top < viewport;
+                const start = inView && to.width
+                    ? `translate(${from.left + from.width / 2 - (to.left + to.width / 2)}px, ${from.top + from.height / 2 - (to.top + to.height / 2)}px) scale(${from.width / to.width})`
+                    : "translateY(10px) scale(.4)";
+                // Third and second land first; the winner takes the middle last.
+                const order = [2, 1, 0][index] ?? 0;
+                face.animate([{ transform: start, opacity: inView ? 0.7 : 0 }, { transform: "none", opacity: 1 }],
+                    { duration: 560, delay: order * 80, easing: "cubic-bezier(0.34, 1.32, 0.64, 1)", fill: "backwards" });
+            });
+            leagueTitle.animate([
+                { opacity: 0, transform: "translateY(12px)", clipPath: "inset(0 0 100% 0)" },
+                { opacity: 1, transform: "none", clipPath: "inset(0 0 0 0)" },
+            ], { duration: 380, easing: ease("--lwc-ease-enter") });
+        };
+        const scheduleLeague = (): void => {
+            if (pending) return;
+            pending = requestAnimationFrame(() => { pending = requestAnimationFrame(settleLeague); });
+        };
+        new MutationObserver(scheduleLeague).observe(leagueTitle,
+            { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+        new MutationObserver(scheduleLeague).observe(body, { childList: true });
+        scheduleLeague();
+    }
 }
 
 if (document.readyState === "loading") {
