@@ -425,3 +425,96 @@
         animation: none;
     }
 }
+
+
+/* ===== From tile to bar =====
+ * Choosing a league is one motion: the ticked tile sends its chip flying to
+ * the selection bar, where it lands with a ring; chips that stay slide to
+ * their new place; removed chips (one at a time or Clear all) fold away in a
+ * short cascade; the athlete count rolls to its new value; the filter badge
+ * pops up when a filter is added and dips when one goes. No new words.
+ * Motion is driven from leaderboard-page.js; reduced motion keeps states. */
+.leaderboard-selection-chip {
+    position: relative;
+    transition: background-color 140ms ease, box-shadow 160ms ease;
+}
+
+.leaderboard-selection-chip.is-landing {
+    box-shadow: 0 0 0 2px var(--lwc-accent);
+}
+
+.leaderboard-selection-chip--ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lwc-space-2, 8px);
+    box-sizing: border-box;
+    padding: 0 var(--lwc-space-3, 12px);
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-ink);
+    font: inherit;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.leaderboard-selection-chip--ghost span:last-child {
+    color: var(--lwc-accent);
+}
+
+/* Removing a chip previews its exit: the close mark turns and the chip dims. */
+@media (hover: hover) {
+    .leaderboard-selection-chip:hover {
+        background: color-mix(in srgb, var(--lwc-accent-soft) 70%, var(--lwc-danger-soft, #fdecef));
+    }
+
+    .leaderboard-selection-chip span:last-child {
+        display: inline-block;
+        transition: transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1), color 140ms ease;
+    }
+
+    .leaderboard-selection-chip:hover span:last-child {
+        transform: rotate(90deg) scale(1.15);
+        color: var(--lwc-danger, #b4233b);
+    }
+
+    .leaderboard-selection-summary:has(#clearLeaderboardSelection:hover) .leaderboard-selection-chip {
+        opacity: 0.6;
+        transform: translateY(-1px);
+    }
+}
+
+.leaderboard-selection-summary .leaderboard-selection-chip {
+    transition: opacity 160ms ease, transform 160ms ease, background-color 140ms ease, box-shadow 160ms ease;
+}
+
+/* The filter badge answers the count. */
+@media (prefers-reduced-motion: no-preference) {
+    .sidebar-toggle.has-active-state.is-pulsing::after {
+        animation: lb-badge-up 520ms cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+
+    .sidebar-toggle.has-active-state.is-shrinking::after {
+        animation: lb-badge-down 420ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    #leaderboardResultCount[data-lwc-count] {
+        color: var(--lwc-accent);
+    }
+}
+
+@keyframes lb-badge-up {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.45); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lwc-accent) 30%, transparent); }
+}
+
+@keyframes lb-badge-down {
+    40% { transform: scale(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .leaderboard-selection-chip,
+    .leaderboard-selection-chip span:last-child {
+        transition: none;
+    }
+}

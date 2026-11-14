@@ -3491,30 +3491,34 @@ function updateLeaderboardSelectionSummary(count) {
     const choices = [];
     const state = getSelectedLeaderboardState();
     const viewLabels = { bortz: 'Bortz age', pheno: 'Pheno age', improvement: 'Pheno improvement', 'bortz-improvement': 'Bortz improvement', crowd: 'Crowd age' };
-    if (state.byFlag) choices.push({ label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
-    if (state.view !== 'ultimate') choices.push({ label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
+    if (state.byFlag) choices.push({ key: 'by-flag', source: document.getElementById('group-flags')?.closest('label'), label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
+    if (state.view !== 'ultimate') choices.push({ key: 'view', source: document.querySelector('input[name="agingClockView"]:checked')?.closest('label'), label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
     for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
         if (name === 'flag' && state.byFlag) continue;
         if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
         document.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
             const label = name === 'leagueTrack' ? getLeagueTrackLabel(input.value) : input.value;
-            choices.push({ label, remove: () => { input.checked = false; } });
+            choices.push({ key: `${name}:${input.value}`, source: input.closest('label'), label, remove: () => { input.checked = false; } });
         });
     }
     const toggle = document.querySelector('.sidebar-toggle');
     if (toggle) {
+        const previousCount = toggle.dataset.filterCount;
         toggle.dataset.filterCount = String(choices.length);
+        if (previousCount !== undefined && previousCount !== String(choices.length)) pulseFilterToggle(toggle, choices.length > Number(previousCount));
         toggle.setAttribute('aria-description', `${choices.length} active ${choices.length === 1 ? 'filter' : 'filters'}`);
     }
     const search = document.getElementById('athleteSearch');
-    if (search?.value.trim()) choices.push({ label: `Search: ${search.value.trim()}`, remove: () => { search.value = ''; toggleClearIcon(); } });
+    if (search?.value.trim()) choices.push({ key: 'search', source: search.closest('.search-container') || search, label: `Search: ${search.value.trim()}`, remove: () => { search.value = ''; toggleClearIcon(); } });
 
     const chips = document.getElementById('leaderboardSelectionChips');
+    const before = snapshotSelectionChips(chips);
     chips.replaceChildren();
     choices.forEach((choice, index) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'leaderboard-selection-chip';
+        button.dataset.chipKey = choice.key || choice.label;
         button.setAttribute('aria-label', `Remove ${choice.label} filter`);
         const label = document.createElement('span');
         label.textContent = choice.label;
@@ -3531,6 +3535,94 @@ function updateLeaderboardSelectionSummary(count) {
         chips.appendChild(button);
     });
     document.getElementById('clearLeaderboardSelection').hidden = choices.length === 0;
+    animateSelectionChips(chips, before, choices);
+}
+
+// ---- Selection chips in motion -------------------------------------------------
+// The summary bar is where a choice lands: a ticked tile sends its chip flying
+// to the bar, chips that stay slide to their new place, removed chips fold
+// away where they were, and the filter badge pops when the count changes.
+function selectionMotionAllowed() {
+    return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function snapshotSelectionChips(chips) {
+    const map = new Map();
+    if (!chips) return map;
+    chips.querySelectorAll('.leaderboard-selection-chip').forEach(chip => {
+        const rect = chip.getBoundingClientRect();
+        if (!rect.width) return;
+        map.set(chip.dataset.chipKey || chip.textContent, { rect, html: chip.innerHTML });
+    });
+    return map;
+}
+
+function animateSelectionChips(chips, before, choices) {
+    if (!chips || !selectionMotionAllowed()) return;
+    const ease = 'cubic-bezier(0.2, 0, 0, 1)';
+    const after = new Map();
+    chips.querySelectorAll('.leaderboard-selection-chip').forEach(chip => after.set(chip.dataset.chipKey, chip));
+    let arriving = 0;
+    after.forEach((chip, key) => {
+        const now = chip.getBoundingClientRect();
+        if (!now.width) return;
+        const old = before.get(key);
+        if (old) {
+            const dx = old.rect.left - now.left;
+            const dy = old.rect.top - now.top;
+            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+                chip.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 260, easing: ease });
+            }
+            return;
+        }
+        // A new chip flies from the tile that was ticked, when that tile is on screen.
+        const choice = choices.find(item => (item.key || item.label) === key);
+        const source = choice?.source?.getBoundingClientRect();
+        const visible = source && source.width && source.bottom > 0 && source.top < window.innerHeight;
+        if (visible && key !== 'search') {
+            const dx = source.left + source.width / 2 - (now.left + now.width / 2);
+            const dy = source.top + source.height / 2 - (now.top + now.height / 2);
+            chip.animate([
+                { transform: `translate(${dx}px, ${dy}px) scale(0.85)`, opacity: 0.4, offset: 0 },
+                { opacity: 1, offset: 0.4 },
+                { transform: 'none', opacity: 1 }
+            ], { duration: 420, easing: 'cubic-bezier(0.3, 0, 0, 1)' });
+            chip.classList.add('is-landing');
+            window.setTimeout(() => chip.classList.remove('is-landing'), 900);
+        } else if (key !== 'search' || !before.has('search')) {
+            chip.animate([{ transform: 'scale(0.6)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+                { duration: 260, delay: arriving * 40, easing: 'cubic-bezier(0.34, 1.4, 0.64, 1)', fill: 'backwards' });
+            arriving += 1;
+        }
+    });
+    // Removed chips fold away where they stood.
+    let leaving = 0;
+    before.forEach((old, key) => {
+        if (after.has(key)) return;
+        const ghost = document.createElement('span');
+        ghost.className = 'leaderboard-selection-chip leaderboard-selection-chip--ghost';
+        ghost.setAttribute('aria-hidden', 'true');
+        ghost.innerHTML = old.html;
+        Object.assign(ghost.style, {
+            position: 'fixed', left: `${old.rect.left}px`, top: `${old.rect.top}px`,
+            width: `${old.rect.width}px`, height: `${old.rect.height}px`, margin: '0', zIndex: '40'
+        });
+        document.body.appendChild(ghost);
+        ghost.animate([
+            { transform: 'none', opacity: 1 },
+            { transform: 'translateY(-6px) scale(0.7)', opacity: 0 }
+        ], { duration: 240, delay: leaving * 45, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' })
+            .finished.catch(() => {}).finally(() => ghost.remove());
+        leaving += 1;
+    });
+}
+
+function pulseFilterToggle(toggle, grew) {
+    if (!selectionMotionAllowed()) return;
+    toggle.classList.remove('is-pulsing', 'is-shrinking');
+    void toggle.offsetWidth;
+    toggle.classList.add(grew ? 'is-pulsing' : 'is-shrinking');
+    window.setTimeout(() => toggle.classList.remove('is-pulsing', 'is-shrinking'), 600);
 }
 
 function updateLeaderboardStateIndicator() {
