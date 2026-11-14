@@ -870,9 +870,13 @@
                     }
                 }
 
-                function createTile(path) {
+                // One asset, many formats: files that differ only by extension share a
+                // tile. Its format switch (labelled with the existing extensions) picks
+                // which file the download control takes; the picture stays put.
+                function createTile(paths) {
+                    let path = paths[0];
                     const isPicture = Object.hasOwn(imageTypes, extensionOf(path));
-                    const filename = path.split('/').pop();
+                    let filename = path.split('/').pop();
                     const li = document.createElement('li');
                     // Documents share the download control and filename treatment.
                     li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row media-file-tile media-file-doc';
@@ -951,7 +955,77 @@
 
                     li.appendChild(name);
                     li.appendChild(btn);
-                    return { li, isPicture };
+
+                    if (paths.length > 1) {
+                        li.dataset.formats = String(paths.length);
+                        const formats = document.createElement('span');
+                        formats.className = 'media-format-switch';
+                        formats.setAttribute('role', 'radiogroup');
+                        formats.setAttribute('aria-label', `${filename.slice(0, filename.lastIndexOf('.'))} formats`);
+                        formats.style.setProperty('--media-format-count', String(paths.length));
+                        formats.style.setProperty('--media-format-index', '0');
+                        const choose = (index, chip) => {
+                            if (path === paths[index]) return;
+                            path = paths[index];
+                            filename = path.split('/').pop();
+                            formats.style.setProperty('--media-format-index', String(index));
+                            formats.querySelectorAll('[role="radio"]').forEach(other => {
+                                const on = other === chip;
+                                other.setAttribute('aria-checked', String(on));
+                                other.tabIndex = on ? 0 : -1;
+                            });
+                            // The caption swaps its extension with a short cross-fade.
+                            name.classList.remove('is-swapping');
+                            void name.offsetWidth;
+                            name.classList.add('is-swapping');
+                            name.replaceChildren();
+                            appendFileName(name, filename);
+                            btn.setAttribute('aria-label', `Download ${filename}`);
+                            if (!isPicture) {
+                                const icon = thumb.querySelector('.media-file-icon');
+                                if (icon) icon.className = extensionOf(path) === 'pdf' ? 'fas fa-file-pdf media-file-icon' : 'fas fa-file-lines media-file-icon';
+                            }
+                            btn.removeAttribute('data-downloaded');
+                        };
+                        paths.forEach((candidate, index) => {
+                            const chip = document.createElement('button');
+                            chip.type = 'button';
+                            chip.className = 'media-format-option';
+                            chip.setAttribute('role', 'radio');
+                            chip.setAttribute('aria-checked', String(index === 0));
+                            chip.tabIndex = index === 0 ? 0 : -1;
+                            chip.textContent = extensionOf(candidate);
+                            chip.addEventListener('click', () => choose(index, chip));
+                            chip.addEventListener('keydown', event => {
+                                if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+                                event.preventDefault();
+                                const step = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+                                const next = (index + step + paths.length) % paths.length;
+                                const target = formats.children[next];
+                                choose(next, target);
+                                target.focus();
+                            });
+                            formats.appendChild(chip);
+                        });
+                        li.appendChild(formats);
+                    }
+                    return { li, isPicture, count: paths.length };
+                }
+
+                // Same folder, same name, different extension: one asset.
+                function assetsOf(paths) {
+                    const order = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'svg', 'md', 'txt'];
+                    const byBase = new Map();
+                    for (const path of paths) {
+                        const dot = path.lastIndexOf('.');
+                        const base = dot > path.lastIndexOf('/') ? path.slice(0, dot) : path;
+                        if (!byBase.has(base)) byBase.set(base, []);
+                        byBase.get(base).push(path);
+                    }
+                    return [...byBase.values()].map(group => group.sort((a, b) => {
+                        const rank = path => { const i = order.indexOf(extensionOf(path)); return i < 0 ? order.length : i; };
+                        return rank(a) - rank(b) || (a < b ? -1 : 1);
+                    }));
                 }
 
                 function createList(className, items) {
@@ -967,7 +1041,7 @@
                 }
 
                 for (const folder of folders) {
-                    const tiles = groups.get(folder).map(createTile);
+                    const tiles = assetsOf(groups.get(folder)).map(createTile);
                     // Documents lead, pictures follow, each in file-name order.
                     const docs = tiles.filter(tile => !tile.isPicture);
                     const pictures = tiles.filter(tile => tile.isPicture);
@@ -988,7 +1062,7 @@
                         title.textContent = folder;
                         const count = document.createElement('span');
                         count.className = 'media-kit-group-count';
-                        count.textContent = String(tiles.length);
+                        count.textContent = String(groups.get(folder).length);
                         head.append(title, count);
                         group.appendChild(head);
                         // Documents are download rows above the folder's pictures, and logo
