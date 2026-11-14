@@ -1,0 +1,130 @@
+/* Apply flow, later steps: the athlete card that assembles itself.
+   Frontend/apply-card.ts inserts .apply-card after the stage title and sets
+   .is-shown, .has-portrait, .has-chips, .is-stamped, and .is-lit per chip.
+   Only --lwc-* colours; the podium's ring and icon language. */
+
+/* The header makes room: title on the left, card on the right. */
+.convergence-stage-head.is-carded {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--lwc-space-4, 1rem);
+    align-items: end;
+}
+.convergence-stage-head.is-carded > :not(h1):not(.apply-card) { grid-column: 1 / -1; }
+.convergence-stage-head.is-carded > h1 { grid-column: 1; }
+
+.apply-card { display: none; }
+.apply-card.is-shown {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: .7rem;
+    row-gap: .35rem;
+    max-width: 19rem;
+    margin-top: .7rem;
+    padding: .55rem .8rem .55rem .55rem;
+    border-radius: var(--lwc-radius-pill, 999px) var(--lwc-radius-lg, 12px) var(--lwc-radius-lg, 12px) var(--lwc-radius-pill, 999px);
+    background: var(--lwc-surface);
+    box-shadow: inset 0 0 0 1px var(--lwc-border), 0 10px 24px -18px rgba(15, 23, 42, .55);
+    transform-origin: left center;
+}
+
+/* Portrait in the podium's ring; a hooded seat until there is a picture. */
+.apply-card-portrait {
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    background: var(--lwc-surface-muted);
+    box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent);
+    overflow: hidden;
+}
+.apply-card-portrait img { width: 100%; height: 100%; object-fit: cover; display: none; }
+.apply-card.has-portrait .apply-card-portrait img { display: block; }
+.apply-card:not(.has-portrait) .apply-card-portrait::before {
+    content: "\f007" / "";
+    color: var(--lwc-subtle, var(--lwc-muted));
+    font: 900 1.2rem/1 "Font Awesome 6 Free", "Font Awesome 5 Free";
+}
+
+.apply-card-id { display: grid; gap: .1rem; min-width: 0; }
+.apply-card-name-row { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.apply-card-flag:not(.fi) { display: none; }
+.apply-card-flag.fi { flex: 0 0 auto; width: 1.25rem; height: .95rem; border-radius: 2px; box-shadow: 0 0 0 1px var(--lwc-border); background-size: cover; }
+.apply-card-name {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--lwc-ink);
+    font-size: .98rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.apply-card-why {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--lwc-muted);
+    font-size: .78rem;
+    font-style: italic;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.apply-card-why:empty { display: none; }
+
+/* Chips: link, media contact, email. Dim seats that light as fields fill. */
+.apply-card-chips { display: none; }
+.apply-card.has-chips .apply-card-chips {
+    grid-column: 2;
+    display: flex;
+    gap: .35rem;
+}
+.apply-card-chips > i {
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px var(--lwc-border-strong, var(--lwc-border));
+    color: var(--lwc-subtle, var(--lwc-muted));
+    font-size: .7rem;
+    opacity: .6;
+    transition: background-color 220ms ease, color 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
+}
+.apply-card-chips > i.is-lit {
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent, #fff);
+    box-shadow: 0 0 0 3px var(--lwc-accent-soft);
+    opacity: 1;
+}
+
+/* Apply pressed: the card is stamped. */
+.apply-card.is-stamped { animation: apply-card-stamp 700ms cubic-bezier(.34, 1.4, .64, 1); }
+.apply-card.is-stamped .apply-card-portrait { animation: apply-card-ring 900ms cubic-bezier(.2, 0, 0, 1); }
+@keyframes apply-card-stamp {
+    0% { transform: scale(1); }
+    25% { transform: scale(.95) rotate(-1deg); }
+    60% { transform: scale(1.05) rotate(.5deg); }
+    100% { transform: none; }
+}
+@keyframes apply-card-ring {
+    0% { box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent), 0 0 0 4px color-mix(in srgb, var(--lwc-accent) 50%, transparent); }
+    100% { box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent), 0 0 0 22px transparent; }
+}
+
+/* Phones: the card sits under the title as a full-width plate. */
+@media (max-width: 600px) {
+    .convergence-stage-head.is-carded { grid-template-columns: minmax(0, 1fr); }
+    .apply-card.is-shown { grid-column: 1; max-width: none; margin-top: .6rem; }
+    .apply-card.has-chips .apply-card-chips { grid-column: 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .apply-card.is-stamped,
+    .apply-card.is-stamped .apply-card-portrait { animation: none; }
+    .apply-card-chips > i { transition: none; }
+}
