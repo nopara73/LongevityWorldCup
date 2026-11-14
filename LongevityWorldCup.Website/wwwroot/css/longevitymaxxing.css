@@ -5785,6 +5785,156 @@ a.lmx-note-mention:focus-visible {
     font-weight: 800;
 }
 
+/* Agencies as a daily ritual. The four cards arrive in turn, then each icon
+   is ticked off like a finished day: a ring in the habit's colour sweeps
+   around it, Sleep to Vices. Pointer and touch lift a card, thicken its
+   stripe and tip its icon. On phones the cards sit two by two with the
+   question under the name, so the sign-up card comes into view sooner.
+   Wording and colours are unchanged. */
+.lmx-page .lmx-habit-card {
+    transition:
+        transform 200ms var(--lwc-ease-standard, ease),
+        box-shadow 200ms var(--lwc-ease-standard, ease),
+        border-color 200ms var(--lwc-ease-standard, ease);
+}
+
+.lmx-page .lmx-habit-card::before {
+    transition: height 200ms var(--lwc-ease-standard, ease);
+}
+
+.lmx-page .lmx-habit-card i {
+    position: relative;
+    transition: transform 260ms var(--lwc-ease-pop, ease-out);
+}
+
+/* The day ring: drawn once, then kept as a faint halo. */
+.lmx-page .lmx-habit-card i::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: calc(var(--lwc-radius-md) + 4px);
+    background: conic-gradient(var(--lmx-category-accent) var(--lmx-ring, 360deg), transparent 0);
+    -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    padding: 2px;
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+@property --lmx-ring {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 360deg;
+}
+
+@media (hover: hover) {
+    .lmx-page .lmx-habit-card:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--lmx-category-accent) 45%, var(--lmx-border));
+        box-shadow: var(--lwc-shadow-md);
+    }
+
+    .lmx-page .lmx-habit-card:hover::before {
+        height: 5px;
+    }
+
+    .lmx-page .lmx-habit-card:hover i {
+        transform: rotate(-8deg) scale(1.08);
+    }
+
+    .lmx-page .lmx-habit-card:hover i::after {
+        opacity: 0.8;
+    }
+}
+
+.lmx-page .lmx-habit-card:active {
+    transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .lmx-page .lmx-habit-card {
+        animation: lmx-habit-arrive 460ms var(--lwc-ease-enter, ease-out) both;
+    }
+
+    .lmx-page .lmx-habit-card i::after {
+        animation: lmx-habit-tick 620ms var(--lwc-ease-standard, ease) both;
+    }
+
+    .lmx-page .lmx-habit-card i {
+        animation: lmx-habit-stamp 420ms var(--lwc-ease-pop, ease-out) both;
+    }
+
+    .lmx-page .lmx-habit-card.sleep { animation-delay: 80ms; }
+    .lmx-page .lmx-habit-card.exercise { animation-delay: 160ms; }
+    .lmx-page .lmx-habit-card.nutrition { animation-delay: 240ms; }
+    .lmx-page .lmx-habit-card.vices { animation-delay: 320ms; }
+
+    .lmx-page .lmx-habit-card.sleep i, .lmx-page .lmx-habit-card.sleep i::after { animation-delay: 560ms; }
+    .lmx-page .lmx-habit-card.exercise i, .lmx-page .lmx-habit-card.exercise i::after { animation-delay: 760ms; }
+    .lmx-page .lmx-habit-card.nutrition i, .lmx-page .lmx-habit-card.nutrition i::after { animation-delay: 960ms; }
+    .lmx-page .lmx-habit-card.vices i, .lmx-page .lmx-habit-card.vices i::after { animation-delay: 1160ms; }
+}
+
+@keyframes lmx-habit-arrive {
+    from { opacity: 0; transform: translateY(14px); }
+}
+
+@keyframes lmx-habit-tick {
+    0% { --lmx-ring: 0deg; opacity: 1; }
+    70% { --lmx-ring: 360deg; opacity: 1; }
+    100% { --lmx-ring: 360deg; opacity: 0.35; }
+}
+
+@keyframes lmx-habit-stamp {
+    0%, 60% { transform: none; }
+    80% { transform: scale(1.18) rotate(-6deg); }
+    100% { transform: none; }
+}
+
+/* Phones: two by two, name beside the icon, question beneath. These outrank
+   the later "Habit tiles" rules, which stack one card per row on phones. */
+@media (max-width: 600px) {
+    .lmx-page #lmxHabitGrid.lmx-habit-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--lwc-space-2, 0.5rem);
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: center;
+        column-gap: var(--lwc-space-2, 0.5rem);
+        row-gap: 0.4rem;
+        padding: var(--lwc-space-3);
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card i {
+        grid-row: 1;
+        align-self: center;
+        width: 1.9rem;
+        height: 1.9rem;
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card span {
+        font-size: var(--lwc-type-sm, 0.9rem);
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card .lmx-habit-question {
+        grid-column: 1 / -1;
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lmx-page .lmx-habit-card,
+    .lmx-page .lmx-habit-card::before,
+    .lmx-page .lmx-habit-card i {
+        transition: none;
+    }
+}
+
 /* Daily checkins: one divided list on the same edges as the tiles above. */
 .lmx-page .lmx-question-preview {
     margin-top: 0;
