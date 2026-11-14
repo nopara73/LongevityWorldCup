@@ -59,6 +59,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LMX_DISCUSSION_CSS}}"] = "/css/lmx-discussion.css",
         ["{{ASSET_LMX_DISCUSSION_JS}}"] = "/js/lmx-discussion.js",
         ["{{ASSET_LONGEVITYMAXXING_CSS}}"] = "/css/longevitymaxxing.css",
+        ["{{ASSET_HERO_STAGE_CSS}}"] = "/css/hero-stage.css",
+        ["{{ASSET_HERO_STAGE_JS}}"] = "/js/hero-stage.js",
         ["{{ASSET_LONGEVITYMAXXING_JS}}"] = "/js/longevitymaxxing.js",
         ["{{ASSET_MERCH_SHELF_CSS}}"] = "/css/merch-shelf.css",
         ["{{ASSET_MEDIA_KIT_FEEL_CSS}}"] = "/css/media-kit-feel.css",

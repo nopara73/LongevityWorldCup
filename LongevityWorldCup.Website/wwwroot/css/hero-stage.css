@@ -1,0 +1,113 @@
+/* Homepage hero as a stage. Frontend/hero-stage.ts sets [data-hero-stage] on
+   the homepage main, sizes the kicker to the podium (--hero-left/width), adds
+   .hero-lit/.hero-sweep to the podium and the pointer depth (--hero-px/py).
+   Only --lwc-* colours; the prefix matches homepage.css's final layer. */
+
+/* ------------------------------------------------------------ the header band */
+/* "longevity leaderboards" becomes the podium card's own header band, in the
+   same uppercase band the Highlights and Swag cards open with. */
+html body main.homepage-main[data-hero-stage] > .game-description {
+    box-sizing: border-box;
+    width: var(--hero-width, auto);
+    max-width: none;
+    margin: 0 0 0 var(--hero-left, 0px);
+    padding: .9rem 1.25rem;
+    border-radius: var(--lwc-radius-lg, 12px) var(--lwc-radius-lg, 12px) 0 0;
+    outline: 1px solid var(--lwc-border);
+    outline-offset: -1px;
+    background: var(--events-header-bg, var(--lwc-surface-accent));
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: .8rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+html body main.homepage-main[data-hero-stage] > .game-description a {
+    color: var(--events-header-ink, var(--lwc-accent-hover, var(--lwc-accent)));
+    text-decoration: none;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 2px no-repeat;
+    padding-bottom: 2px;
+    transition: background-size 260ms cubic-bezier(.2, 0, 0, 1);
+}
+html body main.homepage-main[data-hero-stage] > .game-description a:hover,
+html body main.homepage-main[data-hero-stage] > .game-description a:focus-visible { background-size: 100% 2px; }
+html body main.homepage-main[data-hero-stage] .podium {
+    position: relative;
+    isolation: isolate;
+    border-radius: 0 0 var(--lwc-radius-lg, 12px) var(--lwc-radius-lg, 12px);
+}
+
+/* ------------------------------------------------------------ the stage light */
+/* A soft gold beam falls on the champion and pools on the floor under the steps. */
+html body main.homepage-main[data-hero-stage] .podium::before,
+html body main.homepage-main[data-hero-stage] .podium::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+}
+html body main.homepage-main[data-hero-stage] .podium::before {
+    inset: 0;
+    background:
+        conic-gradient(from 180deg at 50% -8%, transparent 0deg 160deg, color-mix(in srgb, var(--lwc-gold, #d4a017) 20%, transparent) 172deg 188deg, transparent 200deg 360deg);
+    opacity: 0;
+    transition: opacity 600ms ease;
+}
+html body main.homepage-main[data-hero-stage] .podium.hero-lit::before { opacity: 1; }
+html body main.homepage-main[data-hero-stage] .podium::after {
+    left: 15%;
+    right: 15%;
+    bottom: 22%;
+    height: 34%;
+    background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--lwc-gold, #d4a017) 16%, transparent), transparent 70%);
+    opacity: 0;
+    transition: opacity 900ms ease 200ms;
+}
+html body main.homepage-main[data-hero-stage] .podium.hero-lit::after { opacity: 1; }
+
+/* The beam swings in from the left and settles on first place, once. */
+html body main.homepage-main[data-hero-stage] .podium.hero-sweep::before {
+    transform-origin: 50% -8%;
+    animation: hero-beam-sweep 1400ms cubic-bezier(.2, 0, 0, 1) both;
+}
+@keyframes hero-beam-sweep {
+    0% { transform: rotate(-38deg); opacity: 0; }
+    25% { opacity: 1; }
+    70% { transform: rotate(4deg); }
+    100% { transform: rotate(0deg); opacity: 1; }
+}
+/* The crown answers the light with one glint. */
+html body main.homepage-main[data-hero-stage] .podium.hero-sweep .podium-item.first .podium-rank {
+    animation: hero-crown-glint 700ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)) 1000ms both;
+}
+@keyframes hero-crown-glint {
+    0% { scale: 1; filter: none; }
+    45% { scale: 1.22; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--lwc-gold, #d4a017) 75%, transparent)); }
+    100% { scale: 1; filter: none; }
+}
+
+/* ------------------------------------------------------------ desktop depth */
+/* The three athletes sit at slightly different depths and drift against the
+   pointer: the champion least, the runners-up a little more. */
+@media (hover: hover) and (pointer: fine) {
+    html body main.homepage-main[data-hero-stage] .podium-item .athlete-profile-link {
+        transition: translate 600ms cubic-bezier(.2, 0, 0, 1);
+    }
+    html body main.homepage-main[data-hero-stage] .podium-item.first .athlete-profile-link {
+        translate: calc(var(--hero-px, 0) * -3px) calc(var(--hero-py, 0) * -2px);
+    }
+    html body main.homepage-main[data-hero-stage] .podium-item:is(.second, .third) .athlete-profile-link {
+        translate: calc(var(--hero-px, 0) * -7px) calc(var(--hero-py, 0) * -4px);
+    }
+    html body main.homepage-main[data-hero-stage] .podium::before {
+        translate: calc(var(--hero-px, 0) * 10px) 0;
+        transition: opacity 600ms ease, translate 900ms cubic-bezier(.2, 0, 0, 1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html body main.homepage-main[data-hero-stage] .podium.hero-sweep::before,
+    html body main.homepage-main[data-hero-stage] .podium.hero-sweep .podium-item.first .podium-rank { animation: none; }
+    html body main.homepage-main[data-hero-stage] .podium-item .athlete-profile-link { translate: none; transition: none; }
+}
