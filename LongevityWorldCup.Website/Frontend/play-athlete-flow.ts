@@ -685,6 +685,7 @@ function createAthleteSelectionController(
         activeItem.classList.add("autocomplete-active");
         activeItem.setAttribute("aria-selected", "true");
         input.setAttribute("aria-activedescendant", activeItem.id);
+        moveAthleteGlider(activeItem.parentElement, activeItem);
         if (activeItem.parentElement) keepActiveOptionVisible(activeItem.parentElement);
     }
 
@@ -756,18 +757,70 @@ function createAthleteSelectionController(
         errorElement.classList.remove("athlete-search-empty");
     }
 
+    // A wordless meta cluster tells similar names apart: the athlete's flag and
+    // their division glyph, as on the leaderboard.
+    function createAthleteOptionMeta(athlete: PlayAthlete): HTMLSpanElement {
+        const meta = document.createElement("span");
+        meta.className = "athlete-option-meta";
+        meta.setAttribute("aria-hidden", "true");
+        const flags = Reflect.get(window, "LwcFlags") as { renderFlagIcon?: (flag: unknown, className?: string) => string } | undefined;
+        if (athlete.Flag && typeof flags?.renderFlagIcon === "function") {
+            const flagHtml = flags.renderFlagIcon(athlete.Flag, "athlete-option-flag");
+            if (flagHtml) meta.insertAdjacentHTML("beforeend", flagHtml);
+        }
+        const division = String(athlete.Division || "").toLowerCase();
+        const divisionIcon = division.startsWith("men") ? "fa-mars"
+            : division.startsWith("women") ? "fa-venus"
+            : division === "open" ? "fa-robot" : "";
+        if (divisionIcon) {
+            const glyph = document.createElement("i");
+            glyph.className = `fas ${divisionIcon} athlete-option-division`;
+            meta.appendChild(glyph);
+        }
+        return meta;
+    }
+
+    // One highlight glides between rows, following the keyboard and the pointer.
+    function moveAthleteGlider(list: Element | null, row: HTMLElement | null): void {
+        if (!(list instanceof HTMLElement)) return;
+        let glider = list.querySelector<HTMLSpanElement>(":scope > .athlete-option-glider");
+        if (!row) {
+            if (glider) glider.style.opacity = "0";
+            return;
+        }
+        if (!glider) {
+            glider = document.createElement("span");
+            glider.className = "athlete-option-glider";
+            glider.setAttribute("aria-hidden", "true");
+            list.prepend(glider);
+        }
+        const fresh = glider.style.opacity !== "1";
+        if (fresh) glider.style.transition = "none";
+        glider.style.transform = `translateY(${row.offsetTop}px)`;
+        glider.style.height = `${row.offsetHeight}px`;
+        glider.style.opacity = "1";
+        if (fresh) {
+            void glider.offsetWidth;
+            glider.style.transition = "";
+        }
+    }
+
     function createAthleteMatch(athlete: PlayAthlete): HTMLDivElement {
         const item = document.createElement("div");
         item.setAttribute("role", "option");
         item.setAttribute("aria-selected", "false");
         const name = document.createElement("span");
         name.className = "athlete-option-name";
-        item.append(createAthleteOptionThumb(athlete), name);
+        item.append(createAthleteOptionThumb(athlete), name, createAthleteOptionMeta(athlete));
         item.dataset.value = athlete.Name;
         if (typeof athlete.ProfilePic === "string") {
             item.dataset.profilePic = athlete.ProfilePic;
         }
 
+        item.addEventListener("pointerenter", event => {
+            if (event.pointerType === "touch" || !item.hasAttribute("role")) return;
+            moveAthleteGlider(item.parentElement, item);
+        });
         item.addEventListener("mousedown", event => {
             event.preventDefault();
             if (!item.hasAttribute("role")) return;
@@ -816,6 +869,7 @@ function createAthleteSelectionController(
         const animate = searchMotionAllowed();
         currentFocus = -1;
         input.removeAttribute("aria-activedescendant");
+        moveAthleteGlider(existingList, null);
         const list = existingList || document.createElement("div");
         const isNewList = !existingList;
         if (isNewList) {
@@ -824,6 +878,9 @@ function createAthleteSelectionController(
             list.setAttribute("role", "listbox");
             list.setAttribute("aria-label", "Athlete suggestions");
             input.parentNode?.appendChild(list);
+            list.addEventListener("pointerleave", () => {
+                moveAthleteGlider(list, list.querySelector<HTMLElement>(":scope > .autocomplete-active"));
+            });
         }
 
         const previous = new Map<string, HTMLDivElement>();
