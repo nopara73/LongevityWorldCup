@@ -2180,6 +2180,167 @@
             return setProfileFieldError('whyDisplayInput', v ? '' : 'Enter your motivation.');
         }
     </script>
+    <style>
+        /* ===== The draft, visible =====
+           A change request should show what it changes. A changed field gains
+           the accent edge and, under it, its old value struck through (the
+           athlete's own data, no new words); Submit carries the number of
+           changes and pops as it grows. Restoring a field lets the ghost fold
+           away. Reduced motion keeps every state still. */
+        #editOptionsGroup .niceInputFieldDisplayWrapper {
+            position: relative;
+        }
+
+        #editOptionsGroup .niceInputFieldDisplayWrapper::before {
+            content: "";
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            left: -10px;
+            width: 3px;
+            border-radius: 3px;
+            background: var(--lwc-accent, #087685);
+            transform: scaleY(0);
+            transform-origin: 50% 0;
+            transition: transform 260ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+            pointer-events: none;
+        }
+
+        #editOptionsGroup .niceInputFieldDisplayWrapper.is-changed::before {
+            transform: none;
+        }
+
+        .profile-field-was {
+            grid-column: 1 / -1;
+            display: none;
+            align-items: baseline;
+            gap: 6px;
+            min-width: 0;
+            margin: 6px 0 0;
+            color: var(--lwc-muted, #52606d);
+            font-size: 0.82rem;
+            line-height: 1.4;
+        }
+
+        .profile-field-was::before {
+            content: "\f1da";
+            flex: 0 0 auto;
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.75rem;
+            color: var(--lwc-accent, #087685);
+        }
+
+        .profile-field-was > span {
+            min-width: 0;
+            overflow: hidden;
+            text-decoration: line-through;
+            text-decoration-color: color-mix(in srgb, var(--lwc-muted, #52606d) 70%, transparent);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .niceInputFieldDisplayWrapper.is-changed > .profile-field-was {
+            display: flex;
+        }
+
+        /* Submit counts the changes. */
+        #submitButton[data-changes]::after {
+            content: attr(data-changes);
+            display: inline-grid;
+            place-items: center;
+            min-width: 1.4em;
+            height: 1.4em;
+            margin-left: 0.55em;
+            padding: 0 0.35em;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--main-action-color, #217a3c);
+            font-size: 0.8em;
+            font-weight: 800;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .niceInputFieldDisplayWrapper.is-changed > .profile-field-was {
+                animation: profileWasIn 240ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1)) both;
+            }
+        }
+
+        @keyframes profileWasIn {
+            from { opacity: 0; transform: translateY(-6px); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #editOptionsGroup .niceInputFieldDisplayWrapper::before {
+                transition: none;
+            }
+        }
+    </style>
+    <script>
+        // The draft, visible: mirror each restore button (the page's own
+        // "this field changed" signal) into an edge, a ghost of the old value
+        // and a count on Submit.
+        (function () {
+            const fields = [
+                ['divisionDisplaySelect', 'restoreDivisionBtn', 'Division'],
+                ['flagDisplayInput', 'restoreFlagBtn', 'Flag'],
+                ['personalLinkInput', 'restorePersonalLinkBtn', 'PersonalLink'],
+                ['mediaContactInput', 'restoreMediaContactBtn', 'MediaContact'],
+                ['whyDisplayInput', 'restoreWhyDisplayBtn', 'Why']
+            ];
+            const submit = document.getElementById('submitButton');
+            const picture = document.getElementById('restoreProfilePicButton');
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+            let shown = 0;
+
+            const visible = button => !!button && button.style.display !== 'none' && button.style.display !== '';
+            const original = key => {
+                try { return typeof originalAthlete !== 'undefined' && originalAthlete ? String(originalAthlete[key] || '') : ''; }
+                catch (error) { return ''; }
+            };
+
+            function sync() {
+                let count = visible(picture) ? 1 : 0;
+                fields.forEach(([inputId, buttonId, key]) => {
+                    const input = document.getElementById(inputId);
+                    const button = document.getElementById(buttonId);
+                    const wrapper = input && input.closest('.niceInputFieldDisplayWrapper');
+                    if (!wrapper) return;
+                    let ghost = wrapper.querySelector(':scope > .profile-field-was');
+                    if (!ghost) {
+                        ghost = document.createElement('p');
+                        ghost.className = 'profile-field-was';
+                        ghost.setAttribute('aria-hidden', 'true');
+                        ghost.append(document.createElement('span'));
+                        wrapper.append(ghost);
+                    }
+                    const changed = visible(button);
+                    const before = original(key);
+                    ghost.firstChild.textContent = before;
+                    wrapper.classList.toggle('is-changed', changed);
+                    ghost.hidden = !before;
+                    if (changed) count += 1;
+                });
+                if (!submit) return;
+                if (count) submit.dataset.changes = String(count);
+                else delete submit.dataset.changes;
+                if (count > shown && !reduced.matches) {
+                    submit.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.035)' }, { transform: 'scale(1)' }],
+                        { duration: 260, easing: 'cubic-bezier(0.34, 1.4, 0.64, 1)' });
+                }
+                shown = count;
+            }
+
+            const watch = new MutationObserver(sync);
+            [picture, ...fields.map(([, buttonId]) => document.getElementById(buttonId))]
+                .filter(Boolean)
+                .forEach(button => watch.observe(button, { attributes: true, attributeFilter: ['style'] }));
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sync, { once: true });
+            else sync();
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@2.3.1/dist/cropper.min.js" integrity="sha384-q877KRoDGCc9TE0/aHg20sWS2aLAr60y01aKWeVzpJhbJh90PH+lt1GmABR1GOdz" crossorigin="anonymous" defer></script>
     <script src="{{ASSET_PORTRAIT_CROPPER_JS}}" defer></script>
 </body>
