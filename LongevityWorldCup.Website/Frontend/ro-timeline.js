@@ -400,3 +400,71 @@
         .catch(fail)
         .finally(() => clearTimeout(deadline));
 })();
+
+// The running lane: the poster's track continues down the page beside the
+// sheet. A runner follows the reader from the cover past each section's
+// waypoint to the chequered finish line, where it crosses and the lane lights.
+(() => {
+    const guide = document.querySelector('.ro-guide');
+    const essay = guide?.querySelector('.ro-essay');
+    if (!guide || !essay) return;
+
+    const lane = document.createElement('div');
+    lane.className = 'ro-lane';
+    lane.setAttribute('aria-hidden', 'true');
+    const fill = document.createElement('span');
+    fill.className = 'ro-lane-fill';
+    const runner = document.createElement('span');
+    runner.className = 'ro-lane-runner';
+    lane.append(fill, runner);
+    guide.append(lane);
+
+    const sections = () => Array.from(essay.querySelectorAll(':scope > :is(.ro-intro, .ro-body, .ro-timeline, .ro-standings:not([hidden]), .ro-actions)'));
+    let marks = [];
+    let frame = 0;
+
+    function layout() {
+        const guideBox = guide.getBoundingClientRect();
+        const box = essay.getBoundingClientRect();
+        lane.style.top = `${box.top - guideBox.top}px`;
+        lane.style.height = `${box.height}px`;
+        lane.style.left = `${box.left - guideBox.left}px`;
+        marks.forEach(mark => mark.remove());
+        marks = sections().map(section => {
+            const mark = document.createElement('span');
+            mark.className = 'ro-lane-mark';
+            if (section.matches('.ro-standings, .ro-actions')) mark.classList.add('is-finish');
+            mark.dataset.at = String((section.getBoundingClientRect().top - box.top) / Math.max(1, box.height));
+            mark.style.top = `${Number(mark.dataset.at) * 100}%`;
+            lane.append(mark);
+            return mark;
+        });
+        update();
+    }
+
+    function update() {
+        frame = 0;
+        const box = essay.getBoundingClientRect();
+        // The runner sits at the reading line, a third of the way down the viewport.
+        const line = window.innerHeight * 0.38;
+        const run = Math.min(1, Math.max(0, (line - box.top) / Math.max(1, box.height)));
+        lane.style.setProperty('--run', run.toFixed(4));
+        let passed = 0;
+        marks.forEach(mark => {
+            const reached = run >= Number(mark.dataset.at) - 0.002;
+            mark.classList.toggle('is-passed', reached);
+            if (reached) passed += 1;
+        });
+        const finish = marks.find(mark => mark.classList.contains('is-finish'));
+        lane.classList.toggle('is-finished', Boolean(finish && finish.classList.contains('is-passed')));
+        lane.classList.toggle('is-started', run > 0);
+    }
+
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', () => requestAnimationFrame(layout), { passive: true });
+    new ResizeObserver(() => requestAnimationFrame(layout)).observe(essay);
+    if (document.readyState === 'complete') layout();
+    else window.addEventListener('load', layout, { once: true });
+    layout();
+})();
