@@ -123,6 +123,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_LEADERBOARD_EMBED_LISTENER_JS}}"] = "/js/leaderboard-embed-listener.js",
         ["{{ASSET_GUESS_MY_AGE_CSS}}"] = "/css/guess-my-age.css",
         ["{{ASSET_GUESS_MY_AGE_JS}}"] = "/js/guess-my-age.js",
+        ["{{ASSET_ROUTE_MOTION_CSS}}"] = "/css/route-motion.css",
+        ["{{ASSET_ROUTE_MOTION_JS}}"] = "/js/route-motion.js",
         ["{{ASSET_AGE_VISUALIZATION_CSS}}"] = "/css/age-visualization.css",
         ["{{ASSET_EVENT_BOARD_CSS}}"] = "/css/event-board.css",
         ["{{ASSET_HIGHLIGHTS_PAGE_CSS}}"] = "/css/highlights-page.css",

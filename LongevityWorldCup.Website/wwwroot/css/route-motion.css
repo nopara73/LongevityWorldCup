@@ -1,0 +1,119 @@
+/* Route-to-route page changes with a sense of place. route-motion.ts names the
+   move on the arriving page; without a named move the site keeps its plain
+   cross-dissolve from aesthetic-system.css. The header keeps its own quick
+   cross-fade above both pages. Colour is the site's own accent. */
+
+@media (prefers-reduced-motion: no-preference) {
+    /* ------------------------------------------------------------ across: a camera cut sideways */
+    :root:active-view-transition-type(lwc-forward)::view-transition-old(root) {
+        animation: lwc-route-out-left 220ms cubic-bezier(0.4, 0, 1, 1) both;
+    }
+
+    :root:active-view-transition-type(lwc-forward)::view-transition-new(root) {
+        animation: lwc-route-in-right 440ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+    }
+
+    :root:active-view-transition-type(lwc-back)::view-transition-old(root) {
+        animation: lwc-route-out-right 220ms cubic-bezier(0.4, 0, 1, 1) both;
+    }
+
+    :root:active-view-transition-type(lwc-back)::view-transition-new(root) {
+        animation: lwc-route-in-left 440ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+    }
+
+    /* ------------------------------------------------------------ deeper: the camera pushes in */
+    :root:active-view-transition-type(lwc-deeper)::view-transition-old(root) {
+        animation: lwc-route-push-away 240ms cubic-bezier(0.4, 0, 1, 1) both;
+        transform-origin: 50% 35%;
+    }
+
+    :root:active-view-transition-type(lwc-deeper)::view-transition-new(root) {
+        animation: lwc-route-push-in 440ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
+        transform-origin: 50% 35%;
+    }
+
+    :root:active-view-transition-type(lwc-shallower)::view-transition-old(root) {
+        animation: lwc-route-pull-away 240ms cubic-bezier(0.4, 0, 1, 1) both;
+        transform-origin: 50% 35%;
+    }
+
+    :root:active-view-transition-type(lwc-shallower)::view-transition-new(root) {
+        animation: lwc-route-pull-in 420ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+        transform-origin: 50% 35%;
+    }
+
+    /* ------------------------------------------------------------ the sweep under the header */
+    :root:active-view-transition-type(lwc-forward, lwc-deeper)::view-transition-new(lwc-route-sweep) {
+        animation: lwc-route-sweep-right 560ms cubic-bezier(0.65, 0, 0.35, 1) both;
+    }
+
+    :root:active-view-transition-type(lwc-back, lwc-shallower)::view-transition-new(lwc-route-sweep) {
+        animation: lwc-route-sweep-left 560ms cubic-bezier(0.65, 0, 0.35, 1) both;
+    }
+
+    :root:active-view-transition-type(lwc-forward, lwc-back, lwc-deeper, lwc-shallower)::view-transition-group(lwc-route-sweep) {
+        animation: none;
+    }
+}
+
+.lwc-route-sweep {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 2147483000;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--lwc-accent-bright, #19c3d1) 18%, var(--lwc-accent-bright, #19c3d1) 82%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--lwc-accent-bright, #19c3d1) 60%, transparent);
+    pointer-events: none;
+    view-transition-name: lwc-route-sweep;
+}
+
+@keyframes lwc-route-out-left {
+    to { opacity: 0; translate: -5% 0; scale: 0.985; }
+}
+
+@keyframes lwc-route-out-right {
+    to { opacity: 0; translate: 5% 0; scale: 0.985; }
+}
+
+@keyframes lwc-route-in-right {
+    from { opacity: 0; translate: 7% 0; }
+}
+
+@keyframes lwc-route-in-left {
+    from { opacity: 0; translate: -7% 0; }
+}
+
+@keyframes lwc-route-push-away {
+    to { opacity: 0; scale: 0.94; filter: brightness(0.8); }
+}
+
+@keyframes lwc-route-push-in {
+    from { opacity: 0; scale: 1.05; }
+}
+
+@keyframes lwc-route-pull-away {
+    to { opacity: 0; scale: 1.05; }
+}
+
+@keyframes lwc-route-pull-in {
+    from { opacity: 0; scale: 0.94; filter: brightness(0.8); }
+}
+
+@keyframes lwc-route-sweep-right {
+    0% { clip-path: inset(0 100% 0 0); opacity: 1; }
+    55% { clip-path: inset(0 0 0 0); opacity: 1; }
+    100% { clip-path: inset(0 0 0 100%); opacity: 0.4; }
+}
+
+@keyframes lwc-route-sweep-left {
+    0% { clip-path: inset(0 0 0 100%); opacity: 1; }
+    55% { clip-path: inset(0 0 0 0); opacity: 1; }
+    100% { clip-path: inset(0 100% 0 0); opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lwc-route-sweep {
+        display: none;
+    }
+}
