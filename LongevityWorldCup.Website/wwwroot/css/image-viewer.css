@@ -396,3 +396,159 @@ img[data-lwc-view-away] {
         display: none;
     }
 }
+
+/* ===== Athlete proofs: sheets on the desk =====
+   In the athlete dialog each proof was a grey tile with a lab page shrunk to a
+   stamp inside it. Now each proof is the page itself: a sheet of paper cut to
+   the page's shape, its top (lab, patient, first results) filling the sheet,
+   laid on the desk at a slight tilt with its number as a tab. A pointer
+   straightens and lifts a sheet; a press sets it down. When there are more
+   proofs than shown, the last sheet sits on a visible stack. As the section
+   scrolls in, the sheets are dealt onto the desk one after another, and the
+   viewer still lifts a sheet off the desk to read it. */
+#detailsModal #proofsGallery {
+    gap: 18px 14px;
+    padding: 4px 2px 10px;
+}
+
+#detailsModal #proofsGallery .proof-item {
+    --proof-tilt: -1.2deg;
+    position: relative;
+    aspect-ratio: 4 / 5;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 3px;
+    background: rgba(246, 244, 237, 0.97);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 24px -14px rgba(0, 0, 0, 0.85);
+    rotate: var(--proof-tilt);
+    transition:
+        rotate 280ms cubic-bezier(0.34, 1.4, 0.64, 1),
+        translate 280ms cubic-bezier(0.34, 1.4, 0.64, 1),
+        scale 280ms cubic-bezier(0.34, 1.4, 0.64, 1),
+        box-shadow 220ms ease;
+}
+
+#detailsModal #proofsGallery .proof-item:nth-child(3n + 2) { --proof-tilt: 0.9deg; }
+#detailsModal #proofsGallery .proof-item:nth-child(3n) { --proof-tilt: -0.4deg; }
+#detailsModal #proofsGallery .proof-item:nth-child(4n) { --proof-tilt: 1.4deg; }
+#detailsModal #proofsGallery .proof-item:nth-child(5n) { --proof-tilt: -1.6deg; }
+
+#detailsModal #proofsGallery .proof-item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+    padding: 0;
+    border-radius: 0;
+    object-fit: cover;
+    object-position: 50% 0;
+    background: transparent;
+    transform: none;
+}
+
+/* A soft fold of shade along the sheet's foot, so a white page reads as paper. */
+#detailsModal #proofsGallery .proof-item::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 30%;
+    background: linear-gradient(to bottom, transparent, rgba(23, 33, 43, 0.14));
+    pointer-events: none;
+}
+
+/* The number becomes the sheet's tab. */
+#detailsModal #proofsGallery .proof-number {
+    top: 0;
+    bottom: auto;
+    left: 10px;
+    z-index: 1;
+    padding: 0.2rem 0.55rem 0.25rem;
+    border: 0;
+    border-radius: 0 0 6px 6px;
+    background: rgba(12, 14, 14, 0.86);
+}
+
+@media (hover: hover) {
+    #detailsModal #proofsGallery .proof-item:hover {
+        z-index: 2;
+        rotate: 0deg;
+        translate: 0 -6px;
+        scale: 1.04;
+        box-shadow: 0 0 0 2px var(--athlete-modal-accent, #7bdde3), 0 22px 36px -16px rgba(0, 0, 0, 0.9);
+    }
+}
+
+#detailsModal #proofsGallery .proof-item:has(img:focus-visible) {
+    z-index: 2;
+    rotate: 0deg;
+    box-shadow: 0 0 0 2px var(--athlete-modal-accent, #7bdde3), 0 14px 26px -14px rgba(0, 0, 0, 0.85);
+}
+
+#detailsModal #proofsGallery .proof-item:active {
+    translate: 0 1px;
+    scale: 0.98;
+}
+
+/* More proofs than shown: the last sheet sits on the rest of the pile. */
+#detailsModal #proofsGallery:has(> .proof-item[hidden]) > .proof-item:not([hidden]):has(+ .proof-item[hidden]) {
+    overflow: visible;
+    box-shadow:
+        5px 5px 0 -1px rgba(232, 229, 220, 0.95),
+        5px 5px 0 0 rgba(0, 0, 0, 0.25),
+        10px 10px 0 -2px rgba(214, 210, 200, 0.9),
+        10px 10px 0 -1px rgba(0, 0, 0, 0.25),
+        0 16px 28px -14px rgba(0, 0, 0, 0.9);
+}
+
+#detailsModal #proofsGallery:has(> .proof-item[hidden]) > .proof-item:not([hidden]):has(+ .proof-item[hidden]) img {
+    border-radius: 3px;
+}
+
+/* Dealt onto the desk as the section scrolls in (athlete-story.ts marks the
+   chapter "wait", then "in"). Transitions, not keyframes, so the deal keeps
+   going when the chapter's mark is cleared. */
+@media (prefers-reduced-motion: no-preference) {
+    #detailsModal #athlete-proofs[data-story="wait"] #proofsGallery .proof-item {
+        opacity: 0;
+        translate: 0 -28px;
+        rotate: calc(var(--proof-tilt) * -5);
+        scale: 1.08;
+        transition: none;
+    }
+
+    #detailsModal #athlete-proofs[data-story="in"] #proofsGallery .proof-item {
+        transition:
+            opacity 260ms ease,
+            rotate 460ms cubic-bezier(0.34, 1.32, 0.64, 1),
+            translate 460ms cubic-bezier(0.34, 1.32, 0.64, 1),
+            scale 460ms cubic-bezier(0.34, 1.32, 0.64, 1),
+            box-shadow 220ms ease;
+    }
+
+    #detailsModal #athlete-proofs[data-story="in"] #proofsGallery .proof-item:nth-child(2) { transition-delay: 60ms; }
+    #detailsModal #athlete-proofs[data-story="in"] #proofsGallery .proof-item:nth-child(3) { transition-delay: 120ms; }
+    #detailsModal #athlete-proofs[data-story="in"] #proofsGallery .proof-item:nth-child(4) { transition-delay: 180ms; }
+    #detailsModal #athlete-proofs[data-story="in"] #proofsGallery .proof-item:nth-child(5) { transition-delay: 240ms; }
+    #detailsModal #athlete-proofs[data-story="in"] #proofsGallery .proof-item:nth-child(n + 6) { transition-delay: 300ms; }
+}
+
+@media (max-width: 600px) {
+    #detailsModal #proofsGallery {
+        gap: 14px 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #detailsModal #proofsGallery .proof-item {
+        transition: box-shadow 160ms ease;
+    }
+
+    #detailsModal #proofsGallery .proof-item:hover,
+    #detailsModal #proofsGallery .proof-item:active {
+        translate: none;
+        scale: none;
+    }
+}
