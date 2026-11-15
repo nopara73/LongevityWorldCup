@@ -3740,6 +3740,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return Math.max(limit, originalBody.length);
     }
 
+    function updateControlText(element: HTMLElement, value: string): void {
+        if (element.textContent === value) return;
+        // Preserve the text node so counters do not look like inserted UI to
+        // the shared page observers on every keystroke.
+        if (element.childNodes.length === 1 && element.firstChild instanceof Text) element.firstChild.data = value;
+        else element.textContent = value;
+    }
+
     function characterAllowanceDescription(characterLimit: number): string {
         const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
         const points = row?.characterAllowance?.challengePoints ?? Math.min(154, Math.max(0, row?.totalPoints || 0));
@@ -3884,8 +3892,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         function renderSuggestions(): void {
             if (composing || textarea.readOnly || textarea.disabled) { closeList(); return; }
             const context = activeMentionContext(textarea);
+            if (!context || isCompletedMentionContext(context)) { closeList(); return; }
             const rows = mentionableParticipants();
-            if (!context || isCompletedMentionContext(context) || contextContinuesPastParticipant(context, rows)) {
+            if (contextContinuesPastParticipant(context, rows)) {
                 closeList();
                 return;
             }
@@ -3974,6 +3983,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         function closeList(): void {
+            if (list.hidden && !list.childNodes.length) return;
             list.hidden = true;
             list.innerHTML = "";
             matches = [];
@@ -5685,12 +5695,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         changeScores.disabled = adviceStorySaving;
         submit.disabled = adviceStorySaving;
         dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = adviceStorySaving;
-        dialog.setAttribute("aria-busy", String(adviceStorySaving));
+        if (dialog.getAttribute("aria-busy") !== String(adviceStorySaving)) dialog.setAttribute("aria-busy", String(adviceStorySaving));
         if (!prompt || adviceStoryDraft?.id !== prompt.id) {
             submit.textContent = prompt ? "Continue" : "Close";
             return;
         }
-        submit.textContent = "Post";
+        updateControlText(submit, "Post");
         const overLimit = updateAdviceStoryCount(dialog.querySelector<HTMLTextAreaElement>("textarea")!,
             dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!, prompt.characterLimit);
         submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || overLimit;
@@ -5700,10 +5710,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const limit = Math.max(2000, allowance ?? discussionCharacterLimit());
         const length = textarea.value.length;
         const over = Math.max(0, length - limit);
-        count.textContent = over ? `${over} over` : `${length}/${limit}`;
+        updateControlText(count, over ? `${over} over` : `${length}/${limit}`);
         count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${limit} characters`);
         count.classList.toggle("over-limit", over > 0);
-        textarea.setAttribute("aria-invalid", String(over > 0));
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
         return over > 0;
     }
 
@@ -6212,9 +6222,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const over = Math.max(0, noteLength - characterLimit);
             note.dataset.characterLimit = String(characterLimit);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
-            note.setAttribute("aria-invalid", String(over > 0));
+            if (note.getAttribute("aria-invalid") !== String(over > 0)) note.setAttribute("aria-invalid", String(over > 0));
             const count = form.querySelector<HTMLElement>("[data-note-character-count]")!;
-            count.textContent = over ? `${over} over` : `${noteLength}/${characterLimit}`;
+            updateControlText(count, over ? `${over} over` : `${noteLength}/${characterLimit}`);
             count.title = characterAllowanceDescription(characterLimit);
             count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${noteLength} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
@@ -6248,20 +6258,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             reset.hidden = !changed && !canUndo;
             reset.title = canUndo ? "Undo reset" : "Reset this check-in";
             reset.setAttribute("aria-label", reset.title);
-            reset.innerHTML = canUndo ? "Undo" : `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
+            if (canUndo) updateControlText(reset, "Undo");
+            else if (!reset.querySelector(".fa-rotate-left")) reset.innerHTML = `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
         }
         const progress = form.querySelector<HTMLElement>("[data-checkin-progress]");
         if (progress) {
             const answered = QUESTIONS.filter(q => draft[q.key] !== null).length;
-            progress.textContent = checkInSaving
+            updateControlText(progress, checkInSaving
                 ? savingThisDay ? "" : `Saving Day ${checkInSaving.day}…`
                 : saved ? "Saved"
-                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`;
+                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`);
             progress.classList.toggle("visually-hidden", saved && !checkInSaving);
         }
         if (status) {
             const error = checkInErrors.get(key);
-            status.textContent = error ? `Not saved. ${error}` : "";
+            updateControlText(status, error ? `Not saved. ${error}` : "");
             status.classList.toggle("error", !!error);
         }
         document.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(day => {
@@ -6269,7 +6280,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const dirty = checkInDrafts.has(day.dataset.draftKey || "");
             day.classList.toggle("has-draft", dirty);
             if (label) {
-                label.textContent = checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due";
+                updateControlText(label, checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due");
                 label.classList.toggle("visually-hidden", day.getAttribute("aria-pressed") === "true");
             }
         });
@@ -7595,11 +7606,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         };
         wireMentionAutocomplete(textarea, () => {
             if (discussionMutation === draft.key) return;
+            const wasDirty = discussionDraftHasChanges(draft);
+            const previousError = draft.error;
+            const previousNotice = draft.notice;
+            const storageFailed = discussionDraftStorageFailed;
             draft.body = textarea.value;
             draft.notice = null;
-            rememberSelection();
+            draft.selectionStart = textarea.selectionStart;
+            draft.selectionEnd = textarea.selectionEnd;
             if (draft.errorKind !== "auth" && draft.error && draft.body.trim() !== draft.submittedBody) { draft.error = null; draft.errorKind = null; }
-            updateDiscussionDraftControls();
+            // Typing changes this composer, not every reply and history control in the feed.
+            if (wasDirty !== discussionDraftHasChanges(draft) || previousError !== draft.error) updateDiscussionDraftControls();
+            else {
+                persistDiscussionDrafts();
+                if (previousNotice || storageFailed !== discussionDraftStorageFailed) updateDiscussionComposerControls(composer, draft);
+                else updateDiscussionComposerInput(composer, draft);
+            }
         });
         textarea.addEventListener("select", rememberSelection);
         textarea.addEventListener("blur", rememberSelection);
@@ -7734,58 +7756,74 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderDiscussionDiscardUndo();
         document.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(composer => {
             const draft = discussionDrafts.get(composer.dataset.discussionDraft || "");
-            if (!draft) return;
-            const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
-            const archived = discussionDraftArchived(draft, advice);
-            const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
-            const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
-            if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
-            updateDiscussionComposerContext(composer, draft);
-            const pending = discussionMutation === draft.key;
-            const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
-            textarea.readOnly = pending;
+            if (draft) {
+                updateDiscussionComposerContext(composer, draft);
+                updateDiscussionComposerControls(composer, draft);
+            }
+        });
+    }
+
+    function updateDiscussionComposerInput(composer: HTMLElement, draft: DiscussionDraft): void {
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        // Native sizing grows and shrinks without two synchronous layouts per letter.
+        if (!CSS.supports("field-sizing", "content")) {
             textarea.style.height = "auto";
             textarea.style.height = `${Math.min(textarea.scrollHeight + 2, parseFloat(getComputedStyle(textarea).maxHeight))}px`;
-            if (pending) {
-                composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
-                textarea.setAttribute("aria-expanded", "false");
-                textarea.removeAttribute("aria-activedescendant");
-            }
-            const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
-            const length = draft.body.length;
-            const characterLimit = discussionCharacterLimit(draft.originalBody);
-            const over = Math.max(0, length - characterLimit);
-            textarea.dataset.characterLimit = String(characterLimit);
-            count.textContent = over ? `${over} over` : `${length}/${characterLimit}`;
-            count.title = characterAllowanceDescription(characterLimit);
-            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
-            count.classList.toggle("over-limit", over > 0);
-            textarea.setAttribute("aria-invalid", String(over > 0));
-            count.classList.toggle("at-limit", draft.body.length >= characterLimit);
-            const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
-            if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
-                : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
-            const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
-            submit.disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
-            submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
-                : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
-            if (pending) submit.setAttribute("aria-busy", "true");
-            else submit.removeAttribute("aria-busy");
-            const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
-            if (discard) discard.disabled = pending || !discussionDraftHasChanges(draft);
-            composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
-                control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
-            });
-            composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
-            const status = composer.querySelector<HTMLElement>(".lmx-status")!;
-            status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
-                : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
-                : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
-                : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
-                : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
-                : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
-            status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
+        }
+        const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
+        const length = draft.body.length;
+        const characterLimit = discussionCharacterLimit(draft.originalBody);
+        const over = Math.max(0, length - characterLimit);
+        textarea.dataset.characterLimit = String(characterLimit);
+        updateControlText(count, over ? `${over} over` : `${length}/${characterLimit}`);
+        count.title = characterAllowanceDescription(characterLimit);
+        count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
+        count.classList.toggle("over-limit", over > 0);
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
+        count.classList.toggle("at-limit", draft.body.length >= characterLimit);
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        const disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
+        if (submit.disabled !== disabled) submit.disabled = disabled;
+        const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
+        const cannotDiscard = discussionMutation === draft.key || !discussionDraftHasChanges(draft);
+        if (discard && discard.disabled !== cannotDiscard) discard.disabled = cannotDiscard;
+    }
+
+    function updateDiscussionComposerControls(composer: HTMLElement, draft: DiscussionDraft): void {
+        updateDiscussionComposerInput(composer, draft);
+        const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
+        const archived = discussionDraftArchived(draft, advice);
+        const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
+        const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
+        if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
+        const pending = discussionMutation === draft.key;
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        if (textarea.readOnly !== pending) textarea.readOnly = pending;
+        if (pending) {
+            composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
+            textarea.setAttribute("aria-expanded", "false");
+            textarea.removeAttribute("aria-activedescendant");
+        }
+        const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
+        if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
+            : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
+            : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
+        if (pending) submit.setAttribute("aria-busy", "true");
+        else submit.removeAttribute("aria-busy");
+        composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
+            control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
         });
+        composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
+        const status = composer.querySelector<HTMLElement>(".lmx-status")!;
+        status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
+            : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
+            : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
+            : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
+            : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
+            : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
+        status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
     }
 
     async function deleteDiscussionReply(button: HTMLButtonElement): Promise<void> {
