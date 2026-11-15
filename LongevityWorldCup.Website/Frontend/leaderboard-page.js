@@ -7437,6 +7437,7 @@ function getSearchSnippet(text, term) {
 
 let searchReasonPopover;
 let searchReasonOwner;
+const searchReasonPayloads = new WeakMap();
 
 function closeSearchReason() {
     if (searchReasonPopover?.matches(':popover-open')) searchReasonPopover.hidePopover();
@@ -7465,7 +7466,10 @@ function placeSearchReason() {
 }
 
 function appendSearchReason(host, source, text, terms, className = '') {
-    const chip = document.createElement('button');
+    const existing = host.querySelector(`:scope > .search-reason--${source.kind}`);
+    const chip = existing || document.createElement('button');
+    searchReasonPayloads.set(chip, { text, terms });
+    if (existing) return chip;
     chip.type = 'button';
     chip.className = `search-reason search-reason--${source.kind} ${className}`.trim();
     chip.innerHTML = `<i class="fas ${source.icon}" aria-hidden="true"></i>`;
@@ -7473,6 +7477,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
     chip.setAttribute('aria-expanded', 'false');
     chip.setAttribute('aria-controls', 'leaderboardSearchReason');
     chip.addEventListener('click', event => {
+        const { text, terms } = searchReasonPayloads.get(chip);
         event.preventDefault();
         event.stopPropagation();
         const wasOpen = searchReasonOwner === chip && searchReasonPopover?.matches(':popover-open');
@@ -7509,6 +7514,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
         placeSearchReason();
     });
     host.appendChild(chip);
+    return chip;
 }
 
 function clearSearchReasons(scope) {
@@ -7520,8 +7526,25 @@ function clearSearchReasons(scope) {
 function markSearchReasons(terms, entries, view) {
     const board = document.querySelector('.leaderboard table tbody');
     if (!board) return;
-    clearSearchReasons(athleteDialogRuntime);
-    if (!terms.length) return;
+    if (!terms.length) { clearSearchReasons(athleteDialogRuntime); return; }
+    closeSearchReason();
+    // A longer query often keeps the same evidence. Retain those buttons and
+    // marks so typing does not restart their animations or touch-target setup.
+    const unusedChips = new Set(athleteDialogRuntime.querySelectorAll('.search-reason'));
+    const unusedMarks = new Set(athleteDialogRuntime.querySelectorAll('.is-search-hit, .is-search-value'));
+    const preceding = new Map();
+    const reportReason = (host, ...args) => {
+        const chip = appendSearchReason(host, ...args);
+        const previous = preceding.get(host);
+        const next = previous ? previous.nextElementSibling : host.querySelector(':scope > .search-reason');
+        if (chip !== next) host.insertBefore(chip, next);
+        preceding.set(host, chip);
+        unusedChips.delete(chip);
+    };
+    const mark = (node, name) => {
+        node?.classList.toggle(name, true);
+        unusedMarks.delete(node);
+    };
     const entryByName = new Map(entries.map(entry => [entry.athlete.name, entry]));
     board.querySelectorAll('tr[data-athlete-name]').forEach(row => {
         const entry = entryByName.get(row.dataset.athleteName);
@@ -7539,7 +7562,7 @@ function markSearchReasons(terms, entries, view) {
         pending = pending.filter(term => {
             const hits = badges.filter(badge => normalizeSearchText(`${badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || ''} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`).includes(term));
             hits.forEach(badge => {
-                badge.classList.add('is-search-hit');
+                mark(badge, 'is-search-hit');
                 const text = [badge.getAttribute('title') || badge.getAttribute('data-badge-tip'), badge.getAttribute('aria-label'), badge.textContent]
                     .find(value => normalizeSearchText(value).includes(term));
                 badgeReasons.add(getSearchSnippet(text, term));
@@ -7547,7 +7570,7 @@ function markSearchReasons(terms, entries, view) {
             if (hits.length) badgeTerms.push(term);
             return hits.length === 0;
         });
-        if (badgeTerms.length) appendSearchReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
+        if (badgeTerms.length) reportReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
 
         SEARCH_REASON_SOURCES.forEach(source => {
             const text = source.read(athlete);
@@ -7555,18 +7578,20 @@ function markSearchReasons(terms, entries, view) {
             const hits = pending.filter(term => normalized.includes(term));
             if (!hits.length) return;
             pending = pending.filter(term => !hits.includes(term));
-            appendSearchReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
+            reportReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
         });
         const metricParts = getMetricSearchParts(entry, view);
         const metricHits = pending.filter(term => metricParts.some(part => normalizeSearchText(part.value).includes(term)));
         if (metricHits.length) {
-            row.querySelector('.age-reduction')?.classList.add('is-search-value');
+            mark(row.querySelector('.age-reduction'), 'is-search-value');
             const hiddenHits = metricHits.filter(term => !normalizeSearchText(entry.metric).includes(term));
-            if (hiddenHits.length) appendSearchReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
+            if (hiddenHits.length) reportReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
                 [...new Set(metricParts.filter(part => hiddenHits.some(term => normalizeSearchText(part.value).includes(term))).map(part => part.label))].join('\n'), hiddenHits);
         }
-        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) row.querySelector('.rank')?.classList.add('is-search-value');
+        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) mark(row.querySelector('.rank'), 'is-search-value');
     });
+    unusedChips.forEach(chip => chip.remove());
+    unusedMarks.forEach(node => node.classList.remove('is-search-hit', 'is-search-value'));
 }
 
 function markFlagSearchReasons(terms, teams, badgeTextByName) {

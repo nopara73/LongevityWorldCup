@@ -992,16 +992,23 @@ const eventsPageAssets = document.currentScript.dataset;
         }
         const vh = window.innerHeight || document.documentElement.clientHeight;
         let arrivals = 0;
-        table.querySelectorAll('tr.main-row[data-event-id]').forEach(row => {
-            const before = previous.positions.get(row.dataset.eventId);
-            const rect = row.getBoundingClientRect();
-            const onscreen = rect.bottom > 0 && rect.top < vh;
-            if (before) {
-                // A row that stays is already in view: no reveal fade.
+        const measured = Array.from(table.querySelectorAll('tr.main-row[data-event-id]'), row => ({
+            row, before: previous.positions.get(row.dataset.eventId), rect: row.getBoundingClientRect()
+        }));
+        // Retained rows must not replay their reveal. Apply that state together;
+        // flushing each row separately stalls refreshes of a long feed.
+        const unrevealed = measured.filter(({ row, before }) => before && !row.classList.contains('is-visible'));
+        if (unrevealed.length) {
+            unrevealed.forEach(({ row }) => {
                 row.style.transition = 'none';
                 row.classList.add('is-visible');
-                void row.offsetWidth;
-                row.style.removeProperty('transition');
+            });
+            void table.offsetWidth;
+            unrevealed.forEach(({ row }) => row.style.removeProperty('transition'));
+        }
+        measured.forEach(({ row, before, rect }) => {
+            const onscreen = rect.bottom > 0 && rect.top < vh;
+            if (before) {
                 const dy = before.top - rect.top;
                 if (!reduced && onscreen && Math.abs(dy) > 1 && typeof row.animate === 'function') {
                     row.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 300, easing: FEED_EASE });
@@ -1075,17 +1082,15 @@ const eventsPageAssets = document.currentScript.dataset;
             const headings = document.querySelectorAll('.event-board-page tr.events-month-row');
             const stickyTop = headings.length ? parseFloat(getComputedStyle(headings[0]).top) || 0 : 0;
             let current = null;
-            headings.forEach(row => {
+            // Read every month's bounds and reading position before changing
+            // sticky styles or day chips, which invalidate the table's layout.
+            const measured = Array.from(headings, row => {
                 const body = row.parentElement;
                 const bodyRect = body.getBoundingClientRect();
                 const rect = row.getBoundingClientRect();
                 const pinned = bodyRect.top < stickyTop - 1 && bodyRect.bottom > stickyTop;
                 const h = rect.height || 40;
                 const handoff = pinned ? Math.min(1, Math.max(0, 1 - (bodyRect.bottom - stickyTop - h) / (h * 1.5))) : 0;
-                if (row.classList.contains('is-pinned') !== pinned) row.classList.toggle('is-pinned', pinned);
-                const value = handoff.toFixed(2);
-                if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
-                const chip = row.querySelector('.events-day-chip');
                 let reading = null;
                 if (pinned) {
                     // An expanded story belongs to its title's day until its
@@ -1096,6 +1101,13 @@ const eventsPageAssets = document.currentScript.dataset;
                         return end.getBoundingClientRect().bottom > rect.bottom + 1;
                     });
                 }
+                return { row, pinned, handoff, reading };
+            });
+            measured.forEach(({ row, pinned, handoff, reading }) => {
+                row.classList.toggle('is-pinned', pinned);
+                const value = handoff.toFixed(2);
+                if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
+                const chip = row.querySelector('.events-day-chip');
                 if (!reading) {
                     if (chip?.hasChildNodes()) { chip.replaceChildren(); delete chip.dataset.day; }
                     return;
@@ -1120,7 +1132,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 lastRow?.classList.remove('is-current-day');
                 lastRow = current;
             }
-            current?.classList.add('is-current-day');
+            current?.classList.toggle('is-current-day', true);
         };
         const queue = () => { if (!frame && !document.hidden) frame = requestAnimationFrame(update); };
         const stop = () => {

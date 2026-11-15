@@ -320,6 +320,7 @@ interface Window {
         // An open dialog makes the background ineligible before any layout reads.
         const targets = Array.from(document.querySelectorAll<HTMLElement>(tappable)).filter(element => !element.closest('[inert]') && visible(element));
         const boxes = targets.map(element => ({ element, rect: element.getBoundingClientRect() }));
+        const extensions: Array<{ element: HTMLElement; slot: string; anchor: boolean }> = [];
         for (const element of Array.from(scope.querySelectorAll<HTMLElement>(smallControls))) {
             if (element.closest('[inert]') || !visible(element)) continue;
             const rect = element.getBoundingClientRect();
@@ -338,8 +339,13 @@ interface Window {
             const free = (pseudo: string) => getComputedStyle(element, pseudo).content === "none";
             const slot = free("::after") ? "after" : free("::before") ? "before" : "";
             if (!slot) continue;
+            extensions.push({ element, slot, anchor: style.position === "static" });
+        }
+        // Installing a hit area changes computed styles. Finish every collision
+        // and pseudo-element measurement before writing any of the extensions.
+        for (const { element, slot, anchor } of extensions) {
             element.dataset["lwcHit"] = slot;
-            if (style.position === "static") element.dataset["lwcHitAnchor"] = "";
+            if (anchor) element.dataset["lwcHitAnchor"] = "";
         }
     }
 

@@ -900,6 +900,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let timeZoneCountryCodes: Map<string, string[]> | null = null;
     let preferredTimeZoneIds: Map<string, string> | null = null;
     let regionDisplayNames: Intl.DisplayNames | null = null;
+    const timeZoneRenderKeys = new WeakMap<Element, string>();
+    const timeZoneOffsetLabels = new Map<string, string>();
+    let timeZoneOffsetMinute = -1;
     let quoteDialogLastFocus: HTMLElement | null = null;
     let adviceStoryDraft: { id: string; body: string } | null = null;
     let adviceCheckInEditing: { participantId: string; adviceId: string; challengeDay: number } | null = null;
@@ -9807,6 +9810,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .filter(item => item.score > 0)
             .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone));
 
+        // Consecutive prefixes often produce the same options. Keep those
+        // controls in place; refresh their offsets when the current minute changes.
+        const renderKey = `${Math.floor(Date.now() / 60000)}\n${matches.map(item => item.zone).join("\n")}`;
+        if (timeZoneRenderKeys.get(list) === renderKey) {
+            setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
+            return;
+        }
         list.innerHTML = matches.length
             ? matches.map((item, index) => timeZoneOptionHtml(item.zone, `${list.id}-option-${index}`)).join("")
             : `<div class="lmx-timezone-empty">No timezone found</div>`;
@@ -9814,6 +9824,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         list.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.addEventListener("click", () => chooseTimeZone(picker, option.dataset.timeZone || "UTC"));
         });
+        timeZoneRenderKeys.set(list, renderKey);
         setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
     }
 
@@ -9827,7 +9838,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function setActiveTimeZoneOption(picker: HTMLElement, active: HTMLElement | null): void {
         picker.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.classList.toggle("active", option === active);
-            option.setAttribute("aria-selected", option === active ? "true" : "false");
+            const selected = option === active ? "true" : "false";
+            if (option.getAttribute("aria-selected") !== selected) option.setAttribute("aria-selected", selected);
         });
         const input = picker.querySelector(".lmx-timezone-search input");
         if (active) input?.setAttribute("aria-activedescendant", active.id);
@@ -10011,17 +10023,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function timeZoneOffsetLabel(zone: string): string {
+        const now = new Date();
+        const minute = Math.floor(now.getTime() / 60000);
+        if (minute !== timeZoneOffsetMinute) {
+            timeZoneOffsetMinute = minute;
+            timeZoneOffsetLabels.clear();
+        }
+        let label = timeZoneOffsetLabels.get(zone);
+        if (label !== undefined) return label;
         try {
             const parts = new Intl.DateTimeFormat("en-US", {
                 timeZone: zone,
                 timeZoneName: "shortOffset",
                 hour: "2-digit",
                 minute: "2-digit"
-            }).formatToParts(new Date());
-            return parts.find(part => part.type === "timeZoneName")?.value || zone;
+            }).formatToParts(now);
+            label = parts.find(part => part.type === "timeZoneName")?.value || zone;
         } catch (_) {
-            return zone || "UTC";
+            label = zone || "UTC";
         }
+        timeZoneOffsetLabels.set(zone, label);
+        return label;
     }
 
 
