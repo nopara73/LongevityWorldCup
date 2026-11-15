@@ -4,7 +4,8 @@ const workflows = [
     { path: '.github/workflows/dotnet.yml', name: '.NET', required: true },
     { path: '.github/workflows/codeql.yml', name: 'CodeQL', required: true },
     // Image delivery has path filters; the full .NET suite also runs its tests.
-    { path: '.github/workflows/image-delivery.yml', name: 'Image delivery', required: false }
+    { path: '.github/workflows/image-delivery.yml', name: 'Image delivery', required: false },
+    { path: '.github/workflows/reddit.yml', name: 'Reddit app', required: false }
 ];
 
 function assess(runs, sha, repository) {

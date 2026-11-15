@@ -6,7 +6,7 @@ on:
     types:
       - production-deploy
   workflow_run:
-    workflows: [".NET", "CodeQL", "Image delivery"]
+    workflows: [".NET", "CodeQL", "Image delivery", "Reddit app"]
     types: [completed]
     branches: [master]
 

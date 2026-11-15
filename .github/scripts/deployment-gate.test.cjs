@@ -6,7 +6,7 @@ const sha = 'a'.repeat(40);
 const otherSha = 'b'.repeat(40);
 const repository = 'owner/site';
 function run(file, id, overrides = {}) {
-    return { id, path: `.github/workflows/${file}.yml`, name: { dotnet: '.NET', codeql: 'CodeQL', 'image-delivery': 'Image delivery' }[file],
+    return { id, path: `.github/workflows/${file}.yml`, name: { dotnet: '.NET', codeql: 'CodeQL', 'image-delivery': 'Image delivery', reddit: 'Reddit app' }[file],
         head_sha: sha, head_branch: 'master', head_repository: { full_name: repository }, event: 'push',
         status: 'completed', conclusion: 'success', updated_at: `2026-11-15T10:00:0${id}Z`,
         html_url: `https://github.com/${repository}/actions/runs/${id}`, ...overrides };
@@ -42,12 +42,18 @@ for (const wrong of [{ head_sha: otherSha }, { head_branch: 'feature' }, { head_
         assert.equal(assess([run('dotnet', 3, wrong), run('codeql', 2)], sha, repository).state, 'waiting');
     });
 }
-test('path-filtered image CI is optional only when absent', () => {
-    const required = [run('dotnet', 3), run('codeql', 2)];
-    assert.equal(assess(required, sha, repository).state, 'ready');
-    assert.equal(assess([...required, run('image-delivery', 1, { status: 'in_progress' })], sha, repository).state, 'waiting');
-    assert.equal(assess([...required, run('image-delivery', 1, { conclusion: 'failure' })], sha, repository).state, 'blocked');
-});
+for (const file of ['image-delivery', 'reddit']) {
+    test(`path-filtered ${file} CI is optional only when absent`, async () => {
+        const required = [run('dotnet', 3), run('codeql', 2)];
+        assert.equal(assess(required, sha, repository).state, 'ready');
+        assert.equal(assess([...required, run(file, 1, { status: 'in_progress' })], sha, repository).state, 'waiting');
+        assert.equal(assess([...required, run(file, 1, { conclusion: 'failure' })], sha, repository).state, 'blocked');
+        const trigger = run(file, 4);
+        const h = harness({ trigger, runs: [...required, trigger] });
+        await gate(h);
+        assert.equal(h.outputs.deploy, 'true');
+    });
+}
 test('a previous failed deployment is not a CI dependency on itself', () => {
     assert.equal(assess([...complete(), run('deploy', 4, { conclusion: 'failure' })], sha, repository).state, 'ready');
 });
