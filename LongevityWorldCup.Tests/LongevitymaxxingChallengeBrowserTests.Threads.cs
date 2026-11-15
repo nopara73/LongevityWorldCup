@@ -263,7 +263,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             const animate = Element.prototype.animate;
             Element.prototype.animate = function (...args) {
                 if (this.matches('.lmx-note, .lmx-discussion-reply-composer')) window.threadArrivals.push(this.className);
-                return animate.apply(this, args);
+                const animation = animate.apply(this, args);
+                if (this.dataset.discussionReplyId === 'motion-fixture') {
+                    // Hold the real 260ms arrival until the host changes the motion
+                    // preference; a busy CI runner can otherwise miss it entirely.
+                    animation.pause();
+                    window.threadArrivalAnimation = animation;
+                }
+                return animation;
             };
             """);
         var state = ConversationWorkspaceState();
@@ -313,5 +320,6 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(arriving).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-arriving"));
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await Assertions.Expect(arriving).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("lmx-arriving"));
+        Assert.Equal("idle", await page.EvaluateAsync<string>("window.threadArrivalAnimation.playState"));
     }
 }
