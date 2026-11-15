@@ -41,7 +41,7 @@ public sealed class LeaderboardSearchSpotlightBrowserTests(PlaywrightBrowserFixt
             """);
         var search = page.Locator("#athleteSearch");
         await search.FillAsync("unite");
-        await page.WaitForFunctionAsync("renderedSearch === 'unite'");
+        await page.WaitForFunctionAsync("() => renderedSearch === 'unite'");
         Assert.True(await flag.EvaluateAsync<bool>("chip => chip === keptReason && keptAnimation && chip.getAnimations().includes(keptAnimation)"));
         await flag.FocusAsync();
         await flag.PressAsync("Enter");
@@ -49,12 +49,12 @@ public sealed class LeaderboardSearchSpotlightBrowserTests(PlaywrightBrowserFixt
         await page.Keyboard.PressAsync("Escape");
 
         await search.FillAsync("unite mar");
-        await page.WaitForFunctionAsync("renderedSearch === 'unite mar'");
+        await page.WaitForFunctionAsync("() => renderedSearch === 'unite mar'");
         Assert.Equal(new[] { "Flag match", "Motivation match" }, await row.Locator(".search-reason").EvaluateAllAsync<string[]>("chips => chips.map(chip => chip.getAttribute('aria-label'))"));
         Assert.True(await flag.EvaluateAsync<bool>("chip => chip === keptReason"));
         await row.Locator(".search-reason--why").EvaluateAsync("chip => window.keptWhy = chip");
         await search.FillAsync("mar");
-        await page.WaitForFunctionAsync("renderedSearch === 'mar'");
+        await page.WaitForFunctionAsync("() => renderedSearch === 'mar'");
         await Assertions.Expect(flag).ToHaveCountAsync(0);
         Assert.True(await row.Locator(".search-reason--why").EvaluateAsync<bool>("chip => chip === keptWhy"));
         await search.FillAsync("");
