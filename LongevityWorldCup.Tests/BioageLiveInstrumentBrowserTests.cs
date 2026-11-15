@@ -10,6 +10,41 @@ public sealed class BioageLiveInstrumentBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("pheno", 390)]
+    [InlineData("pheno", 1280)]
+    [InlineData("bortz", 390)]
+    [InlineData("bortz", 1280)]
+    public async Task EditingACompletedField_DoesNotRewriteOtherFieldsOrFlashCalculateReadiness(string clock, int width)
+    {
+        await using var context = await NewContextAsync(width: width);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"/{clock}-age");
+        await FillBioageStepOneAsync(page, "2026-09-01");
+        var input = page.Locator("#albumin");
+        await input.FillAsync("4");
+        await WaitForFiniteAnimationsAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                window.biomarkerWrites = [];
+                const observer = new MutationObserver(records => biomarkerWrites.push(...records.map(r => `${r.target.id}:${r.attributeName}`)));
+                document.querySelectorAll('.biomarker-card input:not(#albumin)').forEach(input => observer.observe(input, { attributes: true }));
+                const calculate = document.querySelector('.bioage-calculate-button');
+                observer.observe(calculate, { attributes: true, attributeFilter: ['class', 'disabled'] });
+                window.immediateDockRefreshes = 0;
+                const refresh = window.LwcFlowActionDock.refreshNow;
+                window.LwcFlowActionDock.refreshNow = (...args) => { immediateDockRefreshes++; return refresh(...args); };
+            }
+            """);
+        await input.PressSequentiallyAsync(".12345");
+        Assert.Empty(await page.EvaluateAsync<string[]>("biomarkerWrites"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("immediateDockRefreshes"));
+        await Assertions.Expect(input).ToHaveValueAsync("4.12345");
+        await Assertions.Expect(input).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator(".bioage-calculate-button")).ToBeDisabledAsync();
+        await Assertions.Expect(page.Locator(".bioage-live-progress span")).ToHaveTextAsync(clock == "pheno" ? "1 / 9" : "1 / 22");
+    }
+
     private async Task<IBrowserContext> NewContextAsync(bool reduce = true, int width = 1440, int height = 900)
     {
         var context = await Browser.NewContextAsync(new()

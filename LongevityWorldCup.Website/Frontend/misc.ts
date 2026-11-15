@@ -711,6 +711,7 @@ function setAthleteNameHtml(element: Element, html: string): void {
 
 window.removeAllHighlights = function () {
     document.querySelectorAll('.athlete-name').forEach(element => {
+        if (!element.querySelector('.highlight')) return;
         setAthleteNameHtml(element, escapeHTML(element.textContent));
     });
 }

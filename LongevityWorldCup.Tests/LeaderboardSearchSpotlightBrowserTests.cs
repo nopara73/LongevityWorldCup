@@ -10,6 +10,29 @@ public sealed class LeaderboardSearchSpotlightBrowserTests(PlaywrightBrowserFixt
 {
     private const string Rows = ".leaderboard tbody tr[data-athlete-name]";
 
+    [Fact]
+    public async Task ClearingHighlights_PreservesNamesThatHaveNoHighlight()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await OpenAsync(context, "mar");
+        Assert.True(await page.Locator(".athlete-name .highlight").CountAsync() > 0);
+        var changed = await page.EvaluateAsync<int>("""
+            () => {
+                const untouched = [...document.querySelectorAll('.athlete-name')]
+                    .filter(name => !name.querySelector('.highlight'));
+                if (!untouched.length) throw new Error('Expected unhighlighted athletes in fixture');
+                const children = untouched.map(name => name.firstChild);
+                const names = [...document.querySelectorAll('.athlete-name')].map(name => name.textContent);
+                window.removeAllHighlights();
+                if ([...document.querySelectorAll('.athlete-name')].some((name, i) => name.textContent !== names[i]))
+                    throw new Error('Clearing highlights changed an athlete name');
+                return untouched.filter((name, i) => name.firstChild !== children[i]).length;
+            }
+            """);
+        Assert.Equal(0, changed);
+        Assert.Equal(0, await page.Locator(".athlete-name .highlight").CountAsync());
+    }
+
     [Theory]
     [InlineData(1440, 900, false)]
     [InlineData(390, 844, true)]

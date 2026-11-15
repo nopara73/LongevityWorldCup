@@ -177,6 +177,17 @@ interface Window {
 }
 
 (function () {
+    // Input handlers also wake shared DOM observers. Publish only changed state.
+    function setAttributeIfChanged(element: Element, name: string, value: string): void {
+        if (element.getAttribute(name) !== value) element.setAttribute(name, value);
+    }
+
+    function setTextIfChanged(element: Element, value: string): void {
+        if (element.textContent === value) return;
+        if (element.childNodes.length === 1 && element.firstChild instanceof Text) element.firstChild.data = value;
+        else element.textContent = value;
+    }
+
     function isObject(value: unknown): value is object {
         return typeof value === 'object' && value !== null && !Array.isArray(value);
     }
@@ -887,7 +898,7 @@ interface Window {
 
         const describedBy = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
         describedBy.add(errorId);
-        input.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
+        setAttributeIfChanged(input, 'aria-describedby', Array.from(describedBy).join(' '));
         return error;
     }
 
@@ -896,7 +907,7 @@ interface Window {
         if (error.hidden !== !visible) {
             error.hidden = !visible;
         }
-        input.setAttribute('aria-invalid', visible ? 'true' : 'false');
+        setAttributeIfChanged(input, 'aria-invalid', visible ? 'true' : 'false');
         document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`)
             ?.classList.toggle('bioage-domain-pip--invalid', visible);
     }
@@ -962,7 +973,7 @@ interface Window {
                 domain.classList.add('bioage-domain--waking');
                 window.setTimeout(() => domain.classList.remove('bioage-domain--waking'), 520);
             }
-            domain.dataset.bioageWake = next;
+            setAttributeIfChanged(domain, 'data-bioage-wake', next);
         });
     }
 
@@ -994,7 +1005,7 @@ interface Window {
     function syncBiomarkerFieldFeel(card: HTMLElement, input: HTMLInputElement, justCompleted: boolean): void {
         const far = isBiomarkerValueFarFromExample(input);
         const wasFar = card.dataset.bioageRange === 'far';
-        if (far) card.dataset.bioageRange = 'far';
+        if (far) setAttributeIfChanged(card, 'data-bioage-range', 'far');
         else delete card.dataset.bioageRange;
 
         if (far && !wasFar) {
@@ -1159,7 +1170,7 @@ interface Window {
         controller.inputs.forEach(input => {
             const isComplete = isCompleteBiomarkerInput(input);
             const wasComplete = input.dataset.bioageComplete === 'true';
-            input.dataset.bioageComplete = isComplete ? 'true' : 'false';
+            setAttributeIfChanged(input, 'data-bioage-complete', String(isComplete));
             const card = input.closest<HTMLElement>('.biomarker-card');
             card?.classList.toggle('biomarker-card--complete', isComplete);
             if (card && !controller.isUpdate && !controller.restoring) {
@@ -1176,11 +1187,12 @@ interface Window {
         syncDomainTallies(controller);
         controller.inputs.forEach((input, index) => {
             const hasOtherIncompleteInput = incompleteInputs.some(candidate => candidate !== input);
-            input.enterKeyHint = (controller.isUpdate
+            const enterKeyHint = (controller.isUpdate
                 ? index < controller.inputs.length - 1
                 : hasOtherIncompleteInput || index < controller.inputs.length - 1)
                 ? 'next'
                 : 'done';
+            setAttributeIfChanged(input, 'enterkeyhint', enterKeyHint);
         });
 
         const total = controller.inputs.length;
@@ -1189,9 +1201,9 @@ interface Window {
         const ready = controller.isUpdate
             ? completed > 0 && hasBloodDrawDate
             : total > 0 && completed === total;
-        controller.progress.textContent = controller.isUpdate
+        setTextIfChanged(controller.progress, controller.isUpdate
             ? `${completed} new biomarker${completed === 1 ? '' : 's'}${completed > 0 && !hasBloodDrawDate ? ' · blood draw date required' : ''}`
-            : `${completed} of ${total} biomarkers entered`;
+            : `${completed} of ${total} biomarkers entered`);
         controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
         primedBiomarkerControllers.add(controller);
         controller.form.style.setProperty('--bioage-entry-progress', `${total > 0 ? Math.round(completed / total * 100) : 0}%`);
@@ -1199,8 +1211,8 @@ interface Window {
         // The flow dock portals the action stack out of the form on small screens.
         const calculateButton = document.querySelector<HTMLButtonElement>('.bioage-calculate-button');
         if (calculateButton) {
-            calculateButton.disabled = !ready;
-            calculateButton.setAttribute('aria-describedby', controller.progress.id);
+            if (calculateButton.disabled !== !ready) calculateButton.disabled = !ready;
+            setAttributeIfChanged(calculateButton, 'aria-describedby', controller.progress.id);
             if (!document.getElementById('continueButton')?.classList.contains('show')) {
                 calculateButton.classList.toggle('green', ready);
                 calculateButton.classList.toggle('grey', !ready);
@@ -1573,11 +1585,9 @@ interface Window {
         if (!calculateButton || !nextButton) return;
 
         if (nextButton.classList.contains('show')) {
-            calculateButton.classList.remove('green');
-            calculateButton.classList.add('grey', 'flow-action--secondary');
-        } else {
-            calculateButton.classList.remove('grey', 'flow-action--secondary');
-            calculateButton.classList.add('green');
+            calculateButton.classList.toggle('green', false);
+            calculateButton.classList.toggle('grey', true);
+            calculateButton.classList.toggle('flow-action--secondary', true);
         }
 
         syncBioageResultActions();
@@ -1591,13 +1601,14 @@ interface Window {
 
         const hasResult = nextButton.classList.contains('show');
         document.body.classList.toggle('bioage-result-ready', hasResult);
-        resultActions.hidden = !hasResult;
+        const actionsChanged = resultActions.hidden !== !hasResult;
+        if (actionsChanged) resultActions.hidden = !hasResult;
         if (isLiveInstrumentBound()) {
             const entryActions = document.getElementById('lwcStepTwoActions');
-            if (entryActions) entryActions.hidden = hasResult;
+            if (entryActions && entryActions.hidden !== hasResult) entryActions.hidden = hasResult;
             syncLiveReadout(0);
         }
-        getFlowActionDock()?.refreshNow?.();
+        if (actionsChanged) getFlowActionDock()?.refreshNow?.();
 
         if (hasResult && !lastBioageResultActionsVisible) {
             scheduleBioageResultReveal(getShownBioageResultElement());
@@ -2377,29 +2388,29 @@ interface Window {
         const shouldShow = options.getStep() === 2;
         const parent = next.classList.contains('show') ? resultActions : entryActions;
         if (readout.parentElement !== parent) parent.insertBefore(readout, parent === resultActions ? next : liveProgress);
-        readout.hidden = !shouldShow;
+        if (readout.hidden !== !shouldShow) readout.hidden = !shouldShow;
         readout.classList.toggle('bioage-live-readout--shown', shouldShow);
-        readout.inert = !shouldShow;
-        readout.tabIndex = complete ? 0 : -1;
-        readout.setAttribute('aria-disabled', String(!complete));
-        readout.dataset.complete = String(complete);
+        if (readout.inert !== !shouldShow) readout.inert = !shouldShow;
+        setAttributeIfChanged(readout, 'tabindex', complete ? '0' : '-1');
+        setAttributeIfChanged(readout, 'aria-disabled', String(!complete));
+        setAttributeIfChanged(readout, 'data-complete', String(complete));
         readout.style.setProperty('--bioage-number-fill', `${Number.isFinite(age) ? fill : 0}%`);
         const valueText = Number.isFinite(age) ? formatBioageResultVisualValue(age) : '—';
         const valueElement = readout.querySelector<HTMLElement>('.bioage-live-readout__value');
         if (valueElement && valueElement.textContent !== valueText) {
-            valueElement.textContent = valueText;
+            setTextIfChanged(valueElement, valueText);
             if (direction && !prefersReducedBioageResultMotion()) pulseClass(valueElement, 'bioage-live-readout__value--changed', 230);
         }
         const completion = readout.querySelector<HTMLElement>('.bioage-live-readout__completion');
-        if (completion) completion.textContent = complete ? `✓ ${completed} / ${total}` : '\u00a0';
+        if (completion) setTextIfChanged(completion, complete ? `✓ ${completed} / ${total}` : '\u00a0');
         if (liveProgress) {
             liveProgress.style.setProperty('--bioage-entry-progress', `${completed / total * 100}%`);
             liveProgress.style.setProperty('--bioage-marker-count', String(total));
             const count = liveProgress.querySelector('span');
-            if (count) count.textContent = `${completed} / ${total}`;
+            if (count) setTextIfChanged(count, `${completed} / ${total}`);
         }
-        readout.dataset.bioageGapTone = gap === null ? 'good' : gap < -2 ? 'excellent' : gap < 0 ? 'good' : 'average';
-        readout.setAttribute('aria-label', complete
+        setAttributeIfChanged(readout, 'data-bioage-gap-tone', gap === null ? 'good' : gap < -2 ? 'excellent' : gap < 0 ? 'good' : 'average');
+        setAttributeIfChanged(readout, 'aria-label', complete
             ? `${options.clock} age ${valueText} years. View complete result.`
             : `${options.clock} age ${valueText} years, incomplete. ${completed} of ${total} biomarkers entered. Missing biomarkers use reference values.`);
     }
