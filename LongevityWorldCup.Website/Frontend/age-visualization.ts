@@ -53,6 +53,7 @@
     interface RadarScale {
         readonly xCenter: number;
         readonly yCenter: number;
+        readonly drawingArea?: number;
         getPointPositionForValue(index: number, value: number): RadarPoint;
     }
 
@@ -282,6 +283,7 @@
 
     var radarChartInstance: RadarChartInstance | null = null;
     var radarResizeObserver: ResizeObserver | null = null;
+    var clockTabResizeObserver: ResizeObserver | null = null;
     var radarResizeFrame = 0;
     var radarBuildGeneration = 0;
     var radarBuildFrame = 0;
@@ -325,11 +327,14 @@
     }
 
     function destroyRadarChart() {
+        cancelRadarTween();
+        radarDisplayValues = null;
         cancelRadarBuild();
         cancelRadarResize();
+        clockTabResizeObserver?.disconnect();
+        clockTabResizeObserver = null;
         if (radarResizeObserver) {
-            var wrapper = document.getElementById('ageRadarWrapper');
-            if (wrapper) radarResizeObserver.disconnect();
+            radarResizeObserver.disconnect();
             radarResizeObserver = null;
         }
         if (radarChartInstance) {
@@ -366,13 +371,107 @@
         if (fallbackBio) fallbackBio.textContent = bioText;
     }
 
+    // The radar moves like an instrument. Stepping between results morphs the
+    // web axis by axis, and its percentiles count with it. Switching clocks
+    // (six domains to five) gathers the old web into the centre and unfolds
+    // the new one with a settling turn. Only presentation values are tweened:
+    // the selected reading, tooltip and accessible values stay exact throughout.
+    var radarTweenFrame = 0;
+    var radarFoldAnimations: Animation[] = [];
+    var radarDisplayValues: number[] | null = null;
+
+    function cancelRadarTween(): void {
+        if (radarTweenFrame) cancelAnimationFrame(radarTweenFrame);
+        radarTweenFrame = 0;
+        radarFoldAnimations.forEach(function (animation) { animation.cancel(); });
+        radarFoldAnimations = [];
+    }
+
+    function easeOutCubic(t: number): number { return 1 - Math.pow(1 - t, 3); }
+    function easeOutBack(t: number): number { var c = 1.35; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
+
+    function tweenRadarValues(chart: RadarChartInstance, from: readonly number[], to: readonly number[], duration: number, stagger: number, ease: (t: number) => number, done?: () => void): void {
+        var dataset = chart.data.datasets[0];
+        if (!dataset) return;
+        // The document timeline is the clock, so the web keeps pace with CSS
+        // and Web Animations (and with DevTools slow motion).
+        var clock = function (): number { return Number(document.timeline?.currentTime ?? performance.now()); };
+        var start = clock();
+        var total = duration + stagger * Math.max(0, to.length - 1);
+        function frame(): void {
+            if (radarChartInstance !== chart || !dataset) { radarTweenFrame = 0; return; }
+            if (!getRadarAnimationDuration()) {
+                cancelRadarTween();
+                radarDisplayValues = null;
+                chart.update('none');
+                return;
+            }
+            var elapsed = clock() - start;
+            if (elapsed >= total) {
+                radarTweenFrame = 0;
+                radarDisplayValues = to.slice();
+                chart.update('none');
+                if (done) done();
+                else cancelRadarTween();
+                return;
+            }
+            radarDisplayValues = to.map(function (target, index) {
+                var origin = from[index] ?? 0;
+                var t = Math.min(1, Math.max(0, (elapsed - index * stagger) / duration));
+                return Math.max(0, Math.min(RADAR_SCALE_MAX_PERCENTILE, origin + (target - origin) * ease(t)));
+            });
+            chart.update('none');
+            radarTweenFrame = requestAnimationFrame(frame);
+        }
+        radarTweenFrame = requestAnimationFrame(frame);
+    }
+
     function applyRadarData(data: RadarData | null): void {
         if (!radarChartInstance || !data) return;
-        radarChartInstance.data.labels = data.labels;
-        var dataset = radarChartInstance.data.datasets[0];
+        var chart = radarChartInstance;
+        var dataset = chart.data.datasets[0];
+        var previousLabels = chart.data.labels || [];
+        var previousValues = radarDisplayValues?.slice() || dataset?.data.slice() || [];
+        cancelRadarTween();
+        var sameShape = previousLabels.length === data.labels.length
+            && previousLabels.every(function (label, index) { return label === data.labels[index]; });
+        chart.data.labels = data.labels;
         if (dataset) dataset.data = data.values;
-        if (data.tooltipContributors) radarChartInstance._radarTooltipContributors = data.tooltipContributors;
-        radarChartInstance.update('active');
+        chart._radarTooltipContributors = data.tooltipContributors;
+        if (!getRadarAnimationDuration() || !dataset) {
+            radarDisplayValues = null;
+            chart.update('none');
+            return;
+        }
+        // Keep domains aligned even when a new selection interrupts the fold.
+        radarDisplayValues = data.labels.map(function (label) { return previousValues[previousLabels.indexOf(label)] ?? 0; });
+        chart.update('none');
+        if (sameShape) {
+            tweenRadarValues(chart, previousValues, data.values, 520, 34, easeOutCubic);
+            return;
+        }
+        var wrapper = document.getElementById('ageRadarWrapper');
+        // Phone canvases use the card's full width. Keep their unfolding inside
+        // the card instead of rotating labels into horizontal overflow.
+        var turn = window.matchMedia?.('(max-width: 768px)').matches ? 0 : 1;
+        var unfold = function (): void {
+            if (radarChartInstance !== chart || !dataset) return;
+            var zeros = data.values.map(function () { return 0; });
+            radarDisplayValues = zeros;
+            chart.update('none');
+            if (wrapper) radarFoldAnimations.push(wrapper.animate(
+                [{ transform: 'rotate(' + (16 * turn) + 'deg) scale(.92)', opacity: 0.25 }, { transform: 'none', opacity: 1 }],
+                { duration: 560, easing: 'cubic-bezier(.2, 0, 0, 1)' }
+            ));
+            tweenRadarValues(chart, zeros, data.values, 560, 48, easeOutBack);
+        };
+        if (!wrapper || !previousLabels.length) { unfold(); return; }
+        // The old web gathers into the centre before the new clock opens.
+        radarFoldAnimations.push(wrapper.animate(
+            [{ transform: 'none', opacity: 1 }, { transform: 'rotate(' + (-12 * turn) + 'deg) scale(.95)', opacity: 0.4 }],
+            { duration: 180, easing: 'cubic-bezier(.3, 0, 1, 1)' }
+        ));
+        tweenRadarValues(chart, radarDisplayValues, data.values.map(function () { return 0; }), 180, 0, function (t) { return t * t; }, unfold);
     }
 
     var resultDateFormat = new Intl.DateTimeFormat('en-GB', {
@@ -410,7 +509,8 @@
         }
         var selectedIndex = 0;
         readings.forEach(function (reading, index) {
-            if (reading.bio < (readings[selectedIndex]?.bio ?? Infinity)) selectedIndex = index;
+            var selected = readings[selectedIndex];
+            if (!selected || reading.bio - reading.chrono < selected.bio - selected.chrono) selectedIndex = index;
         });
         return { readings: readings, selectedIndex: selectedIndex };
     }
@@ -529,7 +629,25 @@
             if (later) later.hidden = !multiple;
             if (chevron) chevron.style.display = multiple ? '' : 'none';
             if (current) current.setAttribute('aria-hidden', multiple ? 'true' : 'false');
+            placeClockGlide();
             showReading(state.selectedIndex);
+        }
+
+        // One underline glides between the clocks and takes the chosen clock's colour.
+        var clockTablist = tabBortz?.parentElement || null;
+        function placeClockGlide(): void {
+            var selected = useBortz ? tabBortz : tabPheno;
+            if (!clockTablist || !selected || !selected.offsetWidth) return;
+            clockTablist.dataset.glide = useBortz ? 'bortz' : 'pheno';
+            clockTablist.style.setProperty('--clock-tab-x', selected.offsetLeft + 'px');
+            clockTablist.style.setProperty('--clock-tab-y', (selected.offsetTop + selected.offsetHeight - 2) + 'px');
+            clockTablist.style.setProperty('--clock-tab-w', selected.offsetWidth + 'px');
+        }
+        if (clockTablist && 'ResizeObserver' in window) {
+            clockTabResizeObserver = new ResizeObserver(placeClockGlide);
+            clockTabResizeObserver.observe(clockTablist);
+            if (tabBortz) clockTabResizeObserver.observe(tabBortz);
+            if (tabPheno) clockTabResizeObserver.observe(tabPheno);
         }
 
         if (select) select.onchange = function () { showReading(Number(select?.value)); };
@@ -558,7 +676,7 @@
             var centerEl = document.getElementById('ageRadarCenter');
             var ChartConstructor = window.Chart;
             if (!data || !ChartConstructor || !canvas) {
-                destroyRadarChart();
+                cancelRadarBuild();
                 wrapper.style.display = 'none';
                 if (centerEl) centerEl.style.display = 'none';
                 fallback.style.display = data ? 'flex' : 'none';
@@ -633,6 +751,31 @@
             }
             var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
             var contributors = data.tooltipContributors || [];
+            var radarMotionPlugin = {
+                id: 'radarMotion',
+                afterDatasetUpdate: function (chart: RadarPluginChart, args: { readonly meta: { readonly data: Array<{ x: number; y: number }> } }): void {
+                    const scale = chart.scales?.r;
+                    if (!scale || !radarDisplayValues) return;
+                    args.meta.data.forEach(function (point, index) {
+                        var position = scale.getPointPositionForValue(index, radarDisplayValues?.[index] ?? 0);
+                        point.x = position.x;
+                        point.y = position.y;
+                    });
+                }
+            };
+            // A soft glow under the web in the clock's colour.
+            var radarGlowPlugin = {
+                id: 'radarGlow',
+                beforeDatasetDraw: function (chart: RadarPluginChart): void {
+                    chart.ctx.save();
+                    chart.ctx.shadowColor = clockColor(0.55);
+                    chart.ctx.shadowBlur = 14;
+                },
+                afterDatasetDraw: function (chart: RadarPluginChart): void {
+                    chart.ctx.restore();
+                }
+            };
+
             var radarWebSpokesPlugin = {
                 id: 'radarWebSpokes',
                 beforeDatasetsDraw: function (chart: RadarPluginChart): void {
@@ -657,13 +800,22 @@
 
             radarChartInstance = new ChartConstructor(ctx, {
                 type: 'radar',
-                plugins: [radarWebSpokesPlugin],
+                plugins: [radarWebSpokesPlugin, radarGlowPlugin, radarMotionPlugin],
                 data: {
                     labels: data.labels,
                     datasets: [{
                         label: 'Percentile (higher = better)',
                         data: data.values,
-                        backgroundColor: function () { return clockColor(0.16); },
+                        // The web deepens toward its rim, so strong domains read as reach, not just area.
+                        backgroundColor: function (context: { readonly chart: RadarPluginChart }) {
+                            var scale = context.chart.scales?.r;
+                            if (!scale || !scale.drawingArea) return clockColor(0.16);
+                            var gradient = context.chart.ctx.createRadialGradient(scale.xCenter, scale.yCenter, 0, scale.xCenter, scale.yCenter, scale.drawingArea);
+                            gradient.addColorStop(0, clockColor(0.04));
+                            gradient.addColorStop(0.7, clockColor(0.2));
+                            gradient.addColorStop(1, clockColor(0.36));
+                            return gradient;
+                        },
                         borderColor: function () { return clockColor(); },
                         // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.
                         hoverBackgroundColor: function () { return clockColor(0.16); },
@@ -749,7 +901,7 @@
                                 color: radarLabelColor,
                                 // Each domain carries its percentile under its name, like a labelled axis.
                                 callback: function (this: { readonly chart?: { readonly width: number; readonly data: { readonly datasets: ReadonlyArray<{ readonly data: readonly unknown[] }> } } }, label: string, index: number): string | string[] {
-                                    var value = Number(this?.chart?.data.datasets[0]?.data[index]);
+                                    var value = Number(radarDisplayValues?.[index] ?? this?.chart?.data.datasets[0]?.data[index]);
                                     var width = this?.chart?.width ?? 420;
                                     var names = width < 260 ? wrapRadarText(label, Math.max(32, width * .28), 11, '500') : [label];
                                     return Number.isFinite(value) ? names.concat(String(Math.round(value))) : names;
@@ -864,8 +1016,13 @@
 
     // Invalidate pending work at close intent; the drawn chart can leave with
     // its whole card before the existing completion path destroys it.
-    document.addEventListener('athlete-dialog-close-requested', cancelRadarBuild, true);
-    document.addEventListener('athlete-dialog-closing', cancelRadarBuild, true);
+    function cancelRadarWork(): void {
+        cancelRadarBuild();
+        cancelRadarTween();
+        cancelRadarResize();
+    }
+    document.addEventListener('athlete-dialog-close-requested', cancelRadarWork, true);
+    document.addEventListener('athlete-dialog-closing', cancelRadarWork, true);
     window.generateAgeVisualization = generateAgeVisualization;
     window.generateAgeVisualizationInternal = generateAgeVisualizationInternal;
     window.destroyAgeRadarChart = destroyRadarChart;

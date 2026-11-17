@@ -174,11 +174,11 @@ public sealed class RejuvenationOlympicsBrowserTests(
             ViewportSize = new() { Width = width, Height = 900 }
         });
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/");
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.GetByRole(AriaRole.Link, new() { Name = "Coming from Rejuvenation Olympics?" }).ClickAsync();
-        await page.WaitForURLAsync("**/rejuvenation-olympics");
+        await page.WaitForURLAsync("**/rejuvenation-olympics", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.GetByRole(AriaRole.Link, new() { Name = "Join Longevity World Cup" }).ClickAsync();
-        await page.WaitForURLAsync("**/join");
+        await page.WaitForURLAsync("**/join", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#joinTrackPanel")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#playStartPanel")).ToBeHiddenAsync();
     }

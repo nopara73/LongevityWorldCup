@@ -18,6 +18,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
     internal const string Instagram = "instagram";
     internal const string Nostr = "nostr";
     internal const string Reddit = "reddit";
+    internal const string Telegram = "telegram";
     private static string Timestamp(DateTimeOffset value) => value.UtcDateTime.ToString("o");
 
     internal static void InitializeChannel(DatabaseManager db, string platform, bool baselineSelectedTargets = false) => db.Run(sqlite =>
@@ -136,21 +137,75 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         return (reader.GetString(0), reader.GetString(1));
     });
 
-    internal void BeginAttempt(string platform, string id, DateTimeOffset now) => db.Run(sqlite =>
+    internal bool BeginAttempt(string platform, string id, DateTimeOffset now, bool onlyIfUnattempted = false) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
-        cmd.CommandText = "UPDATE SocialDeliveries SET FirstAttemptAtUtc = COALESCE(FirstAttemptAtUtc, @now) WHERE EventId = @id AND Platform = @platform AND Status = 'pending';";
+        cmd.CommandText = """
+            UPDATE SocialDeliveries SET FirstAttemptAtUtc = COALESCE(FirstAttemptAtUtc, @now)
+            WHERE EventId = @id AND Platform = @platform AND Status = 'pending'
+              AND (@firstOnly = 0 OR (FirstAttemptAtUtc IS NULL AND (NextAttemptAtUtc IS NULL OR NextAttemptAtUtc <= @now)));
+            """;
         cmd.Parameters.AddWithValue("@id", id);
         cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@now", Timestamp(now));
-        cmd.ExecuteNonQuery();
+        cmd.Parameters.AddWithValue("@firstOnly", onlyIfUnattempted ? 1 : 0);
+        return cmd.ExecuteNonQuery() == 1;
     });
 
     internal void Complete(string platform, string id, SocialPostReceipt receipt, DateTimeOffset now) => Update(platform, id, "sent", null, receipt, null, false, now);
     internal void Skip(string platform, string id, string reason, DateTimeOffset now) => Update(platform, id, "skipped", reason, null, null, false, now);
+    internal void Reject(string platform, string id, string reason, DateTimeOffset now) => Update(platform, id, "failed", reason, null, null, false, now);
     internal void RequireReview(string platform, string id, DateTimeOffset now) => Update(platform, id, "review", "UnconfirmedPost", null, null, false, now);
     internal void Fail(string platform, string id, string code, TimeSpan retryDelay, bool clearFirstAttempt, DateTimeOffset now) =>
         Update(platform, id, "pending", code, null, now.Add(retryDelay), clearFirstAttempt, now);
+
+    internal bool SuppressSupersededBadge(string platform, string id, EventType type, string text,
+        Func<string, bool> isCurrentBadgeAward, DateTimeOffset now)
+    {
+        if (!SocialEventSkipPolicy.IsSupersededBadgeAward(type, text, isCurrentBadgeAward)) return false;
+        db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
+                VALUES (@id, @platform, 'skipped', 'SupersededBadgeAward', @now)
+                ON CONFLICT(EventId, Platform) DO UPDATE SET
+                    Status = CASE WHEN SocialDeliveries.FirstAttemptAtUtc IS NULL THEN 'skipped' ELSE 'review' END,
+                    LastErrorCode = 'SupersededBadgeAward', NextAttemptAtUtc = NULL, UpdatedAtUtc = @now
+                WHERE SocialDeliveries.Status = 'pending';
+                """;
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@platform", platform);
+            cmd.Parameters.AddWithValue("@now", Timestamp(now));
+            cmd.ExecuteNonQuery();
+        });
+        return true;
+    }
+
+    internal static void SuppressUnsentEvent(SqliteConnection sqlite, SqliteTransaction tx, string id, string reason, DateTimeOffset now)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = """
+            UPDATE Events SET
+                XSkipReason = CASE WHEN XProcessed = 0 THEN @reason ELSE XSkipReason END,
+                ThreadsSkipReason = CASE WHEN ThreadsProcessed = 0 THEN @reason ELSE ThreadsSkipReason END,
+                FacebookSkipReason = CASE WHEN FacebookProcessed = 0 THEN @reason ELSE FacebookSkipReason END,
+                SlackProcessed = 1, XProcessed = 1, ThreadsProcessed = 1, FacebookProcessed = 1
+            WHERE Id = @id;
+            WITH targets(Platform) AS (VALUES ('bluesky'), ('webpush'), ('mastodon'), ('instagram'), ('nostr'), ('reddit'), ('telegram'))
+            INSERT INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
+            SELECT @id, Platform, 'skipped', @reason, @now FROM targets WHERE true
+            ON CONFLICT(EventId, Platform) DO UPDATE SET
+                Status = CASE WHEN SocialDeliveries.FirstAttemptAtUtc IS NULL THEN 'skipped' ELSE 'review' END,
+                LastErrorCode = @reason, NextAttemptAtUtc = NULL, UpdatedAtUtc = @now
+            WHERE SocialDeliveries.Status = 'pending';
+            """;
+        cmd.Parameters.AddWithValue("@id", id);
+        cmd.Parameters.AddWithValue("@reason", reason);
+        cmd.Parameters.AddWithValue("@now", Timestamp(now));
+        cmd.ExecuteNonQuery();
+    }
 
     private void Update(string platform, string id, string status, string? reason, SocialPostReceipt? receipt, DateTimeOffset? retryAt,
         bool clearFirstAttempt, DateTimeOffset now) => db.Run(sqlite =>
@@ -163,7 +218,8 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
                 Status = @status, LastErrorCode = @reason, RemoteUri = @uri, RemoteCid = @remoteId,
                 NextAttemptAtUtc = @retry, AttemptCount = SocialDeliveries.AttemptCount + @failed,
                 FirstAttemptAtUtc = CASE WHEN @clear = 1 THEN NULL ELSE SocialDeliveries.FirstAttemptAtUtc END,
-                UpdatedAtUtc = @now;
+                UpdatedAtUtc = @now
+            WHERE @status NOT IN ('review', 'pending') OR SocialDeliveries.Status = 'pending';
             """;
         cmd.Parameters.AddWithValue("@id", id);
         cmd.Parameters.AddWithValue("@platform", platform);

@@ -130,7 +130,8 @@ interface Window {
         const text = element.textContent || "";
         const target = parseFigure(text);
         stopCount(element);
-        if (!target || !motion() || !element.isConnected || !element.checkVisibility()) return;
+        // Keep the real number without per-frame fallback layout work in older engines.
+        if (!target || !motion() || !element.isConnected || !element.checkVisibility?.()) return;
         const start = from !== undefined && Number.isFinite(from) ? from : 0;
         if (Math.abs(start - target.value) < Math.pow(10, -target.decimals) / 2) return;
         const duration = Math.min(1100, 520 + Math.log10(1 + Math.abs(target.value - start)) * 160);
@@ -146,7 +147,7 @@ interface Window {
         };
         const tick = (now: number): void => {
             const progress = Math.min(1, (now - began) / duration);
-            if (progress >= 1 || !motion() || !element.isConnected || !element.checkVisibility() || (element.textContent || "") !== text) {
+            if (progress >= 1 || !motion() || !element.isConnected || !element.checkVisibility?.() || (element.textContent || "") !== text) {
                 stopCount(element);
                 return;
             }
@@ -498,7 +499,7 @@ interface Window {
         if (!motion()) return;
         const started = performance.now();
         const step = (): void => {
-            if (!motion() || !chart.canvas.isConnected || !chart.canvas.checkVisibility()) return;
+            if (!motion() || !chart.canvas.isConnected || !chart.canvas.checkVisibility?.()) return;
             chart.draw();
             if (performance.now() - started < 1200) chart._lwcRipple = requestAnimationFrame(step);
             else chart._lwcRipple = 0;

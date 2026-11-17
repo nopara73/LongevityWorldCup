@@ -49,7 +49,12 @@ public sealed class LeaderboardInteractionContinuityBrowserTests(
         if (path == "/") await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await target.ScrollIntoViewIfNeededAsync();
-        if (fontSize == 32) await page.WaitForTimeoutAsync(350);
+        if (fontSize == 32)
+        {
+            await page.EvaluateAsync("async () => { await fitHomepageHighlights(); }");
+            await WaitForFiniteAnimationsAsync(page, "#events-root-index, #events-root-index *");
+            await target.ScrollIntoViewIfNeededAsync();
+        }
         var position = await page.EvaluateAsync<double>("scrollY");
         var layout = await page.Locator("main").GetAttributeAsync("data-homepage-visit-layout");
         await page.GotoAsync("/about", new() { WaitUntil = fontSize == 32 ? WaitUntilState.DOMContentLoaded : WaitUntilState.Load });
@@ -71,7 +76,7 @@ public sealed class LeaderboardInteractionContinuityBrowserTests(
             finally { releaseFonts.TrySetResult(); }
             await page.WaitForDocumentLoadedAsync();
             await page.EvaluateAsync("() => document.fonts.ready");
-            await page.WaitForTimeoutAsync(800);
+            await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-restoring')");
         }
         else await page.GoBackAsync();
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");

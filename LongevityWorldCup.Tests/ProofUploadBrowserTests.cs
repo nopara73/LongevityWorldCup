@@ -156,13 +156,14 @@ public sealed class ProofUploadBrowserTests(
     [Fact]
     public async Task ResultUpload_SubmitsPdfProofFromReportedFlow()
     {
+        const string bloodDrawDate = "2026-11-06";
         var app = App;
         var browser = Browser;
-        await using var context = await NewContextAsync(browser, app);
+        await using var context = await NewContextAsync(browser, app, timezoneId: "Asia/Bangkok");
         var payloadTask = await RoutePageDependenciesAndCaptureApplicationPostAsync(context);
 
         await context.AddInitScriptAsync(
-            """
+            $$"""
             const originalCanvasToBlob = HTMLCanvasElement.prototype.toBlob;
             window.__proofCanvasEncodeRequests = { webp: 0, jpeg: 0 };
             HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
@@ -198,7 +199,7 @@ public sealed class ProofUploadBrowserTests(
             window.sessionStorage.setItem('biomarkerData', JSON.stringify({
                 Biomarkers: [
                     {
-                        Date: '2026-06-19',
+                        Date: '{{bloodDrawDate}}',
                         Wbc1000cellsuL: 6.1,
                         LymPc: 31,
                         McvFL: 89,
@@ -214,6 +215,7 @@ public sealed class ProofUploadBrowserTests(
             """);
 
         var page = await context.NewPageAsync();
+        await page.Clock.SetFixedTimeAsync(new DateTime(2026, 11, 5, 18, 0, 0, DateTimeKind.Utc));
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
@@ -284,6 +286,7 @@ public sealed class ProofUploadBrowserTests(
 
         Assert.Equal("Majoros Gabor", payload.GetProperty("name").GetString());
         Assert.Equal("gabor@example.test", payload.GetProperty("accountEmail").GetString());
+        Assert.Equal(bloodDrawDate, payload.GetProperty("biomarkers")[0].GetProperty("Date").GetString());
         Assert.Equal(JsonValueKind.Null, payload.GetProperty("paymentOffer").ValueKind);
         Assert.False(string.IsNullOrWhiteSpace(payload.GetProperty("submissionId").GetString()));
         var proofs = payload.GetProperty("proofPics").EnumerateArray().ToList();
@@ -578,12 +581,13 @@ public sealed class ProofUploadBrowserTests(
         Assert.Equal("review@example.test", await page.Locator("#contactEmailPlaceholder").InnerTextAsync());
     }
 
-    private static async Task<IBrowserContext> NewContextAsync(IBrowser browser, BrowserTestApp app)
+    private static async Task<IBrowserContext> NewContextAsync(IBrowser browser, BrowserTestApp app, string? timezoneId = null)
     {
         return await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US"
+            Locale = "en-US",
+            TimezoneId = timezoneId
         });
     }
 

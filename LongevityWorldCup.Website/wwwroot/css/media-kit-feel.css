@@ -1,0 +1,127 @@
+/* Media kit as a press room: how taking a file feels.
+   media.html's inline script sets aria-busy while a file is pulled out of the
+   archive, data-downloaded when it lands and data-collected on the tile;
+   Frontend/media-kit-feel.ts marks the whole kit collected. Only --lwc-* colours.
+   The .media-kit-main prefix outranks the page's inline rules. */
+
+/* ------------------------------------------------------------ the button */
+.media-kit-main .media-file-tile .media-file-button {
+    /* Replace the shared hover transform instead of compounding both scales. */
+    transform: none;
+    transition:
+        background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        box-shadow 200ms ease;
+}
+.media-kit-main .media-file-doc .media-file-button {
+    /* Anchor the ring without shifting the control out of its grid cell. */
+    position: relative;
+    inset: auto;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .media-kit-main .media-file-tile:hover .media-file-button { scale: 1.08; box-shadow: 0 6px 16px -6px rgba(15, 23, 42, .45); }
+}
+
+/* While the file is being pulled out: an arc runs round the button. */
+.media-kit-main .media-file-button::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--lwc-accent) 0 28%, transparent 28% 100%);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+}
+.media-kit-main .media-file-button[aria-busy="true"]::after {
+    opacity: 1;
+    animation: media-take-spin 720ms linear infinite;
+}
+.media-kit-main .media-file-button[aria-busy="true"]::before { opacity: .55; }
+@keyframes media-take-spin { to { rotate: 1turn; } }
+
+/* It lands: the ring closes and bursts, the arrow becomes a check that pops. */
+.media-kit-main .media-file-button[data-downloaded] {
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent, #fff);
+}
+.media-kit-main .media-file-button[data-downloaded]::before {
+    content: "\f00c" / "";
+    animation: media-take-check 420ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1));
+}
+.media-kit-main .media-file-button[data-downloaded]::after {
+    background: var(--lwc-accent);
+    opacity: 0;
+    animation: media-take-burst 560ms cubic-bezier(.2, 0, 0, 1);
+}
+@keyframes media-take-check { 0% { scale: .3; rotate: -25deg; } 60% { scale: 1.25; } 100% { scale: 1; rotate: 0deg; } }
+@keyframes media-take-burst { 0% { opacity: .9; scale: .9; } 100% { opacity: 0; scale: 1.6; } }
+
+/* ------------------------------------------------------------ the tile */
+/* Pictures breathe a little toward the pointer. */
+.media-kit-main .media-file-tile .media-file-thumb[data-state="ready"] img { transform: none; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .media-kit-main .media-file-tile:not(.media-file-doc):hover .media-file-thumb img { scale: 1.045; }
+}
+
+/* A collected file keeps a quiet stamp for the visit: an accent corner with a
+   check, and an accent edge on the caption. */
+.media-kit-main .media-file-tile[data-collected] { border-color: color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border)); }
+.media-kit-main .media-file-tile[data-collected]::after {
+    content: "\f00c" / "";
+    position: absolute;
+    z-index: 3;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: start;
+    width: 2.6rem;
+    height: 2.6rem;
+    padding: .3rem 0 0 .35rem;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, var(--lwc-accent) 50%, transparent 50%);
+    color: var(--lwc-on-accent, #fff);
+    font: 900 .7rem/1 "Font Awesome 6 Free", "Font Awesome 5 Free";
+    pointer-events: none;
+    animation: media-stamp-in 420ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1));
+}
+.media-kit-main .media-file-tile.media-file-doc[data-collected]::after { width: 2rem; height: 2rem; font-size: .6rem; }
+@keyframes media-stamp-in { from { clip-path: polygon(0 0, 0 0, 0 0); } to { clip-path: polygon(0 0, 100% 0, 0 100%); } }
+.media-kit-main .media-file-tile:not(.media-file-doc)[data-collected] .media-file-name { box-shadow: inset 3px 0 0 var(--lwc-accent); }
+
+/* ------------------------------------------------------------ the whole kit */
+.media-kit-main .media-kit-primary-download {
+    transition: background-color 160ms ease, box-shadow 200ms ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .media-kit-main .media-kit-primary-download:hover { box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--lwc-accent) 85%, transparent); }
+    .media-kit-main .media-kit-primary-download:hover::before { animation: media-kit-nudge 700ms cubic-bezier(.2, 0, 0, 1); }
+}
+.media-kit-main .media-kit-primary-download[data-taken]::before { content: "\f00c" / ""; }
+@keyframes media-kit-nudge { 40% { translate: 0 3px; } 70% { translate: 0 -1px; } }
+
+@media (prefers-reduced-motion: no-preference) {
+    .media-kit-main .media-file-tile .media-file-button {
+        transition: background-color 140ms var(--lwc-ease, ease), color 140ms var(--lwc-ease, ease),
+            scale 200ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)), box-shadow 200ms ease;
+    }
+    .media-kit-main .media-file-tile .media-file-button:active { scale: .9; }
+    .media-kit-main .media-file-thumb img {
+        transition: opacity 220ms var(--lwc-ease, ease), filter 600ms var(--lwc-ease, ease), scale 700ms cubic-bezier(.2, 0, 0, 1);
+    }
+    .media-kit-main .media-kit-primary-download {
+        transition: background-color 160ms ease, box-shadow 200ms ease, scale 200ms var(--lwc-ease-pop, ease);
+    }
+    .media-kit-main .media-kit-primary-download:active { scale: .97; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .media-kit-main .media-file-button[aria-busy="true"]::after { animation: none; background: var(--lwc-accent); opacity: .35; }
+    .media-kit-main .media-file-button[data-downloaded]::before,
+    .media-kit-main .media-file-button[data-downloaded]::after,
+    .media-kit-main .media-file-tile[data-collected]::after,
+    .media-kit-main .media-kit-primary-download:hover::before { animation: none; }
+    .media-kit-main .media-file-thumb img { transition: opacity 120ms linear; }
+}

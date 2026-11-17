@@ -11,7 +11,7 @@ public sealed class ProofUploadLayoutBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    private const string AthleteState = """
+    internal const string AthleteState = """
         window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
             Name: 'Browser Test Athlete', DisplayName: 'Browser Test Athlete', Biomarkers: []
         }));
@@ -154,7 +154,7 @@ public sealed class ProofUploadLayoutBrowserTests(
     [InlineData(1280, 720, 100)]
     [InlineData(1440, 900, 200)]
     [InlineData(844, 390, 200)]
-    public async Task LongTracker_UsesThePageScrollAndKeepsItsLastCheckboxReachable(int width, int height, int textPercent)
+    public async Task LongTracker_UsesAvailableSpaceAndKeepsItsLastCheckboxReachable(int width, int height, int textPercent)
     {
         await using var context = await CreateContextAsync(width, height);
         var page = await OpenAsync(context);
@@ -163,8 +163,18 @@ public sealed class ProofUploadLayoutBrowserTests(
         await page.WaitForFunctionAsync("() => !document.getElementById('proofPicInput').disabled && document.querySelectorAll('.proof-page-card').length === 3");
 
         var tracker = page.Locator("#biomarker-checklist");
-        Assert.True(await tracker.EvaluateAsync<bool>("element => element.scrollHeight <= element.clientHeight + 1"),
-            "The tracker should grow with its content rather than add an inner scrollbar.");
+        var desktopTracker = width >= 960 && height > 480 && textPercent == 100;
+        if (desktopTracker)
+        {
+            await Assertions.Expect(tracker).ToHaveCSSAsync("position", "sticky");
+            Assert.True(await tracker.EvaluateAsync<bool>("element => element.scrollHeight > element.clientHeight"),
+                "The full desktop tracker should scroll inside its available viewport height.");
+        }
+        else
+        {
+            Assert.True(await tracker.EvaluateAsync<bool>("element => element.scrollHeight <= element.clientHeight + 1"),
+                "Enlarged text and short windows must keep the tracker in the page scroll.");
+        }
         var checkboxes = tracker.Locator("input");
         Assert.True(await checkboxes.CountAsync() > 20, "Exercise the complete Bortz tracker.");
         await checkboxes.Nth(await checkboxes.CountAsync() - 2).FocusAsync();
@@ -175,6 +185,18 @@ public sealed class ProofUploadLayoutBrowserTests(
         await checkboxes.Last.ScrollIntoViewIfNeededAsync();
         var last = (await checkboxes.Last.BoundingBoxAsync())!;
         Assert.InRange(last.Y, 0, height - last.Height);
+        Assert.True(await checkboxes.Last.EvaluateAsync<bool>("""
+            element => {
+                const rect = element.getBoundingClientRect();
+                return document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) === element;
+            }
+            """), "The last checkbox must be reachable above the action dock, not just within the window.");
+        if (textPercent == 200 && width >= 960)
+        {
+            var proofs = (await page.Locator("#proofImageContainer").BoundingBoxAsync())!;
+            var workspace = (await page.Locator(".proof-upload-workspace").BoundingBoxAsync())!;
+            Assert.InRange(Math.Abs(proofs.Width - workspace.Width), 0, 1);
+        }
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
@@ -394,7 +416,7 @@ public sealed class ProofUploadLayoutBrowserTests(
         return context;
     }
 
-    private static async Task<IPage> OpenAsync(IBrowserContext context)
+    internal static async Task<IPage> OpenAsync(IBrowserContext context)
     {
         var page = await context.NewPageAsync();
         await page.GotoAsync("/proofs");
@@ -405,7 +427,7 @@ public sealed class ProofUploadLayoutBrowserTests(
     }
 
     // Distinct small report images, so duplicate detection keeps every page.
-    private static async Task<FilePayload[]> CreateProofImagesAsync(IBrowserContext context, int count)
+    internal static async Task<FilePayload[]> CreateProofImagesAsync(IBrowserContext context, int count)
     {
         var painter = await context.NewPageAsync();
         await painter.SetViewportSizeAsync(300, 400);

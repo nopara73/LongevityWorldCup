@@ -87,6 +87,9 @@ public sealed class HomepageLoadingBrowserTests(
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => window.modulesReady");
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 1", target);
+        // Only the held response should cross the synthetic deadline. Let the other
+        // shared request finish consuming its real response body before advancing time.
+        await page.EvaluateAsync("path => path === '/api/events' ? window.getSharedAthletes() : window.getSharedEvents()", target);
         await page.Clock.FastForwardAsync(10_001);
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 2", target,
             new() { Timeout = 3000 });

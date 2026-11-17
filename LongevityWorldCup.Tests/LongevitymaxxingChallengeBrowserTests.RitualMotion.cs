@@ -302,7 +302,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxCheckinTab").ClickAsync();
         var form = page.Locator(".lmx-checkin-card");
         await AnswerHabitAsync(form, "sleep", "yes");
-        await page.WaitForTimeoutAsync(400);
+        await WaitForFiniteAnimationsAsync(page, ".lmx-checkin-card, .lmx-checkin-card *");
         await TakeMotionLogAsync(page);
         var session = await context.NewCDPSessionAsync(page);
         await session.SendAsync("Emulation.setCPUThrottlingRate", new Dictionary<string, object> { ["rate"] = cpuSlowdown });

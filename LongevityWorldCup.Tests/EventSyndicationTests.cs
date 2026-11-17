@@ -35,6 +35,7 @@ public sealed class EventSyndicationTests
             Item("pro", EventType.BecamePro, "slug[ada_lovelace]"),
             Item("bio", EventType.BiologicalAgeImproved, "slug[ada_lovelace] clock[pheno] from[40] to[35.5]"),
             Item("crowd", EventType.CrowdAgeTop10Change, "slug[ada_lovelace] place[2] prevPlace[3] crowdAge[25] crowdCount[123]"),
+            Item("pheno-rank", EventType.PhenoAgeTop10Change, "slug[ada_lovelace] place[6] ageReduction[-20.4]"),
             Item("improvement", EventType.AgeImprovementTop10Change, "slug[ada_lovelace] clock[pheno] place[1] improvement[-8.1] ageReduction[-12.4]"),
             Item("accepted-profile-only", EventType.TestResultAccepted, "slug[ada_lovelace] date[2026-01-01]"),
             Item("hidden", EventType.CustomEvent, "Private announcement") with { VisibleOnWebsite = false },
@@ -44,7 +45,8 @@ public sealed class EventSyndicationTests
         var xml = EventSyndication.Build(items, Athletes(), atom);
         var document = XDocument.Parse(xml);
         var entries = Entries(document, atom);
-        Assert.Equal(12, entries.Length);
+        Assert.Equal(13, entries.Length);
+        Assert.Contains("entered the top 10 at 6th in Pheno Age", xml);
         Assert.Equal("utf-8", document.Declaration?.Encoding);
         Assert.DoesNotContain("private-participant", xml);
         Assert.DoesNotContain("Private announcement", xml);

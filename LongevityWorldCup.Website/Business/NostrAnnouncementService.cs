@@ -42,7 +42,7 @@ public sealed class NostrAnnouncementService(
                     deliveries.Skip(Platform, item.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                     && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
                 if (pending.RecordJson is null)
                 {
@@ -70,7 +70,8 @@ public sealed class NostrAnnouncementService(
                     }
                     var saved = JsonSerializer.Deserialize<NostrEvent>(json)
                         ?? throw new NostrRelayException("NostrInvalidPreparedEvent");
-                    deliveries.BeginAttempt(Platform, item.Id, time.GetUtcNow());
+                    if (deliveries.SuppressSupersededBadge(Platform, item.Id, item.Type, item.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
+                    if (!deliveries.BeginAttempt(Platform, item.Id, time.GetUtcNow())) continue;
                     var receipt = await relays.PublishAsync(saved, ct);
                     deliveries.Complete(Platform, item.Id, receipt, time.GetUtcNow());
                     log.LogInformation("Nostr delivered event {EventId}: {NostrEventId}", item.Id, receipt.Id);

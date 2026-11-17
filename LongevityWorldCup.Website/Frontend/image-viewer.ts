@@ -106,11 +106,16 @@ interface Window {
         scope.querySelectorAll<HTMLImageElement>(selector).forEach(mark);
     }
 
+    function hasLayoutBox(element: Element): boolean {
+        // Callers retain their explicit hidden/disclosure exclusions.
+        return element.checkVisibility?.() ?? element.getClientRects().length > 0;
+    }
+
     function neighbours(image: HTMLImageElement): HTMLImageElement[] {
         const group = image.closest(GROUPS);
         if (!group) return [image];
         const images = Array.from(group.querySelectorAll<HTMLImageElement>('img[data-lwc-viewable]'))
-            .filter(candidate => candidate.checkVisibility() && !candidate.closest('[hidden], details:not([open])'));
+            .filter(candidate => hasLayoutBox(candidate) && !candidate.closest('[hidden], details:not([open])'));
         return images.includes(image) ? images : [image];
     }
 
@@ -552,7 +557,7 @@ interface Window {
         if (event.key === 'Escape') { event.preventDefault(); requestClose(); return; }
         if (event.key === 'Tab') {
             const controls = Array.from(dialog!.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]'))
-                .filter(control => control.checkVisibility() && !control.closest('[hidden]'));
+                .filter(control => hasLayoutBox(control) && !control.closest('[hidden]'));
             const first = controls[0]; const last = controls.at(-1);
             if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }

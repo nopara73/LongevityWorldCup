@@ -35,13 +35,13 @@ public class FacebookDailyPostJob : IJob
         foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, priority) in pending)
         {
             if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(type, text, occurredAtUtc, priority,
-                    DateTime.UtcNow.AddDays(-7), _athletes.HasSingleGlobalPlaceOneBadgeHolder, out var skipReason))
+                    DateTime.UtcNow.AddDays(-7), _athletes.HasSingleGlobalPlaceOneBadgeHolder, out var skipReason, _athletes.IsCurrentBadgeAward))
             {
                 skippedEvents.Add((id, skipReason));
                 continue;
             }
 
-            var subject = type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+            var subject = type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                 && EventHelpers.TryExtractSlug(text, out var slug) ? slug : null;
             if (subject is not null && _fillerLog.IsSubjectOnCooldown(subject, SubjectCooldown, DateTime.UtcNow))
                 continue;

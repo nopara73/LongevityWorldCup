@@ -188,3 +188,64 @@ html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLead
     :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
     main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg){ transition:none !important; }
 }
+
+
+/* 7) The rank rail as an instrument.
+      It appears only once the column heads are pinned, so it never covers
+      the tabs or the intro, and hangs from just under them. At rest it is a
+      slim track with small rank marks; the thumb carries the rank under the
+      heads. Scrubbing widens the track and opens a balloon beside the thumb
+      with the portrait, rank and name of the athlete under it. Only numbers
+      and athletes' own names, no new words. */
+.lb-rail{
+    bottom:max(48px, env(safe-area-inset-bottom, 0px) + 48px);
+    width:44px; right:2px;
+    translate:14px 0;
+    transition:opacity var(--lwc-motion-base, 200ms) linear, translate var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, cubic-bezier(.2,0,0,1)), visibility 0s linear var(--lwc-motion-base, 200ms);
+}
+.lb-rail.is-visible{ translate:0 0; }
+.lb-rail-track::before{
+    right:6px; width:3px; background:color-mix(in srgb, var(--lwc-border) 80%, transparent);
+    transition:width var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), right var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease), background-color var(--lwc-motion-fast, 140ms) linear;
+}
+.lb-rail.is-scrubbing .lb-rail-track::before{ right:4px; width:7px; background:color-mix(in srgb, var(--lwc-accent) 22%, var(--lwc-border)); }
+
+/* Marks: a small number and a notch on the track; the 44px target stays invisible. */
+.lb-rail-tick,
+.lb-rail.is-scrubbing .lb-rail-tick:not(.is-section){
+    min-width:44px; min-height:44px; padding:0 14px 0 0;
+    border:0; border-radius:0; background:transparent; box-shadow:none;
+    color:var(--lwc-muted, #52606d); font-size:.68rem; font-weight:700; text-align:right;
+}
+.lb-rail-tick::after{ right:4px; width:7px; height:2px; border-radius:2px; background:var(--lwc-border-strong, var(--lwc-border)); }
+.lb-rail.is-scrubbing .lb-rail-tick:not(.is-section){ color:var(--lwc-ink); }
+.lb-rail-tick:focus-visible{ outline:2px solid var(--lwc-accent); outline-offset:-2px; border-radius:var(--lwc-radius-sm, 4px); }
+
+.lb-rail-thumb{ right:0; min-width:30px; padding:3px 7px; box-shadow:0 2px 8px color-mix(in srgb, var(--lwc-accent) 35%, transparent); }
+
+/* The balloon: who is under the thumb, while scrubbing. */
+.lb-rail-balloon{
+    position:absolute; right:46px; translate:0 -50%;
+    display:grid; grid-template-columns:36px minmax(0, 1fr); grid-template-rows:auto auto; column-gap:8px; align-items:center;
+    width:max-content; max-width:min(62vw, 240px); padding:6px 12px 6px 6px; box-sizing:border-box;
+    border:1px solid var(--lwc-border); border-radius:24px;
+    background:var(--lwc-surface); color:var(--lwc-ink); box-shadow:var(--lwc-shadow-md, 0 12px 28px rgba(15,23,42,.18));
+    pointer-events:none; opacity:0; scale:.85; transform-origin:right center;
+    transition:opacity var(--lwc-motion-fast, 140ms) linear, scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease);
+}
+.lb-rail.is-scrubbing .lb-rail-balloon{ opacity:1; scale:1; }
+.lb-rail-balloon > img{ grid-row:1 / span 2; width:36px; height:36px; border-radius:50%; object-fit:cover; box-shadow:0 0 0 2px var(--lwc-accent); }
+.lb-rail-balloon > img[hidden]{ display:none; }
+.lb-rail-balloon > strong{ grid-column:2; color:var(--lwc-accent); font-size:.8rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+.lb-rail-balloon > span{ grid-column:2; min-width:0; font-size:.85rem; font-weight:600; line-height:1.2; overflow-wrap:anywhere; }
+.lb-rail-balloon:has(> img[hidden]){ grid-template-columns:minmax(0, 1fr); }
+.lb-rail-balloon:has(> img[hidden]) > :is(strong, span){ grid-column:1; }
+
+@media (prefers-reduced-motion:no-preference){
+    .lb-rail-balloon{ transition:opacity var(--lwc-motion-fast, 140ms) linear, scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), top 60ms linear; }
+}
+html:not([data-lwc-motion="on"]) .lb-rail-balloon, html:not([data-lwc-motion="on"]) .lb-rail-track::before{ transition:none !important; }
+@media (prefers-reduced-motion:reduce){
+    .lb-rail{ translate:0 0; }
+    .lb-rail-balloon, .lb-rail-track::before{ transition:none !important; }
+}
