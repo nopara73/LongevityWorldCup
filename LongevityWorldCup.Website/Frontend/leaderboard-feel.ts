@@ -633,68 +633,77 @@ function initializeLeaderboardFeel(): void {
     invalidateRows();
 
     // --- League masthead ---------------------------------------------------------
-    // A league (a generation, division, flag or any other) is a place people land
-    // on and share, so its name becomes the board's title, beside a small podium
-    // of the league's top three faces. When the league changes, those faces rise
-    // out of their rows into the podium and the title rolls in.
+    // A league (a generation, division, flag, track or exclusive league) is a
+    // place people land on and share, so it gets a masthead: the league's own
+    // emblem (the glyph or flag from its filter tile) in an accent tile beside
+    // its name, set as the board's title. The masthead names the league, so the
+    // rail's sideways name steps aside and a small league's board ends with its
+    // last row. Choosing another league pops its emblem in and rolls the title.
     const leagueTitle = document.getElementById("leaderboardLeagueTitle");
     const identity = leagueTitle?.closest<HTMLElement>(".leaderboard-identity");
-    if (leagueTitle && identity) {
-        const crest = document.createElement("span");
-        crest.className = "league-crest";
-        crest.setAttribute("aria-hidden", "true");
-        identity.prepend(crest);
+    const filters = document.getElementById("leaderboardFilters");
+    if (leagueTitle && identity && filters) {
+        const emblem = document.createElement("span");
+        emblem.className = "league-emblem";
+        emblem.setAttribute("aria-hidden", "true");
+        emblem.hidden = true;
+        identity.prepend(emblem);
         let shownTitle = "";
+        let settledOnce = false;
         let pending = 0;
-        const topPortraits = (): HTMLImageElement[] => Array.from(body.querySelectorAll<HTMLTableRowElement>("tr[data-athlete-name]"))
-            .filter(row => row.getClientRects().length > 0)
-            .slice(0, 3)
-            .map(row => row.querySelector<HTMLImageElement>("img.portrait"))
-            .filter((image): image is HTMLImageElement => !!image);
+        const leagueIcons = (): Element[] => Array.from(filters.querySelectorAll<HTMLInputElement>("input:checked"))
+            .map(input => input.closest("label")?.querySelector(".filter-label-copy > :is(.filter-icon, .lwc-flag-icon)"))
+            .filter((icon): icon is Element => !!icon)
+            .slice(0, 2);
+        // The board sizes itself to fit the rail's name; let it measure again.
+        const releaseRail = (): void => {
+            filters.style.removeProperty("--leaderboard-title-height");
+            window.dispatchEvent(new Event("scroll"));
+        };
         const settleLeague = (): void => {
             pending = 0;
             const title = leagueTitle.hidden ? "" : (leagueTitle.textContent || "").trim();
-            main!.toggleAttribute("data-league", !!title);
+            if (main!.hasAttribute("data-league") !== !!title) {
+                main!.toggleAttribute("data-league", !!title);
+                releaseRail();
+            }
+            const first = !settledOnce;
+            settledOnce = true;
             if (!title) {
-                crest.replaceChildren();
-                delete crest.dataset["signature"];
+                emblem.replaceChildren();
+                emblem.hidden = true;
+                delete emblem.dataset["signature"];
                 shownTitle = "";
                 return;
             }
-            const sources = topPortraits();
-            const signature = sources.map(image => image.currentSrc || image.src).join("|");
+            const icons = leagueIcons();
+            const signature = icons.map(icon => icon.className).join("|");
             const changed = title !== shownTitle;
-            if (!changed && crest.dataset["signature"] === signature) return;
-            crest.dataset["signature"] = signature;
-            const faces = sources.map((source, index) => {
-                const face = document.createElement("img");
-                face.src = source.currentSrc || source.src;
-                face.alt = "";
-                face.decoding = "async";
-                face.className = `league-crest-face league-crest-face--${index + 1}`;
-                return face;
-            });
-            crest.replaceChildren(...faces);
-            if (!changed) return;
             shownTitle = title;
-            if (!moving()) return;
-            const viewport = document.documentElement.clientHeight;
-            faces.forEach((face, index) => {
-                const from = sources[index]!.getBoundingClientRect();
-                const to = face.getBoundingClientRect();
-                const inView = from.width > 0 && from.bottom > 0 && from.top < viewport;
-                const start = inView && to.width
-                    ? `translate(${from.left + from.width / 2 - (to.left + to.width / 2)}px, ${from.top + from.height / 2 - (to.top + to.height / 2)}px) scale(${from.width / to.width})`
-                    : "translateY(10px) scale(.4)";
-                // Third and second land first; the winner takes the middle last.
-                const order = [2, 1, 0][index] ?? 0;
-                face.animate([{ transform: start, opacity: inView ? 0.7 : 0 }, { transform: "none", opacity: 1 }],
-                    { duration: 560, delay: order * 80, easing: "cubic-bezier(0.34, 1.32, 0.64, 1)", fill: "backwards" });
-            });
+            if (!changed && emblem.dataset["signature"] === signature) return;
+            emblem.dataset["signature"] = signature;
+            emblem.dataset["kind"] = icons[0]?.classList.contains("lwc-flag-icon") ? "flag" : "glyph";
+            emblem.replaceChildren(...icons.map((icon, index) => {
+                const copy = icon.cloneNode(true) as Element;
+                copy.removeAttribute("id");
+                copy.classList.add(index ? "league-emblem-badge" : "league-emblem-mark");
+                if (index && copy.classList.contains("lwc-flag-icon")) copy.classList.add("is-flag");
+                return copy;
+            }));
+            emblem.hidden = !icons.length;
+            // A page that opens on a league shows its masthead at rest.
+            if (!changed || first || !moving()) return;
+            if (!emblem.hidden) {
+                emblem.animate([
+                    { transform: "scale(.55) rotate(-8deg)", opacity: 0 },
+                    { transform: "scale(1.08) rotate(2deg)", opacity: 1, offset: .6 },
+                    { transform: "none", opacity: 1 },
+                ], { duration: 460, easing: "cubic-bezier(0.34, 1.32, 0.64, 1)" });
+            }
             leagueTitle.animate([
                 { opacity: 0, transform: "translateY(12px)", clipPath: "inset(0 0 100% 0)" },
                 { opacity: 1, transform: "none", clipPath: "inset(0 0 0 0)" },
-            ], { duration: 380, easing: ease("--lwc-ease-enter") });
+            ], { duration: 380, delay: 60, easing: ease("--lwc-ease-enter"), fill: "backwards" });
         };
         const scheduleLeague = (): void => {
             if (pending) return;
@@ -702,7 +711,6 @@ function initializeLeaderboardFeel(): void {
         };
         new MutationObserver(scheduleLeague).observe(leagueTitle,
             { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
-        new MutationObserver(scheduleLeague).observe(body, { childList: true });
         scheduleLeague();
     }
 }
