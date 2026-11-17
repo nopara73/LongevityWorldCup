@@ -1229,7 +1229,7 @@
                                     type: `HTTP ${responseStatus}`,
                                     message: badResponse
                                 });
-                                customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
+                                customAlert(responseStatus === 413 ? badResponse : `Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
                                     isResultUploadSubmitting = false;
                                     submitButton.disabled = false;
                                     uploadProofButton.disabled = false;
