@@ -250,67 +250,6 @@
                 min-width: 0 !important;
             }
 
-        .bioage-input-comparison-chip {
-            position: static;
-            align-self: flex-end;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.22rem;
-            max-width: 100%;
-            margin-top: 0.35rem;
-            padding: 0.16rem 0.42rem;
-            border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.22));
-            border-radius: 999px;
-            background: var(--lwc-surface, rgba(255, 255, 255, 0.88));
-            color: var(--lwc-muted, #526373);
-            font-size: 0.73rem;
-            font-weight: 600;
-            line-height: 1.2;
-            white-space: normal;
-            overflow: visible;
-            text-overflow: clip;
-            overflow-wrap: anywhere;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-            .bioage-input-comparison-chip[hidden] {
-                display: none;
-            }
-
-            .bioage-input-comparison-chip i {
-                flex: 0 0 auto;
-                width: 0.68rem;
-                font-size: 0.68rem;
-                line-height: 1;
-                text-align: center;
-            }
-
-            .bioage-input-comparison-chip__text {
-                min-width: 0;
-                overflow: visible;
-                text-overflow: clip;
-            }
-
-            .bioage-input-comparison-chip.is-improved {
-                border-color: var(--lwc-success, rgba(47, 125, 90, 0.35));
-                background: var(--lwc-success-soft, rgba(240, 253, 244, 0.9));
-                color: var(--lwc-success, #2f7d5a);
-            }
-
-            .bioage-input-comparison-chip.is-regressed {
-                border-color: var(--lwc-danger, rgba(155, 74, 74, 0.35));
-                background: var(--lwc-danger-soft, rgba(254, 242, 242, 0.9));
-                color: var(--lwc-danger, #9b4a4a);
-            }
-
-        @media (max-width: 420px) {
-            .bioage-input-comparison-chip {
-                max-width: 100%;
-                font-size: 0.68rem;
-            }
-        }
-
         /* Give all selects proper right padding and a consistent arrow */
         .bioageform select,
         #dobFieldset select {
