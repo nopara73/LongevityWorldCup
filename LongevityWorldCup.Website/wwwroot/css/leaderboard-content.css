@@ -609,14 +609,6 @@
  .filter-section .filter-count-group{ margin-left:auto; padding-left:.5rem; font-size:0; }
  .filter-section .filter-count{ font-size:.875rem; }
 
- .sidebar-filter-list{ container:league-filters / inline-size; }
- /* Let labels and counts flow together when enlarged text outgrows the aligned columns. */
- @container league-filters (max-width:10em){
-     .filter-section .filter-label-copy{ display:block; }
-     .filter-section .filter-label-copy .filter-icon{ width:auto; margin-right:.35em; }
-     .filter-section .filter-count-group{ margin-left:0; padding-left:0; font-size:.875rem; }
- }
-
  /* =========================
     5) Search & toolbar (search + view badges on one line on desktop)
     ========================= */
@@ -2362,11 +2354,6 @@
      .sidebar::-webkit-scrollbar-track{ background:transparent; }
      .sidebar::-webkit-scrollbar-thumb{ background:rgba(0,188,212,.45); border-radius:999px; border:2px solid var(--card-bg); }
      .sidebar::-webkit-scrollbar-thumb:hover{ background:rgba(0,188,212,.68); }
-     .sidebar.expanded::after{
-         content:''; position:fixed; top:5.4rem; left:calc(min(82vw, 320px) - .7rem); bottom:1rem; width:3px; border-radius:999px;
-         background:linear-gradient(to bottom, rgba(0,188,212,.08), rgba(0,188,212,.42), rgba(0,188,212,.08));
-         pointer-events:none;
-     }
      .sidebar:hover:not(.button-collapsed):not([aria-hidden="true"]),
      .sidebar.expanded{
          display:block; width:320px; max-width:calc(100vw - 2rem);
@@ -3528,7 +3515,10 @@
  .leaderboard-controls #athleteSearch:not(:placeholder-shown) { padding-right: calc(var(--search-clear-size) + .5rem); }
  .leaderboard-controls #athleteSearch:not(:placeholder-shown) ~ .search-icon { display: none; }
  .leaderboard-controls .clear-icon { right: .25rem; width: var(--search-clear-size); height: var(--search-clear-size); }
- .leaderboard-controls .ranking-explanation { flex: 1 1 24rem; min-width: 0; margin: 0; }
+ .leaderboard-identity { flex: 1 1 24rem; min-width: 0; }
+ .leaderboard-league-title { margin: 0 0 .25rem; color: var(--primary-color); font-family: Roboto, sans-serif; font-size: 1.125rem; font-weight: 700; line-height: 1.3; text-align: left; overflow-wrap: anywhere; }
+ .leaderboard-league-title[hidden] { display: none; }
+ .leaderboard-controls .ranking-explanation { min-width: 0; margin: 0; }
  .leaderboard-controls .leaderboard-selection-summary {
      display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--lwc-space-2);
      min-width: 0; margin: 0; margin-inline-start: auto;
@@ -3544,7 +3534,7 @@
      .leaderboard-controls { margin-top: var(--lwc-space-2); }
      .leaderboard-controls .leaderboard-toolbar { padding: var(--lwc-space-3); }
      .leaderboard-controls-status { padding: var(--lwc-space-2) var(--lwc-space-3); }
-     .leaderboard-controls .ranking-explanation { flex-basis: 100%; }
+     .leaderboard-identity { flex-basis: 100%; }
      .leaderboard-controls .leaderboard-selection-summary { flex: 1 1 100%; margin-inline-start: 0; }
      /* Rankings share the row by label length and wrap whole, so narrow
         screens and enlarged text never split a name mid-word. */
@@ -3629,13 +3619,13 @@
  .sidebar-rail { display: none; }
  .sidebar-panel { display: contents; }
 
- /* The desktop rail keeps its footprint. A full-width panel slides over the
-    results, so opening never squeezes its controls or reflows every table row. */
+ /* The collapsed rail follows the results. The shared filter stylesheet
+    owns the in-flow deck and bottom-sheet layouts. */
  @media (min-width: 933px), (min-width: 769px) and (min-height: 481px) {
      .leaderboard { container: leaderboard-results / inline-size; flex-wrap: wrap; overflow: visible; }
      .leaderboard > :is(table, .flag-leaderboard) { border-radius: 0 var(--radius-lg, 12px) var(--radius-lg, 12px) 0; overflow: clip; }
      .leaderboard > table { flex-basis: 0; min-width: 0; }
-     .sidebar { --leaderboard-sidebar-open-width: min(19rem, 336px, 40cqi); --sidebar-motion-duration: 180ms; box-sizing: border-box; z-index: 3; }
+     .sidebar { --sidebar-motion-duration: 180ms; box-sizing: border-box; z-index: 3; }
      .sidebar,
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) {
          display: grid; grid-template-columns: 50px; grid-template-rows: minmax(0, 1fr); position: relative; top: auto;
@@ -3652,15 +3642,9 @@
      .sidebar .collapsed-title,
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .collapsed-title { display: block; }
      .sidebar-panel {
-         --sidebar-panel-open: 0; display: flex; flex-direction: column; grid-area: 1 / 1; align-self: start;
-         position: sticky; top: var(--leaderboard-sidebar-sticky-top); width: var(--leaderboard-sidebar-open-width);
-         min-height: 0; max-height: var(--leaderboard-sidebar-viewport-height); box-sizing: border-box; overflow: hidden;
-         border: 1px solid var(--lwc-border); border-radius: 0 12px 12px 0; background: var(--card-bg); box-shadow: 8px 4px 24px rgba(15,23,42,.12);
-         opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none;
-         transition: opacity var(--sidebar-motion-duration) var(--lwc-ease, ease), transform var(--sidebar-motion-duration) var(--lwc-ease, ease), visibility 0s linear var(--sidebar-motion-duration);
+         display: flex; flex-direction: column; grid-area: 1 / 1; align-self: start;
+         min-height: 0; box-sizing: border-box;
      }
-     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 1; opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
-     .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 0; }
      .sidebar .sidebar-heading,
      .sidebar:is(:hover, .expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-heading { flex: 0 0 auto; width: 100%; margin: 0; padding-inline: min(1rem, 16px); }
      .sidebar .sidebar-title { justify-content: flex-start; }
@@ -3676,28 +3660,9 @@
      @media (prefers-reduced-motion: reduce) {
          .sidebar-panel, .sidebar-rail { transition: none; }
      }
-     /* Reflow against text size as well as pixels: enlarged results need the
-        full board width instead of being squeezed alongside the filters. */
      @container leaderboard-results (max-width: 45rem) {
-         .sidebar { --leaderboard-sidebar-open-width: 100cqi; }
-         .sidebar-panel { transition: none; }
-         /* Enlarged text needs room for whole header words, rather than doubled gutters. */
          .leaderboard table th:not(:first-child) { padding-inline: min(var(--lwc-space-4), 4px); }
          .leaderboard table th a { padding-inline: 0; }
-         .sidebar.expanded:not(.button-collapsed):not([aria-hidden="true"]) { flex-basis: 100%; width: 100%; grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); }
-         .sidebar.expanded .sidebar-panel { position: static; max-height: min(55dvh, var(--leaderboard-sidebar-viewport-height)); border: 0; border-radius: 0; box-shadow: none; }
-         .sidebar.expanded .sidebar-rail { display: none; }
-         .sidebar.expanded ~ table { flex-basis: 100%; }
-         /* The narrow/text-enlarged layout opens with the button. A transient
-            hover cannot take width from the results and change their height. */
-         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) {
-             position: relative; top: auto; width: 50px; padding: 0; align-items: center;
-             height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
-             min-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px));
-             max-height: max(var(--leaderboard-table-height), var(--leaderboard-title-height, 0px)); overflow: hidden;
-         }
-         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-panel { --sidebar-panel-open: 0; opacity: 0; transform: translateX(-8px); visibility: hidden; pointer-events: none; }
-         .sidebar:hover:not(.expanded):not(.button-collapsed):not([aria-hidden="true"]) .sidebar-rail { opacity: 1; }
      }
  }
  .sidebar-toggle.has-active-state::after { content: attr(data-filter-count); display: grid; place-items: center; width: 18px; height: 18px; top: -7px; right: -7px; background: var(--lwc-accent); color: var(--lwc-on-accent); font: 700 11px Roboto, sans-serif; border: 2px solid var(--lwc-surface); box-sizing: content-box; }
@@ -5886,4 +5851,85 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     #detailsModal .athlete-share-wrapper > button > i,
     #detailsModal .athlete-links i::before,
     #detailsModal .athlete-links i::after{ transition:none !important; animation:none !important; transform:none !important; }
+}
+
+/* =========================
+   Search spotlight: every match explains itself without words.
+   Name matches sweep their highlight in; a matching badge lights up with a
+   ring; a match hidden in the flag, media contact or motivation adds a glyph
+   chip after the name whose tooltip is the matching snippet. Rows that match
+   arrive in a short cascade (see leaderboard-page.js markSearchReasons).
+   ========================= */
+.leaderboard .athlete-name .highlight,
+.flag-team-name .highlight,
+.search-reason-popover .highlight,
+.leaderboard .is-search-value{
+    background:linear-gradient(var(--lwc-accent-soft, rgba(0,188,212,.16)), var(--lwc-accent-soft, rgba(0,188,212,.16))) left center / 100% 100% no-repeat;
+    animation:lwc-search-sweep 280ms var(--lwc-ease-standard, ease) both;
+}
+.leaderboard table tbody .badge-class.is-search-hit{
+    position:relative; z-index:1;
+    box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 4px var(--lwc-accent);
+    filter:drop-shadow(0 0 1.5px var(--lwc-accent)) drop-shadow(0 0 4px color-mix(in srgb, var(--lwc-accent) 70%, transparent));
+    animation:lwc-search-badge 520ms var(--lwc-ease-pop, ease-out) both;
+}
+.leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){
+    opacity:.45; filter:saturate(.6);
+    transition:opacity 200ms ease, filter 200ms ease;
+}
+.leaderboard table tbody .badge-class.badge-family-domain.is-search-hit{
+    background:var(--lwc-accent-bright, #19c3d1)!important;
+    box-shadow:none;
+}
+.leaderboard table tbody .badge-class.badge-family-domain.is-search-hit::before{ inset:3px; }
+.leaderboard .search-reason,
+.flag-leaderboard .search-reason{
+    display:inline-grid; place-items:center; flex:0 0 auto;
+    width:2rem; height:2rem; min-width:2rem; min-height:2rem; margin:0 0 0 .25rem; padding:0;
+    border:0;
+    border-radius:50%;
+    background:var(--lwc-accent-soft); color:var(--lwc-accent);
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--lwc-accent) 35%, transparent);
+    font-size:.75rem; line-height:1; cursor:pointer;
+    animation:lwc-search-reason 320ms var(--lwc-ease-pop, ease-out) both;
+    animation-delay:calc(var(--search-reason-index, 0) * 60ms + 80ms);
+}
+.search-reason:is(:hover, [aria-expanded="true"]){ background:var(--lwc-accent); color:var(--lwc-on-accent, #fff); }
+.search-reason:focus-visible{ outline:2px solid var(--lwc-accent); outline-offset:2px; }
+.leaderboard .search-reason--badge{ display:none; }
+.search-reason-popover{
+    position:fixed; inset:auto; margin:0; box-sizing:border-box;
+    width:max-content; max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px);
+    padding:.8rem 1rem; border:1px solid var(--lwc-border-strong); border-radius:.75rem;
+    background:var(--lwc-surface); color:var(--lwc-ink);
+    box-shadow:0 8px 32px rgba(0,0,0,.22);
+    font:inherit; font-size:.9rem; line-height:1.5;
+    white-space:pre-line; overflow-wrap:anywhere; overflow:auto;
+}
+@media (max-width:900px), (max-width:932px) and (max-height:480px) and (orientation:landscape){
+    .leaderboard .search-reason--badge{ display:inline-grid; }
+    .leaderboard .search-reason, .flag-leaderboard .search-reason{ width:2.75rem; height:2.75rem; min-width:2.75rem; min-height:2.75rem; }
+}
+.leaderboard .search-reason--why i{ transform:translateY(-1px); }
+@keyframes lwc-search-sweep{
+    from{ background-size:0% 100%; }
+    to{ background-size:100% 100%; }
+}
+@keyframes lwc-search-badge{
+    0%{ transform:scale(.85); box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 0 var(--lwc-accent); }
+    55%{ transform:scale(1.14); box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 7px color-mix(in srgb, var(--lwc-accent) 40%, transparent); }
+    100%{ transform:none; box-shadow:0 0 0 2px var(--lwc-surface, #fff), 0 0 0 4px var(--lwc-accent); }
+}
+@keyframes lwc-search-reason{
+    from{ opacity:0; transform:scale(.4) rotate(-20deg); }
+}
+@media (prefers-reduced-motion: reduce){
+    .leaderboard .athlete-name .highlight,
+    .flag-team-name .highlight,
+    .search-reason-popover .highlight,
+    .leaderboard .is-search-value,
+    .leaderboard table tbody .badge-class.is-search-hit,
+    .leaderboard .search-reason,
+    .flag-leaderboard .search-reason{ animation:none; }
+    .leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){ transition:none; }
 }

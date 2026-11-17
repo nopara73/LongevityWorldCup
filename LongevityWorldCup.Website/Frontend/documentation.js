@@ -229,6 +229,7 @@ function setDocumentationNavOpen(documentationNav, open) {
     const updateTimelines = () => {
         const line = window.innerHeight * 0.5;
         for (const timeline of timelines) {
+            if (timeline.hasAttribute("data-live")) continue;
             const bounds = timeline.getBoundingClientRect();
             const fill = Math.min(1, Math.max(0, (line - bounds.top) / Math.max(1, bounds.height)));
             timeline.style.setProperty("--timeline-fill", fill.toFixed(4));

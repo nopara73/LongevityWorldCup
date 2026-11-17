@@ -43,7 +43,7 @@ public sealed class InstagramAnnouncementService(
                     deliveries.Skip(SocialDeliveryStore.Instagram, item.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                     && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
                 if (pending.RecordJson is null)
                 {
@@ -71,10 +71,18 @@ public sealed class InstagramAnnouncementService(
                     }
                     var prepared = JsonSerializer.Deserialize<InstagramPostRequest>(json)
                         ?? throw new InvalidOperationException("The saved Instagram request is invalid.");
+                    // An attempted publish can only recover its receipt or enter review.
+                    // Keep that recovery path available even after ownership changes.
+                    if (pending.FirstAttemptAtUtc is null && deliveries.SuppressSupersededBadge(
+                            SocialDeliveryStore.Instagram, item.Id, item.Type, item.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
                     var receipt = await publisher.PublishAsync(pending, prepared, ct);
                     deliveries.Complete(SocialDeliveryStore.Instagram, item.Id, receipt, time.GetUtcNow());
                     log.LogInformation("Instagram delivered event {EventId}: {PostUrl}", item.Id, receipt.Url);
                     return;
+                }
+                catch (InstagramApiException ex) when (ex.Code == "DeliverySuppressed")
+                {
+                    continue;
                 }
                 catch (Exception ex) when (!ct.IsCancellationRequested)
                 {

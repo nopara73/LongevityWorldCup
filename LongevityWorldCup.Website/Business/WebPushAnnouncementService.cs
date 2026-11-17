@@ -43,7 +43,7 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
                     deliveries.Skip(SocialDeliveryStore.WebPush, item.Id, reason.ToString(), now);
                     continue;
                 }
-                var subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
+                var subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
                     && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug : null;
                 if (subject is not null && (store.HasPendingSubject(subject)
                         || deliveries.IsSubjectOnCooldown(SocialDeliveryStore.WebPush, subject, now))) continue;
@@ -58,6 +58,8 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
             foreach (var announcement in store.Pending())
             {
                 ct.ThrowIfCancellationRequested();
+                if (deliveries.SuppressSupersededBadge(SocialDeliveryStore.WebPush, announcement.Id, announcement.Type,
+                        announcement.Text, athletes.IsCurrentBadgeAward, now)) continue;
                 var payload = announcement.Payload ?? store.Prepare(announcement, BuildPayload(announcement, assets,
                     announcement.Type == EventType.CustomEvent ? null : messageComposer.TryBuildMessage(
                         announcement.Type, announcement.Text, announcement.Id, announcement.VisibleOnWebsite, ResolveName)), now);

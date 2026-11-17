@@ -365,7 +365,7 @@ public sealed class AutocompleteInteractionBrowserTests(
         await context.RouteAsync("**/api/data/flags", route => route.FulfillAsync(new()
         {
             ContentType = "application/json",
-            Body = """["Argentina","Australia","Austria","Belgium","Brazil","Canada","Denmark","Estonia","France","Germany","Hungary","India","Italy","Japan","United Kingdom","United States"]"""
+            Body = """["Argentina","Australia","Austria","Belgium","Brazil","Canada","Denmark","Estonia","France","Germany","Hungary","India","Italy","Japan","Liberland","United Kingdom","United States"]"""
         }));
         await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
         {

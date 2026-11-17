@@ -155,6 +155,7 @@ interface PendingApplicationSubmission {
     readonly applicantName: string | null;
     readonly accountEmail: string | null;
     readonly createdAt: number;
+    readonly entryId: string | null;
 }
 
 interface PendingApplicationSubmissionDetails {
@@ -333,10 +334,10 @@ interface BadgeAthlete extends AgeVisualizationAthlete {
     readonly SubmissionCount?: unknown;
     readonly submissionCount?: unknown;
     readonly crowdCount?: unknown;
-    readonly bortzAgeDifference?: unknown;
-    readonly BortzAgeDiffFromBaseline?: unknown;
-    readonly phenoAgeDifference?: unknown;
-    readonly PhenoAgeDiffFromBaseline?: unknown;
+    readonly bortzAgeImprovement?: unknown;
+    readonly BortzAgeImprovementFromWorst?: unknown;
+    readonly phenoAgeImprovement?: unknown;
+    readonly PhenoAgeImprovementFromWorst?: unknown;
 }
 
 type DiscountComponentKind =
@@ -455,6 +456,7 @@ interface Window {
     __pendingApplicationSubmissionFingerprint?: string;
     createApplicationSubmissionPayloadKey(applicantData: unknown): string;
     createApplicationSubmissionId(payloadFingerprint?: string): string;
+    beginApplicationEntry(): boolean;
     rememberPendingApplicationSubmission(details: PendingApplicationSubmissionDetails): void;
     getPendingApplicationSubmission(submissionKind?: string): PendingApplicationSubmission | null;
     clearPendingApplicationSubmission(submissionId?: string): void;

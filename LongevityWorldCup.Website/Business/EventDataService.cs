@@ -45,7 +45,8 @@ public enum EventType
     BiologicalAgeImproved = 10,
     CrowdAgeTop10Change = 11,
     AgeImprovementTop10Change = 12,
-    TestResultAccepted = 13
+    TestResultAccepted = 13,
+    PhenoAgeTop10Change = 14
 }
 
 public sealed record CustomEventDeliveryTargets(
@@ -59,7 +60,8 @@ public sealed record CustomEventDeliveryTargets(
     bool SendToReddit = false,
     bool SendToBluesky = false,
     bool SendToWebPush = false,
-    bool SendToInstagram = false)
+    bool SendToInstagram = false,
+    bool SendToTelegram = false)
 {
     public CustomEventStorageFlags ToStorageFlags() => new(
         VisibleOnWebsite: SendToWebpage ? 1 : 0,
@@ -123,6 +125,7 @@ public sealed partial class EventDataService : IDisposable
     private readonly FacebookEventService _facebookEvents;
     private readonly ILogger<EventDataService> _log;
     private readonly bool _enableEventDispatch;
+    private readonly bool _telegramConfigured;
     private readonly AthleteDataCorrections _corrections;
     private int _processingImmediateCustomEvents;
 
@@ -132,7 +135,7 @@ public sealed partial class EventDataService : IDisposable
 
     public JsonArray Events { get; private set; } = [];
 
-    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log, IConfiguration configuration, AthleteDataCorrections? corrections = null)
+    public EventDataService(IWebHostEnvironment env, SlackEventService slackEvents, XEventService xEvents, ThreadsEventService threadsEvents, FacebookEventService facebookEvents, DatabaseManager db, ILogger<EventDataService> log, IConfiguration configuration, AthleteDataCorrections? corrections = null, Config? config = null)
     {
         _slackEvents = slackEvents;
         _xEvents = xEvents;
@@ -141,6 +144,7 @@ public sealed partial class EventDataService : IDisposable
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _log = log;
         _enableEventDispatch = configuration.GetValue("EnableEventDispatch", !env.IsDevelopment());
+        _telegramConfigured = config?.Telegram is not null;
         _corrections = corrections ?? new AthleteDataCorrections();
 
         var dataDir = EnvironmentHelpers.GetDataDir();
@@ -284,6 +288,8 @@ public sealed partial class EventDataService : IDisposable
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Bluesky);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.WebPush);
         SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Instagram);
+        if (_telegramConfigured)
+            SocialDeliveryStore.InitializeChannel(_db, SocialDeliveryStore.Telegram, baselineSelectedTargets: true);
 
         if (_enableEventDispatch)
         {
@@ -350,7 +356,7 @@ public sealed partial class EventDataService : IDisposable
                     if (affected != 1) continue;
 
                     var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
-                    if (ShouldSkipSlackNotification(type, occurredAtUtc, freshCutoffUtc))
+                    if (ShouldSkipSlackNotification(type, occurredAtUtc, freshCutoffUtc, text))
                         continue;
 
                     notify.Add((type, text));
@@ -363,13 +369,8 @@ public sealed partial class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
-    internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc)
-    {
-        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved or EventType.TestResultAccepted)
-            return true;
-
-        return type == EventType.AthleteCountMilestone && EnsureUtc(occurredAtUtc) < freshCutoffUtc;
-    }
+    internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc, string text = "") =>
+        SocialEventSkipPolicy.ConversationSkipReason(type, text, EnsureUtc(occurredAtUtc), freshCutoffUtc) is not null;
 
     private void ProcessPendingImmediateCustomEvents()
     {
@@ -724,7 +725,7 @@ public sealed partial class EventDataService : IDisposable
             return 8;
         }
 
-        if (type == EventType.AgeImprovementTop10Change)
+        if (type is EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change)
         {
             return 8;
         }
@@ -1938,6 +1939,8 @@ public sealed partial class EventDataService : IDisposable
                 deliveryTargets?.SendToWebPush ?? false, SocialDeliveryStore.WebPush);
             SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
                 deliveryTargets?.SendToInstagram ?? true, SocialDeliveryStore.Instagram);
+            SocialDeliveryStore.SelectCustomEventTarget(sqlite, tx, eventId,
+                deliveryTargets?.SendToTelegram ?? _telegramConfigured, SocialDeliveryStore.Telegram);
 
             tx.Commit();
         });
@@ -2000,6 +2003,7 @@ public sealed partial class EventDataService : IDisposable
             $"WHEN Type = {(int)EventType.BiologicalAgeImproved} THEN 2 " +
             $"WHEN Type = {(int)EventType.CrowdAgeTop10Change} THEN 3 " +
             $"WHEN Type = {(int)EventType.AgeImprovementTop10Change} THEN 4 " +
+            $"WHEN Type = {(int)EventType.PhenoAgeTop10Change} THEN 4 " +
             $"WHEN Type = {(int)EventType.NewRank} THEN 5 " +
             $"WHEN Type = {(int)EventType.SeasonFinalResult} THEN 6 " +
             $"WHEN Type = {(int)EventType.LongevitymaxxingChallengeResult} THEN 7 " +
@@ -2271,6 +2275,7 @@ public sealed partial class EventDataService : IDisposable
             or EventType.BiologicalAgeImproved
             or EventType.CrowdAgeTop10Change
             or EventType.AgeImprovementTop10Change
+            or EventType.PhenoAgeTop10Change
             or EventType.TestResultAccepted;
 
     internal static IReadOnlyList<string> ExtractReferencedAthleteSlugs(string text)
@@ -2454,7 +2459,7 @@ public sealed partial class EventDataService : IDisposable
             return;
         }
 
-        if (type == EventType.AgeImprovementTop10Change)
+        if (type is EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change)
         {
             _ = _slackEvents.BufferAsync(type, rawText);
             return;

@@ -40,54 +40,7 @@ public static class FlagLeaderboardHtmlRenderer
         return html.Length > 0 ? html.ToString() : "<p class=\"flag-empty\">No flags match this leaderboard.</p>";
     }
 
-    private static readonly IReadOnlyDictionary<string, string> IconCodes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        ["argentina"] = "ar",
-        ["australia"] = "au",
-        ["austria"] = "at",
-        ["bolivia"] = "bo",
-        ["brazil"] = "br",
-        ["bulgaria"] = "bg",
-        ["canada"] = "ca",
-        ["czech republic"] = "cz",
-        ["ecuador"] = "ec",
-        ["egypt"] = "eg",
-        ["estonia"] = "ee",
-        ["france"] = "fr",
-        ["germany"] = "de",
-        ["greece"] = "gr",
-        ["honduras"] = "hn",
-        ["hungary"] = "hu",
-        ["iceland"] = "is",
-        ["india"] = "in",
-        ["iraq"] = "iq",
-        ["italy"] = "it",
-        ["japan"] = "jp",
-        ["latvia"] = "lv",
-        ["malaysia"] = "my",
-        ["netherlands"] = "nl",
-        ["new zealand"] = "nz",
-        ["norway"] = "no",
-        ["poland"] = "pl",
-        ["portugal"] = "pt",
-        ["puerto rico"] = "pr",
-        ["romania"] = "ro",
-        ["russia"] = "ru",
-        ["serbia"] = "rs",
-        ["sierra leone"] = "sl",
-        ["singapore"] = "sg",
-        ["slovakia"] = "sk",
-        ["south africa"] = "za",
-        ["sweden"] = "se",
-        ["switzerland"] = "ch",
-        ["thailand"] = "th",
-        ["turkey"] = "tr",
-        ["united arab emirates"] = "ae",
-        ["united kingdom"] = "gb",
-        ["united states"] = "us",
-    };
-
-    private static string Icon(string name) => IconCodes.TryGetValue(name, out var code)
+    private static string Icon(string name) => FlagIconCatalog.GetCode(name) is { } code
         ? $"<span class=\"fi fi-{code}\"></span>" : "<i class=\"fas fa-flag\"></i>";
 
     private static string Portrait(LeaderboardSnapshotRow athlete) => string.IsNullOrWhiteSpace(athlete.LeaderboardThumbnailUrl)

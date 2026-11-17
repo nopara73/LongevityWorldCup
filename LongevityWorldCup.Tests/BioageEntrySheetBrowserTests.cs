@@ -35,8 +35,9 @@ public sealed class BioageEntrySheetBrowserTests(
             Assert.InRange(band.Right, -1, 1);
         });
 
-        // Both dates open full-width sections on desktop and phone alike.
-        Assert.True(stepOne[1].Top > stepOne[0].Top + 40, $"{path}: the draw date band shares the birth date row.");
+        // Date bands fill their own matched cards, paired on desktop and stacked on phones.
+        if (width >= 960) Assert.InRange(stepOne[1].Top - stepOne[0].Top, -1, 1);
+        else Assert.True(stepOne[1].Top > stepOne[0].Top + 40);
         Assert.All(stepOne, band =>
         {
             Assert.InRange(band.Left, -1, 1);
@@ -181,7 +182,7 @@ public sealed class BioageEntrySheetBrowserTests(
             """
             clock => {
                 const age = () => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge;
-                const fields = [...document.querySelectorAll('#lwc-step-2 input[type=number]')].map(input => {
+                const fields = [...document.querySelectorAll('#lwc-step-2 input[inputmode=decimal]')].map(input => {
                     const select = document.getElementById(input.id + 'Unit');
                     return { input, select, raw: Number(input.value), index: select.selectedIndex, factor: Number(select.value) };
                 });
@@ -233,7 +234,7 @@ public sealed class BioageEntrySheetBrowserTests(
 
         // Reverse keyboard navigation must still reach the unit on a phone,
         // where forward Tab intentionally advances directly between values.
-        var secondValue = page.Locator("#lwc-step-2 input[type=number]").Nth(1);
+        var secondValue = page.Locator("#lwc-step-2 input[inputmode=decimal]").Nth(1);
         await secondValue.FocusAsync();
         await page.Keyboard.PressAsync("Shift+Tab");
         await Assertions.Expect(page.Locator("#wbcUnit")).ToBeFocusedAsync();
@@ -266,7 +267,7 @@ public sealed class BioageEntrySheetBrowserTests(
         else await FillPhenoBiomarkersAsync(page);
         var entryWidth = await page.Locator("form.bioageform").EvaluateAsync<double>("form => form.getBoundingClientRect().width");
 
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await Assertions.Expect(page.Locator($"#{clock}AgeResult")).ToBeVisibleAsync();
         var initialAge = await page.EvaluateAsync<double>("clock => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge", clock);
         await page.Locator("#wbc").FillAsync("7.54");
@@ -338,7 +339,8 @@ public sealed class BioageEntrySheetBrowserTests(
                 const right = box.right - parseFloat(style.borderRightWidth);
                 return [...document.querySelectorAll(`${step} > fieldset > legend`)].map(legend => {
                     const band = legend.getBoundingClientRect();
-                    return [String(band.left - left), String(right - band.right), String(band.top), getComputedStyle(legend).backgroundColor, String(band.left), String(band.right)];
+                    const card = step === "#lwc-step-1" ? legend.parentElement.getBoundingClientRect() : null;
+                    return [String(band.left - (card?.left ?? left)), String((card?.right ?? right) - band.right), String(band.top), getComputedStyle(legend).backgroundColor, String(band.left), String(band.right)];
                 });
             }
             """,

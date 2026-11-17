@@ -144,13 +144,6 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
         await using var _ = context;
         await page.Locator(".flag-team.tier-amateur summary").First.ClickAsync();
         await page.Locator(".sidebar-toggle").ClickAsync();
-        await page.EvaluateAsync(
-            """
-            () => {
-                const band = document.querySelector('.flag-section-heading.tier-separator');
-                scrollTo({ top: scrollY + band.getBoundingClientRect().top + 100, behavior: 'instant' });
-            }
-            """);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var clear = page.Locator(".sidebar-close");
         Assert.True(await clear.EvaluateAsync<bool>(
@@ -163,6 +156,7 @@ public sealed class FlagNationsTableBrowserTests(PlaywrightBrowserFixture browse
             """), "The entire filter close target must stay above the sticky band and member layers.");
         await clear.ClickAsync(new() { Position = new() { X = 22, Y = 8 } });
         await page.Mouse.MoveAsync(0, 0);
+        await page.EvaluateAsync("() => {const band=document.querySelector('.flag-section-heading.tier-separator'); scrollTo({top:scrollY+band.getBoundingClientRect().top+100,behavior:'instant'});}");
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
         var bandLink = page.Locator(".flag-section-heading.tier-separator a");
         Assert.True(await bandLink.EvaluateAsync<bool>(

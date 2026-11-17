@@ -61,4 +61,38 @@ public sealed class RedditDesignerBrowserTests(PlaywrightBrowserFixture browserF
         Assert.True(await page.Locator("#sendReddit").IsCheckedAsync());
         Assert.False(await page.Locator("#sendX").IsCheckedAsync());
     }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(360)]
+    public async Task RedditDestination_ShowsBlockedLinkAlongsideSuccessfulQueue(int width)
+    {
+        await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new ViewportSize { Width = width, Height = 850 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var link = "https://ift.tt/" + new string('a', 150);
+        await context.RouteAsync("**/api/custom-events", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200, ContentType = "application/json",
+            Body = JsonSerializer.Serialize(new { success = true, eventId = new string('b', 32), queuedTargets = new[] { "webpage" }, blockedRedditLink = link })
+        }));
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/internal/custom-event-designer.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#sendReddit").CheckAsync();
+        await page.Locator("#titleInput").FillAsync("An LWC announcement!");
+        await page.Locator("#contentInput").FillAsync($"Source {link}");
+        await page.Locator("#postEventBtn").ClickAsync();
+
+        var notice = page.Locator("#redditLinkNotice");
+        await Assertions.Expect(notice).ToBeVisibleAsync();
+        await Assertions.Expect(notice).ToContainTextAsync(link);
+        await Assertions.Expect(page.Locator("#directPostStatus")).ToContainTextAsync("for webpage");
+        Assert.True(await notice.EvaluateAsync<bool>("el => el.scrollWidth <= el.clientWidth"));
+        Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"));
+    }
 }

@@ -5,6 +5,8 @@
     <!--HEAD-->
     <link rel="stylesheet" href="{{ASSET_LANDING_PAGE_CSS}}">
     <link rel="stylesheet" href="{{ASSET_STANDALONE_FEEL_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_MEDIA_KIT_FEEL_CSS}}">
+    <script src="{{ASSET_MEDIA_KIT_FEEL_JS}}" defer></script>
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -874,6 +876,7 @@
                     const li = document.createElement('li');
                     // Documents share the download control and filename treatment.
                     li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row media-file-tile media-file-doc';
+                    if (document.querySelector('.media-kit-primary-download').hasAttribute('data-taken')) li.dataset.collected = '';
 
                     const thumb = document.createElement('span');
                     if (isPicture) {
@@ -903,8 +906,15 @@
                     btn.textContent = 'Download';
                     btn.setAttribute('aria-label', `Download ${filename}`);
                     btn.className = 'media-file-button';
+                    // This control owns its busy, success, and failure presentation.
+                    btn.dataset.lwcWaitSkip = '';
                     btn.addEventListener('click', async () => {
                         const status = document.getElementById('downloadStatus');
+                        // The ring runs while the file is pulled out of the archive.
+                        if (btn.getAttribute('aria-busy') === 'true') return;
+                        clearTimeout(btn.downloadedTimer);
+                        btn.removeAttribute('data-downloaded');
+                        btn.setAttribute('aria-busy', 'true');
                         try {
                             const extracted = await zip.file(path).async('blob');
                             const blob = extracted.slice(0, extracted.size, typeOf(path));
@@ -925,6 +935,8 @@
                             btn.removeAttribute('aria-description');
                             btn.removeAttribute('title');
                             status.textContent = '';
+                            // A taken file keeps a quiet stamp for the rest of the visit.
+                            li.dataset.collected = '';
                         } catch (_) {
                             const message = `${filename}: Download failed. Try again or use the ZIP link above.`;
                             btn.removeAttribute('data-downloaded');
@@ -932,6 +944,8 @@
                             btn.setAttribute('aria-description', message);
                             btn.title = message;
                             status.textContent = message;
+                        } finally {
+                            btn.removeAttribute('aria-busy');
                         }
                     });
 

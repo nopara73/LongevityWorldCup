@@ -112,8 +112,10 @@
     function staggerItems(container: HTMLElement): HTMLElement[] {
         const selector = container.getAttribute('data-lwc-stagger');
         const items = selector ? container.querySelectorAll(selector) : container.children;
+        // Nested text/icon updates are not new arrivals. Check identity before
+        // reading layout, which would otherwise flush styles for the whole page.
         return Array.from(items).filter((item): item is HTMLElement =>
-            item instanceof HTMLElement && !item.hidden && item.getClientRects().length > 0);
+            item instanceof HTMLElement && !seen.has(item) && !item.hidden && item.getClientRects().length > 0);
     }
 
     // ---- counters ---------------------------------------------------------------------

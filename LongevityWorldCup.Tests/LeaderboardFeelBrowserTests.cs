@@ -66,13 +66,16 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         var before = await page.EvaluateAsync<double>(rowDocumentTop);
         await page.Locator(Rows).Nth(20).ScrollIntoViewIfNeededAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'true'");
-        await page.WaitForTimeoutAsync(300); // include the normal-motion folding transition
+        await WaitForHeadingMotionAsync(page);
         Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
         await page.EvaluateAsync("scrollTo(0, 0)");
         await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'false'");
-        await page.WaitForTimeoutAsync(300);
+        await WaitForHeadingMotionAsync(page);
         Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
     }
+
+    private static Task WaitForHeadingMotionAsync(IPage page) => WaitForFiniteAnimationsAsync(
+        page, "#athleteLeaderboard > table > thead, #athleteLeaderboard > table > thead *");
 
     [Fact]
     public async Task ScrollIndicators_RespectInitialAndReducedMotionGates()
@@ -194,10 +197,10 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
                 const peek = document.querySelector('.lb-peek');
                 const athlete = window.getLeaderboardPeek(row.dataset.athleteName);
                 const view = document.querySelector('[name=leaderboardView]:checked').value;
-                const bortz = view === 'bortz' || (view === 'ultimate' && athlete.lowestBortzAge != null);
+                const bortz = view === 'bortz' || (view === 'ultimate' && athlete.bortzRankResult != null);
                 const bio = peek.querySelector('.is-bio');
                 return peek.querySelector('.lb-peek-metric').textContent === row.querySelector('.age-reduction').textContent.trim()
-                    && (view === 'crowd' ? bio === null : bio.textContent === (bortz ? athlete.lowestBortzAge : athlete.lowestPhenoAge).toFixed(1))
+                    && (view === 'crowd' ? bio === null : bio.textContent === (bortz ? athlete.bortzRankResult : athlete.phenoRankResult).bio.toFixed(1))
                     && peek.scrollHeight <= peek.clientHeight + 1 && peek.scrollWidth <= peek.clientWidth + 1;
             }
             """));

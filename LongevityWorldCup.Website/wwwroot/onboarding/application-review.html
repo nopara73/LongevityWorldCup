@@ -702,10 +702,15 @@
             const finishIcon = document.querySelector('.application-review-trail [data-step="finish"] i');
             if (finishIcon) finishIcon.className = `fas ${REVIEW_FINISH_ICONS[kind]}`;
             // A pending invoice adds the payment stop; it waits until the status check confirms it.
-            if (pendingPaymentInvoice) {
+            if (pendingPaymentInvoice || new URLSearchParams(window.location.search).get('checkout') === 'unavailable') {
                 setTrailStep('payment', 'is-waiting');
                 setTrailStep('review', null);
                 document.getElementById('review-payment-status').textContent = 'Payment confirmation pending.';
+                if (new URLSearchParams(window.location.search).get('checkout') === 'unavailable') {
+                    setTrailStep('payment', 'is-failed');
+                    document.querySelector('.application-review-trail [data-step="payment"] i').className = 'fas fa-circle-xmark';
+                    document.getElementById('review-payment-status').textContent = 'This checkout is no longer available. Check your confirmation email.';
+                }
             }
         }
 
@@ -798,7 +803,8 @@
 
         async function checkPendingPayment() {
             const pending = pendingPaymentInvoice;
-            if (!pending || !pending.invoiceId || paymentCheckStopped || paymentCheckComplete
+            if (new URLSearchParams(window.location.search).get('checkout') === 'unavailable'
+                || !pending || !pending.invoiceId || paymentCheckStopped || paymentCheckComplete
                 || document.hidden || paymentCheckAbort || paymentCheckAttempts >= MAX_PAYMENT_CHECKS) return;
 
             clearTimeout(paymentCheckTimer);

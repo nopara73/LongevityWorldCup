@@ -965,7 +965,7 @@
     
                     <!-- Name Field -->
                     <label for="name">Name <span class="field-requirement">(required)</span></label>
-                    <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
+                    <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or pseudonym">
                     <span id="nameError" class="error-message" aria-live="polite"></span>
     
                     <!-- Division Field -->
@@ -1646,11 +1646,7 @@
             const month = Number(match[2]);
             const day = Number(match[3]);
             const parsedDate = new Date(Date.UTC(year, month - 1, day));
-            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
-
-            const todayUtc = new Date();
-            todayUtc.setUTCHours(0, 0, 0, 0);
-            return parsedDate <= todayUtc;
+            return parsedDate.getUTCFullYear() === year && parsedDate.getUTCMonth() === month - 1 && parsedDate.getUTCDate() === day;
         }
 
         function readPendingPaymentOffer() {
@@ -2449,7 +2445,7 @@
                                     type: `HTTP ${responseStatus}`,
                                     message: badResponse
                                 });
-                                customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
+                                customAlert(responseStatus === 413 ? badResponse : `Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                     isApplicationSubmitting = false;
                                     applyButton.disabled = false;
                                     accountEmailInput.disabled = false;

@@ -485,6 +485,7 @@ public sealed class InternalToolsDashboardBrowserTests(
         await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
         await page.AddStyleTagAsync(new() { Content = ".stats-controls, .traffic-metrics { font-size: 21px; } .traffic-metric > strong { font-size: 48px; }" });
         await page.Locator("#statsSource").SelectOptionAsync("ai");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
         var clipped = await page.EvaluateAsync<string[]>("""
             () => {
                 const canvas = document.createElement('canvas').getContext('2d');
@@ -497,12 +498,24 @@ public sealed class InternalToolsDashboardBrowserTests(
             }
             """);
         Assert.Empty(clipped);
-        var wrappedFigures = await page.Locator(".traffic-metric > strong").EvaluateAllAsync<string[]>("""
-            elements => elements.filter(e => {
+        var wrappedFigures = await page.EvaluateAsync<string[]>("""
+            () => [...document.querySelectorAll(".traffic-metric > strong")].flatMap(e => {
                 const range = document.createRange();
                 range.selectNodeContents(e);
-                return range.getClientRects().length !== 1;
-            }).map(e => e.textContent)
+                const rects = [...range.getClientRects()].map(rect => rect.toJSON());
+                if (rects.length === 1) return [];
+                const grid = e.closest('.traffic-metrics');
+                const style = getComputedStyle(e);
+                return [JSON.stringify({
+                    text: e.textContent, rects, figure: e.getBoundingClientRect().toJSON(),
+                    grid: grid.getBoundingClientRect().toJSON(),
+                    columns: getComputedStyle(grid).gridTemplateColumns,
+                    gridFont: getComputedStyle(grid).fontSize, font: style.font,
+                    visibility: style.visibility, fonts: document.fonts.status,
+                    busy: document.querySelector('.stats-page').getAttribute('aria-busy'),
+                    viewport: [innerWidth, innerHeight]
+                })];
+            })
             """);
         Assert.Empty(wrappedFigures);
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
