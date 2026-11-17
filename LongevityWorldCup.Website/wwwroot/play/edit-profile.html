@@ -256,7 +256,7 @@
             }
         }
 
-        /* At high zoom, give the picture label the full width above its icon. */
+        /* At high zoom, keep labels readable independently of their icons. */
         @container edit-profile-card (max-width: 14rem) {
             #changeProfilePicWrapper > .option-button.flow-action:not(.icon-only) {
                 flex-direction: column;
@@ -267,6 +267,22 @@
             #changeProfilePicWrapper > .flow-action > i {
                 position: static;
                 transform: none;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions > .autocomplete-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.35rem;
+                padding-inline: 0.35rem;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions .lwc-flag-name {
+                width: 100%;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions .lwc-flag-share {
+                left: 0.35rem;
+                right: 0.35rem;
             }
         }
 

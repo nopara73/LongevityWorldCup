@@ -109,6 +109,41 @@ public sealed class ProfileComparisonBrowserTests(
     }
 
     [Fact]
+    public async Task FlagSuggestions_AtNarrowZoomLayout_KeepEveryKeyboardOptionFullyVisible()
+    {
+        await using var context = await CreateContextAsync(195, false);
+        var page = await OpenEditorAsync(context);
+        await page.SetViewportSizeAsync(195, 422);
+        await page.Locator("#divisionDisplaySelect").SelectOptionAsync("Open");
+        await page.Locator("#personalLinkInput").FillAsync("https://example.org/alex");
+        await page.Locator("#mediaContactInput").FillAsync("@alex");
+        await page.Locator("#whyDisplayInput").FillAsync("More healthy years with my family.");
+        var input = page.Locator("#flagDisplayInput");
+        await input.FillAsync("Hungar");
+        var list = page.GetByRole(AriaRole.Listbox);
+        await Assertions.Expect(list.GetByRole(AriaRole.Option)).ToHaveCountAsync(1);
+        Assert.True(await list.EvaluateAsync<bool>("e => e.scrollHeight <= e.clientHeight + 1 && e.scrollWidth <= e.clientWidth + 1"));
+        await input.FillAsync("United");
+        await Assertions.Expect(list.GetByRole(AriaRole.Option)).ToHaveCountAsync(3);
+        foreach (var expected in new[] { "United States", "United Kingdom", "United Arab Emirates" })
+        {
+            await input.PressAsync("ArrowDown");
+            var activeId = await input.GetAttributeAsync("aria-activedescendant");
+            var active = page.Locator("#" + activeId);
+            await Assertions.Expect(active).ToHaveTextAsync(expected);
+            Assert.True(await active.EvaluateAsync<bool>("""
+                row => {
+                    const box = row.getBoundingClientRect(), tray = row.closest('[role=listbox]').getBoundingClientRect();
+                    return box.top >= tray.top - 1 && box.bottom <= tray.bottom + 1
+                        && row.scrollWidth <= row.clientWidth + 1;
+                }
+                """), "Every selected flag must fit completely in the visible suggestion tray at 390px/200% zoom.");
+        }
+        await input.PressAsync("Enter");
+        await Assertions.Expect(input).ToHaveValueAsync("United Arab Emirates");
+    }
+
+    [Fact]
     public async Task PictureAndEmptyOriginals_CountNormalizedChanges_AndRecoverAfterRejectedSubmission()
     {
         await using var context = await CreateContextAsync(390, false);
