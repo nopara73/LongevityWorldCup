@@ -206,11 +206,11 @@ const eventsPageAssets = document.currentScript.dataset;
     }
     // Chapters use local Gregorian months, with the reader's language and digits.
     // Keep embedded feeds on their existing date format.
-    function formatListDateHtml(iso){
+    function formatListDateHtml(iso, compact=false){
         const date=new Date(iso); if(!iso||isNaN(date)) return '';
         const historical=date.getFullYear()!==new Date().getFullYear();
         const formatter=new Intl.DateTimeFormat(undefined,{calendar:'gregory',month:'short',day:'numeric',...(historical?{year:'numeric'}:{})});
-        const html=formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
+        const html=compact ? esc(formatListDate(iso)) : formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
         const full=date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'long',day:'numeric'});
         return `<time datetime="${esc(iso)}" aria-label="${esc(full)}">${html}</time>`;
     }
@@ -222,6 +222,12 @@ const eventsPageAssets = document.currentScript.dataset;
         return '';
     }
     // A small mark on the portrait says what kind of moment the row is.
+    function eventPortrait(portrait, kind=''){
+        return `<span class="event-avatar-frame">${portrait}${kind}</span>`;
+    }
+    function unlinkedEventPortrait(portrait){
+        return `<span class="avatar-disabled">${eventPortrait(portrait)}</span>`;
+    }
     function eventKindMark(r){
         const lost = r.newRankDirection === "lost" || r.badgeDirection === "lost"
             || r.crowdAgeDirection === "lost" || r.improvementDirection === "lost";
@@ -1155,7 +1161,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function updateFreshHighlights(){
         const now = Date.now();
-        document.querySelectorAll('.event-board-page tr.main-row').forEach(row => {
+        document.querySelectorAll(':is(.event-board-page, #events-root-index) tr.main-row').forEach(row => {
             const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
             const age = now - stamp;
             row.classList.toggle('is-fresh', Number.isFinite(age) && age >= 0 && age < 86400000);
@@ -1690,6 +1696,7 @@ const eventsPageAssets = document.currentScript.dataset;
         // Reobserve only the surviving, unrevealed rows after reconciliation.
         rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
+        const homepage=!!tbody.closest('#events-root-index');
         const timelineRows = [...table.querySelectorAll('tr.main-row')];
         const restoredFeed = !timelineRows.length && performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
             ? history.state?.lwcEventFeeds?.[historyFeedKey(table)] : null;
@@ -1750,7 +1757,7 @@ const eventsPageAssets = document.currentScript.dataset;
         rowsToRender.forEach((r, localIdx) => {
             const idx = localIdx;
             const occurredAt = r.displayOccurredAt || r.occurredAt;
-            const dateLabel = occurredAt ? (chapters?formatListDateHtml(occurredAt):esc(formatListDate(occurredAt))) : "";
+            const dateLabel = occurredAt ? (chapters || homepage ? formatListDateHtml(occurredAt, homepage) : esc(formatListDate(occurredAt))) : "";
             const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
                 ? `<span class="event-rel" data-rel-at="${esc(occurredAt)}">${relativeDayLabel(occurredAt)}</span>`
                 : "";
@@ -1801,21 +1808,21 @@ const eventsPageAssets = document.currentScript.dataset;
                 const portrait = img
                     ? `<img class="avatar" data-lwc-image-role="athlete" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
                     : `<div class="avatar-fallback" data-lwc-image-role="athlete">${initialsFromName(name)}</div>`;
-                const framed = `<span class="event-avatar-frame">${portrait}${eventKindMark(r)}</span>`;
+                const framed = eventPortrait(portrait, eventKindMark(r));
                 avatarHtml = canLinkAvatar
                     ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}>${framed}</a>`
                     : `<span class="avatar-disabled" aria-label="${esc(name)}">${framed}</span>`;
             } else if (r.type === EVENT_TYPE.DonationReceived) {
-                avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`);
             } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
-                avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`);
             } else if (r.type === EVENT_TYPE.CustomEvent) {
                 const logo = eventsPageAssets.defaultProfilePic;
-                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" data-lwc-image-role="brand" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
+                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup">${eventPortrait(`<img class="avatar custom-event-avatar" data-lwc-image-role="brand" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`)}</span>`;
             } else if (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult) {
-                avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`);
             } else {
-                avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback" title="Event">★</div>`);
             }
 
             let msgHtml = "";
@@ -2326,7 +2333,7 @@ const eventsPageAssets = document.currentScript.dataset;
         }
 
         const rowsNow = table.querySelectorAll(".row-appear:not(.is-visible)");
-        if (!prefersReduced && rowsNow.length){
+        if (!prefersReduced && rowsNow.length && typeof IntersectionObserver === 'function'){
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
             requestAnimationFrame(() => revealVisibleRowsImmediately(table));

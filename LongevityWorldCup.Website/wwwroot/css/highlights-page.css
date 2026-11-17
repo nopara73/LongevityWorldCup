@@ -259,25 +259,6 @@ main.event-board-page {
     white-space: nowrap;
 }
 
-/* One quiet surface: days group events, not alternating stripes. */
-.event-board-page .events-board table tbody tr,
-.event-board-page .events-board table tbody tr.zebra-even,
-.event-board-page .events-board table tbody tr.zebra-odd {
-    background-color: transparent;
-    box-shadow: none;
-    transform: none;
-}
-
-.event-board-page .events-board table tbody tr.main-row,
-.event-board-page .events-board table tbody tr.events-skeleton-row,
-.event-board-page .events-board table tbody tr.custom-event-details {
-    /* Two layers: the month's rail, and the hairline that opens a new day. */
-    background-image: var(--event-rail-image, var(--event-rail)), var(--event-day-rule, none);
-    background-repeat: no-repeat;
-    background-position: var(--event-rail-x) var(--event-rail-y, 0), var(--event-message-start) 0;
-    background-size: 2px var(--event-rail-h, 100%), calc(100% - var(--event-message-start) - var(--feed-pad-x)) 1px;
-}
-
 .event-board-page .events-board table tbody tr.main-row:hover,
 .event-board-page .events-board table tbody tr.main-row:focus-within,
 .event-board-page .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover) {
@@ -330,30 +311,6 @@ main.event-board-page {
 
 .event-board-page .events-board tbody tr.main-row.day-repeat > td.col-date {
     color: var(--events-muted);
-}
-
-/* Portraits sit on the rail with a ring of the card around them. */
-.event-board-page .events-board .avatar,
-.event-board-page .events-board .avatar-fallback,
-.event-board-page .events-board .avatar-link:is(:hover, :focus) .avatar,
-.event-board-page .events-board .avatar-link:is(:hover, :focus) .avatar-fallback,
-.event-board-page .events-board .donation-gift-avatar,
-.event-board-page .events-board .milestone-people-avatar {
-    width: var(--event-avatar-size);
-    height: var(--event-avatar-size);
-    box-sizing: border-box;
-    box-shadow: 0 0 0 4px var(--card-bg);
-}
-
-.event-board-page .events-board .avatar-fallback {
-    font-size: min(.7rem, 14px);
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.event-board-page .events-board .donation-gift-avatar i,
-.event-board-page .events-board .milestone-people-avatar i {
-    font-size: min(1rem, 16px);
 }
 
 .event-board-page .events-board .athlete-td {
@@ -1031,21 +988,6 @@ main.event-board-page {
     color: var(--secondary-color, #087685);
 }
 
-/* Fresh: events from the last day breathe on the rail. */
-.event-board-page .events-board tr.main-row.is-fresh .event-avatar-frame {
-    position: relative;
-}
-
-.event-board-page .events-board tr.main-row.is-fresh .event-avatar-frame::before {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px var(--secondary-color, #087685);
-    opacity: .9;
-    pointer-events: none;
-}
-
 /* The rail answers the pointer: the portrait lifts, its kind chip pops. */
 .event-board-page .events-board .event-avatar-frame {
     transition: transform 200ms var(--feed-ease, ease);
@@ -1067,17 +1009,6 @@ main.event-board-page {
     .event-board-page .events-board tr.main-row:hover {
         box-shadow: inset 3px 0 0 var(--secondary-color, #087685);
     }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .event-board-page .events-board tr.main-row.is-fresh .event-avatar-frame::before {
-        animation: events-fresh 2.4s ease-out 2;
-    }
-}
-
-@keyframes events-fresh {
-    0% { transform: scale(.85); opacity: .9; }
-    70%, 100% { transform: scale(1.35); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
