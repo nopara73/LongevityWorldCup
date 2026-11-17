@@ -166,6 +166,7 @@ interface LwcBioageFlowApi {
     syncBioageResultActions: () => void;
     syncBioageResultVisibility: () => void;
     syncBiomarkerExamplePlaceholders: (root?: ParentNode | null) => void;
+    parseBiomarkerInput: (value: unknown) => number;
     toFiniteBiomarkerNumber: (value: unknown) => number | null;
     updateBiomarkerComparison: (inputId: string) => void;
     updateBiomarkerExamplePlaceholder: (selectOrInput: Element | null | undefined) => void;
@@ -177,6 +178,17 @@ interface Window {
 }
 
 (function () {
+    // Input handlers also wake shared DOM observers. Publish only changed state.
+    function setAttributeIfChanged(element: Element, name: string, value: string): void {
+        if (element.getAttribute(name) !== value) element.setAttribute(name, value);
+    }
+
+    function setTextIfChanged(element: Element, value: string): void {
+        if (element.textContent === value) return;
+        if (element.childNodes.length === 1 && element.firstChild instanceof Text) element.firstChild.data = value;
+        else element.textContent = value;
+    }
+
     function isObject(value: unknown): value is object {
         return typeof value === 'object' && value !== null && !Array.isArray(value);
     }
@@ -292,16 +304,32 @@ interface Window {
         return String(value || '').replace(/\s+/g, ' ').trim();
     }
 
-    function toFiniteBiomarkerNumber(value: unknown): number | null {
-        if (value === null || value === undefined || typeof value === 'boolean') return null;
-        if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-        if (typeof value === 'string') {
-            const trimmed = value.trim();
-            if (!trimmed) return null;
-            const number = Number(trimmed);
-            return Number.isFinite(number) ? number : null;
+    // Preserve what was typed/pasted in the text field. Parse only at the
+    // numeric boundary, before unit conversion, scoring, or submission.
+    function parseBiomarkerInput(value: unknown): number {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+        let text = value.trim().replace(/\u2212/g, '-');
+        // A lone comma followed by three digits can be either a decimal or
+        // a thousands separator. Never decide that from the browser's locale.
+        if (/^[+-]?[1-9]\d{0,2},\d{3}$/.test(text)) return NaN;
+        if (/^[+-]?\d{1,3}(?:,\d{3})+\.\d+$/.test(text)) {
+            text = text.replace(/,/g, '');
+        } else if (/^[+-]?\d{1,3}(?:\.\d{3})+,\d+$/.test(text)) {
+            text = text.replace(/\./g, '').replace(',', '.');
+        } else if (/^[+-]?\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)?$/.test(text)) {
+            text = text.replace(/[ \u00a0\u202f]/g, '').replace(',', '.');
+        } else {
+            text = text.replace(',', '.');
         }
-        return null;
+        if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)) return NaN;
+        const number = Number(text);
+        return Number.isFinite(number) ? number : NaN;
+    }
+
+    function toFiniteBiomarkerNumber(value: unknown): number | null {
+        const number = parseBiomarkerInput(value);
+        return Number.isFinite(number) ? number : null;
     }
 
     function hasFiniteBiomarkerValue(value: unknown): boolean {
@@ -586,7 +614,7 @@ interface Window {
         if (!select || !select.id || !select.id.endsWith('Unit')) return null;
 
         const input = document.getElementById(select.id.slice(0, -4));
-        return input instanceof HTMLInputElement && input.matches('input[type="number"]') ? input : null;
+        return input instanceof HTMLInputElement && input.matches('input[inputmode="decimal"]') ? input : null;
     }
 
     function updateBiomarkerExamplePlaceholder(selectOrInput: Element | null | undefined): void {
@@ -594,7 +622,7 @@ interface Window {
             ? selectOrInput
             : document.getElementById(`${selectOrInput?.id || ''}Unit`);
         const select = selectCandidate instanceof HTMLSelectElement ? selectCandidate : null;
-        const inputCandidate = selectOrInput?.matches('input[type="number"]')
+        const inputCandidate = selectOrInput?.matches('input[inputmode="decimal"]')
             ? selectOrInput
             : getBiomarkerInputForUnitSelect(select);
         const input = inputCandidate instanceof HTMLInputElement ? inputCandidate : null;
@@ -844,7 +872,7 @@ interface Window {
         const candidate = typeof field === 'string' ? document.getElementById(field) : field;
         if (candidate instanceof HTMLInputElement) return candidate;
         return candidate?.closest<HTMLElement>('.biomarker-card')
-            ?.querySelector<HTMLInputElement>('input[type="number"]') || null;
+            ?.querySelector<HTMLInputElement>('input[inputmode="decimal"]') || null;
     }
 
     function expandBiomarkerCard(field: string | Element | null | undefined): void {
@@ -867,7 +895,7 @@ interface Window {
     function isCompleteBiomarkerInput(input: HTMLInputElement): boolean {
         const value = input.value.trim();
         return value !== ''
-            && Number.isFinite(Number(value))
+            && Number.isFinite(parseBiomarkerInput(value))
             && input.validity.valid;
     }
 
@@ -887,16 +915,38 @@ interface Window {
 
         const describedBy = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
         describedBy.add(errorId);
-        input.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
+        setAttributeIfChanged(input, 'aria-describedby', Array.from(describedBy).join(' '));
         return error;
+    }
+
+    function biomarkerInputMessage(input: HTMLInputElement): string {
+        const text = input.value.trim();
+        if (!text) return `Enter ${getBiomarkerLabel(input)}.`;
+        if (/^[+-]?[1-9]\d{0,2},\d{3}$/.test(text)) {
+            return `Use ${text.replace(',', '.')} for a decimal, or ${text.replace(',', '')} for a whole number.`;
+        }
+        return 'Enter one number, using a dot or comma for decimals.';
+    }
+
+    function syncBiomarkerValidity(input: HTMLInputElement): void {
+        input.setCustomValidity(input.value.trim() && !Number.isFinite(parseBiomarkerInput(input.value))
+            ? biomarkerInputMessage(input) : '');
     }
 
     function setBiomarkerError(input: HTMLInputElement, visible: boolean): void {
         const error = getOrCreateBiomarkerError(input);
+        if (visible) setTextIfChanged(error, biomarkerInputMessage(input));
         if (error.hidden !== !visible) {
             error.hidden = !visible;
+            // Feedback may appear after a tap has focused the adjacent unit.
+            // Keep its explanation above the fixed action bar without moving focus.
+            const focused = document.activeElement;
+            if (visible && (focused instanceof HTMLInputElement || focused instanceof HTMLSelectElement)
+                && input.closest('.biomarker-card')?.contains(focused)) {
+                ensureBioageControlVisible(focused);
+            }
         }
-        input.setAttribute('aria-invalid', visible ? 'true' : 'false');
+        setAttributeIfChanged(input, 'aria-invalid', visible ? 'true' : 'false');
         document.querySelector<HTMLElement>(`[data-bioage-pip="${input.id}"]`)
             ?.classList.toggle('bioage-domain-pip--invalid', visible);
     }
@@ -954,7 +1004,7 @@ interface Window {
         const firstIncomplete = ordered.findIndex(domain => !domains.get(domain));
         const frontier = firstIncomplete < 0 ? ordered.length : firstIncomplete;
         ordered.forEach((domain, index) => {
-            const hasValue = Array.from(domain.querySelectorAll<HTMLInputElement>('input[type="number"]'))
+            const hasValue = Array.from(domain.querySelectorAll<HTMLInputElement>('input[inputmode="decimal"]'))
                 .some(input => input.value.trim() !== '');
             const awake = index <= frontier + 1 || domains.get(domain) || hasValue;
             const next = awake ? 'awake' : 'dormant';
@@ -962,7 +1012,7 @@ interface Window {
                 domain.classList.add('bioage-domain--waking');
                 window.setTimeout(() => domain.classList.remove('bioage-domain--waking'), 520);
             }
-            domain.dataset.bioageWake = next;
+            setAttributeIfChanged(domain, 'data-bioage-wake', next);
         });
     }
 
@@ -994,7 +1044,7 @@ interface Window {
     function syncBiomarkerFieldFeel(card: HTMLElement, input: HTMLInputElement, justCompleted: boolean): void {
         const far = isBiomarkerValueFarFromExample(input);
         const wasFar = card.dataset.bioageRange === 'far';
-        if (far) card.dataset.bioageRange = 'far';
+        if (far) setAttributeIfChanged(card, 'data-bioage-range', 'far');
         else delete card.dataset.bioageRange;
 
         if (far && !wasFar) {
@@ -1077,7 +1127,8 @@ interface Window {
                 window.cancelAnimationFrame(sectionBandOffsetFrame);
                 syncSectionBandOffset();
             }
-            dock?.ensureClear?.(input, { margin: 16, behavior: immediate ? 'instant' : 'auto' });
+            const error = input.closest('.biomarker-card')?.querySelector<HTMLElement>('.bioage-biomarker-error:not([hidden])');
+            dock?.ensureClear?.(error || input, { margin: 16, behavior: immediate ? 'instant' : 'auto' });
 
             const visualViewport = window.visualViewport;
             const top = visualViewport?.offsetTop || 0;
@@ -1157,9 +1208,10 @@ interface Window {
         let completed = 0;
         const incompleteInputs: HTMLInputElement[] = [];
         controller.inputs.forEach(input => {
+            syncBiomarkerValidity(input);
             const isComplete = isCompleteBiomarkerInput(input);
             const wasComplete = input.dataset.bioageComplete === 'true';
-            input.dataset.bioageComplete = isComplete ? 'true' : 'false';
+            setAttributeIfChanged(input, 'data-bioage-complete', String(isComplete));
             const card = input.closest<HTMLElement>('.biomarker-card');
             card?.classList.toggle('biomarker-card--complete', isComplete);
             if (card && !controller.isUpdate && !controller.restoring) {
@@ -1176,22 +1228,23 @@ interface Window {
         syncDomainTallies(controller);
         controller.inputs.forEach((input, index) => {
             const hasOtherIncompleteInput = incompleteInputs.some(candidate => candidate !== input);
-            input.enterKeyHint = (controller.isUpdate
+            const enterKeyHint = (controller.isUpdate
                 ? index < controller.inputs.length - 1
                 : hasOtherIncompleteInput || index < controller.inputs.length - 1)
                 ? 'next'
                 : 'done';
+            setAttributeIfChanged(input, 'enterkeyhint', enterKeyHint);
         });
 
         const total = controller.inputs.length;
         const bloodDrawDate = controller.form.querySelector<HTMLInputElement>('#blood-draw-date');
         const hasBloodDrawDate = !!bloodDrawDate?.value && bloodDrawDate.validity.valid;
         const ready = controller.isUpdate
-            ? completed > 0 && hasBloodDrawDate
+            ? completed > 0 && hasBloodDrawDate && controller.inputs.every(input => !input.value.trim() || isCompleteBiomarkerInput(input))
             : total > 0 && completed === total;
-        controller.progress.textContent = controller.isUpdate
+        setTextIfChanged(controller.progress, controller.isUpdate
             ? `${completed} new biomarker${completed === 1 ? '' : 's'}${completed > 0 && !hasBloodDrawDate ? ' · blood draw date required' : ''}`
-            : `${completed} of ${total} biomarkers entered`;
+            : `${completed} of ${total} biomarkers entered`);
         controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
         primedBiomarkerControllers.add(controller);
         controller.form.style.setProperty('--bioage-entry-progress', `${total > 0 ? Math.round(completed / total * 100) : 0}%`);
@@ -1199,8 +1252,8 @@ interface Window {
         // The flow dock portals the action stack out of the form on small screens.
         const calculateButton = document.querySelector<HTMLButtonElement>('.bioage-calculate-button');
         if (calculateButton) {
-            calculateButton.disabled = !ready;
-            calculateButton.setAttribute('aria-describedby', controller.progress.id);
+            if (calculateButton.disabled !== !ready) calculateButton.disabled = !ready;
+            setAttributeIfChanged(calculateButton, 'aria-describedby', controller.progress.id);
             if (!document.getElementById('continueButton')?.classList.contains('show')) {
                 calculateButton.classList.toggle('green', ready);
                 calculateButton.classList.toggle('grey', !ready);
@@ -1248,6 +1301,13 @@ interface Window {
     }
 
     function bindBiomarkerEntry(controller: BioageBiomarkerEntryController): void {
+        // Validate before existing input/change handlers recalculate or save.
+        const validateNumber = (event: Event) => {
+            const input = event.target;
+            if (input instanceof HTMLInputElement && controller.inputs.includes(input)) syncBiomarkerValidity(input);
+        };
+        controller.form.addEventListener('input', validateNumber, true);
+        controller.form.addEventListener('change', validateNumber, true);
         const recordDraftInput = (event: Event) => {
             if (!controller.restoring) clearStoredBiomarkerHandoff();
             captureBioageDraftEdit(controller, event.target);
@@ -1408,7 +1468,7 @@ interface Window {
             form: options.form,
             hasPersistedDraft: false,
             inputs: Array.from(options.form.querySelectorAll<HTMLInputElement>(
-                '.biomarker-card input[type="number"][required]'
+                '.biomarker-card input[inputmode="decimal"][required]'
             )),
             invalidBatchActive: false,
             isUpdate: options.isUpdate === true,
@@ -1573,11 +1633,9 @@ interface Window {
         if (!calculateButton || !nextButton) return;
 
         if (nextButton.classList.contains('show')) {
-            calculateButton.classList.remove('green');
-            calculateButton.classList.add('grey', 'flow-action--secondary');
-        } else {
-            calculateButton.classList.remove('grey', 'flow-action--secondary');
-            calculateButton.classList.add('green');
+            calculateButton.classList.toggle('green', false);
+            calculateButton.classList.toggle('grey', true);
+            calculateButton.classList.toggle('flow-action--secondary', true);
         }
 
         syncBioageResultActions();
@@ -1591,13 +1649,14 @@ interface Window {
 
         const hasResult = nextButton.classList.contains('show');
         document.body.classList.toggle('bioage-result-ready', hasResult);
-        resultActions.hidden = !hasResult;
+        const actionsChanged = resultActions.hidden !== !hasResult;
+        if (actionsChanged) resultActions.hidden = !hasResult;
         if (isLiveInstrumentBound()) {
             const entryActions = document.getElementById('lwcStepTwoActions');
-            if (entryActions) entryActions.hidden = hasResult;
+            if (entryActions && entryActions.hidden !== hasResult) entryActions.hidden = hasResult;
             syncLiveReadout(0);
         }
-        getFlowActionDock()?.refreshNow?.();
+        if (actionsChanged) getFlowActionDock()?.refreshNow?.();
 
         if (hasResult && !lastBioageResultActionsVisible) {
             scheduleBioageResultReveal(getShownBioageResultElement());
@@ -2043,18 +2102,33 @@ interface Window {
             const generation = state.generation;
             const expectedScroll = Math.max(0, maxScrollTop);
             const inputEvents = ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const;
+            let settleTimer = 0;
+            let cancelled = false;
             const cleanup = (): void => {
+                cancelled = true;
+                window.clearTimeout(settleTimer);
                 observer.disconnect();
                 inputEvents.forEach(event => window.removeEventListener(event, cleanup));
                 state.rankRevealCleanup = null;
             };
             const observer = new MutationObserver(() => {
                 if (rankPending.getAttribute('aria-busy') === 'true') return;
-                cleanup();
-                window.setTimeout(() => {
-                    if (state.generation !== generation || getShownBioageResultElement() !== resultElement) return;
-                    if (Math.abs(window.scrollY - expectedScroll) > 2) return;
+                observer.disconnect();
+                settleTimer = window.setTimeout(() => {
+                    const mayReveal = !cancelled && state.generation === generation
+                        && getShownBioageResultElement() === resultElement
+                        && Math.abs(window.scrollY - expectedScroll) <= 2;
+                    cleanup();
+                    if (!mayReveal) return;
                     revealBioageResult(resultElement, { instant: true });
+                    // The loaded rank can outgrow the temporary card. Complete this
+                    // initial reveal with the rank itself clear of the action bar.
+                    const rankBounds = rankPending.getBoundingClientRect();
+                    const viewportBounds = getBioageResultViewportBounds();
+                    if (rankBounds.height <= viewportBounds.height && rankBounds.bottom > viewportBounds.bottom) {
+                        window.scrollBy({ top: rankBounds.bottom - viewportBounds.bottom, behavior: 'instant' });
+                        state.revealScrollTop = window.scrollY;
+                    }
                 }, prefersReducedMotion ? 0 : BIOAGE_RESULT_SCROLL_SETTLE_MS);
             });
             state.rankRevealCleanup = cleanup;
@@ -2362,36 +2436,36 @@ interface Window {
         const shouldShow = options.getStep() === 2;
         const parent = next.classList.contains('show') ? resultActions : entryActions;
         if (readout.parentElement !== parent) parent.insertBefore(readout, parent === resultActions ? next : liveProgress);
-        readout.hidden = !shouldShow;
+        if (readout.hidden !== !shouldShow) readout.hidden = !shouldShow;
         readout.classList.toggle('bioage-live-readout--shown', shouldShow);
-        readout.inert = !shouldShow;
-        readout.tabIndex = complete ? 0 : -1;
-        readout.setAttribute('aria-disabled', String(!complete));
-        readout.dataset.complete = String(complete);
+        if (readout.inert !== !shouldShow) readout.inert = !shouldShow;
+        setAttributeIfChanged(readout, 'tabindex', complete ? '0' : '-1');
+        setAttributeIfChanged(readout, 'aria-disabled', String(!complete));
+        setAttributeIfChanged(readout, 'data-complete', String(complete));
         readout.style.setProperty('--bioage-number-fill', `${Number.isFinite(age) ? fill : 0}%`);
         const valueText = Number.isFinite(age) ? formatBioageResultVisualValue(age) : '—';
         const valueElement = readout.querySelector<HTMLElement>('.bioage-live-readout__value');
         if (valueElement && valueElement.textContent !== valueText) {
-            valueElement.textContent = valueText;
+            setTextIfChanged(valueElement, valueText);
             if (direction && !prefersReducedBioageResultMotion()) pulseClass(valueElement, 'bioage-live-readout__value--changed', 230);
         }
         const completion = readout.querySelector<HTMLElement>('.bioage-live-readout__completion');
-        if (completion) completion.textContent = complete ? `✓ ${completed} / ${total}` : '\u00a0';
+        if (completion) setTextIfChanged(completion, complete ? `✓ ${completed} / ${total}` : '\u00a0');
         if (liveProgress) {
             liveProgress.style.setProperty('--bioage-entry-progress', `${completed / total * 100}%`);
             liveProgress.style.setProperty('--bioage-marker-count', String(total));
             const count = liveProgress.querySelector('span');
-            if (count) count.textContent = `${completed} / ${total}`;
+            if (count) setTextIfChanged(count, `${completed} / ${total}`);
         }
-        readout.dataset.bioageGapTone = gap === null ? 'good' : gap < -2 ? 'excellent' : gap < 0 ? 'good' : 'average';
-        readout.setAttribute('aria-label', complete
+        setAttributeIfChanged(readout, 'data-bioage-gap-tone', gap === null ? 'good' : gap < -2 ? 'excellent' : gap < 0 ? 'good' : 'average');
+        setAttributeIfChanged(readout, 'aria-label', complete
             ? `${options.clock} age ${valueText} years. View complete result.`
             : `${options.clock} age ${valueText} years, incomplete. ${completed} of ${total} biomarkers entered. Missing biomarkers use reference values.`);
     }
 
     function morphUnitSelect(select: HTMLSelectElement, automatic: boolean): void {
         const group = select.closest<HTMLElement>('.input-group');
-        const input = group?.querySelector<HTMLInputElement>('input[type="number"]');
+        const input = group?.querySelector<HTMLInputElement>('input[inputmode="decimal"]');
         if (prefersReducedBioageResultMotion() || !group) return;
         const easing = 'cubic-bezier(0.2, 0, 0, 1)';
         select.animate([
@@ -2436,7 +2510,7 @@ interface Window {
 
     function isLivePanelReady(controller: BioageBiomarkerEntryController): boolean {
         return Number.isFinite(readChronologicalAge(controller.form))
-            && (controller.clock !== 'bortz' || Number(controller.form.querySelector<HTMLInputElement>('#wbc')?.value) > 0)
+            && (controller.clock !== 'bortz' || parseBiomarkerInput(controller.form.querySelector<HTMLInputElement>('#wbc')?.value) > 0)
             && controller.inputs.length > 0
             && controller.inputs.every(isCompleteBiomarkerInput);
     }
@@ -2446,7 +2520,7 @@ interface Window {
         if (!Number.isFinite(age) || controller.inputs.some(input => input.validity.badInput
             || (input.value.trim() !== '' && !isCompleteBiomarkerInput(input)))) return NaN;
         const wbc = controller.form.querySelector<HTMLInputElement>('#wbc');
-        if (controller.clock === 'bortz' && wbc?.value.trim() && Number(wbc.value) <= 0) return NaN;
+        if (controller.clock === 'bortz' && wbc?.value.trim() && parseBiomarkerInput(wbc.value) <= 0) return NaN;
         const api = controller.clock === 'pheno' ? window.PhenoAge : window.BortzAge;
         if (!api) return NaN;
         const markers = api.biomarkers;
@@ -2632,6 +2706,7 @@ interface Window {
         syncBioageResultActions,
         syncBioageResultVisibility,
         syncBiomarkerExamplePlaceholders,
+        parseBiomarkerInput,
         toFiniteBiomarkerNumber,
         updateBiomarkerComparison,
         updateBiomarkerExamplePlaceholder,

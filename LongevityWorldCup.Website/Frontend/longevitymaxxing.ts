@@ -900,6 +900,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let timeZoneCountryCodes: Map<string, string[]> | null = null;
     let preferredTimeZoneIds: Map<string, string> | null = null;
     let regionDisplayNames: Intl.DisplayNames | null = null;
+    const timeZoneRenderKeys = new WeakMap<Element, string>();
+    const timeZoneOffsetLabels = new Map<string, string>();
+    let timeZoneOffsetMinute = -1;
     let quoteDialogLastFocus: HTMLElement | null = null;
     let adviceStoryDraft: { id: string; body: string } | null = null;
     let adviceCheckInEditing: { participantId: string; adviceId: string; challengeDay: number } | null = null;
@@ -1636,13 +1639,47 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireAccessTabs() {
         document.querySelectorAll<HTMLButtonElement>("[data-lmx-access-tab]").forEach(button => {
             button.addEventListener("click", () => {
-                accessTab = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
-                renderPanels(publicState || {});
+                setAccessTab(button.dataset.lmxAccessTab === "signin" ? "signin" : "signup");
             });
             button.addEventListener("keydown", event => {
                 handleAccessTabKeydown(event, button);
             });
         });
+    }
+
+    let accessCardAnimations: Animation[] = [];
+
+    function setAccessTab(next: AccessTab): void {
+        if (next === accessTab) return;
+        const card = document.querySelector<HTMLElement>(".lmx-action-card");
+        // Capture the visible height before canceling only our previous effects.
+        // Measure the new natural height after cancellation so rapid reversals
+        // cannot keep animating toward the panel that was just hidden.
+        const before = card?.getBoundingClientRect().height || 0;
+        accessCardAnimations.forEach(animation => animation.cancel());
+        accessCardAnimations = [];
+        accessTab = next;
+        renderPanels(publicState || {});
+        morphAccessCard(card, before, next);
+    }
+
+    // Switching between Sign up and Sign in: the card glides to its new height
+    // and the incoming panel slides in from the side of its tab.
+    function morphAccessCard(card: HTMLElement | null, before: number, tab: "signin" | "signup"): void {
+        if (!card || !before || typeof card.animate !== "function"
+            || window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            || document.documentElement.dataset.lwcMotion === "off") return;
+        const after = card.getBoundingClientRect().height;
+        if (Math.abs(after - before) > 1) {
+            accessCardAnimations.push(card.animate(
+                [{ height: `${before}px`, overflow: "hidden" }, { height: `${after}px`, overflow: "hidden" }],
+                { duration: 280, easing: "cubic-bezier(0.2, 0, 0, 1)" }));
+        }
+        const panel = document.getElementById(tab === "signin" ? "lmxResendPanel" : "lmxSignupPanel");
+        const from = tab === "signin" ? 18 : -18;
+        if (panel) accessCardAnimations.push(panel.animate(
+            [{ transform: `translateX(${from}px)` }, { transform: "none" }],
+            { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" }));
     }
 
     function wireIdentityControls() {
@@ -2958,8 +2995,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         event.preventDefault();
         const nextTab = tabs[nextIndex];
         if (!nextTab) return;
-        accessTab = nextTab;
-        renderPanels(publicState || {});
+        setAccessTab(nextTab);
         document.querySelector<HTMLElement>(`[data-lmx-access-tab="${accessTab}"]`)?.focus();
     }
 
@@ -3707,6 +3743,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return Math.max(limit, originalBody.length);
     }
 
+    function updateControlText(element: HTMLElement, value: string): void {
+        if (element.textContent === value) return;
+        // Preserve the text node so counters do not look like inserted UI to
+        // the shared page observers on every keystroke.
+        if (element.childNodes.length === 1 && element.firstChild instanceof Text) element.firstChild.data = value;
+        else element.textContent = value;
+    }
+
     function characterAllowanceDescription(characterLimit: number): string {
         const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
         const points = row?.characterAllowance?.challengePoints ?? Math.min(154, Math.max(0, row?.totalPoints || 0));
@@ -3851,8 +3895,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         function renderSuggestions(): void {
             if (composing || textarea.readOnly || textarea.disabled) { closeList(); return; }
             const context = activeMentionContext(textarea);
+            if (!context || isCompletedMentionContext(context)) { closeList(); return; }
             const rows = mentionableParticipants();
-            if (!context || isCompletedMentionContext(context) || contextContinuesPastParticipant(context, rows)) {
+            if (contextContinuesPastParticipant(context, rows)) {
                 closeList();
                 return;
             }
@@ -3941,6 +3986,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         function closeList(): void {
+            if (list.hidden && !list.childNodes.length) return;
             list.hidden = true;
             list.innerHTML = "";
             matches = [];
@@ -5652,12 +5698,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         changeScores.disabled = adviceStorySaving;
         submit.disabled = adviceStorySaving;
         dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = adviceStorySaving;
-        dialog.setAttribute("aria-busy", String(adviceStorySaving));
+        if (dialog.getAttribute("aria-busy") !== String(adviceStorySaving)) dialog.setAttribute("aria-busy", String(adviceStorySaving));
         if (!prompt || adviceStoryDraft?.id !== prompt.id) {
             submit.textContent = prompt ? "Continue" : "Close";
             return;
         }
-        submit.textContent = "Post";
+        updateControlText(submit, "Post");
         const overLimit = updateAdviceStoryCount(dialog.querySelector<HTMLTextAreaElement>("textarea")!,
             dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!, prompt.characterLimit);
         submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || overLimit;
@@ -5667,10 +5713,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const limit = Math.max(2000, allowance ?? discussionCharacterLimit());
         const length = textarea.value.length;
         const over = Math.max(0, length - limit);
-        count.textContent = over ? `${over} over` : `${length}/${limit}`;
+        updateControlText(count, over ? `${over} over` : `${length}/${limit}`);
         count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${limit} characters`);
         count.classList.toggle("over-limit", over > 0);
-        textarea.setAttribute("aria-invalid", String(over > 0));
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
         return over > 0;
     }
 
@@ -6179,9 +6225,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const over = Math.max(0, noteLength - characterLimit);
             note.dataset.characterLimit = String(characterLimit);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
-            note.setAttribute("aria-invalid", String(over > 0));
+            if (note.getAttribute("aria-invalid") !== String(over > 0)) note.setAttribute("aria-invalid", String(over > 0));
             const count = form.querySelector<HTMLElement>("[data-note-character-count]")!;
-            count.textContent = over ? `${over} over` : `${noteLength}/${characterLimit}`;
+            updateControlText(count, over ? `${over} over` : `${noteLength}/${characterLimit}`);
             count.title = characterAllowanceDescription(characterLimit);
             count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${noteLength} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
@@ -6215,20 +6261,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             reset.hidden = !changed && !canUndo;
             reset.title = canUndo ? "Undo reset" : "Reset this check-in";
             reset.setAttribute("aria-label", reset.title);
-            reset.innerHTML = canUndo ? "Undo" : `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
+            if (canUndo) updateControlText(reset, "Undo");
+            else if (!reset.querySelector(".fa-rotate-left")) reset.innerHTML = `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
         }
         const progress = form.querySelector<HTMLElement>("[data-checkin-progress]");
         if (progress) {
             const answered = QUESTIONS.filter(q => draft[q.key] !== null).length;
-            progress.textContent = checkInSaving
+            updateControlText(progress, checkInSaving
                 ? savingThisDay ? "" : `Saving Day ${checkInSaving.day}…`
                 : saved ? "Saved"
-                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`;
+                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`);
             progress.classList.toggle("visually-hidden", saved && !checkInSaving);
         }
         if (status) {
             const error = checkInErrors.get(key);
-            status.textContent = error ? `Not saved. ${error}` : "";
+            updateControlText(status, error ? `Not saved. ${error}` : "");
             status.classList.toggle("error", !!error);
         }
         document.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(day => {
@@ -6236,7 +6283,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const dirty = checkInDrafts.has(day.dataset.draftKey || "");
             day.classList.toggle("has-draft", dirty);
             if (label) {
-                label.textContent = checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due";
+                updateControlText(label, checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due");
                 label.classList.toggle("visually-hidden", day.getAttribute("aria-pressed") === "true");
             }
         });
@@ -7562,11 +7609,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         };
         wireMentionAutocomplete(textarea, () => {
             if (discussionMutation === draft.key) return;
+            const wasDirty = discussionDraftHasChanges(draft);
+            const previousError = draft.error;
+            const previousNotice = draft.notice;
+            const storageFailed = discussionDraftStorageFailed;
             draft.body = textarea.value;
             draft.notice = null;
-            rememberSelection();
+            draft.selectionStart = textarea.selectionStart;
+            draft.selectionEnd = textarea.selectionEnd;
             if (draft.errorKind !== "auth" && draft.error && draft.body.trim() !== draft.submittedBody) { draft.error = null; draft.errorKind = null; }
-            updateDiscussionDraftControls();
+            // Typing changes this composer, not every reply and history control in the feed.
+            if (wasDirty !== discussionDraftHasChanges(draft) || previousError !== draft.error) updateDiscussionDraftControls();
+            else {
+                persistDiscussionDrafts();
+                if (previousNotice || storageFailed !== discussionDraftStorageFailed) updateDiscussionComposerControls(composer, draft);
+                else updateDiscussionComposerInput(composer, draft);
+            }
         });
         textarea.addEventListener("select", rememberSelection);
         textarea.addEventListener("blur", rememberSelection);
@@ -7701,58 +7759,74 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderDiscussionDiscardUndo();
         document.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(composer => {
             const draft = discussionDrafts.get(composer.dataset.discussionDraft || "");
-            if (!draft) return;
-            const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
-            const archived = discussionDraftArchived(draft, advice);
-            const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
-            const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
-            if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
-            updateDiscussionComposerContext(composer, draft);
-            const pending = discussionMutation === draft.key;
-            const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
-            textarea.readOnly = pending;
+            if (draft) {
+                updateDiscussionComposerContext(composer, draft);
+                updateDiscussionComposerControls(composer, draft);
+            }
+        });
+    }
+
+    function updateDiscussionComposerInput(composer: HTMLElement, draft: DiscussionDraft): void {
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        // Native sizing grows and shrinks without two synchronous layouts per letter.
+        if (!CSS.supports("field-sizing", "content")) {
             textarea.style.height = "auto";
             textarea.style.height = `${Math.min(textarea.scrollHeight + 2, parseFloat(getComputedStyle(textarea).maxHeight))}px`;
-            if (pending) {
-                composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
-                textarea.setAttribute("aria-expanded", "false");
-                textarea.removeAttribute("aria-activedescendant");
-            }
-            const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
-            const length = draft.body.length;
-            const characterLimit = discussionCharacterLimit(draft.originalBody);
-            const over = Math.max(0, length - characterLimit);
-            textarea.dataset.characterLimit = String(characterLimit);
-            count.textContent = over ? `${over} over` : `${length}/${characterLimit}`;
-            count.title = characterAllowanceDescription(characterLimit);
-            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
-            count.classList.toggle("over-limit", over > 0);
-            textarea.setAttribute("aria-invalid", String(over > 0));
-            count.classList.toggle("at-limit", draft.body.length >= characterLimit);
-            const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
-            if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
-                : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
-            const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
-            submit.disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
-            submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
-                : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
-            if (pending) submit.setAttribute("aria-busy", "true");
-            else submit.removeAttribute("aria-busy");
-            const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
-            if (discard) discard.disabled = pending || !discussionDraftHasChanges(draft);
-            composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
-                control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
-            });
-            composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
-            const status = composer.querySelector<HTMLElement>(".lmx-status")!;
-            status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
-                : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
-                : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
-                : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
-                : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
-                : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
-            status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
+        }
+        const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
+        const length = draft.body.length;
+        const characterLimit = discussionCharacterLimit(draft.originalBody);
+        const over = Math.max(0, length - characterLimit);
+        textarea.dataset.characterLimit = String(characterLimit);
+        updateControlText(count, over ? `${over} over` : `${length}/${characterLimit}`);
+        count.title = characterAllowanceDescription(characterLimit);
+        count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
+        count.classList.toggle("over-limit", over > 0);
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
+        count.classList.toggle("at-limit", draft.body.length >= characterLimit);
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        const disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
+        if (submit.disabled !== disabled) submit.disabled = disabled;
+        const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
+        const cannotDiscard = discussionMutation === draft.key || !discussionDraftHasChanges(draft);
+        if (discard && discard.disabled !== cannotDiscard) discard.disabled = cannotDiscard;
+    }
+
+    function updateDiscussionComposerControls(composer: HTMLElement, draft: DiscussionDraft): void {
+        updateDiscussionComposerInput(composer, draft);
+        const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
+        const archived = discussionDraftArchived(draft, advice);
+        const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
+        const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
+        if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
+        const pending = discussionMutation === draft.key;
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        if (textarea.readOnly !== pending) textarea.readOnly = pending;
+        if (pending) {
+            composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
+            textarea.setAttribute("aria-expanded", "false");
+            textarea.removeAttribute("aria-activedescendant");
+        }
+        const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
+        if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
+            : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
+            : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
+        if (pending) submit.setAttribute("aria-busy", "true");
+        else submit.removeAttribute("aria-busy");
+        composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
+            control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
         });
+        composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
+        const status = composer.querySelector<HTMLElement>(".lmx-status")!;
+        status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
+            : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
+            : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
+            : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
+            : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
+            : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
+        status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
     }
 
     async function deleteDiscussionReply(button: HTMLButtonElement): Promise<void> {
@@ -9736,6 +9810,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .filter(item => item.score > 0)
             .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone));
 
+        // Consecutive prefixes often produce the same options. Keep those
+        // controls in place; refresh their offsets when the current minute changes.
+        const renderKey = `${Math.floor(Date.now() / 60000)}\n${matches.map(item => item.zone).join("\n")}`;
+        if (timeZoneRenderKeys.get(list) === renderKey) {
+            setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
+            return;
+        }
         list.innerHTML = matches.length
             ? matches.map((item, index) => timeZoneOptionHtml(item.zone, `${list.id}-option-${index}`)).join("")
             : `<div class="lmx-timezone-empty">No timezone found</div>`;
@@ -9743,6 +9824,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         list.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.addEventListener("click", () => chooseTimeZone(picker, option.dataset.timeZone || "UTC"));
         });
+        timeZoneRenderKeys.set(list, renderKey);
         setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
     }
 
@@ -9756,7 +9838,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function setActiveTimeZoneOption(picker: HTMLElement, active: HTMLElement | null): void {
         picker.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.classList.toggle("active", option === active);
-            option.setAttribute("aria-selected", option === active ? "true" : "false");
+            const selected = option === active ? "true" : "false";
+            if (option.getAttribute("aria-selected") !== selected) option.setAttribute("aria-selected", selected);
         });
         const input = picker.querySelector(".lmx-timezone-search input");
         if (active) input?.setAttribute("aria-activedescendant", active.id);
@@ -9940,17 +10023,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function timeZoneOffsetLabel(zone: string): string {
+        const now = new Date();
+        const minute = Math.floor(now.getTime() / 60000);
+        if (minute !== timeZoneOffsetMinute) {
+            timeZoneOffsetMinute = minute;
+            timeZoneOffsetLabels.clear();
+        }
+        let label = timeZoneOffsetLabels.get(zone);
+        if (label !== undefined) return label;
         try {
             const parts = new Intl.DateTimeFormat("en-US", {
                 timeZone: zone,
                 timeZoneName: "shortOffset",
                 hour: "2-digit",
                 minute: "2-digit"
-            }).formatToParts(new Date());
-            return parts.find(part => part.type === "timeZoneName")?.value || zone;
+            }).formatToParts(now);
+            label = parts.find(part => part.type === "timeZoneName")?.value || zone;
         } catch (_) {
-            return zone || "UTC";
+            label = zone || "UTC";
         }
+        timeZoneOffsetLabels.set(zone, label);
+        return label;
     }
 
 

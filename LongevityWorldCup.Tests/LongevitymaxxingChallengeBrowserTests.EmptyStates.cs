@@ -85,6 +85,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 window.emptyMutations = 0;
                 new MutationObserver(records => window.emptyMutations += records.length)
                     .observe(document.querySelector('#lmxNotes'), {subtree:true, childList:true, attributes:true});
+                // A queued layout measurement should leave the decorated empty feed untouched.
+                window.LwcLmxDiscussion.measure();
             }
             """);
         await page.WaitForTimeoutAsync(300);

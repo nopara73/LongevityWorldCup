@@ -439,6 +439,13 @@ public sealed class AestheticSystemBrowserTests(
                 () => {
                     const selected = document.querySelector('#lmxAccessTabs .lmx-tab[aria-selected="true"]');
                     const selectedStyle = getComputedStyle(selected);
+                    const glide = selected.parentElement.querySelector('.lwc-segment-glide[data-ready]');
+                    const selectedRect = selected.getBoundingClientRect();
+                    const glideRect = glide?.getBoundingClientRect();
+                    const glideHasUnderline = glide && getComputedStyle(glide).boxShadow !== 'none'
+                        && Math.abs(glideRect.left - selectedRect.left) <= 1
+                        && Math.abs(glideRect.bottom - selectedRect.bottom) <= 1
+                        && Math.abs(glideRect.width - selectedRect.width) <= 1;
                     const status = document.getElementById('lmxSignupStatus');
                     status.textContent = 'Signup ready — check your email for the next step.';
                     status.classList.add('success');
@@ -448,7 +455,9 @@ public sealed class AestheticSystemBrowserTests(
                         SelectedHasText: selected.textContent.trim().length > 0,
                         SelectedIsProgrammaticallyExposed: selected.getAttribute('aria-selected') === 'true',
                         SelectedHasShapeIndicator: selectedStyle.boxShadow !== 'none'
-                            || parseFloat(selectedStyle.borderBottomWidth) >= 2,
+                            || (parseFloat(selectedStyle.borderBottomWidth) >= 2
+                                && selectedStyle.borderBottomColor !== 'rgba(0, 0, 0, 0)')
+                            || Boolean(glideHasUnderline),
                         StatusHasText: status.textContent.trim().length > 0,
                         StatusHasShapeIndicator: parseFloat(statusStyle.borderLeftWidth) >= 4
                             || parseFloat(statusStyle.borderRightWidth) >= 4,
@@ -2572,6 +2581,38 @@ public sealed class AestheticSystemBrowserTests(
             var thresholdPixels = condition.Unit == "rem"
                 ? condition.Value * rootFontSize
                 : condition.Value;
+            if (condition.Name == "lmx-signup-timezone")
+            {
+                await Assertions.Expect(page.Locator("[data-select-id='lmxSignupTimeZone']"))
+                    .ToHaveAttributeAsync("data-wired", "true");
+                // Wiring precedes public-state loading; hidden containers do not evaluate their queries.
+                await Assertions.Expect(page.Locator("#lmxSignupTimeZoneButton")).ToBeVisibleAsync();
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var inlineSize = thresholdPixels + delta;
+                    var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>(
+                        """
+                        async inlineSize => {
+                            const picker = document.querySelector('[data-select-id="lmxSignupTimeZone"]');
+                            picker.style.boxSizing = 'content-box';
+                            picker.style.inlineSize = `${inlineSize}px`;
+                            picker.style.maxInlineSize = 'none';
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            return {
+                                ContainerWidth: parseFloat(getComputedStyle(picker).width),
+                                IsCompact: getComputedStyle(picker.querySelector('[data-timezone-display]')).whiteSpace === 'normal',
+                                HorizontalOverflow: Math.max(0, picker.scrollWidth - picker.clientWidth)
+                            };
+                        }
+                        """, inlineSize);
+                    Assert.Equal(inlineSize, diagnostics.ContainerWidth, 1);
+                    Assert.Equal(inlineSize <= thresholdPixels, diagnostics.IsCompact);
+                    Assert.True(diagnostics.HorizontalOverflow <= 1,
+                        $"Signup timezone overflowed by {diagnostics.HorizontalOverflow}px at {inlineSize}px.");
+                }
+                await page.Locator("[data-select-id='lmxSignupTimeZone']").EvaluateAsync("e => e.removeAttribute('style')");
+                continue;
+            }
             if (condition.Name is null && (condition.Unit == "px" && condition.Value is 280 or 420
                 || condition.Unit == "rem" && condition.Value is 12 or 20))
             {
