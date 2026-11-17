@@ -226,6 +226,11 @@ public sealed class AthletePortraitMotionBrowserTests(
         await image.HoverAsync();
         await AssertFollowingAsync(overlay);
         var handoffCrop = await image.EvaluateAsync<string>("image => getComputedStyle(image).objectViewBox");
+        var handoffTransform = await image.EvaluateAsync<string>("image => getComputedStyle(image).transform");
+        var motionSurface = painted.Locator("..");
+        // The sibling canvas follows the photo during its own animation frame.
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("transform", handoffTransform);
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("object-view-box", handoffCrop);
 
         // Matching CSS is insufficient: Chromium crops a video differently
         // from an image. Compare the actual painted face at the resting pose.
@@ -274,6 +279,9 @@ public sealed class AthletePortraitMotionBrowserTests(
         await Assertions.Expect(painted).ToHaveCSSAsync("opacity", "0");
         await Assertions.Expect(image).ToBeVisibleAsync();
         await Assertions.Expect(image).ToHaveCSSAsync("object-view-box", handoffCrop);
+        await Assertions.Expect(image).ToHaveCSSAsync("transform", handoffTransform);
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("object-view-box", handoffCrop);
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("transform", handoffTransform);
         Assert.InRange(MeanFaceDifference(still, await image.ScreenshotAsync()), 0, .1);
     }
 
