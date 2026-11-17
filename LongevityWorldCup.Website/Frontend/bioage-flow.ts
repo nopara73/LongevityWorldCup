@@ -490,49 +490,52 @@ interface Window {
     }
 
     function ensureBiomarkerComparisonChip(input: HTMLInputElement): HTMLSpanElement {
-        let chip = input.parentElement?.querySelector<HTMLSpanElement>(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
+        let chip = input.closest('.biomarker-card-content')?.querySelector<HTMLSpanElement>(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
         if (chip) return chip;
 
         chip = document.createElement('span');
         chip.className = 'bioage-input-comparison-chip';
         chip.dataset.bioageComparisonFor = input.id;
+        chip.setAttribute('role', 'note');
         chip.hidden = true;
-        input.parentElement?.appendChild(chip);
+
+        const previous = document.createElement('span');
+        previous.className = 'bioage-input-comparison-chip__previous';
+        previous.setAttribute('aria-hidden', 'true');
+        const icon = document.createElement('i');
+        icon.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('span');
+        label.className = 'bioage-input-comparison-chip__text';
+        chip.append(previous, icon, label);
+        // Keep the measurement's border/clipping intact and let comparisons
+        // take their natural height, including with enlarged or wrapped text.
+        input.parentElement?.insertAdjacentElement('afterend', chip);
         return chip;
     }
 
     function hideBiomarkerComparison(input: HTMLInputElement): void {
         input.classList.remove('bioage-input-has-comparison');
-        const chip = input.parentElement?.querySelector<HTMLSpanElement>(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
+        const chip = input.closest('.biomarker-card-content')?.querySelector<HTMLSpanElement>(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
         if (chip) {
-            chip.hidden = true;
-            chip.textContent = '';
-            chip.className = 'bioage-input-comparison-chip';
-            chip.removeAttribute('title');
-            chip.removeAttribute('aria-label');
+            if (!chip.hidden) chip.hidden = true;
         }
     }
 
     function setBiomarkerComparisonChipContent(
         chip: HTMLSpanElement,
         text: string,
-        direction: 'down' | 'up' | null
+        direction: 'down' | 'up' | null,
+        previous: string
     ): void {
-        chip.replaceChildren();
-        if (!direction) {
-            chip.textContent = text;
-            return;
+        const previousValue = chip.querySelector<HTMLElement>('.bioage-input-comparison-chip__previous');
+        const icon = chip.querySelector<HTMLElement>('i');
+        const label = chip.querySelector<HTMLElement>('.bioage-input-comparison-chip__text');
+        if (previousValue) setTextIfChanged(previousValue, previous);
+        if (label) setTextIfChanged(label, text);
+        if (icon) {
+            setAttributeIfChanged(icon, 'class', direction ? `fas fa-arrow-${direction}` : '');
+            if (icon.hidden !== !direction) icon.hidden = !direction;
         }
-
-        const icon = document.createElement('i');
-        icon.className = `fas fa-arrow-${direction}`;
-        icon.setAttribute('aria-hidden', 'true');
-
-        const label = document.createElement('span');
-        label.className = 'bioage-input-comparison-chip__text';
-        label.textContent = text;
-
-        chip.append(icon, label);
     }
 
     function updateBiomarkerComparison(inputId: string): void {
@@ -582,11 +585,12 @@ interface Window {
             : `${deltaMagnitude} ${displayDelta < 0 ? 'lower' : 'higher'}`;
         const direction = isSameDisplay ? null : (displayDelta < 0 ? 'down' : 'up');
         const chip = ensureBiomarkerComparisonChip(input);
-        chip.className = `bioage-input-comparison-chip ${stateClass}`;
-        setBiomarkerComparisonChipContent(chip, text, direction);
-        chip.hidden = false;
-        chip.title = `Last ${formatBiomarkerPlaceholderValue(previousDisplay)}`;
-        chip.setAttribute('aria-label', `${text}; last ${formatBiomarkerPlaceholderValue(previousDisplay)}`);
+        const previous = formatBiomarkerPlaceholderValue(previousDisplay)!;
+        setAttributeIfChanged(chip, 'class', `bioage-input-comparison-chip ${stateClass}`);
+        setBiomarkerComparisonChipContent(chip, text, direction, previous);
+        if (chip.hidden) chip.hidden = false;
+        setAttributeIfChanged(chip, 'title', `Last ${previous}`);
+        setAttributeIfChanged(chip, 'aria-label', `${text}; last ${previous}`);
         input.classList.add('bioage-input-has-comparison');
     }
 
@@ -1246,6 +1250,7 @@ interface Window {
             ? `${completed} new biomarker${completed === 1 ? '' : 's'}${completed > 0 && !hasBloodDrawDate ? ' · blood draw date required' : ''}`
             : `${completed} of ${total} biomarkers entered`);
         controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
+        if (controller.isUpdate) setAttributeIfChanged(controller.progress, 'data-updates', String(completed));
         primedBiomarkerControllers.add(controller);
         controller.form.style.setProperty('--bioage-entry-progress', `${total > 0 ? Math.round(completed / total * 100) : 0}%`);
 
@@ -1432,6 +1437,7 @@ interface Window {
     }
 
     function initializeBiomarkerEntry(options: BioageBiomarkerEntryOptions): BioageBiomarkerEntryResult {
+        options.form.classList.toggle('bioage-update', options.isUpdate === true);
         const existing = biomarkerEntryControllers.get(options.clock);
         if (existing?.form === options.form) {
             syncBiomarkerCompletion(existing);
