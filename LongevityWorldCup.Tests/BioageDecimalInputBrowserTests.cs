@@ -5,7 +5,9 @@ using static LongevityWorldCup.Tests.FlowActionDockBrowserTests;
 
 namespace LongevityWorldCup.Tests;
 
-[Collection(BrowserTestCollections.WorkloadC)]
+// The discussion-photo paste tests use the real clipboard in WorkloadA too.
+// Keep clipboard writers serialized while other browser collections run.
+[Collection(BrowserTestCollections.WorkloadA)]
 public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
@@ -19,7 +21,7 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
         foreach (var commas in new[] { false, true })
         {
             await using var context = await NewContextAsync(width, locale);
-            var page = await context.NewPageAsync();
+            var page = await NewClipboardPageAsync(context);
             await page.GotoAsync($"/{clock}-age");
             await FillBioageStepOneAsync(page, "2026-09-01");
             if (clock == "pheno") await FillPhenoBiomarkersAsync(page);
@@ -73,7 +75,7 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
     public async Task UnclearPastes_StayIntactAndExplainTheProblem_WithoutBreakingNormalEditing(string clock, int width, string theme)
     {
         await using var context = await NewContextAsync(width, "en-US");
-        var page = await context.NewPageAsync();
+        var page = await NewClipboardPageAsync(context);
         await page.EmulateMediaAsync(new() { ColorScheme = theme == "dark" ? ColorScheme.Dark : ColorScheme.Light });
         await page.GotoAsync($"/{clock}-age?fake=1");
         await WaitForEntryAsync(page);
@@ -123,7 +125,7 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
             requestBody.TrySetResult(route.Request.PostData!);
             await route.FulfillAsync(new() { Status = 200, ContentType = "application/json", Body = "{\"success\":true,\"paymentRequired\":false}" });
         });
-        var page = await context.NewPageAsync();
+        var page = await NewClipboardPageAsync(context);
         await page.GotoAsync("/health");
         await page.EvaluateAsync("""
             () => sessionStorage.setItem('selectedAthlete', JSON.stringify({Name:'Decimal Test Athlete',AccountEmail:'decimal@example.test',
@@ -176,6 +178,14 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         return context;
+    }
+
+    private static async Task<IPage> NewClipboardPageAsync(IBrowserContext context)
+    {
+        var page = await context.NewPageAsync();
+        var cdp = await context.NewCDPSessionAsync(page);
+        await cdp.SendAsync("Emulation.setFocusEmulationEnabled", new() { ["enabled"] = true });
+        return page;
     }
 
     private static async Task PasteAsync(IPage page, string selector, string text)
