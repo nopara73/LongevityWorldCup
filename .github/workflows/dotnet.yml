@@ -223,10 +223,16 @@ jobs:
       shell: bash
       run: |
         # A tar preserves the executable Playwright driver and generated assets.
+        module_assets=LongevityWorldCup.Website/obj/Debug/net10.0/jsmodules
+        extra_assets=()
+        if [[ -d "$module_assets" ]]; then
+          extra_assets+=("$module_assets")
+        fi
         tar -czf "$RUNNER_TEMP/ci-build.tgz" \
           --exclude=LongevityWorldCup.Tests/obj --exclude=LongevityWorldCup.Tests/TestResults \
           LongevityWorldCup.Tests \
           LongevityWorldCup.Website/obj/Debug/net10.0/compressed \
+          "${extra_assets[@]}" \
           LongevityWorldCup.Website/wwwroot/js \
           LongevityWorldCup.Website/wwwroot/css/athlete-dialog \
           LongevityWorldCup.Website/wwwroot/css/documentation-reading.css \
