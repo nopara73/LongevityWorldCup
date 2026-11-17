@@ -223,16 +223,28 @@ jobs:
       shell: bash
       run: |
         # A tar preserves the executable Playwright driver and generated assets.
-        module_assets=LongevityWorldCup.Website/obj/Debug/net10.0/jsmodules
-        extra_assets=()
-        if [[ -d "$module_assets" ]]; then
-          extra_assets+=("$module_assets")
-        fi
+        # The SDK can add generated content roots used by the test host.
+        python3 - > "$RUNNER_TEMP/generated-static-roots.list" <<'PY'
+        import json
+        from pathlib import Path
+
+        repo = Path.cwd()
+        intermediate = repo / 'LongevityWorldCup.Website/obj/Debug/net10.0'
+        compressed = intermediate / 'compressed'
+        manifest = repo / 'LongevityWorldCup.Tests/bin/Debug/net10.0/LongevityWorldCup.Website.staticwebassets.runtime.json'
+        roots = {Path(root).resolve() for root in json.loads(manifest.read_text())['ContentRoots']}
+        for root in sorted(roots):
+            if root.is_relative_to(intermediate) and not root.is_relative_to(compressed):
+                if not root.is_dir():
+                    raise SystemExit(f'Generated static asset root is missing: {root}')
+                print(root.relative_to(repo).as_posix(), end='\0')
+        PY
+        mapfile -d '' -t generated_static_roots < "$RUNNER_TEMP/generated-static-roots.list"
         tar -czf "$RUNNER_TEMP/ci-build.tgz" \
           --exclude=LongevityWorldCup.Tests/obj --exclude=LongevityWorldCup.Tests/TestResults \
           LongevityWorldCup.Tests \
           LongevityWorldCup.Website/obj/Debug/net10.0/compressed \
-          "${extra_assets[@]}" \
+          "${generated_static_roots[@]}" \
           LongevityWorldCup.Website/wwwroot/js \
           LongevityWorldCup.Website/wwwroot/css/athlete-dialog \
           LongevityWorldCup.Website/wwwroot/css/documentation-reading.css \
