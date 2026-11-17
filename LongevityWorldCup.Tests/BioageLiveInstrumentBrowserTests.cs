@@ -174,7 +174,7 @@ public sealed class BioageLiveInstrumentBrowserTests(
         await page.GoBackAsync();
         await Assertions.Expect(page.Locator("#lwc-step-1")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#dob-year")).ToHaveValueAsync("");
-        Assert.All(await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"), value => Assert.Equal("", value));
+        Assert.All(await page.Locator(".biomarker-card input[inputmode='decimal']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"), value => Assert.Equal("", value));
         await Assertions.Expect(page.Locator("#continueButton")).ToBeHiddenAsync();
     }
 
@@ -186,7 +186,7 @@ public sealed class BioageLiveInstrumentBrowserTests(
         await using var context = await NewContextAsync();
         var page = await context.NewPageAsync();
         await OpenPanelAsync(page, clock);
-        var panel = await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)");
+        var panel = await page.Locator(".biomarker-card input[inputmode='decimal']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)");
         await page.EvaluateAsync("""
             () => {
                 document.getElementById('dob-year').value = String(new Date().getFullYear());
@@ -196,7 +196,7 @@ public sealed class BioageLiveInstrumentBrowserTests(
             }
             """);
         await Assertions.Expect(page.Locator("#lwc-step-1")).ToBeVisibleAsync();
-        Assert.Equal(panel, await page.Locator(".biomarker-card input[type='number']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"));
+        Assert.Equal(panel, await page.Locator(".biomarker-card input[inputmode='decimal']").EvaluateAllAsync<string[]>("inputs => inputs.map(e => e.value)"));
         Assert.False(await page.EvaluateAsync<bool>("lwcValidateStep1(true)"));
         await page.Locator("#dob-year").SelectOptionAsync("1980");
         await page.Locator("#lwcToStep2Btn").ClickAsync();
