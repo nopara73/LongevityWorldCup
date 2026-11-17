@@ -788,6 +788,10 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     margin-top: 0.75rem;
 }
 
+.bioageform .bioage-update-date-fieldset .blood-draw-date-control {
+    padding-block: var(--lwc-space-4, 1rem);
+}
+
 .bioageform .blood-draw-date-control {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
