@@ -32,7 +32,7 @@ public sealed class MastodonAnnouncementService(
             string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
                 ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
 
-            foreach (var pending in deliveries.GetPending(SocialDeliveryStore.Mastodon, customOnly, now))
+            foreach (var pending in athletes.ReadPublishedEvents(() => deliveries.GetPending(SocialDeliveryStore.Mastodon, customOnly, now)))
             {
                 ct.ThrowIfCancellationRequested();
                 var item = pending.Event;
@@ -49,11 +49,10 @@ public sealed class MastodonAnnouncementService(
                     deliveries.Skip(SocialDeliveryStore.Mastodon, item.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
-                    && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
+                var subject = pending.Headline.Subject;
                 if (pending.RecordJson is null)
                 {
-                    if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Priority,
+                    if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Headline,
                         now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
                     {
                         deliveries.Skip(SocialDeliveryStore.Mastodon, item.Id, reason.ToString(), now);
