@@ -32,7 +32,7 @@ public sealed class SmtpApplicationPaymentEmailSender(ILogger<SmtpApplicationPay
 
         ct.ThrowIfCancellationRequested();
         beforeSend();
-        try { await client.SendAsync(message, ct); }
+        try { await client.SendAsync(FormatOptions.Default, new SmtpSendRequest(message), ct); }
         catch (SmtpCommandException ex) when ((int)ex.StatusCode is >= 400 and < 600)
         {
             throw new PaymentEmailNotAcceptedException(ex);

@@ -87,6 +87,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_POPPINS_REGULAR}}"] = "/assets/fonts/Poppins-Regular.ttf",
         ["{{ASSET_PRO_DISCOUNTS_JS}}"] = "/js/pro-discounts.js",
         ["{{ASSET_PORTRAIT_CROP_CSS}}"] = "/css/portrait-crop.css",
+        ["{{ASSET_UPLOAD_PHOTO_JS}}"] = "/js/upload-photo.js",
+        ["{{ASSET_HEIC_DECODER_JS}}"] = "/js/heic-to.js",
         ["{{ASSET_PORTRAIT_CROPPER_JS}}"] = "/js/portrait-cropper.js",
         ["{{ASSET_PROOF_DESK_CSS}}"] = "/css/proof-desk.css",
         ["{{ASSET_PROOF_DESK_JS}}"] = "/js/proof-desk.js",

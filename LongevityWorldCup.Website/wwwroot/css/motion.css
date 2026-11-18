@@ -71,12 +71,11 @@
         scale: var(--lwc-motion-press-scale);
         transition-duration: var(--lwc-motion-press);
     }
+}
 
-    /* Rows tint under the pointer and darken while pressed, before the profile opens. */
-    .leaderboard table tbody tr:not(.no-results, .tier-separator, .leaderboard-skeleton-row):active > td {
-        background-color: color-mix(in srgb, var(--lwc-accent) 9%, transparent);
-        transition-duration: var(--lwc-motion-press);
-    }
+/* Touch presses use the resting-finger indicator set by touch.ts. */
+:root:not([data-lwc-touch]) .leaderboard table tbody tr[data-athlete-name]:active {
+    background-color: color-mix(in srgb, var(--lwc-accent) 16%, var(--lwc-surface));
 }
 
 /* 2) Overlays: backdrop fades, panel rises; closing reverses faster. */

@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.RegularExpressions;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -147,7 +148,8 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
         await page.SetViewportSizeAsync(390, 844);
         await Assertions.Expect(page.Locator(".sidebar-panel")).ToHaveAttributeAsync("aria-modal", "true");
         await page.SetViewportSizeAsync(1440, 900);
-        Assert.False(await page.EvaluateAsync<bool>("document.body.classList.contains('sidebar-drawer-open')"));
+        // The viewport command can return before the browser dispatches resize.
+        await Assertions.Expect(page.Locator("body")).Not.ToHaveClassAsync(new Regex(@"\bsidebar-drawer-open\b"));
         await Assertions.Expect(page.Locator(".sidebar-panel")).ToHaveAttributeAsync("role", "region");
     }
 

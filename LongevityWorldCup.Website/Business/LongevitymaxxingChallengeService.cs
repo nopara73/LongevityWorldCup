@@ -4263,9 +4263,17 @@ public sealed partial class LongevitymaxxingChallengeService
         return normalized.ToString();
     }
 
+    // CLDR maps India's Windows ID to Asia/Calcutta. Some Linux installations
+    // ship only its current IANA name, including on hosts with ICU installed.
+    private static string CanonicalizeIndiaTimeZone(string id) =>
+        string.Equals(id, "Asia/Calcutta", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(id, "India Standard Time", StringComparison.OrdinalIgnoreCase)
+            ? "Asia/Kolkata"
+            : id;
+
     private static string NormalizeTimeZone(string timeZoneId)
     {
-        var normalized = (timeZoneId ?? "").Trim();
+        var normalized = CanonicalizeIndiaTimeZone((timeZoneId ?? "").Trim());
         if (string.IsNullOrWhiteSpace(normalized))
             throw new InvalidOperationException("Timezone is required.");
         if (string.Equals(normalized, "UTC", StringComparison.OrdinalIgnoreCase))
@@ -4300,6 +4308,7 @@ public sealed partial class LongevitymaxxingChallengeService
 
     private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
     {
+        timeZoneId = CanonicalizeIndiaTimeZone(timeZoneId);
         if (TryFindTimeZone(timeZoneId, out var timeZone))
             return timeZone;
         if (TimeZoneInfo.TryConvertWindowsIdToIanaId(timeZoneId, out var ianaId) &&

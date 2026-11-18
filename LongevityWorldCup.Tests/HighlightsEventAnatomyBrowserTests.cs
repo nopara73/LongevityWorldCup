@@ -456,16 +456,19 @@ public sealed class HighlightsEventAnatomyBrowserTests(
     }
 
     [Fact]
-    public async Task CompactFeedsLeaveTheirSmallPortraitsUnmarked()
+    public async Task HomepageShowsKindChipsWhileEmbeddedHistoryStaysCompact()
     {
         await using var context = await NewContextAsync(1280, "light");
         var page = await context.NewPageAsync();
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var mark = page.Locator("#events-root tr.main-row .event-kind").First;
         await mark.WaitForAsync(new() { State = WaitForSelectorState.Attached });
-        Assert.Equal("none", await mark.EvaluateAsync<string>("e => getComputedStyle(e).display"));
+        Assert.Equal("grid", await mark.EvaluateAsync<string>("e => getComputedStyle(e).display"));
         Assert.Equal("none", await page.Locator("#events-root .name-and-rank > a").First
             .EvaluateAsync<string>("e => getComputedStyle(e).textDecorationLine"));
+        await page.GotoAsync("/event-board-embed.html?embed=1&athlete=ada-aging&rows=all", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await mark.WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        Assert.Equal("none", await mark.EvaluateAsync<string>("e => getComputedStyle(e).display"));
     }
 
     private async Task<IBrowserContext> OpenEventsAsync(int width, string scheme)

@@ -41,6 +41,19 @@
     transition-delay: calc(var(--lwc-enter-i, 0) * var(--lwc-enter-step));
 }
 
+/* The delay belongs to this entrance alone, even inside another staggered list. */
+[data-lwc-enter-state="go"] { --lwc-enter-i: 0; }
+[data-lwc-enter-step="0.5"] { --lwc-enter-i: 0.5; }
+[data-lwc-enter-step="1"] { --lwc-enter-i: 1; }
+[data-lwc-enter-step="1.5"] { --lwc-enter-i: 1.5; }
+[data-lwc-enter-step="2"] { --lwc-enter-i: 2; }
+[data-lwc-enter-step="2.5"] { --lwc-enter-i: 2.5; }
+[data-lwc-enter-step="3"] { --lwc-enter-i: 3; }
+[data-lwc-enter-step="3.5"] { --lwc-enter-i: 3.5; }
+[data-lwc-enter-step="4"] { --lwc-enter-i: 4; }
+[data-lwc-enter-step="4.5"] { --lwc-enter-i: 4.5; }
+[data-lwc-enter-step="5"] { --lwc-enter-i: 5; }
+
 /* Cards inside a cascade rise a touch less than whole sections, so lists feel light. */
 :root[data-lwc-choreo] [data-lwc-stagger] > [data-lwc-enter-state="wait"] {
     translate: 0 calc(var(--lwc-enter-distance) * 0.7);

@@ -171,6 +171,42 @@ public sealed class PortraitSystemBrowserTests(
     }
 
     [Fact]
+    public async Task AlreadyDisplayedPodiumPortrait_KeepsItsPhotoDuringEnhancement()
+    {
+        await using var context = await ContextAsync();
+        var page = await OpenAsync(context);
+        var states = await page.EvaluateAsync<string[]>("""
+            async () => {
+                const image = new Image();
+                image.src = '/generated/thumbs/athletes/first_thumb_md_abcdef.webp';
+                document.body.append(image);
+                await image.decode();
+                await new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));
+
+                const states = [];
+                const observer = new MutationObserver(records => {
+                    for (const record of records) if (record.oldValue) states.push(record.oldValue);
+                    states.push(image.dataset.lwcPortraitState);
+                });
+                observer.observe(image, {attributes: true, attributeOldValue: true, attributeFilter: ['data-lwc-portrait-state']});
+                let release;
+                const pending = new Promise(done => { release = done; });
+                image.decode = () => pending;
+                image.className = 'podium-portrait';
+                window.LwcPortrait.enhance(image);
+                await new Promise(done => requestAnimationFrame(done));
+                const content = getComputedStyle(image).content;
+                release();
+                await new Promise(done => requestAnimationFrame(done));
+                observer.disconnect();
+                return [content, ...states, image.dataset.lwcPortraitState];
+            }
+            """);
+        Assert.Equal("normal", states[0]);
+        Assert.All(states.Skip(1), state => Assert.Equal("ready", state));
+    }
+
+    [Fact]
     public async Task ImageThatFailedBeforeEnhancement_RecoversInsteadOfShimmeringForever()
     {
         await using var context = await ContextAsync();

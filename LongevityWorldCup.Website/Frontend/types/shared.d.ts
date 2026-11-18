@@ -73,6 +73,7 @@ interface LwcFlagsApi {
     matchesFlagOption(option: FlagOption, query: unknown): boolean;
     normalizeFlagKey(flag: unknown): string;
     renderFlagIcon(flag: unknown, className?: string): string;
+    renderFlagTile(flag: unknown): string;
     renderFlagLabel(flag: unknown): string;
     renderFlagOptionLabel(flag: unknown, query?: unknown): string;
 }
