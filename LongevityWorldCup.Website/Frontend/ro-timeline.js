@@ -125,7 +125,7 @@
         if (Array.isArray(callbacks)) callbacks.forEach(callback => callback());
     };
 
-    const bands = guide ? [...guide.querySelectorAll('.ro-timeline, .ro-standings, .ro-actions')] : [];
+    const bands = guide ? [...guide.querySelectorAll('.ro-body, .ro-timeline, .ro-standings, .ro-actions')] : [];
     if (bands.length && 'IntersectionObserver' in window && moving()) {
         const fold = window.innerHeight;
         const observer = new IntersectionObserver(entries => entries.forEach(entry => {
@@ -402,69 +402,97 @@
 })();
 
 // The running lane: the poster's track continues down the page beside the
-// sheet. A runner follows the reader from the cover past each section's
-// waypoint to the chequered finish line, where it crosses and the lane lights.
+// sheet, from the poster's edge to the chequered finish line. The runner holds
+// the reader's line (CSS sticky, so it tracks the scroll exactly); this block
+// only measures the lane and lights each waypoint as the runner passes it.
 (() => {
     const guide = document.querySelector('.ro-guide');
     const essay = guide?.querySelector('.ro-essay');
     if (!guide || !essay) return;
+    const poster = guide.querySelector('.ro-artwork');
 
     const lane = document.createElement('div');
     lane.className = 'ro-lane';
     lane.setAttribute('aria-hidden', 'true');
+    const trail = document.createElement('span');
+    trail.className = 'ro-lane-trail';
     const fill = document.createElement('span');
     fill.className = 'ro-lane-fill';
+    trail.append(fill);
     const runner = document.createElement('span');
     runner.className = 'ro-lane-runner';
-    lane.append(fill, runner);
+    lane.append(trail, runner);
     guide.append(lane);
 
-    const sections = () => Array.from(essay.querySelectorAll(':scope > :is(.ro-intro, .ro-body, .ro-timeline, .ro-standings:not([hidden]), .ro-actions)'));
     let marks = [];
+    let length = 0;
+    let line = 0;
     let frame = 0;
+    let measuring = 0;
 
+    const mark = (y, finish) => {
+        const element = document.createElement('span');
+        element.className = finish ? 'ro-lane-mark is-finish' : 'ro-lane-mark';
+        element.style.top = `${y}px`;
+        lane.append(element);
+        return { element, y };
+    };
+
+    // Offsets are layout positions, so the sheet's entrance transform never
+    // shifts the waypoints off their sections.
     function layout() {
-        const guideBox = guide.getBoundingClientRect();
-        const box = essay.getBoundingClientRect();
-        lane.style.top = `${box.top - guideBox.top}px`;
-        lane.style.height = `${box.height}px`;
-        lane.style.left = `${box.left - guideBox.left}px`;
-        marks.forEach(mark => mark.remove());
-        marks = sections().map(section => {
-            const mark = document.createElement('span');
-            mark.className = 'ro-lane-mark';
-            if (section.matches('.ro-standings, .ro-actions')) mark.classList.add('is-finish');
-            mark.dataset.at = String((section.getBoundingClientRect().top - box.top) / Math.max(1, box.height));
-            mark.style.top = `${Number(mark.dataset.at) * 100}%`;
-            lane.append(mark);
-            return mark;
+        measuring = 0;
+        marks.forEach(({ element }) => element.remove());
+        marks = [];
+        const finish = essay.querySelector(':scope > .ro-standings:not([hidden])') || essay.querySelector(':scope > .ro-actions');
+        if (!finish || getComputedStyle(lane).display === 'none') return;
+
+        const posterEnd = poster ? poster.offsetTop + poster.offsetHeight : 0;
+        // Where the axis passes the poster's corner (phones), the lane starts just clear of it.
+        const lead = parseFloat(getComputedStyle(lane).getPropertyValue('--ro-lane-lead')) || 0;
+        const top = Math.max(essay.offsetTop, posterEnd + lead);
+        // Sections are offset from inside the sheet's border.
+        const start = top - essay.offsetTop - essay.clientTop;
+        // The finish waypoint sits on the middle of the chequered strip.
+        const check = parseFloat(getComputedStyle(guide).getPropertyValue('--ro-check')) || 0;
+        length = Math.max(0, finish.offsetTop + check - start);
+
+        lane.style.top = `${top}px`;
+        lane.style.left = `${essay.offsetLeft}px`;
+        lane.style.height = `${length}px`;
+        lane.style.setProperty('--ro-gutter', `${guide.getBoundingClientRect().left + essay.offsetLeft}px`);
+
+        marks.push(mark(0, false));
+        essay.querySelectorAll(':scope > :is(.ro-body, .ro-timeline)').forEach(section => {
+            const y = section.offsetTop - start;
+            if (y > 0 && y < length) marks.push(mark(y, false));
         });
+        marks.push(mark(length, true));
+
+        // The reader's line sits a little above the middle of the view; on a
+        // short page it drops just far enough that the finish is always reached.
+        const laneTop = guide.getBoundingClientRect().top + window.scrollY + top;
+        const lastScroll = document.documentElement.scrollHeight - window.innerHeight;
+        line = Math.round(Math.min(window.innerHeight - 24, Math.max(window.innerHeight * 0.38, laneTop + length - lastScroll)));
+        lane.style.setProperty('--ro-line', `${line}px`);
         update();
     }
 
     function update() {
         frame = 0;
-        const box = essay.getBoundingClientRect();
-        // The runner sits at the reading line, a third of the way down the viewport.
-        const line = window.innerHeight * 0.38;
-        const run = Math.min(1, Math.max(0, (line - box.top) / Math.max(1, box.height)));
-        lane.style.setProperty('--run', run.toFixed(4));
-        let passed = 0;
-        marks.forEach(mark => {
-            const reached = run >= Number(mark.dataset.at) - 0.002;
-            mark.classList.toggle('is-passed', reached);
-            if (reached) passed += 1;
-        });
-        const finish = marks.find(mark => mark.classList.contains('is-finish'));
-        lane.classList.toggle('is-finished', Boolean(finish && finish.classList.contains('is-passed')));
-        lane.classList.toggle('is-started', run > 0);
+        const top = lane.getBoundingClientRect().top;
+        const at = Math.min(Math.max(line - top, 0), length);
+        marks.forEach(({ element, y }) => element.classList.toggle('is-passed', y <= at + 0.5));
+        lane.classList.toggle('is-finished', length > 0 && at >= length - 0.5);
     }
 
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    const remeasure = () => { if (!measuring) measuring = requestAnimationFrame(layout); };
     window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', () => requestAnimationFrame(layout), { passive: true });
-    new ResizeObserver(() => requestAnimationFrame(layout)).observe(essay);
-    if (document.readyState === 'complete') layout();
-    else window.addEventListener('load', layout, { once: true });
+    window.addEventListener('resize', remeasure, { passive: true });
+    new ResizeObserver(remeasure).observe(essay);
+    if (document.readyState !== 'complete') window.addEventListener('load', remeasure, { once: true });
     layout();
+    // Waypoints take their first state without a transition.
+    requestAnimationFrame(() => requestAnimationFrame(() => lane.classList.add('is-live')));
 })();
