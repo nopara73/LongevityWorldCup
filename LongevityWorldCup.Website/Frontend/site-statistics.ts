@@ -226,6 +226,7 @@
     }
 
     interface DecisionInsight {
+        key: string;
         title: string;
         flow: string;
         evidence: string;
@@ -239,6 +240,8 @@
     }
 
     interface Investigation {
+        insightKey?: string;
+        decisionRank?: number;
         title: string;
         reason: string;
         sessions: number;
@@ -268,6 +271,9 @@
         level: string;
         events: DashboardEvent[];
     }
+
+    const decisionEvidence = new Map<string, DecisionAction>();
+    let selectedDecision: string | null = null;
 
     interface DecisionAction {
         label: string;
@@ -315,7 +321,6 @@
         previousWindowComplete: boolean;
         diagnosticWindowsLoaded: boolean;
         generatedAtUtc: string | null;
-        decisionActions: DecisionAction[];
         selectedEventName: string | null;
         selectedSession: string | null;
         selectedLabel: string;
@@ -355,7 +360,6 @@
         previousWindowComplete: false,
         diagnosticWindowsLoaded: false,
         generatedAtUtc: null,
-        decisionActions: [],
         selectedEventName: null,
         selectedSession: null,
         selectedLabel: "all events"
@@ -501,6 +505,8 @@
             el("statsFlow").value = "all";
             el("statsDevice").value = "all";
             el("statsSource").value = "all";
+            selectedDecision = null;
+            state.selectedLabel = "all events";
             state.tab = trafficOverviewTab;
             state.flow = "all";
             state.selectedFlow = "pheno";
@@ -730,8 +736,14 @@
     function updateAiProviderOptions(): void {
         const select = el("statsSource");
         const selected = select.value;
-        select.querySelectorAll("[data-ai-provider]").forEach(option => option.remove());
-        state.aiReferrals?.providerOptions.forEach(provider => {
+        const providers = state.aiReferrals?.providerOptions || [];
+        const existing = Array.from(select.querySelectorAll<HTMLOptionElement>("[data-ai-provider]"));
+        if (existing.length === providers.length && providers.every((provider, index) => {
+            const option = existing[index];
+            return option?.value === "ai:" + provider.id && option.text === "AI · " + provider.name;
+        })) return;
+        existing.forEach(option => option.remove());
+        providers.forEach(provider => {
             const option = new Option(`AI Â· ${provider.name}`, `ai:${provider.id}`);
             option.dataset.aiProvider = "true";
             select.add(option);
@@ -1113,7 +1125,7 @@
     }
 
     function renderDecisionLayer(): void {
-        state.decisionActions = [];
+        decisionEvidence.clear();
         const active = decisionScopeEvents(defaultEvents());
         const previous = decisionScopeEvents(defaultPreviousEvents());
         const insights = buildDecisionInsights(active, previous).slice(0, 7);
@@ -1121,20 +1133,15 @@
         renderRecommendedInvestigations(insights, active);
         renderSegmentComparisons(active, previous);
         renderTrendWatch(active, previous);
-        wireDecisionActions();
+        showInsightPair(el("decisionGrid").querySelector(":focus-visible[data-insight], :hover[data-insight]") || document.activeElement);
     }
 
     function renderDecisionBrief(insights: DecisionInsight[], active: DashboardEvent[], previous: DashboardEvent[]): void {
         const host = el("decisionBrief");
         el("decisionBriefMeta").textContent = `${uniqueSessions(active)} sessions / ${uniqueSessions(previous)} previous`;
-        if (!active.length) {
-            host.innerHTML = empty("No decision signal yet for the active filters.");
-            return;
-        }
-
         if (!insights.length) {
-            host.innerHTML = `
-                <button type="button" class="decision-card calm" data-action="${registerDecisionAction("Inspect active onboarding sessions", active)}">
+            renderDiagnosticButtons(host, active.length ? [decisionButton("calm", "decision-card calm",
+                "Inspect active onboarding sessions", active, `
                     <span class="decision-rank">0</span>
                     <span class="decision-body">
                         <span class="decision-title">No high-confidence product issue detected</span>
@@ -1143,14 +1150,11 @@
                         <span class="decision-gridline"><strong>Hypothesis</strong><span>Current sample is too small or too healthy to prioritize a fix.</span></span>
                         <span class="decision-gridline"><strong>Action</strong><span>Inspect recent sessions or wait for more data.</span></span>
                         <span class="decision-footer"><span class="severity low">LOW</span><span>confidence low</span></span>
-                    </span>
-                </button>
-            `;
+                    </span>`)] : [], "No decision signal yet for the active filters.");
             return;
         }
-
-        host.innerHTML = insights.map((insight, index) => `
-            <button type="button" class="decision-card ${escAttr(insight.severity)}" data-insight="${escAttr(insightKey(insight.title))}" data-action="${registerDecisionAction(insight.title, insight.events)}">
+        renderDiagnosticButtons(host, insights.map((insight, index) => decisionButton(
+            "decision:" + insight.key, "decision-card " + insight.severity, insight.title, insight.events, `
                 <span class="decision-rank">${index + 1}</span>
                 <span class="decision-body">
                     <span class="decision-title">${esc(insight.title)}</span>
@@ -1163,71 +1167,46 @@
                         <span>${esc(insight.confidence)} confidence</span>
                         <span>${esc(insight.trend)}</span>
                     </span>
-                </span>
-            </button>
-        `).join("");
+                </span>`,
+            insight.key)));
     }
 
     function renderRecommendedInvestigations(insights: DecisionInsight[], active: DashboardEvent[]): void {
-        const host = el("recommendedInvestigations");
-        const investigations = buildRecommendedInvestigations(insights, active).slice(0, 6);
-        el("investigationMeta").textContent = `${investigations.length} next clicks`;
-        if (!investigations.length) {
-            host.innerHTML = empty("No concrete investigation is ready for this sample.");
-            return;
-        }
-
-        host.innerHTML = investigations.map(item => `
-            <button type="button" class="investigation-row" data-insight="${escAttr(insightKey(item.title))}" data-action="${registerDecisionAction(item.title, item.events)}">
-                <strong>${esc(item.title)}</strong>
+        const items = buildRecommendedInvestigations(insights, active).slice(0, Math.max(6, insights.length));
+        el("investigationMeta").textContent = `${items.length} next clicks`;
+        renderDiagnosticButtons(el("recommendedInvestigations"), items.map(item => decisionButton(
+            "investigation:" + (item.insightKey || item.title), "investigation-row", item.title, item.events, `
+                <strong>${item.decisionRank ? `<span class="decision-rank" aria-hidden="true">${item.decisionRank}</span>` : ""}${esc(item.title)}</strong>
                 <span>${esc(item.reason)}</span>
-                <em>${esc(item.sessions)} sessions</em>
-            </button>
-        `).join("");
-    }
-
-    // A decision and the investigation that follows it share one key, so
-    // pointing at either lights both columns.
-    function insightKey(title: string): string {
-        return title.replace(/^inspect:\s*/i, "").trim().toLowerCase();
+                <em>${esc(item.sessions)} sessions</em>`,
+            item.insightKey)), "No concrete investigation is ready for this sample.");
     }
 
     function renderSegmentComparisons(active: DashboardEvent[], previous: DashboardEvent[]): void {
         const host = el("segmentComparisons");
         const rows = buildSegmentRows(active, previous).slice(0, 10);
         el("segmentMeta").textContent = `${rows.length} segments`;
-        if (!rows.length) {
-            host.innerHTML = empty("No segment comparison is available yet.");
-            return;
-        }
-
-        host.innerHTML = rows.map(row => `
-            <button type="button" class="segment-row ${escAttr(row.level)}" data-action="${registerDecisionAction(`${row.dimension}: ${row.segment}`, row.events)}">
+        renderDiagnosticButtons(host, rows.map(row => decisionButton(
+            JSON.stringify(["comparison", row.dimension, row.segment]), "segment-row " + row.level,
+            `${row.dimension}: ${row.segment}`, row.events, `
                 <span><strong>${esc(row.segment)}</strong><em>${esc(row.dimension)}</em></span>
                 <span>${row.sessions} sessions</span>
                 <span>${esc(row.frictionRate)} friction</span>
-                <span>${esc(row.delta)}</span>
-            </button>
-        `).join("");
+                <span>${esc(row.delta)}</span>`)),
+            "No segment comparison is available yet.");
     }
 
     function renderTrendWatch(active: DashboardEvent[], previous: DashboardEvent[]): void {
         const host = el("trendWatch");
         const rows = buildTrendRows(active, previous);
         el("trendMeta").textContent = `${rows.length} metrics`;
-        if (!rows.length) {
-            host.innerHTML = empty("No previous-period trend data yet.");
-            return;
-        }
-
-        host.innerHTML = rows.map(row => `
-            <button type="button" class="trend-row ${escAttr(row.level)}" data-action="${registerDecisionAction(row.label, row.events)}">
+        renderDiagnosticButtons(host, rows.map(row => decisionButton(
+            "trend:" + row.label, "trend-row " + row.level, row.label, row.events, `
                 <span><strong>${esc(row.label)}</strong><em>${esc(row.confidence)}</em></span>
                 <span>${esc(row.current)}</span>
                 <span>${esc(row.previous)}</span>
-                <span>${esc(row.delta)}</span>
-            </button>
-        `).join("");
+                <span>${esc(row.delta)}</span>`)),
+            "No previous-period trend data yet.");
     }
 
     function buildDecisionInsights(active: DashboardEvent[], previous: DashboardEvent[]): DecisionInsight[] {
@@ -1272,6 +1251,7 @@
         const trend = trendPhrase(dropRate, previousDropRate, true);
 
         return [{
+            key: "join-track",
             title: "Join track selection bottleneck",
             flow: "onboarding",
             evidence: `${missing.length} of ${base} Join sessions did not choose Pro or Amateur (${percentNumber(dropRate)})`,
@@ -1312,6 +1292,7 @@
                 const support = active.filter(e => missing.includes(e.sessionHash) || e.eventName === eventName || e.eventName === priorName);
                 const trend = trendPhrase(dropRate, previousDropRate, true);
                 insights.push({
+                    key: JSON.stringify(["funnel", flow, eventName]),
                     title: `${flowLabel(flow)} bottleneck at ${label}`,
                     flow,
                     evidence: `${missing.length} of ${base} sessions dropped after ${priorLabel} (${percentNumber(dropRate)})`,
@@ -1341,6 +1322,7 @@
             const previousRate = previousFlowSessions ? previousAffected / previousFlowSessions : null;
             const trend = trendPhrase(activeRate, previousRate, true);
             return {
+                key: JSON.stringify(["friction", flow, eventName, step]),
                 title: `${friendlyEvent(eventName)} repeats at ${step}`,
                 flow,
                 evidence: `${affected} affected sessions (${items.length} events)`,
@@ -1366,6 +1348,7 @@
             const support = active.filter(e => calcMissing.includes(e.sessionHash));
             const trend = trendPhrase(activeRate, previousRate, true);
             insights.push({
+                key: "calculator-proof",
                 title: "Calculator completions are not reaching proof flow",
                 flow: "application",
                 evidence: `${calcMissing.length} of ${calcResults.size} result sessions stopped before proof/profile upload`,
@@ -1388,6 +1371,7 @@
             const support = active.filter(e => noPractice.includes(e.sessionHash));
             const trend = trendPhrase(activeRate, previousRate, true);
             insights.push({
+                key: "challenge-practice",
                 title: "Challenge signups are not reaching practice check-in",
                 flow: "challenge",
                 evidence: `${noPractice.length} of ${signups.size} signup sessions stopped before practice`,
@@ -1407,6 +1391,7 @@
             const previousAffected = uniqueSessions(previous.filter(e => e.eventName === "application_review_context_missing" && !isBenignMissingContextEvent(e)));
             const trend = trendPhrase(affected, previousAffected || null, true);
             insights.push({
+                key: "review-context",
                 title: "Application review opens without stored context",
                 flow: "application",
                 evidence: `${affected} sessions opened review without stored context (${missingReview.length} events)`,
@@ -1428,6 +1413,7 @@
             .filter(row => row.level === "high" || row.level === "med")
             .slice(0, 3)
             .map(row => ({
+                key: JSON.stringify(["segment", row.dimension, row.segment]),
                 title: `${row.segment} ${row.dimension} segment is over-friction`,
                 flow: row.flow || "site",
                 evidence: `${row.frictionRate} friction across ${row.sessions} sessions (${row.delta})`,
@@ -1442,7 +1428,9 @@
     }
 
     function buildRecommendedInvestigations(insights: DecisionInsight[], active: DashboardEvent[]): Investigation[] {
-        const items: Investigation[] = insights.map(insight => ({
+        const items: Investigation[] = insights.map((insight, index) => ({
+            decisionRank: index + 1,
+            insightKey: insight.key,
             title: `Inspect: ${insight.title}`,
             reason: insight.evidence,
             sessions: uniqueSessions(insight.events),
@@ -1562,28 +1550,87 @@
         };
     }
 
-    function wireDecisionActions(): void {
-        document.querySelectorAll<HTMLElement>("[data-action]").forEach(node => {
-            node.addEventListener("click", () => {
-                const action = state.decisionActions[Number(node.dataset.action)];
-                if (!action) return;
-                drillToEvents(action.events, action.label);
-            });
-        });
+    interface DiagnosticButton {
+        key: string;
+        className: string;
+        html: string;
+        select: () => void;
+        insight?: string | undefined;
+        session?: string;
+        pressed?: boolean;
+        label?: string;
     }
 
-    function registerDecisionAction(label: string, events: DashboardEvent[]): number {
-        const index = state.decisionActions.length;
-        state.decisionActions.push({ label, events: events || [] });
-        return index;
+    const renderedContent = new WeakMap<HTMLElement, string>();
+
+    function updateContent(node: HTMLElement, html: string): void {
+        if (renderedContent.get(node) === html) return;
+        node.innerHTML = html;
+        renderedContent.set(node, html);
     }
 
-    function drillToEvents(events: DashboardEvent[], label: string): void {
-        state.selectedEventName = null;
-        state.selectedSession = null;
-        state.selectedLabel = label || "Decision evidence";
-        renderDrilldown(events && events.length ? events : decisionScopeEvents(defaultEvents()));
-        el("drilldownTitle").scrollIntoView({ block: "nearest" });
+    function renderDiagnosticButtons(host: HTMLElement, items: DiagnosticButton[], emptyMessage?: string): void {
+        if (!items.length) {
+            updateContent(host, emptyMessage ? empty(emptyMessage) : "");
+            return;
+        }
+        if (renderedContent.has(host)) {
+            host.replaceChildren();
+            renderedContent.delete(host);
+        }
+        const buttons = host.querySelectorAll<HTMLButtonElement>(":scope > button");
+        const existing = new Map(Array.from(buttons, button => [button.dataset.key, button]));
+        const focused = document.activeElement;
+        let next = host.firstElementChild;
+        for (const item of items) {
+            let button = existing.get(item.key);
+            if (!button) {
+                button = document.createElement("button");
+                button.type = "button";
+                button.dataset.key = item.key;
+                if (item.insight) button.dataset.insight = item.insight;
+                if (item.session) button.dataset.session = item.session;
+            }
+            existing.delete(item.key);
+            const classes = item.className + (item.insight && button.classList.contains("is-paired") ? " is-paired" : "");
+            if (button.className !== classes) button.className = classes;
+            if (item.pressed !== undefined && button.getAttribute("aria-pressed") !== String(item.pressed))
+                button.setAttribute("aria-pressed", String(item.pressed));
+            if (item.label && button.getAttribute("aria-label") !== item.label) button.setAttribute("aria-label", item.label);
+            updateContent(button, item.html);
+            button.onclick = item.select;
+            if (button !== next) host.insertBefore(button, next);
+            next = button.nextElementSibling;
+        }
+        existing.forEach(button => button.remove());
+        if (focused instanceof HTMLButtonElement && host.contains(focused) && document.activeElement !== focused)
+            focused.focus({ preventScroll: true });
+    }
+
+    function decisionButton(key: string, className: string, label: string, events: DashboardEvent[], html: string, insight?: string): DiagnosticButton {
+        decisionEvidence.set(key, { label, events });
+        return { key, className, html, insight, select: () => {
+            selectedDecision = key;
+            state.selectedEventName = null;
+            state.selectedSession = null;
+            state.selectedLabel = label;
+            renderDrilldown();
+            el("drilldownTitle").focus({ preventScroll: true });
+            el("drilldownTitle").scrollIntoView({ block: "nearest" });
+        } };
+    }
+
+    let pairedButtons: HTMLElement[] = [];
+    function showInsightPair(target: EventTarget | null): void {
+        const card = target instanceof Element ? target.closest<HTMLElement>("[data-insight]") : null;
+        if (card && pairedButtons.includes(card) && pairedButtons.every(button => button.isConnected)) return;
+        pairedButtons.forEach(button => button.classList.remove("is-paired"));
+        pairedButtons = [];
+        if (!card?.dataset.insight) return;
+        const matches = el("decisionGrid").querySelectorAll<HTMLElement>(`[data-insight="${CSS.escape(card.dataset.insight)}"]`);
+        if (matches.length !== 2) return;
+        pairedButtons = Array.from(matches);
+        pairedButtons.forEach(button => button.classList.add("is-paired"));
     }
 
     // ---------------------------------------------------------------- feel layer
@@ -1712,7 +1759,7 @@
     async function travel(paint: () => void): Promise<void> {
         const showingOverview = !el("trafficOverview").hidden;
         const toOverview = state.tab === trafficOverviewTab;
-        if (showingOverview === toOverview || !feelMotion() || !document.startViewTransition) {
+        if (!state.generatedAtUtc || showingOverview === toOverview || !feelMotion() || !document.startViewTransition) {
             paint();
             return;
         }
@@ -1778,33 +1825,33 @@
             update();
         }
         window.addEventListener("resize", placeTabIndicator, { passive: true });
-        // Decision and investigation pairs answer each other.
-        let paired: Element[] = [];
-        const pair = (target: EventTarget | null): void => {
-            const card = target instanceof Element ? target.closest<HTMLElement>("[data-insight]") : null;
-            const key = card?.dataset["insight"] || "";
-            paired.forEach(item => item.classList.remove("is-paired"));
-            paired = key ? Array.from(document.querySelectorAll(`[data-insight="${CSS.escape(key)}"]`)) : [];
-            if (paired.length > 1) paired.forEach(item => item.classList.add("is-paired"));
-            else paired = [];
-        };
-        document.addEventListener("pointerover", event => pair(event.target));
-        document.addEventListener("focusin", event => pair(event.target));
+        const decisions = el("decisionGrid");
+        decisions.addEventListener("pointerover", event => showInsightPair(event.target));
+        decisions.addEventListener("pointerdown", event => showInsightPair(event.target));
+        decisions.addEventListener("pointerleave", () => showInsightPair(document.activeElement));
+        decisions.addEventListener("focusin", event => showInsightPair(event.target));
+        decisions.addEventListener("focusout", event => showInsightPair(event.relatedTarget));
         new ResizeObserver(placeTabIndicator).observe(el("statsTabs"));
         void document.fonts?.ready.then(placeTabIndicator);
     }
 
     function renderTabs(): void {
         const host = el("statsTabs");
-        const previousPicker = host.querySelector<HTMLDetailsElement>("details");
-        const pickerOpen = previousPicker?.open || state.tab !== trafficOverviewTab;
-        const focusedTab = host.contains(document.activeElement) && document.activeElement instanceof HTMLButtonElement
-            ? document.activeElement.dataset.tab : null;
-        host.innerHTML = "";
+        const existingPicker = host.querySelector<HTMLDetailsElement>("details");
+        if (existingPicker) {
+            if (state.tab !== trafficOverviewTab) existingPicker.open = true;
+            for (const button of host.querySelectorAll<HTMLButtonElement>("button")) {
+                const selected = button.dataset.tab === state.tab;
+                button.classList.toggle("active", selected);
+                if (button.getAttribute("aria-pressed") !== String(selected)) button.setAttribute("aria-pressed", String(selected));
+            }
+            placeTabIndicator();
+            return;
+        }
         const picker = document.createElement("details");
         picker.id = "statsDiagnostics";
         picker.className = "stats-diagnostics";
-        picker.open = pickerOpen;
+        picker.open = state.tab !== trafficOverviewTab;
         const toggle = document.createElement("summary");
         toggle.textContent = "Diagnostics";
         toggle.className = "stats-tab stats-diagnostics-toggle";
@@ -1821,6 +1868,7 @@
             button.setAttribute("aria-pressed", String(state.tab === tab));
             button.addEventListener("click", () => {
                 if (tab === trafficOverviewTab) picker.open = false;
+                selectedDecision = null;
                 state.tab = tab;
                 if (tab === challengeDiagnosticsTab) state.selectedFlow = "challenge";
                 if (tab === onboardingDiagnosticsTab && state.selectedFlow === "challenge") state.selectedFlow = "pheno";
@@ -1837,17 +1885,13 @@
         });
         host.appendChild(picker);
         placeTabIndicator();
-        if (focusedTab) {
-            Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find(button => button.dataset.tab === focusedTab)?.focus({ preventScroll: true });
-        }
     }
 
     function renderOutcomeStrip(): void {
         const host = el("outcomeStrip");
         const events = scopedEvents();
         const friction = frictionEvents(events);
-        host.innerHTML = "";
-        outcomeTiles.forEach(([label, names]) => {
+        renderDiagnosticButtons(host, outcomeTiles.map(([label, names]) => {
             const tileEvents = label === "Friction"
                 ? friction
                 : label === "Error rate"
@@ -1865,22 +1909,18 @@
                 : label === "Error rate"
                     ? `${friction.length}/${events.length} events`
                     : `${uniqueSessions(tileEvents)} sessions`;
-            const tile = document.createElement("button");
-            tile.type = "button";
-            tile.className = `metric-tile${state.selectedLabel === label ? " active" : ""}`;
-            tile.innerHTML = `
+            return { key: label, className: `metric-tile${state.selectedLabel === label ? " active" : ""}`, html: `
                 <span class="metric-label">${esc(label)}</span>
                 <strong class="metric-value">${esc(String(value))}</strong>
                 <span class="metric-footer"><span>${esc(footer)}</span>${spark(tileEvents)}</span>
-            `;
-            tile.addEventListener("click", () => {
+            `, select: () => {
+                selectedDecision = null;
                 state.selectedEventName = names.length === 1 ? names[0] ?? null : null;
                 state.selectedSession = null;
                 state.selectedLabel = label;
                 renderDrilldown(label === "Error rate" || label === "Friction" ? friction : tileEvents);
-            });
-            host.appendChild(tile);
-        });
+            } };
+        }));
     }
 
     function renderPrimaryPanel(): void {
@@ -1896,10 +1936,10 @@
                             ? "Public Event Funnel"
                             : "Onboarding Funnel";
         el("primaryTitle").textContent = title;
-        el("primaryMeta").textContent = `${uniqueSessions(scopedEvents())} sessions / ${scopedEvents().length} events`;
+        const events = scopedEvents();
+        el("primaryMeta").textContent = `${uniqueSessions(events)} sessions / ${events.length} events`;
         renderFlowSelectors();
-
-        renderFunnel(primaryFunnelDefinitions(), scopedEvents());
+        renderFunnel(primaryFunnelDefinitions(), events);
     }
 
     function primaryFunnelDefinitions(): FunnelDefinition[] {
@@ -1918,94 +1958,71 @@
 
     function renderFlowSelectors(): void {
         const host = el("flowSelectors");
-        host.innerHTML = "";
-        if (state.tab !== onboardingDiagnosticsTab) return;
-        ["pheno", "bortz", "application"].forEach(flow => {
-            const events = defaultEvents().filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
+        const flows = state.tab === onboardingDiagnosticsTab ? ["pheno", "bortz", "application"] : [];
+        renderDiagnosticButtons(host, flows.map(flow => {
+            const events = defaultEvents().filter(e => e.flow === flow);
             const starts = sessionsForNames(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
             const started = starts.size;
             const completed = uniqueSessionsFor(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]);
             const converted = intersectionSize(starts, sessionsForNames(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]));
             const failed = uniqueSessions(frictionEvents(events));
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = `flow-card${state.selectedFlow === flow ? " active" : ""}`;
-            button.innerHTML = `
+            const selected = state.selectedFlow === flow;
+            return { key: flow, className: `flow-card${selected ? " active" : ""}`, pressed: selected, html: `
                 <strong>${flowLabel(flow)}</strong>
                 <span class="flow-card-grid">
                     <span>started ${started}</span><span>done ${completed}</span>
                     <span>conv ${percent(converted, started)}</span><span>fail ${failed}</span>
                 </span>
-            `;
-            button.addEventListener("click", () => {
-                preserveDiagnosticFocus(() => {
-                    state.selectedFlow = flow;
-                    state.selectedEventName = null;
-                    state.selectedSession = null;
-                    renderAll();
-                });
-            });
-            host.appendChild(button);
-        });
+            `, select: () => {
+                if (state.selectedFlow === flow && !state.selectedEventName && !state.selectedSession && !selectedDecision) return;
+                state.selectedFlow = flow;
+                state.selectedEventName = null;
+                state.selectedSession = null;
+                state.selectedLabel = "all events";
+                selectedDecision = null;
+                renderOutcomeStrip();
+                renderPrimaryPanel();
+                renderFriction();
+                renderDetailSections();
+                renderDrilldown();
+                updateUrl();
+            } };
+        }));
     }
 
     function renderFunnel(defs: FunnelDefinition[], events: DashboardEvent[]): void {
-        const host = el("primaryFunnel");
-        // Remember each step's bar and count so a new flow or filter morphs
-        // from what was on screen instead of regrowing from nothing.
-        const before = Array.from(host.querySelectorAll<HTMLElement>(".funnel-row")).map(row => ({
-            fill: parseFloat(row.querySelector<HTMLElement>(".funnel-fill")?.style.width || "0") || 0,
-            leak: parseFloat(row.querySelector<HTMLElement>(".funnel-leak")?.style.width || "0") || 0,
-            count: Number(row.querySelector<HTMLElement>(".funnel-number")?.dataset["value"] || NaN)
+        const sessions = groupBy(events, event => event.eventName);
+        const steps = defs.map(([name, label]) => ({
+            name, label, reached: new Set((sessions.get(name) || []).map(event => event.sessionHash))
         }));
-        host.innerHTML = "";
-        host.toggleAttribute("data-fresh", !before.length);
-        if (!defs.length) {
-            host.innerHTML = empty("No funnel data for the active filters.");
-            return;
-        }
-        const firstDefinition = defs[0];
-        if (!firstDefinition) return;
-        const first = sessionsForNames(events, [firstDefinition[0]]);
-        let previous = first;
-        defs.forEach(([name, label], index) => {
-            const reached = sessionsForNames(events, [name]);
+        const scale = Math.max(0, ...steps.map(step => step.reached.size));
+        const items = steps.map(({ name, label, reached }, index) => {
+            const prior = steps[index - 1]?.reached;
+            const previous = prior || reached;
             const count = reached.size;
-            // Reach counts include returning sessions. Conversion and drop-off
-            // compare the same sessions at adjacent steps, including empty steps.
             const converted = intersectionSize(previous, reached);
-            const fromPrev = percent(converted, previous.size);
+            const rate = percent(converted, previous.size);
             const drop = previous.size - converted;
-            const row = document.createElement("button");
-            row.type = "button";
-            row.className = `funnel-row${state.selectedEventName === name ? " active" : ""}`;
-            row.innerHTML = `
-                <span class="funnel-name">${esc(label)}</span>
-                <span class="funnel-bar"><span class="funnel-leak" style="width:${barWidth(previous.size, first.size)}%"></span><span class="funnel-fill" style="width:${barWidth(count, first.size)}%"></span></span>
-                <span class="funnel-number" data-value="${count}">${count}</span>
-                <span class="funnel-rate">${fromPrev}</span>
-                <span class="funnel-drop${drop > Math.max(2, previous.size * 0.35) ? " high" : ""}">drop ${drop}</span>
-            `;
-            row.addEventListener("click", () => selectDrilldown(name, label));
-            host.appendChild(row);
-            morphFunnelRow(row, before[index], index);
-            previous = reached;
+            const pressed = state.selectedEventName === name;
+            return {
+                key: JSON.stringify([state.tab, state.tab === onboardingDiagnosticsTab ? state.selectedFlow : "", name]),
+                className: `funnel-row${pressed ? " active" : ""}`, pressed,
+                label: `${label}, ${count} reached, ${rate}, drop ${drop}${prior ? ` of ${prior.size} from previous step` : ""}`,
+                html: `
+                    <span class="funnel-name">${esc(label)}</span>
+                    <span class="funnel-bar" aria-hidden="true">
+                        <span class="funnel-fill" style="width:${barWidth(count, scale)}%"></span>
+                        <span class="funnel-cohort" style="width:${barWidth(prior?.size || 0, scale)}%">
+                            <span class="funnel-leak" style="width:${barWidth(drop, previous.size)}%"></span>
+                        </span>
+                    </span>
+                    <span class="funnel-number">${count}</span>
+                    <span class="funnel-rate">${rate}</span>
+                    <span class="funnel-drop${drop > Math.max(2, previous.size * 0.35) ? " high" : ""}">drop ${drop}</span>`,
+                select: () => selectDrilldown(name, label)
+            };
         });
-    }
-
-    function morphFunnelRow(row: HTMLElement, before: { fill: number; leak: number; count: number } | undefined, index: number): void {
-        if (!before || !feelMotion()) return;
-        const number = row.querySelector<HTMLElement>(".funnel-number");
-        if (number && Number.isFinite(before.count)) number.dataset["lwcNumber"] = String(before.count);
-        const stretch = (selector: string, from: number): void => {
-            const bar = row.querySelector<HTMLElement>(selector);
-            const to = bar ? parseFloat(bar.style.width) || 0 : 0;
-            if (!bar || to <= 0 || Math.abs(from - to) < 0.2) return;
-            bar.animate([{ transform: `scaleX(${from / to})` }, { transform: "none" }],
-                { duration: 340, delay: Math.min(index, 10) * 18, easing: morphEase, fill: "backwards" });
-        };
-        stretch(".funnel-fill", before.fill);
-        stretch(".funnel-leak", before.leak);
+        renderDiagnosticButtons(el("primaryFunnel"), items, "No funnel data for the active filters.");
     }
 
     function renderFriction(): void {
@@ -2013,7 +2030,7 @@
         const events = frictionEvents(scopedEvents());
         el("frictionMeta").textContent = `${uniqueSessions(events)} affected sessions / ${events.length} events`;
         if (!events.length) {
-            host.innerHTML = empty("No friction events for the active filters.");
+            renderDiagnosticButtons(host, [], "No friction events for the active filters.");
             return;
         }
 
@@ -2030,87 +2047,86 @@
             };
         }).sort((a, b) => b.sessions - a.sessions || b.count - a.count).slice(0, 12);
 
-        host.innerHTML = "";
-        rows.forEach(row => {
+        renderDiagnosticButtons(host, rows.map(row => {
             const severity = row.sessions >= 10 ? "high" : row.sessions >= 3 ? "med" : "low";
-            const node = document.createElement("button");
-            node.type = "button";
-            node.className = `friction-row${state.selectedEventName === row.eventName ? " active" : ""}`;
-            node.innerHTML = `
+            return { key: JSON.stringify([row.eventName, row.step]), className: `friction-row${state.selectedEventName === row.eventName ? " active" : ""}`, html: `
                 <span class="friction-name">
                     <strong>${esc(row.error)}</strong>
                     <span>${esc(row.flow)} / ${esc(row.step)} / ${esc(row.eventName)}</span>
                 </span>
                 <span class="friction-count">${row.count} events<br>${row.sessions} sessions</span>
                 <span class="friction-severity ${severity}">${severity}</span>
-            `;
-            node.addEventListener("click", () => selectDrilldown(row.eventName, row.error));
-            host.appendChild(node);
-        });
+            `, select: () => selectDrilldown(row.eventName, row.error) };
+        }));
     }
 
     function renderDetailSections(): void {
         const host = el("detailSections");
         const events = scopedEvents();
         if (state.tab === challengeDiagnosticsTab) {
-            host.innerHTML = [
+            updateContent(host, [
                 detailPanel("Challenge activation", challengeActivationTable(events)),
                 detailPanel("Check-in detail", groupedTable(events, ["challenge_practice_checkin_started", "challenge_practice_checkin_submitted", "challenge_scored_checkin_started", "challenge_scored_checkin_submitted", "challenge_scored_checkin_failed"]))
-            ].join("");
+            ].join(""));
             return;
         }
         if (state.tab === sourceQualityTab) {
-            host.innerHTML = [
+            updateContent(host, [
                 detailPanel("Acquisition quality", sourceQualityTable(events)),
                 detailPanel("Campaigns", campaignTable(events)),
                 detailPanel("Device split", splitTable(events, e => e.deviceClass || "unknown")),
                 detailPanel("First referrers", referrerQualityTable(events))
-            ].join("");
+            ].join(""));
             return;
         }
         if (state.tab === reliabilityDiagnosticsTab) {
-            host.innerHTML = [
+            updateContent(host, [
                 detailPanel("Error codes", splitTable(frictionEvents(events), e => e.errorCode || e.eventName)),
                 detailPanel("Affected components", splitTable(frictionEvents(events), e => e.component || "unknown")),
                 detailPanel("Slow steps", slowStepTable(events))
-            ].join("");
+            ].join(""));
             return;
         }
         if (state.tab === reviewDiagnosticsTab) {
-            host.innerHTML = [
+            updateContent(host, [
                 detailPanel("Review states", groupedTable(events, ["application_review_opened", "application_review_context_found", "application_review_context_missing", "payment_status_checked", "payment_status_failed"])),
                 detailPanel("Payment handoff", groupedTable(events, ["payment_offer_stored", "payment_unavailable", "checkout_redirect_started", "payment_status_checked"])),
                 detailPanel("Recent sessions", sessionStateTable(events))
-            ].join("");
+            ].join(""));
             return;
         }
         if (state.tab === publicEventsDiagnosticsTab) {
-            host.innerHTML = [
+            updateContent(host, [
                 detailPanel("Public events", groupedTable(events, ["event_viewed", "event_link_clicked", "homepage_highlight_viewed", "homepage_highlight_clicked"])),
                 detailPanel("Profile traffic", groupedTable(events, ["athlete_profile_viewed", "league_viewed"])),
                 detailPanel("Social/output", splitTable(events.filter(e => /event|highlight|social/i.test(e.eventName)), e => e.eventName))
-            ].join("");
+            ].join(""));
             return;
         }
         if (state.tab === onboardingDiagnosticsTab && state.selectedFlow === "application") {
-            host.innerHTML = [
+            updateContent(host, [
                 detailPanel("Application stage completion", applicationStageTable(events)),
                 detailPanel("Proof upload", proofUploadTable(events)),
                 detailPanel("Handoff integrity", handoffTable(events))
-            ].join("");
+            ].join(""));
             return;
         }
-        host.innerHTML = [
+        updateContent(host, [
             detailPanel("Calculator completion sources", calculatorCompletionSourceTable(events)),
             detailPanel("Calculator fields", fieldFrictionTable(events)),
             detailPanel("Proof upload", proofUploadTable(events)),
             detailPanel("Handoff integrity", handoffTable(events))
-        ].join("");
+        ].join(""));
     }
 
     function renderDrilldown(explicitEvents?: DashboardEvent[]): void {
-        const events = explicitEvents || selectedEvents();
-        const selected = events.length ? events : scopedEvents();
+        const action = selectedDecision ? decisionEvidence.get(selectedDecision) : undefined;
+        if (selectedDecision && !action) {
+            selectedDecision = null;
+            state.selectedSession = null;
+            state.selectedLabel = "all events";
+        }
+        const selected = explicitEvents || action?.events || selectedEvents();
         const session = state.selectedSession || (selected[0] && selected[0].sessionHash);
         el("drilldownTitle").textContent = state.selectedLabel || "Drilldown";
         el("drilldownBreadcrumb").textContent = `${state.tab} / ${flowLabel(state.selectedFlow)} / ${state.selectedLabel || "all events"}`;
@@ -2125,7 +2141,7 @@
         const median = medianDuration(events);
         const quality = dataQualityStats(events, []);
         const burstCount = collapseEventBursts(events).filter(group => group.count > 1).length;
-        el("drilldownSummary").innerHTML = `
+        updateContent(el("drilldownSummary"), `
             <div class="summary-grid">
                 ${summaryItem("Events", events.length)}
                 ${summaryItem("Sessions", sessions)}
@@ -2139,50 +2155,40 @@
             <div class="chip-row" style="margin-top:10px">
                 ${Array.from(new Set(events.slice(0, 40).map(e => e.flow || "site"))).map(v => `<span class="chip">${esc(v)}</span>`).join("")}
             </div>
-        `;
+        `);
     }
 
     function renderSamples(events: DashboardEvent[]): void {
         const host = el("eventSamples");
         const rows = collapseEventBursts(events).sort((a, b) => b.lastTime - a.lastTime).slice(0, 50);
-        if (!rows.length) {
-            host.innerHTML = empty("No event samples.");
-            return;
-        }
-        host.innerHTML = rows.map(group => `
-            <button type="button" class="sample-row${state.selectedSession === group.sessionHash ? " active" : ""}" data-session="${escAttr(group.sessionHash)}">
+        renderDiagnosticButtons(host, rows.map(group => ({
+            key: group.key, session: group.sessionHash, className: `sample-row${state.selectedSession === group.sessionHash ? " active" : ""}`,
+            html: `
                 <span class="sample-main"><strong>${esc(group.eventName)}</strong><span>${esc(group.sessionHash)}</span></span>
                 <span class="sample-meta">${esc(formatTime(group.last.occurredAtUtc))} / ${esc(group.flow || "site")} / ${esc(group.step || group.component || "-")} / ${esc(group.errorCode || group.outcome || "-")}${burstLabel(group)}</span>
-            </button>
-        `).join("");
-        host.querySelectorAll<HTMLElement>(".sample-row").forEach(row => {
-            row.addEventListener("click", () => {
-                const selectedSession = row.dataset.session;
-                if (!selectedSession) return;
-                preserveDiagnosticFocus(() => {
-                    state.selectedSession = selectedSession;
-                    renderDrilldown(events);
-                });
-            });
-        });
+            `, select: () => {
+                state.selectedSession = group.sessionHash;
+                renderDrilldown(events);
+            }
+        })), "No event samples.");
     }
 
     function renderTimeline(sessionHash: string | null | undefined, contextEvents: DashboardEvent[]): void {
         const host = el("sessionTimeline");
         if (!sessionHash) {
-            host.innerHTML = empty("Select an event sample to inspect an anonymous session timeline.");
+            updateContent(host, empty("Select an event sample to inspect an anonymous session timeline."));
             return;
         }
         const rows = state.events
             .filter(e => e.sessionHash === sessionHash)
             .sort((a, b) => a.time - b.time);
         if (!rows.length) {
-            host.innerHTML = empty("No events found for that session.");
+            updateContent(host, empty("No events found for that session."));
             return;
         }
         const started = rows[0]?.time || 0;
         const groups = collapseEventBursts(rows, true);
-        host.innerHTML = `
+        updateContent(host, `
             <h3 style="margin-bottom:8px">Session ${esc(sessionHash)}</h3>
             ${groups.map(group => `
                 <div class="timeline-row">
@@ -2190,7 +2196,7 @@
                     <span class="timeline-meta">${esc(group.route || "-")} / ${esc(group.step || group.component || "-")} / ${esc(group.errorCode || group.outcome || "-")}${metadataChips(group.last.metadata)}${burstLabel(group)}</span>
                 </div>
             `).join("")}
-        `;
+        `);
     }
 
     function decisionScopeEvents(events: DashboardEvent[]): DashboardEvent[] {
@@ -2248,30 +2254,15 @@
     }
 
     function selectDrilldown(eventName: string | null, label: string): void {
-        preserveDiagnosticFocus(() => {
-            state.selectedEventName = eventName;
-            state.selectedSession = null;
-            state.selectedLabel = label || eventName || "all events";
-            renderOutcomeStrip();
-            renderFriction();
-            renderFunnel(primaryFunnelDefinitions(), scopedEvents());
-            renderDrilldown();
-            updateUrl();
-        });
-    }
-
-    function preserveDiagnosticFocus(render: () => void): void {
-        const active = document.activeElement;
-        const host = active instanceof HTMLButtonElement
-            ? active.closest("#primaryFunnel, #outcomeStrip, #frictionRadar, #flowSelectors, #eventSamples")
-            : null;
-        const index = host ? Array.from(host.querySelectorAll("button")).indexOf(active as HTMLButtonElement) : -1;
-        render();
-        // Selection renders replace these lists synchronously without changing
-        // their order. Keep keyboard users on the button they just activated.
-        if (host && index >= 0 && !active?.isConnected) {
-            host.querySelectorAll("button")[index]?.focus({ preventScroll: true });
-        }
+        selectedDecision = null;
+        state.selectedEventName = eventName;
+        state.selectedSession = null;
+        state.selectedLabel = label || eventName || "all events";
+        renderOutcomeStrip();
+        renderFriction();
+        renderFunnel(primaryFunnelDefinitions(), scopedEvents());
+        renderDrilldown();
+        updateUrl();
     }
 
     function isIgnoredClientError(e: DashboardEvent | null | undefined): boolean {
