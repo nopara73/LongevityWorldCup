@@ -187,6 +187,9 @@ public sealed class AthletePortraitMotionBrowserTests(
         else
         {
             image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
+            // The delayed “New athlete” tooltip casts a shadow across the face pixels.
+            // Keep the portrait hover active while isolating it from the tooltip.
+            await image.EvaluateAsync("img => img.setAttribute('data-lwc-no-tip', '')");
             await image.ScrollIntoViewIfNeededAsync();
             await image.EvaluateAsync("img => img.decode()");
             await image.HoverAsync();
