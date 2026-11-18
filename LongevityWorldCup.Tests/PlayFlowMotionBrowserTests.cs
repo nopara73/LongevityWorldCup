@@ -432,7 +432,7 @@ public sealed class PlayFlowMotionBrowserTests(
         {
             Json = new[]
             {
-                new { Name = "Andr·s Szollosy", Flag = "Hungary", Division = "Open" },
+                new { Name = "Andr√°s Szollosy", Flag = "Hungary", Division = "Open" },
                 new { Name = "Andrea", Flag = "Slovakia", Division = "Women's" },
                 new { Name = "Andreea Vuscan", Flag = "DrCarmen", Division = "Women's" },
                 new { Name = "Andressa Lohana de Almeida", Flag = "Brazil", Division = "Women's" },
