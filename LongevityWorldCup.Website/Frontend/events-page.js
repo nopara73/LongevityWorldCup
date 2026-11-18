@@ -858,6 +858,12 @@ const eventsPageAssets = document.currentScript.dataset;
     // day's date stays quiet under the first event of that day.
     // On the Highlights page every month opens with its own heading row.
     let monthHeadingObserver=null;
+    function measureMonthHeading(heading) {
+        const height = `${heading.getBoundingClientRect().height}px`;
+        const group = heading.parentElement;
+        if (group && group.style.getPropertyValue('--event-month-height') !== height)
+            group.style.setProperty('--event-month-height', height);
+    }
     function appendMonthHeading(table, group, month){
         const [y,m]=month.split('-').map(Number);
         const date=new Date(0);
@@ -876,9 +882,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const chapters=!!tbody.closest('.event-board-page');
         if (chapters) monthRevealObserver?.disconnect();
         if(chapters&&typeof ResizeObserver==='function'){
-            monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>{
-                target.parentElement?.style.setProperty('--event-month-height',`${target.getBoundingClientRect().height}px`);
-            }));
+            monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>measureMonthHeading(target)));
             monthHeadingObserver.disconnect();
         }
         tbody.querySelectorAll('tr.events-month-row').forEach(r=>r.remove());
@@ -2302,16 +2306,19 @@ const eventsPageAssets = document.currentScript.dataset;
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
             window.highlightsCalendar?.update(units, row => {
-                if (row.isConnected) return;
-                const index = table._feedPending.findIndex(unit => unit[0] === row);
-                if (index < 0) return;
-                window.clearTimeout(table._feedMoreTimer);
-                table._feedLoadingMore = false;
-                const added = table._feedPending.splice(0, index + FEED_CHUNK);
-                appendFeedUnits(table, added);
-                added.forEach(([event]) => event.classList.add('is-visible'));
-                mountFeedMore(table);
-                queueMonthHandoff();
+                if (!row.isConnected) {
+                    const index = table._feedPending.findIndex(unit => unit[0] === row);
+                    if (index < 0) return;
+                    window.clearTimeout(table._feedMoreTimer);
+                    table._feedLoadingMore = false;
+                    const added = table._feedPending.splice(0, index + FEED_CHUNK);
+                    appendFeedUnits(table, added);
+                    added.forEach(([event]) => event.classList.add('is-visible'));
+                    mountFeedMore(table);
+                    queueMonthHandoff();
+                }
+                // A just-mounted chapter has not received its first resize entry yet.
+                measureMonthHeading(row.parentElement.firstElementChild);
             });
         } else {
             // Keep unchanged rows and their images attached. Reattaching the

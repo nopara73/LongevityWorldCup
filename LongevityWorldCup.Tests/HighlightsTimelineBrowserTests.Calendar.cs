@@ -37,6 +37,19 @@ public sealed partial class HighlightsTimelineBrowserTests
         var calendar = page.GetByRole(AriaRole.Navigation, new() { Name = "Highlights by day" });
         await Assertions.Expect(calendar.GetByRole(AriaRole.Button)).ToHaveCountAsync(200);
         var latest = calendar.GetByRole(AriaRole.Button, new() { Name = "Sunday, November 1, 2026 · 1 highlight", Exact = true });
+        // Jump before idle loading has attached this chapter or its ResizeObserver
+        // has measured the month band. Larger text makes the default height inaccurate.
+        await page.AddStyleTagAsync(new() { Content = "html { font-size:125% !important; }" });
+        var pendingRow = page.Locator("tr.main-row[data-event-id='calendar-145']");
+        Assert.Equal(0, await pendingRow.CountAsync());
+        var pendingDate = start.AddDays(-3 * 145).AddHours(-8);
+        var pendingDay = calendar.Locator($"button[data-day='{pendingDate.Year}-{pendingDate.Month}-{pendingDate.Day}']");
+        await pendingDay.PressAsync("Enter");
+        await Assertions.Expect(pendingDay).ToHaveAttributeAsync("aria-current", "date");
+        Assert.InRange(await pendingRow.EvaluateAsync<double>("""
+            row => row.getBoundingClientRect().top - row.parentElement.querySelector('.events-month-row').getBoundingClientRect().bottom
+            """), -1, 2);
+
         await latest.FocusAsync();
         await latest.PressAsync("End");
         var oldest = calendar.Locator("button:focus");
