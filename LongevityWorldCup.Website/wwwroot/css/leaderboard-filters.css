@@ -431,7 +431,8 @@
  * Choosing a league is one motion: the ticked tile sends its chip flying to
  * the selection bar, where it lands with a ring; chips that stay slide to
  * their new place; removed chips (one at a time or Clear all) fold away in a
- * short cascade; the athlete count rolls to its new value; the filter badge
+ * short cascade; the athlete count rolls in from the direction it moved (the
+ * real total shows at once on first paint); the filter badge
  * pops up when a filter is added and dips when one goes. No new words.
  * Motion is driven from leaderboard-page.js; reduced motion keeps states. */
 .leaderboard-selection-chip {
@@ -456,6 +457,12 @@
     font-size: 0.875rem;
     white-space: nowrap;
     pointer-events: none;
+}
+
+.leaderboard-selection-chip--ghost span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .leaderboard-selection-chip--ghost span:last-child {
@@ -498,9 +505,20 @@
         animation: lb-badge-down 420ms cubic-bezier(0.2, 0, 0, 1);
     }
 
-    #leaderboardResultCount[data-lwc-count] {
-        color: var(--lwc-accent);
+    /* On phones the open sheet covers the bar: its results button takes the landing. */
+    .sidebar-show-results.is-landing {
+        animation: lb-results-land 520ms cubic-bezier(0.34, 1.4, 0.64, 1);
     }
+}
+
+#leaderboardResultCount {
+    display: inline-block;
+}
+
+@keyframes lb-results-land {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.06); box-shadow: 0 0 0 6px color-mix(in srgb, var(--lwc-accent) 40%, transparent); filter: brightness(1.12); }
+    100% { transform: scale(1); box-shadow: 0 0 0 12px color-mix(in srgb, var(--lwc-accent) 0%, transparent); }
 }
 
 @keyframes lb-badge-up {
