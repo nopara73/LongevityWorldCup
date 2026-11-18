@@ -201,8 +201,8 @@ public sealed class LeaderboardFactsService(
         sb.AppendLine("## Field definitions and dates");
         sb.AppendLine();
         sb.AppendLine("- Scores are in years; lower and more negative values rank higher. Sorting uses unrounded scores; tables show two decimals. Rank is within the named view; Ultimate rank is a separate column.");
-        sb.AppendLine("- Age reduction is biological age minus chronological age at the selected test. Crowd age reduction uses the current-image median minus current chronological age.");
-        sb.AppendLine("- Lowest clock ages and their test dates refer to that clock's selected result. Not available means no eligible value was recorded, not zero.");
+        sb.AppendLine("- Age reduction is biological age minus chronological age at the test. Each clock selects the eligible test with the lowest age reduction, not the lowest biological age. Crowd age reduction uses the current-image median minus current chronological age.");
+        sb.AppendLine("- Clock ages and test dates in ranking tables describe the result with the best reduction for that clock. Not available means no eligible value was recorded, not zero.");
         if (includesCurrentAgeComparison)
             sb.AppendLine($"- Current chronological age and Crowd Age comparisons are evaluated as of {snapshot.AsOf:yyyy-MM-dd} UTC.");
         sb.AppendLine("- facts_changed_at_utc records an observed change to this document's facts. Unknown means no historical change date has been verified. Cache refresh and response-generation times are not publication or test dates.");
@@ -215,13 +215,13 @@ public sealed class LeaderboardFactsService(
     {
         sb.AppendLine($"Score: {view.Metric}. Showing {Math.Min(limit, rows.Count)} of {rows.Count} athletes.");
         sb.AppendLine();
-        sb.AppendLine("| Rank in view | Ultimate rank | Athlete | Track | Score (years) | Lowest Bortz Age | Bortz test date | Lowest Pheno Age | Pheno test date | Crowd age | Crowd count | Athlete summary |");
+        sb.AppendLine("| Rank in view | Ultimate rank | Athlete | Track | Score (years) | Bortz Age at best reduction | Bortz test date | Pheno Age at best reduction | Pheno test date | Crowd age | Crowd count | Athlete summary |");
         sb.AppendLine("| ---: | ---: | --- | --- | ---: | ---: | --- | ---: | --- | ---: | ---: | --- |");
         for (var i = 0; i < Math.Min(rows.Count, limit); i++)
         {
             var row = rows[i];
             var stats = snapshot.Stats[row.Slug];
-            sb.AppendLine($"| {i + 1} | {row.Rank} | {Link(row.DisplayName, row.AthleteUrl)} | {row.Track} | {Number(LeaderboardViewCatalog.Metric(view.HtmlPath, row, stats), signed: true)} | {(stats.BortzSubmissionCount > 0 ? Number(stats.LowestBortzAge) : "Not available")} | {Date(stats.LowestBortzAgeDateUtc)} | {(stats.LowestPhenoAgeDateUtc.HasValue ? Number(stats.LowestPhenoAge) : "Not available")} | {Date(stats.LowestPhenoAgeDateUtc)} | {(stats.CrowdCount > 0 ? Number(stats.CrowdAge) : "Not available")} | {stats.CrowdCount} | {SiteBaseUrl}/ai/athlete/{row.RouteSlug}.md |");
+            sb.AppendLine($"| {i + 1} | {row.Rank} | {Link(row.DisplayName, row.AthleteUrl)} | {row.Track} | {Number(LeaderboardViewCatalog.Metric(view.HtmlPath, row, stats), signed: true)} | {Number(stats.BortzRankResult?.BiologicalAge)} | {Date(stats.BortzRankResult?.DateUtc)} | {Number(stats.PhenoRankResult?.BiologicalAge)} | {Date(stats.PhenoRankResult?.DateUtc)} | {(stats.CrowdCount > 0 ? Number(stats.CrowdAge) : "Not available")} | {stats.CrowdCount} | {SiteBaseUrl}/ai/athlete/{row.RouteSlug}.md |");
         }
         if (rows.Count == 0) sb.AppendLine("\nNo athletes currently qualify for this view.");
         sb.AppendLine();

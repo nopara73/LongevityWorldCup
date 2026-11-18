@@ -317,8 +317,65 @@ public sealed class InternalToolsDashboardBrowserTests(
         await Assertions.Expect(rows.Nth(3).Locator(".funnel-drop")).ToHaveTextAsync("drop 0");
         Assert.Equal("100%", await rows.Nth(1).Locator(".funnel-fill").EvaluateAsync<string>("e => e.style.width"));
         Assert.Equal(0, await rows.Nth(2).Locator(".funnel-fill").EvaluateAsync<double>("e => e.getBoundingClientRect().width"));
+        var geometry = await rows.Nth(1).EvaluateAsync<double[]>(
+            """
+            row => {
+                const box = selector => row.querySelector(selector).getBoundingClientRect();
+                const scale = box('.funnel-bar').width;
+                return [box('.funnel-cohort').width / scale, box('.funnel-leak').width / scale,
+                    box('.funnel-leak').top - box('.funnel-fill').bottom];
+            }
+            """);
+        Assert.InRange(geometry[0], 0.66, 0.67);
+        Assert.InRange(geometry[1], 0.33, 0.34);
+        Assert.True(geometry[2] >= 0, "Returning sessions must not cover a lost session.");
+        await rows.Nth(2).ClickAsync();
+        await Assertions.Expect(page.Locator("#eventSamples")).ToHaveTextAsync("No event samples.");
         var widths = await page.Locator(".funnel-fill").EvaluateAllAsync<double[]>("fills => fills.map(e => parseFloat(e.style.width))");
         Assert.All(widths, value => Assert.True(double.IsFinite(value) && value >= 0 && value <= 100));
+    }
+
+    [Fact]
+    public async Task Statistics_IdenticallyTitledDecisionsKeepTheirEvidenceAndFocusOnRefresh()
+    {
+        await using var context = await NewContextAsync(1181, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
+        var at = DateTime.UtcNow.AddHours(-1).ToString("O", CultureInfo.InvariantCulture);
+        var events = (from flow in new[] { "pheno", "bortz" }
+                      from index in Enumerable.Range(1, 3)
+                      select Event("calculator_validation_failed", flow, flow + index, "/calculator", "failed", at,
+                          index == 1 ? "mobile" : "desktop", "direct")).ToArray();
+        payload["events"] = JsonSerializer.SerializeToNode(events);
+        var desktopPayload = payload.DeepClone();
+        desktopPayload["events"] = JsonSerializer.SerializeToNode(events.Where((_, i) => i % 3 != 0));
+        await page.RouteAsync("**/api/site-statistics/dashboard**", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = (route.Request.Url.Contains("device=desktop", StringComparison.Ordinal) ? desktopPayload : payload).ToJsonString()
+        }));
+        await page.GotoAsync(Statistics + "?tab=Onboarding%20Diagnostics");
+        var decisions = page.Locator(".decision-card").Filter(new() { HasText = "repeats at" });
+        await Assertions.Expect(decisions).ToHaveCountAsync(2);
+        var pheno = decisions.Filter(new() { HasText = "pheno" });
+        await pheno.FocusAsync();
+        var pairedInvestigation = page.Locator(".investigation-row.is-paired");
+        await Assertions.Expect(page.Locator(".is-paired")).ToHaveCountAsync(2);
+        await pheno.EvaluateAsync("button => window.savedDecision = button");
+        await page.Locator("#statsDevice").DispatchEventAsync("change");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        Assert.True(await pheno.EvaluateAsync<bool>("button => button === window.savedDecision && document.activeElement === button"));
+        await pairedInvestigation.PressAsync("Enter");
+        var samples = page.Locator("#eventSamples .sample-row");
+        await Assertions.Expect(samples).ToHaveCountAsync(3);
+        Assert.All(await samples.AllTextContentsAsync(), text => Assert.Contains("pheno", text));
+        await Assertions.Expect(page.Locator("#drilldownTitle")).ToBeFocusedAsync();
+        await page.Locator("#eventSamples [data-session='pheno1']").ClickAsync();
+        await page.Locator("#statsDevice").SelectOptionAsync("desktop");
+        await Assertions.Expect(samples).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#sessionTimeline h3")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^Session pheno[23]$"));
+        await decisions.Filter(new() { HasText = "bortz" }).ClickAsync();
+        Assert.All(await samples.AllTextContentsAsync(), text => Assert.Contains("bortz", text));
     }
 
     [Fact]

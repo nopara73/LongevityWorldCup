@@ -81,6 +81,7 @@ const eventsPageAssets = document.currentScript.dataset;
         cell.appendChild(recovery);
         row.appendChild(cell);
         tbody.replaceChildren(row);
+        if (tbody.closest('.event-board-page')) window.highlightsCalendar?.update([]);
     }
 
     const MILESTONE_COPY = {
@@ -206,11 +207,11 @@ const eventsPageAssets = document.currentScript.dataset;
     }
     // Chapters use local Gregorian months, with the reader's language and digits.
     // Keep embedded feeds on their existing date format.
-    function formatListDateHtml(iso){
+    function formatListDateHtml(iso, compact=false){
         const date=new Date(iso); if(!iso||isNaN(date)) return '';
         const historical=date.getFullYear()!==new Date().getFullYear();
         const formatter=new Intl.DateTimeFormat(undefined,{calendar:'gregory',month:'short',day:'numeric',...(historical?{year:'numeric'}:{})});
-        const html=formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
+        const html=compact ? esc(formatListDate(iso)) : formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
         const full=date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'long',day:'numeric'});
         return `<time datetime="${esc(iso)}" aria-label="${esc(full)}">${html}</time>`;
     }
@@ -222,6 +223,12 @@ const eventsPageAssets = document.currentScript.dataset;
         return '';
     }
     // A small mark on the portrait says what kind of moment the row is.
+    function eventPortrait(portrait, kind=''){
+        return `<span class="event-avatar-frame">${portrait}${kind}</span>`;
+    }
+    function unlinkedEventPortrait(portrait){
+        return `<span class="avatar-disabled">${eventPortrait(portrait)}</span>`;
+    }
     function eventKindMark(r){
         const lost = r.newRankDirection === "lost" || r.badgeDirection === "lost"
             || r.crowdAgeDirection === "lost" || r.improvementDirection === "lost";
@@ -851,6 +858,12 @@ const eventsPageAssets = document.currentScript.dataset;
     // day's date stays quiet under the first event of that day.
     // On the Highlights page every month opens with its own heading row.
     let monthHeadingObserver=null;
+    function measureMonthHeading(heading) {
+        const height = `${heading.getBoundingClientRect().height}px`;
+        const group = heading.parentElement;
+        if (group && group.style.getPropertyValue('--event-month-height') !== height)
+            group.style.setProperty('--event-month-height', height);
+    }
     function appendMonthHeading(table, group, month){
         const [y,m]=month.split('-').map(Number);
         const date=new Date(0);
@@ -859,6 +872,7 @@ const eventsPageAssets = document.currentScript.dataset;
         heading.className='events-month-row';
         heading.dataset.month=month;
         heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span><span class="events-day-chip" aria-hidden="true"></span></th>`;
+        group._readingRows = [];
         group.appendChild(heading);
         monthHeadingObserver?.observe(heading);
         observeMonthReveal(table, heading);
@@ -868,9 +882,7 @@ const eventsPageAssets = document.currentScript.dataset;
         const chapters=!!tbody.closest('.event-board-page');
         if (chapters) monthRevealObserver?.disconnect();
         if(chapters&&typeof ResizeObserver==='function'){
-            monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>{
-                target.parentElement?.style.setProperty('--event-month-height',`${target.getBoundingClientRect().height}px`);
-            }));
+            monthHeadingObserver??=new ResizeObserver(entries=>entries.forEach(({target})=>measureMonthHeading(target)));
             monthHeadingObserver.disconnect();
         }
         tbody.querySelectorAll('tr.events-month-row').forEach(r=>r.remove());
@@ -901,6 +913,7 @@ const eventsPageAssets = document.currentScript.dataset;
             }
             if(chapters){
                 const details=r.nextElementSibling?.classList.contains('details-row')?r.nextElementSibling:null;
+                if (day) group._readingRows.push(r);
                 group.appendChild(r);
                 if(details) group.appendChild(details);
             }
@@ -992,16 +1005,23 @@ const eventsPageAssets = document.currentScript.dataset;
         }
         const vh = window.innerHeight || document.documentElement.clientHeight;
         let arrivals = 0;
-        table.querySelectorAll('tr.main-row[data-event-id]').forEach(row => {
-            const before = previous.positions.get(row.dataset.eventId);
-            const rect = row.getBoundingClientRect();
-            const onscreen = rect.bottom > 0 && rect.top < vh;
-            if (before) {
-                // A row that stays is already in view: no reveal fade.
+        const measured = Array.from(table.querySelectorAll('tr.main-row[data-event-id]'), row => ({
+            row, before: previous.positions.get(row.dataset.eventId), rect: row.getBoundingClientRect()
+        }));
+        // Retained rows must not replay their reveal. Apply that state together;
+        // flushing each row separately stalls refreshes of a long feed.
+        const unrevealed = measured.filter(({ row, before }) => before && !row.classList.contains('is-visible'));
+        if (unrevealed.length) {
+            unrevealed.forEach(({ row }) => {
                 row.style.transition = 'none';
                 row.classList.add('is-visible');
-                void row.offsetWidth;
-                row.style.removeProperty('transition');
+            });
+            void table.offsetWidth;
+            unrevealed.forEach(({ row }) => row.style.removeProperty('transition'));
+        }
+        measured.forEach(({ row, before, rect }) => {
+            const onscreen = rect.bottom > 0 && rect.top < vh;
+            if (before) {
                 const dy = before.top - rect.top;
                 if (!reduced && onscreen && Math.abs(dy) > 1 && typeof row.animate === 'function') {
                     row.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 300, easing: FEED_EASE });
@@ -1044,7 +1064,7 @@ const eventsPageAssets = document.currentScript.dataset;
     let monthRevealObserver = null;
     function observeMonthReveal(table, heading){
         // Reading position is useful with or without reveal animations.
-        watchMonthHandoff();
+        watchMonthHandoff(table);
         const revealed = table._revealedMonths || (table._revealedMonths = new Set());
         if (revealed.has(heading.dataset.month) || prefersReducedMotion() || typeof IntersectionObserver !== 'function') {
             // A rebuilt band of a month already shown stays still.
@@ -1065,62 +1085,77 @@ const eventsPageAssets = document.currentScript.dataset;
     // and fades back as the next month pushes it out.
     let monthHandoffWatching = false;
     let queueMonthHandoff = () => {};
-    function watchMonthHandoff(){
+    // The end of each chapter (and each story inside it) increases down the page.
+    function firstEndingAfter(items, line, endOf) {
+        let low = 0, high = items.length;
+        while (low < high) {
+            const mid = Math.floor((low + high) / 2);
+            if (endOf(items[mid]) > line) high = mid;
+            else low = mid + 1;
+        }
+        return items[low];
+    }
+
+    function watchMonthHandoff(table){
         if (monthHandoffWatching) return;
         monthHandoffWatching = true;
         let frame = 0;
         let lastRow = null;
+        let lastHeading = null;
         const update = () => {
             frame = 0;
-            const headings = document.querySelectorAll('.event-board-page tr.events-month-row');
-            const stickyTop = headings.length ? parseFloat(getComputedStyle(headings[0]).top) || 0 : 0;
-            let current = null;
-            headings.forEach(row => {
-                const body = row.parentElement;
-                const bodyRect = body.getBoundingClientRect();
-                const rect = row.getBoundingClientRect();
-                const pinned = bodyRect.top < stickyTop - 1 && bodyRect.bottom > stickyTop;
-                const h = rect.height || 40;
-                const handoff = pinned ? Math.min(1, Math.max(0, 1 - (bodyRect.bottom - stickyTop - h) / (h * 1.5))) : 0;
-                if (row.classList.contains('is-pinned') !== pinned) row.classList.toggle('is-pinned', pinned);
-                const value = handoff.toFixed(2);
-                if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
-                const chip = row.querySelector('.events-day-chip');
-                let reading = null;
-                if (pinned) {
-                    // An expanded story belongs to its title's day until its
-                    // final paragraph passes under the band.
-                    reading = [...body.querySelectorAll('tr.main-row[data-day]')].find(event => {
-                        const end = event.classList.contains('is-open') && event.nextElementSibling?.classList.contains('details-row')
-                            ? event.nextElementSibling : event;
-                        return end.getBoundingClientRect().bottom > rect.bottom + 1;
-                    });
+            const first = table.tBodies[0]?.firstElementChild;
+            const stickyTop = first?.classList.contains('events-month-row') ? parseFloat(getComputedStyle(first).top) || 0 : 0;
+            const group = firstEndingAfter(table.tBodies, stickyTop, body => body.getBoundingClientRect().bottom);
+            const bounds = group?.getBoundingClientRect();
+            const heading = bounds?.top < stickyTop - 1 && group.firstElementChild?.classList.contains('events-month-row')
+                ? group.firstElementChild : null;
+            const band = heading?.getBoundingClientRect();
+            // Read the expanded story's end before writing either reading indicator.
+            const current = band ? firstEndingAfter(group._readingRows, band.bottom + 1, row => {
+                const end = row.classList.contains('is-open') && row.nextElementSibling?.classList.contains('details-row')
+                    ? row.nextElementSibling : row;
+                return end.getBoundingClientRect().bottom;
+            }) : null;
+            if (lastHeading !== heading && lastHeading) {
+                lastHeading.classList.remove('is-pinned');
+                lastHeading.style.removeProperty('--handoff');
+                const chip = lastHeading.querySelector('.events-day-chip');
+                chip.replaceChildren();
+                delete chip.dataset.day;
+            }
+            lastHeading = heading;
+            if (heading) {
+                heading.classList.add('is-pinned');
+                const h = band.height || 40;
+                const handoff = Math.min(1, Math.max(0, 1 - (bounds.bottom - stickyTop - h) / (h * 1.5))).toFixed(2);
+                if (heading.style.getPropertyValue('--handoff') !== handoff) heading.style.setProperty('--handoff', handoff);
+                const chip = heading.querySelector('.events-day-chip');
+                if (!current && chip.hasChildNodes()) {
+                    chip.replaceChildren();
+                    delete chip.dataset.day;
+                } else if (current && chip.dataset.day !== current.dataset.day) {
+                    const previous = chip.dataset.day;
+                    const direction = lastRow && (lastRow.compareDocumentPosition(current) & Node.DOCUMENT_POSITION_PRECEDING) ? -1 : 1;
+                    chip.dataset.day = current.dataset.day;
+                    const number = document.createElement('span');
+                    number.textContent = current.querySelector('.event-date-day')?.textContent || '';
+                    chip.replaceChildren(number);
+                    if (previous && !prefersReducedMotion()) {
+                        number.animate([
+                            { transform: `translateY(${direction * 100}%)`, opacity: 0 },
+                            { transform: 'none', opacity: 1 }
+                        ], { duration: 220, easing: FEED_EASE });
+                    }
                 }
-                if (!reading) {
-                    if (chip?.hasChildNodes()) { chip.replaceChildren(); delete chip.dataset.day; }
-                    return;
-                }
-                current = reading;
-                if (!chip || chip.dataset.day === reading.dataset.day) return;
-                const previous = chip.dataset.day;
-                const direction = lastRow && (lastRow.compareDocumentPosition(reading) & Node.DOCUMENT_POSITION_PRECEDING) ? -1 : 1;
-                chip.dataset.day = reading.dataset.day;
-                const number = document.createElement('span');
-                // The existing date owns the reader's calendar, timezone and digits.
-                number.textContent = reading.querySelector('.event-date-day')?.textContent || '';
-                chip.replaceChildren(number);
-                if (previous && !prefersReducedMotion()) {
-                    number.animate([
-                        { transform: `translateY(${direction * 100}%)`, opacity: 0 },
-                        { transform: 'none', opacity: 1 }
-                    ], { duration: 220, easing: FEED_EASE });
-                }
-            });
+            }
+            const readingDay = current?.dataset.day || (!heading && group === table.tBodies[0] ? group?._readingRows?.[0]?.dataset.day : null);
+            window.highlightsCalendar?.setReadingDay(readingDay);
             if (lastRow !== current) {
                 lastRow?.classList.remove('is-current-day');
                 lastRow = current;
             }
-            current?.classList.add('is-current-day');
+            current?.classList.toggle('is-current-day', true);
         };
         const queue = () => { if (!frame && !document.hidden) frame = requestAnimationFrame(update); };
         const stop = () => {
@@ -1143,7 +1178,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function updateFreshHighlights(){
         const now = Date.now();
-        document.querySelectorAll('.event-board-page tr.main-row').forEach(row => {
+        document.querySelectorAll(':is(.event-board-page, #events-root-index) tr.main-row').forEach(row => {
             const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
             const age = now - stamp;
             row.classList.toggle('is-fresh', Number.isFinite(age) && age >= 0 && age < 86400000);
@@ -1174,7 +1209,7 @@ const eventsPageAssets = document.currentScript.dataset;
     function appendFeedUnits(table, units){
         table.querySelector('tbody.events-more')?.remove();
         let group = [...table.tBodies].at(-1);
-        let previous = [...table.querySelectorAll('tr.main-row')].at(-1);
+        let previous = group?.querySelector('tr.main-row:last-child') || group?.lastElementChild?.previousElementSibling?.closest('tr.main-row');
         // Extend the final month without detaching existing rows. Regrouping
         // the whole table loses focus and moves the reader during idle batches.
         units.forEach(unit => {
@@ -1195,6 +1230,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 table.appendChild(group);
                 if (month) appendMonthHeading(table, group, month);
             }
+            if (day) group._readingRows.push(row);
             group.append(...unit);
             previous = row;
         });
@@ -1672,12 +1708,29 @@ const eventsPageAssets = document.currentScript.dataset;
         }));
     }
 
+    // Compare the fetched chapter data before touching the mounted timeline.
+    // A directory refresh can update athletes who appear nowhere in this feed.
+    function chapterSnapshot(rows, athletes, linkNames) {
+        const referenced = new Set();
+        const fresh = [];
+        const now = new Date();
+        for (const row of rows) {
+            for (const slug of row.slugs) referenced.add(slug);
+            const age = now - Date.parse(row.displayOccurredAt || row.occurredAt);
+            if (age >= 0 && age < 86400000) fresh.push(row.id);
+        }
+        const locale = new Intl.DateTimeFormat().resolvedOptions();
+        return JSON.stringify([rows, [...referenced].map(slug => athletes.get(slug)), linkNames,
+            now.toDateString(), locale.locale, locale.timeZone, fresh]);
+    }
+
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
         const table=tbody.closest('table');
         // Reobserve only the surviving, unrevealed rows after reconciliation.
         rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
+        const homepage=!!tbody.closest('#events-root-index');
         const timelineRows = [...table.querySelectorAll('tr.main-row')];
         const restoredFeed = !timelineRows.length && performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
             ? history.state?.lwcEventFeeds?.[historyFeedKey(table)] : null;
@@ -1710,6 +1763,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
         if (!Array.isArray(rows) || rows.length === 0){
             tbody.innerHTML = `<tr class="events-empty-row"><td colspan="3">No events yet</td></tr>`;
+            if (tbody.closest('.event-board-page')) window.highlightsCalendar?.update([]);
             table.closest('.events-board').style.removeProperty('min-height');
             return;
         }
@@ -1738,7 +1792,7 @@ const eventsPageAssets = document.currentScript.dataset;
         rowsToRender.forEach((r, localIdx) => {
             const idx = localIdx;
             const occurredAt = r.displayOccurredAt || r.occurredAt;
-            const dateLabel = occurredAt ? (chapters?formatListDateHtml(occurredAt):esc(formatListDate(occurredAt))) : "";
+            const dateLabel = occurredAt ? (chapters || homepage ? formatListDateHtml(occurredAt, homepage) : esc(formatListDate(occurredAt))) : "";
             const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
                 ? `<span class="event-rel" data-rel-at="${esc(occurredAt)}">${relativeDayLabel(occurredAt)}</span>`
                 : "";
@@ -1789,21 +1843,21 @@ const eventsPageAssets = document.currentScript.dataset;
                 const portrait = img
                     ? `<img class="avatar" data-lwc-image-role="athlete" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
                     : `<div class="avatar-fallback" data-lwc-image-role="athlete">${initialsFromName(name)}</div>`;
-                const framed = `<span class="event-avatar-frame">${portrait}${eventKindMark(r)}</span>`;
+                const framed = eventPortrait(portrait, eventKindMark(r));
                 avatarHtml = canLinkAvatar
                     ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}>${framed}</a>`
                     : `<span class="avatar-disabled" aria-label="${esc(name)}">${framed}</span>`;
             } else if (r.type === EVENT_TYPE.DonationReceived) {
-                avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`);
             } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
-                avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`);
             } else if (r.type === EVENT_TYPE.CustomEvent) {
                 const logo = eventsPageAssets.defaultProfilePic;
-                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" data-lwc-image-role="brand" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
+                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup">${eventPortrait(`<img class="avatar custom-event-avatar" data-lwc-image-role="brand" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`)}</span>`;
             } else if (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult) {
-                avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`);
             } else {
-                avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback" title="Event">★</div>`);
             }
 
             let msgHtml = "";
@@ -2189,7 +2243,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 const contentHtml = renderCustomMarkupWithBreaks(contentTrim);
                 const artworkHtml = isSafeHttpUrl(r.artwork?.ImageUrl) && isSafeHttpUrl(r.artwork?.LinkUrl)
-                    ? `<a class="custom-event-artwork" href="${esc(r.artwork.LinkUrl)}" target="_top" rel="noopener"><img src="${esc(r.artwork.ImageUrl)}" alt="${esc(r.artwork.AltText || '')}" loading="lazy" decoding="async"></a>` : "";
+                    ? `<template><a class="custom-event-artwork" href="${esc(r.artwork.LinkUrl)}" target="_top" rel="noopener"><img src="${esc(r.artwork.ImageUrl)}" alt="${esc(r.artwork.AltText || '')}" decoding="async"></a></template>` : "";
 
                 const detailsTr = document.createElement("tr");
                 detailsTr.className = "details-row custom-event-details";
@@ -2202,6 +2256,11 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 const setExpanded = open => {
                     const panel = detailsTr.querySelector('.custom-event-content');
+                    // Collapsed panels can be close enough to the viewport to fetch lazy images.
+                    if (open) {
+                        const artwork = panel.querySelector('.custom-event-body > template');
+                        if (artwork) artwork.replaceWith(artwork.content);
+                    }
                     if (!open && panel.contains(document.activeElement)) btn?.focus({ preventScroll: true });
                     panel.inert = !open;
                     panel.setAttribute('aria-hidden', String(!open));
@@ -2246,6 +2305,21 @@ const eventsPageAssets = document.currentScript.dataset;
             const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10, restoredFeed?.rendered || 0);
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
+            window.highlightsCalendar?.update(units, row => {
+                if (!row.isConnected) {
+                    const index = table._feedPending.findIndex(unit => unit[0] === row);
+                    if (index < 0) return;
+                    window.clearTimeout(table._feedMoreTimer);
+                    table._feedLoadingMore = false;
+                    const added = table._feedPending.splice(0, index + FEED_CHUNK);
+                    appendFeedUnits(table, added);
+                    added.forEach(([event]) => event.classList.add('is-visible'));
+                    mountFeedMore(table);
+                    queueMonthHandoff();
+                }
+                // A just-mounted chapter has not received its first resize entry yet.
+                measureMonthHeading(row.parentElement.firstElementChild);
+            });
         } else {
             // Keep unchanged rows and their images attached. Reattaching the
             // whole table restarts image decoding and produces visible flashes.
@@ -2314,7 +2388,7 @@ const eventsPageAssets = document.currentScript.dataset;
         }
 
         const rowsNow = table.querySelectorAll(".row-appear:not(.is-visible)");
-        if (!prefersReduced && rowsNow.length){
+        if (!prefersReduced && rowsNow.length && typeof IntersectionObserver === 'function'){
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
             requestAnimationFrame(() => revealVisibleRowsImmediately(table));
@@ -2795,10 +2869,15 @@ const eventsPageAssets = document.currentScript.dataset;
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
-            renderRows(rows,athletesIndex,!!linkNames,{
-                seenMode: (!live && mode !== "athlete") ? mode : null,
-                layoutOnly: !!options?.layoutOnly && !live
-            });
+            const snapshot = mode === "viewAll" && root?.closest('.event-board-page')
+                ? chapterSnapshot(rows, athletesIndex, !!linkNames) : null;
+            if (!live || snapshot === null || snapshot !== loadRoot._chapterSnapshot) {
+                renderRows(rows,athletesIndex,!!linkNames,{
+                    seenMode: (!live && mode !== "athlete") ? mode : null,
+                    layoutOnly: !!options?.layoutOnly && !live
+                });
+                loadRoot._chapterSnapshot = snapshot;
+            }
             if (mode !== "athlete") {
                 feedLoads.set(loadKey, [maxRows, showViewAll, athleteId, linkNames, options && { ...options, live: false }]);
                 if (live) writeSeenAt(mode, rows.reduce((max, r) => Math.max(max, +new Date(r.occurredAt || 0) || 0), 0));
@@ -2811,6 +2890,7 @@ const eventsPageAssets = document.currentScript.dataset;
             if (!current()) return;
             // A missed background refresh leaves the feed as it is.
             if (live) return;
+            delete loadRoot._chapterSnapshot;
             loadRoot.style.removeProperty('min-height');
             clearEventsLoadingState('Events could not load.');
             const status = document.getElementById('eventsStatus');

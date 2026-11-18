@@ -296,6 +296,7 @@ public sealed class WebPushTests
     }
 
     [Theory]
+    [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[6] prev[siim_land]")]
     [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]")]
     [InlineData(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[6] prevPlace[8] ageReduction[-20.4]")]
     public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverRankAndDonationWithoutDuplicates(EventType type, string raw)
