@@ -10,7 +10,8 @@
 //   closes. Each member row also carries a thin bar for its share of the team
 //   total, so the roster reads as who carried the flag; the team row carries
 //   the same pieces stacked into one strip, as long as the team's total is
-//   against the board's best, and opening drops each piece into its bar.
+//   against the best team on its clock, and opening drops each piece into
+//   its bar.
 //
 // disclosure.css owns how every state looks. Nothing here changes wording or
 // what a control does. Reduced motion keeps every behaviour and drops travel.
@@ -46,6 +47,20 @@ interface Window {
     const canAnimate = (): boolean => !reduced.matches && typeof Element.prototype.animate === "function";
 
     const visible = (el: Element): boolean => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+
+    // Flag strips fill in the first time the board shows them in a visit.
+    // After that (filters, search, coming back) they are simply there.
+    const STRIPS_FILLED = "lwc:flag-strips-filled";
+    const settleStrips = (): void => { root.dataset.lwcStripsFilled = ""; };
+    let stripsFilling = false;
+    try { if (sessionStorage.getItem(STRIPS_FILLED)) settleStrips(); } catch { /* storage unavailable */ }
+    document.addEventListener("animationstart", event => {
+        if (stripsFilling || root.hasAttribute("data-lwc-strips-filled") || event.animationName !== "lwc-strip-fill") return;
+        stripsFilling = true;
+        try { sessionStorage.setItem(STRIPS_FILLED, "1"); } catch { /* storage unavailable */ }
+        // The last row's last piece lands within 1.5 s.
+        window.setTimeout(settleStrips, 1600);
+    }, true);
 
     function stop(el: HTMLElement): number {
         const height = el.getBoundingClientRect().height;
@@ -150,11 +165,20 @@ interface Window {
     }
 
     // Where a member's roster bar sits on screen, at its share of the track.
+    // The bar is pinned by its bottom and inline edges; some engines report
+    // the opposite insets of a pseudo-element as "auto", so derive them.
     function shareBar(link: HTMLElement): DOMRect | null {
         const cs = getComputedStyle(link, "::after");
         if (cs.content === "none" || cs.display === "none") return null;
         const box = link.getBoundingClientRect();
-        const left = parseFloat(cs.left), top = parseFloat(cs.top), width = parseFloat(cs.width), height = parseFloat(cs.height);
+        const width = parseFloat(cs.width), height = parseFloat(cs.height);
+        const inset = (near: string, far: string, size: number, span: number): number => {
+            const a = parseFloat(near);
+            if (Number.isFinite(a)) return a;
+            return span - parseFloat(far) - size;
+        };
+        const left = inset(cs.left, cs.right, width, box.width);
+        const top = inset(cs.top, cs.bottom, height, box.height);
         if (![left, top, width, height].every(Number.isFinite)) return null;
         const share = parseFloat(link.parentElement?.style.getPropertyValue("--lwc-share") || "") || 0;
         return new DOMRect(box.left + left, box.top + top, width * share, height);
@@ -179,9 +203,10 @@ interface Window {
             const ghost = document.createElement("span");
             ghost.className = "lwc-disclosure-ghost lwc-disclosure-ghost--share";
             ghost.setAttribute("aria-hidden", "true");
+            const look = getComputedStyle(piece);
             Object.assign(ghost.style, {
                 left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`,
-                background: getComputedStyle(piece).backgroundColor,
+                backgroundColor: look.backgroundColor, backgroundImage: look.backgroundImage,
             });
             document.body.appendChild(ghost);
             const dx = from.left + from.width / 2 - (to.left + to.width / 2);
@@ -201,34 +226,42 @@ interface Window {
         return out;
     }
 
-    // Each member's share of the team total, as a 0–1 custom property, and
-    // each team's total against the board's best (--lwc-reach), drawn as a
-    // stacked strip in the team row.
+    // Each member's years as a 0–1 share (--lwc-share) and each team's strip
+    // against the best team on the same clock (--lwc-reach), so Pro and
+    // Amateur sections each read as their own stacked bar chart. Members who
+    // took years off are the solid pieces; a member who aged faster is a
+    // hatched piece laid back over the end (--lwc-debt), so the solid part
+    // ends at the team's real net total and the strips keep the standings.
     function measureShares(scope: ParentNode): void {
-        const teams = Array.from(scope.querySelectorAll<HTMLElement>(".flag-team"));
-        const totals = teams.map(team => {
+        const teams = Array.from(scope.querySelectorAll<HTMLElement>(".flag-team")).map(team => {
             const rows = Array.from(team.querySelectorAll<HTMLElement>(".flag-team-athletes > li"));
             const values = rows.map(li => {
                 const n = parseFloat((li.querySelector(".flag-athlete-metric")?.textContent || "").replace(/[^\d.+-]/g, ""));
-                return Number.isFinite(n) ? Math.max(0, -n) : 0;
+                return Number.isFinite(n) ? n : 0;
             });
-            const best = values.reduce((sum, v) => sum + v, 0);
-            const shares = values.map(v => best > 0 ? v / best : 0);
+            const gained = values.reduce((sum, v) => sum + Math.max(0, -v), 0);
+            const lost = values.reduce((sum, v) => sum + Math.max(0, v), 0);
+            const most = Math.max(gained, lost);
+            const shares = values.map(v => most > 0 ? Math.abs(v) / most : 0);
             rows.forEach((li, i) => {
                 li.style.setProperty("--lwc-share", (shares[i] ?? 0).toFixed(3));
                 li.style.setProperty("--lwc-i", String(i));
+                if ((values[i] ?? 0) > 0) li.dataset.shareDebt = "";
+                else delete li.dataset.shareDebt;
             });
-            drawStrip(team, shares);
-            return best;
+            return { team, values, gained, clock: team.dataset.clock || "" };
         });
-        const top = Math.max(0, ...totals);
-        teams.forEach((team, i) => {
-            team.style.setProperty("--lwc-reach", top > 0 ? ((totals[i] ?? 0) / top).toFixed(3) : "0");
+        const scale = new Map<string, number>();
+        teams.forEach(t => scale.set(t.clock, Math.max(scale.get(t.clock) || 0, t.gained)));
+        teams.forEach(({ team, values, gained, clock }, i) => {
+            const top = scale.get(clock) || 0;
+            team.style.setProperty("--lwc-reach", top > 0 ? Math.min(1, gained / top).toFixed(4) : "0");
             team.style.setProperty("--lwc-row", String(Math.min(i, 14)));
+            drawStrip(team, values, gained, top);
         });
     }
 
-    function drawStrip(team: HTMLElement, shares: number[]): void {
+    function drawStrip(team: HTMLElement, values: number[], gained: number, top: number): void {
         const summary = team.querySelector<HTMLElement>(":scope > summary");
         if (!summary) return;
         let strip = summary.querySelector<HTMLElement>(":scope > .flag-team-strip");
@@ -240,9 +273,26 @@ interface Window {
         }
         // Only add or drop pieces when the roster size changes, so the board's
         // observer settles after one pass.
-        while (strip.children.length > shares.length) strip.lastElementChild?.remove();
-        while (strip.children.length < shares.length) strip.appendChild(document.createElement("i"));
-        shares.forEach((share, i) => (strip.children[i] as HTMLElement).style.setProperty("--lwc-share", share.toFixed(3)));
+        while (strip.children.length > values.length) strip.lastElementChild?.remove();
+        while (strip.children.length < values.length) strip.appendChild(document.createElement("i"));
+        let taken = 0;
+        values.forEach((v, i) => {
+            const piece = strip.children[i] as HTMLElement;
+            if (v > 0) {
+                // Debts stack back from the solid end, never past its start.
+                const debt = top > 0 ? Math.min(v, Math.max(0, gained - taken)) / top : 0;
+                piece.dataset.debt = "";
+                piece.style.setProperty("--lwc-debt-at", (taken / (top || 1)).toFixed(4));
+                piece.style.setProperty("--lwc-debt", debt.toFixed(4));
+                piece.style.removeProperty("--lwc-share");
+                taken += v;
+            } else {
+                delete piece.dataset.debt;
+                piece.style.removeProperty("--lwc-debt-at");
+                piece.style.removeProperty("--lwc-debt");
+                piece.style.setProperty("--lwc-share", (gained > 0 ? -v / gained : 0).toFixed(4));
+            }
+        });
     }
 
     // ------------------------------------------------------------ <details>
