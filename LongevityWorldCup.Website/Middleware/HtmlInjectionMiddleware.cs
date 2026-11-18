@@ -193,7 +193,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
                         .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
                         .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("<!--HEAD-->", head.Replace("<!--PODIUM-PRELOAD-->", HomepagePodiumAssets.Preloads(championPortrait)))
+                        .Replace("<!--HEAD-->", HomepagePodiumAssets.PrepareHead(head, championPortrait))
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
@@ -482,6 +482,10 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 if (selection is not null && ShouldRenderLeaderboardRows(context))
                 {
                     var table = selection.Snapshot;
+                    var total = selection.ByFlag ? selection.FlagTeams.Count : table.Rows.Count;
+                    var unit = selection.ByFlag ? "flag" : "athlete";
+                    html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardResultCount", $"{total} {unit}{(total == 1 ? "" : "s")}")
+                        .Replace("id=\"leaderboardSelectionSummary\" hidden", "id=\"leaderboardSelectionSummary\"", StringComparison.Ordinal);
                     if (selection.ByFlag)
                     {
                         var teams = selection.FlagTeams;

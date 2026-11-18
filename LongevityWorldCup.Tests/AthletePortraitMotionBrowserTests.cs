@@ -192,7 +192,7 @@ public sealed class AthletePortraitMotionBrowserTests(
             await image.HoverAsync();
         }
         var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
-        await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+        await ExpectPortraitPlayingAsync(overlay);
         var painted = image.Locator("..").Locator("canvas.athlete-portrait-frame");
         await Assertions.Expect(painted).ToHaveCSSAsync("opacity", "1");
         // A delayed renderer can reach playing after the first few frames.
@@ -472,13 +472,13 @@ public sealed class AthletePortraitMotionBrowserTests(
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
             await image.HoverAsync();
             var overlay = link.Locator("video.athlete-portrait-motion");
-            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+            await ExpectPortraitPlayingAsync(overlay);
             Assert.Contains("/assets/athlete-motion/anna-buky-", await overlay.EvaluateAsync<string>("video => video.currentSrc"));
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
             await Assertions.Expect(overlay).ToHaveCountAsync(0);
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
             await link.FocusAsync();
-            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+            await ExpectPortraitPlayingAsync(overlay);
             await Assertions.Expect(link).ToBeFocusedAsync();
             await Assertions.Expect(link).ToHaveAttributeAsync("href", "/athlete/anna-buky");
             await Assertions.Expect(body).ToHaveAttributeAsync("data-server-rendered", "true");
@@ -504,7 +504,7 @@ public sealed class AthletePortraitMotionBrowserTests(
             await image.EvaluateAsync("img => img.decode()");
             await image.HoverAsync();
             var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
-            await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+            await ExpectPortraitPlayingAsync(overlay);
             Assert.Contains($"/assets/athlete-motion/{slug}-", await overlay.EvaluateAsync<string>("video => video.currentSrc"));
             // Loading a cached clip can beat the portrait's hover transition.
             // Measure both layers at their final scale, retaining one-pixel alignment.
@@ -558,7 +558,7 @@ public sealed class AthletePortraitMotionBrowserTests(
             await page.WaitForFunctionAsync("() => document.querySelector(\".leaderboard a[href='/athlete/anna-buky'] img.portrait\").complete");
             var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
             if (remainHovered)
-                await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+                await ExpectPortraitPlayingAsync(overlay);
             else
                 await Assertions.Expect(overlay).ToHaveCountAsync(0);
         }
@@ -617,6 +617,20 @@ public sealed class AthletePortraitMotionBrowserTests(
         Assert.Equal(0, await page.EvaluateAsync<int>("window.backgroundPortraitReads"));
     }
 
+    private static async Task ExpectPortraitPlayingAsync(ILocator overlay)
+    {
+        // Fetching and decoding the clip can outlast a UI assertion. Wait for
+        // the browser's playing event on this video before checking its class.
+        await using var video = await overlay.ElementHandleAsync();
+        await overlay.Page.WaitForFunctionAsync("""
+            video => {
+                if (!video.isConnected) throw new Error('Portrait video was removed before playback started.');
+                return window.startedPortraitVideos.has(video);
+            }
+            """, video);
+        await Assertions.Expect(overlay).ToHaveClassAsync("athlete-portrait-motion is-playing");
+    }
+
     private async Task<IBrowserContext> NewContextAsync(int width = 1440)
     {
         var context = await Browser.NewContextAsync(new()
@@ -647,13 +661,13 @@ public sealed class AthletePortraitMotionBrowserTests(
             window.motionPointerEvents = [];
             window.profileMotionStarts = 0;
             window.profileMotionEnds = 0;
-            const started = new WeakSet();
+            window.startedPortraitVideos = new WeakSet();
             for (const [event, key] of [['playing', 'motionStarts'], ['ended', 'motionEnds']]) {
                 document.addEventListener(event, e => {
                     if (!e.target.matches?.('video.athlete-portrait-motion')) return;
                     if (event === 'playing') {
-                        if (started.has(e.target)) return;
-                        started.add(e.target);
+                        if (window.startedPortraitVideos.has(e.target)) return;
+                        window.startedPortraitVideos.add(e.target);
                         // Capture while attached: natural playback can remove this short-lived
                         // video between a locator lookup and a later computed-style read.
                         window.motionPointerEvents.push(getComputedStyle(e.target).pointerEvents);

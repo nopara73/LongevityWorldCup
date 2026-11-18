@@ -2230,7 +2230,7 @@ public sealed class AestheticSystemBrowserTests(
         foreach (var condition in conditions)
         {
             Assert.Equal("em", condition.Unit);
-            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "athlete-proofs", "athlete-results", "athlete-header", "leaderboard" });
+            Assert.Contains(condition.Name, new[] { "league-filters", "league-status", "podium", "athlete-stats", "athlete-proofs", "athlete-results", "athlete-header", "leaderboard" });
             var desktop = condition.Name == "league-filters" || condition.Name == "podium" && condition.Value == 32;
             await page.SetViewportSizeAsync(desktop ? 1440 : 390, desktop ? 1000 : 844);
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
@@ -2239,7 +2239,7 @@ public sealed class AestheticSystemBrowserTests(
                 : condition.Name is "athlete-stats" or "athlete-proofs" or "athlete-results" ? "/athlete/michael-lustgarten"
                 : "/leaderboard?filters=open,baby%20boomers";
             await NavigateAndSettleAsync(page, route);
-            if (condition.Name is "league-filters" or "leaderboard")
+            if (condition.Name is "league-filters" or "league-status" or "leaderboard")
                 await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             if (condition.Name == "podium") await page.Locator(".podium-item.first").WaitForAsync();
             if (condition.Name == "athlete-results") await page.Locator(".biomarker-overview-table .result-summary").First.WaitForAsync();
@@ -2280,6 +2280,11 @@ public sealed class AestheticSystemBrowserTests(
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         let applied;
                         if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
+                        else if (arg.Name === 'league-status') {
+                            const chips = probe.querySelector('.leaderboard-selection-chips').getBoundingClientRect();
+                            const clear = probe.querySelector('.leaderboard-clear-all').getBoundingClientRect();
+                            applied = clear.top >= chips.bottom - 1;
+                        }
                         else if (arg.Name === 'athlete-stats') applied = arg.Value < 20
                             ? getComputedStyle(probe.querySelector('.athlete-info-basics tr')).gridTemplateColumns.split(' ').length === 1
                             : parseFloat(getComputedStyle(probe.querySelector('.athlete-age-board > tr')).paddingLeft) < 15.5;
