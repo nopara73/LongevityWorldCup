@@ -425,3 +425,36 @@
         animation: none;
     }
 }
+
+
+/* The non-interactive copy travels above the open deck. */
+.leaderboard-selection-chip--ghost {
+    position: fixed;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lwc-space-2);
+    box-sizing: border-box;
+    padding: var(--lwc-space-2) var(--lwc-space-3);
+    border: 1px solid transparent;
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-ink);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    overflow: hidden;
+    pointer-events: none;
+}
+.leaderboard-selection-chip--ghost.is-flying { z-index: 130; }
+.leaderboard-selection-chip--ghost span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.leaderboard-selection-chip--ghost span:last-child { flex: none; color: var(--lwc-accent); font-size: 1.1rem; }
+#leaderboardResultCount { display: inline-block; }
+
+@media (hover: hover) {
+    .leaderboard-selection-chip:hover span:last-child { color: var(--lwc-danger); }
+    .leaderboard-selection-summary:has(#clearLeaderboardSelection:hover) .leaderboard-selection-chip { opacity: .65; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .leaderboard-selection-chip span:last-child { transition: transform 180ms ease; }
+    .leaderboard-selection-chip:hover span:last-child { transform: rotate(90deg); }
+}
