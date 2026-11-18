@@ -932,6 +932,8 @@ public sealed class BioageFlowBrowserTests(
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => typeof window.LwcBioageFlow?.animateBioageResult === 'function'");
+        // The shared scroll reset can run after the calculator helpers are available.
+        await page.WaitForFunctionAsync("() => window.__lwcPlayFlowScrollInitialized === true");
         await page.EvaluateAsync("() => document.fonts.ready");
         await page.EvaluateAsync(
             """
