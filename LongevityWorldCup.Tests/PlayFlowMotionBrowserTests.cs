@@ -380,15 +380,16 @@ public sealed class PlayFlowMotionBrowserTests(
             () => {
                 const list = document.getElementById('playAthleteInput-autocomplete-list');
                 const rows = [...list.querySelectorAll(':scope > [role=option]')];
-                const observer = new MutationObserver(() => {
+                const observer = new MutationObserver(records => {
                     const options = [...list.querySelectorAll(':scope > [role=option]')];
                     const kept = options.filter(option => rows.includes(option)).length;
+                    const reinserted = records.flatMap(record => [...record.removedNodes]).filter(node => options.includes(node)).length;
                     const leaving = [...list.querySelectorAll('.autocomplete-item--leaving')];
                     const cleanLeaving = leaving.every(item => !item.id && !item.hasAttribute('role') && item.getAttribute('aria-hidden') === 'true');
                     const animated = options.filter(option => option.getAnimations().length > 0).length
                         + leaving.filter(item => item.getAnimations().length > 0).length;
                     window.__rowChange = [options.length, kept, leaving.length, cleanLeaving ? 1 : 0, animated,
-                        options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0];
+                        options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0, reinserted];
                     observer.disconnect();
                 });
                 observer.observe(list, { childList: true });
@@ -402,6 +403,7 @@ public sealed class PlayFlowMotionBrowserTests(
         Assert.True(change[2] > 0 && change[3] == 1, "Rows that stop matching should fade out, already gone from the listbox.");
         Assert.True(change[4] > 0, "Entering, leaving or moving rows should animate.");
         Assert.True(change[5] == 1, "Option ids must follow the visible order.");
+        Assert.Equal(0, change[6]); // Retained options keep their place in the DOM while typing.
 
         await input.PressAsync("ArrowDown");
         var activeId = await input.GetAttributeAsync("aria-activedescendant");
