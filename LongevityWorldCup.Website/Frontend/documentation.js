@@ -401,11 +401,41 @@ function setDocumentationNavOpen(documentationNav, open) {
     // Blocks below the fold settle in as they are reached. Nothing is pending
     // with reduced motion, without IntersectionObserver, or in print.
     const pendingBlocks = new Set();
+    // A list's rail draws on only the first time a reader reaches a list on
+    // this page; later visits mark the root so every rail is already in place.
+    const railsSeenKey = "lwc-doc-rails-seen";
+    const railsPage = window.location.pathname;
+    const readRailsSeen = () => {
+        try {
+            const seen = JSON.parse(localStorage.getItem(railsSeenKey) || "[]");
+            return Array.isArray(seen) ? seen : [];
+        } catch {
+            return [];
+        }
+    };
+    let railsRemembered = readRailsSeen().includes(railsPage);
+    if (railsRemembered) {
+        document.documentElement.dataset.docRailsSeen = "";
+    }
+    const rememberRails = () => {
+        if (railsRemembered) {
+            return;
+        }
+        railsRemembered = true;
+        try {
+            localStorage.setItem(railsSeenKey, JSON.stringify([...readRailsSeen().filter(path => path !== railsPage), railsPage].slice(-20)));
+        } catch {
+            // Without storage the rails simply draw on again next visit.
+        }
+    };
     const revealBlock = (block, delay = 0, instant = false) => {
         if (!pendingBlocks.delete(block)) {
             return;
         }
         revealObserver?.unobserve(block);
+        if (!instant && block.matches("ul")) {
+            rememberRails();
+        }
         block.style.setProperty("--reveal-delay", `${delay}ms`);
         if (instant) {
             block.classList.add("is-instant");

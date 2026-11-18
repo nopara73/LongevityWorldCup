@@ -428,140 +428,178 @@ internal static class ReadingFeel
             }
         }
 
-/* ===== Reading body, second pass =====
-   The long-form body (About, Ruleset, History) catches up with the newer
-   pages: a larger, airier reading size on a comfortable measure, the first
-   paragraph under each chapter set as an ink lead, lists strung on an accent
-   rail with ringed stops (nested points as hollow stops), and figures on a
-   framed plate. As each block reveals, its rail draws down and the stops pop
-   onto it one after another; plates settle from a slight scale. */
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > p {
-    max-width: 68ch;
-    font-size: 1.0625rem;
-    line-height: 1.72;
-}
+        /* ===== Reading body, second pass =====
+           The long-form body (About, Ruleset, History, Privacy) catches up with
+           the newer pages: a larger, airier reading size on a comfortable
+           measure, the first paragraph under each chapter set as an ink lead,
+           lists strung on an accent rail with ringed stops (nested points as
+           hollow stops), and figures on a framed plate.
+           Body blocks are direct children of the article (About, Privacy), of a
+           section (Ruleset rules, History entries) or of a rule body. About's
+           cover silhouette stays edge to edge, and the Ruleset FAQ answers and
+           term lists keep their compact reference style.
+           The rail runs from stop to stop, one segment per item, so it never
+           trails past the last point. The first time a reader reaches a list on
+           a page, its stops pop on in turn and the rail draws down between
+           them; documentation.js remembers that, so scrolling back or visiting
+           again shows the rails in place. */
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > p:not(:has(> img)) {
+            max-width: 68ch;
+            font-size: 1.0625rem;
+            line-height: 1.72;
+        }
 
-.documentation-page .documentation-document :is(h2 + p, .ruleset-rule-body > p:first-child) {
-    color: var(--lwc-ink);
-    font-size: 1.18rem;
-    line-height: 1.6;
-}
+        /* The lead's 61ch at its larger size ends where the body's 68ch does. */
+        .documentation-page .documentation-document :is(h2 + p, .ruleset-rule-body > p:first-child):not(:has(> img)) {
+            max-width: 61ch;
+            color: var(--lwc-ink);
+            font-size: 1.18rem;
+            line-height: 1.6;
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline),
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) ul {
-    position: relative;
-    max-width: 68ch;
-    margin-inline-start: 0;
-    padding-inline-start: 1.9rem;
-    list-style: none;
-}
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) {
+            position: relative;
+            max-width: 68ch;
+            margin-inline-start: 0;
+            padding-inline-start: 1.9rem;
+            list-style: none;
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline)::before {
-    content: "";
-    position: absolute;
-    inset-inline-start: calc(.55rem - 1px);
-    top: .9em;
-    bottom: .9em;
-    width: 2px;
-    border-radius: 1px;
-    background: color-mix(in srgb, var(--lwc-accent) 35%, var(--lwc-border));
-    transform-origin: 50% 0;
-}
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) li {
+            position: relative;
+            margin: 0;
+            padding: .275rem 0;
+            font-size: 1.0625rem;
+            line-height: 1.65;
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) li {
-    position: relative;
-    margin: .55rem 0;
-    font-size: 1.0625rem;
-    line-height: 1.65;
-}
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) li::marker {
+            content: none;
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) li::marker { content: none; }
+        /* A ringed stop on the rail for each point. */
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) > li::before {
+            content: "";
+            position: absolute;
+            z-index: 1;
+            inset-inline-start: calc(-1.9rem + .55rem - 6px);
+            top: calc(.275rem + .52em);
+            width: 12px;
+            height: 12px;
+            box-sizing: border-box;
+            border: 0;
+            border-radius: 50%;
+            background: var(--lwc-surface);
+            box-shadow: inset 0 0 0 3px var(--lwc-accent), 0 0 0 3px var(--lwc-surface);
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) > li::before {
-    content: "";
-    position: absolute;
-    inset-inline-start: calc(-1.9rem + .55rem - 6px);
-    top: .52em;
-    width: 12px;
-    height: 12px;
-    box-sizing: border-box;
-    border-radius: 50%;
-    background: var(--lwc-surface);
-    box-shadow: inset 0 0 0 3px var(--lwc-accent), 0 0 0 3px var(--lwc-surface);
-    border: 0;
-    border-radius: 50%;
-}
+        /* The rail: from this point's stop down to the next one. */
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) > li:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            inset-inline-start: calc(-1.9rem + .55rem - 1px);
+            top: calc(.275rem + .52em + 6px);
+            bottom: calc(-.275rem - .52em - 6px);
+            width: 2px;
+            border-radius: 1px;
+            background: color-mix(in srgb, var(--lwc-accent) 35%, var(--lwc-border));
+            transform-origin: 50% 0;
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) ul {
-    margin: .4rem 0 .2rem;
-    padding-inline-start: 1.4rem;
-}
+        /* Nested points: hollow stops, indented off the rail. */
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) ul {
+            margin: .3rem 0 0;
+            padding: 0;
+            padding-inline-start: 1.4rem;
+            border: 0;
+            list-style: none;
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) ul > li::before {
-    content: "";
-    position: absolute;
-    inset-inline-start: -1.1rem;
-    top: .6em;
-    width: 8px;
-    height: 8px;
-    box-sizing: border-box;
-    border-radius: 50%;
-    border: 2px solid color-mix(in srgb, var(--lwc-accent) 55%, var(--lwc-border));
-    background: transparent;
-}
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) ul > li::before {
+            content: "";
+            position: absolute;
+            inset-inline-start: -1.1rem;
+            top: calc(.275rem + .6em);
+            width: 8px;
+            height: 8px;
+            box-sizing: border-box;
+            border: 2px solid color-mix(in srgb, var(--lwc-accent) 55%, var(--lwc-border));
+            border-radius: 50%;
+            background: transparent;
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) li > strong:first-child { color: var(--lwc-ink); }
+        .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) li > strong:first-child {
+            color: var(--lwc-ink);
+        }
 
-/* Figures sit on a framed plate. */
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > p:has(> img:only-child) {
-    max-width: none;
-    padding: 14px;
-    border: 1px solid var(--lwc-border);
-    border-radius: var(--lwc-radius-lg, 12px);
-    background: var(--lwc-surface);
-    box-shadow: 0 1px 0 color-mix(in srgb, var(--lwc-ink) 6%, transparent), 0 18px 32px -26px color-mix(in srgb, var(--lwc-ink) 55%, transparent);
-}
+        /* Figures sit on a framed plate; About's cover silhouette stays edge to edge. */
+        .documentation-page:not(.documentation-page-about) :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > p:has(> img:only-child) {
+            max-width: none;
+            padding: 14px;
+            border: 1px solid var(--lwc-border);
+            border-radius: var(--lwc-radius-lg, 12px);
+            background: var(--lwc-surface);
+            box-shadow: 0 1px 0 color-mix(in srgb, var(--lwc-ink) 6%, transparent), 0 18px 32px -26px color-mix(in srgb, var(--lwc-ink) 55%, transparent);
+        }
 
-.documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > p:has(> img:only-child) > img { border-radius: var(--lwc-radius-md, 8px); }
+        .documentation-page:not(.documentation-page-about) :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > p:has(> img:only-child) > img {
+            border-radius: var(--lwc-radius-md, 8px);
+        }
 
-@media (max-width: 600px) {
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > p,
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul:not(#where-to-go-next + ul):not(.documentation-timeline) li { font-size: 1rem; }
-    .documentation-page .documentation-document :is(h2 + p, .ruleset-rule-body > p:first-child) { font-size: 1.08rem; }
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > p:has(> img:only-child) { padding: 8px; }
-}
+        @media (max-width: 600px) {
+            .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > p:not(:has(> img)),
+            .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) li {
+                font-size: 1rem;
+            }
 
-@media (prefers-reduced-motion: no-preference) {
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul.documentation-reveal:not(#where-to-go-next + ul):not(.documentation-timeline)::before {
-        transition: transform 620ms var(--lwc-ease-enter, ease-out) calc(var(--reveal-delay, 0ms) + 60ms);
-    }
+            .documentation-page .documentation-document :is(h2 + p, .ruleset-rule-body > p:first-child):not(:has(> img)) {
+                font-size: 1.08rem;
+            }
 
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul.documentation-reveal:not(#where-to-go-next + ul):not(.documentation-timeline):not(.is-revealed)::before {
-        transform: scaleY(0);
-    }
+            .documentation-page:not(.documentation-page-about) :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > p:has(> img:only-child) {
+                padding: 8px;
+            }
+        }
 
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul.documentation-reveal:not(#where-to-go-next + ul):not(.documentation-timeline) > li::before {
-        transition: transform 420ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)) calc(var(--reveal-delay, 0ms) + 140ms + var(--stop, 0) * 70ms);
-    }
+        /* The first reveal of a list on a page: each stop pops on in turn and
+           the rail draws down to the next stop as it lands. Once a reader has
+           seen it, html[data-doc-rails-seen] keeps every rail in place. */
+        @media (prefers-reduced-motion: no-preference) {
+            :root:not([data-doc-rails-seen]) .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul.documentation-reveal:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) > li::before {
+                transition: transform 320ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)) calc(var(--reveal-delay, 0ms) + 120ms + var(--stop, 0) * 200ms);
+            }
 
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul.documentation-reveal:not(#where-to-go-next + ul):not(.documentation-timeline):not(.is-revealed) > li::before {
-        transform: scale(0);
-    }
+            :root:not([data-doc-rails-seen]) .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul.documentation-reveal:not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) > li::after {
+                transition: transform 200ms var(--lwc-ease-standard, ease) calc(var(--reveal-delay, 0ms) + 200ms + var(--stop, 0) * 200ms);
+            }
 
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul > li:nth-child(2) { --stop: 1; }
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul > li:nth-child(3) { --stop: 2; }
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul > li:nth-child(4) { --stop: 3; }
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul > li:nth-child(5) { --stop: 4; }
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > ul > li:nth-child(n + 6) { --stop: 5; }
+            :root:not([data-doc-rails-seen]) .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul.documentation-reveal:not(.is-revealed):not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) > li::before {
+                transform: scale(0);
+            }
 
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > p.documentation-reveal:has(> img:only-child) {
-        transition: opacity 360ms var(--lwc-ease-enter, ease-out) var(--reveal-delay, 0ms),
-            transform 520ms var(--lwc-ease-pop, ease) var(--reveal-delay, 0ms);
-    }
+            :root:not([data-doc-rails-seen]) .documentation-page :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > ul.documentation-reveal:not(.is-revealed):not(#where-to-go-next + ul, .ruleset-term-list, .documentation-timeline) > li::after {
+                transform: scaleY(0);
+            }
 
-    .documentation-page .documentation-document :is(section, .ruleset-rule-body, .documentation-document) > p.documentation-reveal:has(> img:only-child):not(.is-revealed) {
-        transform: translateY(16px) scale(.97);
-    }
-}
+            .documentation-page .documentation-document ul.documentation-reveal.is-instant > li::before,
+            .documentation-page .documentation-document ul.documentation-reveal.is-instant > li::after {
+                transition: none !important;
+            }
+
+            .documentation-page .documentation-document ul > li:nth-child(2) { --stop: 1; }
+            .documentation-page .documentation-document ul > li:nth-child(3) { --stop: 2; }
+            .documentation-page .documentation-document ul > li:nth-child(4) { --stop: 3; }
+            .documentation-page .documentation-document ul > li:nth-child(5) { --stop: 4; }
+            .documentation-page .documentation-document ul > li:nth-child(n + 6) { --stop: 5; }
+
+            .documentation-page:not(.documentation-page-about) :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > p.documentation-reveal:has(> img:only-child) {
+                transition: opacity 360ms var(--lwc-ease-enter, ease-out) var(--reveal-delay, 0ms),
+                    transform 520ms var(--lwc-ease-pop, ease) var(--reveal-delay, 0ms);
+            }
+
+            .documentation-page:not(.documentation-page-about) :is(.documentation-document, .documentation-document section, .documentation-document .ruleset-rule-body) > p.documentation-reveal:has(> img:only-child):not(.is-revealed) {
+                transform: translateY(16px) scale(.97);
+            }
+        }
 """;
 }
