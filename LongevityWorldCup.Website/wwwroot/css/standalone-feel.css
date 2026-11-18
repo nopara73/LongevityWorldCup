@@ -418,25 +418,7 @@
     to { box-shadow: 0 0 0 14px transparent; }
 }
 
-/* ---------- Review: the hourglass keeps turning ---------- */
-
-@media (prefers-reduced-motion: no-preference) {
-    .application-review-trail li.is-current .application-review-step {
-        animation: review-current 2600ms 1500ms var(--lwc-ease-standard, ease) infinite;
-    }
-
-    .application-review-trail li.is-current .fa-hourglass-half {
-        animation: review-hourglass 7000ms 1500ms var(--lwc-ease-standard, ease) infinite;
-    }
-}
-
-@keyframes review-current {
-    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-accent) 40%, transparent); }
-    60% { box-shadow: 0 0 0 9px transparent; }
-}
-
-@keyframes review-hourglass {
-    0%, 35% { rotate: 0deg; }
-    50%, 85% { rotate: 180deg; }
-    100% { rotate: 360deg; }
-}
+/* ---------- Review: the page stays still while you wait ----------
+   /review introduces itself once (onboarding/application-review.html and
+   apply-flow-feel.css) and then nothing on it moves: a long wait does not
+   need a turning hourglass or a pulsing step. */

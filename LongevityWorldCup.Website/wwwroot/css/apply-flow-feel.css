@@ -315,12 +315,12 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
        steps draw as the next one appears. */
     .application-review-panel .application-review-trail li {
         animation: apply-trail-step var(--lwc-motion-slow) var(--lwc-ease-pop) backwards;
-        animation-delay: calc(520ms + var(--apply-trail-i, 0) * 110ms);
+        animation-delay: calc(160ms + var(--apply-trail-i, 0) * 70ms);
     }
 
     .application-review-panel .application-review-trail li.is-done + li::before {
-        animation: apply-trail-draw 420ms var(--lwc-ease-standard) backwards;
-        animation-delay: calc(560ms + var(--apply-trail-i, 0) * 110ms);
+        animation: apply-trail-draw 320ms var(--lwc-ease-standard) backwards;
+        animation-delay: calc(200ms + var(--apply-trail-i, 0) * 70ms);
     }
 
     .application-review-panel .application-review-trail li:nth-child(2) { --apply-trail-i: 1; }
@@ -331,13 +331,14 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
     /* The words settle under the trail, one after another. */
     .application-review-panel .application-review-body > p,
     .application-review-panel .application-review-foot > * {
-        animation: apply-settle 420ms var(--lwc-ease-enter) backwards;
+        animation: apply-settle 340ms var(--lwc-ease-enter) backwards;
     }
 
-    .application-review-panel .application-review-body > p { animation-delay: 980ms; }
-    .application-review-panel .application-review-foot > :nth-child(1) { animation-delay: 1060ms; }
-    .application-review-panel .application-review-foot > :nth-child(2) { animation-delay: 1130ms; }
-    .application-review-panel .application-review-foot > :nth-child(3) { animation-delay: 1200ms; }
+    /* The whole introduction is over in about a second; after it nothing moves. */
+    .application-review-panel .application-review-body > p { animation-delay: 480ms; }
+    .application-review-panel .application-review-foot > :nth-child(1) { animation-delay: 540ms; }
+    .application-review-panel .application-review-foot > :nth-child(2) { animation-delay: 600ms; }
+    .application-review-panel .application-review-foot > :nth-child(3) { animation-delay: 660ms; }
 
     /* One pass of light over the artwork as the page lands: the finish line. */
     .application-review-panel .application-review-frame::after {
@@ -348,7 +349,7 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
         background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--lwc-surface) 45%, transparent) 50%, transparent 70%) no-repeat;
         background-size: 250% 100%;
         pointer-events: none;
-        animation: apply-finish-sweep 1100ms 260ms var(--lwc-ease-standard) both;
+        animation: apply-finish-sweep 800ms 120ms var(--lwc-ease-standard) both;
     }
 
     /* A confirmed payment crosses its line: the step pops, a ring spreads once,
