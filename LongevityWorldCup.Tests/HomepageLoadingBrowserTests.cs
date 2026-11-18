@@ -10,6 +10,33 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task Homepage_CanPaintTheServerChampionWhileShareStylesArePending()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/share-sheet.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            var portrait = page.Locator(".podium-item.first img.podium-portrait");
+            await Assertions.Expect(portrait).ToBeVisibleAsync();
+            var src = await portrait.GetAttributeAsync("src");
+            await Assertions.Expect(page.Locator("head link[rel=preload][as=image]")).ToHaveAttributeAsync("href", src!);
+            await page.WaitForFunctionAsync("() => document.querySelector('.podium-item.first img')?.naturalWidth > 0");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await Assertions.Expect(page.Locator("link[href*='/css/share-sheet.css']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    [Fact]
     public async Task Homepage_KeepsPaintedAthletesAndCanFindAthletesOutsideTheTopTen()
     {
         await using var context = await NewContextAsync(390);

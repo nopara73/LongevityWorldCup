@@ -1141,8 +1141,11 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal("linked@example.com", fixture.Email.Confirmations.Last().Email);
     }
 
-    [Fact]
-    public async Task SignupNormalizesWindowsTimeZoneIdsToIana()
+    [Theory]
+    [InlineData("India Standard Time")]
+    [InlineData("Asia/Calcutta")]
+    [InlineData("Asia/Kolkata")]
+    public async Task SignupStoresIndiaTimeZonesAsKolkata(string timeZoneId)
     {
         using var fixture = TestChallengeFixture.Create();
         var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
@@ -1150,15 +1153,28 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
             "india@example.com",
             "India Iris",
-            "India Standard Time",
+            timeZoneId,
             null), now);
         var access = await fixture.Service.ConfirmAsync(
             ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
             now.AddMinutes(1));
 
-        Assert.NotEqual("India Standard Time", access.State.Participant.TimeZoneId);
+        Assert.Equal("Asia/Kolkata", access.State.Participant.TimeZoneId);
         Assert.True(TimeZoneInfo.TryConvertIanaIdToWindowsId(access.State.Participant.TimeZoneId, out var windowsId));
         Assert.Equal("India Standard Time", windowsId);
+    }
+
+    [Theory]
+    [InlineData("Asia/Calcutta")]
+    [InlineData("India Standard Time")]
+    public void ExistingIndiaParticipantsAdvanceAtLocalMidnight(string storedTimeZone)
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = fixture.InsertConfirmedParticipant("india@example.com", "India Iris", storedTimeZone);
+        var midnight = DateTimeOffset.Parse("2026-06-06T18:30:00Z");
+
+        Assert.Equal(0, fixture.Service.GetParticipantState(access, midnight.AddMinutes(-1)).Participant.DaysIn);
+        Assert.Equal(1, fixture.Service.GetParticipantState(access, midnight).Participant.DaysIn);
     }
 
     [Fact]
@@ -3078,7 +3094,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             return access.AccessToken;
         }
 
-        public string InsertConfirmedParticipant(string email, string name)
+        public string InsertConfirmedParticipant(string email, string name, string timeZoneId = "UTC")
         {
             var now = DateTimeOffset.Parse("2026-06-06T12:00:00Z").ToString("o");
             var accessToken = $"access-{Guid.NewGuid():N}";
@@ -3089,11 +3105,12 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
                     """
                     INSERT INTO LongevitymaxxingParticipants
                     (Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken, ConfirmedAtUtc, StoppedEmailsAtUtc, CreatedAtUtc, UpdatedAtUtc)
-                    VALUES (@id, @email, @name, 'UTC', NULL, @access, @confirm, @stop, @confirmed, NULL, @created, @updated);
+                    VALUES (@id, @email, @name, @tz, NULL, @access, @confirm, @stop, @confirmed, NULL, @created, @updated);
                     """;
                 cmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
                 cmd.Parameters.AddWithValue("@email", email);
                 cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@tz", timeZoneId);
                 cmd.Parameters.AddWithValue("@access", accessToken);
                 cmd.Parameters.AddWithValue("@confirm", $"confirm-{Guid.NewGuid():N}");
                 cmd.Parameters.AddWithValue("@stop", $"stop-{Guid.NewGuid():N}");
