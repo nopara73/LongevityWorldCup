@@ -24,10 +24,24 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
     {
         await using var context = await NewReviewContextAsync(width, height, scheme);
         await context.AddInitScriptAsync("try { localStorage.setItem('contactEmail', 'review@example.test'); sessionStorage.setItem('reviewSubmission', JSON.stringify({kind:'application',id:'accepted-81'})); } catch (_) {}");
+        // The reduced-motion halo expires even while the driver is settling the page.
+        await context.AddInitScriptAsync("""
+            window.__reviewHalo = new Promise(resolve => {
+                const observer = new MutationObserver(() => {
+                    const layers = document.querySelectorAll('.lwc-celebration.is-static');
+                    const halo = layers[0]?.querySelector('.lwc-celebration-halo');
+                    if (!halo) return;
+                    observer.disconnect();
+                    resolve([String(layers.length), getComputedStyle(halo).opacity,
+                        halo.parentElement.getAttribute('aria-hidden')]);
+                });
+                observer.observe(document, { childList: true, subtree: true });
+            });
+            """);
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/review");
 
-        await Assertions.Expect(page.Locator(".lwc-celebration.is-static")).ToHaveCountAsync(1);
+        var halo = await page.EvaluateAsync<string[]>("() => window.__reviewHalo").WaitAsync(TimeSpan.FromSeconds(10));
         var review = await page.EvaluateAsync<ReviewAnatomy>(
             """
             () => {
@@ -35,7 +49,6 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
                 const band = rect('.application-review-visual');
                 const photo = rect('.application-review-visual .illustration');
                 const seal = rect('.application-review-seal');
-                const halo = document.querySelector('.lwc-celebration-halo');
                 const steps = [...document.querySelectorAll('.application-review-trail li')].filter(li => !li.hidden);
                 const chip = document.getElementById('contactEmailPlaceholder');
                 const chipStyle = getComputedStyle(chip);
@@ -50,7 +63,6 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
                 return {
                     SealOverlapsPhotoCorner: seal.left < photo.right && seal.right > photo.right && seal.top < photo.bottom && seal.bottom > photo.bottom,
                     SealInsideBand: seal.bottom <= band.bottom + 1,
-                    SharedHalo: !!halo && getComputedStyle(halo).opacity === '1' && halo.parentElement.getAttribute('aria-hidden') === 'true',
                     Steps: steps.map(li => li.dataset.step + ':' + li.className),
                     StepsOnOneRow: stepRects.every(r => Math.abs(r.top - stepRects[0].top) <= 1),
                     TrailCentred: Math.abs((stepRects[0].left + stepRects.at(-1).right) / 2 - (band.left + band.right) / 2) <= 2,
@@ -71,7 +83,7 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         var scenario = $"{width}x{height} {scheme}";
         Assert.True(review.SealOverlapsPhotoCorner, $"{scenario}: the seal should stamp the photo's bottom-right corner.");
         Assert.True(review.SealInsideBand, $"{scenario}: the seal should stay inside the artwork band.");
-        Assert.True(review.SharedHalo, $"{scenario}: the received submission should have a visible, decorative reduced-motion halo.");
+        Assert.Equal(["1", "1", "true"], halo);
         Assert.Equal(["sent:is-done", "review:is-current", "email:", "finish:"], review.Steps);
         Assert.True(review.StepsOnOneRow && review.TrailCentred, $"{scenario}: the trail should be one centred row.");
         Assert.True(review.TrailHidden);
@@ -290,7 +302,6 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
     {
         public bool SealOverlapsPhotoCorner { get; set; }
         public bool SealInsideBand { get; set; }
-        public bool SharedHalo { get; set; }
         public string[] Steps { get; set; } = [];
         public bool StepsOnOneRow { get; set; }
         public bool TrailCentred { get; set; }

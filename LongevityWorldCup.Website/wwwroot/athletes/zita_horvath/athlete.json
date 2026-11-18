@@ -1,0 +1,41 @@
+{
+  "Name": "Zita Horváth",
+  "DisplayName": null,
+  "MediaContact": "horvathzita13@gmail.com",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 2,
+    "Day": 13
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-20",
+      "AlbGL": 47,
+      "CreatUmolL": 73,
+      "GluMmolL": 5.1,
+      "CrpMgL": 0.4,
+      "LymPc": 31.2,
+      "McvFL": 93,
+      "RdwPc": 12.4,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 6.6,
+      "NeutrophilPc": 59,
+      "MonocytePc": 8.4,
+      "Rbc10e12L": 4.8,
+      "MchPg": 30,
+      "UreaMmolL": 4.9,
+      "CystatinCMgL": 0.61,
+      "Hba1cMmolMol": 36,
+      "CholesterolMmolL": 7.1,
+      "ApoA1GL": 2.19,
+      "AltUL": 18,
+      "GgtUL": 16,
+      "ShbgNmolL": 40.4,
+      "VitaminDNmolL": 58.3
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Kíváncsiság, mit tudok kihozni a testemből, ha jobban odafigyelek. Egészség tudatosság. Inspirálni a környezetemet.",
+  "PersonalLink": "https://movefit.hu/Horvath_Zita"
+}

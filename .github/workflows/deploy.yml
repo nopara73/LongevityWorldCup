@@ -5,12 +5,14 @@ on:
   repository_dispatch:
     types:
       - production-deploy
-  push:
-    branches:
-      - master
+  workflow_run:
+    workflows: [".NET", "CodeQL", "Image delivery", "Reddit app"]
+    types: [completed]
+    branches: [master]
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: production-deploy
@@ -18,32 +20,32 @@ concurrency:
 
 jobs:
   deploy:
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'master' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name != 'workflow_run' && github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Check whether this deploy is still current
-        id: freshness
-        run: |
-          set -eu
-          latest_sha="$(git ls-remote origin refs/heads/master | cut -f1)"
-          if [ -z "$latest_sha" ]; then
-            echo "Could not resolve the current master SHA." >&2
-            exit 1
-          fi
-
-          if [ "$latest_sha" != "$GITHUB_SHA" ]; then
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping stale deploy for $GITHUB_SHA; latest master is $latest_sha."
-          else
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Require full CI for this commit
+        id: ci
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { gate } = require('./.github/scripts/deployment-gate.cjs');
+            await gate({ github, context, core });
 
       - name: Setup Node.js
-        if: steps.freshness.outputs.deploy == 'true'
+        if: steps.ci.outputs.deploy == 'true'
         uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
@@ -51,7 +53,7 @@ jobs:
           cache-dependency-path: LongevityWorldCup.Website/package-lock.json
 
       - name: Build frontend artifact
-        if: steps.freshness.outputs.deploy == 'true'
+        if: steps.ci.outputs.deploy == 'true'
         working-directory: LongevityWorldCup.Website
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
@@ -63,10 +65,26 @@ jobs:
           fi
 
       - name: Package frontend artifact
-        if: steps.freshness.outputs.deploy == 'true'
+        if: steps.ci.outputs.deploy == 'true'
         run: |
           tar -czf frontend-assets.tar.gz -C LongevityWorldCup.Website/wwwroot js
           sha256sum frontend-assets.tar.gz > frontend-assets.tar.gz.sha256
+
+      - name: Recheck master before staging production files
+        if: steps.ci.outputs.deploy == 'true'
+        id: freshness
+        env:
+          VERIFIED_SHA: ${{ steps.ci.outputs.sha }}
+        run: |
+          set -eu
+          latest_sha="$(git ls-remote origin refs/heads/master | cut -f1)"
+          test -n "$latest_sha"
+          if [ "$latest_sha" = "$VERIFIED_SHA" ]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+            echo "Skipping superseded commit $VERIFIED_SHA; master is $latest_sha."
+          fi
 
       - name: Stage frontend artifact
         if: steps.freshness.outputs.deploy == 'true'
@@ -94,7 +112,7 @@ jobs:
           command_timeout: 30m
           script: |
             set -eu
-            verified_sha="${{ github.sha }}"
+            verified_sha="${{ steps.ci.outputs.sha }}"
             frontend_stage="/tmp/longevityworldcup-frontend"
             deploy_source="$(mktemp -d)"
             publish_output="$(mktemp -d)"
@@ -165,6 +183,10 @@ jobs:
 
             cd ~/LongevityWorldCup
             git fetch origin master
+            if [ "$(git rev-parse origin/master)" != "$verified_sha" ]; then
+              echo "Skipping superseded deployment $verified_sha."
+              exit 0
+            fi
             git reset --hard "$verified_sha"
             git clean -fd
             test "$(git rev-parse HEAD)" = "$verified_sha"
@@ -345,15 +367,20 @@ jobs:
 
             downloaded_script="$frontend_stage/deployed-script.js"
             for script_path in "$publish_output"/wwwroot/js/*.js; do
-              curl -fsS --max-time 10 \
-                "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
-                -o "$downloaded_script"
+              script_name="$(basename "$script_path")"
+              # Retry a temporary transfer failure before judging the deployed bytes.
+              if ! script_status="$(curl -fsS --max-time 10 --retry 1 --retry-delay 1 --retry-max-time 12 --write-out '%{http_code}' \
+                "https://www.longevityworldcup.com/js/$script_name?v=$verified_sha" \
+                -o "$downloaded_script")" || [ "$script_status" != 200 ]; then
+                echo "Could not download deployed script: $script_name (HTTP $script_status)" >&2
+                exit 1
+              fi
               expected_hash="$(sha256sum "$script_path")"
               expected_hash="${expected_hash%% *}"
               actual_hash="$(sha256sum "$downloaded_script")"
               actual_hash="${actual_hash%% *}"
               if [ "$expected_hash" != "$actual_hash" ]; then
-                echo "Deployed script content differs from the verified artifact: $(basename "$script_path")" >&2
+                echo "Deployed script content differs from the verified artifact: $script_name" >&2
                 exit 1
               fi
             done

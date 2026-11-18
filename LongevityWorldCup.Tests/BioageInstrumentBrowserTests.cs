@@ -31,7 +31,7 @@ public sealed class BioageInstrumentBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         Assert.Equal(0, await SegmentFillAsync(page));
         await SetFormValuesAsync(page, new Dictionary<string, string> { ["wbc"] = "6.54", ["mcv"] = "92" });
-        var total = await page.Locator("#lwc-step-2 .biomarker-card input[type=number][required]").CountAsync();
+        var total = await page.Locator("#lwc-step-2 .biomarker-card input[inputmode=decimal][required]").CountAsync();
         var expected = Math.Round(2.0 / total * 100);
         Assert.InRange(await SegmentFillAsync(page), expected - 1, expected + 1);
         await ExpectNoHorizontalOverflowAsync(page);
@@ -96,7 +96,7 @@ public sealed class BioageInstrumentBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForFunctionAsync("() => document.querySelector('[data-bioage-result-rank]')?.getAttribute('aria-busy') === 'false'");
 
         var layout = await page.EvaluateAsync<double[]>(
@@ -133,10 +133,10 @@ public sealed class BioageInstrumentBrowserTests(
     {
         var page = await OpenAsync(path, 390, 844, scheme);
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await page.EvaluateAsync("() => { window.getSharedAthletes = () => new Promise(() => {}); }");
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.EvaluateAsync("() => { window.getSharedAthletes = () => new Promise(() => {}); }");
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         var loading = page.Locator(".bioage-rank-loading");
         await loading.WaitForAsync();
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });

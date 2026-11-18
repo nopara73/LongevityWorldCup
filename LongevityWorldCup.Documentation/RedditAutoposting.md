@@ -2,7 +2,11 @@
 
 The `longevityworldcup` Devvit app publishes ordinary text posts to `r/LongevityWorldCup` as its app account. The LWC server selects Events and stores immutable prepared posts in `SocialDeliveries`; the app polls an authenticated bridge once per minute. It does not use the personal account's rejected external Data API application.
 
-The server's `RedditDailyPostJob` selects up to one ordinary eligible Event at 15:08 UTC (23:08 Asia/Singapore). Custom Events explicitly targeting Reddit are available at the next app poll, independently of their website visibility. Eligibility, seven-day freshness where applicable, and two-day athlete cooldowns match Mastodon/Nostr. There is no filler. All Events present at the first authenticated poll are baselined, including Custom Events selected before activation.
+The server's `RedditDailyPostJob` selects up to one ordinary eligible Event at 15:08 UTC (23:08 Asia/Singapore). Reddit's ordinary selection is limited to a new overall Ultimate League leader (`NewRank` at rank 1), still leading at selection and dispatch. Posts include the athlete's current submitted result and the ranking context. Donations, athlete-count milestones, badges, other rank changes, crowd-age updates, and routine profile updates are skipped for Reddit only. New ordinary Event types are excluded by default. Seven-day freshness and the two-day athlete cooldown remain in force. There is no filler.
+
+Custom Events explicitly targeting Reddit remain available at the next poll, independently of their website visibility or topic. The editorial filter adds no approval step and does not change destination selection or the existing blocked-link checks. All Events present at the first authenticated poll are baselined, including Custom Events selected before activation.
+
+The eligibility checks also cover previously prepared but unstarted ordinary posts. A skipped unstarted post releases its unused daily reservation. Already-started attempts keep their immutable copy, duplicate protections, and automatic receipt path, even when their Event type would now be excluded.
 
 The Custom Event API rejects a selected Reddit destination while the bridge is disabled or has not activated, preserving the user's draft rather than promising a delivery that would be baselined. The command-line Event queue also requires the Reddit activation marker.
 
@@ -26,6 +30,16 @@ All bridge endpoints require `Authorization: Bearer <dedicated bridge secret>` a
 2. Devvit uses atomic Redis `hSetNX` to persist a start marker, then calls `POST /api/reddit/begin` with `{deliveryId}`. The server durably starts each prepared delivery once and enforces the ordinary daily quota. A missing response must not be treated as permission to submit again.
 3. The app submits a normal Reddit text post with `runAs: APP`, persists its `t3_…` receipt in Redis without expiration, and calls `POST /api/reddit/receipts` with `{deliveryId,postId}`. Repeating the same receipt is harmless; a conflicting receipt cannot overwrite an existing one. The server derives the Reddit URL from the validated post ID.
 4. A lost acknowledgment retries the receipt only. An uncertain Reddit submission uses `POST /api/reddit/uncertain` and is held in `review`; a crashed start marker is held for review after 45 minutes. Both Redis and server start markers prevent a second submission, including after loss of local Redis state.
+
+## IFTTT transport
+
+IFTTT uses the same Event queue and submits text posts as `u/nopara73`. Ordinary Event selection stays at 15:08 UTC. A minute interval job takes the next prepared or explicitly targeted Custom Event.
+
+- Use the Webhooks event `lwc_reddit_announcement` with the Reddit **Submit a new text post** action. Set the subreddit to `LongevityWorldCup`, the title to `Value1`, and the body to `Value2`.
+- The receipt applet watches **Any new post in subreddit** for `LongevityWorldCup`. Filter for `nopara73` and send a JSON POST to `https://www.longevityworldcup.com/api/reddit/ifttt/receipts` with a dedicated bearer credential. The JSON fields are `subreddit`, `author`, `postUrl`, `title`, `text` (Reddit's Content ingredient), and `postedAtUnixSeconds` (the Reddit PostedAt ingredient converted to Unix seconds).
+- Set `RedditUseIfttt` and the receipt credential's PBKDF2 hash in `RedditIftttReceiptSecretHash` in protected production configuration. The authenticated receiver can be checked with dispatch disabled. Store the IFTTT Webhooks key in `RedditIftttWebhookKey` when enabling dispatch. Back up both credentials in the operator's approved private backup.
+- Enable `RedditEnabled` after confirming the saved applets, credit allowance, and authenticated receipt route. The first dispatch run establishes the historical baseline. A successful webhook request leaves the delivery pending until the receipt applet reports its Reddit permalink. IFTTT polling and credit limits affect when receipts arrive.
+- The server records each attempt before calling IFTTT. It accepts a receipt only when the author, subreddit, post time, title, and body identify one recorded attempt. An unresolved attempt moves to review after two hours and can still accept a matching late receipt. Keep that attempt record when investigating a missing post.
 
 ## Operator review
 
