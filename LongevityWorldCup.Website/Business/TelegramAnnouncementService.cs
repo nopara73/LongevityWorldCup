@@ -41,7 +41,7 @@ public sealed class TelegramAnnouncementService(
         string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
             ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
 
-        foreach (var candidate in deliveries.GetPending(Platform, customOnly, now))
+        foreach (var candidate in athletes.ReadPublishedEvents(() => deliveries.GetPending(Platform, customOnly, now)))
         {
             ct.ThrowIfCancellationRequested();
             var item = candidate.Event;
@@ -60,21 +60,29 @@ public sealed class TelegramAnnouncementService(
                 continue;
             }
 
+            // Apply the conversation policy to saved requests too, including safe retries
+            // prepared before this policy was introduced.
+            if (SocialEventSkipPolicy.ConversationSkipReason(item.Type, item.Text, item.OccurredAtUtc,
+                    now.UtcDateTime.AddDays(-7)) is { } conversationReason)
+            {
+                deliveries.Skip(Platform, item.Id, conversationReason.ToString(), now);
+                continue;
+            }
+
             var postStarted = false;
             try
             {
                 var json = candidate.RecordJson;
                 if (json is null)
                 {
-                    if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(item.Type, item.Text, item.OccurredAtUtc,
-                            candidate.Priority, now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
+                    if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(item.Type, item.Text, item.OccurredAtUtc,
+                            candidate.Headline, now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
                     {
                         deliveries.Skip(Platform, item.Id, reason.ToString(), now);
                         continue;
                     }
 
-                    string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
-                        && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
+                    var subject = candidate.Headline.Subject;
                     if (subject is not null && deliveries.IsSubjectOnCooldown(Platform, subject, now)) continue;
 
                     var post = await BuildRequestAsync(item, ResolveName, ct);

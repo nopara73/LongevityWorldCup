@@ -240,7 +240,7 @@ interface Window {
         // Hidden controls never emit animationend/cancel. Read the effects as
         // one batch before clearing markers; revealing them must not replay
         // feedback from an earlier, invisible update.
-        const inactive = [...entering].filter(svg => !svg.isConnected || !svg.getAnimations({ subtree: true }).some(animation =>
+        const inactive = [...entering].filter(svg => !svg.isConnected || !svg.getAnimations?.({ subtree: true }).some(animation =>
             animation instanceof CSSAnimation && animation.animationName.startsWith("lwc-icon-")
             && Number.isFinite(animation.effect?.getComputedTiming().endTime ?? Infinity)));
         for (const svg of inactive) clearEntry(svg);

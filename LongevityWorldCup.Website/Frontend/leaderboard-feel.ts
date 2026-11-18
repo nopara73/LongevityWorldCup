@@ -27,10 +27,8 @@ function initializeLeaderboardFeel(): void {
 
     type PeekAthlete = {
         readonly chronologicalAge: number;
-        readonly lowestBortzAge: number | null;
-        readonly chronoAtLowestBortzAge: number | null;
-        readonly lowestPhenoAge: number;
-        readonly chronoAtLowestPhenoAge: number;
+        readonly bortzRankResult: { readonly bio: number; readonly chrono: number } | null;
+        readonly phenoRankResult: { readonly bio: number; readonly chrono: number } | null;
         readonly crowdAge: number | null;
         readonly crowdCount: number;
         readonly placements: readonly (number | null)[];
@@ -264,10 +262,11 @@ function initializeLeaderboardFeel(): void {
         const facts = cell("lb-peek-facts");
         if (athlete) {
             const view = main!.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value;
-            const bortz = view === "bortz" || (view === "ultimate" && athlete.lowestBortzAge != null);
+            const bortz = view === "bortz" || (view === "ultimate" && athlete.bortzRankResult != null);
             const clock = bortz || view === "pheno" || view === "ultimate";
-            const age = clock ? (bortz ? athlete.chronoAtLowestBortzAge : athlete.chronoAtLowestPhenoAge) : athlete.chronologicalAge;
-            const bio = clock ? (bortz ? athlete.lowestBortzAge : athlete.lowestPhenoAge) : null;
+            const result = bortz ? athlete.bortzRankResult : athlete.phenoRankResult;
+            const age = clock ? result?.chrono : athlete.chronologicalAge;
+            const bio = clock ? result?.bio : null;
             if (age != null && Number.isFinite(age)) {
                 const ages = cell("lb-peek-ages", icon("fa-hourglass-half"), cell("lb-peek-age", age.toFixed(1)));
                 ages.setAttribute("aria-label", clock ? "Chronological age at test" : "Chronological age");
@@ -444,6 +443,11 @@ function initializeLeaderboardFeel(): void {
         const count = railRows.length;
         const fits = phone.matches && window.innerWidth >= 360 && window.innerHeight >= 500
             && parseFloat(getComputedStyle(root).fontSize) <= 20 && !byFlag?.checked;
+        if (count >= 30 && fits) {
+            // Place the fixed scrubber inside the board, including with classic scrollbars.
+            const inset = document.documentElement.clientWidth - board!.getBoundingClientRect().right;
+            rail.style.right = `${inset + 2}px`;
+        }
         board!.classList.toggle("has-rank-rail", count >= 30 && fits);
         if (count < 30 || !fits) { tickKey = ""; track.replaceChildren(); hideRail(); return; }
         const stops = [0, 0.25, 0.5, 0.75, 1].map(fraction => Math.min(count - 1, Math.round(fraction * (count - 1))));

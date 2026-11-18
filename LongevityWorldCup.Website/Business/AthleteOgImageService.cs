@@ -532,14 +532,14 @@ public sealed class AthleteOgImageService
         };
         if (baselineImprovementClock is not null)
         {
-            if (!_athletes.TryGetBaselineImprovementLeaderboardEntry(normalizedSlug, baselineImprovementClock, out var entry))
+            if (!_athletes.TryGetRedemptionArcEntry(normalizedSlug, baselineImprovementClock, out var entry))
                 return false;
 
             var isBortz = string.Equals(baselineImprovementClock, "bortz", StringComparison.OrdinalIgnoreCase);
             var baselineLeagueSlug = isBortz ? "bortz-baseline-improvement" : "pheno-baseline-improvement";
             var leagueName = isBortz ? "Bortz Age best improvement" : "Pheno Age best improvement";
             var baselineMetric = FormatReduction(entry.Improvement);
-            var description = $"{leagueName} rank #{entry.Rank}. Improvement {baselineMetric} years from first to latest eligible result.";
+            var description = $"{leagueName} rank #{entry.Rank}. Improvement {baselineMetric} years from worst to latest eligible result.";
             var signature = ComputeSignature(
                 normalizedSlug,
                 baselineLeagueSlug,
@@ -547,9 +547,9 @@ public sealed class AthleteOgImageService
                 entry.Improvement,
                 name,
                 leagueName,
-                "Baseline rank",
+                "Improvement rank",
                 baselineMetric,
-                "Baseline improvement",
+                "Improvement",
                 description,
                 profilePicUrl,
                 profileImageId);
@@ -562,9 +562,9 @@ public sealed class AthleteOgImageService
                 LeagueName: leagueName,
                 Rank: entry.Rank,
                 AgeReduction: entry.Improvement,
-                RankLabel: "Baseline rank",
+                RankLabel: "Improvement rank",
                 MetricValue: baselineMetric,
-                MetricLabel: "Baseline improvement",
+                MetricLabel: "Improvement",
                 Description: description,
                 ProfilePicUrl: profilePicUrl,
                 Signature: signature);

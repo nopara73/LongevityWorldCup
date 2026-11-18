@@ -86,6 +86,8 @@ public sealed class IndexNowState
     public int? LastStatusCode { get; set; }
     public string? LastOutcome { get; set; }
     public int LastBatchSize { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public IndexNowRejectionReceipt? LastRejection { get; set; }
 }
 
 public sealed class IndexNowUrlState
