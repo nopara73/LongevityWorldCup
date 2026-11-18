@@ -243,6 +243,9 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
         await NavigateAndSettleAsync(page, path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textPercent);
+        var strip = page.Locator(".flag-team-strip").First;
+        await Assertions.Expect(strip).ToBeVisibleAsync();
+        Assert.True(await strip.EvaluateAsync<bool>("s => s.getBoundingClientRect().top >= s.parentElement.querySelector('.flag-team-name > span:last-child').getBoundingClientRect().bottom + 3"));
         await page.Locator(".flag-team summary").First.ClickAsync();
         var delta = await page.Locator(".flag-team .flag-athlete-link").First.EvaluateAsync<double>("""
             link => Math.abs(link.querySelector('.flag-athlete-name').getBoundingClientRect().left

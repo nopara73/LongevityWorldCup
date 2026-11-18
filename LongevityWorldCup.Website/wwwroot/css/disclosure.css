@@ -216,7 +216,10 @@
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { grid-area: strip; height: 4px; margin-block: 3px 2px; }
 }
 @container flag-results (max-width: 14rem) {
-    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { display: none; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team summary {
+        grid-template-areas: "rank flag chevron" "name name name" "strip strip strip" "score score score";
+    }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { grid-area: strip; height: 4px; }
     :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::before,
     :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::after {
         inset-inline-start: 0;
