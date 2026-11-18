@@ -311,20 +311,26 @@ interface Window {
     document.addEventListener("touchstart", () => undefined, { passive: true });
 
     // ----------------------------------------------------------- hit areas
-    function growTargets(scope: ParentNode): void {
+    function growTargets(): void {
         if (!coarse.matches) return;
         document.querySelectorAll<HTMLElement>('[data-lwc-hit]').forEach(element => {
             delete element.dataset['lwcHit'];
             delete element.dataset['lwcHitAnchor'];
         });
-        // An open dialog makes the background ineligible before any layout reads.
-        const targets = Array.from(document.querySelectorAll<HTMLElement>(tappable)).filter(element => !element.closest('[inert]') && visible(element));
-        const boxes = targets.map(element => ({ element, rect: element.getBoundingClientRect() }));
-        const extensions: Array<{ element: HTMLElement; slot: string; anchor: boolean }> = [];
-        for (const element of Array.from(scope.querySelectorAll<HTMLElement>(smallControls))) {
-            if (element.closest('[inert]') || !visible(element)) continue;
+        // Collapsed proof piles and inert backgrounds cannot receive a tap.
+        // Use the same rectangle for collision checks and hit-area sizing.
+        const measured: Array<{ element: HTMLElement; rect: DOMRect }> = [];
+        for (const element of document.querySelectorAll(`${tappable}, ${smallControls}`)) {
+            if (!(element instanceof HTMLElement) || element.closest("[hidden], [inert]")) continue;
             const rect = element.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0 && getComputedStyle(element).visibility !== "hidden")
+                measured.push({ element, rect });
+        }
+        const boxes = measured.filter(({ element }) => element.matches(tappable));
+        const extensions: Array<{ element: HTMLElement; slot: string; anchor: boolean }> = [];
+        for (const { element, rect } of measured) {
             if (rect.width >= minTarget && rect.height >= minTarget) continue;
+            if (!element.matches(smallControls)) continue;
             const padX = Math.min(10, Math.max(0, (minTarget - rect.width) / 2));
             const padY = Math.min(10, Math.max(0, (minTarget - rect.height) / 2));
             if (boxes.some(({ element: other, rect: box }) => {
@@ -801,7 +807,7 @@ interface Window {
             pending = false;
             stripHover();
             if (!supportsTouch()) return;
-            growTargets(document);
+            growTargets();
             findScrollers(document);
             adopt();
         });
@@ -834,7 +840,7 @@ interface Window {
                 if (node.matches(smallControls) || node.querySelector(smallControls)) controlsChanged = true;
                 if (node.matches(scrollerSelectors) || node.querySelector(scrollerSelectors)) findScrollers(scope);
             });
-            if (controlsChanged) growTargets(document);
+            if (controlsChanged) growTargets();
             additions.clear();
             adopt();
         });
