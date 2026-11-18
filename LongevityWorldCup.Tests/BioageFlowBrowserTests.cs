@@ -854,6 +854,10 @@ public sealed class BioageFlowBrowserTests(
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => typeof window.LwcBioageFlow?.animateBioageResult === 'function'");
+        // Let the shared startup scroll reset finish before bringing the result into view.
+        await page.WaitForFunctionAsync("() => window.__lwcPlayFlowScrollInitialized === true");
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await page.EvaluateAsync(
             """
             () => {
