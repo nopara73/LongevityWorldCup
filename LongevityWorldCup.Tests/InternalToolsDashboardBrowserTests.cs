@@ -342,11 +342,18 @@ public sealed class InternalToolsDashboardBrowserTests(
         var page = await context.NewPageAsync();
         var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
         var at = DateTime.UtcNow.AddHours(-1).ToString("O", CultureInfo.InvariantCulture);
-        payload["events"] = JsonSerializer.SerializeToNode(
-            from flow in new[] { "pheno", "bortz" }
-            from index in Enumerable.Range(1, 2)
-            select Event("calculator_validation_failed", flow, flow + index, "/calculator", "failed", at, "desktop", "direct"));
-        await RouteDashboardAsync(page, payload.ToJsonString());
+        var events = (from flow in new[] { "pheno", "bortz" }
+                      from index in Enumerable.Range(1, 3)
+                      select Event("calculator_validation_failed", flow, flow + index, "/calculator", "failed", at,
+                          index == 1 ? "mobile" : "desktop", "direct")).ToArray();
+        payload["events"] = JsonSerializer.SerializeToNode(events);
+        var desktopPayload = payload.DeepClone();
+        desktopPayload["events"] = JsonSerializer.SerializeToNode(events.Where((_, i) => i % 3 != 0));
+        await page.RouteAsync("**/api/site-statistics/dashboard**", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = (route.Request.Url.Contains("device=desktop", StringComparison.Ordinal) ? desktopPayload : payload).ToJsonString()
+        }));
         await page.GotoAsync(Statistics + "?tab=Onboarding%20Diagnostics");
         var decisions = page.Locator(".decision-card").Filter(new() { HasText = "repeats at" });
         await Assertions.Expect(decisions).ToHaveCountAsync(2);
@@ -360,9 +367,13 @@ public sealed class InternalToolsDashboardBrowserTests(
         Assert.True(await pheno.EvaluateAsync<bool>("button => button === window.savedDecision && document.activeElement === button"));
         await pairedInvestigation.PressAsync("Enter");
         var samples = page.Locator("#eventSamples .sample-row");
-        await Assertions.Expect(samples).ToHaveCountAsync(2);
+        await Assertions.Expect(samples).ToHaveCountAsync(3);
         Assert.All(await samples.AllTextContentsAsync(), text => Assert.Contains("pheno", text));
         await Assertions.Expect(page.Locator("#drilldownTitle")).ToBeFocusedAsync();
+        await page.Locator("#eventSamples [data-session='pheno1']").ClickAsync();
+        await page.Locator("#statsDevice").SelectOptionAsync("desktop");
+        await Assertions.Expect(samples).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#sessionTimeline h3")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^Session pheno[23]$"));
         await decisions.Filter(new() { HasText = "bortz" }).ClickAsync();
         Assert.All(await samples.AllTextContentsAsync(), text => Assert.Contains("bortz", text));
     }

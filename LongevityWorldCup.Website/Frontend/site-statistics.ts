@@ -2127,7 +2127,9 @@
             state.selectedLabel = "all events";
         }
         const selected = explicitEvents || action?.events || selectedEvents();
-        const session = state.selectedSession || (selected[0] && selected[0].sessionHash);
+        if (action && state.selectedSession && !selected.some(event => event.sessionHash === state.selectedSession))
+            state.selectedSession = null;
+        const session = state.selectedSession || selected[0]?.sessionHash;
         el("drilldownTitle").textContent = state.selectedLabel || "Drilldown";
         el("drilldownBreadcrumb").textContent = `${state.tab} / ${flowLabel(state.selectedFlow)} / ${state.selectedLabel || "all events"}`;
         renderSummary(selected);
