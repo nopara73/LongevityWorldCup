@@ -156,7 +156,11 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
 
 /* Phones: rank anchors land under the column heads, not behind them. */
 @media (max-width:768px){
-    main[data-leaderboard-page="full"] #athleteLeaderboard.has-rank-rail > table{ flex:0 1 calc(100% - 48px); width:calc(100% - 48px); max-width:calc(100% - 48px); }
+    /* The table fills the board; its last column clears the fixed scrubber. */
+    #athleteLeaderboard.has-rank-rail > table > thead th[data-order-key="metric"],
+    #athleteLeaderboard.has-rank-rail > table > tbody td.age-reduction-td {
+        padding-right: var(--rail-clearance, 48px);
+    }
     main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]{
         scroll-margin-top:calc(var(--board-sticky-top, 52px) + var(--board-head-height, 52px) + 8px);
     }
@@ -179,7 +183,6 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
         transition:transform var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease), width var(--lwc-motion-move, 260ms) var(--lwc-ease-standard, ease), opacity var(--lwc-motion-fast, 140ms) linear;
     }
     .lb-rail-thumb{ transition:scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease); }
-    main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]:active{ scale:.992; }
 }
 html:not([data-lwc-motion="on"]) :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
 html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg),
@@ -189,6 +192,11 @@ html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLead
     main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg){ transition:none !important; }
 }
 
+
+@media (max-width:480px) {
+    /* The phone row supplies the remaining clearance through its end padding. */
+    #athleteLeaderboard { --rail-clearance:40px; }
+}
 
 /* 7) The rank rail as an instrument.
       It appears only once the column heads are pinned, so it never covers
