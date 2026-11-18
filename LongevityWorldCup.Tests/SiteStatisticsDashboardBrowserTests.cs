@@ -166,9 +166,12 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         var provider = report.Locator("[data-ai-source='chatgpt']");
         await provider.FocusAsync();
         await provider.EvaluateAsync("b => window.savedProviderButton = b");
+        var providerOption = page.Locator("#statsSource option[value='ai:chatgpt']");
+        await providerOption.EvaluateAsync("o => window.savedProviderOption = o");
         await page.Locator("#statsSource").DispatchEventAsync("change");
         await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
         Assert.True(await provider.EvaluateAsync<bool>("b => b === window.savedProviderButton && document.activeElement === b"));
+        Assert.True(await providerOption.EvaluateAsync<bool>("o => o === window.savedProviderOption"));
 
         await page.Locator("#statsSource").SelectOptionAsync("ai");
         await Assertions.Expect(report.Locator(".ai-stage strong").First).ToHaveTextAsync("4");

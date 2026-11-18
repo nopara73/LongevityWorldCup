@@ -747,7 +747,7 @@
         const existing = Array.from(select.querySelectorAll<HTMLOptionElement>("[data-ai-provider]"));
         if (existing.length === providers.length && providers.every((provider, index) => {
             const option = existing[index];
-            return option?.value === "ai:" + provider.id && option.text === "AI · " + provider.name;
+            return option?.value === "ai:" + provider.id && option.text === "AI Â· " + provider.name;
         })) return;
         existing.forEach(option => option.remove());
         providers.forEach(provider => {
