@@ -3325,11 +3325,11 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
 /* The dashboard deals itself: caption, then perks, then commands. */
 @media (prefers-reduced-motion: no-preference) {
-    .play-dashboard-panel:not([hidden]) .play-dashboard-card .play-dashboard-title {
+    :root:not([data-play-dashboard-settled]) .play-dashboard-panel:not([hidden]) .play-dashboard-card .play-dashboard-title {
         animation: play-stage-rise 320ms 90ms var(--play-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
     }
 
-    .play-dashboard-panel:not([hidden]) .pro-discount-line {
+    :root:not([data-play-dashboard-settled]) .play-dashboard-panel:not([hidden]) .pro-discount-line {
         animation: play-stage-rise 280ms 160ms var(--play-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
     }
 
@@ -3582,17 +3582,21 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 }
 
+/* The deck deals itself in on the first arrival of a visit only. Every later
+   arrival (back from a command, browser back, re-entering the view) finds
+   html[data-play-dashboard-settled] (play-menu.ts) and shows the settled deck.
+   Fill is backwards so hover can move the icons once the deal is over. */
 @media (prefers-reduced-motion: no-preference) {
-    #athleteDashboardPanel:not([hidden]) .play-dashboard-card .athlete-picture-frame img {
-        animation: play-dashboard-settle 1100ms cubic-bezier(0.2, 0, 0, 1) both;
+    :root:not([data-play-dashboard-settled]) #athleteDashboardPanel:not([hidden]) .play-dashboard-card .athlete-picture-frame img {
+        animation: play-dashboard-settle 1100ms cubic-bezier(0.2, 0, 0, 1) backwards;
     }
 
-    #athleteDashboardPanel:not([hidden]) .play-dashboard-title {
-        animation: play-dashboard-name 520ms cubic-bezier(0, 0, 0, 1) 180ms both;
+    :root:not([data-play-dashboard-settled]) #athleteDashboardPanel:not([hidden]) .play-dashboard-title {
+        animation: play-dashboard-name 520ms cubic-bezier(0, 0, 0, 1) 180ms backwards;
     }
 
-    #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action {
-        animation: play-dashboard-deal 420ms cubic-bezier(0, 0, 0, 1) both;
+    :root:not([data-play-dashboard-settled]) #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action {
+        animation: play-dashboard-deal 420ms cubic-bezier(0, 0, 0, 1) backwards;
     }
 
     #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) > .flow-action:first-child { animation-delay: 260ms; }
@@ -3601,8 +3605,8 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     #athleteDashboardPanel:not([hidden]) #athleteDashboardDynamicActions > .flow-action:nth-child(3) { animation-delay: 470ms; }
     #athleteDashboardPanel:not([hidden]) #playDashboardBackBtn { animation-delay: 560ms; }
 
-    #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
-        animation: play-dashboard-icon 520ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    :root:not([data-play-dashboard-settled]) #athleteDashboardPanel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+        animation: play-dashboard-icon 520ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
         animation-delay: inherit;
     }
 }

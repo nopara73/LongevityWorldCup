@@ -312,6 +312,8 @@
         };
 
         if (panelName === 'start') return { layout, extra };
+        // After the first deal of a visit, the dashboard arrives settled.
+        if (panelName === 'dashboard' && document.documentElement.hasAttribute('data-play-dashboard-settled')) return { layout, extra };
 
         const cardLayout = usesPlayerCardLayout();
         if (panelName === 'dashboard' && cardLayout) {
@@ -1124,6 +1126,35 @@
     } else {
         initializePlayMenu();
     }
+})();
+
+// The dashboard deals itself in once per visit (browser session). Every later
+// arrival (back from a command, browser back, re-entering the dashboard view)
+// shows the settled deck at once: play-menu.css keys the deal-in on the absence
+// of html[data-play-dashboard-settled].
+(() => {
+    const key = 'lwc:play-dashboard-dealt';
+    const root = document.documentElement;
+    let dealt = false;
+    try { dealt = window.sessionStorage.getItem(key) === '1'; } catch { /* storage may be unavailable */ }
+    const panel = document.getElementById('athleteDashboardPanel');
+    if (dealt) {
+        root.dataset.playDashboardSettled = '';
+        // The page's loading reveal must not fade the settled deck in either.
+        if (panel) panel.dataset.lwcReveal = 'off';
+        return;
+    }
+    if (!panel) return;
+    const arrive = (): boolean => {
+        if (panel.hidden) return false;
+        try { window.sessionStorage.setItem(key, '1'); } catch { /* storage may be unavailable */ }
+        // Later arrivals in this page load are settled too, once this deal has played.
+        window.setTimeout(() => { root.dataset.playDashboardSettled = ''; }, 1300);
+        return true;
+    };
+    if (arrive()) return;
+    const observer = new MutationObserver(() => { if (arrive()) observer.disconnect(); });
+    observer.observe(panel, { attributes: true, attributeFilter: ['hidden'] });
 })();
 
 export {};
