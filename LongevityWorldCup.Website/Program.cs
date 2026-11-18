@@ -445,6 +445,7 @@ namespace LongevityWorldCup.Website
             });
 
             app.UseRequestTimeouts();
+            app.UseMiddleware<ApplicationUploadLimitMiddleware>();
 
             app.UseMiddleware<CleanPathMiddleware>();
 

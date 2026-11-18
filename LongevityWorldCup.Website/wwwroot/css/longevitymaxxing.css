@@ -3423,6 +3423,13 @@ a.lmx-discussion-context-link:hover { text-decoration: underline; }
     background: var(--lmx-surface-muted);
 }
 
+@supports (field-sizing: content) {
+    .lmx-discussion-reply-composer textarea {
+        field-sizing: content;
+        min-height: max(5rem, calc(4.5em + 1.3rem + 2px));
+    }
+}
+
 .lmx-discussion-reply-composer textarea:focus {
     border-color: var(--lmx-accent);
     outline: 2px solid var(--lmx-accent);

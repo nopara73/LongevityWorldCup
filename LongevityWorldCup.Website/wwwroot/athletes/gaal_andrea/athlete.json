@@ -1,0 +1,28 @@
+{
+  "Name": "Gaál Andrea",
+  "DisplayName": null,
+  "MediaContact": "andrea.gaal2822@gmail.com",
+  "DateOfBirth": {
+    "Year": 1968,
+    "Month": 10,
+    "Day": 1
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-03-05",
+      "AlbGL": 46,
+      "CreatUmolL": 82,
+      "GluMmolL": 5,
+      "CrpMgL": 0.4,
+      "LymPc": 43.5,
+      "McvFL": 100,
+      "RdwPc": 12.8,
+      "AlpUL": 55,
+      "Wbc1000cellsuL": 6.8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Magyarország",
+  "Why": "To live as healthily as possible.",
+  "PersonalLink": "https://www.facebook.com/profile.php?id=61590616146798"
+}

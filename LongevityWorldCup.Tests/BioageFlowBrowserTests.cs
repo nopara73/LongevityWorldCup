@@ -288,7 +288,7 @@ public sealed class BioageFlowBrowserTests(
         var chip = page.Locator(chipSelector);
         await chip.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
 
-        Assert.Equal(expectedChipText, await chip.InnerTextAsync());
+        Assert.Equal(expectedChipText, await chip.Locator(".bioage-input-comparison-chip__text").InnerTextAsync());
         var className = await chip.GetAttributeAsync("class") ?? "";
         Assert.Contains(expectedStateClass, className);
         Assert.Empty(errors);
