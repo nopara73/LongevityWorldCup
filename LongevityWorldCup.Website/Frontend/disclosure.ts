@@ -8,7 +8,10 @@
 // - Flag teams get the signature move: the stacked faces in the team row drop
 //   into the roster when it opens and climb back into the stack when it
 //   closes. Each member row also carries a thin bar for its share of the team
-//   total, so the roster reads as who carried the flag.
+//   total, so the roster reads as who carried the flag; the team row carries
+//   the same pieces stacked into one strip, as long as the team's total is
+//   against the best team on its clock, and opening drops each piece into
+//   its bar.
 //
 // disclosure.css owns how every state looks. Nothing here changes wording or
 // what a control does. Reduced motion keeps every behaviour and drops travel.
@@ -45,8 +48,7 @@ interface Window {
 
     const visible = (el: Element): boolean => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
 
-    function stop(el: HTMLElement): number {
-        const height = el.getBoundingClientRect().height;
+    function stop(el: HTMLElement): void {
         const pending = pendingReveals.get(el);
         if (pending !== undefined) cancelAnimationFrame(pending);
         pendingReveals.delete(el);
@@ -63,7 +65,6 @@ interface Window {
             });
             current.cleanup();
         }
-        return height;
     }
 
     function stopAll(): void {
@@ -98,9 +99,11 @@ interface Window {
         return { stack, roster };
     }
 
-    function flyFaces(details: HTMLDetailsElement, opening: boolean, duration: number): Animation[] {
+    type Flight = () => Animation[];
+
+    function faceFlights(details: HTMLDetailsElement, opening: boolean, duration: number): Flight[] {
         const { stack, roster } = teamFaces(details);
-        const out: Animation[] = [];
+        const out: Flight[] = [];
         // The stack is hidden on narrow screens; the roster then just deals in.
         if (!stack.length || !stack.every(visible)) return out;
         // The panel clips its content, so each face travels as a fixed ghost
@@ -128,39 +131,120 @@ interface Window {
                 border: cs.border, borderRadius: cs.borderRadius, objectFit: cs.objectFit, objectPosition: cs.objectPosition,
                 outline: cs.outline, outlineOffset: cs.outlineOffset, background: cs.backgroundColor,
             });
-            document.body.appendChild(ghost);
             const dx = from.left + from.width / 2 - (to.left + to.width / 2);
             const dy = from.top + from.height / 2 - (to.top + to.height / 2);
             const s = from.width / to.width;
             const away = `translate(${dx}px, ${dy}px) scale(${s})`;
             const delay = opening ? i * 45 : (roster.length - 1 - i) * 25;
             const travel = opening ? duration + 120 : duration;
-            const flight = ghost.animate(
-                opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
-                { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
-            );
-            flight.oncancel = () => ghost.remove();
-            out.push(flight);
-            // Ghosts hold on their seat until the toggle clock cancels them.
-            out.push(face.animate([{ opacity: 0 }, { opacity: 0 }], { duration: travel + delay, fill: "both" }));
+            out.push(() => {
+                document.body.appendChild(ghost);
+                const flight = ghost.animate(
+                    opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
+                    { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
+                );
+                flight.oncancel = () => ghost.remove();
+                const hideFace = face.animate([{ opacity: 0 }, { opacity: 0 }], { duration: travel + delay, fill: "both" });
+                return [flight, hideFace];
+            });
         });
         return out;
     }
 
-    // Each member's share of the team total, as a 0–1 custom property.
-    function measureShares(scope: ParentNode): void {
-        scope.querySelectorAll<HTMLElement>(".flag-team").forEach(team => {
-            const rows = Array.from(team.querySelectorAll<HTMLElement>(".flag-team-athletes > li"));
-            const values = rows.map(li => {
-                const n = parseFloat((li.querySelector(".flag-athlete-metric")?.textContent || "").replace(/[^\d.+-]/g, ""));
-                return Number.isFinite(n) ? Math.max(0, -n) : 0;
+    // Where a member's roster bar sits on screen, at its share of the track.
+    // The bar is pinned by its bottom and inline edges; some engines report
+    // the opposite insets of a pseudo-element as "auto", so derive them.
+    function shareBar(link: HTMLElement): DOMRect | null {
+        const cs = getComputedStyle(link, "::after");
+        if (cs.content === "none" || cs.display === "none") return null;
+        const box = link.getBoundingClientRect();
+        const width = parseFloat(cs.width), height = parseFloat(cs.height);
+        const inset = (near: string, far: string, size: number, span: number): number => {
+            const a = parseFloat(near);
+            if (Number.isFinite(a)) return a;
+            return span - parseFloat(far) - size;
+        };
+        const left = inset(cs.left, cs.right, width, box.width);
+        const top = inset(cs.top, cs.bottom, height, box.height);
+        if (![left, top, width, height].every(Number.isFinite)) return null;
+        const share = parseFloat(link.parentElement?.style.getPropertyValue("--lwc-share") || "") || 0;
+        return new DOMRect(box.left + left, box.top + top, width * share, height);
+    }
+
+    // The team row's strip is the roster in miniature: opening drops each
+    // member's piece into their own bar, closing stacks them back up.
+    function shareFlights(details: HTMLDetailsElement, opening: boolean, duration: number): Flight[] {
+        const pieces = Array.from(details.querySelectorAll<HTMLElement>(":scope > summary > .flag-team-strip > i"));
+        const links = Array.from(details.querySelectorAll<HTMLElement>(".flag-athlete-link"));
+        const out: Flight[] = [];
+        if (!pieces.length || !visible(pieces[0]!)) return out;
+        links.forEach((link, i) => {
+            const piece = pieces[i];
+            const to = shareBar(link);
+            if (!piece || !to) return;
+            const from = piece.getBoundingClientRect();
+            if (!from.width || !to.width || !to.height) return;
+            const ghost = document.createElement("span");
+            ghost.className = "lwc-disclosure-ghost lwc-disclosure-ghost--share";
+            ghost.setAttribute("aria-hidden", "true");
+            const look = getComputedStyle(piece);
+            Object.assign(ghost.style, {
+                left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`,
+                backgroundColor: look.backgroundColor, backgroundImage: look.backgroundImage,
             });
-            const best = values.reduce((sum, v) => sum + v, 0);
-            rows.forEach((li, i) => {
-                li.style.setProperty("--lwc-share", best > 0 ? ((values[i] ?? 0) / best).toFixed(3) : "0");
-                li.style.setProperty("--lwc-i", String(i));
+            const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+            const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+            const away = `translate(${dx}px, ${dy}px) scale(${from.width / to.width}, ${from.height / to.height})`;
+            const delay = opening ? 70 + i * 60 : (links.length - 1 - i) * 30;
+            const travel = opening ? duration + 180 : duration;
+            out.push(() => {
+                document.body.appendChild(ghost);
+                const flight = ghost.animate(
+                    opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
+                    { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
+                );
+                flight.oncancel = () => ghost.remove();
+                return [flight];
             });
         });
+        return out;
+    }
+
+    function flyTeam(details: HTMLDetailsElement, opening: boolean, duration: number): Animation[] {
+        // Read both sets of endpoints before inserting copies or changing visibility.
+        const faces = faceFlights(details, opening, duration);
+        const shares = shareFlights(details, opening, duration);
+        if (shares.length) details.dataset.shareFlown = "";
+        return [...faces, ...shares].flatMap(start => start());
+    }
+
+    function drawStrip(summary: HTMLElement): void {
+        const rows = Array.from(summary.parentElement!.querySelectorAll<HTMLElement>(".flag-team-athletes > li"));
+        const values = rows.map(row => Number(row.dataset.delta));
+        const gained = values.reduce((sum, value) => sum + Math.max(0, -value), 0);
+        const lost = values.reduce((sum, value) => sum + Math.max(0, value), 0);
+        const extent = Math.max(gained, lost);
+        let gainEnd = 0;
+        let debtStart = extent;
+        const strip = document.createElement("span");
+        strip.className = "flag-team-strip";
+        strip.setAttribute("aria-hidden", "true");
+        rows.forEach((row, i) => {
+            const value = values[i]!;
+            const span = Math.abs(value);
+            row.style.setProperty("--lwc-share", String(extent ? span / extent : 0));
+            const piece = document.createElement("i");
+            if (value > 0) {
+                debtStart -= span;
+                piece.dataset.debt = "";
+                row.dataset.shareDebt = "";
+            }
+            piece.style.setProperty("--lwc-start", String(value > 0 ? Math.max(0, debtStart) : gainEnd));
+            piece.style.setProperty("--lwc-span", String(span));
+            if (value < 0) gainEnd += span;
+            strip.appendChild(piece);
+        });
+        summary.appendChild(strip);
     }
 
     // ------------------------------------------------------------ <details>
@@ -170,24 +254,28 @@ interface Window {
     function toggle(details: HTMLDetailsElement, open = !(running.get(details)?.opening ?? details.open)): void {
         stop(details);
         if (!canAnimate()) {
+            delete details.dataset.shareFlown;
             details.open = open;
             return;
         }
         const isTeam = details.classList.contains("flag-team");
         const duration = open ? OPEN_MS : CLOSE_MS;
         const extras: Animation[] = [];
-        if (!open && isTeam) extras.push(...flyFaces(details, false, duration));
+        if (!open && isTeam) extras.push(...flyTeam(details, false, duration));
         details.dataset.disclosure = open ? "opening" : "closing";
         details.open = open;
         if (open) {
-            if (isTeam) extras.push(...flyFaces(details, true, duration));
+            if (isTeam) extras.push(...flyTeam(details, true, duration));
             contentOf(details).forEach(c => extras.push(...dealItems(c)));
         }
         // Follow the page's animation rate and let the last staggered item land.
         const end = Math.max(duration + (isTeam ? (open ? 220 : 70) : 40),
             ...extras.map(a => Number(a.effect?.getComputedTiming().endTime) || 0));
         const anim = details.animate([], { duration: end });
-        running.set(details, { anim, opening: open, extras, cleanup: () => { delete details.dataset.disclosure; } });
+        running.set(details, { anim, opening: open, extras, cleanup: () => {
+            delete details.dataset.disclosure;
+            delete details.dataset.shareFlown;
+        } });
         anim.oncancel = () => {
             if (running.get(details)?.anim !== anim) return;
             stop(details);
@@ -224,7 +312,8 @@ interface Window {
         const id = button?.getAttribute("aria-controls");
         const region = id ? document.getElementById(id) : null;
         if (!button || !region || region.closest(SKIP)) return;
-        const start = stop(region);
+        const start = region.getBoundingClientRect().height;
+        stop(region);
         const before = new Set(Array.from(region.children).filter(visible));
         pendingReveals.set(region, requestAnimationFrame(() => {
             pendingReveals.delete(region);
@@ -259,15 +348,10 @@ interface Window {
     // Flag rosters are re-rendered as filters change; keep their shares current.
     function refresh(scope: ParentNode = document): void {
         for (const el of running.keys()) if (!el.isConnected) stop(el);
-        measureShares(scope);
+        scope.querySelectorAll<HTMLElement>(".flag-team > summary:not(:has(> .flag-team-strip))").forEach(drawStrip);
     }
-    const watch = (): void => {
-        refresh();
-        const board = document.getElementById("flagLeaderboard");
-        if (board) new MutationObserver(() => refresh(board)).observe(board, { childList: true, subtree: true, characterData: true });
-    };
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch, { once: true });
-    else watch();
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => refresh(), { once: true });
+    else refresh();
 
     window.LwcDisclosure = { toggle, refresh };
 })();

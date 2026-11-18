@@ -88,9 +88,12 @@ public sealed class FlagLeaderboardBrowserTests(PlaywrightBrowserFixture browser
         var name = (await team.GetAttributeAsync("data-flag"))!;
         var rank = await team.Locator(".flag-team-rank").TextContentAsync();
         var score = await team.Locator(".flag-team-score").TextContentAsync();
+        var scale = await team.EvaluateAsync<string>("row => row.style.getPropertyValue('--lwc-unit')");
+        Assert.NotEmpty(scale);
         await page.Locator("#athleteSearch").FillAsync(name);
         await Assertions.Expect(page.Locator(".flag-team")).ToHaveCountAsync(1);
         team = page.Locator(".flag-team");
+        Assert.Equal(scale, await team.EvaluateAsync<string>("row => row.style.getPropertyValue('--lwc-unit')"));
         await Assertions.Expect(team.Locator(".flag-team-rank")).ToHaveTextAsync(rank!);
         await Assertions.Expect(team.Locator(".flag-team-score")).ToHaveTextAsync(score!);
         await team.Locator("summary").FocusAsync();

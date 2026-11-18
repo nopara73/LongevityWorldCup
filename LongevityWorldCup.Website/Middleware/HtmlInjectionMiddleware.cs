@@ -490,7 +490,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     {
                         var teams = selection.FlagTeams;
                         var isPreview = path is "/" or "/contribute" || IsAthleteRoute(path);
-                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(isPreview ? teams.Take(10) : teams, selection.View == "ultimate"), StringComparison.Ordinal);
+                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(teams, selection.View == "ultimate", isPreview ? 10 : null), StringComparison.Ordinal);
                     }
                     if (path is "/" or "/contribute" || IsAthleteRoute(path))
                     {
