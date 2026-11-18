@@ -126,6 +126,22 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var thread = DiscussionThread(page, "p7", 5);
         foreach (var (scope, suffix) in new[] { (thread, ""), (thread.Locator("[data-discussion-reply-id='r4']"), "/reply/r4") })
         {
+            // Success feedback clears after two seconds, including while the driver
+            // checks the copied URL or completes the failed-copy recovery path.
+            await scope.EvaluateAsync("""
+                scope => {
+                    window.__discussionCopyFeedback = new Promise(resolve => {
+                        const observer = new MutationObserver(() => {
+                            const feedback = scope.querySelector(':scope > .lmx-discussion-copy-feedback');
+                            if (feedback?.textContent !== 'Link copied.') return;
+                            observer.disconnect();
+                            resolve([String(scope.querySelector('[data-discussion-copy-link]').querySelectorAll('.fa-check').length),
+                                feedback.textContent]);
+                        });
+                        observer.observe(scope, { childList: true, subtree: true, attributes: true, characterData: true });
+                    });
+                }
+                """);
             var button = scope.Locator("[data-discussion-copy-link]").First;
             await button.ClickAsync();
             var expected = new Uri(new Uri(page.Url), "/longevitymaxxing#discussion/post/p7/5" + suffix).AbsoluteUri;
@@ -141,8 +157,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 await Assertions.Expect(input).ToHaveCountAsync(0);
                 await page.EvaluateAsync("window.failDiscussionCopy = true");
             }
-            await Assertions.Expect(button.Locator(".fa-check")).ToHaveCountAsync(1);
-            await Assertions.Expect(scope.Locator(":scope > .lmx-discussion-copy-feedback")).ToHaveTextAsync("Link copied.");
+            var feedback = await page.EvaluateAsync<string[]>("() => window.__discussionCopyFeedback").WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(["1", "Link copied."], feedback);
         }
     }
 

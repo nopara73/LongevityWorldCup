@@ -34,7 +34,7 @@ public sealed class InstagramAnnouncementService(
             var mentions = snapshot.ToDictionary(x => x.Slug, x => x.MentionFor(SocialPlatform.Instagram), StringComparer.OrdinalIgnoreCase);
             string ResolveMention(string slug) => mentions.GetValueOrDefault(slug) ?? ResolveName(slug);
 
-            foreach (var pending in deliveries.GetPending(SocialDeliveryStore.Instagram, customOnly, now))
+            foreach (var pending in athletes.ReadPublishedEvents(() => deliveries.GetPending(SocialDeliveryStore.Instagram, customOnly, now)))
             {
                 ct.ThrowIfCancellationRequested();
                 var item = pending.Event;
@@ -43,11 +43,10 @@ public sealed class InstagramAnnouncementService(
                     deliveries.Skip(SocialDeliveryStore.Instagram, item.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
-                    && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
+                var subject = pending.Headline.Subject;
                 if (pending.RecordJson is null)
                 {
-                    if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Priority,
+                    if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Headline,
                         now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
                     {
                         deliveries.Skip(SocialDeliveryStore.Instagram, item.Id, reason.ToString(), now);
@@ -71,10 +70,18 @@ public sealed class InstagramAnnouncementService(
                     }
                     var prepared = JsonSerializer.Deserialize<InstagramPostRequest>(json)
                         ?? throw new InvalidOperationException("The saved Instagram request is invalid.");
+                    // An attempted publish can only recover its receipt or enter review.
+                    // Keep that recovery path available even after ownership changes.
+                    if (pending.FirstAttemptAtUtc is null && deliveries.SuppressSupersededBadge(
+                            SocialDeliveryStore.Instagram, item.Id, item.Type, item.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
                     var receipt = await publisher.PublishAsync(pending, prepared, ct);
                     deliveries.Complete(SocialDeliveryStore.Instagram, item.Id, receipt, time.GetUtcNow());
                     log.LogInformation("Instagram delivered event {EventId}: {PostUrl}", item.Id, receipt.Url);
                     return;
+                }
+                catch (InstagramApiException ex) when (ex.Code == "DeliverySuppressed")
+                {
+                    continue;
                 }
                 catch (Exception ex) when (!ct.IsCancellationRequested)
                 {

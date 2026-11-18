@@ -965,7 +965,7 @@
     
                     <!-- Name Field -->
                     <label for="name">Name <span class="field-requirement">(required)</span></label>
-                    <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
+                    <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or pseudonym">
                     <span id="nameError" class="error-message" aria-live="polite"></span>
     
                     <!-- Division Field -->
@@ -1646,11 +1646,7 @@
             const month = Number(match[2]);
             const day = Number(match[3]);
             const parsedDate = new Date(Date.UTC(year, month - 1, day));
-            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
-
-            const todayUtc = new Date();
-            todayUtc.setUTCHours(0, 0, 0, 0);
-            return parsedDate <= todayUtc;
+            return parsedDate.getUTCFullYear() === year && parsedDate.getUTCMonth() === month - 1 && parsedDate.getUTCDate() === day;
         }
 
         function readPendingPaymentOffer() {
@@ -2449,7 +2445,7 @@
                                     type: `HTTP ${responseStatus}`,
                                     message: badResponse
                                 });
-                                customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
+                                customAlert(responseStatus === 413 ? badResponse : `Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                     isApplicationSubmitting = false;
                                     applyButton.disabled = false;
                                     accountEmailInput.disabled = false;
@@ -2549,7 +2545,7 @@
                 observer.observe(document.querySelector('.convergence-crop-stage'));
             }
 
-            function failProfileUpload(version) {
+            function failProfileUpload(version, message = 'Profile picture upload failed. Please try another image.') {
                 if (version !== profileReadVersion) return;
                 const failedVersion = ++profileReadVersion;
                 applicationProfilePending = false;
@@ -2563,7 +2559,7 @@
                 document.getElementById('croppingPart').style.display = 'none';
                 if (currentStage === 4) document.getElementById('nextButton').disabled = !profilePic;
                 updateUploadButtons();
-                customAlert('Profile picture upload failed. Please try another image.')
+                customAlert(message)
                     .then(() => { if (failedVersion === profileReadVersion && currentStage === 4) uploadButton?.focus(); });
             }
 
@@ -2605,7 +2601,7 @@
                 showProfileCrop(source);
             };
 
-            function handleProfileUploadChange(event) {
+            async function handleProfileUploadChange(event) {
                 const input = event.target;
                 if (!input.files || !input.files.length) return; // Reset if no file selected
                 const file = input.files[0];
@@ -2621,17 +2617,15 @@
                     if (currentStage === 4) document.getElementById('nextButton').disabled = true;
                     const version = ++profileReadVersion;
                     pendingProfileSource = null;
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
+                    try {
+                        const source = await LwcUploadPhoto.read(file);
                         if (version !== profileReadVersion) return;
-                        // A file may finish reading after Back. Keep it for the photo
-                        // stage instead of disabling another stage or sizing a hidden cropper.
-                        if (currentStage === 4) showProfileCrop(e.target.result);
-                        else pendingProfileSource = e.target.result;
-                    };
-                    reader.onerror = () => failProfileUpload(version);
-                    reader.onabort = reader.onerror;
-                    reader.readAsDataURL(file);
+                        // Back can leave this stage while the photo is being prepared.
+                        if (currentStage === 4) showProfileCrop(source);
+                        else pendingProfileSource = source;
+                    } catch {
+                        failProfileUpload(version, LwcUploadPhoto.isHeic(file) ? LwcUploadPhoto.recovery : undefined);
+                    }
                 }
             }
 
@@ -2953,6 +2947,7 @@
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@2.3.1/dist/cropper.min.js" integrity="sha384-q877KRoDGCc9TE0/aHg20sWS2aLAr60y01aKWeVzpJhbJh90PH+lt1GmABR1GOdz" crossorigin="anonymous" defer></script>
+    <script src="{{ASSET_UPLOAD_PHOTO_JS}}" data-decoder="{{ASSET_HEIC_DECODER_JS}}"></script>
     <script src="{{ASSET_PORTRAIT_CROPPER_JS}}" defer></script>
 </body>
 </html>

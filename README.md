@@ -47,11 +47,3 @@ git pull
 ```
 
 ## [Deployment](LongevityWorldCup.Documentation/ServerDeployment.md)
-
-## Tests
-
-Run `dotnet test` from the repository root. SEO regression assertions run automatically
-inside the existing route, calculator, and sitemap tests, including in CI. They reuse
-responses and parsed JSON already obtained by those tests, adding no HTTP requests,
-application hosts, browser launches, or subprocesses.
-

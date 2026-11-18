@@ -18,12 +18,27 @@ public sealed class AthleteStoryBrowserTests(
     public async Task ComparisonToggles_NeverRearmSettledRowsOrRestartTheirCounters(int width, bool dark)
     {
         await using var context = await ContextAsync(width, dark);
+        await context.AddInitScriptAsync("""
+            window.registeredStoryRows = new Set();
+            new MutationObserver(records => records.forEach(({ target }) => {
+                if (target.matches('tr.result-summary[data-draw]')) registeredStoryRows.add(target);
+            })).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-draw'] });
+            """);
         var page = await OpenAsync(context);
         await page.Locator("tr.result-summary").Nth(2).ScrollIntoViewIfNeededAsync();
-        await page.WaitForTimeoutAsync(2200);
+        // A missing marker alone can mean the observer has not armed the row yet.
+        await page.WaitForFunctionAsync("""
+            () => {
+                const target = document.querySelectorAll('tr.result-summary')[2];
+                const settled = [...registeredStoryRows].filter(row => row.isConnected
+                    && !row.hasAttribute('data-draw') && !row.querySelector('[data-lwc-count]'));
+                return settled.includes(target) && settled.length >= 2;
+            }
+            """);
         await page.EvaluateAsync("""
             () => {
-                window.settled = [...document.querySelectorAll('tr.result-summary')].filter(row => !row.hasAttribute('data-draw'));
+                window.settled = [...registeredStoryRows].filter(row => row.isConnected
+                    && !row.hasAttribute('data-draw') && !row.querySelector('[data-lwc-count]'));
                 window.restarted = [];
                 window.rowValues = window.settled.map(row => row.textContent);
                 new MutationObserver(records => records.forEach(record => {
@@ -110,7 +125,15 @@ public sealed class AthleteStoryBrowserTests(
             foreach (var index in new[] { 0, count - 1, 0 })
             {
                 await select.SelectOptionAsync(index.ToString());
-                await page.WaitForTimeoutAsync(100);
+                await page.WaitForFunctionAsync("""
+                    ({index, clock}) => {
+                        const gap = document.querySelector('#ageRadarFallback .age-story-gap');
+                        const diff = parseFloat(document.getElementById('ageRadarFallbackValue').textContent.replace('−', '-'));
+                        return [...document.querySelectorAll('.age-story-timeline-dot')].findIndex(dot => dot.classList.contains('is-selected')) === index
+                            && gap?.dataset.clock === clock
+                            && +gap.style.getPropertyValue('--story-gap') === Math.max(-1, Math.min(1, diff / 20));
+                    }
+                    """, new { index, clock = clock.ToLowerInvariant() });
                 var reading = await page.EvaluateAsync<JsonElement>("""
                     () => ({
                         text: document.getElementById('ageRadarFallbackValue').textContent,
@@ -157,7 +180,7 @@ public sealed class AthleteStoryBrowserTests(
         var page = await OpenAsync(context);
         var track = page.Locator(".age-story-timeline");
         await track.ScrollIntoViewIfNeededAsync();
-        await page.WaitForTimeoutAsync(1000);
+        await WaitForFiniteAnimationsAsync(page, "#detailsModal, #detailsModal *");
         var cdp = await context.NewCDPSessionAsync(page);
         var bounds = (await track.BoundingBoxAsync())!;
         await DragAsync(cdp, bounds.X + bounds.Width - 10, bounds.Y + 22, bounds.X + 10, bounds.Y + 22);
@@ -215,7 +238,10 @@ public sealed class AthleteStoryBrowserTests(
         await AestheticSystemBrowserTests.NavigateAndSettleAsync(page, "/athlete/benjamin-garden");
         await ReadyAsync(page);
         await page.Keyboard.PressAsync("Shift");
-        await page.WaitForTimeoutAsync(200);
+        // Trusted input opens the motion gate; chapter registration runs on a
+        // later timer, before any visible finite animations can be awaited.
+        await page.WaitForFunctionAsync("() => matchMedia('(prefers-reduced-motion: reduce)').matches || document.querySelector('#athlete-biomarkers[data-story], #athlete-biomarkers [data-draw]')");
+        await WaitForFiniteAnimationsAsync(page, "#detailsModal, #detailsModal *");
         return page;
     }
 

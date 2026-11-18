@@ -22,12 +22,14 @@ public sealed class MotivationFieldBrowserTests(
     public async Task FocusedMotivation_DoesNotUndoManualScrolling(bool application, int width, int height)
     {
         await using var context = await CreateContextAsync(width, height);
-        var (page, field) = await OpenAsync(context, application);
+        var (page, field) = await OpenAsync(context, application, controlStartupClock: true);
         await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
         await SettleAsync(page);
-        // The progress bar deliberately performs a one-time scroll after 500ms.
-        // Exercise the user's gesture after that startup behavior has finished.
-        await page.WaitForTimeoutAsync(600);
+        // Execute the progress bar's 500ms startup callback, including its no-scroll
+        // branch, before testing the user's manual scroll.
+        await page.Clock.RunForAsync(500);
+        await page.WaitForFunctionAsync("() => window.startupScrollTop === undefined || Math.abs(scrollY - Math.max(0, Math.min(startupScrollTop, document.documentElement.scrollHeight - innerHeight))) < 1");
+        await page.EvaluateAsync("() => { window.scrollTo = window.startupScrollTo; }");
         await field.ClickAsync();
         await SettleAsync(page);
         await page.EvaluateAsync("() => scrollTo({top:0, behavior:'instant'})");
@@ -367,9 +369,20 @@ public sealed class MotivationFieldBrowserTests(
         return context;
     }
 
-    private static async Task<(IPage Page, ILocator Field)> OpenAsync(IBrowserContext context, bool application, bool fake = true)
+    private static async Task<(IPage Page, ILocator Field)> OpenAsync(IBrowserContext context, bool application, bool fake = true, bool controlStartupClock = false)
     {
         var page = await context.NewPageAsync();
+        if (controlStartupClock)
+        {
+            await page.Clock.InstallAsync();
+            await page.AddInitScriptAsync("""
+                window.startupScrollTo = window.scrollTo;
+                window.scrollTo = function (...args) {
+                    if (args[0]?.behavior === 'smooth') window.startupScrollTop = args[0].top;
+                    return window.startupScrollTo.apply(this, args);
+                };
+                """);
+        }
         await page.GotoAsync(application ? (fake ? "/apply?fake=1" : "/apply") : "/edit-profile");
         await ReadyAsync(page);
         if (application)
