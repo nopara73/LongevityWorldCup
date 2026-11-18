@@ -7,6 +7,46 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(false, 390)]
+    [InlineData(true, 1280)]
+    public async Task TimeZoneSearch_ReusesUnchangedResultsAndRefreshesOffsetsAcrossDaylightSaving(bool profile, int width)
+    {
+        await using var context = await NewTimeZoneContextAsync(width);
+        var (page, id) = await PrepareTimeZonePickerAsync(context, profile);
+        await page.Clock.SetFixedTimeAsync(new DateTime(2026, 3, 29, 0, 59, 30, DateTimeKind.Utc));
+        await page.Locator("#" + id + "Button").ClickAsync();
+        await page.EvaluateAsync("""
+            () => {
+                window.offsetFormatters = 0;
+                Intl.DateTimeFormat = new Proxy(Intl.DateTimeFormat, {
+                    construct(target, args) {
+                        if (args[1]?.timeZoneName === 'shortOffset') offsetFormatters++;
+                        return Reflect.construct(target,args);
+                    }
+                });
+            }
+            """);
+        var search = page.Locator("#" + id + "Search");
+        var london = page.Locator("#" + id + "List [data-time-zone='Europe/London']");
+        await search.FillAsync("London");
+        await Assertions.Expect(london.Locator("small")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^Europe/London · GMT(?:\\+0)?$"));
+        await london.EvaluateAsync("row => window.keptTimeZoneRow = row");
+        await search.PressSequentiallyAsync(" ");
+        Assert.True(await london.EvaluateAsync<bool>("row => row === keptTimeZoneRow"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("offsetFormatters"));
+        await Assertions.Expect(search).ToBeFocusedAsync();
+
+        // An identical result set must still show the new offset after the clock changes.
+        await page.Clock.SetFixedTimeAsync(new DateTime(2026, 3, 29, 1, 0, 0, DateTimeKind.Utc));
+        await search.PressSequentiallyAsync(" ");
+        await Assertions.Expect(london.Locator("small")).ToHaveTextAsync("Europe/London · GMT+1");
+        Assert.True(await page.EvaluateAsync<int>("offsetFormatters") > 0);
+        await search.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("#" + id)).ToHaveValueAsync("Europe/London");
+        await Assertions.Expect(page.Locator("#" + id + "Button")).ToBeFocusedAsync();
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task TimeZonePicker_TabLeavesInOneStepWithoutChangingTheValue(bool profile)

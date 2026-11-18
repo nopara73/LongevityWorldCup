@@ -14,29 +14,8 @@ public sealed class SiteStatisticsDashboardBrowserTests(
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    public override async Task InitializeAsync()
-    {
-        await base.InitializeAsync();
-        await ResetSiteStatisticsAsync(App);
-    }
-
-    private static async Task ResetSiteStatisticsAsync(BrowserTestApp app)
-    {
-        var statistics = app.Services.GetRequiredService<SiteStatisticsService>();
-        await statistics.StopAsync(CancellationToken.None);
-        await statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
-
-        var database = app.Services.GetRequiredService<DatabaseManager>();
-        database.Run(sqlite =>
-        {
-            using var command = sqlite.CreateCommand();
-            command.CommandText =
-                "DELETE FROM SiteStatisticEvents; DELETE FROM SiteStatisticSessions;";
-            command.ExecuteNonQuery();
-        });
-
-        await statistics.StartAsync(CancellationToken.None);
-    }
+    // Browser telemetry can arrive after the previous context has closed.
+    protected override bool UseIsolatedApplicationPerTest => true;
 
     [Fact]
     public async Task Dashboard_DefaultUrlStaysCleanAndOnlyChangedFiltersRoundTrip()

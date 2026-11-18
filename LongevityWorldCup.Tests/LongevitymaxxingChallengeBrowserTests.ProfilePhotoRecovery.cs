@@ -208,7 +208,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
-    public async Task ProfilePhotoUpload_UnreadableSelectionFallsBackAndCanBeReplaced()
+    public async Task ProfilePhotoUpload_UnreadableHeicStaysLocalAndCanBeReplaced()
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await OpenProfileWorkspaceAsync(context);
@@ -216,11 +216,11 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.RouteAsync("**/api/longevitymaxxing/profile-picture", async route =>
         {
             requests++;
-            if (requests == 1) await route.FulfillAsync(new() { Status = 400, ContentType = "application/json", Body = "{\"message\":\"Please upload a JPG, PNG, or WebP image.\"}" });
-            else await FulfillJsonAsync(route, ProfileWorkspaceState(PhotoSavedUrl).ToJsonString());
+            await FulfillJsonAsync(route, ProfileWorkspaceState(PhotoSavedUrl).ToJsonString());
         });
         await page.Locator("#lmxProfilePictureInput").SetInputFilesAsync(new FilePayload { Name = "unreadable.heic", MimeType = "image/heic", Buffer = Encoding.UTF8.GetBytes("not an image") });
-        await Assertions.Expect(page.Locator("#lmxProfilePictureStatus")).ToContainTextAsync("JPG, PNG, or WebP");
+        await Assertions.Expect(page.Locator("#lmxProfilePictureStatus")).ToContainTextAsync("Export it as a JPEG or PNG");
+        Assert.Equal(0, requests);
         var placeholder = await page.Locator("meta[name='lwc-athlete-placeholder']").GetAttributeAsync("content");
         await Assertions.Expect(page.Locator("#lmxProfilePictureImage")).ToHaveAttributeAsync("src", placeholder!);
         await Assertions.Expect(page.Locator("#lmxProfilePictureFilename")).ToHaveTextAsync("unreadable.heic");
@@ -228,7 +228,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await chooser.SetFilesAsync(ProfilePhotoFile("working.png"));
         await Assertions.Expect(page.Locator("#lmxProfilePictureImage")).ToHaveAttributeAsync("src", PhotoSavedUrl);
         await Assertions.Expect(page.Locator("#lmxProfilePictureButton")).ToBeFocusedAsync();
-        Assert.Equal(2, requests);
+        Assert.Equal(1, requests);
     }
 
     [Fact]

@@ -275,6 +275,7 @@ interface Window {
     interface RegionWait {
         readonly host: HTMLElement;
         readonly line: HTMLElement;
+        readonly settleMs: number;
         timer: number | undefined;
         ending: boolean;
     }
@@ -425,12 +426,13 @@ interface Window {
             if (!target.isConnected) return;
             let host = target;
             while (host.parentElement && /^(TABLE|TBODY|THEAD|TFOOT|TR|UL|OL|DL|SELECT)$/.test(host.tagName)) host = host.parentElement;
+            const settleMs = token("--lwc-wait-settle", 520);
             retainHost(host);
             const line = document.createElement("span");
             line.className = "lwc-wait-line";
             line.setAttribute("aria-hidden", "true");
             host.prepend(line);
-            const wait: RegionWait = { host, line, timer: undefined, ending: false };
+            const wait: RegionWait = { host, line, settleMs, timer: undefined, ending: false };
             regions.set(target, wait);
             target.setAttribute("data-lwc-wait-region", "refresh");
         } else if (previous && !previous.ending) {
@@ -438,7 +440,7 @@ interface Window {
             target.setAttribute("data-lwc-wait-region", "settle");
             previous.line.setAttribute("data-lwc-wait-end", "");
             previous.timer = window.setTimeout(() => { clearRegion(target, previous); refreshSync(); },
-                reduced.matches ? 0 : token("--lwc-wait-settle", 520));
+                reduced.matches ? 0 : previous.settleMs);
         }
         refreshSync();
     }
@@ -452,9 +454,8 @@ interface Window {
         const generation = ++syncGeneration;
         window.clearTimeout(syncTimer);
         syncTimer = undefined;
-        const visible = [...controls.values()].some(wait => !wait.ending && wait.shown && onScreen(wait.control))
-            || [...regions].some(([element, wait]) => !wait.ending && onScreen(element));
-        if (background.size && !visible) {
+        if (background.size && ![...controls.values()].some(wait => !wait.ending && wait.shown && onScreen(wait.control))
+            && ![...regions].some(([element, wait]) => !wait.ending && onScreen(element))) {
             if (root.getAttribute("data-lwc-sync") === "on") return;
             syncTimer = window.setTimeout(() => {
                 if (generation !== syncGeneration || !background.size) return;
