@@ -9,6 +9,34 @@ namespace LongevityWorldCup.Tests;
 public sealed class DocumentationMotionBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/about")]
+    [InlineData("/history")]
+    [InlineData("/ruleset")]
+    [InlineData("/privacy")]
+    public async Task HeadingsAndClosingLinks_AreVisibleBeforeScrolling(string path)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var landmarks = page.Locator(".documentation-document h2, .documentation-next");
+        Assert.NotEmpty(await landmarks.AllAsync());
+        var hidden = await landmarks.EvaluateAllAsync<string[]>(
+            """
+            elements => elements.filter(el => {
+                for (let node = el; node; node = node.parentElement) {
+                    if (Number(getComputedStyle(node).opacity) < 1) return true;
+                }
+                return false;
+            }).map(el => el.id || el.className)
+            """);
+        Assert.Empty(hidden);
+    }
+
     [Fact]
     public async Task Rules_InitializeOnceReverseFoldsAndKeepTheirAccessibleState()
     {
