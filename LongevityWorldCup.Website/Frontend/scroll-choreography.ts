@@ -286,8 +286,19 @@
         document.addEventListener('pointerdown', () => { pointerDown = true; }, { capture: true, passive: true });
         document.addEventListener('pointerup', () => { pointerDown = false; }, { capture: true, passive: true });
         document.addEventListener('pointercancel', () => { pointerDown = false; }, { capture: true, passive: true });
-        document.addEventListener('focusin', () => { if (!pointerDown) releaseAll(); }, true);
-        document.addEventListener('click', releaseAll, { capture: true, passive: true });
+        function finishInteractionEntrance(event: Event): void {
+            // A media format switch keeps the reader on one asset. Its neighbours
+            // should still enter when scrolled to, even after keyboard selection.
+            const formats = event.target instanceof Element && event.target.closest('.media-format-switch');
+            if (formats) {
+                const tile = formats.closest<HTMLElement>('.media-file-tile[data-lwc-enter-state]');
+                if (tile) clearEntrance(tile);
+                return;
+            }
+            releaseAll();
+        }
+        document.addEventListener('focusin', event => { if (!pointerDown) finishInteractionEntrance(event); }, true);
+        document.addEventListener('click', finishInteractionEntrance, { capture: true, passive: true });
         reduce.addEventListener?.('change', () => { if (reduce.matches) releaseAll(); });
         window.addEventListener('pageshow', event => { if (event.persisted) releaseAll(); });
         window.addEventListener('pagehide', releaseAll);
