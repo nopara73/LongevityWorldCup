@@ -7,7 +7,8 @@
 // - The arena leans with the pointer (desktop): beams, haze and track sit at
 //   different depths and drift against it.
 // - Choosing a door moves the camera forward: the track rushes in, the beams
-//   flare and the arena falls away while the next panel comes up.
+//   flare and the arena falls away behind the next panel, which is visible
+//   and usable from the first frame.
 //
 // play-menu.ts keeps every behaviour (intro, panels, routes). The arena is
 // aria-hidden decoration, shown only while body.play-start-active. Nothing
@@ -57,6 +58,7 @@
             if (event.target !== arena || event.animationName !== "arena-dolly-out") return;
             arena.classList.remove("is-dollying");
             arena.removeEventListener("animationend", done);
+            sync();
         };
         arena.addEventListener("animationend", done);
     }
@@ -64,10 +66,27 @@
         document.getElementById(id)?.addEventListener("click", dolly, true);
     });
 
-    // The arena lights up with the title intro, once the doors are ready.
-    const lightUp = (): void => {
-        if (document.body.classList.contains("play-start-active")) arena.classList.add("is-lit");
-    };
-    new MutationObserver(lightUp).observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    lightUp();
+    // The arena lights up with the title intro (after its pre-intro hold), on a
+    // later frame so its fades run. Away from the title it goes dark, which
+    // also stops its looping beams and track.
+    let lightFrame = 0;
+    function sync(): void {
+        const body = document.body.classList;
+        const onTitle = body.contains("play-start-active") && !body.contains("play-start-preintro");
+        if (!onTitle) {
+            cancelAnimationFrame(lightFrame);
+            lightFrame = 0;
+            if (!arena.classList.contains("is-dollying")) arena.classList.remove("is-lit");
+            return;
+        }
+        if (arena.classList.contains("is-lit") || lightFrame) return;
+        lightFrame = requestAnimationFrame(() => {
+            lightFrame = requestAnimationFrame(() => {
+                lightFrame = 0;
+                if (document.body.classList.contains("play-start-active")) arena.classList.add("is-lit");
+            });
+        });
+    }
+    new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    sync();
 })();

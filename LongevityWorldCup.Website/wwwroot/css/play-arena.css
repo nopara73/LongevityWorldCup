@@ -119,12 +119,12 @@ body.play-start-active > .play-hub-main { position: relative; z-index: 1; }
     box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 60px -10px color-mix(in srgb, var(--lwc-accent) 55%, transparent);
 }
 /* ------------------------------------------------------------ the camera move */
+/* The camera moves on as the next panel comes up: the arena rushes and fades
+   behind the panels, which stay above it and fully usable at every frame. */
 .play-arena.is-dollying {
-    /* The camera passes through: the arena briefly sits over the incoming panel. */
-    z-index: 10040;
-    background: var(--play-track-it-bg, #101820);
     animation: arena-dolly-out 820ms cubic-bezier(.4, 0, .2, 1) forwards;
 }
+body:has(> .play-arena.is-dollying) > .play-hub-main { position: relative; z-index: 1; }
 .play-arena.is-dollying .play-arena-floor { animation: arena-floor-rush 820ms cubic-bezier(.5, 0, .2, 1) forwards; }
 .play-arena.is-dollying .play-arena-beam { animation: arena-beam-flare 820ms ease-out forwards; }
 .play-arena.is-dollying .play-arena-haze { animation: arena-haze-burst 820ms ease-out forwards; }
