@@ -28,8 +28,11 @@ interface Window {
     // gather into one row of cards under its story, instead of each running the
     // full column width. The cards keep their images, so they still open in the
     // shared image reader. Each card leans slightly, like a print pinned to the
-    // timeline, and straightens under the pointer; the strip deals its cards in
-    // once the entry comes into view.
+    // timeline, and straightens under the pointer. The first time a visit
+    // reaches an entry, its strip deals the cards in; returning to the page
+    // later in the visit shows them settled. The strip owns this arrival, so
+    // its cards leave the document's own fade-in (documentation.js).
+    const PRINTS_DEALT = "lwc:history-prints-dealt";
     function gatherEvidence(entries: readonly HTMLElement[]): void {
         const isPicture = (node: Element | null): node is HTMLElement =>
             node instanceof HTMLElement && node.tagName === "P"
@@ -45,6 +48,7 @@ interface Window {
                 let card: Element | null = child;
                 while (isPicture(card)) {
                     const next: Element | null = card.nextElementSibling;
+                    card.classList.remove("documentation-reveal", "is-instant");
                     card.classList.add("history-evidence-card");
                     (card as HTMLElement).style.setProperty("--evidence-tilt", `${index++ % 2 ? 1.1 : -1.3}deg`);
                     (card as HTMLElement).style.setProperty("--evidence-index", String(strip.childElementCount));
@@ -55,18 +59,34 @@ interface Window {
             }
         }
         const strips = Array.from(document.querySelectorAll<HTMLElement>(".history-evidence"));
-        if (!("IntersectionObserver" in window)) {
-            strips.forEach(strip => strip.classList.add("is-dealt"));
+        let dealtBefore = false;
+        try { dealtBefore = sessionStorage.getItem(PRINTS_DEALT) === "1"; } catch { /* storage unavailable */ }
+        const settle = (strip: Element): void => {
+            if (!strip.classList.contains("is-dealt")) strip.classList.add("is-settled");
+        };
+        if (dealtBefore || reduced.matches || !("IntersectionObserver" in window)) {
+            strips.forEach(settle);
             return;
         }
         const observer = new IntersectionObserver(seen => {
             for (const item of seen) {
                 if (!item.isIntersecting) continue;
-                item.target.classList.add("is-dealt");
                 observer.unobserve(item.target);
+                if (item.target.classList.contains("is-settled")) continue;
+                item.target.classList.add("is-dealt");
+                try { sessionStorage.setItem(PRINTS_DEALT, "1"); } catch { /* storage unavailable */ }
             }
         }, { rootMargin: "0px 0px -12% 0px" });
-        strips.forEach(strip => observer.observe(strip));
+        strips.forEach(strip => {
+            observer.observe(strip);
+            // Keyboard focus never lands on a print that is still waiting to
+            // deal in: it is simply there, with its focus ring.
+            strip.addEventListener("focusin", () => {
+                observer.unobserve(strip);
+                settle(strip);
+            });
+        });
+        reduced.addEventListener("change", () => { if (reduced.matches) strips.forEach(strip => { observer.unobserve(strip); settle(strip); }); });
     }
 
     function start(): void {
