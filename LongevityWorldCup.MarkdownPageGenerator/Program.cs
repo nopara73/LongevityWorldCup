@@ -389,7 +389,6 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     <script>document.documentElement.classList.add("documentation-js");</script>
     <link rel="alternate" type="text/markdown" title="Source Markdown" href="{{sourceUrl}}" />
     <link rel="stylesheet" href="{{"{{ASSET_DOC_CHAPTERS_CSS}}"}}">
-    <script src="{{"{{ASSET_DOC_CHAPTERS_JS}}"}}" defer></script>
     <style>
         /* About, History and the Ruleset share one long-form reading system: a
            contents rail beside one document card that opens on a cover band, runs
