@@ -129,6 +129,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_AGE_VISUALIZATION_CSS}}"] = "/css/age-visualization.css",
         ["{{ASSET_EVENT_BOARD_CSS}}"] = "/css/event-board.css",
         ["{{ASSET_HIGHLIGHTS_PAGE_CSS}}"] = "/css/highlights-page.css",
+        ["{{ASSET_HIGHLIGHTS_CALENDAR_JS}}"] = "/js/highlights-calendar.js",
         ["{{ASSET_EVENTS_PAGE_JS}}"] = "/js/events-page.js",
         ["{{ASSET_WEB_PUSH_JS}}"] = "/js/web-push.js",
         ["{{ASSET_WEB_PUSH_SYNC_JS}}"] = "/js/web-push-sync.js",

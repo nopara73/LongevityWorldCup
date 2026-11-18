@@ -92,6 +92,7 @@ interface BioageBiomarkerEntryController {
     hasPersistedDraft: boolean;
     inputs: HTMLInputElement[];
     invalidBatchActive: boolean;
+    nextInput: HTMLInputElement | null;
     isUpdate: boolean;
     progress: HTMLParagraphElement;
     restoring: boolean;
@@ -1229,6 +1230,12 @@ interface Window {
             }
             if (!isComplete) incompleteInputs.push(input);
         });
+        const next = incompleteInputs.find(input => !input.disabled) ?? null;
+        if (next !== controller.nextInput) {
+            controller.nextInput?.closest('.biomarker-card')?.classList.remove('is-next');
+            next?.closest('.biomarker-card')?.classList.add('is-next');
+            controller.nextInput = next;
+        }
         syncDomainTallies(controller);
         controller.inputs.forEach((input, index) => {
             const hasOtherIncompleteInput = incompleteInputs.some(candidate => candidate !== input);
@@ -1305,6 +1312,32 @@ interface Window {
         focusBiomarkerInput(nextInput);
     }
 
+    function flyToDomainPip(input: HTMLInputElement): void {
+        if (prefersReducedBioageResultMotion()) return;
+        window.requestAnimationFrame(() => {
+            if (!isCompleteBiomarkerInput(input) || prefersReducedBioageResultMotion()) return;
+            const from = input.closest('.biomarker-card')?.querySelector('.toggle-icon')?.getBoundingClientRect();
+            const to = document.querySelector(`[data-bioage-pip="${input.id}"]`)?.getBoundingClientRect();
+            if (!from?.width || !to?.width || to.bottom < 0 || to.top >= window.innerHeight) return;
+            const x = from.left + from.width / 2;
+            const y = from.top + from.height / 2;
+            const dx = to.left + to.width / 2 - x;
+            const dy = to.top + to.height / 2 - y;
+            const dot = document.createElement('span');
+            dot.className = 'bioage-run-spark';
+            dot.setAttribute('aria-hidden', 'true');
+            dot.style.left = `${x}px`;
+            dot.style.top = `${y}px`;
+            document.body.append(dot);
+            const flight = dot.animate([
+                { transform: 'translate(-50%, -50%)' },
+                { transform: `translate(calc(-50% + ${dx * 0.55}px), calc(-50% + ${dy * 0.55 - 18}px))`, offset: 0.55 },
+                { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.6)` }
+            ], { duration: 400, easing: 'ease-out' });
+            flight.onfinish = flight.oncancel = () => dot.remove();
+        });
+    }
+
     function bindBiomarkerEntry(controller: BioageBiomarkerEntryController): void {
         // Validate before existing input/change handlers recalculate or save.
         const validateNumber = (event: Event) => {
@@ -1324,7 +1357,9 @@ interface Window {
             syncFixedUnitPresentation(input);
             getOrCreateBiomarkerError(input);
 
+            let awaitingEntry = false;
             input.addEventListener('focus', () => {
+                awaitingEntry = !isCompleteBiomarkerInput(input);
                 expandBiomarkerCard(input);
                 ensureBioageControlVisible(input);
             });
@@ -1340,7 +1375,15 @@ interface Window {
                 clear: () => setBiomarkerError(input, false),
                 isRestoring: () => controller.restoring
             });
-            input.addEventListener('input', recordDraftInput);
+            input.addEventListener('input', event => {
+                recordDraftInput(event);
+                if (!event.isTrusted || controller.restoring || document.activeElement !== input) return;
+                if (!input.value && event instanceof InputEvent && event.inputType.startsWith('delete')) awaitingEntry = true;
+                if (awaitingEntry && isCompleteBiomarkerInput(input)) {
+                    awaitingEntry = false;
+                    flyToDomainPip(input);
+                }
+            });
             input.addEventListener('blur', () => scheduleBioageDraftSave(controller));
             input.addEventListener('keydown', event => {
                 if (!bioageMobileMedia.matches) return;
@@ -1477,6 +1520,7 @@ interface Window {
                 '.biomarker-card input[inputmode="decimal"][required]'
             )),
             invalidBatchActive: false,
+            nextInput: null,
             isUpdate: options.isUpdate === true,
             progress,
             restoring: false,
