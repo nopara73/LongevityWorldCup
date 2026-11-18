@@ -85,6 +85,7 @@ public sealed partial class HighlightsTimelineBrowserTests
                 };
                 await loadEventsTable(null, false, null, true, {live:true});
                 row.querySelector('td').append(document.createTextNode(' '));
+                // Intentional wait: cross the original 120ms mutation debounce to detect a delayed whole-feed scan.
                 await new Promise(resolve => setTimeout(resolve, 180));
                 scrollTo({top:y, behavior:'instant'});
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
