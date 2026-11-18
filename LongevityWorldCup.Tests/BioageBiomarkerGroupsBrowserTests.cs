@@ -98,7 +98,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
 
         // Exercise every actual label/error, including long Bortz names. Empty
         // geometry alone cannot detect a clipped error or a lost completion mark.
-        var inputs = page.Locator("#lwc-step-2 .biomarker-card input[type=number]");
+        var inputs = page.Locator("#lwc-step-2 .biomarker-card input[inputmode=decimal]");
         for (var index = 0; index < total; index++)
         {
             var input = inputs.Nth(index);

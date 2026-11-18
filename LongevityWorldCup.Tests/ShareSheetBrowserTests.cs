@@ -14,7 +14,7 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
     [InlineData("improvement")]
     [InlineData("bortz-improvement")]
     [InlineData("crowd")]
-    public async Task RankingViews_UseTheSignedPageCardOnDirectRoutesAndTheCurrentViewAfterHistoryChanges(string view)
+    public async Task RankingViews_UseTheSignedLeagueCardOnDirectRoutesAndTheCurrentViewAfterHistoryChanges(string view)
     {
         await using var context = await ContextAsync();
         var page = await context.NewPageAsync();
@@ -22,11 +22,11 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();
         await ExpectPreviewAsync(page);
         var source = await page.Locator(".lwc-share__preview img").GetAttributeAsync("src");
-        Assert.StartsWith($"/og/page/view-{view}.png?v=", source);
+        Assert.StartsWith($"/og/league/{view}.png?v=", source);
         await page.Keyboard.PressAsync("Escape");
         await page.EvaluateAsync("() => history.replaceState({}, '', '/league/pheno')");
         await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();
-        Assert.StartsWith("/og/page/view-pheno.png", await page.Locator(".lwc-share__preview img").GetAttributeAsync("src"));
+        Assert.StartsWith(view == "pheno" ? "/og/league/pheno.png?v=" : "/og/leaderboard.png?path=%2Fleague%2Fpheno", await page.Locator(".lwc-share__preview img").GetAttributeAsync("src"));
         Assert.Equal("https://longevityworldcup.com/league/pheno", await SharedUrlAsync(page));
     }
 

@@ -125,13 +125,23 @@ public sealed class EventLivingFeedBrowserTests(
                 row.nextElementSibling.querySelector('a').focus({preventScroll:true});
                 window.keptRow=row; window.keptFocus=document.activeElement;
                 window.originalTop=row.getBoundingClientRect().top;
+                window.rowLayoutFlushes = 0;
+                const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+                Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+                    ...width, get() {
+                        if (this.matches('tr.main-row')) rowLayoutFlushes++;
+                        return width.get.call(this);
+                    }
+                });
                 const original=await getSharedEvents();
                 window.fetchPublicJson=async url => url.includes('athletes') ? [] :
                     [{Id:'new',Type:6,Text:'New announcement',OccurredAt:'2026-10-25T00:00:00Z'},...original];
                 await loadEventsTable(null,false,null,true,{live:true});
+                Object.defineProperty(HTMLElement.prototype, 'offsetWidth', width);
             }
             """);
         Assert.True(await page.EvaluateAsync<bool>("keptRow===document.querySelector('[data-event-id=\"item-12\"].main-row') && keptFocus===document.activeElement"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("rowLayoutFlushes"));
         await Assertions.Expect(page.Locator("[data-event-id='item-12'].main-row .custom-event-expander")).ToHaveAttributeAsync("aria-expanded", "true");
         Assert.InRange(await page.EvaluateAsync<double>("Math.abs(keptRow.getBoundingClientRect().top-originalTop)"), 0, 2);
         var ids = await page.Locator("[id^='custom-event-details-']").EvaluateAllAsync<string[]>("els=>els.map(e=>e.id)");

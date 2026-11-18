@@ -38,9 +38,11 @@ public static class ThreadsMessageBuilder
 
         if (type == EventType.NewRank)
         {
-            if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank < 1 || rank > 3) return "";
-            if (!EventHelpers.TryExtractSlug(rawText, out var rankSlug)) return "";
+            if (!EventHelpers.TryExtractTop10Rank(rawText, out var rank)) return "";
+            if (!EventHelpers.TryExtractSlug(rawText, out var rankSlug) || string.IsNullOrWhiteSpace(rankSlug)) return "";
             var current = slugToName(rankSlug);
+            if (rank > 3 || (eventPhase is null or XPostPhase.Mature && EventHelpers.TryExtractPreviousPlace(rawText, out _)))
+                return RejectIfTooLong(SocialPostPolicy.UltimatePlacementText(rawText, current, rank));
             EventHelpers.TryExtractPrev(rawText, out var prevSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
             var newRankMsg = BuildUltimateRankLine(eventPhase, rank, current, prev);

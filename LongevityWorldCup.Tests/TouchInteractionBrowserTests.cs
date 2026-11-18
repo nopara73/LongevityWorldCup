@@ -72,6 +72,40 @@ public sealed class TouchInteractionBrowserTests(PlaywrightBrowserFixture browse
     }
 
     [Fact]
+    public async Task TouchTargets_FinishMeasuringBeforeInstallingHitAreas()
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
+        var result = await page.EvaluateAsync<int[]>("""
+            async () => {
+                const host = document.createElement('div');
+                host.style.cssText = 'display:grid;grid-template-columns:repeat(4,70px);gap:30px;margin:40px';
+                host.innerHTML = Array.from({length:24}, (_,i) => `<button class="hit-probe" style="width:24px;height:24px;padding:0;border:0">${i}</button>`).join('');
+                document.body.append(host);
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                const writes = new MutationObserver(() => {});
+                writes.observe(host, {attributes:true,subtree:true,attributeFilter:['data-lwc-hit','data-lwc-hit-anchor']});
+                let readsAfterWrites = 0;
+                const measure = Element.prototype.getBoundingClientRect;
+                const style = window.getComputedStyle;
+                const check = element => {
+                    if (element.matches('.hit-probe') && writes.takeRecords().some(r => r.target.hasAttribute(r.attributeName))) readsAfterWrites++;
+                };
+                Element.prototype.getBoundingClientRect = function (...args) { check(this); return measure.apply(this,args); };
+                window.getComputedStyle = (element,...args) => { check(element); return style.call(window,element,...args); };
+                LwcTouch.refresh();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                Element.prototype.getBoundingClientRect = measure;
+                window.getComputedStyle = style;
+                writes.disconnect();
+                return [readsAfterWrites, host.querySelectorAll('[data-lwc-hit]').length];
+            }
+            """);
+        Assert.Equal(0, result[0]);
+        Assert.Equal(24, result[1]);
+    }
+
+    [Fact]
     public async Task DialogUpdates_DoNotMeasureTheInertBackgroundForTouchTargets()
     {
         await using var context = await ContextAsync();
