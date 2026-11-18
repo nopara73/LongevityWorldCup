@@ -600,12 +600,16 @@ function initializeAthletePortraitMotion() {
         const photo = new Image();
         const sync = () => {
             const style = getComputedStyle(img);
-            for (const property of ['transform', 'scale', 'rotate', 'translate', 'object-fit', 'object-position', 'object-view-box']) {
-                const value = style.getPropertyValue(property);
+            // Read the photo once before writing to its overlay. Interleaved reads
+            // and writes force style resolution repeatedly during each video frame.
+            const properties = ['transform', 'scale', 'rotate', 'translate', 'object-fit', 'object-position', 'object-view-box', 'outline'];
+            const values = properties.map(property => style.getPropertyValue(property));
+            const outlineOffset = `${parseFloat(style.outlineOffset) + img.clientLeft}px`;
+            properties.forEach((property, index) => {
+                const value = values[index];
                 if (root.style.getPropertyValue(property) !== value) root.style.setProperty(property, value);
-            }
-            root.style.outline = style.outline;
-            root.style.outlineOffset = `${parseFloat(style.outlineOffset) + img.clientLeft}px`;
+            });
+            if (root.style.outlineOffset !== outlineOffset) root.style.outlineOffset = outlineOffset;
         };
         const size = () => {
             const style = getComputedStyle(img);
@@ -676,7 +680,7 @@ function initializeAthletePortraitMotion() {
         surfaces.set(img, record);
         wrapper.classList.add('portrait-motion');
         img.after(root);
-        size();
+        if (img === profile) size();
         resize.observe(img);
         photo.decoding = 'async';
         photo.src = img.src.replace('/generated/profiles/athletes/', '/generated/thumbs/athletes/')
@@ -817,11 +821,13 @@ function initializeAthletePortraitMotion() {
         // Lazy table photos may finish loading after the first pointer entry.
         // Replay then only if that interaction is still active.
         img.addEventListener('load', () => {
+            // The reusable profile image can change while its dialog is open.
+            // Table images only need a motion surface when someone activates them.
             const motion = motionFor(img);
-            if (motion) surfaceFor(img, motion);
+            if (img === profile && motion) surfaceFor(img, motion);
             if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
         });
-        if (img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
+        if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
@@ -863,7 +869,7 @@ function initializeAthletePortraitMotion() {
         if (!records || records.some(record => !profileModal?.contains(record.target))) {
             // Server-rendered rows also work while hydration is pending or fails.
             leaderboard?.querySelectorAll('img.portrait').forEach(wire);
-            // Hydration replaces podium cards; only their final portraits autoplay.
+            // Start autoplay after the ranking has confirmed the final portraits.
             if (athleteResultsReady) {
                 podium?.querySelectorAll('img.podium-portrait').forEach(img => {
                     wire(img);
@@ -1378,7 +1384,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
     }
 
     const currentLoadPromise = window.getSharedAthletes()
-        .then(athletes => {
+        .then(async athletes => {
+            // A prefetched response can resolve inside DOMContentLoaded. Give the
+            // already-visible links an input turn before enhancing the board.
+            if (hasServerRenderedLeaderboardRows(document.querySelector('.leaderboard table tbody'))) {
+                if (window.scheduler?.yield) await window.scheduler.yield();
+                else await new Promise(resolve => setTimeout(resolve, 0));
+            }
             // A pull refresh can finish before the initial request. Only the
             // latest load owns the visible board, including failure handling.
             if (athleteResultsLoadPromise !== currentLoadPromise) return;
@@ -1695,10 +1707,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 return result;
             });
 
-            const getDisplayAgeReductionValue = (athlete) =>
-                (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction))
-                    ? athlete.bortzAgeReduction
-                    : athlete.ageReduction;
             const getDisplayAgeReductionRoundedToTenths = (athlete) => {
                 const displayAgeReduction = getDisplayAgeReductionValue(athlete);
                 return Number.isFinite(displayAgeReduction) ? displayAgeReduction.toFixed(1) : null;
@@ -1816,16 +1824,23 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 return;
             }
 
-            const podiumCount = includePodium ? 3 : 0;
-
             if (includePodium) {
                 // Winners are available now; prize services must not delay their cards.
                 // Get the top three athletes from athleteResults
                 const topThree = athleteResults.slice(0, 3);
 
-                // Select the podium container and clear existing items
+                // Keep the painted portraits when the public data agrees with the HTML.
                 const podium = document.querySelector('.podium');
-                podium.innerHTML = ''; // Clear any existing podium items
+                const serverCards = [...podium.children];
+                const keepCards = podium.dataset.serverRendered === 'true'
+                    && serverCards.length === topThree.length
+                    && topThree.every((athlete, index) =>
+                        serverCards[index].dataset.athleteName === athlete.name
+                        && serverCards[index].querySelector('.athlete-profile-link')?.getAttribute('href') === getAthleteProfileHref(athlete)
+                        && serverCards[index].querySelector('.podium-portrait')?.getAttribute('src') === getAthletePortraitUrl(athlete)
+                        && serverCards[index].querySelector('.athlete-name')?.textContent === athlete.displayName
+                        && serverCards[index].querySelector('.age-reduction')?.textContent === podiumScore(athlete));
+                if (!keepCards) podium.replaceChildren();
                 podium.removeAttribute('data-server-rendered');
                 podium.setAttribute('aria-busy', 'false');
 
@@ -1850,35 +1865,35 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                             return; // Only handle top three
                     }
 
-                    // Create the podium-item div
-                    const podiumItem = document.createElement('div');
-                    podiumItem.classList.add('podium-item', rankClass);
+                    const podiumItem = keepCards ? serverCards[athlete.rank - 1] : document.createElement('div');
+                    if (!keepCards) {
+                        podiumItem.classList.add('podium-item', rankClass);
 
-                    const podiumPortraitUrl = getAthletePortraitUrl(athlete);
+                        const podiumPortraitUrl = getAthletePortraitUrl(athlete);
 
-                    // Populate the inner HTML of podiumItem
-                    podiumItem.innerHTML = `
-                        <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
-                            ${rankEmoji}
-                        </div>
-                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
-                        <div class="name-row">
-                            <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
-                        </div>
-                        <div class="podium-link-row">
-                            ${renderPersonalLink(athlete.personalLink, athlete.displayName)}
-                            ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
-                            ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
-                        </div>
-                        <div class="podium-score"><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
-                        <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
-                            <div class="btc-amount">&nbsp;</div>
-                            <div class="prize-money">&mdash;</div>
-                        </a>
-                    `;
+                        podiumItem.innerHTML = `
+                            <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
+                                ${rankEmoji}
+                            </div>
+                            <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
+                            <div class="name-row">
+                                <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
+                            </div>
+                            <div class="podium-link-row">
+                            </div>
+                            <div class="podium-score"><span class="age-reduction">${podiumScore(athlete)}</span> reduced</div>
+                            <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
+                                <div class="btc-amount">&nbsp;</div>
+                                <div class="prize-money">&mdash;</div>
+                            </a>
+                        `;
 
-                    // Append the podiumItem to the podium container
-                    podium.appendChild(podiumItem);
+                        podium.appendChild(podiumItem);
+                    }
+                    podiumItem.querySelector('.podium-link-row').innerHTML =
+                        renderPersonalLink(athlete.personalLink, athlete.displayName)
+                        + renderPodcastLink(athlete.podcastLink, athlete.displayName)
+                        + renderMediaContact(athlete.mediaContact, true, athlete.displayName);
                     wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
 
                     // After appending the podium item
@@ -1889,14 +1904,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
                 });
 
-                // Attach click event listeners to athlete names
-                attachAthleteNameClickListeners();
-
-                addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
-                addClickListenerToImages('#modalProfilePic', function () {
-                    openEnlargedView(this);
-                }, img => `Enlarge ${img.alt || 'image'}`);
-
+                attachAthleteNameClickListeners(podium);
                 updatePodiumPrizes(podium);
             } else {
                 // Hide the podium container if not included
@@ -1916,92 +1924,17 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             tableBody.setAttribute('aria-busy', 'false');
             tableBody.removeAttribute('data-server-rendered');
             tableBody.removeAttribute('data-hydrating');
-            const remainingAthletes = athleteResults;
-
-            tableBody.innerHTML = ''; // Clear existing table rows
+            const serverRows = new Map([...tableBody.querySelectorAll('tr.server-rendered-leaderboard-row')]
+                .map(row => [row.dataset.athleteName, row]));
             resetRowRevealQueue();
-            let lastVisibleTier = null; // 'pro' | 'amateur' among rows actually shown in the table
-            remainingAthletes.forEach((athlete, index) => {
-                const isPro = athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
-                const tier = isPro ? 'pro' : 'amateur';
-                const rowWillBeHiddenByPodium = includePodium && athlete.rank <= podiumCount;
-                const rowWillBeHiddenByMaxAthletes = index >= maxAthletes;
-                const rowWillBeVisibleInTable = !rowWillBeHiddenByPodium && !rowWillBeHiddenByMaxAthletes;
-                if (rowWillBeVisibleInTable && lastVisibleTier === 'pro' && tier === 'amateur') {
-                    const sep = document.createElement('tr');
-                    sep.className = 'tier-separator';
-                    sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
-                    sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
-                    tableBody.appendChild(sep);
-                }
-                if (rowWillBeVisibleInTable) {
-                    lastVisibleTier = tier;
-                }
-
-                const template = document.getElementById('leaderboardRowTemplate');
-                const row = template.content.firstElementChild.cloneNode(true);
-
-                row.classList.add('tier-' + tier);
-                setProfileProBadge(row.querySelector('.pro-badge'), isPro);
-                row.setAttribute('data-tier', tier);
-                row.setAttribute('data-rank', athlete.rank);
-
-                setDisplayedRank(row.querySelector('.rank'), athlete.rank);
-                const athleteCell = row.querySelector('.athlete-td');
-                const portraitImg = athleteCell.querySelector('img.portrait');
-                portraitImg.src = getAthletePortraitUrl(athlete);
-                portraitImg.alt = `${athlete.displayName} portrait`;
-                wirePortraitFallback(portraitImg, athlete);
-                if (athlete.isNew) {
-                    portraitImg.classList.add('is-new');
-                    applyNewUI(portraitImg, row);
-                }
-                if (athlete.rankImproved) {
-                    const placesUp = athlete.lastMonthRank - athlete.rank; // e.g. 12 → 7  => 5 places up
-                    applyRankUpUI(portraitImg, placesUp, row);
-                }
-
-                const athleteNameSpan = athleteCell.querySelector('.athlete-name');
-                athleteNameSpan.href = getAthleteProfileHref(athlete);
-                const portraitLink = athleteCell.querySelector('.athlete-profile-link');
-                portraitLink.href = getAthleteProfileHref(athlete);
-                portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
-                athleteNameSpan.innerHTML = `<span class="athlete-name-content">${escapeHtml(athlete.displayName)}</span>`;
-                athleteNameSpan.title = `View stats of ${athlete.displayName}`;
-
-                window.setBadges(athlete, athleteCell);
-
-                const displayAgeReduction = getDisplayAgeReductionValue(athlete);
-                const displayAgeReductionDecimals = athlete.ageReductionDisplayDecimals || 1;
-                const ageReductionSpan = row.querySelector('.age-reduction');
-                ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(displayAgeReductionDecimals) + ' years';
-
-                const mediaContactCell = row.querySelector('.media-contact-td');
-                mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
-
-                row.setAttribute('data-division', athlete.division.toLowerCase().trim());
-                row.setAttribute('data-generation', athlete.generation.trim());
-                row.setAttribute('data-athlete-name', athlete.name);
-
-                if (rowWillBeHiddenByPodium) {
-                    row.style.display = 'none';
-                    row.classList.add('podium-athlete');
-                }
-
-                if (rowWillBeHiddenByMaxAthletes) {
-                    row.style.display = 'none';
-                    row.classList.add('extra-athlete');
-                }
-
-                row.id = `rank-${athlete.rank}`;
-                tableBody.appendChild(row);
-                attachAthleteContainerClickListener(row);
-                attachAthleteNameClickListeners();
-                addClickListenerToImages('#modalProfilePic', function () {
-                    openEnlargedView(this);
-                }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
-                addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
-            });
+            const initialRows = athleteResults.slice(0, maxAthletes).map(athlete =>
+                createLeaderboardRow(athlete, serverRows.get(athlete.name)));
+            // Preserve focus and the already-painted portraits when the server has the same rows.
+            const keep = new Set(initialRows);
+            for (const row of [...tableBody.children]) if (!keep.has(row)) row.remove();
+            const newRows = document.createDocumentFragment();
+            for (const row of initialRows) if (!row.isConnected) newRows.append(row);
+            tableBody.append(newRows);
             scheduleLeaderboardTableHeightSync();
 
             // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
@@ -2165,6 +2098,77 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
     return currentLoadPromise;
 };
 
+function createLeaderboardRow(athlete, serverRow) {
+    const isPro = Number.isFinite(athlete.bortzAgeReduction);
+    const tier = isPro ? 'pro' : 'amateur';
+    const template = document.getElementById('leaderboardRowTemplate');
+    const row = serverRow?.querySelector('.portrait-wrapper img.portrait') ? serverRow : template.content.firstElementChild.cloneNode(true);
+    row.classList.remove('server-rendered-leaderboard-row');
+    if (!row.querySelector('.pro-badge')) {
+        row.querySelector('.portrait-wrapper').append(template.content.querySelector('.pro-badge').cloneNode());
+    }
+
+    setProfileProBadge(row.querySelector('.pro-badge'), isPro);
+    row.setAttribute('data-tier', tier);
+    row.setAttribute('data-rank', athlete.rank);
+
+    setDisplayedRank(row.querySelector('.rank'), athlete.rank);
+    const athleteCell = row.querySelector('.athlete-td');
+    const portraitImg = athleteCell.querySelector('img.portrait');
+    const portraitUrl = getAthletePortraitUrl(athlete);
+    if (portraitImg.getAttribute('src') !== portraitUrl) portraitImg.src = portraitUrl;
+    portraitImg.alt = `${athlete.displayName} portrait`;
+    wirePortraitFallback(portraitImg, athlete);
+    if (athlete.isNew) {
+        portraitImg.classList.add('is-new');
+        applyNewUI(portraitImg, row);
+    }
+    if (athlete.rankImproved) {
+        const placesUp = athlete.lastMonthRank - athlete.rank; // e.g. 12 → 7  => 5 places up
+        applyRankUpUI(portraitImg, placesUp, row);
+    }
+
+    const athleteNameSpan = athleteCell.querySelector('.athlete-name');
+    athleteNameSpan.href = getAthleteProfileHref(athlete);
+    const portraitLink = athleteCell.querySelector('.athlete-profile-link');
+    portraitLink.href = getAthleteProfileHref(athlete);
+    portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
+    athleteNameSpan.innerHTML = `<span class="athlete-name-content">${escapeHtml(athlete.displayName)}</span>`;
+    athleteNameSpan.title = `View stats of ${athlete.displayName}`;
+
+    window.setBadges(athlete, athleteCell);
+
+    const displayAgeReduction = getDisplayAgeReductionValue(athlete);
+    const displayAgeReductionDecimals = athlete.ageReductionDisplayDecimals || 1;
+    const ageReductionSpan = row.querySelector('.age-reduction');
+    ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(displayAgeReductionDecimals) + ' years';
+
+    const mediaContactCell = row.querySelector('.media-contact-td');
+    mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
+
+    row.setAttribute('data-division', athlete.division.toLowerCase().trim());
+    row.setAttribute('data-generation', athlete.generation.trim());
+    row.setAttribute('data-athlete-name', athlete.name);
+    row.classList.toggle('tier-pro', isPro);
+    row.classList.toggle('tier-amateur', !isPro);
+    if (includePodiumGlobal && athlete.rank <= 3) {
+        row.style.display = 'none';
+        row.classList.add('podium-athlete');
+    }
+    row.id = `rank-${athlete.rank}`;
+    attachAthleteContainerClickListener(row);
+    attachAthleteNameClickListeners(row);
+    return row;
+}
+
+function createTierSeparator() {
+    const sep = document.createElement('tr');
+    sep.className = 'tier-separator';
+    sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
+    sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
+    return sep;
+}
+
 function buildPodiumSkeletonHtml() {
     return ['second', 'first', 'third'].map(rank => `
         <div class="podium-item podium-skeleton-item ${rank}" aria-hidden="true">
@@ -2294,6 +2298,14 @@ function setLeaderboardLoadingState(includePodium, maxAthletes) {
     tableBody.innerHTML = buildLeaderboardSkeletonRows(skeletonCount);
 }
 
+function getDisplayAgeReductionValue(athlete) {
+    return Number.isFinite(athlete.bortzAgeReduction) ? athlete.bortzAgeReduction : athlete.ageReduction;
+}
+
+function podiumScore(athlete) {
+    return Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1) + ' years';
+}
+
 function updatePodiumPrizes(podium) {
     // Capture these exact panels so a late response cannot replace newer
     // cards, discard focus, or undo a leaderboard filter/refresh.
@@ -2365,13 +2377,12 @@ function attachAthleteContainerClickListener(container) {
     container.dataset.athleteContainerClickListener = 'true';
 }
 
-function attachAthleteNameClickListeners() {
-    document.querySelectorAll('a.athlete-name, a.athlete-profile-link').forEach(athleteNameElement => {
+function attachAthleteNameClickListeners(container) {
+    container.querySelectorAll('a.athlete-name, a.athlete-profile-link').forEach(athleteNameElement => {
         const athleteName = athleteNameElement.textContent.trim() || athleteNameElement.getAttribute('aria-label');
         if (!athleteName) return;
 
         athleteNameElement.setAttribute('aria-label', athleteNameElement.title || athleteNameElement.getAttribute('aria-label') || `View stats of ${athleteName}`);
-        athleteNameElement.removeEventListener('click', activateAthleteName);
         athleteNameElement.addEventListener('click', activateAthleteName);
     });
 }
@@ -3903,11 +3914,36 @@ function moveLeaderboardRows(mutate, motion) {
     }
 }
 
+const unrenderedBadgeSearch = new WeakMap();
+
+function leaderboardBadgeSearchText(athlete, row) {
+    // Use the same badge labels, overflow copy and personal guess as a rendered row.
+    // Cache offscreen athletes so subsequent keystrokes do not rebuild their badges.
+    let guess;
+    if (!row) {
+        guess = window.LwcGuessState?.get(athlete)?.value;
+        const cached = unrenderedBadgeSearch.get(athlete);
+        if (cached && cached.guess === guess && cached.badges === athlete.Badges) return cached.text;
+    }
+    const cell = row || document.createElement('td');
+    if (!row) {
+        cell.className = 'athlete-td';
+        cell.innerHTML = '<span class="athlete-name-links"></span><div class="badge-section"></div>';
+        window.setBadges(athlete, cell);
+    }
+    const text = Array.from(cell.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'), badge => {
+        const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
+        return `${title} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`.trim();
+    }).join(' ');
+    if (!row) unrenderedBadgeSearch.set(athlete, { guess, badges: athlete.Badges, text });
+    return text;
+}
+
 function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     // Immediate filter changes already consume the current query. A stale timer
     // must not rewrite a profile URL opened from those freshly filtered rows.
     debouncedFilter.cancel();
-    const rowMotion = captureLeaderboardRowMotion();
+    const rowMotion = renderedLeaderboardSelection ? captureLeaderboardRowMotion() : null;
     const selectedState = getSelectedLeaderboardState();
     const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
     const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: document.getElementById('athleteSearch').value });
@@ -4024,24 +4060,15 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const showAll = uniqueSearchTerms.length === 0;
 
     const athleteBadgeTextByName = new Map();
-    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
-        const athleteName = row.getAttribute('data-athlete-name');
-        if (!athleteName) return;
+    if (uniqueSearchTerms.length && !orderingSnapshot) {
+        const renderedRows = new Map([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')]
+            .map(row => [row.dataset.athleteName, row]));
+        for (const athlete of athleteResults) {
+            athleteBadgeTextByName.set(athlete.name, leaderboardBadgeSearchText(athlete, renderedRows.get(athlete.name)));
+        }
+    }
 
-        const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'))
-            .map(badge => {
-                const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
-                const ariaLabel = badge.getAttribute('aria-label') || '';
-                const text = badge.textContent || '';
-                return `${title} ${ariaLabel} ${text}`.trim();
-            })
-            .filter(Boolean)
-            .join(' ');
-
-        athleteBadgeTextByName.set(athleteName, badgeSearchText);
-    });
-
-    const searchTextByAthlete = orderingSnapshot ? null : new Map(athleteResults.map(athlete => [athlete, [
+    const searchTextByAthlete = (orderingSnapshot || showAll) ? null : new Map(athleteResults.map(athlete => [athlete, [
         athlete.name,
         athlete.displayName,
         athleteBadgeTextByName.get(athlete.name) || '',
@@ -4114,15 +4141,21 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     tableBody.querySelector('.leaderboard-load-error-row')?.remove();
     const allRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)'));
     const rowsByName = new Map(allRows.filter(row => row.dataset.athleteName).map(row => [row.dataset.athleteName, row]));
-    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
     athleteDialogBoardSequence = unslicedFilteredAthletes;
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
     updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot);
 
+    for (const athlete of filteredAthletes) {
+        if (rowsByName.has(athlete.name)) continue;
+        const row = createLeaderboardRow(athlete);
+        rowsByName.set(athlete.name, row);
+        allRows.push(row);
+    }
+    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const tableRows = allRows;
-    const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
+    let tierSeparatorRow = tableBody.querySelector('.tier-separator');
 
     // Remove 'blurred' class from all podium items
     const podiumItems = document.querySelectorAll('.podium-item');
@@ -4169,7 +4202,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
 
     // Show tier separator when both pro and amateur rows are visible in the table (first amateur after at least one pro); hide for clock views.
     // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
-    if (tierSeparatorRow) {
+    {
         let separatorShouldShow = false;
         if (currentLeaderboardView === 'ultimate' && selectedState.ordering.sort === 'rank') {
             const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
@@ -4182,7 +4215,11 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
                 }
             }
         }
-        tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
+        if (separatorShouldShow && !tierSeparatorRow) {
+            tierSeparatorRow = createTierSeparator();
+            allRows.push(tierSeparatorRow);
+        }
+        if (tierSeparatorRow) tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
     }
 
     // Reorder tbody so visible rows match the athletes actually shown in the table.
@@ -7209,7 +7246,6 @@ function syncLeaderboardTableHeight() {
 
     // Complete geometry reads before writing styles. Sidebar measurements must
     // not invalidate every athlete and badge through inherited board variables.
-    const headHeight = table.tHead?.getBoundingClientRect().height;
     if (isMobileDrawerViewport()) {
         leaderboard.style.removeProperty('min-height');
         sidebar?.style.removeProperty('--leaderboard-table-height');
@@ -7218,6 +7254,7 @@ function syncLeaderboardTableHeight() {
         sidebar?.style.removeProperty('--leaderboard-head-height');
         return;
     }
+    const headHeight = table.tHead?.getBoundingClientRect().height;
     const tableHeight = table.getBoundingClientRect().height;
     // Hover/expansion temporarily hides the rail title. Keep its measured
     // footprint so opening the overlay cannot shorten the board beneath it.

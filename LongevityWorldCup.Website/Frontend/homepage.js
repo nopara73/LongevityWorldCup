@@ -307,12 +307,14 @@ function watchHomepageHighlightsLayout() {
     // Appending a highlight changes both card heights; using those heights as
     // inputs would continually reset the rows we just fitted.
     const signature = function () {
+        // Stacked cards always use the base row count. Their geometry only
+        // participates in fitting when the cards sit beside one another.
+        if (window.innerWidth <= 991) return 'stacked';
         const row = highlights.querySelector('.event-message');
         const rowStyle = row ? getComputedStyle(row) : null;
         const bodyStyle = getComputedStyle(body);
         const content = [swag.querySelector('.lwc-countdown-header-row'), ...body.children];
         return JSON.stringify([
-            window.innerWidth > 991,
             highlights.getBoundingClientRect().width,
             rowStyle?.fontSize, rowStyle?.lineHeight, rowStyle?.fontFamily,
             bodyStyle.paddingBlockStart, bodyStyle.paddingBlockEnd, bodyStyle.rowGap,
