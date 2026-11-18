@@ -1399,7 +1399,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             const refreshFocus = refresh ? document.activeElement : null;
             const refreshScroll = refresh ? window.scrollY : null;
             // Array to store athletes with their lowest PhenoAge and age reduction
-            updateViewAllAthletesButton(athletes.length);
             const nowForCrowdAgeUtc = new Date();
             const crowdAgeAsOfUtcDate = new Date(
                 nowForCrowdAgeUtc.getUTCFullYear(),
@@ -3475,8 +3474,8 @@ function getViewAllAthletesButton() {
     return pageDocument.getElementById('viewAllAthletesBtn');
 }
 
-function updateViewAllAthletesButton(count, updateSummary = true) {
-    if (updateSummary) updateLeaderboardSelectionSummary(count);
+function updateViewAllAthletesButton(count, updateSummary = true, allowMotion = true) {
+    if (updateSummary) updateLeaderboardSelectionSummary(count, allowMotion);
     const button = getViewAllAthletesButton();
     if (!button) return;
 
@@ -3488,29 +3487,46 @@ function updateViewAllAthletesButton(count, updateSummary = true) {
     button.textContent = Number.isFinite(displayCount) ? `${label} (${displayCount})` : label;
 }
 
-function updateLeaderboardSelectionSummary(count) {
+const selectionAnimations = new Set();
+let selectionCountAnimation;
+let currentSelectionChoices = [];
+
+function animateSelection(element, frames, options, cleanup) {
+    const animation = element.animate(frames, options);
+    selectionAnimations.add(animation);
+    const finish = () => {
+        selectionAnimations.delete(animation);
+        cleanup?.();
+    };
+    animation.onfinish = finish;
+    animation.oncancel = finish;
+}
+
+function selectionGhost(chip, rect, flight) {
+    const ghost = document.createElement('span');
+    ghost.className = 'leaderboard-selection-chip--ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.append(...Array.from(chip.children, child => child.cloneNode(true)));
+    Object.assign(ghost.style, { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` });
+    if (flight) ghost.classList.add('is-flying');
+    document.body.appendChild(ghost);
+    return ghost;
+}
+
+function updateLeaderboardSelectionSummary(count, allowMotion) {
     const summary = document.getElementById('leaderboardSelectionSummary');
     if (!summary || !Number.isFinite(count)) return;
-    summary.hidden = false;
-    const isFlags = getSelectedLeaderboardState().byFlag;
-    const resultLabel = `${count} ${isFlags ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
-    const resultCount = document.getElementById('leaderboardResultCount');
-    // The real total shows at once. A later change rolls the new figure in
-    // from the direction it moved; it never counts through other values.
-    const previousTotal = Number(resultCount.dataset.total);
-    resultCount.dataset.total = String(count);
-    if (resultCount.textContent !== resultLabel) {
-        resultCount.textContent = resultLabel;
-        if (Number.isFinite(previousTotal) && previousTotal !== count) rollSelectionFigure(resultCount, count > previousTotal);
-    }
-    const showResults = document.getElementById('showLeaderboardResults');
-    if (showResults) showResults.textContent = `Show ${resultLabel}`;
-
-    const choices = [];
     const state = getSelectedLeaderboardState();
+    const unit = state.byFlag ? 'flag' : 'athlete';
+    const resultLabel = `${count} ${unit}${count === 1 ? '' : 's'}`;
+    const resultCount = document.getElementById('leaderboardResultCount');
+    const showResults = document.getElementById('showLeaderboardResults');
+    const chips = document.getElementById('leaderboardSelectionChips');
+    const toggle = document.querySelector('.sidebar-toggle');
+    const choices = [];
     const viewLabels = { bortz: 'Bortz age', pheno: 'Pheno age', improvement: 'Pheno improvement', 'bortz-improvement': 'Bortz improvement', crowd: 'Crowd age' };
-    if (state.byFlag) choices.push({ key: 'by-flag', source: document.getElementById('group-flags')?.closest('label'), label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
-    if (state.view !== 'ultimate') choices.push({ key: 'view', source: document.querySelector('input[name="agingClockView"]:checked')?.closest('label'), label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
+    if (state.byFlag) choices.push({ key: 'by-flag', source: document.querySelector('label[for="group-flags"]'), label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
+    if (state.view !== 'ultimate') choices.push({ key: `view:${state.view}`, source: document.querySelector(`label[for="view-${CSS.escape(state.view)}"]`), label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
     for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
         if (name === 'flag' && state.byFlag) continue;
         if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
@@ -3519,168 +3535,106 @@ function updateLeaderboardSelectionSummary(count) {
             choices.push({ key: `${name}:${input.value}`, source: input.closest('label'), label, remove: () => { input.checked = false; } });
         });
     }
-    const toggle = document.querySelector('.sidebar-toggle');
-    if (toggle) {
-        const previousCount = toggle.dataset.filterCount;
-        toggle.dataset.filterCount = String(choices.length);
-        // The badge disappears when the last filter goes, so only pulse while one remains.
-        if (previousCount !== undefined && previousCount !== String(choices.length) && choices.length > 0) pulseFilterToggle(toggle, choices.length > Number(previousCount));
-        toggle.setAttribute('aria-description', `${choices.length} active ${choices.length === 1 ? 'filter' : 'filters'}`);
-    }
+    const filterCount = choices.length;
     const search = document.getElementById('athleteSearch');
-    if (search?.value.trim()) choices.push({ key: 'search', source: search.closest('.search-container') || search, label: `Search: ${search.value.trim()}`, remove: () => { search.value = ''; toggleClearIcon(); } });
+    if (search?.value.trim()) choices.push({ key: 'search', label: `Search: ${search.value.trim()}`, remove: () => { search.value = ''; toggleClearIcon(); } });
 
-    const chips = document.getElementById('leaderboardSelectionChips');
-    const before = snapshotSelectionChips(chips);
-    chips.replaceChildren();
-    choices.forEach((choice, index) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'leaderboard-selection-chip';
-        button.dataset.chipKey = choice.key || choice.label;
-        button.setAttribute('aria-label', `Remove ${choice.label} filter`);
-        const label = document.createElement('span');
-        label.textContent = choice.label;
-        const close = document.createElement('span');
-        close.textContent = '×';
-        close.setAttribute('aria-hidden', 'true');
-        button.append(label, close);
-        button.addEventListener('click', () => {
-            choice.remove();
-            performFilter();
-            const remaining = chips.querySelectorAll('button');
-            (remaining[Math.min(index, remaining.length - 1)] || toggle)?.focus({ preventScroll: true });
-        });
-        chips.appendChild(button);
-    });
-    document.getElementById('clearLeaderboardSelection').hidden = choices.length === 0;
-    animateSelectionChips(chips, before, choices);
-}
-
-// ---- Selection chips in motion -------------------------------------------------
-// The summary bar is where a choice lands: a ticked tile sends its chip flying
-// to the bar, chips that stay slide to their new place, removed chips fold
-// away where they were, and the filter badge pops when the count changes.
-function selectionMotionAllowed() {
-    // The shared motion gate: nothing moves before the visitor's first press.
-    return !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        && document.documentElement.dataset.lwcMotion === 'on';
-}
-
-function rollSelectionFigure(element, up) {
-    if (!selectionMotionAllowed() || typeof element.animate !== 'function') return;
-    element.animate([
-        { transform: `translateY(${up ? 8 : -8}px)`, opacity: 0.2 },
-        { transform: 'none', opacity: 1 }
-    ], { duration: 240, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
-}
-
-function snapshotSelectionChips(chips) {
-    const map = new Map();
-    if (!chips) return map;
-    chips.querySelectorAll('.leaderboard-selection-chip').forEach(chip => {
-        const rect = chip.getBoundingClientRect();
-        if (!rect.width) return;
-        map.set(chip.dataset.chipKey || chip.textContent, { rect, html: chip.innerHTML });
-    });
-    return map;
-}
-
-function animateSelectionChips(chips, before, choices) {
-    if (!chips || !selectionMotionAllowed()) return;
-    const ease = 'cubic-bezier(0.2, 0, 0, 1)';
-    const after = new Map();
-    chips.querySelectorAll('.leaderboard-selection-chip').forEach(chip => after.set(chip.dataset.chipKey, chip));
-    let arriving = 0;
-    // On phones the open sheet covers the bar, so the sheet's own results button
-    // takes the landing for any new chip instead.
-    const sheetOpen = isMobileDrawerViewport() && !!document.querySelector('.sidebar.expanded');
-    if (sheetOpen && [...after.keys()].some(key => key !== 'search' && !before.has(key))) {
-        const target = document.getElementById('showLeaderboardResults');
-        if (target) {
-            window.clearTimeout(target._landingTimer);
-            target.classList.remove('is-landing');
-            void target.offsetWidth;
-            target.classList.add('is-landing');
-            target._landingTimer = window.setTimeout(() => target.classList.remove('is-landing'), 700);
+    const previous = new Map(Array.from(chips.children, chip => [chip.dataset.chipKey, chip]));
+    const changed = previous.size !== choices.length || choices.some(choice => !previous.has(choice.key));
+    const motion = allowMotion && typeof chips.animate === 'function' && document.documentElement.dataset.lwcMotion === 'on'
+        && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sheetOpen = changed && isMobileDrawerViewport() && document.querySelector('.sidebar.expanded');
+    const moveChips = motion && changed && !sheetOpen;
+    const before = new Map();
+    if (changed) {
+        for (const animation of selectionAnimations) animation.cancel();
+        if (moveChips) {
+            for (const chip of previous.values()) before.set(chip, chip.getBoundingClientRect());
         }
     }
-    after.forEach((chip, key) => {
-        const now = chip.getBoundingClientRect();
-        if (!now.width || sheetOpen) return;
-        const old = before.get(key);
-        if (old) {
-            const dx = old.rect.left - now.left;
-            const dy = old.rect.top - now.top;
-            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-                chip.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 260, easing: ease });
-            }
-            return;
-        }
-        // A new chip flies from the tile that was ticked, when that tile is on screen.
-        // It travels as a copy above the open filter panel (the real chip sits
-        // under the panel's layer) and hands over to the real chip as it lands.
-        const choice = choices.find(item => (item.key || item.label) === key);
-        const source = choice?.source?.getBoundingClientRect();
-        const visible = source && source.width && source.bottom > 0 && source.top < window.innerHeight;
-        if (visible && key !== 'search') {
-            const dx = source.left + source.width / 2 - (now.left + now.width / 2);
-            const dy = source.top + source.height / 2 - (now.top + now.height / 2);
-            const flyer = document.createElement('span');
-            flyer.className = 'leaderboard-selection-chip leaderboard-selection-chip--ghost';
-            flyer.setAttribute('aria-hidden', 'true');
-            flyer.innerHTML = chip.innerHTML;
-            Object.assign(flyer.style, {
-                position: 'fixed', left: `${now.left}px`, top: `${now.top}px`,
-                minWidth: `${now.width}px`, height: `${now.height}px`, margin: '0', zIndex: '130', overflow: 'visible'
-            });
-            document.body.appendChild(flyer);
-            const duration = 420;
-            flyer.animate([
-                { transform: `translate(${dx}px, ${dy}px) scale(0.85)`, opacity: 0.5, offset: 0 },
-                { opacity: 1, offset: 0.35 },
-                { transform: 'none', opacity: 1 }
-            ], { duration, easing: 'cubic-bezier(0.3, 0, 0, 1)' }).finished.catch(() => {}).finally(() => flyer.remove());
-            chip.animate([{ opacity: 0 }, { opacity: 0 }], { duration });
-            window.setTimeout(() => {
-                chip.classList.add('is-landing');
-                window.setTimeout(() => chip.classList.remove('is-landing'), 700);
-            }, duration);
-        } else if (key !== 'search' || !before.has('search')) {
-            chip.animate([{ transform: 'scale(0.6)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-                { duration: 260, delay: arriving * 40, easing: 'cubic-bezier(0.34, 1.4, 0.64, 1)', fill: 'backwards' });
-            arriving += 1;
-        }
-    });
-    // Removed chips fold away where they stood.
-    let leaving = 0;
-    before.forEach((old, key) => {
-        if (after.has(key)) return;
-        const ghost = document.createElement('span');
-        ghost.className = 'leaderboard-selection-chip leaderboard-selection-chip--ghost';
-        ghost.setAttribute('aria-hidden', 'true');
-        ghost.innerHTML = old.html;
-        Object.assign(ghost.style, {
-            position: 'fixed', left: `${old.rect.left}px`, top: `${old.rect.top}px`,
-            width: `${old.rect.width}px`, height: `${old.rect.height}px`, margin: '0', zIndex: '40'
-        });
-        document.body.appendChild(ghost);
-        ghost.animate([
-            { transform: 'none', opacity: 1 },
-            { transform: 'translateY(-6px) scale(0.7)', opacity: 0 }
-        ], { duration: 240, delay: leaving * 45, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' })
-            .finished.catch(() => {}).finally(() => ghost.remove());
-        leaving += 1;
-    });
-}
 
-function pulseFilterToggle(toggle, grew) {
-    if (!selectionMotionAllowed()) return;
-    window.clearTimeout(toggle._pulseTimer);
-    toggle.classList.remove('is-pulsing', 'is-shrinking');
-    void toggle.offsetWidth;
-    toggle.classList.add(grew ? 'is-pulsing' : 'is-shrinking');
-    toggle._pulseTimer = window.setTimeout(() => toggle.classList.remove('is-pulsing', 'is-shrinking'), 600);
+    if (summary.hidden) summary.hidden = false;
+    if (resultCount.textContent !== resultLabel) {
+        const oldCount = parseInt(resultCount.textContent, 10);
+        resultCount.textContent = resultLabel;
+        selectionCountAnimation?.cancel();
+        if (motion && Number.isFinite(oldCount) && oldCount !== count) {
+            selectionCountAnimation = resultCount.animate([{ transform: `translateY(${count > oldCount ? 6 : -6}px)` }, { transform: 'none' }], { duration: 180 });
+        }
+    }
+    if (showResults && showResults.textContent !== `Show ${resultLabel}`) showResults.textContent = `Show ${resultLabel}`;
+    if (toggle && toggle.dataset.filterCount !== String(filterCount)) {
+        toggle.dataset.filterCount = String(filterCount);
+        toggle.setAttribute('aria-description', `${filterCount} active ${filterCount === 1 ? 'filter' : 'filters'}`);
+    }
+
+    // Removing obsolete buttons first leaves the survivors in their natural tab order.
+    currentSelectionChoices = choices;
+    const keys = new Set(choices.map(choice => choice.key));
+    const missing = Array.from(previous.values()).filter(chip => !keys.has(chip.dataset.chipKey));
+    for (const chip of missing) chip.remove();
+    let next = chips.firstElementChild;
+    for (const choice of choices) {
+        let button = previous.get(choice.key);
+        if (!button) {
+            button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'leaderboard-selection-chip';
+            button.dataset.chipKey = choice.key;
+            const close = document.createElement('span');
+            close.textContent = '×';
+            close.setAttribute('aria-hidden', 'true');
+            button.append(document.createElement('span'), close);
+            button.addEventListener('click', () => {
+                const neighbor = button.nextElementSibling || button.previousElementSibling || toggle;
+                currentSelectionChoices.find(item => item.key === button.dataset.chipKey)?.remove();
+                performFilter();
+                (neighbor?.isConnected ? neighbor : toggle)?.focus({ preventScroll: true });
+            });
+        }
+        if (button.firstElementChild.textContent !== choice.label) {
+            button.firstElementChild.textContent = choice.label;
+            button.setAttribute('aria-label', `Remove ${choice.label} filter`);
+        }
+        if (button !== next) chips.insertBefore(button, next);
+        next = button.nextElementSibling;
+    }
+    document.getElementById('clearLeaderboardSelection').hidden = !choices.length;
+
+    if (motion && sheetOpen && showResults && choices.some(choice => !previous.has(choice.key))) {
+        animateSelection(showResults, [{ transform: 'scale(1)' }, { transform: 'scale(1.035)', boxShadow: '0 0 0 3px var(--lwc-accent-soft)' }, { transform: 'scale(1)' }], { duration: 320 });
+    }
+    if (!moveChips) return;
+
+    // Read final positions together before attaching or animating any copies.
+    const moves = Array.from(chips.children, (chip, index) => ({
+        chip, rect: chip.getBoundingClientRect(), old: before.get(chip),
+        source: before.has(chip) ? null : choices[index].source?.getBoundingClientRect()
+    }));
+    const visible = rect => rect?.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+    for (const { chip, rect, old, source } of moves) {
+        if (!visible(rect)) continue;
+        if (old) {
+            const dx = old.left - rect.left, dy = old.top - rect.top;
+            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)
+                animateSelection(chip, [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 240, easing: 'ease-out' });
+        } else if (visible(source)) {
+            const dx = source.left + source.width / 2 - rect.left - rect.width / 2;
+            const dy = source.top + source.height / 2 - rect.top - rect.height / 2;
+            const ghost = selectionGhost(chip, rect, true);
+            animateSelection(ghost, [{ transform: `translate(${dx}px, ${dy}px) scale(.85)`, opacity: .6 }, { transform: 'none', opacity: 1 }],
+                { duration: 340, easing: 'ease-out' }, () => ghost.remove());
+            animateSelection(chip, [{ boxShadow: '0 0 0 2px var(--lwc-accent)' }, { boxShadow: 'none' }], { duration: 240, delay: 340 });
+        }
+    }
+    let leaving = 0;
+    for (const chip of missing) {
+        const rect = before.get(chip);
+        if (!visible(rect)) continue;
+        const ghost = selectionGhost(chip, rect, false);
+        animateSelection(ghost, [{ opacity: 1 }, { transform: 'translateY(-6px) scale(.7)', opacity: 0 }],
+            { duration: 200, delay: Math.min(leaving++, 4) * 30, easing: 'ease-in', fill: 'forwards' }, () => ghost.remove());
+    }
 }
 
 function updateLeaderboardStateIndicator() {
@@ -4263,7 +4217,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         const matchingTeams = getMatchingFlagTeams(selectedState);
         renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
         markFlagSearchReasons(uniqueSearchTerms, matchingTeams, athleteBadgeTextByName);
-        updateViewAllAthletesButton(matchingTeams.length);
+        updateViewAllAthletesButton(matchingTeams.length, true, updateUrl);
         updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
         updateLeaderboardTitles(selectedState);
         document.querySelector('.podium')?.style.setProperty('display', 'none');
@@ -4284,7 +4238,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
     athleteDialogBoardSequence = unslicedFilteredAthletes;
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
-    updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot);
+    updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot, updateUrl);
 
     for (const athlete of filteredAthletes) {
         if (rowsByName.has(athlete.name)) continue;

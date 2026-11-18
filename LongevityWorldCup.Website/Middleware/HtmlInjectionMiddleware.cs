@@ -482,6 +482,10 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 if (selection is not null && ShouldRenderLeaderboardRows(context))
                 {
                     var table = selection.Snapshot;
+                    var total = selection.ByFlag ? selection.FlagTeams.Count : table.Rows.Count;
+                    var unit = selection.ByFlag ? "flag" : "athlete";
+                    html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardResultCount", $"{total} {unit}{(total == 1 ? "" : "s")}")
+                        .Replace("id=\"leaderboardSelectionSummary\" hidden", "id=\"leaderboardSelectionSummary\"", StringComparison.Ordinal);
                     if (selection.ByFlag)
                     {
                         var teams = selection.FlagTeams;

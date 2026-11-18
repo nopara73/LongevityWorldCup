@@ -3562,6 +3562,10 @@
  }
  .leaderboard-selection-chip { display: inline-flex; align-items: center; gap: var(--lwc-space-2); max-width: 100%; background: var(--lwc-accent-soft); border-color: transparent; }
  .leaderboard-selection-chip span:first-child { min-width: 0; max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ /* Keep a selected league readable when Clear all shares a narrow row. */
+ .leaderboard-selection-chip[data-chip-key]:not([data-chip-key="search"]) span:first-child {
+     max-width: none; white-space: normal; overflow-wrap: anywhere;
+ }
  .leaderboard-selection-chip span:last-child { flex: 0 0 auto; color: var(--lwc-accent); font-size: 1.1rem; }
  .leaderboard-clear-all { padding-inline: var(--lwc-space-2); border-color: transparent; color: var(--lwc-accent); background: transparent; }
  .leaderboard-clear-all[hidden] { display: none; }
@@ -3571,13 +3575,25 @@
  .leaderboard-clear-all:focus-visible,
  .sidebar-show-results:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
  @media (max-width: 480px) {
+     .leaderboard-controls-status { container: league-status / inline-size; }
+     .leaderboard-clear-all { padding-inline: min(6px, var(--lwc-space-2)); }
      .leaderboard-controls .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) {
-         display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; align-items: end;
+         display: grid; grid-template-columns: minmax(0, 1fr) fit-content(30%); column-gap: min(8px, var(--lwc-space-2)); width: 100%; align-items: end;
+     }
+     .leaderboard-selection-chip, .leaderboard-selection-chip--ghost {
+         padding-inline: min(12px, var(--lwc-space-3)); gap: min(8px, var(--lwc-space-2));
      }
      .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) #leaderboardResultCount { grid-column: 1 / -1; margin: 0; }
      .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) .leaderboard-selection-chips {
          display: flex; flex-wrap: wrap; gap: var(--lwc-space-2); min-width: 0;
      }
+ }
+ /* At large type on the narrowest phones, Clear all needs its own line. */
+ @container league-status (max-width: 8.25em) {
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) > :is(.leaderboard-selection-chips, .leaderboard-clear-all) {
+         grid-column: 1 / -1;
+     }
+     .leaderboard-clear-all { justify-self: end; }
  }
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }

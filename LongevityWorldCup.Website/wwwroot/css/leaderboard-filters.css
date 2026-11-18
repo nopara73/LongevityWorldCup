@@ -427,112 +427,34 @@
 }
 
 
-/* ===== From tile to bar =====
- * Choosing a league is one motion: the ticked tile sends its chip flying to
- * the selection bar, where it lands with a ring; chips that stay slide to
- * their new place; removed chips (one at a time or Clear all) fold away in a
- * short cascade; the athlete count rolls in from the direction it moved (the
- * real total shows at once on first paint); the filter badge
- * pops up when a filter is added and dips when one goes. No new words.
- * Motion is driven from leaderboard-page.js; reduced motion keeps states. */
-.leaderboard-selection-chip {
-    position: relative;
-    transition: background-color 140ms ease, box-shadow 160ms ease;
-}
-
-.leaderboard-selection-chip.is-landing {
-    box-shadow: 0 0 0 2px var(--lwc-accent);
-}
-
+/* The non-interactive copy travels above the open deck. */
 .leaderboard-selection-chip--ghost {
+    position: fixed;
+    z-index: 40;
     display: inline-flex;
     align-items: center;
-    gap: var(--lwc-space-2, 8px);
+    gap: var(--lwc-space-2);
     box-sizing: border-box;
-    padding: 0 var(--lwc-space-3, 12px);
-    border-radius: var(--lwc-radius-pill, 999px);
+    padding: var(--lwc-space-2) var(--lwc-space-3);
+    border: 1px solid transparent;
+    border-radius: var(--lwc-radius-md);
     background: var(--lwc-accent-soft);
     color: var(--lwc-ink);
-    font: inherit;
-    font-size: 0.875rem;
-    white-space: nowrap;
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    overflow: hidden;
     pointer-events: none;
 }
+.leaderboard-selection-chip--ghost.is-flying { z-index: 130; }
+.leaderboard-selection-chip--ghost span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.leaderboard-selection-chip--ghost span:last-child { flex: none; color: var(--lwc-accent); font-size: 1.1rem; }
+#leaderboardResultCount { display: inline-block; }
 
-.leaderboard-selection-chip--ghost span {
-    overflow: visible;
-    text-overflow: clip;
-    white-space: nowrap;
-}
-
-.leaderboard-selection-chip--ghost span:last-child {
-    color: var(--lwc-accent);
-}
-
-/* Removing a chip previews its exit: the close mark turns and the chip dims. */
 @media (hover: hover) {
-    .leaderboard-selection-chip:hover {
-        background: color-mix(in srgb, var(--lwc-accent-soft) 70%, var(--lwc-danger-soft, #fdecef));
-    }
-
-    .leaderboard-selection-chip span:last-child {
-        display: inline-block;
-        transition: transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1), color 140ms ease;
-    }
-
-    .leaderboard-selection-chip:hover span:last-child {
-        transform: rotate(90deg) scale(1.15);
-        color: var(--lwc-danger, #b4233b);
-    }
-
-    .leaderboard-selection-summary:has(#clearLeaderboardSelection:hover) .leaderboard-selection-chip {
-        opacity: 0.6;
-        transform: translateY(-1px);
-    }
+    .leaderboard-selection-chip:hover span:last-child { color: var(--lwc-danger); }
+    .leaderboard-selection-summary:has(#clearLeaderboardSelection:hover) .leaderboard-selection-chip { opacity: .65; }
 }
-
-.leaderboard-selection-summary .leaderboard-selection-chip {
-    transition: opacity 160ms ease, transform 160ms ease, background-color 140ms ease, box-shadow 160ms ease;
-}
-
-/* The filter badge answers the count. */
-@media (prefers-reduced-motion: no-preference) {
-    .sidebar-toggle.has-active-state.is-pulsing::after {
-        animation: lb-badge-up 520ms cubic-bezier(0.34, 1.4, 0.64, 1);
-    }
-
-    .sidebar-toggle.has-active-state.is-shrinking::after {
-        animation: lb-badge-down 420ms cubic-bezier(0.2, 0, 0, 1);
-    }
-
-    /* On phones the open sheet covers the bar: its results button takes the landing. */
-    .sidebar-show-results.is-landing {
-        animation: lb-results-land 520ms cubic-bezier(0.34, 1.4, 0.64, 1);
-    }
-}
-
-#leaderboardResultCount {
-    display: inline-block;
-}
-
-@keyframes lb-results-land {
-    0% { transform: scale(1); }
-    35% { transform: scale(1.06); box-shadow: 0 0 0 6px color-mix(in srgb, var(--lwc-accent) 40%, transparent); filter: brightness(1.12); }
-    100% { transform: scale(1); box-shadow: 0 0 0 12px color-mix(in srgb, var(--lwc-accent) 0%, transparent); }
-}
-
-@keyframes lb-badge-up {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.45); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lwc-accent) 30%, transparent); }
-}
-
-@keyframes lb-badge-down {
-    40% { transform: scale(0.75); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .leaderboard-selection-chip,
-    .leaderboard-selection-chip span:last-child {
-        transition: none;
-    }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .leaderboard-selection-chip span:last-child { transition: transform 180ms ease; }
+    .leaderboard-selection-chip:hover span:last-child { transform: rotate(90deg); }
 }
