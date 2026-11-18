@@ -34,6 +34,7 @@ public sealed class FrontendTypeScriptBuildTests
         "motion",
         "portrait-system",
         "proof-desk",
+        "upload-photo",
         "share-sheet",
         "touch",
         "depth-system",

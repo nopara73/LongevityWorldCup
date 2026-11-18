@@ -509,7 +509,8 @@
         }
         var selectedIndex = 0;
         readings.forEach(function (reading, index) {
-            if (reading.bio < (readings[selectedIndex]?.bio ?? Infinity)) selectedIndex = index;
+            var selected = readings[selectedIndex];
+            if (!selected || reading.bio - reading.chrono < selected.bio - selected.chrono) selectedIndex = index;
         });
         return { readings: readings, selectedIndex: selectedIndex };
     }

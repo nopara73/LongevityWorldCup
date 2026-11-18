@@ -328,7 +328,6 @@
  }
  .leaderboard table tbody tr.tier-amateur:hover{
      background-color: var(--tier-amateur-hover);
-     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
  }
  .leaderboard table tbody tr.tier-separator{
      background: linear-gradient(90deg, rgba(240, 244, 248, 0.6), rgba(59, 130, 246, 0.12));
@@ -373,7 +372,6 @@
  .leaderboard table tbody tr{ cursor:pointer; }
  .leaderboard table tbody tr:hover{
      transform:translateY(-1px);
-     box-shadow:0 5px 14px rgba(0,0,0,.08);
  }
 
  /* Let the Rank column auto-size (override old 15px rule) */
@@ -571,6 +569,8 @@
  .lwc-flag-icon{
      flex:0 0 auto; margin-right:.4rem; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.08);
  }
+ /* The closed filter drawer is laid out offscreen. Fetch its flags when it opens. */
+ body:not(.sidebar-drawer-closing) .sidebar:not(.expanded) .lwc-flag-icon{ background-image:none; }
  #athleteFlag .lwc-flag-icon{ margin-right:.45rem; vertical-align:-.08em; }
  .filter-section label:hover{ color:var(--primary-color); background:rgba(0,188,212,.06); border-color:rgba(0,188,212,.18); }
  .filter-section label.is-zero-count:not(.active):hover{
@@ -2704,7 +2704,10 @@
          .leaderboard table tbody .athlete-name {
              font-size: .95rem;
              font-weight: 700;
-             line-height: 1.2;
+             line-height: 1.22;
+             align-items: center;
+             text-wrap: balance;
+             padding: 0;
              min-width: 0;
              overflow-wrap: break-word;
              word-break: normal;
@@ -2780,11 +2783,12 @@
 
          .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
              display: grid;
-             grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+             grid-template-columns: 2.6rem minmax(0, 1fr) auto;
              grid-template-areas: "rank athlete score";
              align-items: center;
-             column-gap: 0.6rem;
-             padding: 0.4rem 0.5rem 0.4rem 0.4rem;
+             column-gap: 0.55rem;
+             min-height: 3.6rem;
+             padding: 0.45rem 0.6rem 0.45rem 0.4rem;
              border-bottom: 1px solid var(--lwc-border, #d7e0e6);
          }
 
@@ -2836,12 +2840,14 @@
 
          .leaderboard table tbody tr td.athlete-td {
              grid-area: athlete;
-             gap: 0.3rem;
+             align-items: center;
+             gap: 0.5rem;
              min-width: 0;
          }
 
          .leaderboard table td.age-reduction-td {
              grid-area: score;
+             font-variant-numeric: tabular-nums;
              display: flex;
              flex-direction: column-reverse;
              align-items: flex-end;
@@ -2875,6 +2881,14 @@
          .athlete-name {
              padding-left: 0.25rem;
              padding-right: 0.25rem;
+         }
+
+         .leaderboard table tbody tr:has(.rank[data-place="1"]) { --row-metal: var(--lwc-gold); }
+         .leaderboard table tbody tr:has(.rank[data-place="2"]) { --row-metal: var(--lwc-silver); }
+         .leaderboard table tbody tr:has(.rank[data-place="3"]) { --row-metal: var(--lwc-bronze); }
+
+         .leaderboard table tbody tr[data-athlete-name]:has(.rank[data-place]) {
+             background-image: linear-gradient(90deg, color-mix(in srgb, var(--row-metal) var(--medal-wash, 22%), transparent), transparent 62%);
          }
 
          /* Reflow relative to the reader's text size when three columns no longer fit. */
@@ -3214,13 +3228,11 @@
  .leaderboard table tbody tr.tier-amateur,
  .leaderboard table tbody tr.tier-amateur:nth-child(even) {
      border-color: var(--border-color);
-     box-shadow: none;
  }
 
  .leaderboard table tbody tr:hover,
  .leaderboard table tbody tr.tier-amateur:hover {
      background: var(--surface-accent);
-     box-shadow: none;
      transform: none;
  }
 
@@ -5932,4 +5944,15 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     .leaderboard .search-reason,
     .flag-leaderboard .search-reason{ animation:none; }
     .leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){ transition:none; }
+}
+
+@media (max-width: 480px) and (prefers-color-scheme: dark) {
+    .leaderboard { --medal-wash: 16%; }
+}
+
+@media (max-width: 480px) and (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-touch] .leaderboard tr[data-lwc-pressed="row"] .portrait,
+    :root:not([data-lwc-touch]) .leaderboard tr[data-athlete-name]:active .portrait {
+        scale: .92;
+    }
 }

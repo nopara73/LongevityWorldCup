@@ -125,6 +125,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > fie
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     column-gap: var(--lwc-space-3, .75rem);
+    row-gap: var(--lwc-space-3, .75rem);
     align-items: center;
     align-content: start;
 }
@@ -197,7 +198,6 @@ html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 .is-t
         html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
             grid-template-columns: minmax(0, 1fr);
             justify-items: center;
-            row-gap: var(--lwc-space-3, .75rem);
         }
         html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) > legend { justify-self: stretch; }
         html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) .bioage-cal {
@@ -252,7 +252,6 @@ html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] #lwc-step-1 > .lw
         grid-template-columns: minmax(0, 1fr);
         justify-items: center;
     }
-    html body :is(#phenoAgeForm, #bortzAgeForm)[data-bioage-dates] .bioage-cal { margin-top: .75rem; }
 }
 /* The shared sheet also animates this action; this layer owns its ready state. */
 body:has([data-bioage-dates]) #lwcToStep2Btn.green { animation: none; }

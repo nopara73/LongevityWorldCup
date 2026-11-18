@@ -15,8 +15,11 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
     [InlineData(320, 200, false)]
     [InlineData(320, 200, true)]
     [InlineData(390, 200, false)]
+    [InlineData(577, 200, false)]
+    [InlineData(577, 200, true)]
     [InlineData(1280, 100, false)]
     [InlineData(1280, 200, false)]
+    [InlineData(1280, 200, true)]
     public async Task Swag_ProductsRemainReadableAndKeyboardAccessible(int width, int textPercent, bool dark)
     {
         await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);

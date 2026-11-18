@@ -182,7 +182,7 @@ public sealed class BioageEntrySheetBrowserTests(
             """
             clock => {
                 const age = () => clock === 'pheno' ? lastCalculatedPhenoAge : lastCalculatedBortzAge;
-                const fields = [...document.querySelectorAll('#lwc-step-2 input[type=number]')].map(input => {
+                const fields = [...document.querySelectorAll('#lwc-step-2 input[inputmode=decimal]')].map(input => {
                     const select = document.getElementById(input.id + 'Unit');
                     return { input, select, raw: Number(input.value), index: select.selectedIndex, factor: Number(select.value) };
                 });
@@ -234,7 +234,7 @@ public sealed class BioageEntrySheetBrowserTests(
 
         // Reverse keyboard navigation must still reach the unit on a phone,
         // where forward Tab intentionally advances directly between values.
-        var secondValue = page.Locator("#lwc-step-2 input[type=number]").Nth(1);
+        var secondValue = page.Locator("#lwc-step-2 input[inputmode=decimal]").Nth(1);
         await secondValue.FocusAsync();
         await page.Keyboard.PressAsync("Shift+Tab");
         await Assertions.Expect(page.Locator("#wbcUnit")).ToBeFocusedAsync();

@@ -57,6 +57,7 @@ public sealed class EventBoardBrowserTests(
             Locale = "en-US",
             ViewportSize = new ViewportSize { Width = 635, Height = 360 }
         });
+        var artworkUrl = new Uri(App.BaseAddress, "/assets/social/crossfit-vs-hyrox.png").AbsoluteUri;
         var eventsBody = JsonSerializer.Serialize(new[]
         {
             new
@@ -64,6 +65,7 @@ public sealed class EventBoardBrowserTests(
                 Id = "custom-row-hit-area",
                 Type = 6,
                 Text = "Launch [details](https://example.test/details)\n\nThe full announcement remains available here.",
+                Artwork = new { ImageUrl = artworkUrl, LinkUrl = "https://example.test/details", AltText = "Launch artwork" },
                 OccurredAt = DateTimeOffset.UtcNow,
                 Relevance = 10
             }
@@ -71,6 +73,11 @@ public sealed class EventBoardBrowserTests(
         await RouteEventBoardDependenciesAsync(context, eventsBody);
 
         var page = await context.NewPageAsync();
+        var artworkRequests = 0;
+        page.Request += (_, request) =>
+        {
+            if (request.Url == artworkUrl) Interlocked.Increment(ref artworkRequests);
+        };
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
@@ -90,17 +97,21 @@ public sealed class EventBoardBrowserTests(
         await AssertExpanderIsContainedAndCenteredAsync(row, expander);
         await expander.HoverAsync();
         await AssertExpanderIsContainedAndCenteredAsync(row, expander);
+        Assert.Equal(0, Volatile.Read(ref artworkRequests));
 
         await row.Locator(".col-date").ClickAsync();
         Assert.True(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
         Assert.Equal("true", await expander.GetAttributeAsync("aria-expanded"));
         await details.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        await page.WaitForFunctionAsync("() => document.querySelector('.custom-event-artwork img')?.naturalWidth > 0");
 
         await row.Locator(".col-date").ClickAsync();
         Assert.False(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
 
         await expander.ClickAsync();
         Assert.True(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
+        await Assertions.Expect(details.Locator(".custom-event-artwork img")).ToHaveCountAsync(1);
+        Assert.Equal(1, Volatile.Read(ref artworkRequests));
 
         var titleLink = row.Locator(".custom-event-title a");
         Assert.Equal(1, await titleLink.CountAsync());
