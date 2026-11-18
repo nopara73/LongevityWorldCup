@@ -5554,10 +5554,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const photos = getPendingNotePhotos(form);
         const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
         revokePendingNotePhotoUrls(key);
-        const urls = photos.map(photo => URL.createObjectURL(photo));
+        const urls = renderPendingPhotoPreviews(previews, photos, "data-remove-photo");
         if (urls.length) pendingNotePhotoUrls.set(key, urls);
-
-        previews.innerHTML = pendingDiscussionPhotosHtml(photos, urls, "data-remove-photo");
 
         previews.querySelectorAll<HTMLElement>("[data-remove-photo]").forEach(button => {
             button.addEventListener("click", () => removePendingNotePhoto(form, Number(button.dataset.removePhoto)));
@@ -6430,7 +6428,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let restoreUploadFocus = false;
         try {
             if (!draft.preparedFile) {
-                draft.preparedFile = await prepareProfilePictureFile(file);
+                draft.preparedFile = await prepareChallengePhoto(file, "profile");
                 if (profilePictureDraft !== draft) return;
                 try { draft.previewUrl = URL.createObjectURL(draft.preparedFile); } catch { /* The file can still upload without a local preview. */ }
                 renderProfilePictureControls(participantState.participant);
@@ -6454,7 +6452,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             clearProfilePictureDraft();
         } catch (err) {
             if (profilePictureDraft === draft && accessToken === currentAccessToken) {
-                draft.error = hasProperties(err, "status") ? messageOf(err) : "Couldn’t upload the picture. Try again.";
+                draft.error = err instanceof PhotoPreparationError || hasProperties(err, "status") ? messageOf(err) : "Couldn’t upload the picture. Try again.";
             }
         } finally {
             if (profilePictureDraft === draft) draft.uploading = false;
@@ -6475,66 +6473,52 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (row) row.profileImageUrl = image;
     }
 
-    async function prepareProfilePictureFile(file: File): Promise<File> {
-        const type = String(file.type || "");
-        const isServerPreferred = /^image\/(jpeg|png|webp)$/i.test(type);
-        const shouldNormalize = file.size > 1024 * 1024 || !isServerPreferred;
-        if (!shouldNormalize) return file;
+    class PhotoPreparationError extends Error { }
 
-        try {
-            const bitmap = await loadProfileBitmap(file);
-            const maxDimension = 1600;
-            const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
-            const width = Math.max(1, Math.round(bitmap.width * scale));
-            const height = Math.max(1, Math.round(bitmap.height * scale));
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return file;
-
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            closeImageBitmap(bitmap);
-
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
-            if (!blob) return file;
-            return new File([blob], replaceImageExtension(file.name || "profile-picture", "jpg"), { type: "image/jpeg" });
-        } catch (_) {
-            return file;
+    function prepareNotePhotoFile(file: File): Promise<File> {
+        let prepared = preparedDiscussionPhotos.get(file);
+        if (!prepared) {
+            prepared = prepareChallengePhoto(file, "discussion").catch(error => {
+                preparedDiscussionPhotos.delete(file);
+                throw error;
+            });
+            preparedDiscussionPhotos.set(file, prepared);
         }
+        return prepared;
     }
 
-    async function prepareNotePhotoFile(file: File): Promise<File> {
+    async function prepareChallengePhoto(file: File, purpose: "profile" | "discussion"): Promise<File> {
+        const heic = LwcUploadPhoto.isHeic(file);
+        if (heic && file.size > 32 * 1024 * 1024) throw new PhotoPreparationError("Choose a photo under 32 MB.");
+        const profile = purpose === "profile";
+        if (profile && !heic && file.size <= 1024 * 1024 && /^image\/(jpeg|png|webp)$/i.test(file.type)) return file;
+
+        let image: HTMLImageElement | ImageBitmap | undefined;
+        const canvas = document.createElement("canvas");
         try {
-            const bitmap = await loadProfileBitmap(file);
-            const scale = Math.min(1, NOTE_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
-            const width = Math.max(1, Math.round(bitmap.width * scale));
-            const height = Math.max(1, Math.round(bitmap.height * scale));
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return file;
-
+            image = heic ? await LwcUploadPhoto.decode(file) : await loadProfileBitmap(file);
+            const maxDimension = profile ? 1600 : NOTE_PHOTO_MAX_DIMENSION;
+            const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+            const ctx = canvas.getContext("2d")!;
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            closeImageBitmap(bitmap);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-            let blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
-            let extension = "webp";
-            if (!blob || blob.type !== "image/webp") {
+            let blob = profile ? null : await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
+            if (blob?.type !== "image/webp") {
                 blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
-                extension = "jpg";
             }
-
-            if (!blob) return file;
-            const type = blob.type || (extension === "jpg" ? "image/jpeg" : "image/webp");
-            return new File([blob], replaceImageExtension(file.name || "check-in-photo", extension), { type });
-        } catch (_) {
+            if (!blob) throw new Error("Photo encoding failed.");
+            const extension = blob.type === "image/webp" ? "webp" : "jpg";
+            return new File([blob], replaceImageExtension(file.name, extension), { type: blob.type });
+        } catch {
+            if (heic) throw new PhotoPreparationError(LwcUploadPhoto.recovery);
             return file;
+        } finally {
+            if (image) closeImageBitmap(image);
+            canvas.width = canvas.height = 0;
         }
     }
 
@@ -7222,12 +7206,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             (discussionDraftHasChanges(draft) || discussionMutation === draft.key));
     }
 
-    function pendingDiscussionPhotosHtml(photos: File[], urls: string[], removeAttribute: string): string {
-        return photos.map((photo, index) => `<figure class="lmx-pending-photo">
+    function renderPendingPhotoPreviews(previews: Element, photos: File[], removeAttribute: string): string[] {
+        const urls = photos.map(photo => LwcUploadPhoto.isHeic(photo) ? "" : URL.createObjectURL(photo));
+        previews.innerHTML = photos.map((photo, index) => `<figure class="lmx-pending-photo">
             <div class="lmx-pending-photo-frame">
-                <button class="lmx-note-photo is-local-photo" type="button" data-photo-src="${escAttr(urls[index])}"
+                <button class="lmx-note-photo is-local-photo" type="button" ${urls[index] ? `data-photo-src="${escAttr(urls[index])}"` : 'disabled aria-busy="true"'}
                     aria-label="${escAttr(`Preview ${photo.name}`)}" title="${escAttr(photo.name)}">
-                    <img src="${escAttr(urls[index])}" alt="" decoding="async">
+                    <img ${urls[index] ? `src="${escAttr(urls[index])}"` : ""} alt="" decoding="async">
                 </button>
                 <button type="button" class="lmx-note-photo-remove" ${removeAttribute}="${index}" title="Remove photo" aria-label="${escAttr(`Remove ${photo.name}`)}">
                     <i class="fas fa-xmark" aria-hidden="true"></i>
@@ -7235,6 +7220,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             </div>
             <figcaption>${esc(photo.name)}</figcaption>
         </figure>`).join("");
+
+        previews.querySelectorAll<HTMLButtonElement>(".is-local-photo").forEach((button, index) => {
+            if (!button.disabled) return;
+            const figure = button.closest("figure")!;
+            const photo = photos[index]!;
+            void prepareNotePhotoFile(photo).then(prepared => {
+                // A removal, re-render or closed draft can retire this preview during decode.
+                if (!button.isConnected) return;
+                const url = URL.createObjectURL(prepared);
+                urls[index] = url;
+                button.querySelector("img")!.src = url;
+                button.dataset.photoSrc = url;
+                button.disabled = false;
+            }).catch(() => {
+                figure.querySelector("figcaption")!.textContent = `${photo.name} · ${LwcUploadPhoto.recovery}`;
+            }).finally(() => button.removeAttribute("aria-busy"));
+        });
+        return urls;
     }
 
     function revokeDiscussionPhotoPreviews(draft: DiscussionDraft): void {
@@ -7247,8 +7250,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!previews) return;
         revokeDiscussionPhotoPreviews(draft);
         const photos = draft.photos || [];
-        draft.photoUrls = photos.map(photo => URL.createObjectURL(photo));
-        previews.innerHTML = pendingDiscussionPhotosHtml(photos, draft.photoUrls, "data-remove-reply-photo");
+        draft.photoUrls = renderPendingPhotoPreviews(previews, photos, "data-remove-reply-photo");
         previews.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(button => {
             button.addEventListener("click", () => {
                 if (discussionMutation === draft.key) return;
@@ -7281,11 +7283,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function postDiscussionDraft(draft: DiscussionDraft, payload: DiscussionReplyPayload): Promise<ParticipantState> {
-        const prepared = await Promise.all((draft.photos || []).map(photo => {
-            let result = preparedDiscussionPhotos.get(photo);
-            if (!result) { result = prepareNotePhotoFile(photo); preparedDiscussionPhotos.set(photo, result); }
-            return result;
-        }));
+        const prepared = await Promise.all((draft.photos || []).map(prepareNotePhotoFile));
         const hashes = await Promise.all(prepared.map(async photo => {
             const hash = await crypto.subtle.digest("SHA-256", await photo.arrayBuffer());
             return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
@@ -8046,7 +8044,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (hasProperties(err, "status") && err.status === 409) {
                     try { await refreshDiscussionState(); } catch { /* Preserve the draft even if recovery is offline. */ }
                 }
-                draft.errorKind = isAuthFailure(err) ? "auth" : hasProperties(err, "status") && err.status === 400 ? "validation" : "network";
+                draft.errorKind = isAuthFailure(err) ? "auth" : err instanceof PhotoPreparationError || (hasProperties(err, "status") && err.status === 400) ? "validation" : "network";
                 draft.error = draft.errorKind === "auth" ? "Sign in again to continue. Your draft is kept."
                     : draft.errorKind === "validation" ? messageOf(err)
                     : navigator.onLine === false ? "You’re offline. Your draft is kept; retry when connected."

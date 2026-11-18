@@ -125,6 +125,7 @@
           BeforeTargets="BeforeBuild"
           Condition="'$(BuildFrontend)' != 'true'">
     <ItemGroup>
+      <ExpectedFrontendAsset Include="$(MSBuildProjectDirectory)/wwwroot/js/heic-to.js" />
       <ExpectedFrontendAsset Include="@(TypeScriptSource->'$(MSBuildProjectDirectory)/wwwroot/js/%(Filename).js')" />
       <ExpectedFrontendAsset Include="@(ClassicScriptSource->'$(MSBuildProjectDirectory)/wwwroot/js/%(Filename).js')" />
     </ItemGroup>
