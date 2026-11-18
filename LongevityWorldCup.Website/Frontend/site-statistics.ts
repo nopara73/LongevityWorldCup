@@ -515,6 +515,13 @@
             updateUrl();
             loadDashboard();
         });
+        el("aiReferralReport").addEventListener("click", event => {
+            const provider = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-ai-source]")?.dataset.aiSource : null;
+            if (!provider) return;
+            el("statsSource").value = "ai:" + provider;
+            updateUrl();
+            loadDashboard();
+        });
         el("statsExport").addEventListener("click", exportCsv);
         el("resetDrilldown").addEventListener("click", () => selectDrilldown(null, "all events"));
         el("copyLink").addEventListener("click", copyLink);
@@ -756,7 +763,7 @@
         if (state.tab !== sourceQualityTab) return;
         const report = state.aiReferrals;
         if (!report) {
-            host.innerHTML = empty("AI reporting is unavailable.");
+            updateContent(host, empty("AI reporting is unavailable."));
             return;
         }
         const totals = report.totals;
@@ -772,7 +779,7 @@
                     : esc(row.label)}</td><td>${formatNumber(row.visits)}</td><td>${formatNumber(row.calculatorResults)}</td>
                     <td>${formatNumber(row.applicationStarts)}</td><td>${formatNumber(row.applications)}</td><td>${rate(row.visitToApplicationRate)}</td></tr>`).join("")}</tbody>
             </table></div>`;
-        host.innerHTML = `
+        const markup = `
             <div class="panel-heading"><h2>AI referrals</h2><span class="panel-meta">${formatNumber(totals.referrerVisits)} referrer · ${formatNumber(totals.campaignVisits)} campaign</span></div>
             <div class="ai-stages">${stages.map(([label, count]) => `<div class="ai-stage"><span>${esc(label)}</span><strong>${formatNumber(count)}</strong>
                 <progress max="${Math.max(1, totals.visits)}" value="${count}" aria-label="${escAttr(label)} sessions"></progress></div>`).join("")}</div>
@@ -788,11 +795,25 @@
                 <p>Applications are server-confirmed full applications, before approval or payment. Result uploads and profile edits are excluded. ${formatNumber(totals.applicationEvents)} successful application events; ${formatNumber(totals.unknownApplicationSessions)} sessions have older submissions of unknown type and are excluded from the application rate.</p>
                 <p>Recognized utm_source tags take precedence over recognized referrers. Campaign attribution is a link label, not proof of origin. Missing referrers remain unassigned to AI. These are recorded browser sessions, not verified humans, crawls, or citations. With storage blocked, correlation lasts only for the current document.</p>
             </details>`;
-        host.querySelectorAll<HTMLButtonElement>("[data-ai-source]").forEach(button => button.addEventListener("click", () => {
-            el("statsSource").value = `ai:${button.dataset.aiSource}`;
-            updateUrl();
-            loadDashboard();
-        }));
+        if (renderedContent.get(host) === markup) return;
+        const previousDetails = host.querySelector("details");
+        const open = previousDetails?.open || false;
+        const focused = document.activeElement;
+        const provider = focused instanceof HTMLButtonElement && host.contains(focused) ? focused.dataset.aiSource : undefined;
+        const focusedSummary = previousDetails?.querySelector("summary") === focused;
+        const region = focused instanceof HTMLElement && focused.matches(".ai-table-scroll") && host.contains(focused)
+            ? focused.getAttribute("aria-label") : null;
+        updateContent(host, markup);
+        const details = host.querySelector("details");
+        if (details) details.open = open;
+        if (provider) {
+            const button = host.querySelector<HTMLElement>('[data-ai-source="' + CSS.escape(provider) + '"]');
+            (button || el("statsSource")).focus({ preventScroll: true });
+        } else if (focusedSummary) {
+            details?.querySelector("summary")?.focus({ preventScroll: true });
+        } else if (region) {
+            host.querySelector<HTMLElement>('[aria-label="' + CSS.escape(region) + '"]')?.focus({ preventScroll: true });
+        }
     }
 
     function renderTrafficOverview(): void {
