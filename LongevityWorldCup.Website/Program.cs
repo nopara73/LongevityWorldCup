@@ -300,11 +300,40 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<InstagramImageService>();
             builder.Services.AddSingleton<InstagramAnnouncementImageService>();
             builder.Services.AddSingleton<InstagramAnnouncementService>();
+            builder.Services.AddHttpClient(nameof(TelegramApiClient), client =>
+            {
+                client.BaseAddress = new Uri("https://api.telegram.org/");
+                client.Timeout = TimeSpan.FromSeconds(20);
+            })
+                // The Bot API token is part of the request path.
+                .RemoveAllLoggers()
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    UseCookies = false,
+                    ActivityHeadersPropagator = null
+                });
+            builder.Services.AddSingleton<TelegramApiClient>();
+            builder.Services.AddSingleton<TelegramAnnouncementService>();
             builder.Services.AddSingleton<INostrRelayTransport, NostrRelayTransport>();
             builder.Services.AddSingleton<NostrRelayClient>();
             builder.Services.AddSingleton<NostrAnnouncementService>();
             builder.Services.AddSingleton<RedditDeliveryStore>();
             builder.Services.AddSingleton<RedditAnnouncementService>();
+            builder.Services.AddHttpClient(nameof(RedditIftttPublisher), client =>
+            {
+                client.BaseAddress = new Uri("https://maker.ifttt.com/");
+                client.Timeout = TimeSpan.FromSeconds(20);
+            })
+                // The Webhooks key is part of the request path.
+                .RemoveAllLoggers()
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    UseCookies = false,
+                    ActivityHeadersPropagator = null
+                });
+            builder.Services.AddSingleton<RedditIftttPublisher>();
             builder.Services.AddSingleton<XFillerPostLogService>();
             builder.Services.AddSingleton<ThreadsFillerPostLogService>();
             builder.Services.AddSingleton<FacebookFillerPostLogService>();
@@ -416,6 +445,7 @@ namespace LongevityWorldCup.Website
             });
 
             app.UseRequestTimeouts();
+            app.UseMiddleware<ApplicationUploadLimitMiddleware>();
 
             app.UseMiddleware<CleanPathMiddleware>();
 

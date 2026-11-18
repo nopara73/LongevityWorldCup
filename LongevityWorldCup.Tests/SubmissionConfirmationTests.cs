@@ -449,14 +449,15 @@ public sealed class SubmissionConfirmationTests
             if (ConnectFailure is not null) throw ConnectFailure;
         }
         public override Task AuthenticateAsync(Encoding encoding, ICredentials credentials, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public override async Task<string> SendAsync(FormatOptions options, MimeMessage message, CancellationToken cancellationToken = default, ITransferProgress? progress = null)
+        public override async Task<SendResult> SendAsync(FormatOptions options, ISendRequest request, CancellationToken cancellationToken = default)
         {
             SendCalls++;
             if (DuringSend is not null) await DuringSend(cancellationToken);
             if (SendFailure is not null) throw SendFailure;
+            var message = request.Message;
             MessageId = message.MessageId; TextBody = message.TextBody; HtmlBody = message.HtmlBody;
             Delivered.TrySetResult();
-            return "250 Accepted";
+            return new SmtpSendResult(SmtpStatusCode.Ok, "Accepted", message.To.Mailboxes.ToArray(), []);
         }
         public override Task DisconnectAsync(bool quit, CancellationToken cancellationToken = default)
             => DisconnectFailure is null ? Task.CompletedTask : Task.FromException(DisconnectFailure);

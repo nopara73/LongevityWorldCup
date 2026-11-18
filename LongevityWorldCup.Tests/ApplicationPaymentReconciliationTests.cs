@@ -20,6 +20,26 @@ namespace LongevityWorldCup.Tests;
 public sealed class ApplicationPaymentReconciliationTests
 {
     [Fact]
+    public async Task RetiredCheckout_ReturnsKnownApplicationsToReviewWithoutCreatingAPayment()
+    {
+        await using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var store = factory.Services.GetRequiredService<ApplicationPaymentStore>();
+        store.Register(new FixtureConfig(), Request("retired-order"), DateTimeOffset.UtcNow);
+        store.AttachInvoice("retired-order", "stripe_retired-order");
+        using var response = await client.GetAsync("/api/payments/stripe/checkout/retired-order");
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/review?checkout=unavailable", response.Headers.Location?.OriginalString);
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        Assert.Equal("stripe_retired-order", store.GetByOrder("retired-order")?.InvoiceId);
+        using var missing = await client.GetAsync("/api/payments/stripe/checkout/unknown-order");
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
     public async Task EnabledHostedWorker_DeliversPersistedWorkOnStartupWithoutARequest()
     {
         using var fixture = new Fixture();

@@ -473,7 +473,7 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitAssetCount);
         await page.EvaluateAsync("() => document.fonts.ready");
 
         var problems = await page.EvaluateAsync<string[]>(
@@ -496,7 +496,7 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
                 if (!root?.classList.contains('media-kit-root')) return [...issues, 'the kit top level is not first'];
                 const featured = root.querySelector('.media-kit-featured');
                 const docs = root.querySelector('.media-kit-docs');
-                if (!featured || featured.children.length !== 2) return [...issues, 'top-level pictures are not featured'];
+                if (!featured || featured.children.length !== 1) return [...issues, 'top-level pictures are not featured'];
                 if (!docs || docs.querySelector('.media-file-thumb img')) issues.push('top-level documents are not their own strip');
                 if (featured.compareDocumentPosition(docs) !== Node.DOCUMENT_POSITION_FOLLOWING) issues.push('featured pictures do not lead');
                 const hero = featured.querySelector('.media-file-tile').getBoundingClientRect();
@@ -530,7 +530,7 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitAssetCount);
         await Assertions.Expect(page.Locator(".media-kit-contact")).ToContainTextAsync("Press contact:");
         await page.EvaluateAsync("async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }");
 
@@ -596,7 +596,7 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(PressKitAssetCount);
         await Assertions.Expect(page.Locator(".media-kit-group-title")).ToHaveTextAsync(["athletes", "Logos", "Team"]);
         await Assertions.Expect(page.Locator(".media-kit-group-count")).ToHaveTextAsync(["10", "3", "6"]);
         await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textSize);
@@ -736,7 +736,7 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/media");
-        await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(files.Count);
+        await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(PressKitAssetCount + 1);
         if (width == 320) await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
         var team = page.Locator(".media-kit-group").Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Team", Exact = true }) }).Locator("ul:not(.media-kit-docs)");
         await page.WaitForFunctionAsync("([list, columns]) => getComputedStyle(list).gridTemplateColumns.split(' ').length === columns",
@@ -876,7 +876,7 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
         var page = await context.NewPageAsync();
         await page.GotoAsync("/media");
-        await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(PressKitFiles().Count);
+        await Assertions.Expect(page.Locator(".media-file-row")).ToHaveCountAsync(PressKitAssetCount);
         await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textSize}% !important; }}" });
         await page.EvaluateAsync("() => document.fonts.ready");
         var problems = await page.EvaluateAsync<string[]>(
@@ -916,6 +916,9 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
     }
 
+    // Three root assets, three logos, six team assets, and ten athlete portraits.
+    private const int PressKitAssetCount = 22;
+
     private static Dictionary<string, string> PressKitFiles()
     {
         var photo = KitFiles.Value["MediaKit/Athletes/Athlete.png"];
@@ -923,6 +926,7 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         {
             ["MediaKit/FactSheet.pdf"] = KitFiles.Value["MediaKit/FactSheet.pdf"],
             ["MediaKit/README.txt"] = KitFiles.Value["MediaKit/README.txt"],
+            ["MediaKit/FactSheet.txt"] = KitFiles.Value["MediaKit/README.txt"],
             ["MediaKit/Hero.jpg"] = photo,
             ["MediaKit/Hero.png"] = photo,
             ["MediaKit/Logos/Logo.png"] = KitFiles.Value["MediaKit/Logos/Logo.png"],

@@ -31,7 +31,8 @@ public sealed class EventLivingFeedBrowserTests(
         """;
 
     private async Task<IBrowserContext> OpenAsync(string route = "/events", string? events = null, string? athletes = null,
-        int width = 1440, int height = 900, bool dark = false, bool reduced = true, IBrowser? browser = null, bool freezeTime = true)
+        int width = 1440, int height = 900, bool dark = false, bool reduced = true, IBrowser? browser = null, bool freezeTime = true,
+        bool pauseClock = false)
     {
         var context = await NewContextAsync(browser ?? Browser, App, new()
         {
@@ -44,7 +45,13 @@ public sealed class EventLivingFeedBrowserTests(
         await context.RouteAsync("**/api/events", r => r.FulfillAsync(new() { ContentType = "application/json", Body = events ?? Events }));
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
         var page = await context.NewPageAsync();
-        if (freezeTime) await page.Clock.SetFixedTimeAsync(new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc));
+        var clockTime = new DateTime(2026, 10, 24, 4, 0, 0, DateTimeKind.Utc);
+        if (pauseClock)
+        {
+            await page.Clock.InstallAsync(new() { TimeDate = clockTime.AddHours(-1) });
+            await page.Clock.PauseAtAsync(clockTime);
+        }
+        else if (freezeTime) await page.Clock.SetFixedTimeAsync(clockTime);
         await NavigateAndSettleAsync(page, route);
         await page.Locator("#eventsTable tr.main-row").First.WaitForAsync();
         return context;
@@ -118,13 +125,23 @@ public sealed class EventLivingFeedBrowserTests(
                 row.nextElementSibling.querySelector('a').focus({preventScroll:true});
                 window.keptRow=row; window.keptFocus=document.activeElement;
                 window.originalTop=row.getBoundingClientRect().top;
+                window.rowLayoutFlushes = 0;
+                const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+                Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+                    ...width, get() {
+                        if (this.matches('tr.main-row')) rowLayoutFlushes++;
+                        return width.get.call(this);
+                    }
+                });
                 const original=await getSharedEvents();
                 window.fetchPublicJson=async url => url.includes('athletes') ? [] :
                     [{Id:'new',Type:6,Text:'New announcement',OccurredAt:'2026-10-25T00:00:00Z'},...original];
                 await loadEventsTable(null,false,null,true,{live:true});
+                Object.defineProperty(HTMLElement.prototype, 'offsetWidth', width);
             }
             """);
         Assert.True(await page.EvaluateAsync<bool>("keptRow===document.querySelector('[data-event-id=\"item-12\"].main-row') && keptFocus===document.activeElement"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("rowLayoutFlushes"));
         await Assertions.Expect(page.Locator("[data-event-id='item-12'].main-row .custom-event-expander")).ToHaveAttributeAsync("aria-expanded", "true");
         Assert.InRange(await page.EvaluateAsync<double>("Math.abs(keptRow.getBoundingClientRect().top-originalTop)"), 0, 2);
         var ids = await page.Locator("[id^='custom-event-details-']").EvaluateAllAsync<string[]>("els=>els.map(e=>e.id)");
@@ -159,7 +176,9 @@ public sealed class EventLivingFeedBrowserTests(
         await using var context = await OpenAsync(events: JsonSerializer.Serialize(events), reduced: false);
         var page = context.Pages[0];
         await page.Locator(".main-row[data-event-id='item-10'] .custom-event-expander").ClickAsync();
-        await page.WaitForTimeoutAsync(350); // Let the deliberate user expansion finish.
+        const string expandedPanel = ".main-row[data-event-id='item-10'].is-open + .custom-event-details .custom-event-content";
+        await Assertions.Expect(page.Locator(expandedPanel)).ToHaveCSSAsync("opacity", "1");
+        await WaitForFiniteAnimationsAsync(page, expandedPanel);
         await page.EvaluateAsync("""
             () => {
                 const row = document.querySelector('.main-row[data-event-id="item-11"]');
@@ -296,10 +315,10 @@ public sealed class EventLivingFeedBrowserTests(
             Id = "idle-" + i, Type = 1, Text = "slug[feed-a]",
             OccurredAt = new DateTime(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc).AddDays(-i).ToString("O")
         });
-        await using var context = await OpenAsync(events:JsonSerializer.Serialize(events));
+        // Hold the first idle deadline before navigation can mount the feed.
+        await using var context = await OpenAsync(events:JsonSerializer.Serialize(events), pauseClock: true);
         var page = context.Pages[0];
-        await page.Clock.InstallAsync(new() { Time = "2026-10-24T04:00:00Z" });
-        await page.Clock.PauseAtAsync(new DateTime(2026, 10, 24, 4, 0, 1, DateTimeKind.Utc));
+        await page.WaitForFunctionAsync("() => !!document.querySelector('#eventsTable')?._feedIdleTimer");
         Assert.True(await page.Locator(".main-row").CountAsync() < 200);
         var link = page.Locator(".main-row[data-event-id='idle-30'] .event-message a[data-athlete-slug]");
         await page.Keyboard.PressAsync("Tab");

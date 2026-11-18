@@ -37,6 +37,36 @@ public sealed class AgeImprovementTop10EventTests
         Assert.DoesNotContain("prevPlace[", text);
     }
 
+    [Fact]
+    public async Task PhenoLeaderboardBaselinesAtStartupAndPublishesFollowingFileUpdateOnce()
+    {
+        using var fixture = StartupFixture.Create();
+        Assert.Empty(fixture.Events.GetEvents(type: EventType.PhenoAgeTop10Change));
+        var standings = fixture.Athletes.GetBiologicalAgeLeaderboard("pheno");
+        var candidate = standings.Last();
+        Assert.Equal(2, candidate.Rank);
+        var path = Path.Combine(fixture.Root, "athletes", candidate.Slug, "athlete.json");
+        var athlete = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+        foreach (var result in athlete["Biomarkers"]!.AsArray().OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            // Synthetic strong result to exercise the actual file -> score -> event path.
+            result["RdwPc"] = 9;
+            result["CrpMgL"] = 0.01;
+            result["AlbGL"] = 55;
+        }
+        await File.WriteAllTextAsync(path, athlete.ToJsonString());
+        var reload = typeof(AthleteDataService).GetMethod("ReloadFromSourceAsync",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        await (Task)reload.Invoke(fixture.Athletes, [CancellationToken.None])!;
+        Assert.Equal(candidate.Slug, fixture.Athletes.GetBiologicalAgeLeaderboard("pheno")[0].Slug);
+        var announcement = Assert.Single(fixture.Events.GetEvents(type: EventType.PhenoAgeTop10Change));
+        Assert.Contains($"slug[{candidate.Slug}]", announcement.Text);
+        Assert.Contains("place[1]", announcement.Text);
+        Assert.Contains("prevPlace[2]", announcement.Text);
+        await (Task)reload.Invoke(fixture.Athletes, [CancellationToken.None])!;
+        Assert.Single(fixture.Events.GetEvents(type: EventType.PhenoAgeTop10Change));
+    }
+
     private sealed class StartupFixture : IDisposable
     {
         private readonly string _root;
@@ -51,6 +81,7 @@ public sealed class AgeImprovementTop10EventTests
             _slackEvents = slackEvents;
         }
 
+        public string Root => _root;
         public DatabaseManager Database { get; }
         public EventDataService Events { get; }
         public AthleteDataService Athletes { get; }
