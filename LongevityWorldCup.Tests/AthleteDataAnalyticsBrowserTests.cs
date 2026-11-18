@@ -540,7 +540,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                     obs.observe(host);
                 });
                 const chart = Chart.getChart('ageRadarChart');
-                // Wait past Chart.js's independent constructor animation.
+                // Intentional wait: the web must stay parked for the entire native constructor animation.
                 await new Promise(resolve => setTimeout(resolve, chart.options.animation.duration + 100));
                 const scale = chart.scales.r;
                 return ratio > .1 && ratio < .45 && chart.getDatasetMeta(0).data.every((p, i) =>
