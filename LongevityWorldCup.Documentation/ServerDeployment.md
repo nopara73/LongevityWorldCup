@@ -197,15 +197,20 @@ rm -f "$health_body"
 
 downloaded_script="$frontend_stage/deployed-script.js"
 for script_path in "$publish_output"/wwwroot/js/*.js; do
-  curl -fsS --max-time 10 \
-    "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
-    -o "$downloaded_script"
+  script_name="$(basename "$script_path")"
+  # Retry a temporary transfer failure before judging the deployed bytes.
+  if ! script_status="$(curl -fsS --max-time 10 --retry 1 --retry-delay 1 --retry-max-time 12 --write-out '%{http_code}' \
+    "https://www.longevityworldcup.com/js/$script_name?v=$verified_sha" \
+    -o "$downloaded_script")" || [ "$script_status" != 200 ]; then
+    echo "Could not download deployed script: $script_name (HTTP $script_status)" >&2
+    exit 1
+  fi
   expected_hash="$(sha256sum "$script_path")"
   expected_hash="${expected_hash%% *}"
   actual_hash="$(sha256sum "$downloaded_script")"
   actual_hash="${actual_hash%% *}"
   if [ "$expected_hash" != "$actual_hash" ]; then
-    echo "Deployed script content differs from the verified artifact: $(basename "$script_path")" >&2
+    echo "Deployed script content differs from the verified artifact: $script_name" >&2
     exit 1
   fi
 done
@@ -231,6 +236,17 @@ The production host must have an SDK compatible with the repository's `global.js
 Before changing the live publish tree, deployment stops the service and creates a same-filesystem hard-link snapshot. A failed sync, health check, or byte-for-byte script probe restores that prior release before restarting the service. Every master push schedules the workflow; stale runs skip only when a newer run exists, so an otherwise ignored documentation or test commit cannot strand an earlier website change undeployed.
 
 Preserve `/var/www/.longevityworldcup/public-content-revisions.json` alongside the database. It stores observed public-content change dates independently of deployment and file timestamps. A missing ledger creates an unknown baseline, so old pages initially omit modification dates instead of acquiring the deployment date. Invalid ledger JSON fails explicitly and should be restored from backup, not silently discarded. See [Content freshness and AI summaries](ContentFreshnessAndAiSummaries.md). Discovery documents are controller endpoints; old `llms.txt`, `llms-full.txt`, `ai/index.md`, and `.well-known/agent-card.json` files left by incremental publish do not take precedence.
+
+### Public HTTPS transport
+
+The public HTTPS server in `/etc/nginx/sites-available/default` uses HTTP/2 so Chrome can download the homepage styles and portraits over one TLS connection. On the deployed nginx 1.24, the public listeners are:
+
+```nginx
+listen 443 ssl http2 default_server;
+listen [::]:443 ssl http2 default_server;
+```
+
+After validating the configuration and reloading nginx, run `curl --http2 -sS -o /dev/null -w '%{http_version} %{http_code}\n' https://longevityworldcup.com/` from an HTTP/2-capable client. Expect `2 200`. The same check with `--http1.1` should return `1.1 200`.
 
 ### Application submission proxy timeout
 

@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 namespace LongevityWorldCup.Website.Business;
 
-internal sealed record PendingSocialDelivery(EventItem Event, int Priority, int Attempts, string? RecordKey,
+internal sealed record PendingSocialDelivery(EventItem Event, SocialHeadline Headline, int Attempts, string? RecordKey,
     string? RecordJson, DateTimeOffset? FirstAttemptAtUtc, bool HiddenForMissingAthlete);
 
 internal sealed record SocialPostReceipt(string Id, string Url);
@@ -105,11 +105,12 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         {
             var item = new EventItem(reader.GetString(0), (EventType)reader.GetInt32(1), reader.GetString(2),
                 DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind), reader.GetDouble(4), reader.GetInt32(5) != 0);
-            pending.Add(new(item, EventDataService.GetXPriority(item.Type, item.Text), reader.GetInt32(6),
+            pending.Add(new(item, SocialHeadline.For(item.Type, item.Text), reader.GetInt32(6),
                 reader.IsDBNull(7) ? null : reader.GetString(7), reader.IsDBNull(8) ? null : reader.GetString(8),
                 reader.IsDBNull(9) ? null : DateTimeOffset.Parse(reader.GetString(9), CultureInfo.InvariantCulture), reader.GetInt32(10) != 0));
         }
-        return pending.OrderBy(x => x.RecordJson is null).ThenBy(x => x.Priority).ThenByDescending(x => x.Event.OccurredAtUtc).ToArray();
+        return pending.OrderBy(x => x.RecordJson is null).ThenBy(x => x.Headline.Priority).ThenByDescending(x => x.Event.OccurredAtUtc)
+            .ThenBy(x => x.Event.Id, StringComparer.Ordinal).ToArray();
     });
 
     internal (string Key, string Json) Prepare(string platform, string id, string json, string? subject, DateTimeOffset now, string? recordKey = null) => db.Run(sqlite =>

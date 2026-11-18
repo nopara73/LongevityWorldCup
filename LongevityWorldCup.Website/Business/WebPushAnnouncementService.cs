@@ -28,7 +28,7 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
             messageComposer.SetAthletesForThreads(directory);
             var names = directory.ToDictionary(a => a.Slug, a => a.Name, StringComparer.OrdinalIgnoreCase);
             string ResolveName(string slug) => names.TryGetValue(slug, out var name) ? name : slug.Replace('_', ' ');
-            foreach (var candidate in deliveries.GetPending(SocialDeliveryStore.WebPush, false, now))
+            foreach (var candidate in athletes.ReadPublishedEvents(() => deliveries.GetPending(SocialDeliveryStore.WebPush, false, now)))
             {
                 var item = candidate.Event;
                 if (item.Type == EventType.CustomEvent || candidate.RecordJson is not null) continue;
@@ -37,14 +37,13 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
                     deliveries.Skip(SocialDeliveryStore.WebPush, item.Id, "MissingAthlete", now);
                     continue;
                 }
-                if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(item.Type, item.Text, item.OccurredAtUtc,
-                        candidate.Priority, now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
+                if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(item.Type, item.Text, item.OccurredAtUtc,
+                        candidate.Headline, now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
                 {
                     deliveries.Skip(SocialDeliveryStore.WebPush, item.Id, reason.ToString(), now);
                     continue;
                 }
-                var subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
-                    && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug : null;
+                var subject = candidate.Headline.Subject;
                 if (subject is not null && (store.HasPendingSubject(subject)
                         || deliveries.IsSubjectOnCooldown(SocialDeliveryStore.WebPush, subject, now))) continue;
                 if (string.IsNullOrWhiteSpace(messageComposer.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, ResolveName)))

@@ -25,6 +25,7 @@ const nestedRuntimeSources = runtimeSources.filter(path => path.includes("/"));
 const expectedOutputs = runtimeSources
     .filter(path => !path.includes("/"))
     .map(path => path.replace(/\.ts$/, ".js"))
+    .concat("heic-to.js")
     .sort();
 
 const actualOutputs = existsSync(outputRoot)
@@ -47,6 +48,11 @@ for (const name of runtimeSources.filter(path => path.endsWith(".js") && !path.i
         console.error(`Classic script output differs from source: ${name}`);
         process.exitCode = 1;
     }
+}
+
+if (!readFileSync(join(websiteRoot, "node_modules/heic-to/dist/csp/heic-to.js")).equals(readFileSync(join(outputRoot, "heic-to.js")))) {
+    console.error("The HEIC decoder differs from the pinned CSP build.");
+    process.exitCode = 1;
 }
 
 if (JSON.stringify(actualOutputs) !== JSON.stringify(expectedOutputs)) {
