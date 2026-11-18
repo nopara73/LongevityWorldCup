@@ -21,7 +21,7 @@ internal static partial class HomepagePodiumAssets
     public static string PrepareHead(string head, string? portrait)
     {
         // The populated homepage can paint its title with the metric-adjusted fallback
-        // while Roboto loads on demand. Keep the larger table sheet behind header styles.
+        // while Roboto loads on demand. Only preload styles for the header and podium.
         var preloads = portrait is null
             ? """
               <link rel="preload" href="{{ASSET_ROBOTO_REGULAR}}" as="font" type="font/woff2" crossorigin>
@@ -31,18 +31,25 @@ internal static partial class HomepagePodiumAssets
             : $$$"""
               <link rel="preload" as="image" fetchpriority="high" href="{{{WebUtility.HtmlEncode(portrait)}}}">
               <link rel="preload" as="style" href="{{ASSET_SITE_HEADER_CSS}}">
-              <link rel="preload" as="style" fetchpriority="low" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
               """;
         return head.Replace("<!--FIRST-SCREEN-PRELOADS-->", preloads, StringComparison.Ordinal)
             .Replace("{{ICON_SCRIPT_LOADING}}", portrait is null ? "" : " defer", StringComparison.Ordinal);
     }
 
-    // With scripting disabled the media query matches immediately. With scripting
-    // enabled each sheet joins the cascade in its original position once downloaded.
-    public static string DeferEnhancementStyles(string html) => VersionedStyle().Replace(html, match =>
-        EnhancementStyles.Contains(match.Groups[1].Value)
+    public static string PrioritizeStyles(string html) => VersionedStyle().Replace(html, match =>
+    {
+        var path = match.Groups[1].Value;
+        // The table still waits for its stylesheet. Keep its download behind the first screen.
+        if (path == "/css/leaderboard-content.css")
+            return match.Value[..^1] + " fetchpriority=\"low\">";
+
+        // With scripting disabled the media query matches immediately. Otherwise each
+        // enhancement joins the cascade in its original position once downloaded.
+        return EnhancementStyles.Contains(path)
             ? match.Value[..^1] + " media=\"not all and (scripting: enabled)\" onload=\"this.media='all'\">"
-            : match.Value);
+            : match.Value;
+    });
 
     [GeneratedRegex("""<link rel="stylesheet" href="(/[^"?]+)\?v=[^"]+">""", RegexOptions.CultureInvariant)]
     private static partial Regex VersionedStyle();

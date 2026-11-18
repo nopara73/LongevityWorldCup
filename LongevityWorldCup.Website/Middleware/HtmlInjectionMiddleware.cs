@@ -30,6 +30,10 @@ namespace LongevityWorldCup.Website.Middleware
         private const string LeaderboardRuntimeScriptsStartMarker = "<!--LEADERBOARD-RUNTIME-SCRIPTS-START-->";
         private const string LeaderboardStylesStartMarker = "<!--LEADERBOARD-STYLES-START-->";
         private const string LeaderboardStylesEndMarker = "<!--LEADERBOARD-STYLES-END-->";
+        private const string HeaderRuntime = """
+            <script src="{{ASSET_CELEBRATION_JS}}"></script>
+            <script src="{{ASSET_SITE_HEADER_JS}}"></script>
+            """;
         private const string AthleteDialogRuntimeId = "athleteDialogRuntime";
         private static readonly UTF8Encoding SharedSearchUtf8 = new(false, true);
         private static readonly IReadOnlyList<string> AthleteDialogModulePaths =
@@ -188,6 +192,11 @@ namespace LongevityWorldCup.Website.Middleware
                         header = RemoveHeaderTagline(header);
                     }
 
+                    // On a populated homepage the browser can paint the real podium before
+                    // executing the header scripts. Preserve their order ahead of the board runtime.
+                    header = header.Replace("<!--HEADER-RUNTIME-->", championPortrait is null ? HeaderRuntime : string.Empty);
+                    leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null ? string.Empty : HeaderRuntime);
+
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
@@ -220,7 +229,7 @@ namespace LongevityWorldCup.Website.Middleware
                     }
 
                     if (championPortrait is not null)
-                        bodyContent = HomepagePodiumAssets.DeferEnhancementStyles(bodyContent);
+                        bodyContent = HomepagePodiumAssets.PrioritizeStyles(bodyContent);
 
                     if (ShouldRemoveJoinGameButtons(path))
                     {

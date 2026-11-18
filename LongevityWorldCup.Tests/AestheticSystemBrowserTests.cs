@@ -1233,6 +1233,9 @@ public sealed class AestheticSystemBrowserTests(
                     await AssertLeaderboardContainerBoundariesAsync(page,
                         source.Where(condition => condition.Name != "lwc-bar").ToArray());
                     break;
+                case "css/leaderboard-podium.css":
+                    await AssertFontRelativeLeaderboardBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/leaderboard-ordering.css":
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
