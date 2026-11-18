@@ -5002,8 +5002,9 @@ function renderAthleteFlagDetail(flag, athleteData) {
 
 // Standings tiles: Best rank, Division, Generation and Flag read as four
 // small scoreboard tiles. The "(#3)" / "(rank: #3)" text becomes a rank chip
-// (gold, silver and bronze for the podium places) that climbs to its value
-// as the tiles rise in. The visible words stay the same.
+// (gold, silver and bronze for the podium places) that always shows the real
+// rank; the tiles may rise in, the digits never change. The visible words stay
+// the same.
 function decorateProfileStandings() {
     const body = document.querySelector('#athlete-stats .athlete-info-basics');
     if (!body) return;
@@ -5012,6 +5013,9 @@ function decorateProfileStandings() {
         const cell = row.querySelector('td');
         if (!cell) return;
         row.style.setProperty('--standing-index', String(index));
+        // Drop the previous athlete's chip first, so the rank is read from this
+        // athlete's text and never from a stale chip.
+        cell.querySelector(':scope > .standing-rank')?.remove();
         const rankHolder = cell.querySelector('.modal-rank-text, .modal-detail-rank, .detail-muted') || cell;
         const match = /#\s*(\d+)/.exec(rankHolder.textContent || '');
         const rank = match ? Number(match[1]) : NaN;
@@ -5019,7 +5023,6 @@ function decorateProfileStandings() {
         if (rank >= 1 && rank <= 3) row.dataset.standingPlace = String(rank);
         else delete row.dataset.standingPlace;
         if (!match) return;
-        cell.querySelector(':scope > .standing-rank')?.remove();
         const chip = document.createElement('span');
         chip.className = 'standing-rank';
         chip.textContent = `#${rank}`;
@@ -5036,17 +5039,6 @@ function decorateProfileStandings() {
             rankHolder.classList.add('standing-rank-source');
         }
         cell.prepend(chip);
-        if (reduce || rank < 2) return;
-        const from = rank + Math.min(9, rank * 2);
-        const start = performance.now() + 120 + index * 70;
-        const step = now => {
-            const t = Math.max(0, Math.min(1, (now - start) / 620));
-            const eased = 1 - Math.pow(1 - t, 3);
-            if (chip.isConnected) chip.textContent = `#${Math.round(from - (from - rank) * eased)}`;
-            if (t < 1 && chip.isConnected) requestAnimationFrame(step);
-        };
-        chip.textContent = `#${from}`;
-        requestAnimationFrame(step);
     });
     body.classList.remove('is-standing-entering');
     if (!reduce) {
