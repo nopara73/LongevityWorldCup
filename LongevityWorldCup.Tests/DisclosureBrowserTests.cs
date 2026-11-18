@@ -60,10 +60,10 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
                         }).forEach(animation => animation.pause());
                     }
                     """);
-                await Assertions.Expect(page.Locator(".lwc-disclosure-ghost")).ToHaveCountAsync(3);
+                await Assertions.Expect(page.Locator("img.lwc-disclosure-ghost")).ToHaveCountAsync(3);
                 await page.WaitForFunctionAsync("""
                     () => {
-                        const images = [...document.querySelectorAll('.lwc-disclosure-ghost')];
+                        const images = [...document.querySelectorAll('img.lwc-disclosure-ghost')];
                         return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0
                             && getComputedStyle(image).content === 'normal');
                     }
@@ -102,7 +102,7 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
                 document.getAnimations().forEach(a => a.pause());
             }
             """);
-        await Assertions.Expect(page.Locator(".lwc-disclosure-ghost")).ToHaveCountAsync(3);
+        await Assertions.Expect(page.Locator("img.lwc-disclosure-ghost")).ToHaveCountAsync(3);
         if (interrupt == "preference")
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         else if (interrupt == "resize")
@@ -113,12 +113,74 @@ public sealed class DisclosureBrowserTests(PlaywrightBrowserFixture browserFixtu
         await Assertions.Expect(team).Not.ToHaveAttributeAsync("data-disclosure", "opening");
         Assert.True(await team.EvaluateAsync<bool>("d => d.open"));
         Assert.True(await team.EvaluateAsync<bool>("d => [...d.querySelectorAll('.flag-athlete-link img')].every(i => getComputedStyle(i).opacity === '1')"));
-        Assert.Equal("-999px -999px", await team.Locator(".flag-team-portraits img").First.EvaluateAsync<string>("image => getComputedStyle(image).objectPosition"));
+        Assert.True(await team.EvaluateAsync<bool>("d => [...d.querySelectorAll('.flag-team-portraits img')].every(i => getComputedStyle(i).opacity === '0')"));
+        Assert.False(await team.EvaluateAsync<bool>("d => 'shareFlown' in d.dataset"));
         await team.Locator("summary").FocusAsync();
         await page.Keyboard.PressAsync("Space");
         Assert.False(await team.EvaluateAsync<bool>("d => d.open"));
         await page.Keyboard.PressAsync("Enter");
         Assert.True(await team.EvaluateAsync<bool>("d => d.open"));
+    }
+
+    [Fact]
+    public async Task FlagStrips_DrawFullPrecisionGainsAndLossesOnTheClockScale()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/leaderboard?group=flags");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var errors = await page.EvaluateAsync<string[]>("""
+            async () => {
+                const make = (key, view, values) => ({
+                    key, flag: key, view, rank: values.length === 3 ? 1 : null,
+                    values, score: values.reduce((a, b) => a + b, 0)
+                });
+                const mixed = make('Mixed', 'pheno', [-10.049, -10.049, 10.09]);
+                const teams = [make('Pro', 'bortz', [-2, -2, -2]), make('Better', 'pheno', [-5, -5, -5]), mixed,
+                    make('Zero', 'pheno', [-4, 2, 2]), make('Adverse', 'pheno', [-1, 2, 3]),
+                    make('Incomplete', 'pheno', [2, 1])];
+                const board = document.querySelector('#flagLeaderboard');
+                const template = board.querySelector('.flag-team');
+                board.replaceChildren(...teams.map(t => {
+                    const row = template.cloneNode(true);
+                    row.id = 'flag-team-' + t.key;
+                    row.dataset.clock = t.view;
+                    row.style.setProperty('--lwc-unit', (100 / (t.view === 'bortz' ? 6 : 20.098)) + '%');
+                    row.querySelector('.flag-team-strip')?.remove();
+                    row.querySelector('ol').innerHTML = t.values.map(v =>
+                        `<li data-delta="${v}"><span class="flag-athlete-metric">${v.toFixed(1)} years</span></li>`).join('');
+                    return row;
+                }));
+                window.LwcDisclosure.refresh(board);
+                const errors = [];
+                for (const t of teams) {
+                    const row = document.getElementById('flag-team-' + t.key);
+                    const strip = row.querySelector('.flag-team-strip');
+                    const track = strip.getBoundingClientRect();
+                    const pieces = [...strip.children];
+                    const scale = t.view === 'bortz' ? 6 : 20.098;
+                    if (pieces.length !== t.values.length) errors.push(t.key + ': member count');
+                    for (const [i, piece] of pieces.entries()) {
+                        const hatch = piece.hasAttribute('data-debt');
+                        const expected = Math.abs(t.values[i]) / scale * track.width;
+                        if (hatch !== (t.values[i] > 0) || Math.abs(piece.getBoundingClientRect().width - expected) > 0.1)
+                            errors.push(t.key + ': wrong member span or hatch');
+                        if (hatch && !getComputedStyle(piece).backgroundImage.includes('repeating-linear-gradient'))
+                            errors.push(t.key + ': missing hatch');
+                    }
+                    const debts = pieces.filter(p => p.hasAttribute('data-debt'));
+                    const end = debts.length ? Math.min(...debts.map(p => p.getBoundingClientRect().left)) :
+                        Math.max(...pieces.map(p => p.getBoundingClientRect().right));
+                    if (Math.abs(end - track.left - Math.max(0, -t.score) / scale * track.width) > 0.1)
+                        errors.push(t.key + ': wrong net endpoint');
+                }
+                return errors;
+            }
+            """);
+        Assert.Empty(errors);
     }
 
     [Fact]

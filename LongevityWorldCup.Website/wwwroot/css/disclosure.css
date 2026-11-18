@@ -86,10 +86,11 @@
     min-inline-size: calc(3 * var(--flag-seat) - 4px);
 }
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team-portraits > img {
-    transition: margin 220ms var(--lwc-ease-standard, ease), opacity 0s, scale 220ms var(--lwc-ease-pop, ease);
+    transition: translate 220ms var(--lwc-ease-standard, ease), opacity 0s, scale 220ms var(--lwc-ease-pop, ease);
 }
 @media (hover: hover) {
-    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img + img { margin-inline-start: -2px; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img:nth-last-child(3) { translate: -16px 0; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img:nth-last-child(2) { translate: -8px 0; }
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img { scale: 1.06; }
 }
 /* While open, the faces have stepped down into the roster and the stack
@@ -106,15 +107,11 @@
    composition at a glance. */
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip {
     position: relative;
-    display: flex;
-    gap: 2px;
     height: 5px;
     box-sizing: border-box;
-    padding-inline-end: calc((1 - var(--lwc-reach, 1)) * 100%);
     border-radius: 999px;
     background: color-mix(in srgb, var(--lwc-border) 55%, transparent);
     pointer-events: none;
-    transition: gap 220ms var(--lwc-ease-pop, ease);
 }
 /* The name stays centred in the row and the strip hangs 5px under it, in
    a row of its own so long or enlarged names never run into it. */
@@ -125,8 +122,10 @@
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { grid-column: 2; grid-row: 3; align-self: start; margin-block-start: 5px; }
 }
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i {
-    flex: var(--lwc-share, 0) 1 0;
-    min-width: 0;
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: calc(var(--lwc-start) * var(--lwc-unit));
+    width: calc(var(--lwc-span) * var(--lwc-unit));
     border-radius: 999px;
     background: var(--lwc-accent);
     transform-origin: left center;
@@ -142,28 +141,15 @@
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team-athletes > li[data-share-debt] .flag-athlete-link::after {
     background: repeating-linear-gradient(-45deg, var(--lwc-border-strong) 0 1.5px, var(--lwc-surface) 1.5px 3.5px);
 }
-:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i[data-debt] {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-end: calc((1 - var(--lwc-reach, 1) + var(--lwc-debt-at, 0)) * 100%);
-    width: calc(var(--lwc-debt, 0) * 100%);
-    transform-origin: right center;
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i[data-debt] { z-index: 1; }
+
+/* Leave a seam between members without changing the measured endpoints. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i + i:not([data-debt]) {
+    box-shadow: inset 1px 0 var(--lwc-surface);
 }
-:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-strip { gap: 4px; }
-@media (hover: hover) {
-    :root[data-lwc-disclosure] .flag-leaderboard .flag-team summary:hover .flag-team-strip { gap: 4px; }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-strip > i + i:not([data-debt]) {
+    box-shadow: inset 2px 0 var(--lwc-surface);
 }
-@media (prefers-reduced-motion: no-preference) {
-    /* The first time the board shows in a visit, each strip fills in, one row
-       after the other. Later views, filters and searches show them as is. */
-    :root[data-lwc-disclosure]:not([data-lwc-strips-filled]) .flag-leaderboard .flag-team-strip > i {
-        animation: lwc-strip-fill 620ms cubic-bezier(.2, 0, 0, 1) both;
-        animation-delay: calc(120ms + var(--lwc-row, 0) * 45ms);
-    }
-    :root[data-lwc-disclosure]:not([data-lwc-strips-filled]) .flag-leaderboard .flag-team-strip > i + i { animation-delay: calc(180ms + var(--lwc-row, 0) * 45ms); }
-    :root[data-lwc-disclosure]:not([data-lwc-strips-filled]) .flag-leaderboard .flag-team-strip > i + i + i { animation-delay: calc(240ms + var(--lwc-row, 0) * 45ms); }
-}
-@keyframes lwc-strip-fill { from { transform: scaleX(0); opacity: 0; } }
 
 /* Roster: one lifted sheet under the team row. */
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-athletes {
@@ -204,14 +190,9 @@
     transform: none;
     clip-path: inset(0 calc((1 - var(--lwc-share, 0)) * 100%) 0 0 round 999px);
 }
-:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open]:not([data-share-flown]) .flag-athlete-link::after {
-    animation: lwc-share-grow 520ms cubic-bezier(.2, 0, 0, 1) both;
-    animation-delay: calc(140ms + var(--lwc-i, 0) * 70ms);
-}
 /* The strip's pieces are in flight to (or from) these bars. */
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure][data-share-flown] .flag-athlete-link::after { visibility: hidden; }
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team-athletes > li { position: relative; }
-@keyframes lwc-share-grow { from { transform: scaleX(0); } }
 
 /* Gold / silver / bronze rows: the top team's rank medal breathes once on open. */
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure='opening'] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]) {

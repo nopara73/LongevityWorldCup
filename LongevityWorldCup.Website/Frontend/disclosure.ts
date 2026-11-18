@@ -48,22 +48,7 @@ interface Window {
 
     const visible = (el: Element): boolean => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
 
-    // Flag strips fill in the first time the board shows them in a visit.
-    // After that (filters, search, coming back) they are simply there.
-    const STRIPS_FILLED = "lwc:flag-strips-filled";
-    const settleStrips = (): void => { root.dataset.lwcStripsFilled = ""; };
-    let stripsFilling = false;
-    try { if (sessionStorage.getItem(STRIPS_FILLED)) settleStrips(); } catch { /* storage unavailable */ }
-    document.addEventListener("animationstart", event => {
-        if (stripsFilling || root.hasAttribute("data-lwc-strips-filled") || event.animationName !== "lwc-strip-fill") return;
-        stripsFilling = true;
-        try { sessionStorage.setItem(STRIPS_FILLED, "1"); } catch { /* storage unavailable */ }
-        // The last row's last piece lands within 1.5 s.
-        window.setTimeout(settleStrips, 1600);
-    }, true);
-
-    function stop(el: HTMLElement): number {
-        const height = el.getBoundingClientRect().height;
+    function stop(el: HTMLElement): void {
         const pending = pendingReveals.get(el);
         if (pending !== undefined) cancelAnimationFrame(pending);
         pendingReveals.delete(el);
@@ -80,7 +65,6 @@ interface Window {
             });
             current.cleanup();
         }
-        return height;
     }
 
     function stopAll(): void {
@@ -115,9 +99,11 @@ interface Window {
         return { stack, roster };
     }
 
-    function flyFaces(details: HTMLDetailsElement, opening: boolean, duration: number): Animation[] {
+    type Flight = () => Animation[];
+
+    function faceFlights(details: HTMLDetailsElement, opening: boolean, duration: number): Flight[] {
         const { stack, roster } = teamFaces(details);
-        const out: Animation[] = [];
+        const out: Flight[] = [];
         // The stack is hidden on narrow screens; the roster then just deals in.
         if (!stack.length || !stack.every(visible)) return out;
         // The panel clips its content, so each face travels as a fixed ghost
@@ -145,21 +131,22 @@ interface Window {
                 border: cs.border, borderRadius: cs.borderRadius, objectFit: cs.objectFit, objectPosition: cs.objectPosition,
                 outline: cs.outline, outlineOffset: cs.outlineOffset, background: cs.backgroundColor,
             });
-            document.body.appendChild(ghost);
             const dx = from.left + from.width / 2 - (to.left + to.width / 2);
             const dy = from.top + from.height / 2 - (to.top + to.height / 2);
             const s = from.width / to.width;
             const away = `translate(${dx}px, ${dy}px) scale(${s})`;
             const delay = opening ? i * 45 : (roster.length - 1 - i) * 25;
             const travel = opening ? duration + 120 : duration;
-            const flight = ghost.animate(
-                opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
-                { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
-            );
-            flight.oncancel = () => ghost.remove();
-            out.push(flight);
-            // Ghosts hold on their seat until the toggle clock cancels them.
-            out.push(face.animate([{ opacity: 0 }, { opacity: 0 }], { duration: travel + delay, fill: "both" }));
+            out.push(() => {
+                document.body.appendChild(ghost);
+                const flight = ghost.animate(
+                    opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
+                    { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
+                );
+                flight.oncancel = () => ghost.remove();
+                const hideFace = face.animate([{ opacity: 0 }, { opacity: 0 }], { duration: travel + delay, fill: "both" });
+                return [flight, hideFace];
+            });
         });
         return out;
     }
@@ -186,14 +173,11 @@ interface Window {
 
     // The team row's strip is the roster in miniature: opening drops each
     // member's piece into their own bar, closing stacks them back up.
-    function flyShares(details: HTMLDetailsElement, opening: boolean, duration: number): Animation[] {
+    function shareFlights(details: HTMLDetailsElement, opening: boolean, duration: number): Flight[] {
         const pieces = Array.from(details.querySelectorAll<HTMLElement>(":scope > summary > .flag-team-strip > i"));
         const links = Array.from(details.querySelectorAll<HTMLElement>(".flag-athlete-link"));
-        const out: Animation[] = [];
-        if (!pieces.length || !pieces.every(visible)) {
-            delete details.dataset.shareFlown;
-            return out;
-        }
+        const out: Flight[] = [];
+        if (!pieces.length || !visible(pieces[0]!)) return out;
         links.forEach((link, i) => {
             const piece = pieces[i];
             const to = shareBar(link);
@@ -208,91 +192,59 @@ interface Window {
                 left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`,
                 backgroundColor: look.backgroundColor, backgroundImage: look.backgroundImage,
             });
-            document.body.appendChild(ghost);
             const dx = from.left + from.width / 2 - (to.left + to.width / 2);
             const dy = from.top + from.height / 2 - (to.top + to.height / 2);
             const away = `translate(${dx}px, ${dy}px) scale(${from.width / to.width}, ${from.height / to.height})`;
             const delay = opening ? 70 + i * 60 : (links.length - 1 - i) * 30;
             const travel = opening ? duration + 180 : duration;
-            const flight = ghost.animate(
-                opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
-                { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
-            );
-            flight.oncancel = () => ghost.remove();
-            out.push(flight);
+            out.push(() => {
+                document.body.appendChild(ghost);
+                const flight = ghost.animate(
+                    opening ? [{ transform: away }, { transform: "none" }] : [{ transform: "none" }, { transform: away }],
+                    { duration: travel, delay, easing: opening ? EASE_POP : EASE_CLOSE, fill: "both" }
+                );
+                flight.oncancel = () => ghost.remove();
+                return [flight];
+            });
         });
-        if (out.length) details.dataset.shareFlown = "";
-        else delete details.dataset.shareFlown;
         return out;
     }
 
-    // Each member's years as a 0–1 share (--lwc-share) and each team's strip
-    // against the best team on the same clock (--lwc-reach), so Pro and
-    // Amateur sections each read as their own stacked bar chart. Members who
-    // took years off are the solid pieces; a member who aged faster is a
-    // hatched piece laid back over the end (--lwc-debt), so the solid part
-    // ends at the team's real net total and the strips keep the standings.
-    function measureShares(scope: ParentNode): void {
-        const teams = Array.from(scope.querySelectorAll<HTMLElement>(".flag-team")).map(team => {
-            const rows = Array.from(team.querySelectorAll<HTMLElement>(".flag-team-athletes > li"));
-            const values = rows.map(li => {
-                const n = parseFloat((li.querySelector(".flag-athlete-metric")?.textContent || "").replace(/[^\d.+-]/g, ""));
-                return Number.isFinite(n) ? n : 0;
-            });
-            const gained = values.reduce((sum, v) => sum + Math.max(0, -v), 0);
-            const lost = values.reduce((sum, v) => sum + Math.max(0, v), 0);
-            const most = Math.max(gained, lost);
-            const shares = values.map(v => most > 0 ? Math.abs(v) / most : 0);
-            rows.forEach((li, i) => {
-                li.style.setProperty("--lwc-share", (shares[i] ?? 0).toFixed(3));
-                li.style.setProperty("--lwc-i", String(i));
-                if ((values[i] ?? 0) > 0) li.dataset.shareDebt = "";
-                else delete li.dataset.shareDebt;
-            });
-            return { team, values, gained, clock: team.dataset.clock || "" };
-        });
-        const scale = new Map<string, number>();
-        teams.forEach(t => scale.set(t.clock, Math.max(scale.get(t.clock) || 0, t.gained)));
-        teams.forEach(({ team, values, gained, clock }, i) => {
-            const top = scale.get(clock) || 0;
-            team.style.setProperty("--lwc-reach", top > 0 ? Math.min(1, gained / top).toFixed(4) : "0");
-            team.style.setProperty("--lwc-row", String(Math.min(i, 14)));
-            drawStrip(team, values, gained, top);
-        });
+    function flyTeam(details: HTMLDetailsElement, opening: boolean, duration: number): Animation[] {
+        // Read both sets of endpoints before inserting copies or changing visibility.
+        const faces = faceFlights(details, opening, duration);
+        const shares = shareFlights(details, opening, duration);
+        if (shares.length) details.dataset.shareFlown = "";
+        return [...faces, ...shares].flatMap(start => start());
     }
 
-    function drawStrip(team: HTMLElement, values: number[], gained: number, top: number): void {
-        const summary = team.querySelector<HTMLElement>(":scope > summary");
-        if (!summary) return;
-        let strip = summary.querySelector<HTMLElement>(":scope > .flag-team-strip");
-        if (!strip) {
-            strip = document.createElement("span");
-            strip.className = "flag-team-strip";
-            strip.setAttribute("aria-hidden", "true");
-            summary.appendChild(strip);
-        }
-        // Only add or drop pieces when the roster size changes, so the board's
-        // observer settles after one pass.
-        while (strip.children.length > values.length) strip.lastElementChild?.remove();
-        while (strip.children.length < values.length) strip.appendChild(document.createElement("i"));
-        let taken = 0;
-        values.forEach((v, i) => {
-            const piece = strip.children[i] as HTMLElement;
-            if (v > 0) {
-                // Debts stack back from the solid end, never past its start.
-                const debt = top > 0 ? Math.min(v, Math.max(0, gained - taken)) / top : 0;
+    function drawStrip(summary: HTMLElement): void {
+        const rows = Array.from(summary.parentElement!.querySelectorAll<HTMLElement>(".flag-team-athletes > li"));
+        const values = rows.map(row => Number(row.dataset.delta));
+        const gained = values.reduce((sum, value) => sum + Math.max(0, -value), 0);
+        const lost = values.reduce((sum, value) => sum + Math.max(0, value), 0);
+        const extent = Math.max(gained, lost);
+        let gainEnd = 0;
+        let debtStart = extent;
+        const strip = document.createElement("span");
+        strip.className = "flag-team-strip";
+        strip.setAttribute("aria-hidden", "true");
+        rows.forEach((row, i) => {
+            const value = values[i]!;
+            const span = Math.abs(value);
+            row.style.setProperty("--lwc-share", String(extent ? span / extent : 0));
+            const piece = document.createElement("i");
+            if (value > 0) {
+                debtStart -= span;
                 piece.dataset.debt = "";
-                piece.style.setProperty("--lwc-debt-at", (taken / (top || 1)).toFixed(4));
-                piece.style.setProperty("--lwc-debt", debt.toFixed(4));
-                piece.style.removeProperty("--lwc-share");
-                taken += v;
-            } else {
-                delete piece.dataset.debt;
-                piece.style.removeProperty("--lwc-debt-at");
-                piece.style.removeProperty("--lwc-debt");
-                piece.style.setProperty("--lwc-share", (gained > 0 ? -v / gained : 0).toFixed(4));
+                row.dataset.shareDebt = "";
             }
+            piece.style.setProperty("--lwc-start", String(value > 0 ? Math.max(0, debtStart) : gainEnd));
+            piece.style.setProperty("--lwc-span", String(span));
+            if (value < 0) gainEnd += span;
+            strip.appendChild(piece);
         });
+        summary.appendChild(strip);
     }
 
     // ------------------------------------------------------------ <details>
@@ -309,11 +261,11 @@ interface Window {
         const isTeam = details.classList.contains("flag-team");
         const duration = open ? OPEN_MS : CLOSE_MS;
         const extras: Animation[] = [];
-        if (!open && isTeam) extras.push(...flyFaces(details, false, duration), ...flyShares(details, false, duration));
+        if (!open && isTeam) extras.push(...flyTeam(details, false, duration));
         details.dataset.disclosure = open ? "opening" : "closing";
         details.open = open;
         if (open) {
-            if (isTeam) extras.push(...flyFaces(details, true, duration), ...flyShares(details, true, duration));
+            if (isTeam) extras.push(...flyTeam(details, true, duration));
             contentOf(details).forEach(c => extras.push(...dealItems(c)));
         }
         // Follow the page's animation rate and let the last staggered item land.
@@ -322,7 +274,7 @@ interface Window {
         const anim = details.animate([], { duration: end });
         running.set(details, { anim, opening: open, extras, cleanup: () => {
             delete details.dataset.disclosure;
-            if (!open) delete details.dataset.shareFlown;
+            delete details.dataset.shareFlown;
         } });
         anim.oncancel = () => {
             if (running.get(details)?.anim !== anim) return;
@@ -360,7 +312,8 @@ interface Window {
         const id = button?.getAttribute("aria-controls");
         const region = id ? document.getElementById(id) : null;
         if (!button || !region || region.closest(SKIP)) return;
-        const start = stop(region);
+        const start = region.getBoundingClientRect().height;
+        stop(region);
         const before = new Set(Array.from(region.children).filter(visible));
         pendingReveals.set(region, requestAnimationFrame(() => {
             pendingReveals.delete(region);
@@ -395,15 +348,10 @@ interface Window {
     // Flag rosters are re-rendered as filters change; keep their shares current.
     function refresh(scope: ParentNode = document): void {
         for (const el of running.keys()) if (!el.isConnected) stop(el);
-        measureShares(scope);
+        scope.querySelectorAll<HTMLElement>(".flag-team > summary:not(:has(> .flag-team-strip))").forEach(drawStrip);
     }
-    const watch = (): void => {
-        refresh();
-        const board = document.getElementById("flagLeaderboard");
-        if (board) new MutationObserver(() => refresh(board)).observe(board, { childList: true, subtree: true, characterData: true });
-    };
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch, { once: true });
-    else watch();
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => refresh(), { once: true });
+    else refresh();
 
     window.LwcDisclosure = { toggle, refresh };
 })();
