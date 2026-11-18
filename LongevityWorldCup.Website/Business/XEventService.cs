@@ -94,7 +94,7 @@ public class XEventService
             if (string.IsNullOrWhiteSpace(eventId))
                 return null;
 
-            return CustomEventSocialComposer.BuildPlan(eventId, rawText, 280, ResolveMention, includeEventUrl: visibleOnWebsite).PostText;
+            return XCustomEventPost.BuildPlan(eventId, rawText, ResolveMention, includeEventUrl: visibleOnWebsite).PostText;
         }
 
         var message = XMessageBuilder.ForEventText(
@@ -157,7 +157,7 @@ public class XEventService
             return false;
         }
 
-        var plan = CustomEventSocialComposer.BuildPlan(eventId, rawText, 280, ResolveMention, includeEventUrl: visibleOnWebsite);
+        var plan = XCustomEventPost.BuildPlan(eventId, rawText, ResolveMention, includeEventUrl: visibleOnWebsite);
         _log.LogInformation(
             "X custom event plan for event {EventId}: mode {Mode}, visibleOnWebsite {VisibleOnWebsite}, postLength {PostLength}, titleLength {TitleLength}, bodyLength {BodyLength}",
             eventId,

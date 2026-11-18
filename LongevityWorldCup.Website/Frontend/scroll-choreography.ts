@@ -74,7 +74,8 @@
         observer?.unobserve(element);
         pending.delete(element);
         // A jump that lands many items at once compresses the cascade so the screen fills fast.
-        element.style.setProperty('--lwc-enter-i', String(Math.min(index * pace, STAGGER_CAP)));
+        const step = Math.min(index * pace, STAGGER_CAP);
+        if (step) element.dataset.lwcEnterStep = String(step);
         element.setAttribute('data-lwc-enter-state', 'go');
         // Clear once settled so the element's own transitions take over again.
         settling.set(element, window.setTimeout(() => clearEntrance(element), 900 + Math.min(index, STAGGER_CAP) * 80));
@@ -90,6 +91,7 @@
         // Removing the rule alone can leave an in-flight transition contributing its
         // current opacity. Cancel only the two transitions owned by this entrance.
         const transitions = element.getAttribute('data-lwc-enter-state') === 'go'
+            && typeof element.getAnimations === 'function' && typeof CSSTransition !== 'undefined'
             ? element.getAnimations().filter(animation => animation instanceof CSSTransition
                 && (animation.transitionProperty === 'opacity' || animation.transitionProperty === 'translate'))
             : [];
@@ -98,7 +100,7 @@
         window.clearTimeout(settling.get(element));
         settling.delete(element);
         element.removeAttribute('data-lwc-enter-state');
-        element.style.removeProperty('--lwc-enter-i');
+        element.removeAttribute('data-lwc-enter-step');
         transitions.forEach(animation => animation.cancel());
     }
 
@@ -112,8 +114,10 @@
     function staggerItems(container: HTMLElement): HTMLElement[] {
         const selector = container.getAttribute('data-lwc-stagger');
         const items = selector ? container.querySelectorAll(selector) : container.children;
+        // Nested text/icon updates are not new arrivals. Check identity before
+        // reading layout, which would otherwise flush styles for the whole page.
         return Array.from(items).filter((item): item is HTMLElement =>
-            item instanceof HTMLElement && !item.hidden && item.getClientRects().length > 0);
+            item instanceof HTMLElement && !seen.has(item) && !item.hidden && item.getClientRects().length > 0);
     }
 
     // ---- counters ---------------------------------------------------------------------

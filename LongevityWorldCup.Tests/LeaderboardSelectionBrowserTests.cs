@@ -549,6 +549,8 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
             ["DateOfBirth"] = new JsonObject { ["Year"] = 1975, ["Month"] = 1, ["Day"] = 1 },
             ["Division"] = division, ["Flag"] = flag, ["Why"] = "",
             ["Biomarkers"] = new JsonArray(Biomarkers("2024-01-01", crp + 5), Biomarkers("2025-01-01", crp)),
+            ["PhenoAgeImprovementFromWorst"] = -2.5,
+            ["BortzAgeImprovementFromWorst"] = professional ? JsonValue.Create(-1.5) : null,
             ["CrowdAge"] = 30, ["CrowdCount"] = 150,
             ["Placements"] = new JsonArray(), ["Badges"] = new JsonArray()
         };
