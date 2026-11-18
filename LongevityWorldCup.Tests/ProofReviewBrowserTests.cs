@@ -604,6 +604,60 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         await page.WaitForFunctionAsync("() => !document.querySelector('#proofPicInput').disabled");
     }
 
+    [Theory]
+    [InlineData(false, 1440, 900, 413)]
+    [InlineData(true, 390, 844, 413)]
+    [InlineData(false, 390, 844, 503)]
+    [InlineData(true, 1440, 900, 503)]
+    public async Task RejectedSubmission_KeepsProofsAndRestoresTheForm(bool onboarding, int width, int height, int status)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce,
+            ColorScheme = width < 500 ? ColorScheme.Dark : ColorScheme.Light
+        });
+        var page = await PrepareAsync(context, onboarding);
+        await UploadAsync(page, await CreatePagesAsync(2));
+        var original = await ReadSourcesAsync(page);
+        await context.RouteAsync("**/api/application/application", route => route.FulfillAsync(new()
+        {
+            Status = status, ContentType = "text/html", Body = "<html>Upload rejected</html>"
+        }));
+        await context.RouteAsync("**/api/application/submission-status", route => route.FulfillAsync(new() { Status = 404 }));
+        await context.RouteAsync("**/api/application/submission-report", route => route.FulfillAsync(new() { Status = 204 }));
+        if (onboarding)
+        {
+            foreach (var heading in new[] { "Final details", "Application" })
+            {
+                await page.Locator("#nextButton").ClickAsync();
+                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+            }
+            await page.Locator("#accountEmail").FillAsync("proof@example.test");
+        }
+        var submit = page.Locator(onboarding ? "#nextButton" : "#submitButton");
+        await submit.ClickAsync();
+        var alert = page.Locator("#custom-alert-message");
+        await Assertions.Expect(alert).ToBeVisibleAsync();
+        if (status == 413)
+        {
+            await Assertions.Expect(alert).ToHaveTextAsync("These files exceed the 50 MB upload limit. Your selections are still here. Remove duplicate pages or choose smaller files, then try again.");
+            Assert.True(await alert.EvaluateAsync<bool>("e => e.scrollWidth <= e.clientWidth + 1"));
+        }
+        await page.Locator("#custom-alert-close").ClickAsync();
+        await Assertions.Expect(submit).ToBeEnabledAsync();
+        await Assertions.Expect(submit).ToBeFocusedAsync();
+        Assert.Equal(original, await page.EvaluateAsync<string[]>("proofPics"));
+        Assert.True(await WouldWarnOnExitAsync(page));
+        if (onboarding)
+        {
+            await page.Locator("#backButton").ClickAsync();
+            await page.Locator("#backButton").ClickAsync();
+        }
+        Assert.Equal(original, await ReadSourcesAsync(page));
+        await Assertions.Expect(page.Locator("#uploadProofButton")).ToBeEnabledAsync();
+    }
+
     private static Task<string[]> ReadSourcesAsync(IPage page) => page.Locator("#proofImageContainer img").EvaluateAllAsync<string[]>("images => images.map(image => image.src)");
 
     private static Task<bool> WouldWarnOnExitAsync(IPage page) =>

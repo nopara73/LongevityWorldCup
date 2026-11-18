@@ -30,14 +30,18 @@ public sealed class BadgeDarkRimBrowserTests(
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, path);
         await page.WaitForFunctionAsync("() => typeof window.setBadges === 'function'");
+        // The events renderer reconciles every tbody when its initial request completes.
+        // Wait for that render before adding the badge fixture to its table.
+        if (path == "/events")
+            await Assertions.Expect(page.Locator("#events-root")).ToHaveAttributeAsync("aria-busy", "false");
         // Exercise the shared renderer's actual gradients, icons and tooltips in each
         // surface's cascade rather than manufacturing a styled badge span.
         await page.EvaluateAsync("""
             surface => {
                 const container = document.querySelector(surface);
                 const table = container.matches('table') ? container : container.querySelector('table');
-                // The page hydrates its first tbody asynchronously. Keep the fixture
-                // in the same table cascade without letting hydration remove it.
+                // A separate body stays outside leaderboard hydration; the events
+                // feed has already completed its initial render above.
                 const row = table.createTBody().insertRow();
                 const host = document.createElement('div');
                 host.id = 'rim-test-badges';

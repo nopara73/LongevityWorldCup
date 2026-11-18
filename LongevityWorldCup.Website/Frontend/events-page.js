@@ -206,11 +206,11 @@ const eventsPageAssets = document.currentScript.dataset;
     }
     // Chapters use local Gregorian months, with the reader's language and digits.
     // Keep embedded feeds on their existing date format.
-    function formatListDateHtml(iso){
+    function formatListDateHtml(iso, compact=false){
         const date=new Date(iso); if(!iso||isNaN(date)) return '';
         const historical=date.getFullYear()!==new Date().getFullYear();
         const formatter=new Intl.DateTimeFormat(undefined,{calendar:'gregory',month:'short',day:'numeric',...(historical?{year:'numeric'}:{})});
-        const html=formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
+        const html=compact ? esc(formatListDate(iso)) : formatter.formatToParts(date).map(part=>`<span class="${part.type==='day'?'event-date-day':'event-date-rest'}">${esc(historical?part.value:part.value.replace(/,/g,''))}</span>`).join('');
         const full=date.toLocaleDateString(undefined,{calendar:'gregory',year:'numeric',month:'long',day:'numeric'});
         return `<time datetime="${esc(iso)}" aria-label="${esc(full)}">${html}</time>`;
     }
@@ -222,6 +222,12 @@ const eventsPageAssets = document.currentScript.dataset;
         return '';
     }
     // A small mark on the portrait says what kind of moment the row is.
+    function eventPortrait(portrait, kind=''){
+        return `<span class="event-avatar-frame">${portrait}${kind}</span>`;
+    }
+    function unlinkedEventPortrait(portrait){
+        return `<span class="avatar-disabled">${eventPortrait(portrait)}</span>`;
+    }
     function eventKindMark(r){
         const lost = r.newRankDirection === "lost" || r.badgeDirection === "lost"
             || r.crowdAgeDirection === "lost" || r.improvementDirection === "lost";
@@ -992,16 +998,23 @@ const eventsPageAssets = document.currentScript.dataset;
         }
         const vh = window.innerHeight || document.documentElement.clientHeight;
         let arrivals = 0;
-        table.querySelectorAll('tr.main-row[data-event-id]').forEach(row => {
-            const before = previous.positions.get(row.dataset.eventId);
-            const rect = row.getBoundingClientRect();
-            const onscreen = rect.bottom > 0 && rect.top < vh;
-            if (before) {
-                // A row that stays is already in view: no reveal fade.
+        const measured = Array.from(table.querySelectorAll('tr.main-row[data-event-id]'), row => ({
+            row, before: previous.positions.get(row.dataset.eventId), rect: row.getBoundingClientRect()
+        }));
+        // Retained rows must not replay their reveal. Apply that state together;
+        // flushing each row separately stalls refreshes of a long feed.
+        const unrevealed = measured.filter(({ row, before }) => before && !row.classList.contains('is-visible'));
+        if (unrevealed.length) {
+            unrevealed.forEach(({ row }) => {
                 row.style.transition = 'none';
                 row.classList.add('is-visible');
-                void row.offsetWidth;
-                row.style.removeProperty('transition');
+            });
+            void table.offsetWidth;
+            unrevealed.forEach(({ row }) => row.style.removeProperty('transition'));
+        }
+        measured.forEach(({ row, before, rect }) => {
+            const onscreen = rect.bottom > 0 && rect.top < vh;
+            if (before) {
                 const dy = before.top - rect.top;
                 if (!reduced && onscreen && Math.abs(dy) > 1 && typeof row.animate === 'function') {
                     row.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 300, easing: FEED_EASE });
@@ -1075,17 +1088,15 @@ const eventsPageAssets = document.currentScript.dataset;
             const headings = document.querySelectorAll('.event-board-page tr.events-month-row');
             const stickyTop = headings.length ? parseFloat(getComputedStyle(headings[0]).top) || 0 : 0;
             let current = null;
-            headings.forEach(row => {
+            // Read every month's bounds and reading position before changing
+            // sticky styles or day chips, which invalidate the table's layout.
+            const measured = Array.from(headings, row => {
                 const body = row.parentElement;
                 const bodyRect = body.getBoundingClientRect();
                 const rect = row.getBoundingClientRect();
                 const pinned = bodyRect.top < stickyTop - 1 && bodyRect.bottom > stickyTop;
                 const h = rect.height || 40;
                 const handoff = pinned ? Math.min(1, Math.max(0, 1 - (bodyRect.bottom - stickyTop - h) / (h * 1.5))) : 0;
-                if (row.classList.contains('is-pinned') !== pinned) row.classList.toggle('is-pinned', pinned);
-                const value = handoff.toFixed(2);
-                if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
-                const chip = row.querySelector('.events-day-chip');
                 let reading = null;
                 if (pinned) {
                     // An expanded story belongs to its title's day until its
@@ -1096,6 +1107,13 @@ const eventsPageAssets = document.currentScript.dataset;
                         return end.getBoundingClientRect().bottom > rect.bottom + 1;
                     });
                 }
+                return { row, pinned, handoff, reading };
+            });
+            measured.forEach(({ row, pinned, handoff, reading }) => {
+                row.classList.toggle('is-pinned', pinned);
+                const value = handoff.toFixed(2);
+                if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
+                const chip = row.querySelector('.events-day-chip');
                 if (!reading) {
                     if (chip?.hasChildNodes()) { chip.replaceChildren(); delete chip.dataset.day; }
                     return;
@@ -1120,7 +1138,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 lastRow?.classList.remove('is-current-day');
                 lastRow = current;
             }
-            current?.classList.add('is-current-day');
+            current?.classList.toggle('is-current-day', true);
         };
         const queue = () => { if (!frame && !document.hidden) frame = requestAnimationFrame(update); };
         const stop = () => {
@@ -1143,7 +1161,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function updateFreshHighlights(){
         const now = Date.now();
-        document.querySelectorAll('.event-board-page tr.main-row').forEach(row => {
+        document.querySelectorAll(':is(.event-board-page, #events-root-index) tr.main-row').forEach(row => {
             const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
             const age = now - stamp;
             row.classList.toggle('is-fresh', Number.isFinite(age) && age >= 0 && age < 86400000);
@@ -1678,6 +1696,7 @@ const eventsPageAssets = document.currentScript.dataset;
         // Reobserve only the surviving, unrevealed rows after reconciliation.
         rowObserver?.disconnect();
         const chapters=!!tbody.closest('.event-board-page');
+        const homepage=!!tbody.closest('#events-root-index');
         const timelineRows = [...table.querySelectorAll('tr.main-row')];
         const restoredFeed = !timelineRows.length && performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
             ? history.state?.lwcEventFeeds?.[historyFeedKey(table)] : null;
@@ -1738,7 +1757,7 @@ const eventsPageAssets = document.currentScript.dataset;
         rowsToRender.forEach((r, localIdx) => {
             const idx = localIdx;
             const occurredAt = r.displayOccurredAt || r.occurredAt;
-            const dateLabel = occurredAt ? (chapters?formatListDateHtml(occurredAt):esc(formatListDate(occurredAt))) : "";
+            const dateLabel = occurredAt ? (chapters || homepage ? formatListDateHtml(occurredAt, homepage) : esc(formatListDate(occurredAt))) : "";
             const rel = (r.type === EVENT_TYPE.Joined && occurredAt)
                 ? `<span class="event-rel" data-rel-at="${esc(occurredAt)}">${relativeDayLabel(occurredAt)}</span>`
                 : "";
@@ -1789,21 +1808,21 @@ const eventsPageAssets = document.currentScript.dataset;
                 const portrait = img
                     ? `<img class="avatar" data-lwc-image-role="athlete" src="${esc(img)}" alt="${esc(name)}" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`
                     : `<div class="avatar-fallback" data-lwc-image-role="athlete">${initialsFromName(name)}</div>`;
-                const framed = `<span class="event-avatar-frame">${portrait}${eventKindMark(r)}</span>`;
+                const framed = eventPortrait(portrait, eventKindMark(r));
                 avatarHtml = canLinkAvatar
                     ? `<a href="${url}" class="avatar-link event-athlete-link" title="${esc(name)}" aria-label="${esc(name)}"${avatarModalAttrs}${avatarTargetAttrs}>${framed}</a>`
                     : `<span class="avatar-disabled" aria-label="${esc(name)}">${framed}</span>`;
             } else if (r.type === EVENT_TYPE.DonationReceived) {
-                avatarHtml = `<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback donation-gift-avatar" title="Donation" aria-label="Donation"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`);
             } else if (r.type === EVENT_TYPE.AthleteCountMilestone) {
-                avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback milestone-people-avatar" title="Milestone" aria-label="Milestone"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div>`);
             } else if (r.type === EVENT_TYPE.CustomEvent) {
                 const logo = eventsPageAssets.defaultProfilePic;
-                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup"><img class="avatar custom-event-avatar" data-lwc-image-role="brand" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer"></span>`;
+                avatarHtml = `<span class="avatar-disabled" title="Longevity World Cup" aria-label="Longevity World Cup">${eventPortrait(`<img class="avatar custom-event-avatar" data-lwc-image-role="brand" src="${esc(logo)}" alt="Longevity World Cup" title="Longevity World Cup" ${avatarLoadingAttrs} decoding="async" referrerpolicy="no-referrer">`)}</span>`;
             } else if (r.type === EVENT_TYPE.LongevitymaxxingChallengeResult) {
-                avatarHtml = `<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback milestone-people-avatar" title="Longevitymaxxing Challenge" aria-label="Longevitymaxxing Challenge"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>`);
             } else {
-                avatarHtml = `<div class="avatar-fallback" title="Event">★</div>`;
+                avatarHtml = unlinkedEventPortrait(`<div class="avatar-fallback" title="Event">★</div>`);
             }
 
             let msgHtml = "";
@@ -2314,7 +2333,7 @@ const eventsPageAssets = document.currentScript.dataset;
         }
 
         const rowsNow = table.querySelectorAll(".row-appear:not(.is-visible)");
-        if (!prefersReduced && rowsNow.length){
+        if (!prefersReduced && rowsNow.length && typeof IntersectionObserver === 'function'){
             const io = ensureRowObserver();
             rowsNow.forEach(r => io.observe(r));
             requestAnimationFrame(() => revealVisibleRowsImmediately(table));
