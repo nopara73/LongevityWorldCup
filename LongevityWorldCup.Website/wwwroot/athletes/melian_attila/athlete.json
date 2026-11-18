@@ -43,6 +43,54 @@
       "RdwPc": 11.2,
       "AlpUL": 59,
       "Wbc1000cellsuL": 5.37
+    },
+    {
+      "Date": "2019-11-21",
+      "AlbGL": 46.3,
+      "CreatUmolL": 98,
+      "GluMmolL": 4.14,
+      "CrpMgL": 0.91,
+      "Wbc1000cellsuL": 6.02,
+      "LymPc": 37,
+      "McvFL": 85.5,
+      "RdwPc": 11.3,
+      "AlpUL": 70
+    },
+    {
+      "Date": "2021-10-19",
+      "AlbGL": 44.2,
+      "CreatUmolL": 92,
+      "GluMmolL": 4.59,
+      "CrpMgL": 0.97,
+      "Wbc1000cellsuL": 4.9,
+      "LymPc": 30.5,
+      "McvFL": 91.5,
+      "RdwPc": 11.3,
+      "AlpUL": 59
+    },
+    {
+      "Date": "2022-06-02",
+      "AlbGL": 52.1,
+      "CreatUmolL": 89,
+      "GluMmolL": 4.23,
+      "CrpMgL": 0.83,
+      "Wbc1000cellsuL": 4.83,
+      "LymPc": 41.3,
+      "McvFL": 89.9,
+      "RdwPc": 12.8,
+      "AlpUL": 67
+    },
+    {
+      "Date": "2023-12-07",
+      "AlbGL": 47.1,
+      "CreatUmolL": 86,
+      "GluMmolL": 4.45,
+      "CrpMgL": 0.7,
+      "Wbc1000cellsuL": 5.28,
+      "LymPc": 35.3,
+      "McvFL": 89.1,
+      "RdwPc": 11.4,
+      "AlpUL": 57
     }
   ],
   "Division": "Men's",

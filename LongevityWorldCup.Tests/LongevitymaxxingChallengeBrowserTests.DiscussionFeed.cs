@@ -255,7 +255,13 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await older.ClickAsync();
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
             await WaitForFiniteAnimationsAsync(page);
-            if (readerMovesAway) await page.Mouse.WheelAsync(0, -600);
+            if (readerMovesAway) {
+                const int wheelDistance = 600;
+                var beforeWheel = await page.EvaluateAsync<double>("() => scrollY");
+                await page.Mouse.WheelAsync(0, -wheelDistance);
+                // Establish the reader's new position before the pending history can change the page.
+                await page.WaitForFunctionAsync("target => scrollY <= target", Math.Max(0, beforeWheel - wheelDistance) + 1);
+            }
             await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
             var anchor = await articles.EvaluateAllAsync<string>("items => items.find(e => e.getBoundingClientRect().bottom > 60 && e.getBoundingClientRect().top < innerHeight).dataset.feedKey");
             var reading = page.Locator($"#lmxNotes > article[data-feed-key='{anchor}']");

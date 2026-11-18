@@ -303,8 +303,8 @@ function assignBestRankCandidates(athletes) {
 
     assignRankedBestCandidates(
         orderByNumberDesc(
-            rows.filter(athlete => Number.isFinite(athlete.ageReductionPercent)),
-            athlete => athlete.ageReductionPercent),
+            rows.filter(athlete => Number.isFinite(athlete.phenoPaceOfAging)),
+            athlete => -athlete.phenoPaceOfAging),
         () => ({
             leagueName: 'Pheno pace of aging',
             leagueLabel: 'Pheno pace of aging ranking',
@@ -1491,6 +1491,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 // Compute the actually lowest PhenoAge across real submissions
                 let lowestPhenoAge = Infinity;
                 let valuesForLowestPhenoAge = null;
+                let phenoRankResult = null;
 
                 athlete.Biomarkers.forEach(entry => {
                     const entryDate = getBiomarkerTestDate(entry.Date);
@@ -1512,6 +1513,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     // Only consider submissions with complete numeric data
                     if (candidateValues.every(Number.isFinite)) {
                         const ph = window.PhenoAge.calculatePhenoAge(candidateValues);
+                        if (Number.isFinite(ph) && (!phenoRankResult ||
+                            ph - ageAtEntry < phenoRankResult.bio - phenoRankResult.chrono ||
+                            (ph - ageAtEntry === phenoRankResult.bio - phenoRankResult.chrono && ageAtEntry < phenoRankResult.chrono))) {
+                            phenoRankResult = { bio: ph, chrono: ageAtEntry };
+                        }
                         if (ph < lowestPhenoAge) {
                             lowestPhenoAge = ph;
                             valuesForLowestPhenoAge = candidateValues;
@@ -1548,9 +1554,9 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 }
 
                 // Calculate the age reduction
-                const ageReduction = lowestPhenoAge - chronoAtLowestPhenoAge;
+                const ageReduction = phenoRankResult ? phenoRankResult.bio - phenoRankResult.chrono : 0;
                 const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
-                const ageReductionPercent = (1 - biologicalAgePercent) * 100;
+                const ageReductionPercent = phenoRankResult?.chrono > 0 ? -100 * ageReduction / phenoRankResult.chrono : null;
 
                 // Lowest bortz age and bortz age reduction (only when submissions have full Bortz biomarkers)
                 let lowestBortzAge = null;
@@ -1558,6 +1564,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 let bortzAgeReduction = null;
                 let bortzAgeReductionPercent = null;
                 let bestBortzValues = null;
+                let bortzRankResult = null;
                 if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                     let bortzMin = Infinity;
                     let chronoAtBortzMin = null;
@@ -1600,6 +1607,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     completeBortzBiomarkerSets.forEach(entry => {
                         const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
                         const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
+                        if (Number.isFinite(bortzAge) && (!bortzRankResult ||
+                            bortzAge - ageAtEntry < bortzRankResult.bio - bortzRankResult.chrono ||
+                            (bortzAge - ageAtEntry === bortzRankResult.bio - bortzRankResult.chrono && ageAtEntry < bortzRankResult.chrono))) {
+                            bortzRankResult = { bio: bortzAge, chrono: ageAtEntry };
+                        }
                         if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                             bortzMin = bortzAge;
                             chronoAtBortzMin = ageAtEntry;
@@ -1609,8 +1621,8 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     if (Number.isFinite(bortzMin) && chronoAtBortzMin != null) {
                         lowestBortzAge = bortzMin;
                         chronoAtLowestBortzAge = chronoAtBortzMin;
-                        bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
-                        bortzAgeReductionPercent = (1 - lowestBortzAge / chronoAtLowestBortzAge) * 100;
+                        bortzAgeReduction = bortzRankResult.bio - bortzRankResult.chrono;
+                        bortzAgeReductionPercent = bortzRankResult.chrono > 0 ? -100 * bortzAgeReduction / bortzRankResult.chrono : null;
                     }
                 }
 
@@ -1649,8 +1661,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                     ageReduction: ageReduction,
                     ageReductionPercent: ageReductionPercent,
+                    phenoPaceOfAging: biologicalAgePercent,
                     bestBiomarkerValues: bestBiomarkerValues,
                     bestBortzValues: bestBortzValues,
+                    phenoRankResult: phenoRankResult,
+                    bortzRankResult: bortzRankResult,
                     personalLink: athlete.PersonalLink,
                     profilePic: athlete.ProfilePic,
                     profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
@@ -1787,7 +1802,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 });
             });
 
-            athletesOrderedByPace = orderByNumberDesc(athleteResults, a => a.ageReductionPercent);
+            athletesOrderedByPace = orderByNumberAsc(athleteResults, a => a.phenoPaceOfAging);
             athletesOrderedByBortzPace = orderByNumberAsc(
                 athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
                 a => a.lowestBortzAge / a.chronoAtLowestBortzAge
@@ -4679,6 +4694,12 @@ document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(labe
     });
 });
 
+function isRequestedNamedFilter(value) {
+    const raw = new URLSearchParams(location.search).get('filters');
+    const requested = raw ? parseFiltersParam(raw) : [getLeagueRouteState(location.pathname).filterLabel || ''];
+    return requested.some(filter => filter.toLowerCase() === value.toLowerCase());
+}
+
 function generateDivisionFilters(athletes) {
     const filterSection = document.querySelector('#division-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
@@ -4688,6 +4709,9 @@ function generateDivisionFilters(athletes) {
         acc[athlete.division] = (acc[athlete.division] || 0) + 1;
         return acc;
     }, {});
+    ["Women's", "Men's", "Open"].forEach(division => {
+        if (isRequestedNamedFilter(division)) divisionCounts[division] ??= 0;
+    });
 
     // Generate the filter items with icons and counts
     Object.keys(divisionCounts).forEach(division => {
@@ -4749,7 +4773,7 @@ function generateGenerationFilters(athletes) {
 
     orderedGenerations.forEach(generation => {
         const count = generationCounts[generation] || 0;
-        if (count > 0) { // Only show generations with at least one athlete
+        if (count > 0 || isRequestedNamedFilter(generation)) {
             const icon = window.TryGetGenerationFaIcon ? window.TryGetGenerationFaIcon(generation) : '';
 
             const li = document.createElement('li');
@@ -4777,7 +4801,7 @@ function generateExclusiveFilters(athletes) {
         return athlete.exclusiveLeague === "Prosperan" ? count + 1 : count;
     }, 0);
 
-    if (prosperanCount > 0) {
+    if (prosperanCount > 0 || isRequestedNamedFilter('Prosperan')) {
         const li = document.createElement('li');
         li.innerHTML = `
         <label data-exclusive-league="Prosperan">
@@ -7413,6 +7437,7 @@ function getSearchSnippet(text, term) {
 
 let searchReasonPopover;
 let searchReasonOwner;
+const searchReasonPayloads = new WeakMap();
 
 function closeSearchReason() {
     if (searchReasonPopover?.matches(':popover-open')) searchReasonPopover.hidePopover();
@@ -7441,7 +7466,10 @@ function placeSearchReason() {
 }
 
 function appendSearchReason(host, source, text, terms, className = '') {
-    const chip = document.createElement('button');
+    const existing = host.querySelector(`:scope > .search-reason--${source.kind}`);
+    const chip = existing || document.createElement('button');
+    searchReasonPayloads.set(chip, { text, terms });
+    if (existing) return chip;
     chip.type = 'button';
     chip.className = `search-reason search-reason--${source.kind} ${className}`.trim();
     chip.innerHTML = `<i class="fas ${source.icon}" aria-hidden="true"></i>`;
@@ -7449,6 +7477,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
     chip.setAttribute('aria-expanded', 'false');
     chip.setAttribute('aria-controls', 'leaderboardSearchReason');
     chip.addEventListener('click', event => {
+        const { text, terms } = searchReasonPayloads.get(chip);
         event.preventDefault();
         event.stopPropagation();
         const wasOpen = searchReasonOwner === chip && searchReasonPopover?.matches(':popover-open');
@@ -7485,6 +7514,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
         placeSearchReason();
     });
     host.appendChild(chip);
+    return chip;
 }
 
 function clearSearchReasons(scope) {
@@ -7496,8 +7526,25 @@ function clearSearchReasons(scope) {
 function markSearchReasons(terms, entries, view) {
     const board = document.querySelector('.leaderboard table tbody');
     if (!board) return;
-    clearSearchReasons(athleteDialogRuntime);
-    if (!terms.length) return;
+    if (!terms.length) { clearSearchReasons(athleteDialogRuntime); return; }
+    closeSearchReason();
+    // A longer query often keeps the same evidence. Retain those buttons and
+    // marks so typing does not restart their animations or touch-target setup.
+    const unusedChips = new Set(athleteDialogRuntime.querySelectorAll('.search-reason'));
+    const unusedMarks = new Set(athleteDialogRuntime.querySelectorAll('.is-search-hit, .is-search-value'));
+    const preceding = new Map();
+    const reportReason = (host, ...args) => {
+        const chip = appendSearchReason(host, ...args);
+        const previous = preceding.get(host);
+        const next = previous ? previous.nextElementSibling : host.querySelector(':scope > .search-reason');
+        if (chip !== next) host.insertBefore(chip, next);
+        preceding.set(host, chip);
+        unusedChips.delete(chip);
+    };
+    const mark = (node, name) => {
+        node?.classList.toggle(name, true);
+        unusedMarks.delete(node);
+    };
     const entryByName = new Map(entries.map(entry => [entry.athlete.name, entry]));
     board.querySelectorAll('tr[data-athlete-name]').forEach(row => {
         const entry = entryByName.get(row.dataset.athleteName);
@@ -7515,7 +7562,7 @@ function markSearchReasons(terms, entries, view) {
         pending = pending.filter(term => {
             const hits = badges.filter(badge => normalizeSearchText(`${badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || ''} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`).includes(term));
             hits.forEach(badge => {
-                badge.classList.add('is-search-hit');
+                mark(badge, 'is-search-hit');
                 const text = [badge.getAttribute('title') || badge.getAttribute('data-badge-tip'), badge.getAttribute('aria-label'), badge.textContent]
                     .find(value => normalizeSearchText(value).includes(term));
                 badgeReasons.add(getSearchSnippet(text, term));
@@ -7523,7 +7570,7 @@ function markSearchReasons(terms, entries, view) {
             if (hits.length) badgeTerms.push(term);
             return hits.length === 0;
         });
-        if (badgeTerms.length) appendSearchReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
+        if (badgeTerms.length) reportReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
 
         SEARCH_REASON_SOURCES.forEach(source => {
             const text = source.read(athlete);
@@ -7531,18 +7578,20 @@ function markSearchReasons(terms, entries, view) {
             const hits = pending.filter(term => normalized.includes(term));
             if (!hits.length) return;
             pending = pending.filter(term => !hits.includes(term));
-            appendSearchReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
+            reportReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
         });
         const metricParts = getMetricSearchParts(entry, view);
         const metricHits = pending.filter(term => metricParts.some(part => normalizeSearchText(part.value).includes(term)));
         if (metricHits.length) {
-            row.querySelector('.age-reduction')?.classList.add('is-search-value');
+            mark(row.querySelector('.age-reduction'), 'is-search-value');
             const hiddenHits = metricHits.filter(term => !normalizeSearchText(entry.metric).includes(term));
-            if (hiddenHits.length) appendSearchReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
+            if (hiddenHits.length) reportReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
                 [...new Set(metricParts.filter(part => hiddenHits.some(term => normalizeSearchText(part.value).includes(term))).map(part => part.label))].join('\n'), hiddenHits);
         }
-        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) row.querySelector('.rank')?.classList.add('is-search-value');
+        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) mark(row.querySelector('.rank'), 'is-search-value');
     });
+    unusedChips.forEach(chip => chip.remove());
+    unusedMarks.forEach(node => node.classList.remove('is-search-hit', 'is-search-value'));
 }
 
 function markFlagSearchReasons(terms, teams, badgeTextByName) {
@@ -7886,10 +7935,8 @@ window.getLeaderboardPeek = name => {
     if (!athlete) return null;
     return Object.freeze({
         chronologicalAge: athlete.chronologicalAge,
-        lowestBortzAge: athlete.lowestBortzAge,
-        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
-        lowestPhenoAge: athlete.lowestPhenoAge,
-        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        bortzRankResult: athlete.bortzRankResult,
+        phenoRankResult: athlete.phenoRankResult,
         crowdAge: athlete.crowdAge,
         crowdCount: athlete.crowdCount,
         placements: athlete.placements
