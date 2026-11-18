@@ -81,6 +81,7 @@ const eventsPageAssets = document.currentScript.dataset;
         cell.appendChild(recovery);
         row.appendChild(cell);
         tbody.replaceChildren(row);
+        if (tbody.closest('.event-board-page')) window.highlightsCalendar?.update([]);
     }
 
     const MILESTONE_COPY = {
@@ -865,6 +866,7 @@ const eventsPageAssets = document.currentScript.dataset;
         heading.className='events-month-row';
         heading.dataset.month=month;
         heading.innerHTML=`<th colspan="3" scope="rowgroup"><span class="events-month-label">${esc(date.toLocaleDateString(undefined,{calendar:'gregory',month:'long',year:'numeric'}))}</span><span class="events-day-chip" aria-hidden="true"></span></th>`;
+        group._readingRows = [];
         group.appendChild(heading);
         monthHeadingObserver?.observe(heading);
         observeMonthReveal(table, heading);
@@ -907,6 +909,7 @@ const eventsPageAssets = document.currentScript.dataset;
             }
             if(chapters){
                 const details=r.nextElementSibling?.classList.contains('details-row')?r.nextElementSibling:null;
+                if (day) group._readingRows.push(r);
                 group.appendChild(r);
                 if(details) group.appendChild(details);
             }
@@ -1057,7 +1060,7 @@ const eventsPageAssets = document.currentScript.dataset;
     let monthRevealObserver = null;
     function observeMonthReveal(table, heading){
         // Reading position is useful with or without reveal animations.
-        watchMonthHandoff();
+        watchMonthHandoff(table);
         const revealed = table._revealedMonths || (table._revealedMonths = new Set());
         if (revealed.has(heading.dataset.month) || prefersReducedMotion() || typeof IntersectionObserver !== 'function') {
             // A rebuilt band of a month already shown stays still.
@@ -1078,62 +1081,72 @@ const eventsPageAssets = document.currentScript.dataset;
     // and fades back as the next month pushes it out.
     let monthHandoffWatching = false;
     let queueMonthHandoff = () => {};
-    function watchMonthHandoff(){
+    // The end of each chapter (and each story inside it) increases down the page.
+    function firstEndingAfter(items, line, endOf) {
+        let low = 0, high = items.length;
+        while (low < high) {
+            const mid = Math.floor((low + high) / 2);
+            if (endOf(items[mid]) > line) high = mid;
+            else low = mid + 1;
+        }
+        return items[low];
+    }
+
+    function watchMonthHandoff(table){
         if (monthHandoffWatching) return;
         monthHandoffWatching = true;
         let frame = 0;
         let lastRow = null;
+        let lastHeading = null;
         const update = () => {
             frame = 0;
-            const headings = document.querySelectorAll('.event-board-page tr.events-month-row');
-            const stickyTop = headings.length ? parseFloat(getComputedStyle(headings[0]).top) || 0 : 0;
-            let current = null;
-            // Read every month's bounds and reading position before changing
-            // sticky styles or day chips, which invalidate the table's layout.
-            const measured = Array.from(headings, row => {
-                const body = row.parentElement;
-                const bodyRect = body.getBoundingClientRect();
-                const rect = row.getBoundingClientRect();
-                const pinned = bodyRect.top < stickyTop - 1 && bodyRect.bottom > stickyTop;
-                const h = rect.height || 40;
-                const handoff = pinned ? Math.min(1, Math.max(0, 1 - (bodyRect.bottom - stickyTop - h) / (h * 1.5))) : 0;
-                let reading = null;
-                if (pinned) {
-                    // An expanded story belongs to its title's day until its
-                    // final paragraph passes under the band.
-                    reading = [...body.querySelectorAll('tr.main-row[data-day]')].find(event => {
-                        const end = event.classList.contains('is-open') && event.nextElementSibling?.classList.contains('details-row')
-                            ? event.nextElementSibling : event;
-                        return end.getBoundingClientRect().bottom > rect.bottom + 1;
-                    });
+            const first = table.tBodies[0]?.firstElementChild;
+            const stickyTop = first?.classList.contains('events-month-row') ? parseFloat(getComputedStyle(first).top) || 0 : 0;
+            const group = firstEndingAfter(table.tBodies, stickyTop, body => body.getBoundingClientRect().bottom);
+            const bounds = group?.getBoundingClientRect();
+            const heading = bounds?.top < stickyTop - 1 && group.firstElementChild?.classList.contains('events-month-row')
+                ? group.firstElementChild : null;
+            const band = heading?.getBoundingClientRect();
+            // Read the expanded story's end before writing either reading indicator.
+            const current = band ? firstEndingAfter(group._readingRows, band.bottom + 1, row => {
+                const end = row.classList.contains('is-open') && row.nextElementSibling?.classList.contains('details-row')
+                    ? row.nextElementSibling : row;
+                return end.getBoundingClientRect().bottom;
+            }) : null;
+            if (lastHeading !== heading && lastHeading) {
+                lastHeading.classList.remove('is-pinned');
+                lastHeading.style.removeProperty('--handoff');
+                const chip = lastHeading.querySelector('.events-day-chip');
+                chip.replaceChildren();
+                delete chip.dataset.day;
+            }
+            lastHeading = heading;
+            if (heading) {
+                heading.classList.add('is-pinned');
+                const h = band.height || 40;
+                const handoff = Math.min(1, Math.max(0, 1 - (bounds.bottom - stickyTop - h) / (h * 1.5))).toFixed(2);
+                if (heading.style.getPropertyValue('--handoff') !== handoff) heading.style.setProperty('--handoff', handoff);
+                const chip = heading.querySelector('.events-day-chip');
+                if (!current && chip.hasChildNodes()) {
+                    chip.replaceChildren();
+                    delete chip.dataset.day;
+                } else if (current && chip.dataset.day !== current.dataset.day) {
+                    const previous = chip.dataset.day;
+                    const direction = lastRow && (lastRow.compareDocumentPosition(current) & Node.DOCUMENT_POSITION_PRECEDING) ? -1 : 1;
+                    chip.dataset.day = current.dataset.day;
+                    const number = document.createElement('span');
+                    number.textContent = current.querySelector('.event-date-day')?.textContent || '';
+                    chip.replaceChildren(number);
+                    if (previous && !prefersReducedMotion()) {
+                        number.animate([
+                            { transform: `translateY(${direction * 100}%)`, opacity: 0 },
+                            { transform: 'none', opacity: 1 }
+                        ], { duration: 220, easing: FEED_EASE });
+                    }
                 }
-                return { row, pinned, handoff, reading };
-            });
-            measured.forEach(({ row, pinned, handoff, reading }) => {
-                row.classList.toggle('is-pinned', pinned);
-                const value = handoff.toFixed(2);
-                if (row.style.getPropertyValue('--handoff') !== value) row.style.setProperty('--handoff', value);
-                const chip = row.querySelector('.events-day-chip');
-                if (!reading) {
-                    if (chip?.hasChildNodes()) { chip.replaceChildren(); delete chip.dataset.day; }
-                    return;
-                }
-                current = reading;
-                if (!chip || chip.dataset.day === reading.dataset.day) return;
-                const previous = chip.dataset.day;
-                const direction = lastRow && (lastRow.compareDocumentPosition(reading) & Node.DOCUMENT_POSITION_PRECEDING) ? -1 : 1;
-                chip.dataset.day = reading.dataset.day;
-                const number = document.createElement('span');
-                // The existing date owns the reader's calendar, timezone and digits.
-                number.textContent = reading.querySelector('.event-date-day')?.textContent || '';
-                chip.replaceChildren(number);
-                if (previous && !prefersReducedMotion()) {
-                    number.animate([
-                        { transform: `translateY(${direction * 100}%)`, opacity: 0 },
-                        { transform: 'none', opacity: 1 }
-                    ], { duration: 220, easing: FEED_EASE });
-                }
-            });
+            }
+            const readingDay = current?.dataset.day || (!heading && group === table.tBodies[0] ? group?._readingRows?.[0]?.dataset.day : null);
+            window.highlightsCalendar?.setReadingDay(readingDay);
             if (lastRow !== current) {
                 lastRow?.classList.remove('is-current-day');
                 lastRow = current;
@@ -1192,7 +1205,7 @@ const eventsPageAssets = document.currentScript.dataset;
     function appendFeedUnits(table, units){
         table.querySelector('tbody.events-more')?.remove();
         let group = [...table.tBodies].at(-1);
-        let previous = [...table.querySelectorAll('tr.main-row')].at(-1);
+        let previous = group?.querySelector('tr.main-row:last-child') || group?.lastElementChild?.previousElementSibling?.closest('tr.main-row');
         // Extend the final month without detaching existing rows. Regrouping
         // the whole table loses focus and moves the reader during idle batches.
         units.forEach(unit => {
@@ -1213,6 +1226,7 @@ const eventsPageAssets = document.currentScript.dataset;
                 table.appendChild(group);
                 if (month) appendMonthHeading(table, group, month);
             }
+            if (day) group._readingRows.push(row);
             group.append(...unit);
             previous = row;
         });
@@ -1690,6 +1704,22 @@ const eventsPageAssets = document.currentScript.dataset;
         }));
     }
 
+    // Compare the fetched chapter data before touching the mounted timeline.
+    // A directory refresh can update athletes who appear nowhere in this feed.
+    function chapterSnapshot(rows, athletes, linkNames) {
+        const referenced = new Set();
+        const fresh = [];
+        const now = new Date();
+        for (const row of rows) {
+            for (const slug of row.slugs) referenced.add(slug);
+            const age = now - Date.parse(row.displayOccurredAt || row.occurredAt);
+            if (age >= 0 && age < 86400000) fresh.push(row.id);
+        }
+        const locale = new Intl.DateTimeFormat().resolvedOptions();
+        return JSON.stringify([rows, [...referenced].map(slug => athletes.get(slug)), linkNames,
+            now.toDateString(), locale.locale, locale.timeZone, fresh]);
+    }
+
     function renderRows(rows, athletesIndex, linkNames, options=null){
         const tbody = document.querySelector("#eventsTable tbody");
         const table=tbody.closest('table');
@@ -1729,6 +1759,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
         if (!Array.isArray(rows) || rows.length === 0){
             tbody.innerHTML = `<tr class="events-empty-row"><td colspan="3">No events yet</td></tr>`;
+            if (tbody.closest('.event-board-page')) window.highlightsCalendar?.update([]);
             table.closest('.events-board').style.removeProperty('min-height');
             return;
         }
@@ -2270,6 +2301,18 @@ const eventsPageAssets = document.currentScript.dataset;
             const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10, restoredFeed?.rendered || 0);
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
+            window.highlightsCalendar?.update(units, row => {
+                if (row.isConnected) return;
+                const index = table._feedPending.findIndex(unit => unit[0] === row);
+                if (index < 0) return;
+                window.clearTimeout(table._feedMoreTimer);
+                table._feedLoadingMore = false;
+                const added = table._feedPending.splice(0, index + FEED_CHUNK);
+                appendFeedUnits(table, added);
+                added.forEach(([event]) => event.classList.add('is-visible'));
+                mountFeedMore(table);
+                queueMonthHandoff();
+            });
         } else {
             // Keep unchanged rows and their images attached. Reattaching the
             // whole table restarts image decoding and produces visible flashes.
@@ -2819,10 +2862,15 @@ const eventsPageAssets = document.currentScript.dataset;
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
-            renderRows(rows,athletesIndex,!!linkNames,{
-                seenMode: (!live && mode !== "athlete") ? mode : null,
-                layoutOnly: !!options?.layoutOnly && !live
-            });
+            const snapshot = mode === "viewAll" && root?.closest('.event-board-page')
+                ? chapterSnapshot(rows, athletesIndex, !!linkNames) : null;
+            if (!live || snapshot === null || snapshot !== loadRoot._chapterSnapshot) {
+                renderRows(rows,athletesIndex,!!linkNames,{
+                    seenMode: (!live && mode !== "athlete") ? mode : null,
+                    layoutOnly: !!options?.layoutOnly && !live
+                });
+                loadRoot._chapterSnapshot = snapshot;
+            }
             if (mode !== "athlete") {
                 feedLoads.set(loadKey, [maxRows, showViewAll, athleteId, linkNames, options && { ...options, live: false }]);
                 if (live) writeSeenAt(mode, rows.reduce((max, r) => Math.max(max, +new Date(r.occurredAt || 0) || 0), 0));
@@ -2835,6 +2883,7 @@ const eventsPageAssets = document.currentScript.dataset;
             if (!current()) return;
             // A missed background refresh leaves the feed as it is.
             if (live) return;
+            delete loadRoot._chapterSnapshot;
             loadRoot.style.removeProperty('min-height');
             clearEventsLoadingState('Events could not load.');
             const status = document.getElementById('eventsStatus');
