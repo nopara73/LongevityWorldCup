@@ -5,7 +5,8 @@
 // twelve o'clock to the guess, a hand rides the ring, and past 60 a second lap
 // lights over the first. The ruler under the slider lights up to the guess,
 // the number in the bubble rolls up or down, and the hand clicks at each
-// decade. Before the first touch the hand breathes, to invite a drag.
+// decade. Nothing moves before the first touch, so the face stays the focus;
+// every motion follows a guess.
 //
 // gma-dial.css owns the look. guess-my-age.js keeps every behaviour; this
 // classic script only reads the range's value. Nothing here adds words, and
@@ -79,16 +80,29 @@
     window.addEventListener("pointercancel", release);
 
     // A new round (another athlete) resets the dial to the slider's start.
+    // Cached profiles can leave and re-enter guess mode in one task, so a change
+    // of athlete counts too. guess-my-age.js restores the slider without an
+    // input event; read it on the next frame, after that reset.
     let wasGuessing = content.classList.contains("guess-mode");
-    new MutationObserver(() => {
-        const guessing = content.classList.contains("guess-mode");
-        if (guessing && !wasGuessing) {
-            dial.classList.remove("is-touched");
+    let athlete = `${content.dataset.athleteSlug ?? ""}|${content.dataset.profileImageId ?? ""}`;
+    let resetFrame = 0;
+    const reset = (): void => {
+        dial.classList.remove("is-touched");
+        hand.classList.remove("is-clicking");
+        bubble.classList.remove("gma-roll-up", "gma-roll-down");
+        window.cancelAnimationFrame(resetFrame);
+        resetFrame = window.requestAnimationFrame(() => {
             last = Number(range.value);
             paint(last);
-        }
+        });
+    };
+    new MutationObserver(() => {
+        const guessing = content.classList.contains("guess-mode");
+        const next = `${content.dataset.athleteSlug ?? ""}|${content.dataset.profileImageId ?? ""}`;
+        if (guessing && (!wasGuessing || next !== athlete)) reset();
         wasGuessing = guessing;
-    }).observe(content, { attributes: true, attributeFilter: ["class"] });
+        athlete = next;
+    }).observe(content, { attributes: true, attributeFilter: ["class", "data-athlete-slug", "data-profile-image-id"] });
 
     paint(last);
 })();

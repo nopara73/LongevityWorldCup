@@ -89,24 +89,7 @@
     100% { scale: 1; }
 }
 
-/* Before the first touch the hand breathes and the lit ticks shimmer, to invite a drag. */
-#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial:not(.is-touched) .gma-dial-hand::before {
-    animation: gma-dial-beckon 1.8s ease-in-out infinite;
-}
-
-#detailsModal .modal-content.guess-mode #athlete-profile .gma-dial:not(.is-touched) .gma-dial-lap--one {
-    animation: gma-dial-shimmer 1.8s ease-in-out infinite;
-}
-
-@keyframes gma-dial-beckon {
-    0%, 100% { scale: 1; translate: 0 0; }
-    50% { scale: 1.18; translate: 0 -2px; }
-}
-
-@keyframes gma-dial-shimmer {
-    0%, 100% { opacity: 0.75; }
-    50% { opacity: 1; }
-}
+/* Nothing moves before the first touch: the face is what the visitor judges. */
 
 /* Holding the thumb tightens the hand to the finger and brightens the bezel. */
 #detailsModal .modal-content.guess-mode.gma-dial-grab #athlete-profile .gma-dial {
