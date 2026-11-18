@@ -11,6 +11,80 @@ public sealed class LeaderboardSearchSpotlightBrowserTests(PlaywrightBrowserFixt
     private const string Rows = ".leaderboard tbody tr[data-athlete-name]";
 
     [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task Typing_KeepsMatchingReasonButtonsAndAnimations_WhileUpdatingTheirEvidence(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.NoPreference,
+            HasTouch = width == 390
+        });
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            var keith = athletes.First(a => a!["Name"]!.GetValue<string>() == "Keith Blondin")!;
+            keith["Flag"] = "United States";
+            keith["Why"] = "Marathon training";
+        });
+        var page = await OpenAsync(context, "unit");
+        // Keep this animation active while checking identity, independent of machine speed.
+        await page.AddStyleTagAsync(new() { Content = ".search-reason { animation-duration: 30s !important; }" });
+        var row = page.Locator(Rows + "[data-athlete-name='Keith Blondin']");
+        var flag = row.Locator(".search-reason--flag");
+        await flag.EvaluateAsync("""
+            chip => {
+                window.keptReason = chip;
+                window.keptAnimation = chip.getAnimations()[0];
+                window.renderedSearch = '';
+                document.addEventListener('lwc:standings-ready', () => renderedSearch = document.querySelector('#athleteSearch').value);
+            }
+            """);
+        var search = page.Locator("#athleteSearch");
+        await search.FillAsync("unite");
+        await page.WaitForFunctionAsync("() => renderedSearch === 'unite'");
+        Assert.True(await flag.EvaluateAsync<bool>("chip => chip === keptReason && keptAnimation && chip.getAnimations().includes(keptAnimation)"));
+        await flag.FocusAsync();
+        await flag.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".search-reason-popover .highlight")).ToHaveTextAsync("Unite");
+        await page.Keyboard.PressAsync("Escape");
+
+        await search.FillAsync("unite mar");
+        await page.WaitForFunctionAsync("() => renderedSearch === 'unite mar'");
+        Assert.Equal(new[] { "Flag match", "Motivation match" }, await row.Locator(".search-reason").EvaluateAllAsync<string[]>("chips => chips.map(chip => chip.getAttribute('aria-label'))"));
+        Assert.True(await flag.EvaluateAsync<bool>("chip => chip === keptReason"));
+        await row.Locator(".search-reason--why").EvaluateAsync("chip => window.keptWhy = chip");
+        await search.FillAsync("mar");
+        await page.WaitForFunctionAsync("() => renderedSearch === 'mar'");
+        await Assertions.Expect(flag).ToHaveCountAsync(0);
+        Assert.True(await row.Locator(".search-reason--why").EvaluateAsync<bool>("chip => chip === keptWhy"));
+        await search.FillAsync("");
+        await Assertions.Expect(page.Locator(".search-reason, .is-search-hit, .is-search-value")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task ClearingHighlights_PreservesNamesThatHaveNoHighlight()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await OpenAsync(context, "mar");
+        Assert.True(await page.Locator(".athlete-name .highlight").CountAsync() > 0);
+        var changed = await page.EvaluateAsync<int>("""
+            () => {
+                const untouched = [...document.querySelectorAll('.athlete-name')]
+                    .filter(name => !name.querySelector('.highlight'));
+                if (!untouched.length) throw new Error('Expected unhighlighted athletes in fixture');
+                const children = untouched.map(name => name.firstChild);
+                const names = [...document.querySelectorAll('.athlete-name')].map(name => name.textContent);
+                window.removeAllHighlights();
+                if ([...document.querySelectorAll('.athlete-name')].some((name, i) => name.textContent !== names[i]))
+                    throw new Error('Clearing highlights changed an athlete name');
+                return untouched.filter((name, i) => name.firstChild !== children[i]).length;
+            }
+            """);
+        Assert.Equal(0, changed);
+        Assert.Equal(0, await page.Locator(".athlete-name .highlight").CountAsync());
+    }
+
+    [Theory]
     [InlineData(1440, 900, false)]
     [InlineData(390, 844, true)]
     [InlineData(320, 568, false)]

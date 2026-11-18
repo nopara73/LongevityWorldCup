@@ -443,6 +443,11 @@ function initializeLeaderboardFeel(): void {
         const count = railRows.length;
         const fits = phone.matches && window.innerWidth >= 360 && window.innerHeight >= 500
             && parseFloat(getComputedStyle(root).fontSize) <= 20 && !byFlag?.checked;
+        if (count >= 30 && fits) {
+            // Place the fixed scrubber inside the board, including with classic scrollbars.
+            const inset = document.documentElement.clientWidth - board!.getBoundingClientRect().right;
+            rail.style.right = `${inset + 2}px`;
+        }
         board!.classList.toggle("has-rank-rail", count >= 30 && fits);
         if (count < 30 || !fits) { tickKey = ""; track.replaceChildren(); hideRail(); return; }
         const stops = [0, 0.25, 0.5, 0.75, 1].map(fraction => Math.min(count - 1, Math.round(fraction * (count - 1))));
