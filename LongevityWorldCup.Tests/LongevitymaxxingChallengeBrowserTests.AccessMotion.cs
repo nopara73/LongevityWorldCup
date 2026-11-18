@@ -98,10 +98,20 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.EmulateMediaAsync(new() { ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference });
         await OpenSignInPageAsync(page);
         await WaitForFiniteAnimationsAsync(page);
+        await page.Locator("#lmxSigninTab").EvaluateAsync("""
+            tab => {
+                window.accessHeightEffects = -1;
+                // This listener runs after the product's key handler. Capture its
+                // 280ms effect before later automation round trips can outlive it.
+                tab.addEventListener('keydown', () => {
+                    window.accessHeightEffects = document.querySelector('.lmx-action-card').getAnimations()
+                        .filter(a => a.effect.getKeyframes().some(k => 'height' in k)).length;
+                }, { once: true });
+            }
+            """);
         await page.Locator("#lmxSigninTab").PressAsync("Home");
         await Assertions.Expect(page.Locator("#lmxSignupTab")).ToBeFocusedAsync();
-        var heightEffects = await page.Locator(".lmx-action-card").EvaluateAsync<int>(
-            "e => e.getAnimations().filter(a => a.effect.getKeyframes().some(k => 'height' in k)).length");
+        var heightEffects = await page.EvaluateAsync<int>("window.accessHeightEffects");
         Assert.Equal(reduced ? 0 : 1, heightEffects);
         await WaitForFiniteAnimationsAsync(page);
         await Assertions.Expect(page.Locator("#lmxSignupPanel")).ToBeVisibleAsync();

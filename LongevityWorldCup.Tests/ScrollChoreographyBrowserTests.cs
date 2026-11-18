@@ -142,6 +142,32 @@ public sealed class ScrollChoreographyBrowserTests(PlaywrightBrowserFixture brow
         Assert.Equal(0, await page.Locator("[data-lwc-enter-state]").CountAsync());
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(":scope > article")]
+    public async Task NestedEdits_DoNotRemeasureExistingRows_AndNewRowsStillEnter(string selector)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await Fixture(context, $"<section>Spacer</section><main data-lwc-stagger='{selector}'><article id='existing'><button>Edit</button></article></main>");
+        await Assertions.Expect(page.Locator("#existing")).ToHaveAttributeAsync("data-lwc-enter-state", "wait");
+        await page.EvaluateAsync("""
+            () => {
+                window.oldRowReads = 0;
+                const row = document.getElementById('existing');
+                for (const method of ['getClientRects', 'getBoundingClientRect']) {
+                    const original = row[method].bind(row);
+                    row[method] = (...args) => { oldRowReads++; return original(...args); };
+                }
+                row.querySelector('button').innerHTML = '<i>Changed icon</i> Edit';
+                row.parentElement.insertAdjacentHTML('beforeend', '<article id="arrival">New row</article>');
+            }
+            """);
+        await Assertions.Expect(page.Locator("#arrival")).ToHaveAttributeAsync("data-lwc-enter-state", "wait");
+        Assert.Equal(0, await page.EvaluateAsync<int>("oldRowReads"));
+        await page.Locator("#arrival").ScrollIntoViewIfNeededAsync();
+        await Assertions.Expect(page.Locator("#arrival")).ToHaveCSSAsync("opacity", "1");
+    }
+
     [Fact]
     public async Task RemovedContent_ReleasesObserversWithoutRescanningTheDocument()
     {
