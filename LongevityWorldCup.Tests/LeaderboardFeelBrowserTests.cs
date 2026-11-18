@@ -141,6 +141,44 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         }
     }
 
+    [Fact]
+    public async Task TouchPress_TintsStripedAmateurRowsWithReducedMotion()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            HasTouch = true,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var row = page.Locator(Rows + ".tier-amateur:nth-child(even)").First;
+        var rank = row.Locator(".rank");
+        await rank.ScrollIntoViewIfNeededAsync();
+        var box = await rank.BoundingBoxAsync() ?? throw new InvalidOperationException("Rank must be visible");
+        var session = await context.NewCDPSessionAsync(page);
+        await session.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
+        {
+            ["type"] = "touchStart",
+            ["touchPoints"] = new[] { new { x = box.X + box.Width / 2, y = box.Y + box.Height / 2 } }
+        });
+        try
+        {
+            await Assertions.Expect(row).ToHaveAttributeAsync("data-lwc-pressed", "row");
+            await Assertions.Expect(row).ToHaveCSSAsync("box-shadow", new System.Text.RegularExpressions.Regex("inset"));
+            await Assertions.Expect(row.Locator(".portrait")).ToHaveCSSAsync("scale", "none");
+        }
+        finally
+        {
+            await session.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
+            {
+                ["type"] = "touchCancel", ["touchPoints"] = Array.Empty<object>()
+            });
+            await session.DetachAsync();
+        }
+    }
+
     [Theory]
     [InlineData(390)]
     [InlineData(768)]

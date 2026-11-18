@@ -328,7 +328,6 @@
  }
  .leaderboard table tbody tr.tier-amateur:hover{
      background-color: var(--tier-amateur-hover);
-     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
  }
  .leaderboard table tbody tr.tier-separator{
      background: linear-gradient(90deg, rgba(240, 244, 248, 0.6), rgba(59, 130, 246, 0.12));
@@ -373,7 +372,6 @@
  .leaderboard table tbody tr{ cursor:pointer; }
  .leaderboard table tbody tr:hover{
      transform:translateY(-1px);
-     box-shadow:0 5px 14px rgba(0,0,0,.08);
  }
 
  /* Let the Rank column auto-size (override old 15px rule) */
@@ -3228,13 +3226,11 @@
  .leaderboard table tbody tr.tier-amateur,
  .leaderboard table tbody tr.tier-amateur:nth-child(even) {
      border-color: var(--border-color);
-     box-shadow: none;
  }
 
  .leaderboard table tbody tr:hover,
  .leaderboard table tbody tr.tier-amateur:hover {
      background: var(--surface-accent);
-     box-shadow: none;
      transform: none;
  }
 
