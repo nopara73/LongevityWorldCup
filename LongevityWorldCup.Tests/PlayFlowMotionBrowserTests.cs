@@ -380,15 +380,16 @@ public sealed class PlayFlowMotionBrowserTests(
             () => {
                 const list = document.getElementById('playAthleteInput-autocomplete-list');
                 const rows = [...list.querySelectorAll(':scope > [role=option]')];
-                const observer = new MutationObserver(() => {
+                const observer = new MutationObserver(records => {
                     const options = [...list.querySelectorAll(':scope > [role=option]')];
                     const kept = options.filter(option => rows.includes(option)).length;
+                    const reinserted = records.flatMap(record => [...record.removedNodes]).filter(node => options.includes(node)).length;
                     const leaving = [...list.querySelectorAll('.autocomplete-item--leaving')];
                     const cleanLeaving = leaving.every(item => !item.id && !item.hasAttribute('role') && item.getAttribute('aria-hidden') === 'true');
                     const animated = options.filter(option => option.getAnimations().length > 0).length
                         + leaving.filter(item => item.getAnimations().length > 0).length;
                     window.__rowChange = [options.length, kept, leaving.length, cleanLeaving ? 1 : 0, animated,
-                        options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0];
+                        options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0, reinserted];
                     observer.disconnect();
                 });
                 observer.observe(list, { childList: true });
@@ -402,6 +403,7 @@ public sealed class PlayFlowMotionBrowserTests(
         Assert.True(change[2] > 0 && change[3] == 1, "Rows that stop matching should fade out, already gone from the listbox.");
         Assert.True(change[4] > 0, "Entering, leaving or moving rows should animate.");
         Assert.True(change[5] == 1, "Option ids must follow the visible order.");
+        Assert.Equal(0, change[6]); // Retained options keep their place in the DOM while typing.
 
         await input.PressAsync("ArrowDown");
         var activeId = await input.GetAttributeAsync("aria-activedescendant");
@@ -425,6 +427,19 @@ public sealed class PlayFlowMotionBrowserTests(
             ViewportSize = new() { Width = width, Height = height },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
+        // This ordering exercises a wrapped, decorated departing row regardless of filesystem order.
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Json = new[]
+            {
+                new { Name = "András Szollosy", Flag = "Hungary", Division = "Open" },
+                new { Name = "Andrea", Flag = "Slovakia", Division = "Women's" },
+                new { Name = "Andreea Vuscan", Flag = "DrCarmen", Division = "Women's" },
+                new { Name = "Andressa Lohana de Almeida", Flag = "Brazil", Division = "Women's" },
+                new { Name = "Andrew Mackintosh", Flag = "New Zealand", Division = "Men's" },
+                new { Name = "Ron Lugbill", Flag = "USA", Division = "Men's" }
+            }
+        }));
         var page = await OpenAsync(context, "/select-athlete");
         if (enlargedText) await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
         var input = page.Locator("#playAthleteInput");
