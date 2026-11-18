@@ -2208,7 +2208,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 const contentHtml = renderCustomMarkupWithBreaks(contentTrim);
                 const artworkHtml = isSafeHttpUrl(r.artwork?.ImageUrl) && isSafeHttpUrl(r.artwork?.LinkUrl)
-                    ? `<a class="custom-event-artwork" href="${esc(r.artwork.LinkUrl)}" target="_top" rel="noopener"><img src="${esc(r.artwork.ImageUrl)}" alt="${esc(r.artwork.AltText || '')}" loading="lazy" decoding="async"></a>` : "";
+                    ? `<template><a class="custom-event-artwork" href="${esc(r.artwork.LinkUrl)}" target="_top" rel="noopener"><img src="${esc(r.artwork.ImageUrl)}" alt="${esc(r.artwork.AltText || '')}" decoding="async"></a></template>` : "";
 
                 const detailsTr = document.createElement("tr");
                 detailsTr.className = "details-row custom-event-details";
@@ -2221,6 +2221,11 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 const setExpanded = open => {
                     const panel = detailsTr.querySelector('.custom-event-content');
+                    // Collapsed panels can be close enough to the viewport to fetch lazy images.
+                    if (open) {
+                        const artwork = panel.querySelector('.custom-event-body > template');
+                        if (artwork) artwork.replaceWith(artwork.content);
+                    }
                     if (!open && panel.contains(document.activeElement)) btn?.focus({ preventScroll: true });
                     panel.inert = !open;
                     panel.setAttribute('aria-hidden', String(!open));

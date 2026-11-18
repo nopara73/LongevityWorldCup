@@ -569,6 +569,8 @@
  .lwc-flag-icon{
      flex:0 0 auto; margin-right:.4rem; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.08);
  }
+ /* The closed filter drawer is laid out offscreen. Fetch its flags when it opens. */
+ body:not(.sidebar-drawer-closing) .sidebar:not(.expanded) .lwc-flag-icon{ background-image:none; }
  #athleteFlag .lwc-flag-icon{ margin-right:.45rem; vertical-align:-.08em; }
  .filter-section label:hover{ color:var(--primary-color); background:rgba(0,188,212,.06); border-color:rgba(0,188,212,.18); }
  .filter-section label.is-zero-count:not(.active):hover{
