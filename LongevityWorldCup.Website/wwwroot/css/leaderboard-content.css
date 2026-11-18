@@ -2704,7 +2704,10 @@
          .leaderboard table tbody .athlete-name {
              font-size: .95rem;
              font-weight: 700;
-             line-height: 1.2;
+             line-height: 1.22;
+             align-items: center;
+             text-wrap: balance;
+             padding: 0;
              min-width: 0;
              overflow-wrap: break-word;
              word-break: normal;
@@ -2780,11 +2783,12 @@
 
          .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
              display: grid;
-             grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+             grid-template-columns: 2.6rem minmax(0, 1fr) auto;
              grid-template-areas: "rank athlete score";
              align-items: center;
-             column-gap: 0.6rem;
-             padding: 0.4rem 0.5rem 0.4rem 0.4rem;
+             column-gap: 0.55rem;
+             min-height: 3.6rem;
+             padding: 0.45rem 0.6rem 0.45rem 0.4rem;
              border-bottom: 1px solid var(--lwc-border, #d7e0e6);
          }
 
@@ -2836,12 +2840,14 @@
 
          .leaderboard table tbody tr td.athlete-td {
              grid-area: athlete;
-             gap: 0.3rem;
+             align-items: center;
+             gap: 0.5rem;
              min-width: 0;
          }
 
          .leaderboard table td.age-reduction-td {
              grid-area: score;
+             font-variant-numeric: tabular-nums;
              display: flex;
              flex-direction: column-reverse;
              align-items: flex-end;
@@ -2875,6 +2881,14 @@
          .athlete-name {
              padding-left: 0.25rem;
              padding-right: 0.25rem;
+         }
+
+         .leaderboard table tbody tr:has(.rank[data-place="1"]) { --row-metal: var(--lwc-gold); }
+         .leaderboard table tbody tr:has(.rank[data-place="2"]) { --row-metal: var(--lwc-silver); }
+         .leaderboard table tbody tr:has(.rank[data-place="3"]) { --row-metal: var(--lwc-bronze); }
+
+         .leaderboard table tbody tr[data-athlete-name]:has(.rank[data-place]) {
+             background-image: linear-gradient(90deg, color-mix(in srgb, var(--row-metal) var(--medal-wash, 22%), transparent), transparent 62%);
          }
 
          /* Reflow relative to the reader's text size when three columns no longer fit. */
@@ -5934,191 +5948,13 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     .leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){ transition:none; }
 }
 
-/* ===== Phone leaderboard rows =====
-   On phones the board is a list people thumb through, so its rows read as
-   one even rhythm: a 40px portrait, the name balanced over at most two lines
-   (never split letter by letter while whole words fit), and a tight tabular
-   figure that leaves the name room. The podium three carry a soft wash of
-   their medal colour from the left edge. A press tints the row as one piece
-   and its portrait dips, then both spring back. */
-
-/* A press tints the whole row as one piece, at every width. motion.css tints
-   each cell instead, which leaves separate boxes on the phone's grid rows and
-   a seam along desktop rows; touch screens already tint the row through
-   data-lwc-pressed (touch.css). */
-html body .leaderboard table tbody tr:not(.no-results, .tier-separator, .leaderboard-skeleton-row):active > td {
-    background-color: transparent;
-}
-
-/* Opaque, so table rows (painted cell by cell) show no seam between cells. */
-:root:not([data-lwc-touch]) body .leaderboard table tbody tr:not(.no-results, .tier-separator, .leaderboard-skeleton-row):active {
-    background-color: color-mix(in srgb, var(--lwc-accent) 16%, var(--lwc-surface));
-}
-
-/* Above phone width the rows are table rows: shrinking one (leaderboard-feel.css)
-   puts its cell edges between pixels and draws a seam at each, so there the
-   deeper tint alone answers the press. */
-@media (min-width: 481px) {
-    html body main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]:active {
-        scale: none;
-    }
-}
-
-@media (max-width: 480px) {
-    html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
-        column-gap: 0.55rem;
-        min-height: 3.6rem;
-        padding: 0.45rem 0.6rem 0.45rem 0.4rem;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    /* Three-digit ranks (100-251) fit their column instead of touching the
-       amateur rows' edge; the rank-change arrow still clears them. The narrow
-       three-line layout (container query at 17em) keeps its own columns. */
-    @container leaderboard (width > 17em) {
-        html body .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
-            grid-template-columns: 2.6rem minmax(0, 1fr) auto;
-        }
-
-        html body .leaderboard table td.rank-td .rank:not([data-place]) {
-            font-size: 0.8rem;
-        }
-
-        /* The name always sits beside its portrait. A single word wider than
-           the whole name line (e.g. "HealthOptimisers") breaks as a last
-           resort instead of dropping the name under the portrait. */
-        html body #athleteLeaderboard table tbody td.athlete-td,
-        html body #athleteLeaderboard table tbody .athlete-identity {
-            flex-wrap: nowrap;
-        }
-
-        html body #athleteLeaderboard table tbody .athlete-name-content {
-            min-width: 0;
-        }
-    }
-
-    html body .leaderboard table tbody td.athlete-td {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        min-width: 0;
-    }
-
-    html body .leaderboard table tbody td.athlete-td > .portrait-wrapper {
-        flex: none;
-    }
-
-    /* The portrait keeps the size its wrapper reserves, at any text size. */
-    html body .leaderboard table tbody td.athlete-td .portrait {
-        width: var(--portrait-size, 40px);
-        height: var(--portrait-size, 40px);
-    }
-
-    html body .leaderboard table tbody .athlete-identity {
-        min-width: 0;
-    }
-
-    /* The name centres on its portrait at any line count; the touch target stays. */
-    html body #athleteLeaderboard table tbody .athlete-identity {
-        align-self: stretch;
-        align-items: center;
-    }
-
-    /* Whole words wrap first; a single word wider than the line still breaks
-       rather than running into the figure. */
-    html body #athleteLeaderboard table tbody .athlete-name {
-        display: flex;
-        align-items: center;
-        min-height: 2.75rem;
-        padding: 0;
-        font-size: 0.95rem;
-        line-height: 1.22;
-        overflow-wrap: break-word;
-        word-break: normal;
-        hyphens: none;
-        text-wrap: balance;
-    }
-
-    html body .leaderboard table td.age-reduction-td .age-reduction {
-        font-size: 0.98rem;
-        font-weight: 800;
-        letter-spacing: -0.01em;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-    }
-
-    /* The podium three: a medal wash from the left edge. */
-    html body .leaderboard table tbody tr:has(.rank[data-place="1"]) { --row-metal: var(--lwc-gold); }
-    html body .leaderboard table tbody tr:has(.rank[data-place="2"]) { --row-metal: var(--lwc-silver); }
-    html body .leaderboard table tbody tr:has(.rank[data-place="3"]) { --row-metal: var(--lwc-bronze); }
-
-    html body .leaderboard table tbody tr:has(.rank[data-place]):not(.no-results):not(.tier-separator) {
-        background-image: linear-gradient(90deg, color-mix(in srgb, var(--row-metal) 22%, transparent), transparent 62%);
-    }
-
-    /* The portrait dips under a resting finger (touch.css marks it, so a
-       finger scrolling past never presses) or under a held mouse button. */
-    html body .leaderboard table tbody td.athlete-td .portrait {
-        transition: scale 220ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
-    }
-
-    :root[data-lwc-touch] body .leaderboard table tbody tr[data-lwc-pressed] td.athlete-td .portrait,
-    :root:not([data-lwc-touch]) body .leaderboard table tbody tr:not(.no-results, .tier-separator, .leaderboard-skeleton-row):active td.athlete-td .portrait {
-        scale: 0.92;
-        transition-duration: 80ms;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        html body .leaderboard table tbody td.athlete-td .portrait {
-            transition: none;
-        }
-
-        :root[data-lwc-touch] body .leaderboard table tbody tr[data-lwc-pressed] td.athlete-td .portrait,
-        :root:not([data-lwc-touch]) body .leaderboard table tbody tr:not(.no-results, .tier-separator, .leaderboard-skeleton-row):active td.athlete-td .portrait {
-            scale: none;
-        }
-    }
-}
-
 @media (max-width: 480px) and (prefers-color-scheme: dark) {
-    html body .leaderboard table tbody tr:has(.rank[data-place]):not(.no-results):not(.tier-separator) {
-        background-image: linear-gradient(90deg, color-mix(in srgb, var(--row-metal) 16%, transparent), transparent 62%);
-    }
+    .leaderboard { --medal-wash: 16%; }
 }
 
-/* The rank rail's lane lies inside the board. The board runs the card's full
-   width (header band, row lines, podium washes), the figure column keeps the
-   lane at its end clear, and the rail stands in that lane inside the card's
-   edge instead of the table stopping short of the card. */
-@media (max-width: 768px) {
-    html body main[data-leaderboard-page="full"] #athleteLeaderboard.has-rank-rail {
-        --lb-rail-lane: 48px;
-        anchor-name: --lwc-rank-rail-board;
-    }
-
-    html body main[data-leaderboard-page="full"] #athleteLeaderboard.has-rank-rail > table {
-        flex: 1 1 100%;
-        width: 100%;
-        max-width: 100%;
-    }
-
-    html body main[data-leaderboard-page="full"] #athleteLeaderboard.has-rank-rail > table > thead th[data-order-key="metric"],
-    html body main[data-leaderboard-page="full"] #athleteLeaderboard.has-rank-rail > table > tbody td.age-reduction-td {
-        padding-right: var(--lb-rail-lane);
-    }
-
-    @supports (anchor-name: --lwc-rank-rail-board) {
-        html body .lb-rail {
-            position-anchor: --lwc-rank-rail-board;
-            right: calc(anchor(right, 0px) + 2px);
-        }
-    }
-}
-
-/* Phone rows already end with 0.6rem of padding, so a 40px lane clears the
-   44px rail (2px inside the card's edge) and leaves the names their room. */
-@media (max-width: 480px) {
-    html body main[data-leaderboard-page="full"] #athleteLeaderboard.has-rank-rail {
-        --lb-rail-lane: 40px;
+@media (max-width: 480px) and (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-touch] .leaderboard tr[data-lwc-pressed="row"] .portrait,
+    :root:not([data-lwc-touch]) .leaderboard tr[data-athlete-name]:active .portrait {
+        scale: .92;
     }
 }

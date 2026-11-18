@@ -111,6 +111,36 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         await Assertions.Expect(page.Locator(".lb-ghost")).ToHaveCountAsync(0);
     }
 
+    [Fact]
+    public async Task Press_TintsTheWholeRowWithoutCellBoxesOrScaling()
+    {
+        var (context, page) = await OpenAsync();
+        await using var _ = context;
+        var row = page.Locator(Rows).Nth(20);
+        await row.ScrollIntoViewIfNeededAsync();
+        await row.Locator(".rank").HoverAsync();
+        await WaitForFiniteAnimationsAsync(page, Rows + ":hover");
+        var hoverColor = await row.EvaluateAsync<string>("row => getComputedStyle(row).backgroundColor");
+        await page.Mouse.DownAsync();
+        try
+        {
+            await page.WaitForFunctionAsync("""
+                hoverColor => {
+                    const row = document.querySelector('#athleteLeaderboard tr[data-athlete-name]:active');
+                    return row && getComputedStyle(row).scale === 'none'
+                        && getComputedStyle(row).backgroundColor !== hoverColor
+                        && [...row.cells].filter(cell => cell.offsetWidth)
+                            .every(cell => getComputedStyle(cell).backgroundColor === 'rgba(0, 0, 0, 0)');
+                }
+                """, hoverColor);
+        }
+        finally
+        {
+            await page.Mouse.MoveAsync(0, 0);
+            await page.Mouse.UpAsync();
+        }
+    }
+
     [Theory]
     [InlineData(390)]
     [InlineData(768)]
@@ -146,7 +176,14 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
                 const head = document.querySelector('#athleteLeaderboard thead');
                 const header = document.getElementById('site-sticky-header');
                 const clearance = row.getBoundingClientRect().top - header.getBoundingClientRect().bottom - head.getBoundingClientRect().height;
-                return clearance >= 0 && clearance <= 10 && document.querySelector('#athleteLeaderboard > table').getBoundingClientRect().right < document.querySelector('.lb-rail').getBoundingClientRect().left;
+                const board = document.querySelector('#athleteLeaderboard').getBoundingClientRect();
+                const table = head.closest('table').getBoundingClientRect();
+                const rail = document.querySelector('.lb-rail').getBoundingClientRect();
+                const score = document.createRange();
+                score.selectNodeContents(row.querySelector('.age-reduction'));
+                return clearance >= 0 && clearance <= 10 && Math.abs(table.right - board.right) <= 2
+                    && rail.right <= board.right && rail.right >= board.right - 3
+                    && score.getBoundingClientRect().right <= rail.left;
             }
             """);
         var name = await page.Locator(Rows + ":visible").First.GetAttributeAsync("data-athlete-name");
