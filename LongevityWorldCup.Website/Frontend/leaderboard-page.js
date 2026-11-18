@@ -3873,7 +3873,14 @@ function buildFlagTeams(entries, view) {
     return teams;
 }
 
-function renderFlagTeams(teams, view) {
+function renderFlagTeams(teams, view, cohort) {
+    // Search and the homepage limit preserve both the rank and its scale.
+    const scales = new Map();
+    for (const team of cohort) {
+        const gains = team.values.reduce((sum, value) => sum + Math.max(0, -value), 0);
+        const losses = team.values.reduce((sum, value) => sum + Math.max(0, value), 0);
+        scales.set(team.view, Math.max(scales.get(team.view) || 0, gains, losses));
+    }
     const container = document.getElementById('flagLeaderboard');
     const focused = document.activeElement;
     const focusedTeam = focused?.closest?.('.flag-team');
@@ -3894,12 +3901,12 @@ function renderFlagTeams(teams, view) {
             ? '<h3 class="flag-section-heading tier-separator tier-separator-cell" aria-label="Start of Amateur track (Pheno Age) section"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></h3>'
             : section === 'incomplete' && section !== previousSection ? '<h3 class="flag-section-heading">Incomplete teams</h3>' : '';
         previousSection = section;
-        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
+        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" style="--lwc-unit:${100 / (scales.get(team.view) || 1)}%" ${open.has(id) ? 'open' : ''}>
             <summary title="${labels[team.view]}"><span class="flag-team-rank" data-rank="${team.rank || ''}" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
             <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
             <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" data-athlete-name="${escapeHtml(a.displayName)}" alt="" loading="lazy">`).join('')}</span>
             <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`} <small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
-            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
+            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li data-delta="${team.values[index]}"><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
     const nextChildren = [...template.content.children].map(incoming => {
         if (incoming.classList.contains('flag-empty')) {
@@ -3927,6 +3934,8 @@ function renderFlagTeams(teams, view) {
             existing._flagMarkup = nextMarkup;
         }
         existing.className = incoming.className;
+        if (existing.style.getPropertyValue('--lwc-unit') !== incoming.style.getPropertyValue('--lwc-unit'))
+            existing.style.setProperty('--lwc-unit', incoming.style.getPropertyValue('--lwc-unit'));
         existing.dataset.clock = incoming.dataset.clock;
         existing.dataset.flag = incoming.dataset.flag;
         return existing;
@@ -3949,6 +3958,7 @@ function renderFlagTeams(teams, view) {
         element.querySelectorAll('.flag-team-portraits img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
         element.querySelectorAll('.flag-athlete-link img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
     });
+    window.LwcDisclosure?.refresh(container);
 }
 
 const leaderboardRowAnimations = new Map();
@@ -4207,15 +4217,16 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             const key = JSON.stringify(state);
             if (!matchingTeamsByState.has(key)) {
                 const teams = buildFlagTeams(getMatchingEntries(state, false), state.view);
-                matchingTeamsByState.set(key, teams.filter(team => uniqueSearchTerms.every(term =>
+                const matching = teams.filter(team => uniqueSearchTerms.every(term =>
                     window.normalizeString(team.flag.toLowerCase()).includes(term) ||
-                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term)))));
+                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term))));
+                matchingTeamsByState.set(key, { cohort: teams, matching });
             }
             return matchingTeamsByState.get(key);
         };
-        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
-        const matchingTeams = getMatchingFlagTeams(selectedState);
-        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
+        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).matching.flatMap(team => team.eligibleEntries);
+        const { cohort, matching: matchingTeams } = getMatchingFlagTeams(selectedState);
+        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView, cohort);
         markFlagSearchReasons(uniqueSearchTerms, matchingTeams, athleteBadgeTextByName);
         updateViewAllAthletesButton(matchingTeams.length, true, updateUrl);
         updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
@@ -7725,16 +7736,28 @@ function markSearchReasons(terms, entries, view) {
 }
 
 function markFlagSearchReasons(terms, teams, badgeTextByName) {
-    clearSearchReasons(athleteDialogRuntime);
+    const athleteTable = document.querySelector('.leaderboard table');
+    if (athleteTable) clearSearchReasons(athleteTable);
+    else closeSearchReason();
     const board = document.getElementById('flagLeaderboard');
-    board.querySelectorAll('.flag-team').forEach(row => {
-        const team = teams.find(team => row.dataset.flag === team.flag);
-        if (!team) return;
+    board.querySelectorAll('.flag-team').forEach((row, index) => {
+        const team = teams[index];
         const name = row.querySelector('.flag-team-name > span:last-child');
-        name.textContent = team.flag;
-        if (!terms.length) return;
-        window.highlightText(name, terms);
-        const pending = terms.filter(term => !normalizeSearchText(team.flag).includes(term));
+        const normalized = normalizeSearchText(team.flag);
+        const matches = terms.filter(term => normalized.includes(term));
+        const key = matches.join(' ');
+        if ((name._flagHighlights || '') !== key) {
+            let label = name.querySelector(':scope > .flag-name-label');
+            if (!label) {
+                label = document.createElement('span');
+                label.className = 'flag-name-label';
+                label.textContent = team.flag;
+                name.firstChild.replaceWith(label);
+            }
+            window.highlightText(label, matches);
+            name._flagHighlights = key;
+        }
+        const pending = terms.filter(term => !normalized.includes(term));
         const evidence = new Set();
         pending.forEach(term => {
             for (const entry of team.entries) {
@@ -7747,6 +7770,7 @@ function markFlagSearchReasons(terms, teams, badgeTextByName) {
             }
         });
         if (evidence.size) appendSearchReason(name, { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
+        else name.querySelector(':scope > .search-reason')?.remove();
     });
 }
 
