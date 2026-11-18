@@ -5,7 +5,7 @@ using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadC)]
-public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const string Rows = "#athleteLeaderboard > table > tbody > tr[data-athlete-name]";
@@ -66,13 +66,16 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
         var before = await page.EvaluateAsync<double>(rowDocumentTop);
         await page.Locator(Rows).Nth(20).ScrollIntoViewIfNeededAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'true'");
-        await page.WaitForTimeoutAsync(300); // include the normal-motion folding transition
+        await WaitForHeadingMotionAsync(page);
         Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
         await page.EvaluateAsync("scrollTo(0, 0)");
         await page.WaitForFunctionAsync("() => document.querySelector('#athleteLeaderboard').dataset.headStuck === 'false'");
-        await page.WaitForTimeoutAsync(300);
+        await WaitForHeadingMotionAsync(page);
         Assert.InRange(Math.Abs(await page.EvaluateAsync<double>(rowDocumentTop) - before), 0, 0.5);
     }
+
+    private static Task WaitForHeadingMotionAsync(IPage page) => WaitForFiniteAnimationsAsync(
+        page, "#athleteLeaderboard > table > thead, #athleteLeaderboard > table > thead *");
 
     [Fact]
     public async Task ScrollIndicators_RespectInitialAndReducedMotionGates()
@@ -108,6 +111,74 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
         await Assertions.Expect(page.Locator(".lb-ghost")).ToHaveCountAsync(0);
     }
 
+    [Fact]
+    public async Task Press_TintsTheWholeRowWithoutCellBoxesOrScaling()
+    {
+        var (context, page) = await OpenAsync();
+        await using var _ = context;
+        var row = page.Locator(Rows).Nth(20);
+        await row.ScrollIntoViewIfNeededAsync();
+        await row.Locator(".rank").HoverAsync();
+        await WaitForFiniteAnimationsAsync(page, Rows + ":hover");
+        var hoverColor = await row.EvaluateAsync<string>("row => getComputedStyle(row).backgroundColor");
+        await page.Mouse.DownAsync();
+        try
+        {
+            await page.WaitForFunctionAsync("""
+                hoverColor => {
+                    const row = document.querySelector('#athleteLeaderboard tr[data-athlete-name]:active');
+                    return row && getComputedStyle(row).scale === 'none'
+                        && getComputedStyle(row).backgroundColor !== hoverColor
+                        && [...row.cells].filter(cell => cell.offsetWidth)
+                            .every(cell => getComputedStyle(cell).backgroundColor === 'rgba(0, 0, 0, 0)');
+                }
+                """, hoverColor);
+        }
+        finally
+        {
+            await page.Mouse.MoveAsync(0, 0);
+            await page.Mouse.UpAsync();
+        }
+    }
+
+    [Fact]
+    public async Task TouchPress_TintsStripedAmateurRowsWithReducedMotion()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            HasTouch = true,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var row = page.Locator(Rows + ".tier-amateur:nth-child(even)").First;
+        var rank = row.Locator(".rank");
+        await rank.ScrollIntoViewIfNeededAsync();
+        var box = await rank.BoundingBoxAsync() ?? throw new InvalidOperationException("Rank must be visible");
+        var session = await context.NewCDPSessionAsync(page);
+        await session.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
+        {
+            ["type"] = "touchStart",
+            ["touchPoints"] = new[] { new { x = box.X + box.Width / 2, y = box.Y + box.Height / 2 } }
+        });
+        try
+        {
+            await Assertions.Expect(row).ToHaveAttributeAsync("data-lwc-pressed", "row");
+            await Assertions.Expect(row).ToHaveCSSAsync("box-shadow", new System.Text.RegularExpressions.Regex("inset"));
+            await Assertions.Expect(row.Locator(".portrait")).ToHaveCSSAsync("scale", "none");
+        }
+        finally
+        {
+            await session.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
+            {
+                ["type"] = "touchCancel", ["touchPoints"] = Array.Empty<object>()
+            });
+            await session.DetachAsync();
+        }
+    }
+
     [Theory]
     [InlineData(390)]
     [InlineData(768)]
@@ -128,6 +199,8 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
         await page.EvaluateAsync("""
             () => { const row = document.querySelector('#athleteLeaderboard > table > tbody > tr[data-athlete-name]:not([style*="display: none"])'); scrollTo(0, row.getBoundingClientRect().top + scrollY - 220); }
             """);
+        await Assertions.Expect(page.Locator(".lb-rail")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-visible"));
+        await page.Locator(Rows + ":visible").Nth(20).ScrollIntoViewIfNeededAsync();
         await Assertions.Expect(page.Locator(".lb-rail")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-visible"));
         var tick = page.Locator("button.lb-rail-tick").Nth(2);
         await tick.FocusAsync();
@@ -141,7 +214,14 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
                 const head = document.querySelector('#athleteLeaderboard thead');
                 const header = document.getElementById('site-sticky-header');
                 const clearance = row.getBoundingClientRect().top - header.getBoundingClientRect().bottom - head.getBoundingClientRect().height;
-                return clearance >= 0 && clearance <= 10 && document.querySelector('#athleteLeaderboard > table').getBoundingClientRect().right < document.querySelector('.lb-rail').getBoundingClientRect().left;
+                const board = document.querySelector('#athleteLeaderboard').getBoundingClientRect();
+                const table = head.closest('table').getBoundingClientRect();
+                const rail = document.querySelector('.lb-rail').getBoundingClientRect();
+                const score = document.createRange();
+                score.selectNodeContents(row.querySelector('.age-reduction'));
+                return clearance >= 0 && clearance <= 10 && Math.abs(table.right - board.right) <= 2
+                    && rail.right <= board.right && rail.right >= board.right - 3
+                    && score.getBoundingClientRect().right <= rail.left;
             }
             """);
         var name = await page.Locator(Rows + ":visible").First.GetAttributeAsync("data-athlete-name");
@@ -192,10 +272,10 @@ public sealed class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture browser
                 const peek = document.querySelector('.lb-peek');
                 const athlete = window.getLeaderboardPeek(row.dataset.athleteName);
                 const view = document.querySelector('[name=leaderboardView]:checked').value;
-                const bortz = view === 'bortz' || (view === 'ultimate' && athlete.lowestBortzAge != null);
+                const bortz = view === 'bortz' || (view === 'ultimate' && athlete.bortzRankResult != null);
                 const bio = peek.querySelector('.is-bio');
                 return peek.querySelector('.lb-peek-metric').textContent === row.querySelector('.age-reduction').textContent.trim()
-                    && (view === 'crowd' ? bio === null : bio.textContent === (bortz ? athlete.lowestBortzAge : athlete.lowestPhenoAge).toFixed(1))
+                    && (view === 'crowd' ? bio === null : bio.textContent === (bortz ? athlete.bortzRankResult : athlete.phenoRankResult).bio.toFixed(1))
                     && peek.scrollHeight <= peek.clientHeight + 1 && peek.scrollWidth <= peek.clientWidth + 1;
             }
             """));

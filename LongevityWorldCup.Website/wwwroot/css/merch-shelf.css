@@ -1,0 +1,36 @@
+/* Static homepage shelf: studio floors, product titles and price tags. */
+html body main.homepage-main .lwc-merch-body .lwc-merch-grid {
+    gap: var(--lwc-space-4, 1rem);
+}
+html body main.homepage-main .lwc-merch-body :is(.lwc-merch-item, .lwc-merch-mobile-slide) {
+    padding: 0 0 var(--lwc-space-3, .75rem);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--lwc-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+}
+/* The product stands on a soft studio floor. */
+html body main.homepage-main .lwc-merch-body :is(.lwc-merch-item, .lwc-merch-mobile-slide) .lwc-merch-thumb {
+    background: radial-gradient(120% 90% at 50% 0%, var(--lwc-surface) 0 40%, var(--lwc-surface-muted) 100%);
+}
+html body main.homepage-main .lwc-merch-body .lwc-merch-item-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .4rem;
+    padding: 0 var(--lwc-space-3, .75rem);
+    text-align: center;
+}
+html body main.homepage-main .lwc-merch-body .lwc-merch-item-title {
+    color: var(--lwc-ink);
+    font-weight: 700;
+}
+/* The price is a tag. */
+html body main.homepage-main .lwc-merch-body .lwc-merch-item-price {
+    padding: .1rem .5rem;
+    border-radius: var(--lwc-radius-pill, 999px);
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-accent-hover, var(--lwc-accent));
+    font-weight: 700;
+    max-width: 100%;
+    white-space: normal;
+}

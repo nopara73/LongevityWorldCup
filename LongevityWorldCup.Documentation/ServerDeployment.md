@@ -197,15 +197,20 @@ rm -f "$health_body"
 
 downloaded_script="$frontend_stage/deployed-script.js"
 for script_path in "$publish_output"/wwwroot/js/*.js; do
-  curl -fsS --max-time 10 \
-    "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
-    -o "$downloaded_script"
+  script_name="$(basename "$script_path")"
+  # Retry a temporary transfer failure before judging the deployed bytes.
+  if ! script_status="$(curl -fsS --max-time 10 --retry 1 --retry-delay 1 --retry-max-time 12 --write-out '%{http_code}' \
+    "https://www.longevityworldcup.com/js/$script_name?v=$verified_sha" \
+    -o "$downloaded_script")" || [ "$script_status" != 200 ]; then
+    echo "Could not download deployed script: $script_name (HTTP $script_status)" >&2
+    exit 1
+  fi
   expected_hash="$(sha256sum "$script_path")"
   expected_hash="${expected_hash%% *}"
   actual_hash="$(sha256sum "$downloaded_script")"
   actual_hash="${actual_hash%% *}"
   if [ "$expected_hash" != "$actual_hash" ]; then
-    echo "Deployed script content differs from the verified artifact: $(basename "$script_path")" >&2
+    echo "Deployed script content differs from the verified artifact: $script_name" >&2
     exit 1
   fi
 done
@@ -310,6 +315,12 @@ The Nostr signing key is a permanent account credential: never copy it into chec
 deployment artifacts, command arguments, or logs. Obtain an explicit server-only exception
 when the owner has reserved secret storage to themselves. The service verifies the derived
 public identity before sending; profile discovery exposes only its public key and relays.
+
+## Telegram announcements
+
+The production service reads its `lwc-telegram` systemd credential through `CREDENTIALS_DIRECTORY`. Use `LoadCredentialEncrypted=lwc-telegram` with a host-encrypted credential in `/etc/credstore.encrypted/`. The credential contains JSON with `botToken` and a numeric `channelId`. Keep the owner backup in their designated secret storage and pass the credential to `systemd-creds encrypt` through standard input.
+
+Verify the bot and the target channel with Telegram's `getMe`, `getChat`, and `getChatMember` methods before enabling delivery. The bot needs permission to post to the channel. The app baselines historical Events on activation. Use the `SocialDeliveries` row and its Telegram permalink to verify delivery. Investigate `review` rows in the channel before retrying an unconfirmed post.
 
 ## Scheduled Jobs
 

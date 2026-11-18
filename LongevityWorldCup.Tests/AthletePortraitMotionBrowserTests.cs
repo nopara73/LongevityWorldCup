@@ -4,13 +4,15 @@ using Microsoft.Playwright;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadD)]
 public sealed class AthletePortraitMotionBrowserTests(
     PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
+    BrowserTestAppFixture appFixture,
+    ITestOutputHelper output)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private const string ApprovedPhoto = "6683dd38d8317bb5a68b3053ca8dae7c53aad86cd1c6df1c1662e16fcbe83345";
@@ -45,8 +47,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
         await InsertPortraitAsync(page, slug: slug);
         await page.WaitForFunctionAsync("() => window.motionStarts === 1");
-        Assert.Equal("none", await page.Locator("video.athlete-portrait-motion")
-            .EvaluateAsync<string>("video => getComputedStyle(video).pointerEvents"));
+        Assert.Equal(new[] { "none" }, await page.EvaluateAsync<string[]>("window.motionPointerEvents"));
         await Assertions.Expect(page.Locator("video.athlete-portrait-motion")).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator("#motionFixture")).ToBeVisibleAsync();
         Assert.Equal(1, await page.EvaluateAsync<int>("window.motionEnds"));
@@ -225,6 +226,11 @@ public sealed class AthletePortraitMotionBrowserTests(
         await image.HoverAsync();
         await AssertFollowingAsync(overlay);
         var handoffCrop = await image.EvaluateAsync<string>("image => getComputedStyle(image).objectViewBox");
+        var handoffTransform = await image.EvaluateAsync<string>("image => getComputedStyle(image).transform");
+        var motionSurface = painted.Locator("..");
+        // The sibling canvas follows the photo during its own animation frame.
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("transform", handoffTransform);
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("object-view-box", handoffCrop);
 
         // Matching CSS is insufficient: Chromium crops a video differently
         // from an image. Compare the actual painted face at the resting pose.
@@ -273,6 +279,9 @@ public sealed class AthletePortraitMotionBrowserTests(
         await Assertions.Expect(painted).ToHaveCSSAsync("opacity", "0");
         await Assertions.Expect(image).ToBeVisibleAsync();
         await Assertions.Expect(image).ToHaveCSSAsync("object-view-box", handoffCrop);
+        await Assertions.Expect(image).ToHaveCSSAsync("transform", handoffTransform);
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("object-view-box", handoffCrop);
+        await Assertions.Expect(motionSurface).ToHaveCSSAsync("transform", handoffTransform);
         Assert.InRange(MeanFaceDifference(still, await image.ScreenshotAsync()), 0, .1);
     }
 
@@ -580,7 +589,30 @@ public sealed class AthletePortraitMotionBrowserTests(
             }
             """);
         await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
-        await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(nextAthleteName);
+        try
+        {
+            await Assertions.Expect(page.Locator("#athleteName")).ToContainTextAsync(nextAthleteName);
+        }
+        catch (PlaywrightException)
+        {
+            await WriteFailureDiagnosticsAsync(page, output, $"Paging expected {nextAthleteName}", """
+                () => ({
+                    status: document.querySelector('#leaderboardStatus')?.textContent,
+                    selection: document.querySelector('input[name="leaderboardView"]:checked')?.value,
+                    board: [...document.querySelectorAll('.leaderboard a.athlete-name')]
+                        .slice(0, 8).map(link => ({ name: link.textContent, href: link.getAttribute('href') })),
+                    modal: document.querySelector('#detailsModal .modal-content')?.dataset,
+                    modalClasses: document.querySelector('#detailsModal .modal-content')?.className,
+                    name: document.querySelector('#athleteName')?.textContent,
+                    steps: [...document.querySelectorAll('.modal-content > .athlete-steps [data-step]')]
+                        .map(button => ({ direction: button.dataset.step, disabled: button.disabled })),
+                    requests: performance.getEntriesByType('resource')
+                        .filter(entry => entry.name.includes('/api/') || entry.name.includes('leaderboard-page'))
+                        .slice(-12).map(entry => ({ url: entry.name, start: entry.startTime, duration: entry.duration }))
+                })
+                """);
+            throw;
+        }
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         Assert.Equal(0, await page.EvaluateAsync<int>("window.backgroundPortraitReads"));
     }
@@ -612,6 +644,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await context.AddInitScriptAsync("""
             window.motionStarts = 0;
             window.motionEnds = 0;
+            window.motionPointerEvents = [];
             window.profileMotionStarts = 0;
             window.profileMotionEnds = 0;
             const started = new WeakSet();
@@ -621,6 +654,9 @@ public sealed class AthletePortraitMotionBrowserTests(
                     if (event === 'playing') {
                         if (started.has(e.target)) return;
                         started.add(e.target);
+                        // Capture while attached: natural playback can remove this short-lived
+                        // video between a locator lookup and a later computed-style read.
+                        window.motionPointerEvents.push(getComputedStyle(e.target).pointerEvents);
                     }
                     window[key]++;
                     if (e.target.previousElementSibling?.id === 'modalProfilePic')

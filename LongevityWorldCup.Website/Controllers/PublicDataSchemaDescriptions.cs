@@ -49,7 +49,7 @@ public sealed class PublicDataSchemaDescriptions : ISchemaFilter
         else if (context.Type == typeof(HypotheticalRankRequest))
         {
             openApiSchema.Description = "Inputs for previewing where a hypothetical biological age result would rank in the current Ultimate League field.";
-            openApiSchema.Example = JsonNode.Parse("""
+            openApiSchema.Examples = [JsonNode.Parse("""
                 {
                   "calculator": "pheno",
                   "chronologicalAge": 45.5,
@@ -58,7 +58,7 @@ public sealed class PublicDataSchemaDescriptions : ISchemaFilter
                   "birthMonth": 6,
                   "birthDay": 15
                 }
-                """)!;
+                """)!];
 
             if (openApiSchema.Properties is not null &&
                 openApiSchema.Properties.TryGetValue("calculator", out var calculator) &&
