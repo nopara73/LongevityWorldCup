@@ -1,14 +1,14 @@
 // The athlete dialog's header as one stage.
 //
-// profile-stage.css owns the look; this classic script only times and measures:
-// - Arrival: each time a profile fills in (opening, or stepping to another
-//   athlete), the portrait develops inside a cream halo that draws itself,
-//   the flag pops on, the PRO tag stamps down, the name rises and the action
-//   rail deals out from its middle.
+// profile-stage.css owns the look; this classic script only measures:
+// - The portrait sits in a cream halo with one bright notch.
+// - The action rings share a hairline rail that stops at each ring, and one
+//   lens glides along it to the action under the pointer or keyboard focus.
 // - Scrolling: the big header condenses as it leaves (the portrait shrinks
 //   toward the top and the halo turns), and the sticky bar catches it with
 //   its own small portrait.
-// - The action rail has one highlight that glides to the action in hand.
+// Opening a profile and stepping between athletes keep the dialog's own
+// browse motion (athlete-browse-motion.ts); the header adds no entrance.
 //
 // leaderboard-page.js still fills every element and owns the sticky bar and
 // the Guess My Age round; this script stays out of guess mode. Nothing here
@@ -40,32 +40,14 @@
 
     const guessing = (): boolean => content.classList.contains("guess-mode");
 
-    // ------------------------------------------------ arrival
-    let arrivalTimer = 0;
-    function arrive(): void {
-        if (guessing() || reduced.matches) return;
-        window.clearTimeout(arrivalTimer);
-        profile!.classList.remove("is-arriving");
-        void profile!.offsetWidth;
-        profile!.classList.add("is-arriving");
-        arrivalTimer = window.setTimeout(() => { profile!.classList.remove("is-arriving"); measureRail(); }, 1500);
-    }
-
-    // Measure once the header has laid out, with or without the arrival.
+    // ------------------------------------------------ a new profile
+    // The rail is measured again once the header has laid out; the rest of the
+    // profile keeps filling in under it for a moment.
     function settle(): void {
-        requestAnimationFrame(() => { measureRail(); arrive(); });
-        // The rest of the profile keeps filling in under the header for a moment.
+        requestAnimationFrame(measureRail);
         [450, 1100, 2400].forEach(ms => window.setTimeout(measureRail, ms));
     }
-
-    // The name is the last header field leaderboard-page.js writes for a profile.
-    let lastName = "";
-    new MutationObserver(() => {
-        const now = (name.textContent || "").trim();
-        if (!now || now === lastName) return;
-        lastName = now;
-        settle();
-    }).observe(name, { childList: true, characterData: true, subtree: true });
+    new MutationObserver(settle).observe(name, { childList: true, characterData: true, subtree: true });
 
     // ------------------------------------------------ scroll condense
     let frame = 0;
@@ -79,18 +61,18 @@
     content.addEventListener("scroll", () => { if (!frame) frame = requestAnimationFrame(condense); }, { passive: true });
 
     // ------------------------------------------------ rail and glide
-    // Rings are measured with layout offsets (relative to the rail), so arrival
-    // transforms never skew the numbers.
+    // Rings are measured with layout offsets (relative to the rail), so the
+    // dialog's own motion never skews the numbers.
     const items = (): HTMLElement[] => Array.from(rail.querySelectorAll<HTMLElement>(":scope > a[href], :scope > .athlete-share-wrapper > button"))
         .filter(el => el.getClientRects().length > 0);
     const ringOf = (el: HTMLElement): HTMLElement => el.querySelector<HTMLElement>(":scope > i") ?? el;
-    // A dealing host becomes its ring's offsetParent, so walk the chain up to the rail.
-    const centre = (el: HTMLElement): number => {
-        const ring = ringOf(el);
-        let x = ring.offsetWidth / 2;
-        for (let node: HTMLElement | null = ring; node && node !== rail; node = node.offsetParent as HTMLElement | null) x += node.offsetLeft;
+    // A positioned host becomes its ring's offsetParent, so walk the chain up to the rail.
+    const left = (el: HTMLElement): number => {
+        let x = 0;
+        for (let node: HTMLElement | null = ringOf(el); node && node !== rail; node = node.offsetParent as HTMLElement | null) x += node.offsetLeft;
         return x;
     };
+    const centre = (el: HTMLElement): number => left(el) + ringOf(el).offsetWidth / 2;
 
     function glideTo(el: HTMLElement | null): void {
         if (!el) { rail!.classList.remove("is-gliding"); return; }
@@ -111,25 +93,39 @@
         if (!rail!.contains(document.activeElement) && !rail!.matches(":hover")) glideTo(null);
     }));
 
-    // The rail runs from the first ring's centre to the last one's.
+    // The rail runs from the first ring's centre to the last one's and stops
+    // short of each ring, so the rings keep the dialog's own translucent fill.
     let measured = "";
     function measureRail(): void {
         const list = items();
         let next = "none";
+        let from = 0;
+        let length = 0;
+        let mask = "";
         if (list.length > 1) {
-            const from = centre(list[0]!);
+            from = centre(list[0]!);
             const to = centre(list[list.length - 1]!);
             const sameRow = Math.abs(ringOf(list[0]!).offsetTop - ringOf(list[list.length - 1]!).offsetTop) < 4;
-            if (sameRow && to > from) next = `${from}|${to - from}`;
+            if (sameRow && to > from) {
+                length = to - from;
+                const gap = 4;
+                const cuts = list.map(el => {
+                    const a = Math.max(0, left(el) - gap - from);
+                    const b = Math.min(length, left(el) + ringOf(el).offsetWidth + gap - from);
+                    return `#000 ${a}px, transparent ${a}px, transparent ${b}px, #000 ${b}px`;
+                });
+                mask = `linear-gradient(90deg, ${cuts.join(", ")})`;
+                next = `${from}|${length}|${mask}`;
+            }
         }
         // Write only on a change: the observers below also see the rail.
         if (next === measured) return;
         measured = next;
         rail!.classList.toggle("has-rail", next !== "none");
         if (next === "none") return;
-        const [from, len] = next.split("|");
         rail!.style.setProperty("--rail-from", `${from}px`);
-        rail!.style.setProperty("--rail-len", `${len}px`);
+        rail!.style.setProperty("--rail-len", `${length}px`);
+        rail!.style.setProperty("--rail-mask", mask);
     }
     new MutationObserver(() => requestAnimationFrame(measureRail)).observe(rail, { attributes: true, subtree: true, attributeFilter: ["hidden", "href"] });
     new MutationObserver(() => requestAnimationFrame(measureRail)).observe(name, { childList: true, subtree: true });
