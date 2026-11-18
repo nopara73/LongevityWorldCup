@@ -316,7 +316,8 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
         if (operation.Responses is null ||
             !operation.Responses.TryGetValue("400", out var response) ||
             response.Content is null ||
-            !response.Content.TryGetValue("application/json", out var mediaType))
+            !response.Content.TryGetValue("application/json", out var content) ||
+            content is not OpenApiMediaType mediaType)
         {
             return;
         }
@@ -332,7 +333,8 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
     private static void SetRequestExample(OpenApiOperation operation, string json)
     {
         if (operation.RequestBody?.Content is not null &&
-            operation.RequestBody.Content.TryGetValue("application/json", out var mediaType))
+            operation.RequestBody.Content.TryGetValue("application/json", out var content) &&
+            content is OpenApiMediaType mediaType)
         {
             mediaType.Example = JsonNode.Parse(json)!;
         }
@@ -352,7 +354,8 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
         if (operation.Responses is not null &&
             operation.Responses.TryGetValue(statusCode, out var response) &&
             response.Content is not null &&
-            response.Content.TryGetValue("application/json", out var mediaType))
+            response.Content.TryGetValue("application/json", out var content) &&
+            content is OpenApiMediaType mediaType)
         {
             mediaType.Example = JsonNode.Parse(json)!;
         }

@@ -107,6 +107,7 @@ public sealed class LeaderboardNameWrapBrowserTests(
     [InlineData(320, 100)]
     [InlineData(320, 200)]
     [InlineData(390, 200)]
+    [InlineData(390, 100)]
     public async Task NamesWithMarkupAndUnicode_KeepTheirTargetsAndLastResortWrapping(int width, int textPercent)
     {
         await using var context = await NewContextAsync(Browser, App, new()

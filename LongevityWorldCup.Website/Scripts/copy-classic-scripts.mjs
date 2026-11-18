@@ -11,3 +11,6 @@ for (const name of readdirSync(join(websiteRoot, "Frontend")).filter(name => nam
     execFileSync(process.execPath, ["--check", source], { stdio: "inherit" });
     copyFileSync(source, join(websiteRoot, "wwwroot", "js", name));
 }
+
+// Ship the CSP-compatible upstream module unchanged alongside the compiled entry points.
+copyFileSync(join(websiteRoot, "node_modules/heic-to/dist/csp/heic-to.js"), join(websiteRoot, "wwwroot/js/heic-to.js"));

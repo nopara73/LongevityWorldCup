@@ -64,6 +64,10 @@ public sealed class IconSystemBrowserTests(PlaywrightBrowserFixture browserFixtu
             () => {
                 const button=document.createElement('button'); button.id='feedbackProbe'; button.ariaLabel='Working probe';
                 button.innerHTML='<i class="fa fa-link" aria-hidden="true"></i>';
+                window.feedbackProbeDrawStarts = 0;
+                button.addEventListener('animationstart', event => {
+                    if (event.animationName === 'lwc-icon-draw') window.feedbackProbeDrawStarts++;
+                });
                 button.onclick=()=>button.firstElementChild.className='fa fa-spinner fa-spin'; document.body.prepend(button);
             }
             """);
@@ -83,7 +87,8 @@ public sealed class IconSystemBrowserTests(PlaywrightBrowserFixture browserFixtu
             await button.Locator("i").EvaluateAsync("e => e.className='fa fa-link'");
             await Assertions.Expect(button.Locator("i")).ToHaveAttributeAsync("data-lwc-icon", "link");
             await button.Locator("i").EvaluateAsync("e => e.className='fa fa-check'");
-            await Assertions.Expect(button.Locator("svg")).ToHaveAttributeAsync("data-lwc-icon-enter", "draw");
+            // Record the actual draw in the browser so the host can observe it even after it finishes.
+            await page.WaitForFunctionAsync("expected => window.feedbackProbeDrawStarts === expected", i + 1);
             await page.WaitForFunctionAsync("() => !document.querySelector('#feedbackProbe svg').hasAttribute('data-lwc-icon-enter')");
         }
     }

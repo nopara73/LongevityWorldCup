@@ -1,0 +1,13 @@
+The upload screens use the unmodified heic-to 1.6.7 CSP module, distributed
+separately at /js/heic-to.js. heic-to is licensed under LGPL-3.0-or-later.
+The upstream license and the GPL terms it incorporates accompany this file.
+
+Exact release source, worker, compiled libraries and build script:
+https://registry.npmjs.org/heic-to/-/heic-to-1.6.7.tgz
+https://github.com/hoppergee/heic-to/tree/78345a3fcdb4a1d70d513fce2646aeff0127f7ba
+
+This release includes libheif 1.23.7 and its HEVC decoder, libde265 1.0.16.
+Upstream source, notices and build instructions:
+https://github.com/strukturag/libheif/tree/v1.23.7
+https://github.com/strukturag/libde265/tree/v1.0.16
+https://github.com/hoppergee/heic-to/blob/78345a3fcdb4a1d70d513fce2646aeff0127f7ba/README.md

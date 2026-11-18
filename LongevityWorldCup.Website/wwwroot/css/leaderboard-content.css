@@ -328,7 +328,6 @@
  }
  .leaderboard table tbody tr.tier-amateur:hover{
      background-color: var(--tier-amateur-hover);
-     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
  }
  .leaderboard table tbody tr.tier-separator{
      background: linear-gradient(90deg, rgba(240, 244, 248, 0.6), rgba(59, 130, 246, 0.12));
@@ -373,7 +372,6 @@
  .leaderboard table tbody tr{ cursor:pointer; }
  .leaderboard table tbody tr:hover{
      transform:translateY(-1px);
-     box-shadow:0 5px 14px rgba(0,0,0,.08);
  }
 
  /* Let the Rank column auto-size (override old 15px rule) */
@@ -571,6 +569,8 @@
  .lwc-flag-icon{
      flex:0 0 auto; margin-right:.4rem; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.08);
  }
+ /* The closed filter drawer is laid out offscreen. Fetch its flags when it opens. */
+ body:not(.sidebar-drawer-closing) .sidebar:not(.expanded) .lwc-flag-icon{ background-image:none; }
  #athleteFlag .lwc-flag-icon{ margin-right:.45rem; vertical-align:-.08em; }
  .filter-section label:hover{ color:var(--primary-color); background:rgba(0,188,212,.06); border-color:rgba(0,188,212,.18); }
  .filter-section label.is-zero-count:not(.active):hover{
@@ -2704,7 +2704,10 @@
          .leaderboard table tbody .athlete-name {
              font-size: .95rem;
              font-weight: 700;
-             line-height: 1.2;
+             line-height: 1.22;
+             align-items: center;
+             text-wrap: balance;
+             padding: 0;
              min-width: 0;
              overflow-wrap: break-word;
              word-break: normal;
@@ -2780,11 +2783,12 @@
 
          .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
              display: grid;
-             grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+             grid-template-columns: 2.6rem minmax(0, 1fr) auto;
              grid-template-areas: "rank athlete score";
              align-items: center;
-             column-gap: 0.6rem;
-             padding: 0.4rem 0.5rem 0.4rem 0.4rem;
+             column-gap: 0.55rem;
+             min-height: 3.6rem;
+             padding: 0.45rem 0.6rem 0.45rem 0.4rem;
              border-bottom: 1px solid var(--lwc-border, #d7e0e6);
          }
 
@@ -2836,12 +2840,14 @@
 
          .leaderboard table tbody tr td.athlete-td {
              grid-area: athlete;
-             gap: 0.3rem;
+             align-items: center;
+             gap: 0.5rem;
              min-width: 0;
          }
 
          .leaderboard table td.age-reduction-td {
              grid-area: score;
+             font-variant-numeric: tabular-nums;
              display: flex;
              flex-direction: column-reverse;
              align-items: flex-end;
@@ -2875,6 +2881,14 @@
          .athlete-name {
              padding-left: 0.25rem;
              padding-right: 0.25rem;
+         }
+
+         .leaderboard table tbody tr:has(.rank[data-place="1"]) { --row-metal: var(--lwc-gold); }
+         .leaderboard table tbody tr:has(.rank[data-place="2"]) { --row-metal: var(--lwc-silver); }
+         .leaderboard table tbody tr:has(.rank[data-place="3"]) { --row-metal: var(--lwc-bronze); }
+
+         .leaderboard table tbody tr[data-athlete-name]:has(.rank[data-place]) {
+             background-image: linear-gradient(90deg, color-mix(in srgb, var(--row-metal) var(--medal-wash, 22%), transparent), transparent 62%);
          }
 
          /* Reflow relative to the reader's text size when three columns no longer fit. */
@@ -3214,13 +3228,11 @@
  .leaderboard table tbody tr.tier-amateur,
  .leaderboard table tbody tr.tier-amateur:nth-child(even) {
      border-color: var(--border-color);
-     box-shadow: none;
  }
 
  .leaderboard table tbody tr:hover,
  .leaderboard table tbody tr.tier-amateur:hover {
      background: var(--surface-accent);
-     box-shadow: none;
      transform: none;
  }
 
@@ -3550,6 +3562,10 @@
  }
  .leaderboard-selection-chip { display: inline-flex; align-items: center; gap: var(--lwc-space-2); max-width: 100%; background: var(--lwc-accent-soft); border-color: transparent; }
  .leaderboard-selection-chip span:first-child { min-width: 0; max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ /* Keep a selected league readable when Clear all shares a narrow row. */
+ .leaderboard-selection-chip[data-chip-key]:not([data-chip-key="search"]) span:first-child {
+     max-width: none; white-space: normal; overflow-wrap: anywhere;
+ }
  .leaderboard-selection-chip span:last-child { flex: 0 0 auto; color: var(--lwc-accent); font-size: 1.1rem; }
  .leaderboard-clear-all { padding-inline: var(--lwc-space-2); border-color: transparent; color: var(--lwc-accent); background: transparent; }
  .leaderboard-clear-all[hidden] { display: none; }
@@ -3559,13 +3575,25 @@
  .leaderboard-clear-all:focus-visible,
  .sidebar-show-results:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
  @media (max-width: 480px) {
+     .leaderboard-controls-status { container: league-status / inline-size; }
+     .leaderboard-clear-all { padding-inline: min(6px, var(--lwc-space-2)); }
      .leaderboard-controls .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) {
-         display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; align-items: end;
+         display: grid; grid-template-columns: minmax(0, 1fr) fit-content(30%); column-gap: min(8px, var(--lwc-space-2)); width: 100%; align-items: end;
+     }
+     .leaderboard-selection-chip, .leaderboard-selection-chip--ghost {
+         padding-inline: min(12px, var(--lwc-space-3)); gap: min(8px, var(--lwc-space-2));
      }
      .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) #leaderboardResultCount { grid-column: 1 / -1; margin: 0; }
      .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) .leaderboard-selection-chips {
          display: flex; flex-wrap: wrap; gap: var(--lwc-space-2); min-width: 0;
      }
+ }
+ /* At large type on the narrowest phones, Clear all needs its own line. */
+ @container league-status (max-width: 8.25em) {
+     .leaderboard-selection-summary:has(.leaderboard-selection-chip:nth-child(2)) > :is(.leaderboard-selection-chips, .leaderboard-clear-all) {
+         grid-column: 1 / -1;
+     }
+     .leaderboard-clear-all { justify-self: end; }
  }
  .sidebar-filter-list { display: contents; }
  .sidebar-results { display: none; }
@@ -4538,37 +4566,53 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     #detailsModal .biomarker-overview-arrow{ right:.4rem; }
 }
 
-/* Proofs: a contact sheet. Each proof is a whole page on paper, its number
-   rides on the sheet, and the toggle is the band's bordered button. */
-#detailsModal .proofs-gallery{ gap:.75rem; }
+/* Each numbered sheet shows the whole document, including landscape reports. */
+#detailsModal .proofs-gallery{
+    gap:18px 14px;
+    box-sizing:border-box;
+    padding:5px 8px 12px 4px;
+}
 #detailsModal .proof-item{
+    --proof-tilt:-1.2deg;
+    --proof-pile:0 0 0 transparent;
     position:relative;
+    aspect-ratio:4 / 5;
     padding:0;
     gap:0;
-    overflow:hidden;
-    border-color:var(--athlete-doc-rule, rgba(246,244,237,.1));
-    background:rgba(246,244,237,.92);
-    transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    border:0;
+    border-radius:3px;
+    background:#f6f4ed;
+    rotate:var(--proof-tilt);
+    box-shadow:var(--proof-pile), 0 8px 16px -9px rgba(0,0,0,.65);
+    transition:none;
+}
+#detailsModal .proof-item:nth-child(3n + 2){ --proof-tilt:.9deg; }
+#detailsModal .proof-item:nth-child(3n){ --proof-tilt:-.4deg; }
+#detailsModal .proof-item:has(+ .proof-item[hidden]){
+    --proof-pile:3px 3px 0 #e8e5dc, 4px 4px 0 #88857e, 7px 7px 0 #d6d2c8;
 }
 #detailsModal .proof-item img{
     box-sizing:border-box;
-    aspect-ratio:4 / 3;
-    padding:.6rem .6rem 2.1rem;
+    width:100%;
+    height:100%;
+    min-height:0;
+    aspect-ratio:auto;
+    padding:1.55rem 2px 2px;
     border-radius:0;
     object-fit:contain;
-    object-position:center;
+    object-position:center top;
     background:transparent;
-    transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    color:#17212b;
+    transition:none;
 }
 #detailsModal .proof-number{
     position:absolute;
+    top:0;
     left:.5rem;
-    bottom:.5rem;
-    padding:.2rem .55rem;
-    border:1px solid rgba(246,244,237,.22);
-    border-radius:var(--lwc-radius-pill, 999px);
-    background:rgba(12,14,14,.82);
-    color:rgba(255,255,255,.94);
+    padding:.2rem .55rem .25rem;
+    border-radius:0 0 6px 6px;
+    background:rgba(12,14,14,.86);
+    color:#fff;
     font-size:.72rem;
     font-weight:600;
     font-variant-numeric:tabular-nums;
@@ -4576,12 +4620,20 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     pointer-events:none;
     white-space:nowrap;
 }
-#detailsModal .proof-item:hover,
 #detailsModal .proof-item:has(img:focus-visible){
-    border-color:var(--athlete-modal-accent, #7bdde3);
-    box-shadow:0 0 0 1px var(--athlete-modal-accent, #7bdde3);
+    outline:2px solid var(--athlete-modal-accent, #7bdde3);
+    outline-offset:2px;
 }
-#detailsModal .proof-item:hover img{ transform:scale(1.03); }
+@media (hover:hover) and (prefers-reduced-motion:no-preference){
+    #detailsModal .proof-item{
+        transition:rotate 220ms ease, translate 220ms ease;
+    }
+    #detailsModal .proof-item:hover{
+        z-index:1;
+        rotate:0deg;
+        translate:0 -3px;
+    }
+}
 #detailsModal .proofs-toggle{
     display:inline-flex;
     align-items:center;
@@ -4598,11 +4650,8 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     border-color:var(--athlete-modal-accent, #7bdde3);
     background:var(--athlete-modal-card-hover);
 }
-@media (prefers-reduced-motion: reduce){
-    #detailsModal .proof-item:hover img{ transform:none; }
-}
 @media (max-width:600px){
-    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.6rem; }
+    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px 12px; }
 }
 @container athlete-proofs (max-width:14em){
     #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:minmax(0, 1fr); }
@@ -5932,4 +5981,15 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     .leaderboard .search-reason,
     .flag-leaderboard .search-reason{ animation:none; }
     .leaderboard table tbody tr:has(.badge-class.is-search-hit) .badge-section .badge-class:not(.is-search-hit){ transition:none; }
+}
+
+@media (max-width: 480px) and (prefers-color-scheme: dark) {
+    .leaderboard { --medal-wash: 16%; }
+}
+
+@media (max-width: 480px) and (prefers-reduced-motion: no-preference) {
+    :root[data-lwc-touch] .leaderboard tr[data-lwc-pressed="row"] .portrait,
+    :root:not([data-lwc-touch]) .leaderboard tr[data-athlete-name]:active .portrait {
+        scale: .92;
+    }
 }
