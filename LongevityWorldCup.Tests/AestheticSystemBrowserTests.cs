@@ -1416,15 +1416,26 @@ public sealed class AestheticSystemBrowserTests(
     private static async Task AssertMediaKitDocsContainerBoundariesAsync(
         IPage page, ResponsiveContainerCondition[] conditions)
     {
+        Assert.Equal(new[] { 15d, 18d }, conditions.Select(condition => condition.Value).Order().ToArray());
         await NavigateAndSettleAsync(page, "/media");
-        // Render one document row with the page's own markup, independent of the archive.
+        // Exercise both row layouts independently of the archive download.
         await page.EvaluateAsync("""
             () => {
                 const list = document.createElement('ul');
                 list.className = 'media-kit-file-list media-kit-tiles media-kit-docs';
-                list.dataset.docsBoundaryProbe = '';
+                list.dataset.docsBoundaryProbe = 'single';
                 list.innerHTML = '<li class="media-file-row media-file-tile media-file-doc"><span class="media-file-thumb media-file-doc-thumb"><i class="fas fa-file-lines media-file-icon" aria-hidden="true"></i></span><span class="media-file-name">FactSheet.txt</span><button type="button" class="media-file-button" aria-label="Download FactSheet.txt">Download</button></li>';
-                document.querySelector('#zipPreview').prepend(list);
+                const grouped = list.firstElementChild.cloneNode(true);
+                const details = document.createElement('div');
+                details.className = 'media-file-details';
+                const name = grouped.querySelector('.media-file-name');
+                name.replaceWith(details);
+                details.append(name);
+                details.insertAdjacentHTML('beforeend', '<span class="media-format-switch" role="radiogroup" aria-label="FactSheet formats"><label><input type="radio" name="probe">pdf</label><label><input type="radio" name="probe" checked>txt</label></span>');
+                const groupedList = list.cloneNode(false);
+                groupedList.dataset.docsBoundaryProbe = 'grouped';
+                groupedList.append(grouped);
+                document.querySelector('#zipPreview').prepend(list, groupedList);
             }
             """);
         try
@@ -1442,19 +1453,20 @@ public sealed class AestheticSystemBrowserTests(
                     {
                         var width = threshold + delta;
                         var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
-                            async width => {
-                                const list = document.querySelector('[data-docs-boundary-probe]');
+                            async ({ width, grouped }) => {
+                                const list = document.querySelector(`[data-docs-boundary-probe="${grouped ? 'grouped' : 'single'}"]`);
                                 Object.assign(list.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none', gridTemplateColumns: 'minmax(0, 1fr)' });
                                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                                const icon = list.querySelector('.media-file-doc-thumb').getBoundingClientRect();
-                                const name = list.querySelector('.media-file-name').getBoundingClientRect();
+                                const row = list.firstElementChild;
+                                const icon = row.querySelector('.media-file-doc-thumb').getBoundingClientRect();
+                                const name = row.querySelector(grouped ? '.media-file-details' : '.media-file-name').getBoundingClientRect();
                                 return {
                                     ContainerWidth: parseFloat(getComputedStyle(list).width),
                                     IsCompact: name.top >= icon.bottom - 1,
                                     HorizontalOverflow: Math.max(0, list.scrollWidth - list.clientWidth)
                                 };
                             }
-                            """, width);
+                            """, new { width, grouped = condition.Value == 15 });
                         Assert.Equal(width, diagnostics.ContainerWidth, 1);
                         Assert.Equal(width <= threshold, diagnostics.IsCompact);
                         Assert.True(diagnostics.HorizontalOverflow <= 1, $"Media kit document row overflowed at {width}px.");

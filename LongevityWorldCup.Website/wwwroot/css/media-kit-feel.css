@@ -196,16 +196,3 @@
     outline: 2px solid var(--lwc-accent);
     outline-offset: 1px;
 }
-/* Grouped captions can wrap their choices beneath the filename while the icon
-   and download share the row. Only the narrowest columns need a second row. */
-@container media-kit-docs (min-width: 15rem) {
-    .media-kit-docs .media-file-doc:has(.media-file-details) {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-    }
-}
-@container media-kit-docs (width < 15rem) {
-    .media-file-doc .media-file-details {
-        grid-column: 1 / -1;
-        grid-row: 2;
-    }
-}

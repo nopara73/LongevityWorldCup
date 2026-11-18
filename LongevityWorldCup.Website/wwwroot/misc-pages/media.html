@@ -472,7 +472,7 @@
         }
 
         @container media-kit-docs (max-width: 18rem) {
-            .media-kit-docs .media-file-doc {
+            .media-kit-docs .media-file-doc:not(:has(.media-file-details)) {
                 grid-template-columns: auto minmax(0, 1fr);
             }
 
@@ -481,6 +481,18 @@
             }
 
             .media-kit-docs .media-file-name {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+        }
+
+        /* Grouped captions wrap beside the icon until the controls need a full row. */
+        @container media-kit-docs (max-width: 15rem) {
+            .media-kit-docs .media-file-doc:has(.media-file-details) {
+                grid-template-columns: auto minmax(0, 1fr);
+            }
+
+            .media-file-doc .media-file-details {
                 grid-column: 1 / -1;
                 grid-row: 2;
             }
