@@ -276,6 +276,13 @@ interface RadarData {
     readonly tooltipContributors: string[][];
 }
 
+interface RadarCanvasPoint {
+    x: number;
+    y: number;
+    readonly skip: boolean;
+    inRange(x: number, y: number): boolean;
+}
+
 interface RadarChartInstance {
     readonly width: number;
     readonly height: number;
@@ -283,6 +290,14 @@ interface RadarChartInstance {
         labels: string[];
         datasets: Array<{ data: number[] }>;
     };
+    readonly scales: { r?: { getPointPositionForValue(index: number, value: number): { x: number; y: number } } };
+    getDatasetMeta(index: number): { data: RadarCanvasPoint[]; dataset: { points: RadarCanvasPoint[] } };
+    getActiveElements(): Array<{ index: number }>;
+    setActiveElements(active: Array<{ datasetIndex: number; index: number }>): void;
+    readonly tooltip: { setActiveElements(active: Array<{ datasetIndex: number; index: number }>, point: { x: number; y: number }): void };
+    draw(): void;
+    render(): void;
+    stop(): void;
     _radarTooltipContributors?: string[][];
     resize(): void;
     destroy(): void;
