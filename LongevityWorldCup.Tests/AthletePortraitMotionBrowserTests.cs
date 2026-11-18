@@ -555,15 +555,24 @@ public sealed class AthletePortraitMotionBrowserTests(
             var image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
             await image.HoverAsync();
             Assert.Equal(0, await image.EvaluateAsync<int>("img => img.naturalWidth"));
+            var peekName = page.Locator("#leaderboard-peek .lb-peek-name");
+            var athleteName = await image.EvaluateAsync<string>("img => img.closest('tr').querySelector('.athlete-name').textContent.trim()");
+            await Assertions.Expect(peekName).ToHaveTextAsync(athleteName);
             if (!remainHovered) await page.Mouse.MoveAsync(0, 0);
             await pendingPhoto.Task.WaitAsync(TimeSpan.FromSeconds(15));
             releasePhoto.TrySetResult();
             await page.WaitForFunctionAsync("() => document.querySelector(\".leaderboard a[href='/athlete/anna-buky'] img.portrait\").complete");
             var overlay = image.Locator("..").Locator("video.athlete-portrait-motion");
             if (remainHovered)
+            {
                 await ExpectPortraitPlayingAsync(overlay);
+                await Assertions.Expect(peekName).ToBeVisibleAsync();
+            }
             else
+            {
                 await Assertions.Expect(overlay).ToHaveCountAsync(0);
+                await Assertions.Expect(peekName).ToBeHiddenAsync();
+            }
         }
         finally { releasePhoto.TrySetResult(); }
     }
