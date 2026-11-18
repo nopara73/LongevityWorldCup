@@ -169,14 +169,21 @@ interface Window {
         return { x: Math.min(roomX, Math.max(-roomX, p.x)), y: Math.min(roomY, Math.max(-roomY, p.y)), z };
     }
 
+    function setButtonDisabled(button: HTMLButtonElement, disabled: boolean): void {
+        if (button.disabled === disabled) return;
+        // Disabling the focused control sends keyboard input to the underlying page.
+        if (disabled && document.activeElement === button) dialog?.focus({ preventScroll: true });
+        button.disabled = disabled;
+    }
+
     function apply(p: Pose): void {
         pose = p;
         picture.style.transform = transformOf(p);
         dialog?.toggleAttribute('data-zoomed', p.z > 1.01);
         if (dialog) {
-            dialog.querySelector<HTMLButtonElement>('[data-zoom="out"]')!.disabled = !loadedImage || (options.kind === 'proof' ? proofZoom <= 1 : p.z <= 1);
-            dialog.querySelector<HTMLButtonElement>('[data-zoom="in"]')!.disabled = !loadedImage || (options.kind === 'proof' ? proofZoom >= 3 : p.z >= maxZoom);
-            dialog.querySelector<HTMLButtonElement>('[data-zoom="fit"]')!.disabled = !loadedImage;
+            setButtonDisabled(dialog.querySelector<HTMLButtonElement>('[data-zoom="out"]')!, !loadedImage || (options.kind === 'proof' ? proofZoom <= 1 : p.z <= 1));
+            setButtonDisabled(dialog.querySelector<HTMLButtonElement>('[data-zoom="in"]')!, !loadedImage || (options.kind === 'proof' ? proofZoom >= 3 : p.z >= maxZoom));
+            setButtonDisabled(dialog.querySelector<HTMLButtonElement>('[data-zoom="fit"]')!, !loadedImage);
             dialog.dataset.proofZoom = String(proofZoom);
             dialog.querySelector('.lwc-viewer-zoom-status')!.textContent = `${Math.round((options.kind === 'proof' ? proofZoom : p.z) * 100)}%`;
         }
@@ -307,8 +314,8 @@ interface Window {
     function syncChrome(): void {
         const many = set.length > 1;
         dialog!.toggleAttribute('data-many', many);
-        prevButton.disabled = index === 0;
-        nextButton.disabled = index === set.length - 1;
+        setButtonDisabled(prevButton, index === 0);
+        setButtonDisabled(nextButton, index === set.length - 1);
         const start = Math.max(0, Math.min(index - 4, set.length - 9));
         dots.replaceChildren(...set.slice(start, start + 9).map((_, i) => {
             const dot = document.createElement('span'); dot.toggleAttribute('data-current', start + i === index); return dot;
@@ -346,7 +353,7 @@ interface Window {
         if (preview) { picture.src = image.currentSrc || image.src; loadedImage = image; }
         else picture.removeAttribute('src');
         status.hidden = !!preview;
-        status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Loading photo…' : `Loading ${options.kind === 'proof' ? 'proof' : 'image'}…`;
+        status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Loading photoâ€¦' : `Loading ${options.kind === 'proof' ? 'proof' : 'image'}â€¦`;
         status.querySelector('p')!.hidden = true;
         if (document.activeElement === retry) stage.focus({ preventScroll: true });
         retry.hidden = true;
@@ -376,7 +383,7 @@ interface Window {
             } else {
                 dialog.dataset.imageState = 'error';
                 status.hidden = false;
-                status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Photo couldn’t load.' : `This ${options.kind === 'proof' ? 'proof' : 'image'} couldn't load`;
+                status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Photo couldnâ€™t load.' : `This ${options.kind === 'proof' ? 'proof' : 'image'} couldn't load`;
                 const message = status.querySelector('p')!;
                 message.hidden = options.kind === 'photo';
                 message.textContent = options.kind === 'proof' && set.length > 1 ? 'Try again, or move to another proof.' : `Try loading this ${options.kind === 'proof' ? 'proof' : 'image'} again.`;
