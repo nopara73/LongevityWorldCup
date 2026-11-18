@@ -74,7 +74,8 @@
         observer?.unobserve(element);
         pending.delete(element);
         // A jump that lands many items at once compresses the cascade so the screen fills fast.
-        element.style.setProperty('--lwc-enter-i', String(Math.min(index * pace, STAGGER_CAP)));
+        const step = Math.min(index * pace, STAGGER_CAP);
+        if (step) element.dataset.lwcEnterStep = String(step);
         element.setAttribute('data-lwc-enter-state', 'go');
         // Clear once settled so the element's own transitions take over again.
         settling.set(element, window.setTimeout(() => clearEntrance(element), 900 + Math.min(index, STAGGER_CAP) * 80));
@@ -99,7 +100,7 @@
         window.clearTimeout(settling.get(element));
         settling.delete(element);
         element.removeAttribute('data-lwc-enter-state');
-        element.style.removeProperty('--lwc-enter-i');
+        element.removeAttribute('data-lwc-enter-step');
         transitions.forEach(animation => animation.cancel());
     }
 
