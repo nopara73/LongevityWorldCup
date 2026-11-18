@@ -237,6 +237,17 @@ Before changing the live publish tree, deployment stops the service and creates 
 
 Preserve `/var/www/.longevityworldcup/public-content-revisions.json` alongside the database. It stores observed public-content change dates independently of deployment and file timestamps. A missing ledger creates an unknown baseline, so old pages initially omit modification dates instead of acquiring the deployment date. Invalid ledger JSON fails explicitly and should be restored from backup, not silently discarded. See [Content freshness and AI summaries](ContentFreshnessAndAiSummaries.md). Discovery documents are controller endpoints; old `llms.txt`, `llms-full.txt`, `ai/index.md`, and `.well-known/agent-card.json` files left by incremental publish do not take precedence.
 
+### Public HTTPS transport
+
+The public HTTPS server in `/etc/nginx/sites-available/default` uses HTTP/2 so Chrome can download the homepage styles and portraits over one TLS connection. On the deployed nginx 1.24, the public listeners are:
+
+```nginx
+listen 443 ssl http2 default_server;
+listen [::]:443 ssl http2 default_server;
+```
+
+After validating the configuration and reloading nginx, run `curl --http2 -sS -o /dev/null -w '%{http_version} %{http_code}\n' https://longevityworldcup.com/` from an HTTP/2-capable client. Expect `2 200`. The same check with `--http1.1` should return `1.1 200`.
+
 ### Application submission proxy timeout
 
 `POST /api/application/application` has a dedicated five-minute ASP.NET Core timeout because an accepted submission may contain up to 37 proof images that must be validated and packaged. The browser waits 310 seconds. Nginx must allow slightly more response-header time than both layers without extending every other public route.

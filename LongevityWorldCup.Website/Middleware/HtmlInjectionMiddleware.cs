@@ -193,7 +193,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
                         .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
                         .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("<!--HEAD-->", head.Replace("<!--PODIUM-PRELOAD-->", HomepagePodiumAssets.Preloads(championPortrait)))
+                        .Replace("<!--HEAD-->", HomepagePodiumAssets.PrepareHead(head, championPortrait))
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)

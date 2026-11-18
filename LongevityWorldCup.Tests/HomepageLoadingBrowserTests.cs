@@ -10,6 +10,45 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task Homepage_PaintsItsTitleWhileTheIconLibraryIsPending()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        await page.AddInitScriptAsync("""
+            const titleObserver = new MutationObserver(() => {
+                const title = document.querySelector('header .bannertext');
+                if (!title) return;
+                title.setAttribute('elementtiming', 'header-title');
+                titleObserver.disconnect();
+            });
+            titleObserver.observe(document, { childList: true, subtree: true });
+            new PerformanceObserver(list => {
+                if (list.getEntries().some(entry => entry.identifier === 'header-title' && entry.renderTime > 0))
+                    window.titlePainted = true;
+            }).observe({ type: 'element', buffered: true });
+            """);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task Hold(IRoute route)
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        }
+        await page.RouteAsync("**/js/icons.js*", Hold);
+        await page.RouteAsync("**/vendor/font-awesome/**/all.min.css*", Hold);
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("() => window.titlePainted === true");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await page.WaitForFunctionAsync("() => !!window.LwcIcons && !!document.querySelector('i[data-lwc-icon] svg')");
+        await Assertions.Expect(page.Locator("link[rel=stylesheet][href*='font-awesome']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    [Fact]
     public async Task Homepage_CanPaintTheServerChampionWhileShareStylesArePending()
     {
         await using var context = await NewContextAsync(390);
