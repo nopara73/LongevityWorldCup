@@ -6,6 +6,35 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class MediaKitBrowserTests
 {
+    [Fact]
+    public async Task FirstFormatSelection_LeavesOffscreenTilesAndThePreviewInPlace()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        await InstallKitFixtureAsync(context, kitFiles: PressKitFiles());
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/media");
+        await page.Locator(".media-file-tile[data-lwc-enter-state='wait']").First.WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        var hero = page.Locator(".media-kit-featured .media-file-tile");
+        var issues = await hero.EvaluateAsync<string[]>("""
+            tile => {
+                const pending = [...document.querySelectorAll('.media-file-tile[data-lwc-enter-state="wait"]')].filter(t => t !== tile);
+                const image = tile.querySelector('img'), name = tile.querySelector('.media-file-name');
+                const originalText = [...name.childNodes];
+                const radio = tile.querySelectorAll('input')[1];
+                radio.focus();
+                radio.click();
+                return [
+                    ...(!pending.length || pending.some(t => t.dataset.lwcEnterState !== 'wait') ? ['unrelated entrances changed'] : []),
+                    ...(image !== tile.querySelector('img') || originalText.some(node => node.parentNode !== name) ? ['preview or caption rebuilt'] : []),
+                    ...(name.textContent !== 'Hero.jpg' || radio !== document.activeElement ? ['selection or focus lost'] : [])
+                ];
+            }
+            """);
+        Assert.Empty(issues);
+    }
+
     [Theory]
     [InlineData(1440, ReducedMotion.NoPreference)]
     [InlineData(390, ReducedMotion.Reduce)]

@@ -907,8 +907,6 @@
 
                     const name = document.createElement('span');
                     name.className = 'media-file-name';
-                    appendFileName(name, filenameOf(path));
-
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.textContent = 'Download';
@@ -973,7 +971,11 @@
                         formats.className = 'media-format-switch';
                         formats.setAttribute('role', 'radiogroup');
                         const filename = filenameOf(path);
-                        formats.setAttribute('aria-label', `${filename.slice(0, filename.lastIndexOf('.')) || filename} formats`);
+                        const dot = filename.lastIndexOf('.');
+                        appendFileName(name, filename.slice(0, dot + 1));
+                        const suffix = document.createTextNode(filename.slice(dot + 1));
+                        name.appendChild(suffix);
+                        formats.setAttribute('aria-label', `${filename.slice(0, dot)} formats`);
                         for (const candidate of paths) {
                             const label = document.createElement('label');
                             const radio = document.createElement('input');
@@ -984,8 +986,7 @@
                             formats.appendChild(label);
                             radio.addEventListener('change', () => {
                                 path = candidate;
-                                name.replaceChildren();
-                                appendFileName(name, filenameOf(path));
+                                suffix.data = path.slice(path.lastIndexOf('.') + 1);
                                 btn.setAttribute('aria-label', `Download ${filenameOf(path)}`);
                                 if (!isPicture) {
                                     thumb.firstElementChild.className = extensionOf(path) === 'pdf'
@@ -1002,6 +1003,7 @@
                         details.append(name, formats);
                         li.appendChild(details);
                     } else {
+                        appendFileName(name, filenameOf(path));
                         li.appendChild(name);
                     }
                     li.appendChild(btn);
