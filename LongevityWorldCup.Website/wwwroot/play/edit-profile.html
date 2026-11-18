@@ -256,6 +256,36 @@
             }
         }
 
+        /* At high zoom, keep labels readable independently of their icons. */
+        @container edit-profile-card (max-width: 14rem) {
+            #changeProfilePicWrapper > .option-button.flow-action:not(.icon-only) {
+                flex-direction: column;
+                gap: 0.35rem;
+                padding-inline: 0.5rem;
+            }
+
+            #changeProfilePicWrapper > .flow-action > i {
+                position: static;
+                transform: none;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions > .autocomplete-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.35rem;
+                padding-inline: 0.35rem;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions .lwc-flag-name {
+                width: 100%;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions .lwc-flag-share {
+                left: 0.35rem;
+                right: 0.35rem;
+            }
+        }
+
         /* Restore controls: quiet circles that return a value to its original. */
         .edit-profile-main .option-button.icon-only {
             flex: 0 0 auto;
@@ -880,6 +910,85 @@
         .no-scroll {
             overflow: hidden;
         }
+        /* A changed field shows its original value and an accent edge. */
+        #editOptionsGroup .niceInputFieldDisplayWrapper {
+            position: relative;
+        }
+
+        #editOptionsGroup .niceInputFieldDisplayWrapper::before {
+            content: "";
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            left: -10px;
+            width: 3px;
+            border-radius: 3px;
+            background: var(--lwc-accent, #087685);
+            transform: scaleY(0);
+            transform-origin: 50% 0;
+            transition: transform 260ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+            pointer-events: none;
+        }
+
+        #editOptionsGroup .niceInputFieldDisplayWrapper.is-changed::before {
+            transform: none;
+        }
+
+        .profile-field-was {
+            grid-column: 1 / -1;
+            display: none;
+            align-items: baseline;
+            gap: 6px;
+            min-width: 0;
+            margin: 6px 0 0;
+            color: var(--lwc-muted, #52606d);
+            font-size: 0.82rem;
+            line-height: 1.4;
+        }
+
+        .profile-field-was__icon {
+            flex: 0 0 auto;
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.75rem;
+            color: var(--lwc-accent, #087685);
+        }
+
+        .profile-field-was__value {
+            min-width: 0;
+            text-decoration: line-through;
+            text-decoration-color: color-mix(in srgb, var(--lwc-muted, #52606d) 70%, transparent);
+            overflow-wrap: anywhere;
+        }
+
+        .niceInputFieldDisplayWrapper.is-changed > .profile-field-was {
+            display: flex;
+        }
+
+        /* Keep the count inside the wrapping label so it never steals a
+           column from a word at narrow widths or enlarged text. */
+        .profile-change-count {
+            display: inline-grid;
+            place-items: center;
+            min-width: 1.4em;
+            height: 1.4em;
+            margin-left: 0.55em;
+            padding: 0 0.35em;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--main-action-color, #217a3c);
+            font-size: 0.8em;
+            font-weight: 800;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            vertical-align: baseline;
+        }
+
+        .profile-change-count[hidden], .profile-field-was[hidden] { display: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            #editOptionsGroup .niceInputFieldDisplayWrapper::before { transition: none; }
+        }
     </style>
     <link rel="stylesheet" href="{{ASSET_FLAG_FIELD_CSS}}">
     <link rel="stylesheet" href="{{ASSET_PORTRAIT_CROP_CSS}}">
@@ -997,6 +1106,7 @@
                         <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
                         <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
                     </div>
+                    <span id="profileChangesDescription" class="visually-hidden"></span>
                     <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="overflow" data-flow-dock-inline-back-first>
                         <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
                             <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
@@ -1137,6 +1247,8 @@
                 && value.Name.trim();
         }
 
+        const profileComparisons = new Map();
+        let profileChangeCount = 0;
         let originalAthlete = null;
         let tempAthlete = null;
         let rejectedProfilePicture = null;
@@ -1463,11 +1575,11 @@
                                     type: `HTTP ${responseStatus}`,
                                     message: txt
                                 });
-                                customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
+                                customAlert(responseStatus === 413 ? txt : `Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
                                     isEditProfileSubmitting = false;
                                     updateSubmitButtonState();
                                     submitButton.disabled = false;
-                                    submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
+                                    setSubmitChangeRequestButton();
                                     submitButton.focus();
                                 });
                             });
@@ -1486,7 +1598,7 @@
                             isEditProfileSubmitting = false;
                             updateSubmitButtonState();
                             submitButton.disabled = false;
-                            submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
+                            setSubmitChangeRequestButton();
                             submitButton.focus();
                         });
                     });
@@ -1656,8 +1768,81 @@
 
         function setSubmitChangeRequestButton() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
+            submitButton.innerHTML = '<span class="flow-action__label">Submit change request <span class="profile-change-count" aria-hidden="true" hidden></span></span><i class="fa fa-rocket" aria-hidden="true"></i>';
             submitButton.setAttribute('type', 'submit');
+            submitButton.setAttribute('aria-describedby', 'profileChangesDescription');
+            renderProfileChangeCount();
+        }
+
+        function renderProfileChangeCount() {
+            const submit = document.getElementById('submitButton');
+            const count = submit.querySelector('.profile-change-count');
+            // Submission feedback temporarily owns the button's contents.
+            if (count) {
+                const text = String(profileChangeCount);
+                if (count.textContent !== text) count.textContent = text;
+                count.hidden = !profileChangeCount;
+            }
+            if (profileChangeCount) {
+                if (submit.dataset.changes !== String(profileChangeCount)) submit.dataset.changes = String(profileChangeCount);
+            } else if (submit.hasAttribute('data-changes')) delete submit.dataset.changes;
+            const description = document.getElementById('profileChangesDescription');
+            const text = profileChangeCount ? `${profileChangeCount} pending profile ${profileChangeCount === 1 ? 'change' : 'changes'}` : '';
+            if (description.textContent !== text) description.textContent = text;
+        }
+
+        function updateProfileComparisons(changed) {
+            const changedKeys = new Set(changed.map(field => field.key));
+            getProfileEditFields().forEach(field => {
+                if (field.key === 'ProfilePic') return;
+                let comparison = profileComparisons.get(field.key);
+                if (!comparison) {
+                    const input = document.getElementById(field.id);
+                    const wrapper = input.closest('.niceInputFieldDisplayWrapper');
+                    const original = field.normalize(originalAthlete[field.key]);
+                    const before = field.key === 'Division'
+                        ? [...input.options].find(option => option.value === original)?.textContent || original
+                        : original;
+                    const previous = document.createElement('p');
+                    previous.id = field.id + 'Previous';
+                    previous.className = 'profile-field-was';
+                    previous.hidden = true;
+                    const prefix = document.createElement('span');
+                    prefix.className = 'visually-hidden';
+                    prefix.textContent = 'Previous value: ';
+                    const value = document.createElement('span');
+                    value.className = 'profile-field-was__value';
+                    value.textContent = before;
+                    const history = document.createElement('i');
+                    history.className = 'fas fa-history profile-field-was__icon';
+                    history.setAttribute('aria-hidden', 'true');
+                    previous.append(history, prefix);
+                    if (field.key === 'Flag') {
+                        const icon = document.createElement('span');
+                        icon.innerHTML = window.LwcFlags.renderFlagIcon(before);
+                        icon.setAttribute('aria-hidden', 'true');
+                        previous.append(icon);
+                    }
+                    previous.append(value);
+                    wrapper.append(previous);
+                    comparison = { input, wrapper, previous, before, changed: false };
+                    profileComparisons.set(field.key, comparison);
+                }
+                const isChanged = changedKeys.has(field.key);
+                if (comparison.changed === isChanged) return;
+                comparison.changed = isChanged;
+                comparison.wrapper.classList.toggle('is-changed', isChanged);
+                comparison.previous.hidden = !isChanged || !comparison.before;
+                const descriptions = (comparison.input.getAttribute('aria-describedby') || '').split(/\s+/)
+                    .filter(id => id && id !== comparison.previous.id);
+                if (!comparison.previous.hidden) descriptions.push(comparison.previous.id);
+                if (descriptions.length) comparison.input.setAttribute('aria-describedby', descriptions.join(' '));
+                else comparison.input.removeAttribute('aria-describedby');
+            });
+            if (profileChangeCount !== changed.length) {
+                profileChangeCount = changed.length;
+                renderProfileChangeCount();
+            }
         }
 
         const changeProfileBtn = document.getElementById('changeProfilePicButton');
@@ -2024,6 +2209,7 @@
                 document.getElementById(field.restoreId).style.display = isChanged ? 'inline-flex' : 'none';
                 return isChanged;
             });
+            updateProfileComparisons(changed);
             const anyChanged = changed.length > 0;
             if (rejectedProfilePicture !== null && athlete.ProfilePic !== rejectedProfilePicture.value) {
                 rejectedProfilePicture = null;

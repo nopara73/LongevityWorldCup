@@ -785,9 +785,9 @@ function createAthleteSelectionController(
         const terms = query.split(/\s+/).filter(term => term);
         clearCurrentAthleteSelectionIfInputChanged(input.value);
 
-        clearSearchFeedback();
         const existingList = document.getElementById(autocompleteListId);
         const closeMatches = (): false => {
+            clearSearchFeedback();
             closeAllLists();
             return false;
         };
@@ -804,11 +804,15 @@ function createAthleteSelectionController(
 
         if (matches.length === 0) {
             closeAllLists();
-            errorElement.classList.add("athlete-search-empty");
-            errorElement.setAttribute("role", "status");
-            errorElement.textContent = "No matching athlete.";
+            if (!errorElement.classList.contains("athlete-search-empty")) {
+                errorElement.classList.add("athlete-search-empty");
+                errorElement.setAttribute("role", "status");
+                errorElement.textContent = "No matching athlete.";
+            }
             return false;
         }
+
+        clearSearchFeedback();
 
         // Keep the open list and its rows across keystrokes: rows that still
         // match slide to their new place, new rows fade in, and rows that no

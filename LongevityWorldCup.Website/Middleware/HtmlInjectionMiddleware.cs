@@ -126,12 +126,20 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
                     var leaderboardPath = GetRequestCanonicalPath(context);
-                    if (leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath))
+                    if (leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)
+                        || (leaderboardPath == "/" && !context.Request.Query.ContainsKey("athlete")
+                            && new[] { "filters", "view", "group", "search", "sort", "redact", "redacted" }.Any(context.Request.Query.ContainsKey)))
                     {
-                        var selection = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date)
-                            .Select(leaderboardPath, context.Request.Query);
-                        if (selection.ByFlag || selection.DocumentTitle.Length > 0)
+                        var snapshot = GetPublicLeaderboardSnapshot(context);
+                        var selection = snapshot.Select(leaderboardPath, context.Request.Query);
+                        if (leaderboardPath != "/" && (selection.ByFlag || selection.DocumentTitle.Length > 0))
                             seo = seo with { PageTitle = $"{(selection.ByFlag ? selection.RailTitle : selection.DocumentTitle)} | Longevity World Cup" };
+                        var title = selection.ByFlag ? selection.RailTitle : selection.DocumentTitle.Length > 0 ? selection.DocumentTitle : selection.RailTitle;
+                        // Keep search canonical policy separate from a social object's exact selected view.
+                        seo = seo with { OgTitle = title, OgImageUrl = BuildDefaultOgImageUrl(),
+                            OgUrl = SiteBaseUrl + leaderboardPath + context.Request.QueryString };
+                        if (_leagueOgImages.IsConfigured && _leagueOgImages.TryGetLeaderboardPayload(snapshot, leaderboardPath, context.Request.Query, out var payload))
+                            seo = seo with { OgTitle = payload.PreviewTitle, OgImageUrl = _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload), OgUrl = SiteBaseUrl + payload.SharePath };
                     }
 
                     if (usesSharedHead)
@@ -143,7 +151,7 @@ namespace LongevityWorldCup.Website.Middleware
                             .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
                             .Replace("{{SEO_OG_TITLE}}", EncodeMeta(previewTitle))
                             .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
-                            .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
+                            .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.OgUrl ?? seo.CanonicalUrl))
                             .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
                             .Replace("{{SEO_OG_IMAGE_WIDTH}}", seo.OgImageWidth.ToString(CultureInfo.InvariantCulture))
                             .Replace("{{SEO_OG_IMAGE_HEIGHT}}", seo.OgImageHeight.ToString(CultureInfo.InvariantCulture))
@@ -430,7 +438,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             {
                 var path = GetRequestCanonicalPath(context);
                 var asOf = DateTime.UtcNow.Date;
-                var snapshot = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), asOf);
+                var snapshot = GetPublicLeaderboardSnapshot(context);
                 var selection = IsLeaderboardDocument(path)
                     ? snapshot.Select(IsAthleteRoute(path) ? "/" : path, context.Request.Query)
                     : null;
@@ -506,6 +514,15 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 _logger.LogWarning(ex, "Falling back to client rendering after public page rendering failed.");
                 return html;
             }
+        }
+
+        private PublicLeaderboardSnapshot GetPublicLeaderboardSnapshot(HttpContext context)
+        {
+            const string key = "Lwc.PublicLeaderboardSnapshot";
+            if (context.Items[key] is PublicLeaderboardSnapshot snapshot) return snapshot;
+            snapshot = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date);
+            context.Items[key] = snapshot;
+            return snapshot;
         }
 
         private static string DecodeSharedSearchQuery(string query)
@@ -1279,24 +1296,22 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return false;
             }
 
-            if (!_leagueOgImages.TryGetCurrentPayload(leagueSlug, out var payload))
+            if (!LeagueOgImageService.TryGetLeagueDisplayName(leagueSlug, out var displayName))
             {
                 return false;
             }
 
             var requestCanonicalPath = GetRequestCanonicalPath(context);
             var canonicalPath = string.Equals(requestCanonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
-                                string.Equals(payload.InternalSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
+                                string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
                 ? "/leaderboard"
-                : $"/league/{payload.RouteSlug}";
+                : $"/league/{leagueSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
-            var title = $"{payload.DisplayName} | Longevity World Cup";
-            var description = string.Equals(payload.InternalSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
+            var title = $"{displayName} | Longevity World Cup";
+            var description = string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
                 ? "Compare longevity athletes in the Ultimate League: Pro and Amateur rankings, biological age reduction, biomarker results, and athlete profiles."
-                : $"Explore {payload.DisplayName} longevity rankings, compare biological age reduction, and view athlete profiles and submitted biomarker results.";
-            var ogImageUrl = _leagueOgImages.IsConfigured
-                ? _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload)
-                : BuildDefaultOgImageUrl();
+                : $"Explore {displayName} longevity rankings, compare biological age reduction, and view athlete profiles and submitted biomarker results.";
+            var ogImageUrl = BuildDefaultOgImageUrl();
 
             seo = new SeoMeta(
                 canonicalPath,
@@ -1304,7 +1319,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 "index, follow",
                 canonicalUrl,
                 title,
-                payload.DisplayName,
+                displayName,
                 "",
                 ogImageUrl
             );
@@ -1923,7 +1938,10 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             string OgImageUrl,
             int OgImageWidth = 1200,
             int OgImageHeight = 630
-        );
+        )
+        {
+            public string? OgUrl { get; init; }
+        }
 
         private sealed record LeaderboardViewSeo(string Title, string Description);
 
