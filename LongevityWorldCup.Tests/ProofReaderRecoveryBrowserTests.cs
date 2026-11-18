@@ -107,9 +107,9 @@ public sealed class ProofReaderRecoveryBrowserTests(
         await viewer.GetByRole(AriaRole.Button, new() { Name = "Fit proof to viewer" }).ClickAsync();
         await page.Keyboard.PressAsync("ArrowRight");
         await ExpectStateAsync(viewer, "ready");
-        await Assertions.Expect(viewer.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("src", SecondProof);
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("src", new Uri(App.BaseAddress, SecondProof).AbsoluteUri);
         await page.Keyboard.PressAsync("ArrowRight");
-        await Assertions.Expect(viewer.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("src", ThirdProof);
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("src", new Uri(App.BaseAddress, ThirdProof).AbsoluteUri);
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(viewer).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#proofsGallery img").Nth(2)).ToBeFocusedAsync();
