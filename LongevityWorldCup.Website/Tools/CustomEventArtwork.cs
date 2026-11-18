@@ -33,6 +33,15 @@ public sealed record CustomEventArtwork(string AssetPath, string AltText, string
             ("open.spotify.com", "/episode/0CaM0p28Lvyutei1FWiP9I") => new("assets/social/buky-anna-kulturfitnesz-20261103.png",
                 "Büky Anna in a turquoise top beside the title Kultúrfitnesz · Petőfi Rádió.",
                 InstagramAssetPath: "assets/social/buky-anna-kulturfitnesz-20261103-instagram.png"),
+            ("www.fvmglobal.com" or "fvmglobal.com", "/science-of-longevity") => new("assets/social/siim-land-fvm-20261109.png",
+                "Siim Land beside the title Longevity Summit India, with copper track lines on a dark background.",
+                InstagramAssetPath: "assets/social/siim-land-fvm-20261109-instagram.png"),
+            ("kyleyep.podbean.com", "/e/what-the-top-longevity-athletes-actually-do-ft-adam-ficsor") => new("assets/social/adam-ficsor-longevity-unlocked-20261112.png",
+                "Kyle Hulbert and Adam Ficsor at microphones on a Longevity Unlocked podcast cover with the Longevity World Cup phoenix.",
+                InstagramAssetPath: "assets/social/adam-ficsor-longevity-unlocked-20261112-instagram.png"),
+            ("www.buzzsprout.com", "/2529295/episodes/20132993-protocoles-et-complements-anti-age-jusqu-ou-aller-valerie-orsoni") => new("assets/social/valerie-orsoni-heiven-20261116.png",
+                "Valérie Orsoni and Vladimir Smekhov beside a microphone on a blue Experts Longévité podcast cover with the Longevity World Cup phoenix.",
+                InstagramAssetPath: "assets/social/valerie-orsoni-heiven-20261116-instagram.png"),
             _ => null
         };
     }

@@ -71,7 +71,7 @@ public sealed class RedditAnnouncementService(
                 var prepared = JsonSerializer.Deserialize<RedditPostRequest>(json)
                     ?? throw new InvalidOperationException("The saved Reddit request is invalid.");
                 if (ifttt && reddit.Begin(key!, now, RedditIftttPost.Fingerprint(prepared.Title, prepared.Text),
-                    config.RedditBlockedLinks) != RedditBeginResult.Started)
+                    reddit.GetBlockedLinks(config.RedditBlockedLinks)) != RedditBeginResult.Started)
                     continue;
                 return new(key!, candidate.Event.Id, Subreddit, prepared.Title, prepared.Text);
             }
@@ -96,10 +96,11 @@ public sealed class RedditAnnouncementService(
             reddit.SkipUnstarted(item.Id, nameof(SocialEventSkipReason.EmptyMessage), now);
             return null;
         }
+        var blockedLinks = reddit.GetBlockedLinks(config.RedditBlockedLinks);
         var blockedLink = item.Type == EventType.CustomEvent
-            ? RedditLinkPolicy.FindBlockedLink(item.Text, config.RedditBlockedLinks)
+            ? RedditLinkPolicy.FindBlockedLink(item.Text, blockedLinks)
             : null;
-        blockedLink ??= RedditLinkPolicy.FindBlockedPostLink(request, config.RedditBlockedLinks);
+        blockedLink ??= RedditLinkPolicy.FindBlockedPostLink(request, blockedLinks);
         if (blockedLink is not null)
         {
             reddit.SkipBlockedLink(item.Id, blockedLink, now);

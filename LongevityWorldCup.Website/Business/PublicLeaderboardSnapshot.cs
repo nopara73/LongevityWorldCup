@@ -19,9 +19,11 @@ public sealed class PublicLeaderboardSnapshot
     };
 
     public IReadOnlyList<PublicAthlete> Athletes { get; }
+    internal JsonArray Source { get; }
 
     public PublicLeaderboardSnapshot(JsonArray athletes, DateTime asOf)
     {
+        Source = athletes;
         var stats = PhenoStatsCalculator.BuildAll(athletes, asOf);
         var order = CompetitionRanking.SortByCompetitionRules(stats.Values
             .Where(s => s.DobUtc.HasValue)
@@ -61,9 +63,9 @@ public sealed class PublicLeaderboardSnapshot
             && FlagRouteCatalog.TryResolve(path[6..].Trim('/'), Athletes.Select(a => a.Row.Flag), out var flag))
             filters = [flag.Name];
 
-        var divisions = MatchValues(filters, a => a.Row.Division);
-        var generations = MatchValues(filters, a => a.Row.Generation);
-        var exclusive = MatchValues(filters, a => a.Row.ExclusiveLeague);
+        var divisions = MatchValues(filters, a => a.Row.Division, ["Women's", "Men's", "Open"]);
+        var generations = MatchValues(filters, a => a.Row.Generation, ["Silent Generation", "Baby Boomers", "Gen X", "Millennials", "Gen Z", "Gen Alpha"]);
+        var exclusive = MatchValues(filters, a => a.Row.ExclusiveLeague, ["Prosperan"]);
         var byFlag = string.Equals(query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase);
         var ordering = LeaderboardOrderState.Parse(query);
         // Flag competitions compare the whole cohort, even on an old flag-filtered URL.
@@ -89,8 +91,10 @@ public sealed class PublicLeaderboardSnapshot
             "improvement" => "Pheno Improvement League", "bortz-improvement" => "Bortz Improvement League",
             "crowd" => "Crowd Age League", _ => "Ultimate League"
         };
+        var selectedFlags = flags.Count > 0
+            ? FlagRouteCatalog.BuildRoutes(Athletes.Select(a => a.Row.Flag)).Where(flag => flags.Contains(flag.Slug)).ToArray() : [];
         var flagLabel = flags.Count == 1
-            ? FlagCanonicalizer.GetCanonicalName(Athletes.First(a => flags.Contains(FlagKey(a.Row.Flag))).Row.Flag)
+            ? selectedFlags[0].Name
             : flags.Count > 1 ? $"{flags.Count} Flags" : "";
         var cohortTitle = string.Join(' ', new[]
         {
@@ -123,6 +127,10 @@ public sealed class PublicLeaderboardSnapshot
         }
         return new PublicLeaderboardSelection(view!, new LeaderboardSnapshot(LeaderboardOrdering.Apply(rows, byFlag ? new() : ordering)), railTitle, isDefault && !byFlag && !ordering.IsCustom)
         {
+            Filters = divisions.Concat(generations).Concat(exclusive)
+                .Concat(selectedFlags.Select(flag => flag.Name))
+                .Concat(tracks.Length == 1 ? new[] { tracks[0].Equals("professional", StringComparison.OrdinalIgnoreCase) ? "Professional" : "Amateur" } : []).Order(StringComparer.OrdinalIgnoreCase).ToArray(),
+            Flag = selectedFlags.Length == 1 ? selectedFlags[0] : null,
             Ordering = ordering,
             LeagueTitle = leagueTitle,
             DocumentTitle = documentTitle,
@@ -157,8 +165,8 @@ public sealed class PublicLeaderboardSnapshot
         return order.Select(slug => bySlug[slug]).ToList();
     }
 
-    private HashSet<string> MatchValues(string[] filters, Func<PublicAthlete, string> getValue) =>
-        Athletes.Select(getValue).Where(value => !string.IsNullOrEmpty(value) && filters.Contains(value, StringComparer.OrdinalIgnoreCase)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> MatchValues(string[] filters, Func<PublicAthlete, string> getValue, string[] namedValues) =>
+        Athletes.Select(getValue).Concat(namedValues).Where(value => !string.IsNullOrEmpty(value) && filters.Contains(value, StringComparer.OrdinalIgnoreCase)).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private static string FlagKey(string value) => FlagRouteCatalog.TryCreate(value, out var route) ? route.Slug : "";
     private static string SelectionKey(HashSet<string> values) => string.Join('|', values.Select(v => v.ToLowerInvariant()).Order(StringComparer.Ordinal));
@@ -178,7 +186,7 @@ public sealed class PublicLeaderboardSnapshot
         }
     };
     private static bool IsFinite(double? value) => value.HasValue && double.IsFinite(value.Value);
-    private static string DecodeFilter(string value)
+    internal static string DecodeFilter(string value)
     {
         for (var i = 0; i < 2; i++) value = Uri.UnescapeDataString(value);
         return value.Trim();
@@ -207,6 +215,8 @@ public sealed record PublicAthlete(LeaderboardSnapshotRow Row, PhenoStatsCalcula
 
 public sealed record PublicLeaderboardSelection(string View, LeaderboardSnapshot Snapshot, string RailTitle, bool IsDefault)
 {
+    public IReadOnlyList<string> Filters { get; init; } = [];
+    public FlagRouteInfo? Flag { get; init; }
     public string LeagueTitle { get; init; } = "";
     public string DocumentTitle { get; init; } = "";
     public bool ByFlag { get; init; }

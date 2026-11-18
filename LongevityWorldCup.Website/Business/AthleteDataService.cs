@@ -1560,7 +1560,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             .Select(result => new
             {
                 Result = result,
-                BiologicalAge = useBortz ? result.LowestBortzAge : result.LowestPhenoAge,
+                BiologicalAge = (useBortz ? result.BortzRankResult : result.PhenoRankResult)?.BiologicalAge,
                 AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction,
                 SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount
             })
@@ -1941,6 +1941,36 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             "vitamin_d" => "Best domain – vitamin D",
             _ => null
         };
+    }
+
+    public bool IsCurrentBadgeAward(string text)
+    {
+        if (!EventHelpers.TryExtractBadgeLabel(text, out var label) ||
+            !EventHelpers.TryExtractSlug(text, out var slug) ||
+            !EventHelpers.TryExtractCategory(text, out var category)) return false;
+        EventHelpers.TryExtractValue(text, out var value);
+        var hasPlace = EventHelpers.TryExtractPlace(text, out var place);
+        var normalizedLabel = EventHelpers.NormalizeBadgeLabel(label);
+        var requiresSingleHolder = normalizedLabel is "Pheno Age best improvement" or "Bortz Age best improvement" ||
+            (EventHelpers.TryExtractSolo(text, out var solo) && solo);
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            var labels = AddBadgeLabelParameters(cmd, BadgeLabelQueryVariants(label));
+            cmd.CommandText = $"""
+                SELECT COUNT(DISTINCT AthleteSlug), COALESCE(MAX(AthleteSlug = @slug COLLATE NOCASE), 0)
+                    FROM BadgeAwards WHERE BadgeLabel IN ({labels})
+                      AND LeagueCategory = @category COLLATE NOCASE
+                      AND COALESCE(LeagueValue, '') = @value COLLATE NOCASE
+                      AND Place IS @place;
+                """;
+            cmd.Parameters.AddWithValue("@slug", slug);
+            cmd.Parameters.AddWithValue("@category", category);
+            cmd.Parameters.AddWithValue("@value", value ?? "");
+            cmd.Parameters.AddWithValue("@place", hasPlace ? place : DBNull.Value);
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() && reader.GetInt32(1) != 0 && (!requiresSingleHolder || reader.GetInt32(0) == 1);
+        });
     }
 
     public bool HasSingleGlobalPlaceOneBadgeHolder(string badgeLabel)
@@ -2488,6 +2518,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             foreach (var o in _athletes.OfType<JsonObject>())
                 mutator(o);
         }
+    }
+
+    // Rank and badge events are written in separate transactions during reload.
+    // Read them under the publication lock so a dispatcher sees the whole update.
+    internal T ReadPublishedEvents<T>(Func<T> read)
+    {
+        lock (_athletesJsonLock) return read();
     }
 
     public JsonArray GetAthletesSnapshot()
@@ -3155,7 +3192,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             }
 
             if (changes.Count > 0)
-                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
+                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true, previousRanks: before);
         }
 
         // Persist full snapshot AFTER emitting events (always, even if no changes)
