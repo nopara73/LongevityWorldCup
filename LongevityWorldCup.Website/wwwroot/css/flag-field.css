@@ -1,0 +1,243 @@
+/* Flag field: the flag picker on /apply and /edit-profile.
+ *
+ * Field: the current flag sits in a slot at the start of the input and turns
+ *   over when the value lands on a different flag; custom flags get a
+ *   monogram tile of the same size, an empty field a dashed tile.
+ * Suggestions: every row starts with a tile, so names line up; one highlight
+ *   glides between rows; a hairline at the row's foot shows how many athletes
+ *   already fly that flag. Rows that still match glide when the query changes.
+ * Pick: the chosen tile flies into the slot and the field's underline sweeps. */
+
+/* ===== Tiles ===== */
+.lwc-flag-tile {
+    display: inline-block;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 1.75rem;
+    height: 1.3125rem;
+    border-radius: 4px;
+    background-position: center;
+    background-size: cover;
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--lwc-ink, #17212b) 14%, transparent),
+        0 1px 2px rgb(0 0 0 / 0.12);
+    vertical-align: middle;
+}
+
+.lwc-flag-tile.fi {
+    width: 1.75rem;
+    line-height: 1.3125rem;
+}
+
+.lwc-flag-tile--mono {
+    display: inline-grid;
+    place-items: center;
+    background: var(--lwc-surface-muted);
+    color: var(--lwc-muted, #5b6b79);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+.lwc-flag-tile--empty {
+    background: transparent;
+    box-shadow: none;
+    outline: 1.5px dashed var(--lwc-border-strong, var(--lwc-border));
+    outline-offset: -1.5px;
+}
+
+/* ===== Field slot ===== */
+input.lwc-flag-input.lwc-flag-input:is(#flag, #flagDisplayInput) {
+    padding-left: calc(0.85rem + 1.75rem + 0.65rem);
+}
+
+.lwc-flag-slot {
+    position: absolute;
+    z-index: 2;
+    width: 1.75rem;
+    height: 1.3125rem;
+    margin-left: 0.85rem;
+    transform: translateY(-50%);
+    perspective: 240px;
+    pointer-events: none;
+}
+
+.lwc-flag-slot__face {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    transform-origin: 50% 50%;
+    backface-visibility: hidden;
+}
+
+.lwc-flag-slot__face > .lwc-flag-tile {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.lwc-flag-slot[data-state="empty"] {
+    opacity: 0.7;
+}
+
+/* The field's foot line sweeps once when a flag lands. */
+@keyframes lwc-flag-landed {
+    from { background-size: 0% 2px; }
+    to { background-size: 100% 2px; }
+}
+
+input.lwc-flag-input.lwc-flag-input--landed {
+    background-image: linear-gradient(var(--lwc-accent), var(--lwc-accent));
+    background-repeat: no-repeat;
+    background-position: left calc(100% - 1px);
+    background-size: 100% 2px;
+    animation: lwc-flag-landed 360ms var(--lwc-ease-standard, ease) both;
+}
+
+/* ===== Suggestion tray ===== */
+.autocomplete-items.lwc-flag-suggestions {
+    position: absolute;
+    padding: 0.3rem;
+    border-radius: var(--lwc-radius-md, 8px);
+    isolation: isolate;
+}
+
+.autocomplete-items.lwc-flag-suggestions--inline {
+    position: relative;
+}
+
+.autocomplete-items.lwc-flag-suggestions > .autocomplete-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: 46px;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--lwc-radius-sm, 6px);
+    background: transparent;
+    box-shadow: none;
+    color: var(--lwc-ink);
+    transition: color 140ms var(--lwc-ease-standard, ease);
+}
+
+.autocomplete-items.lwc-flag-suggestions > .autocomplete-item + .autocomplete-item {
+    margin-top: 0.1rem;
+}
+
+.autocomplete-items.lwc-flag-suggestions > .autocomplete-item:hover,
+.autocomplete-items.lwc-flag-suggestions > .autocomplete-item.autocomplete-active {
+    background: transparent;
+    box-shadow: none;
+}
+
+.autocomplete-items.lwc-flag-suggestions .autocomplete-item .lwc-flag-tile {
+    margin: 0;
+    transition: transform 200ms var(--lwc-ease-pop, ease-out);
+}
+
+.autocomplete-items.lwc-flag-suggestions .autocomplete-item.autocomplete-active .lwc-flag-tile {
+    transform: scale(1.12) rotate(-3deg);
+}
+
+.autocomplete-items.lwc-flag-suggestions .lwc-flag-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.autocomplete-items.lwc-flag-suggestions .lwc-flag-name strong {
+    color: var(--lwc-accent);
+    font-weight: 700;
+}
+
+/* How many athletes already fly the flag, as a hairline under the name. */
+.autocomplete-items.lwc-flag-suggestions .lwc-flag-share {
+    position: absolute;
+    left: calc(0.75rem + 1.75rem + 0.7rem);
+    right: 0.75rem;
+    bottom: 0.4rem;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--lwc-accent) 55%, transparent) calc(var(--lwc-flag-share, 0) * 100%),
+        transparent 0);
+    opacity: 0.55;
+    transition: opacity 160ms var(--lwc-ease-standard, ease);
+}
+
+.autocomplete-items.lwc-flag-suggestions .autocomplete-item.autocomplete-active .lwc-flag-share {
+    opacity: 1;
+}
+
+.lwc-flag-glider {
+    position: absolute;
+    top: 0;
+    left: 0.3rem;
+    right: 0.3rem;
+    z-index: -1;
+    height: 46px;
+    border-radius: var(--lwc-radius-sm, 6px);
+    background: var(--lwc-accent-soft);
+    box-shadow: inset 3px 0 var(--lwc-accent);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform 180ms var(--lwc-ease-standard, ease),
+        height 180ms var(--lwc-ease-standard, ease),
+        opacity 120ms ease;
+}
+
+.lwc-flag-suggestions--leaving {
+    z-index: 9998;
+    pointer-events: none;
+}
+
+/* ===== Flight ===== */
+.lwc-flag-flight {
+    position: absolute;
+    z-index: 10050;
+    display: grid;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.lwc-flag-flight > .lwc-flag-tile {
+    width: 100%;
+    height: 100%;
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--lwc-ink, #17212b) 14%, transparent),
+        0 8px 18px rgb(0 0 0 / 0.28);
+}
+
+:root[data-lwc-motion="off"] .lwc-flag-glider,
+:root[data-lwc-motion="off"] .autocomplete-items.lwc-flag-suggestions .lwc-flag-tile,
+:root[data-lwc-motion="off"] .autocomplete-items.lwc-flag-suggestions .lwc-flag-share {
+    transition: none;
+}
+
+:root[data-lwc-motion="off"] .autocomplete-items.lwc-flag-suggestions .autocomplete-item.autocomplete-active .lwc-flag-tile {
+    transform: none;
+}
+
+:root[data-lwc-motion="off"] input.lwc-flag-input.lwc-flag-input--landed {
+    animation: none;
+    background-image: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lwc-flag-glider,
+    .autocomplete-items.lwc-flag-suggestions .lwc-flag-tile,
+    .autocomplete-items.lwc-flag-suggestions .lwc-flag-share {
+        transition: none;
+    }
+
+    .autocomplete-items.lwc-flag-suggestions .autocomplete-item.autocomplete-active .lwc-flag-tile {
+        transform: none;
+    }
+
+    input.lwc-flag-input.lwc-flag-input--landed {
+        animation: none;
+        background-image: none;
+    }
+}

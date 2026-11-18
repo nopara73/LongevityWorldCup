@@ -50,6 +50,8 @@ Run `sudo systemctl daemon-reload` and restart `longevityworldcup.service` after
 
 ## Inspect and verify
 
+After a protocol rejection, inspect `LastRejection` in the private ledger for the submission time, HTTP response details, provider request or trace IDs when returned, and a bounded response excerpt with the key redacted. The record survives restart and successful retries. Treat the response as untrusted evidence and keep it out of shared logs.
+
 Use read-only inspection on the server. Avoid printing the full ledger/key into shared logs:
 
 ```sh

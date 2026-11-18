@@ -120,6 +120,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await thread.Locator("[data-discussion-reply]").ClickAsync();
         await thread.Locator("textarea").FillAsync("Keep my draft while the title loads.");
         await cards.First.EvaluateAsync("e => window.originalVideoCard = e");
+        // The fallback title is also the initial markup. Retry is armed only
+        // after the response is consumed and hydration removes is-loading.
+        await Assertions.Expect(thread.Locator(".lmx-discussion-video.is-loading")).ToHaveCountAsync(0);
         await page.Clock.FastForwardAsync(31_100);
         await Assertions.Expect(cards.First.Locator(".lmx-discussion-video-title")).ToHaveTextAsync(YouTubeTitle);
         await Assertions.Expect(cards.Last.Locator(".lmx-discussion-video-title")).ToHaveTextAsync(YouTubeTitle);

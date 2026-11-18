@@ -64,3 +64,98 @@
         transition: none;
     }
 }
+
+/* The option that Enter will choose owns every active cue, including the portrait ring. */
+.autocomplete-items.athlete-suggestions {
+    container-type: inline-size;
+    max-height: min(18rem, 42vh);
+}
+
+/* Let the viewport and action dock set the limit for a single wrapped result. */
+.autocomplete-items.athlete-suggestions:not(:has(> [role="option"] ~ [role="option"])) {
+    max-height: none;
+}
+
+.autocomplete-items.athlete-suggestions > [role="option"]:hover {
+    background: transparent;
+}
+
+.autocomplete-items.athlete-suggestions > .autocomplete-active,
+.autocomplete-items.athlete-suggestions > .autocomplete-active:hover {
+    background: var(--lwc-accent-soft);
+    box-shadow: inset 3px 0 var(--lwc-accent);
+}
+
+.autocomplete-active .athlete-option-thumb {
+    box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent);
+}
+
+.athlete-option-names {
+    min-width: 0;
+}
+
+.athlete-option-canonical {
+    display: block;
+    color: var(--lwc-muted);
+}
+
+.athlete-option-meta {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.45rem;
+    margin-inline-start: auto;
+    color: var(--lwc-muted);
+}
+
+.athlete-option-meta .lwc-flag-tile {
+    display: inline-grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.125rem;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--lwc-ink) 14%, transparent);
+}
+
+.athlete-option-meta .lwc-flag-tile--mono {
+    background: var(--lwc-surface-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.athlete-option-division {
+    font-size: 0.85rem;
+}
+
+.autocomplete-active .athlete-option-division {
+    color: var(--lwc-accent);
+}
+
+.autocomplete-item--leaving .athlete-option-meta {
+    visibility: hidden;
+}
+
+@container (max-width: 16em) {
+    .autocomplete-items.athlete-suggestions > .athlete-option:has(.athlete-option-meta) {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        column-gap: 0.5rem;
+        row-gap: 0.125rem;
+    }
+
+    .athlete-option-meta {
+        grid-column: 2;
+        margin-inline-start: 0;
+    }
+}
+
+@container (max-width: 10em) {
+    .autocomplete-items.athlete-suggestions > .athlete-option:has(.athlete-option-meta) > :is(.athlete-option-name, .athlete-option-names) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .athlete-option-meta {
+        grid-row: 1;
+    }
+}

@@ -47,7 +47,8 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     public async Task Copy_SerializesRequestsAndKeepsFocusAfterSuccess()
     {
         await using var context = await CreateContextAsync(copy: "hold");
-        var page = await OpenProfileAsync(context);
+        var page = await OpenProfileAsync(context, installClock: true);
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator("#shareAthleteProfile").ClickAsync();
         var copy = page.Locator("#copyAthleteProfileLink");
         await copy.ClickAsync();
@@ -56,7 +57,8 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
         await copy.PressAsync("Enter");
         await copy.PressAsync("Space");
         Assert.Equal([FirstUrl], await CopyCallsAsync(page));
-        await CompleteAsync(page, "copy");
+        // The clock is paused; the assertions below observe completion without a frame.
+        await page.EvaluateAsync("() => window.__gates.copy(false)");
         await Assertions.Expect(page.Locator("#athleteShareMenu")).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToHaveTextAsync("Copied");
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeFocusedAsync();
@@ -72,8 +74,8 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     public async Task CopyConfirmation_DoesNotResetANewNativeShare()
     {
         await using var context = await CreateContextAsync(native: "error");
-        var page = await OpenProfileAsync(context);
-        await page.Clock.InstallAsync();
+        var page = await OpenProfileAsync(context, installClock: true);
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         var share = page.Locator("#shareAthleteProfile");
         await share.ClickAsync();
         await page.Locator("#copyAthleteProfileLink").ClickAsync();
@@ -94,7 +96,7 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     public async Task FailedCopy_OffersSelectedLinkAndKeyboardRetry(string copyMode)
     {
         await using var context = await CreateContextAsync(copy: copyMode);
-        var page = await OpenProfileAsync(context);
+        var page = await OpenProfileAsync(context, installClock: true);
         await page.Locator("#shareAthleteProfile").ClickAsync();
         await page.Locator("#copyAthleteProfileLink").ClickAsync();
         var input = page.Locator("#athleteShareLink");
@@ -104,6 +106,7 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(page.Locator("#copyAthleteProfileLink")).ToHaveTextAsync("Retry copy");
         await input.PressAsync("Shift+Tab");
         await Assertions.Expect(page.Locator("#copyAthleteProfileLink")).ToBeFocusedAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator("#copyAthleteProfileLink").PressAsync("Enter");
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToHaveTextAsync("Copied");
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeFocusedAsync();
@@ -114,8 +117,9 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     public async Task LegacyCopy_RestoresFocusAfterRemovingItsTemporaryField()
     {
         await using var context = await CreateContextAsync(copy: "legacy-success");
-        var page = await OpenProfileAsync(context);
+        var page = await OpenProfileAsync(context, installClock: true);
         await page.Locator("#shareAthleteProfile").ClickAsync();
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator("#copyAthleteProfileLink").ClickAsync();
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToHaveTextAsync("Copied");
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToBeFocusedAsync();
@@ -128,7 +132,7 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
     public async Task LateCopy_DoesNotAffectAnotherProfileOrItsOpenSharing(bool fail)
     {
         await using var context = await CreateContextAsync(copy: "hold");
-        var page = await OpenProfileAsync(context);
+        var page = await OpenProfileAsync(context, installClock: true);
         await page.Locator("#shareAthleteProfile").ClickAsync();
         await page.Locator("#copyAthleteProfileLink").ClickAsync();
         await OpenSecondProfileAsync(page);
@@ -139,6 +143,8 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(page.Locator("#copyAthleteProfileLink")).ToHaveTextAsync("Copy link");
         await Assertions.Expect(page.Locator("#copyAthleteProfileLink")).ToBeFocusedAsync();
         await Assertions.Expect(page.Locator("#athleteShareRecovery")).ToBeHiddenAsync();
+        // The profile handoff needs animation frames. Freeze the brief confirmation only after it settles.
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator("#copyAthleteProfileLink").PressAsync("Enter");
         await Assertions.Expect(page.Locator("#shareAthleteProfile")).ToHaveTextAsync("Copied");
         Assert.Equal([FirstUrl, SecondUrl], await CopyCallsAsync(page));
@@ -303,9 +309,10 @@ public sealed class AthleteShareBrowserTests(PlaywrightBrowserFixture browserFix
         return context;
     }
 
-    private static async Task<IPage> OpenProfileAsync(IBrowserContext context)
+    private static async Task<IPage> OpenProfileAsync(IBrowserContext context, bool installClock = false)
     {
         var page = await context.NewPageAsync();
+        if (installClock) await page.Clock.InstallAsync();
         await page.GotoAsync("/leaderboard?search=michael");
         await page.WaitForFunctionAsync("() => document.querySelector('#leaderboardStatus')?.textContent==='Leaderboard loaded.'");
         var rows = page.Locator(".leaderboard tbody .athlete-name:visible");

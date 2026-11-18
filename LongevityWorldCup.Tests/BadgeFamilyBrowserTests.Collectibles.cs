@@ -121,7 +121,7 @@ public sealed partial class BadgeFamilyBrowserTests
     public async Task Collectible_RapidUpgradeSwitchExitAndRuntimeReducedMotionStayConsistent()
     {
         await using var context = await NewBadgeContextAsync(1440, 900, false);
-        var page = await OpenCollectibleFixtureAsync(context);
+        var page = await OpenCollectibleFixtureAsync(context, installClock: true);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
         await page.EvaluateAsync("""
             () => window.setBadges({Badges:[{BadgeLabel:'≥2 submissions'},{BadgeLabel:'Best domain – vitamin D',Place:1}]},document.querySelector('#collectible-fixture'))
@@ -131,9 +131,28 @@ public sealed partial class BadgeFamilyBrowserTests
         await badges.First.HoverAsync();
         await badges.First.ClickAsync();
         await Assertions.Expect(tip).ToHaveAttributeAsync("role", "dialog");
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                window.__badgeExit = new Promise(resolve => {
+                    const observer = new MutationObserver(() => {
+                        const ghosts = [...document.querySelectorAll('.badge-tip-exit')];
+                        if (!ghosts.length) return;
+                        observer.disconnect();
+                        // Hold the real exit and its timer until reduced motion cancels it.
+                        ghosts.forEach(ghost => ghost.getAnimations().forEach(animation => animation.pause()));
+                        resolve(ghosts.map(ghost => ghost.inert && ghost.getAttribute('aria-hidden') === 'true'
+                            && !ghost.querySelector('[id]')));
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                });
+            }
+            """);
         await badges.Nth(1).ClickAsync();
         await Assertions.Expect(tip.Locator(".badge-tip-title")).ToHaveTextAsync("Sun God");
-        Assert.True(await page.Locator(".badge-tip-exit").EvaluateAllAsync<bool>("els=>els.every(el=>el.inert && el.getAttribute('aria-hidden')==='true' && !el.querySelector('[id]'))"));
+        var exits = await page.EvaluateAsync<bool[]>("() => window.__badgeExit").WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal([true], exits);
+        await Assertions.Expect(page.Locator(".badge-tip-exit")).ToHaveCountAsync(1);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await Assertions.Expect(page.Locator(".badge-tip-exit")).ToHaveCountAsync(0);
         Assert.False(await tip.EvaluateAsync<bool>("el=>el.getAnimations({subtree:true}).some(a=>a.playState==='running')"));
@@ -184,9 +203,10 @@ public sealed partial class BadgeFamilyBrowserTests
         await Assertions.Expect(page.Locator(".badge-earned")).ToHaveCountAsync(0);
     }
 
-    private static async Task<IPage> OpenCollectibleFixtureAsync(IBrowserContext context, int fontSize = 16)
+    private static async Task<IPage> OpenCollectibleFixtureAsync(IBrowserContext context, int fontSize = 16, bool installClock = false)
     {
         var page = await context.NewPageAsync();
+        if (installClock) await page.Clock.InstallAsync();
         await NavigateAndSettleAsync(page, "/events");
         await page.WaitForFunctionAsync("()=>typeof window.setBadges==='function'");
         await page.EvaluateAsync("""

@@ -71,7 +71,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                 for (const card of document.querySelectorAll('#lwc-step-2 .biomarker-card')) {
                     const header = card.querySelector('.biomarker-card-header');
                     const name = header.childNodes[0].textContent.trim();
-                    const input = card.querySelector('input[type="number"]');
+                    const input = card.querySelector('input[inputmode="decimal"]');
                     const nameRect = (() => { const r = document.createRange(); r.selectNodeContents(header.childNodes[0]); return r.getBoundingClientRect(); })();
                     const headerRect = header.getBoundingClientRect();
                     const markerRect = header.querySelector('.toggle-icon').getBoundingClientRect();
@@ -106,7 +106,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
             await Assertions.Expect(page.Locator("#wbcUnit")).ToBeFocusedAsync();
         }
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(page.Locator("#lwc-step-2 .biomarker-card").Nth(1).Locator("input[type=number]")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#lwc-step-2 .biomarker-card").Nth(1).Locator("input[inputmode=decimal]")).ToBeFocusedAsync();
         await AssertPlainBiomarkerHeadersAsync(page);
 
         // Focus, validation, and draft restoration must not revive accordion semantics.
@@ -135,7 +135,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
     [Theory]
     [InlineData("/pheno-age", 1440, 900)]
     [InlineData("/bortz-age", 1366, 768)]
-    public async Task DesktopDates_LineUpTheBloodDrawDateWithTheBirthDate(string path, int width, int height)
+    public async Task DesktopDates_PairCardsWithoutCoveringTheDateFields(string path, int width, int height)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -155,12 +155,14 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                 document.querySelector('#lwc-step-1 > fieldset:nth-of-type(2) > legend').getBoundingClientRect().top,
                 document.querySelector('#dob-year').getBoundingClientRect().top,
                 document.querySelector('#blood-draw-date').getBoundingClientRect().top,
-                document.querySelector('#dob-year').getBoundingClientRect().bottom,
-                document.querySelector('#blood-draw-date').getBoundingClientRect().bottom
+                document.querySelector('#dobFieldset').getBoundingClientRect().bottom,
+                document.querySelector('#blood-draw-date').getBoundingClientRect().bottom,
+                document.querySelector('#lwcStepOneActions').getBoundingClientRect().top
             ]
             """);
         Assert.InRange(rows[1] - rows[0], -1, 1);
-        Assert.InRange(rows[3] - rows[2], -1, 1);
-        Assert.InRange(rows[5] - rows[4], -1, 1);
+        Assert.True(rows[6] >= rows[4] + 6, "The actions must stay clear of both date cards.");
+        Assert.True(rows[3] >= rows[1] + 44, "The draw date stays below its band.");
+        Assert.True(rows[6] >= rows[5] + 6, "The actions must stay clear of the date input.");
     }
 }

@@ -156,9 +156,12 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
         await page.Locator("#gmaRange").EvaluateAsync("(range, guess) => { range.value = String(guess); range.dispatchEvent(new Event('input', { bubbles: true })); }", guess);
         var beforeHeight = await page.Locator("#guessAgeContainer").EvaluateAsync<double>("e => e.getBoundingClientRect().height");
-        await page.Locator(".gma-btn--primary").ClickAsync();
-        await page.Locator(".gma-pop-banner.show").WaitForAsync();
+        // Freeze before starting the reveal: pausing after observing the short-lived
+        // banner can let its removal timer win a slow Playwright round trip.
         await GuessMyAgeBrowserTests.PauseClockAsync(page);
+        await page.Locator(".gma-btn--primary").ClickAsync();
+        await GuessMyAgeBrowserTests.AdvanceRevealUntilAsync(page,
+            "() => !!document.querySelector('.gma-pop-banner.show')");
         await page.Locator(".gma-pop-banner").ScrollIntoViewIfNeededAsync();
         var bounds = await page.Locator(".gma-pop-banner").EvaluateAsync<JsonElement>(
             """
@@ -215,12 +218,14 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
             Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await OpenRoundAsync(page);
         await page.EvaluateAsync("percent => { document.documentElement.style.fontSize = percent + '%'; document.getElementById('gmaSkipAll').style.display = 'inline-block'; }", textPercent);
         await page.Locator(".gma-btn--primary").ScrollIntoViewIfNeededAsync();
         Assert.True(await page.EvaluateAsync<bool>("() => document.querySelector('#detailsModal .modal-content').scrollTop > 0"));
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator(".gma-btn--primary").ClickAsync();
-        await page.WaitForFunctionAsync("() => document.querySelector('#gmaRealBubble.is-settled')");
+        await GuessMyAgeBrowserTests.AdvanceRevealUntilAsync(page, "() => !!document.querySelector('#gmaRealBubble.is-settled')");
         await Assertions.Expect(page.Locator("#closeAthleteDetailsModal")).ToBeFocusedAsync();
         Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             """
@@ -232,6 +237,7 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
             }
             """));
         await page.Keyboard.PressAsync("Escape");
+        await page.Clock.ResumeAsync();
         await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
     }
 
@@ -303,8 +309,10 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
             Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await OpenRoundAsync(page);
         await page.Locator("#gmaRange").EvaluateAsync("(range, guess) => { range.value = String(guess); range.dispatchEvent(new Event('input', { bubbles: true })); }", guess);
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await page.Locator(".gma-btn--primary").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#gmaRealBubble.is-settled')");
         await Assertions.Expect(page.Locator("#gmaBubble")).ToHaveCSSAsync("opacity", overlap ? "0" : "0.4");

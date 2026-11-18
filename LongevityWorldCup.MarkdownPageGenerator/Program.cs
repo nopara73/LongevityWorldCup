@@ -375,6 +375,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     var canonicalPath = WebUtility.HtmlEncode(page.CanonicalPath);
     var sourceUrl = WebUtility.HtmlEncode(page.SourceUrl);
     var pageClass = WebUtility.HtmlEncode("documentation-page-" + page.CanonicalPath.Trim('/'));
+    // Pages with a dated timeline load the living-timeline layer.
+    var hasTimeline = documentHtml.Contains("class=\"documentation-timeline\"", StringComparison.Ordinal);
+    var timelineStyle = hasTimeline ? "\n    <link rel=\"stylesheet\" href=\"{{ASSET_HISTORY_TIMELINE_CSS}}\">" : string.Empty;
+    var timelineScript = hasTimeline ? "\n    <script src=\"{{ASSET_HISTORY_TIMELINE_JS}}\" defer></script>" : string.Empty;
 
     return $$"""
 <!DOCTYPE html>
@@ -391,13 +395,13 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-page {
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: minmax(min(12rem, 26vw), min(15rem, 30vw)) minmax(0, 47rem);
-            gap: clamp(1.5rem, 3vw, 2.75rem);
+            grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
+            gap: var(--lwc-grid-gap-lg);
             align-items: start;
-            justify-content: center;
-            max-width: 72rem;
-            margin: 2.5rem auto 4rem;
-            padding: 0 clamp(1rem, 3vw, 1.5rem);
+            justify-content: stretch;
+            max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+            margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+            padding: 0 var(--lwc-gutter-end) 0 var(--lwc-gutter-start);
         }
 
         /* Contents: one rail. Every section link sits on it, and it fills with
@@ -1093,6 +1097,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             line-height: 1.4;
         }
 
+        .documentation-timeline-title {
+            max-inline-size: 100%;
+        }
+
         .documentation-timeline-entry.is-announced .documentation-timeline-date {
             border: 1px dashed var(--lwc-accent, var(--primary-color));
             background: transparent;
@@ -1175,8 +1183,6 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         @media (max-width: 900px) {
             .documentation-page {
                 display: block;
-                margin: 1rem auto 3rem;
-                padding: 0 1rem;
             }
 
             /* Phones and tablets: the contents fold into a bar above the document
@@ -1374,7 +1380,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         @media (max-width: 600px) {
             .documentation-page {
-                padding-inline: min(1rem, 5vw);
+                padding-inline: max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-left, 0px)) max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-right, 0px));
             }
 
             .documentation-document {
@@ -1464,7 +1470,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
         }
     </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
-    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">
+    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">{{timelineStyle}}
 </head>
 <body>
     <!--HEADER-->
@@ -1475,7 +1481,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         </article>
     </main>
     <!--FOOTER-->
-    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
+    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}{{timelineScript}}
 </body>
 </html>
 """;

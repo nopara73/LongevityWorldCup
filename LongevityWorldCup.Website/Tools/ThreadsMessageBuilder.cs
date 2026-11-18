@@ -38,9 +38,11 @@ public static class ThreadsMessageBuilder
 
         if (type == EventType.NewRank)
         {
-            if (!EventHelpers.TryExtractRank(rawText, out var rank) || rank < 1 || rank > 3) return "";
-            if (!EventHelpers.TryExtractSlug(rawText, out var rankSlug)) return "";
+            if (!EventHelpers.TryExtractTop10Rank(rawText, out var rank)) return "";
+            if (!EventHelpers.TryExtractSlug(rawText, out var rankSlug) || string.IsNullOrWhiteSpace(rankSlug)) return "";
             var current = slugToName(rankSlug);
+            if (rank > 3 || (eventPhase is null or XPostPhase.Mature && EventHelpers.TryExtractPreviousPlace(rawText, out _)))
+                return RejectIfTooLong(SocialPostPolicy.UltimatePlacementText(rawText, current, rank));
             EventHelpers.TryExtractPrev(rawText, out var prevSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
             var newRankMsg = BuildUltimateRankLine(eventPhase, rank, current, prev);
@@ -82,6 +84,14 @@ public static class ThreadsMessageBuilder
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
             var leagueCtxSlug = string.Equals(improvementClock, "bortz", StringComparison.OrdinalIgnoreCase) ? "bortz-improvement" : "improvement";
             return RejectIfTooLong(SocialPostText.BuildAgeImprovementTop10Line(athlete, improvementClock, improvementPlace, previousPlace, prev, improvement, SocialPostLinks.AthleteUrl(improvementLeaderboardSlug, leagueCtxSlug)));
+        }
+
+        if (type == EventType.PhenoAgeTop10Change)
+        {
+            if (!EventHelpers.TryExtractSlug(rawText, out var phenoSlug)) return "";
+            if (!EventHelpers.TryExtractPhenoAgeTop10Change(rawText, out var phenoPlace, out var previousPlace, out var ageReduction)) return "";
+            return RejectIfTooLong(SocialPostText.BuildPhenoAgeTop10Line(
+                slugToName(phenoSlug), phenoPlace, previousPlace, ageReduction, SocialPostLinks.AthleteUrl(phenoSlug, "pheno")));
         }
 
         if (type != EventType.BadgeAward) return "";

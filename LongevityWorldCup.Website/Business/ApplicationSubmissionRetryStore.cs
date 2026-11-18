@@ -98,7 +98,7 @@ public sealed class ApplicationSubmissionRetryStore
                 submissionId,
                 requestFingerprint,
                 state,
-                fingerprintMatches ? completedSubmission!.Response : null,
+                fingerprintMatches ? RecoverResponse(completedSubmission!.Response) : null,
                 completedSubmission is not null && !fingerprintMatches);
         }
         catch
@@ -127,12 +127,25 @@ public sealed class ApplicationSubmissionRetryStore
         try
         {
             var completedSubmission = await GetCompletedSubmissionAsync(submissionId, ct).ConfigureAwait(false);
-            return completedSubmission?.Response;
+            return completedSubmission is null ? null : RecoverResponse(completedSubmission.Response);
         }
         finally
         {
             Release(submissionId, state);
         }
+    }
+
+    private static ApplicationSubmissionResponse RecoverResponse(ApplicationSubmissionResponse response)
+    {
+        // The temporary Stripe checkout has been retired. Keep the accepted
+        // receipt/idempotency record, but never replay its now-dead checkout URL.
+        if (response.CheckoutLink is { } link
+            && Uri.TryCreate(new Uri("https://longevityworldcup.com"), link, out var checkout)
+            && checkout.AbsolutePath.StartsWith("/api/payments/stripe/checkout/", StringComparison.OrdinalIgnoreCase))
+        {
+            return response with { CheckoutLink = null, InvoiceId = null, PaymentUnavailable = true };
+        }
+        return response;
     }
 
     private SubmissionLock AcquireState(string submissionId)

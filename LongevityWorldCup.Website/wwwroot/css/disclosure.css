@@ -159,9 +159,6 @@
     }
 }
 
-/* -------------------------------------------------------- profile proofs */
-#detailsModal #proofsGallery .proof-item { transition: translate 200ms var(--lwc-ease-standard, ease), box-shadow 200ms ease; }
-
 @media (prefers-reduced-motion: reduce) {
     :root[data-lwc-disclosure] details > summary::before,
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team-chevron,

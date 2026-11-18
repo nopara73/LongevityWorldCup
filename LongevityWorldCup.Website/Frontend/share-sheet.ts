@@ -79,19 +79,19 @@ interface Window {
         }
     }
 
-    const rankingViews = new Set(["bortz", "pheno", "improvement", "bortz-improvement", "crowd"]);
+    const boardParameters = new Set(["filters", "view", "search", "group", "sort", "dir", "then", "thenDir", "redact", "redacted", "guessmyage"]);
 
     function imageForUrl(url: URL): string | null {
         const path = url.pathname;
         const athlete = path.match(/^\/athlete\/([^/]+)$/);
         if (athlete) return `/og/athlete/${athlete[1]}.png`;
-        const league = path.match(/^\/league\/([^/]+)$/);
-        const view = url.searchParams.get("view") || league?.[1] || "";
-        if (rankingViews.has(view)) return `/og/page/view-${view}.png`;
-        if (league) return `/og/league/${league[1]}.png`;
+        if (path === "/leaderboard" || path.startsWith("/league/") || path.startsWith("/flag/")
+            || (path === "/" && [...url.searchParams.keys()].some(key => boardParameters.has(key)))) {
+            const query = new URLSearchParams({ path });
+            for (const [key, value] of url.searchParams) if (boardParameters.has(key)) query.set(key, value);
+            return "/og/leaderboard.png?" + query.toString();
+        }
         if (path === "/pheno-age" || path === "/bortz-age") return `/og/page${path}.png`;
-        if (path === "/leaderboard") return "/og/league/ultimate.png";
-        if (path.startsWith("/flag/")) return "/assets/og-image.png";
         if (path === "/") return "/og/page/home.png";
         return null;
     }
@@ -110,15 +110,16 @@ interface Window {
         }
         if (url.origin !== canonicalOrigin()) url = new URL(url.pathname + url.search + url.hash, canonicalOrigin());
         if (leaderboard) {
-            const meaningful = new Set(["filters", "view", "search", "group", "sort", "dir", "then", "thenDir"]);
-            for (const key of [...url.searchParams.keys()]) if (!meaningful.has(key)) url.searchParams.delete(key);
+            for (const key of [...url.searchParams.keys()]) if (!boardParameters.has(key)) url.searchParams.delete(key);
         }
 
         const title = data["shareTitle"] || (leaderboard ? document.title : meta("og:title")) || document.title;
         const routeImage = imageForUrl(url);
         const metadataImage = localImage(meta("og:image"));
         // Keep the server's signed card when it still represents this selection.
-        const image = metadataImage && (!routeImage || metadataImage.split("?")[0] === routeImage) ? metadataImage : routeImage;
+        const originalShareUrl = new URL(meta("og:url") || canonical || window.location.pathname, canonicalOrigin());
+        const sameSelection = originalShareUrl.pathname === url.pathname && originalShareUrl.search === url.search;
+        const image = metadataImage && (sameSelection || !routeImage) ? metadataImage : routeImage;
         return {
             url: url.toString(),
             title,
