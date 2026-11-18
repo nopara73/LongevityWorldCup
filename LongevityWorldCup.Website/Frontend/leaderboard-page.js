@@ -3279,7 +3279,7 @@ function requestCloseAthleteModal() {
 }
 
 function finishAfterTransition(element, property, complete) {
-    const transition = element.getAnimations().find(animation => animation.transitionProperty === property);
+    const transition = element.getAnimations?.().find(animation => animation.transitionProperty === property);
     const remaining = transition
         ? Math.max(0, transition.effect.getComputedTiming().endTime - (transition.currentTime || 0))
         : 0;

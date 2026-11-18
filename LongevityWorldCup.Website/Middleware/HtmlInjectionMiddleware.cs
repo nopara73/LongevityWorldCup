@@ -162,9 +162,10 @@ namespace LongevityWorldCup.Website.Middleware
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
                     leaderboardContent = leaderboardContent.Replace("<!--GUESS-MY-AGE-->", guessMyAge);
+                    string? championPortrait = null;
                     if (containsLeaderboardContent)
                     {
-                        leaderboardContent = ApplyPublicContent(leaderboardContent, context);
+                        leaderboardContent = ApplyPublicContent(leaderboardContent, context, out championPortrait);
                         leaderboardContent = ApplyLongevitymaxxingPromo(leaderboardContent);
                     }
 
@@ -192,7 +193,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
                         .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
                         .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("<!--HEAD-->", head)
+                        .Replace("<!--HEAD-->", HomepagePodiumAssets.PrepareHead(head, championPortrait))
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
@@ -217,6 +218,9 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent = InjectImageViewer(bodyContent);
                         bodyContent = InjectDisclosureLayer(bodyContent);
                     }
+
+                    if (championPortrait is not null)
+                        bodyContent = HomepagePodiumAssets.DeferEnhancementStyles(bodyContent);
 
                     if (ShouldRemoveJoinGameButtons(path))
                     {
@@ -432,8 +436,9 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     $"{Environment.NewLine}{content}{Environment.NewLine}");
         }
 
-        private string ApplyPublicContent(string html, HttpContext context)
+        private string ApplyPublicContent(string html, HttpContext context, out string? championPortrait)
         {
+            championPortrait = null;
             try
             {
                 var path = GetRequestCanonicalPath(context);
@@ -487,6 +492,9 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     {
                         var visible = table.Rows.Take(10).ToList();
                         var podium = snapshot.Select("/", QueryCollection.Empty).Snapshot;
+                        if (path == "/" && IsHomepageRequest(context) && selection.IsDefault &&
+                            podium.Rows.FirstOrDefault()?.LeaderboardThumbnailUrl is { Length: > 0 } portrait)
+                            championPortrait = portrait;
                         html = Regex.Replace(html, "<!--LEADERBOARD-PODIUM-START-->.*?<!--LEADERBOARD-PODIUM-END-->",
                             _ => "<!--LEADERBOARD-PODIUM-START-->" + LeaderboardHtmlRenderer.RenderPodium(podium, visible.Select(r => r.Slug).ToHashSet()) + "<!--LEADERBOARD-PODIUM-END-->", RegexOptions.Singleline);
                         var podiumDisplay = selection.IsDefault ? "flex" : "none";
@@ -511,6 +519,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             }
             catch (Exception ex)
             {
+                championPortrait = null;
                 _logger.LogWarning(ex, "Falling back to client rendering after public page rendering failed.");
                 return html;
             }
@@ -870,6 +879,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     [
                         "/js/play-athlete-flow.js",
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
                         "/js/badges.js",

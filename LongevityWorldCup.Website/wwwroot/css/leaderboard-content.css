@@ -569,6 +569,8 @@
  .lwc-flag-icon{
      flex:0 0 auto; margin-right:.4rem; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.08);
  }
+ /* The closed filter drawer is laid out offscreen. Fetch its flags when it opens. */
+ body:not(.sidebar-drawer-closing) .sidebar:not(.expanded) .lwc-flag-icon{ background-image:none; }
  #athleteFlag .lwc-flag-icon{ margin-right:.45rem; vertical-align:-.08em; }
  .filter-section label:hover{ color:var(--primary-color); background:rgba(0,188,212,.06); border-color:rgba(0,188,212,.18); }
  .filter-section label.is-zero-count:not(.active):hover{
@@ -4548,37 +4550,53 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     #detailsModal .biomarker-overview-arrow{ right:.4rem; }
 }
 
-/* Proofs: a contact sheet. Each proof is a whole page on paper, its number
-   rides on the sheet, and the toggle is the band's bordered button. */
-#detailsModal .proofs-gallery{ gap:.75rem; }
+/* Each numbered sheet shows the whole document, including landscape reports. */
+#detailsModal .proofs-gallery{
+    gap:18px 14px;
+    box-sizing:border-box;
+    padding:5px 8px 12px 4px;
+}
 #detailsModal .proof-item{
+    --proof-tilt:-1.2deg;
+    --proof-pile:0 0 0 transparent;
     position:relative;
+    aspect-ratio:4 / 5;
     padding:0;
     gap:0;
-    overflow:hidden;
-    border-color:var(--athlete-doc-rule, rgba(246,244,237,.1));
-    background:rgba(246,244,237,.92);
-    transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    border:0;
+    border-radius:3px;
+    background:#f6f4ed;
+    rotate:var(--proof-tilt);
+    box-shadow:var(--proof-pile), 0 8px 16px -9px rgba(0,0,0,.65);
+    transition:none;
+}
+#detailsModal .proof-item:nth-child(3n + 2){ --proof-tilt:.9deg; }
+#detailsModal .proof-item:nth-child(3n){ --proof-tilt:-.4deg; }
+#detailsModal .proof-item:has(+ .proof-item[hidden]){
+    --proof-pile:3px 3px 0 #e8e5dc, 4px 4px 0 #88857e, 7px 7px 0 #d6d2c8;
 }
 #detailsModal .proof-item img{
     box-sizing:border-box;
-    aspect-ratio:4 / 3;
-    padding:.6rem .6rem 2.1rem;
+    width:100%;
+    height:100%;
+    min-height:0;
+    aspect-ratio:auto;
+    padding:1.55rem 2px 2px;
     border-radius:0;
     object-fit:contain;
-    object-position:center;
+    object-position:center top;
     background:transparent;
-    transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    color:#17212b;
+    transition:none;
 }
 #detailsModal .proof-number{
     position:absolute;
+    top:0;
     left:.5rem;
-    bottom:.5rem;
-    padding:.2rem .55rem;
-    border:1px solid rgba(246,244,237,.22);
-    border-radius:var(--lwc-radius-pill, 999px);
-    background:rgba(12,14,14,.82);
-    color:rgba(255,255,255,.94);
+    padding:.2rem .55rem .25rem;
+    border-radius:0 0 6px 6px;
+    background:rgba(12,14,14,.86);
+    color:#fff;
     font-size:.72rem;
     font-weight:600;
     font-variant-numeric:tabular-nums;
@@ -4586,12 +4604,20 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     pointer-events:none;
     white-space:nowrap;
 }
-#detailsModal .proof-item:hover,
 #detailsModal .proof-item:has(img:focus-visible){
-    border-color:var(--athlete-modal-accent, #7bdde3);
-    box-shadow:0 0 0 1px var(--athlete-modal-accent, #7bdde3);
+    outline:2px solid var(--athlete-modal-accent, #7bdde3);
+    outline-offset:2px;
 }
-#detailsModal .proof-item:hover img{ transform:scale(1.03); }
+@media (hover:hover) and (prefers-reduced-motion:no-preference){
+    #detailsModal .proof-item{
+        transition:rotate 220ms ease, translate 220ms ease;
+    }
+    #detailsModal .proof-item:hover{
+        z-index:1;
+        rotate:0deg;
+        translate:0 -3px;
+    }
+}
 #detailsModal .proofs-toggle{
     display:inline-flex;
     align-items:center;
@@ -4608,11 +4634,8 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     border-color:var(--athlete-modal-accent, #7bdde3);
     background:var(--athlete-modal-card-hover);
 }
-@media (prefers-reduced-motion: reduce){
-    #detailsModal .proof-item:hover img{ transform:none; }
-}
 @media (max-width:600px){
-    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.6rem; }
+    #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px 12px; }
 }
 @container athlete-proofs (max-width:14em){
     #detailsModal .proofs-gallery:not([data-proof-count="1"]){ grid-template-columns:minmax(0, 1fr); }

@@ -251,6 +251,81 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
         Assert.Empty(errors);
     }
 
+    [Theory]
+    [InlineData(320, 640)]
+    [InlineData(844, 390)]
+    public async Task AthleteSearch_OneWrappedNameAndItsCuesFitWithoutScrolling(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height }, ReducedMotion = ReducedMotion.Reduce
+        });
+        const string name = "Andressa Lohana de Almeida";
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Json = new[] { new { Name = name, Flag = "Brazil", Division = "Women's" } }
+        }));
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/select-athlete");
+        await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
+        var input = page.Locator("#playAthleteInput");
+        await input.FillAsync(name);
+        var row = page.GetByRole(AriaRole.Option);
+        await Assertions.Expect(row.Locator(".fi-br")).ToBeVisibleAsync();
+        await input.PressAsync("ArrowDown");
+        await page.WaitForFunctionAsync("""
+            () => {
+                const list = document.querySelector('[role=listbox]');
+                const box = list.getBoundingClientRect();
+                return list.scrollHeight <= list.clientHeight + 1 && list.scrollWidth <= list.clientWidth + 1
+                    && box.top >= 0 && box.bottom <= document.querySelector('.play-athlete-actions').getBoundingClientRect().top;
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AthleteSearch_AmbiguousNamesFollowTheSingleActiveIdentity()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Json = new object[]
+            {
+                new { Name = "Alex North", DisplayName = "Alex", Flag = "USA", Division = "Open" },
+                new { Name = "Alex South", DisplayName = "Alex", Flag = "DrCarmen", Division = "Women's" },
+                new { Name = "Alex West", DisplayName = "Alex" }
+            }
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/select-athlete");
+        var input = page.Locator("#playAthleteInput");
+        await input.FillAsync("Alex");
+        var north = page.GetByRole(AriaRole.Option, new() { Name = "Alex, Alex North, United States, Open", Exact = true });
+        var south = page.GetByRole(AriaRole.Option, new() { Name = "Alex, Alex South, DrCarmen, Women's", Exact = true });
+        var west = page.GetByRole(AriaRole.Option, new() { Name = "Alex, Alex West", Exact = true });
+        await Assertions.Expect(north.Locator(".fi-us")).ToBeVisibleAsync();
+        await Assertions.Expect(south.Locator(".lwc-flag-tile--mono")).ToHaveTextAsync("D");
+        await Assertions.Expect(west.Locator(".athlete-option-meta")).ToHaveCountAsync(0);
+        await Assertions.Expect(west.Locator(".athlete-option-canonical")).ToHaveTextAsync("Alex West");
+        await input.PressAsync("Enter");
+        var confirm = page.Locator("#playConfirmAthleteBtn");
+        await Assertions.Expect(confirm).ToBeDisabledAsync();
+        await input.PressAsync("ArrowDown");
+        await Assertions.Expect(north).ToHaveAttributeAsync("aria-selected", "true");
+        await south.HoverAsync();
+        await Assertions.Expect(input).ToHaveAttributeAsync("aria-activedescendant", (await south.GetAttributeAsync("id"))!);
+        await input.PressAsync("ArrowDown");
+        await Assertions.Expect(west).ToHaveAttributeAsync("aria-selected", "true");
+        Assert.Equal(["Alex West"], await page.GetByRole(AriaRole.Option).EvaluateAllAsync<string[]>(
+            "rows => rows.filter(r => getComputedStyle(r.querySelector('img')).boxShadow !== 'none').map(r => r.dataset.value)"));
+        await north.HoverAsync();
+        await input.PressAsync("Enter");
+        await Assertions.Expect(confirm).ToBeFocusedAsync();
+        await confirm.ClickAsync();
+        await page.WaitForURLAsync("**/dashboard");
+        Assert.Equal("Alex North", await page.EvaluateAsync<string>("JSON.parse(sessionStorage.getItem('selectedAthlete')).Name"));
+    }
+
     [Fact]
     public async Task AthleteSearch_RetryDismissalTouchAndNavigationPreserveSelection()
     {
