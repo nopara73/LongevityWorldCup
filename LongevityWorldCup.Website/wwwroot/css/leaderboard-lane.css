@@ -1,7 +1,8 @@
 /* Desktop leaderboard rows: one lane glides between athletes.
    Frontend/leaderboard-lane.ts sets html[data-lb-lane], positions .lb-lane
    inside #athleteLeaderboard (--lane-x/y/w/h), marks the row .is-laned and
-   sets the reach bar's --reach (0..1 of the view leader's figure).
+   sets the reach bar's --reach (0..1 of the view's leading figure). The reach
+   shows its final length at once: it never fills from zero.
    Only --lwc-* colours. */
 
 @media (hover: hover) and (pointer: fine) and (min-width: 769px) {
@@ -44,7 +45,6 @@
         background: linear-gradient(90deg, color-mix(in srgb, var(--lwc-accent) 25%, transparent), var(--lwc-accent));
         transform-origin: left center;
         transform: scaleX(var(--reach, 0));
-        transition: transform 620ms cubic-bezier(.2, 0, 0, 1) 80ms;
     }
     .lb-lane-reach::after {
         content: "";
@@ -72,6 +72,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .lb-lane, .lb-lane-reach { transition: none; }
+    .lb-lane { transition: none; }
     :root[data-lb-lane] .leaderboard tbody tr.is-laned :is(.rank-td, .athlete-td img, .age-reduction) { scale: none; }
 }
