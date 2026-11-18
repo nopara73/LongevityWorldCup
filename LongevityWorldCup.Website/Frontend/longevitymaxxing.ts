@@ -900,6 +900,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let timeZoneCountryCodes: Map<string, string[]> | null = null;
     let preferredTimeZoneIds: Map<string, string> | null = null;
     let regionDisplayNames: Intl.DisplayNames | null = null;
+    const timeZoneRenderKeys = new WeakMap<Element, string>();
+    const timeZoneOffsetLabels = new Map<string, string>();
+    let timeZoneOffsetMinute = -1;
     let quoteDialogLastFocus: HTMLElement | null = null;
     let adviceStoryDraft: { id: string; body: string } | null = null;
     let adviceCheckInEditing: { participantId: string; adviceId: string; challengeDay: number } | null = null;
@@ -3740,6 +3743,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return Math.max(limit, originalBody.length);
     }
 
+    function updateControlText(element: HTMLElement, value: string): void {
+        if (element.textContent === value) return;
+        // Preserve the text node so counters do not look like inserted UI to
+        // the shared page observers on every keystroke.
+        if (element.childNodes.length === 1 && element.firstChild instanceof Text) element.firstChild.data = value;
+        else element.textContent = value;
+    }
+
     function characterAllowanceDescription(characterLimit: number): string {
         const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
         const points = row?.characterAllowance?.challengePoints ?? Math.min(154, Math.max(0, row?.totalPoints || 0));
@@ -3884,8 +3895,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         function renderSuggestions(): void {
             if (composing || textarea.readOnly || textarea.disabled) { closeList(); return; }
             const context = activeMentionContext(textarea);
+            if (!context || isCompletedMentionContext(context)) { closeList(); return; }
             const rows = mentionableParticipants();
-            if (!context || isCompletedMentionContext(context) || contextContinuesPastParticipant(context, rows)) {
+            if (contextContinuesPastParticipant(context, rows)) {
                 closeList();
                 return;
             }
@@ -3974,6 +3986,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         function closeList(): void {
+            if (list.hidden && !list.childNodes.length) return;
             list.hidden = true;
             list.innerHTML = "";
             matches = [];
@@ -5541,10 +5554,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const photos = getPendingNotePhotos(form);
         const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
         revokePendingNotePhotoUrls(key);
-        const urls = photos.map(photo => URL.createObjectURL(photo));
+        const urls = renderPendingPhotoPreviews(previews, photos, "data-remove-photo");
         if (urls.length) pendingNotePhotoUrls.set(key, urls);
-
-        previews.innerHTML = pendingDiscussionPhotosHtml(photos, urls, "data-remove-photo");
 
         previews.querySelectorAll<HTMLElement>("[data-remove-photo]").forEach(button => {
             button.addEventListener("click", () => removePendingNotePhoto(form, Number(button.dataset.removePhoto)));
@@ -5685,12 +5696,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         changeScores.disabled = adviceStorySaving;
         submit.disabled = adviceStorySaving;
         dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = adviceStorySaving;
-        dialog.setAttribute("aria-busy", String(adviceStorySaving));
+        if (dialog.getAttribute("aria-busy") !== String(adviceStorySaving)) dialog.setAttribute("aria-busy", String(adviceStorySaving));
         if (!prompt || adviceStoryDraft?.id !== prompt.id) {
             submit.textContent = prompt ? "Continue" : "Close";
             return;
         }
-        submit.textContent = "Post";
+        updateControlText(submit, "Post");
         const overLimit = updateAdviceStoryCount(dialog.querySelector<HTMLTextAreaElement>("textarea")!,
             dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!, prompt.characterLimit);
         submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || overLimit;
@@ -5700,10 +5711,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const limit = Math.max(2000, allowance ?? discussionCharacterLimit());
         const length = textarea.value.length;
         const over = Math.max(0, length - limit);
-        count.textContent = over ? `${over} over` : `${length}/${limit}`;
+        updateControlText(count, over ? `${over} over` : `${length}/${limit}`);
         count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${limit} characters`);
         count.classList.toggle("over-limit", over > 0);
-        textarea.setAttribute("aria-invalid", String(over > 0));
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
         return over > 0;
     }
 
@@ -6212,9 +6223,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const over = Math.max(0, noteLength - characterLimit);
             note.dataset.characterLimit = String(characterLimit);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
-            note.setAttribute("aria-invalid", String(over > 0));
+            if (note.getAttribute("aria-invalid") !== String(over > 0)) note.setAttribute("aria-invalid", String(over > 0));
             const count = form.querySelector<HTMLElement>("[data-note-character-count]")!;
-            count.textContent = over ? `${over} over` : `${noteLength}/${characterLimit}`;
+            updateControlText(count, over ? `${over} over` : `${noteLength}/${characterLimit}`);
             count.title = characterAllowanceDescription(characterLimit);
             count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${noteLength} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
@@ -6248,20 +6259,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             reset.hidden = !changed && !canUndo;
             reset.title = canUndo ? "Undo reset" : "Reset this check-in";
             reset.setAttribute("aria-label", reset.title);
-            reset.innerHTML = canUndo ? "Undo" : `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
+            if (canUndo) updateControlText(reset, "Undo");
+            else if (!reset.querySelector(".fa-rotate-left")) reset.innerHTML = `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
         }
         const progress = form.querySelector<HTMLElement>("[data-checkin-progress]");
         if (progress) {
             const answered = QUESTIONS.filter(q => draft[q.key] !== null).length;
-            progress.textContent = checkInSaving
+            updateControlText(progress, checkInSaving
                 ? savingThisDay ? "" : `Saving Day ${checkInSaving.day}…`
                 : saved ? "Saved"
-                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`;
+                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`);
             progress.classList.toggle("visually-hidden", saved && !checkInSaving);
         }
         if (status) {
             const error = checkInErrors.get(key);
-            status.textContent = error ? `Not saved. ${error}` : "";
+            updateControlText(status, error ? `Not saved. ${error}` : "");
             status.classList.toggle("error", !!error);
         }
         document.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(day => {
@@ -6269,7 +6281,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const dirty = checkInDrafts.has(day.dataset.draftKey || "");
             day.classList.toggle("has-draft", dirty);
             if (label) {
-                label.textContent = checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due";
+                updateControlText(label, checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due");
                 label.classList.toggle("visually-hidden", day.getAttribute("aria-pressed") === "true");
             }
         });
@@ -6416,7 +6428,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let restoreUploadFocus = false;
         try {
             if (!draft.preparedFile) {
-                draft.preparedFile = await prepareProfilePictureFile(file);
+                draft.preparedFile = await prepareChallengePhoto(file, "profile");
                 if (profilePictureDraft !== draft) return;
                 try { draft.previewUrl = URL.createObjectURL(draft.preparedFile); } catch { /* The file can still upload without a local preview. */ }
                 renderProfilePictureControls(participantState.participant);
@@ -6440,7 +6452,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             clearProfilePictureDraft();
         } catch (err) {
             if (profilePictureDraft === draft && accessToken === currentAccessToken) {
-                draft.error = hasProperties(err, "status") ? messageOf(err) : "Couldn’t upload the picture. Try again.";
+                draft.error = err instanceof PhotoPreparationError || hasProperties(err, "status") ? messageOf(err) : "Couldn’t upload the picture. Try again.";
             }
         } finally {
             if (profilePictureDraft === draft) draft.uploading = false;
@@ -6461,66 +6473,52 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (row) row.profileImageUrl = image;
     }
 
-    async function prepareProfilePictureFile(file: File): Promise<File> {
-        const type = String(file.type || "");
-        const isServerPreferred = /^image\/(jpeg|png|webp)$/i.test(type);
-        const shouldNormalize = file.size > 1024 * 1024 || !isServerPreferred;
-        if (!shouldNormalize) return file;
+    class PhotoPreparationError extends Error { }
 
-        try {
-            const bitmap = await loadProfileBitmap(file);
-            const maxDimension = 1600;
-            const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
-            const width = Math.max(1, Math.round(bitmap.width * scale));
-            const height = Math.max(1, Math.round(bitmap.height * scale));
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return file;
-
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            closeImageBitmap(bitmap);
-
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
-            if (!blob) return file;
-            return new File([blob], replaceImageExtension(file.name || "profile-picture", "jpg"), { type: "image/jpeg" });
-        } catch (_) {
-            return file;
+    function prepareNotePhotoFile(file: File): Promise<File> {
+        let prepared = preparedDiscussionPhotos.get(file);
+        if (!prepared) {
+            prepared = prepareChallengePhoto(file, "discussion").catch(error => {
+                preparedDiscussionPhotos.delete(file);
+                throw error;
+            });
+            preparedDiscussionPhotos.set(file, prepared);
         }
+        return prepared;
     }
 
-    async function prepareNotePhotoFile(file: File): Promise<File> {
+    async function prepareChallengePhoto(file: File, purpose: "profile" | "discussion"): Promise<File> {
+        const heic = LwcUploadPhoto.isHeic(file);
+        if (heic && file.size > 32 * 1024 * 1024) throw new PhotoPreparationError("Choose a photo under 32 MB.");
+        const profile = purpose === "profile";
+        if (profile && !heic && file.size <= 1024 * 1024 && /^image\/(jpeg|png|webp)$/i.test(file.type)) return file;
+
+        let image: HTMLImageElement | ImageBitmap | undefined;
+        const canvas = document.createElement("canvas");
         try {
-            const bitmap = await loadProfileBitmap(file);
-            const scale = Math.min(1, NOTE_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
-            const width = Math.max(1, Math.round(bitmap.width * scale));
-            const height = Math.max(1, Math.round(bitmap.height * scale));
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return file;
-
+            image = heic ? await LwcUploadPhoto.decode(file) : await loadProfileBitmap(file);
+            const maxDimension = profile ? 1600 : NOTE_PHOTO_MAX_DIMENSION;
+            const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+            const ctx = canvas.getContext("2d")!;
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            closeImageBitmap(bitmap);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-            let blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
-            let extension = "webp";
-            if (!blob || blob.type !== "image/webp") {
+            let blob = profile ? null : await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
+            if (blob?.type !== "image/webp") {
                 blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
-                extension = "jpg";
             }
-
-            if (!blob) return file;
-            const type = blob.type || (extension === "jpg" ? "image/jpeg" : "image/webp");
-            return new File([blob], replaceImageExtension(file.name || "check-in-photo", extension), { type });
-        } catch (_) {
+            if (!blob) throw new Error("Photo encoding failed.");
+            const extension = blob.type === "image/webp" ? "webp" : "jpg";
+            return new File([blob], replaceImageExtension(file.name, extension), { type: blob.type });
+        } catch {
+            if (heic) throw new PhotoPreparationError(LwcUploadPhoto.recovery);
             return file;
+        } finally {
+            if (image) closeImageBitmap(image);
+            canvas.width = canvas.height = 0;
         }
     }
 
@@ -7208,12 +7206,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             (discussionDraftHasChanges(draft) || discussionMutation === draft.key));
     }
 
-    function pendingDiscussionPhotosHtml(photos: File[], urls: string[], removeAttribute: string): string {
-        return photos.map((photo, index) => `<figure class="lmx-pending-photo">
+    function renderPendingPhotoPreviews(previews: Element, photos: File[], removeAttribute: string): string[] {
+        const urls = photos.map(photo => LwcUploadPhoto.isHeic(photo) ? "" : URL.createObjectURL(photo));
+        previews.innerHTML = photos.map((photo, index) => `<figure class="lmx-pending-photo">
             <div class="lmx-pending-photo-frame">
-                <button class="lmx-note-photo is-local-photo" type="button" data-photo-src="${escAttr(urls[index])}"
+                <button class="lmx-note-photo is-local-photo" type="button" ${urls[index] ? `data-photo-src="${escAttr(urls[index])}"` : 'disabled aria-busy="true"'}
                     aria-label="${escAttr(`Preview ${photo.name}`)}" title="${escAttr(photo.name)}">
-                    <img src="${escAttr(urls[index])}" alt="" decoding="async">
+                    <img ${urls[index] ? `src="${escAttr(urls[index])}"` : ""} alt="" decoding="async">
                 </button>
                 <button type="button" class="lmx-note-photo-remove" ${removeAttribute}="${index}" title="Remove photo" aria-label="${escAttr(`Remove ${photo.name}`)}">
                     <i class="fas fa-xmark" aria-hidden="true"></i>
@@ -7221,6 +7220,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             </div>
             <figcaption>${esc(photo.name)}</figcaption>
         </figure>`).join("");
+
+        previews.querySelectorAll<HTMLButtonElement>(".is-local-photo").forEach((button, index) => {
+            if (!button.disabled) return;
+            const figure = button.closest("figure")!;
+            const photo = photos[index]!;
+            void prepareNotePhotoFile(photo).then(prepared => {
+                // A removal, re-render or closed draft can retire this preview during decode.
+                if (!button.isConnected) return;
+                const url = URL.createObjectURL(prepared);
+                urls[index] = url;
+                button.querySelector("img")!.src = url;
+                button.dataset.photoSrc = url;
+                button.disabled = false;
+            }).catch(() => {
+                figure.querySelector("figcaption")!.textContent = `${photo.name} · ${LwcUploadPhoto.recovery}`;
+            }).finally(() => button.removeAttribute("aria-busy"));
+        });
+        return urls;
     }
 
     function revokeDiscussionPhotoPreviews(draft: DiscussionDraft): void {
@@ -7233,8 +7250,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!previews) return;
         revokeDiscussionPhotoPreviews(draft);
         const photos = draft.photos || [];
-        draft.photoUrls = photos.map(photo => URL.createObjectURL(photo));
-        previews.innerHTML = pendingDiscussionPhotosHtml(photos, draft.photoUrls, "data-remove-reply-photo");
+        draft.photoUrls = renderPendingPhotoPreviews(previews, photos, "data-remove-reply-photo");
         previews.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(button => {
             button.addEventListener("click", () => {
                 if (discussionMutation === draft.key) return;
@@ -7267,11 +7283,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function postDiscussionDraft(draft: DiscussionDraft, payload: DiscussionReplyPayload): Promise<ParticipantState> {
-        const prepared = await Promise.all((draft.photos || []).map(photo => {
-            let result = preparedDiscussionPhotos.get(photo);
-            if (!result) { result = prepareNotePhotoFile(photo); preparedDiscussionPhotos.set(photo, result); }
-            return result;
-        }));
+        const prepared = await Promise.all((draft.photos || []).map(prepareNotePhotoFile));
         const hashes = await Promise.all(prepared.map(async photo => {
             const hash = await crypto.subtle.digest("SHA-256", await photo.arrayBuffer());
             return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
@@ -7595,11 +7607,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         };
         wireMentionAutocomplete(textarea, () => {
             if (discussionMutation === draft.key) return;
+            const wasDirty = discussionDraftHasChanges(draft);
+            const previousError = draft.error;
+            const previousNotice = draft.notice;
+            const storageFailed = discussionDraftStorageFailed;
             draft.body = textarea.value;
             draft.notice = null;
-            rememberSelection();
+            draft.selectionStart = textarea.selectionStart;
+            draft.selectionEnd = textarea.selectionEnd;
             if (draft.errorKind !== "auth" && draft.error && draft.body.trim() !== draft.submittedBody) { draft.error = null; draft.errorKind = null; }
-            updateDiscussionDraftControls();
+            // Typing changes this composer, not every reply and history control in the feed.
+            if (wasDirty !== discussionDraftHasChanges(draft) || previousError !== draft.error) updateDiscussionDraftControls();
+            else {
+                persistDiscussionDrafts();
+                if (previousNotice || storageFailed !== discussionDraftStorageFailed) updateDiscussionComposerControls(composer, draft);
+                else updateDiscussionComposerInput(composer, draft);
+            }
         });
         textarea.addEventListener("select", rememberSelection);
         textarea.addEventListener("blur", rememberSelection);
@@ -7734,58 +7757,74 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderDiscussionDiscardUndo();
         document.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(composer => {
             const draft = discussionDrafts.get(composer.dataset.discussionDraft || "");
-            if (!draft) return;
-            const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
-            const archived = discussionDraftArchived(draft, advice);
-            const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
-            const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
-            if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
-            updateDiscussionComposerContext(composer, draft);
-            const pending = discussionMutation === draft.key;
-            const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
-            textarea.readOnly = pending;
+            if (draft) {
+                updateDiscussionComposerContext(composer, draft);
+                updateDiscussionComposerControls(composer, draft);
+            }
+        });
+    }
+
+    function updateDiscussionComposerInput(composer: HTMLElement, draft: DiscussionDraft): void {
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        // Native sizing grows and shrinks without two synchronous layouts per letter.
+        if (!CSS.supports("field-sizing", "content")) {
             textarea.style.height = "auto";
             textarea.style.height = `${Math.min(textarea.scrollHeight + 2, parseFloat(getComputedStyle(textarea).maxHeight))}px`;
-            if (pending) {
-                composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
-                textarea.setAttribute("aria-expanded", "false");
-                textarea.removeAttribute("aria-activedescendant");
-            }
-            const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
-            const length = draft.body.length;
-            const characterLimit = discussionCharacterLimit(draft.originalBody);
-            const over = Math.max(0, length - characterLimit);
-            textarea.dataset.characterLimit = String(characterLimit);
-            count.textContent = over ? `${over} over` : `${length}/${characterLimit}`;
-            count.title = characterAllowanceDescription(characterLimit);
-            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
-            count.classList.toggle("over-limit", over > 0);
-            textarea.setAttribute("aria-invalid", String(over > 0));
-            count.classList.toggle("at-limit", draft.body.length >= characterLimit);
-            const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
-            if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
-                : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
-            const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
-            submit.disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
-            submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
-                : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
-            if (pending) submit.setAttribute("aria-busy", "true");
-            else submit.removeAttribute("aria-busy");
-            const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
-            if (discard) discard.disabled = pending || !discussionDraftHasChanges(draft);
-            composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
-                control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
-            });
-            composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
-            const status = composer.querySelector<HTMLElement>(".lmx-status")!;
-            status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
-                : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
-                : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
-                : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
-                : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
-                : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
-            status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
+        }
+        const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
+        const length = draft.body.length;
+        const characterLimit = discussionCharacterLimit(draft.originalBody);
+        const over = Math.max(0, length - characterLimit);
+        textarea.dataset.characterLimit = String(characterLimit);
+        updateControlText(count, over ? `${over} over` : `${length}/${characterLimit}`);
+        count.title = characterAllowanceDescription(characterLimit);
+        count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
+        count.classList.toggle("over-limit", over > 0);
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
+        count.classList.toggle("at-limit", draft.body.length >= characterLimit);
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        const disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
+        if (submit.disabled !== disabled) submit.disabled = disabled;
+        const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
+        const cannotDiscard = discussionMutation === draft.key || !discussionDraftHasChanges(draft);
+        if (discard && discard.disabled !== cannotDiscard) discard.disabled = cannotDiscard;
+    }
+
+    function updateDiscussionComposerControls(composer: HTMLElement, draft: DiscussionDraft): void {
+        updateDiscussionComposerInput(composer, draft);
+        const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
+        const archived = discussionDraftArchived(draft, advice);
+        const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
+        const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
+        if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
+        const pending = discussionMutation === draft.key;
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        if (textarea.readOnly !== pending) textarea.readOnly = pending;
+        if (pending) {
+            composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
+            textarea.setAttribute("aria-expanded", "false");
+            textarea.removeAttribute("aria-activedescendant");
+        }
+        const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
+        if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
+            : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
+            : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
+        if (pending) submit.setAttribute("aria-busy", "true");
+        else submit.removeAttribute("aria-busy");
+        composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
+            control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
         });
+        composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
+        const status = composer.querySelector<HTMLElement>(".lmx-status")!;
+        status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
+            : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
+            : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
+            : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
+            : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
+            : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
+        status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
     }
 
     async function deleteDiscussionReply(button: HTMLButtonElement): Promise<void> {
@@ -8005,7 +8044,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (hasProperties(err, "status") && err.status === 409) {
                     try { await refreshDiscussionState(); } catch { /* Preserve the draft even if recovery is offline. */ }
                 }
-                draft.errorKind = isAuthFailure(err) ? "auth" : hasProperties(err, "status") && err.status === 400 ? "validation" : "network";
+                draft.errorKind = isAuthFailure(err) ? "auth" : err instanceof PhotoPreparationError || (hasProperties(err, "status") && err.status === 400) ? "validation" : "network";
                 draft.error = draft.errorKind === "auth" ? "Sign in again to continue. Your draft is kept."
                     : draft.errorKind === "validation" ? messageOf(err)
                     : navigator.onLine === false ? "You’re offline. Your draft is kept; retry when connected."
@@ -9769,6 +9808,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .filter(item => item.score > 0)
             .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone));
 
+        // Consecutive prefixes often produce the same options. Keep those
+        // controls in place; refresh their offsets when the current minute changes.
+        const renderKey = `${Math.floor(Date.now() / 60000)}\n${matches.map(item => item.zone).join("\n")}`;
+        if (timeZoneRenderKeys.get(list) === renderKey) {
+            setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
+            return;
+        }
         list.innerHTML = matches.length
             ? matches.map((item, index) => timeZoneOptionHtml(item.zone, `${list.id}-option-${index}`)).join("")
             : `<div class="lmx-timezone-empty">No timezone found</div>`;
@@ -9776,6 +9822,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         list.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.addEventListener("click", () => chooseTimeZone(picker, option.dataset.timeZone || "UTC"));
         });
+        timeZoneRenderKeys.set(list, renderKey);
         setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
     }
 
@@ -9789,7 +9836,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function setActiveTimeZoneOption(picker: HTMLElement, active: HTMLElement | null): void {
         picker.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.classList.toggle("active", option === active);
-            option.setAttribute("aria-selected", option === active ? "true" : "false");
+            const selected = option === active ? "true" : "false";
+            if (option.getAttribute("aria-selected") !== selected) option.setAttribute("aria-selected", selected);
         });
         const input = picker.querySelector(".lmx-timezone-search input");
         if (active) input?.setAttribute("aria-activedescendant", active.id);
@@ -9973,17 +10021,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function timeZoneOffsetLabel(zone: string): string {
+        const now = new Date();
+        const minute = Math.floor(now.getTime() / 60000);
+        if (minute !== timeZoneOffsetMinute) {
+            timeZoneOffsetMinute = minute;
+            timeZoneOffsetLabels.clear();
+        }
+        let label = timeZoneOffsetLabels.get(zone);
+        if (label !== undefined) return label;
         try {
             const parts = new Intl.DateTimeFormat("en-US", {
                 timeZone: zone,
                 timeZoneName: "shortOffset",
                 hour: "2-digit",
                 minute: "2-digit"
-            }).formatToParts(new Date());
-            return parts.find(part => part.type === "timeZoneName")?.value || zone;
+            }).formatToParts(now);
+            label = parts.find(part => part.type === "timeZoneName")?.value || zone;
         } catch (_) {
-            return zone || "UTC";
+            label = zone || "UTC";
         }
+        timeZoneOffsetLabels.set(zone, label);
+        return label;
     }
 
 

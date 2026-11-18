@@ -2520,6 +2520,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
+    // Rank and badge events are written in separate transactions during reload.
+    // Read them under the publication lock so a dispatcher sees the whole update.
+    internal T ReadPublishedEvents<T>(Func<T> read)
+    {
+        lock (_athletesJsonLock) return read();
+    }
+
     public JsonArray GetAthletesSnapshot()
     {
         lock (_athletesJsonLock)
@@ -3185,7 +3192,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             }
 
             if (changes.Count > 0)
-                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
+                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true, previousRanks: before);
         }
 
         // Persist full snapshot AFTER emitting events (always, even if no changes)

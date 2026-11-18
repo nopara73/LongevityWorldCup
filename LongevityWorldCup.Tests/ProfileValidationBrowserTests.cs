@@ -53,7 +53,8 @@ public sealed class ProfileValidationBrowserTests(
 
         await Assertions.Expect(contact).ToBeFocusedAsync();
         await Assertions.Expect(link).ToHaveAttributeAsync("aria-invalid", "true");
-        await Assertions.Expect(link).ToHaveAttributeAsync("aria-describedby", "personalLinkInputError");
+        await Assertions.Expect(link).ToHaveAttributeAsync("aria-describedby", "personalLinkInputError personalLinkInputPrevious");
+        await Assertions.Expect(link).ToHaveAccessibleDescriptionAsync("Enter a valid website address, such as example.com. Previous value: https://example.com");
         var feedback = page.Locator("#personalLinkInputError");
         await Assertions.Expect(feedback).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#custom-alert")).ToBeHiddenAsync();

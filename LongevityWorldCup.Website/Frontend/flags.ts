@@ -574,6 +574,7 @@ declare const EMBEDDED_FLAG_ICON_CODES: Readonly<Record<string, string>>;
         matchesFlagOption,
         normalizeFlagKey,
         renderFlagIcon,
+        renderFlagTile,
         renderFlagLabel,
         renderFlagOptionLabel
     };
