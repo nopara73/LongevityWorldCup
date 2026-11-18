@@ -90,6 +90,7 @@
         // Removing the rule alone can leave an in-flight transition contributing its
         // current opacity. Cancel only the two transitions owned by this entrance.
         const transitions = element.getAttribute('data-lwc-enter-state') === 'go'
+            && typeof element.getAnimations === 'function' && typeof CSSTransition !== 'undefined'
             ? element.getAnimations().filter(animation => animation instanceof CSSTransition
                 && (animation.transitionProperty === 'opacity' || animation.transitionProperty === 'translate'))
             : [];
