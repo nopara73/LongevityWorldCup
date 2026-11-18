@@ -244,7 +244,10 @@ The public HTTPS server in `/etc/nginx/sites-available/default` uses HTTP/2 so C
 ```nginx
 listen 443 ssl http2 default_server;
 listen [::]:443 ssl http2 default_server;
+http2_max_concurrent_streams 8;
 ```
+
+The limit gives Chrome room to schedule the header styles and champion portrait before secondary resources saturate a slow connection.
 
 After validating the configuration and reloading nginx, run `curl --http2 -sS -o /dev/null -w '%{http_version} %{http_code}\n' https://longevityworldcup.com/` from an HTTP/2-capable client. Expect `2 200`. The same check with `--http1.1` should return `1.1 200`.
 
