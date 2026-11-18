@@ -242,7 +242,7 @@ public sealed class ProofReaderRecoveryBrowserTests(
             var viewer = page.Locator(".lwc-viewer");
             await ExpectStateAsync(viewer, "loading");
             await Assertions.Expect(viewer.Locator(".lwc-viewer-stage")).ToHaveAttributeAsync("aria-busy", "true");
-            await Assertions.Expect(viewer.Locator(".lwc-viewer-load-title")).ToHaveTextAsync("Loading proofâ€¦");
+            await Assertions.Expect(viewer.Locator(".lwc-viewer-load-title")).ToHaveTextAsync("Loading proof…");
             await Assertions.Expect(viewer.Locator(".lwc-viewer-zoom-in")).ToBeDisabledAsync();
             if (closeWhileLoading)
             {

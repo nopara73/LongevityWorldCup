@@ -353,7 +353,7 @@ interface Window {
         if (preview) { picture.src = image.currentSrc || image.src; loadedImage = image; }
         else picture.removeAttribute('src');
         status.hidden = !!preview;
-        status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Loading photoâ€¦' : `Loading ${options.kind === 'proof' ? 'proof' : 'image'}â€¦`;
+        status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Loading photo…' : `Loading ${options.kind === 'proof' ? 'proof' : 'image'}…`;
         status.querySelector('p')!.hidden = true;
         if (document.activeElement === retry) stage.focus({ preventScroll: true });
         retry.hidden = true;
@@ -383,7 +383,7 @@ interface Window {
             } else {
                 dialog.dataset.imageState = 'error';
                 status.hidden = false;
-                status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Photo couldnâ€™t load.' : `This ${options.kind === 'proof' ? 'proof' : 'image'} couldn't load`;
+                status.querySelector('strong')!.textContent = options.kind === 'photo' ? 'Photo couldn’t load.' : `This ${options.kind === 'proof' ? 'proof' : 'image'} couldn't load`;
                 const message = status.querySelector('p')!;
                 message.hidden = options.kind === 'photo';
                 message.textContent = options.kind === 'proof' && set.length > 1 ? 'Try again, or move to another proof.' : `Try loading this ${options.kind === 'proof' ? 'proof' : 'image'} again.`;
