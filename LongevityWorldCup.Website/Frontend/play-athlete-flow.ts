@@ -756,6 +756,7 @@ function createAthleteSelectionController(
 
     function createAthleteMatch(athlete: PlayAthlete): HTMLDivElement {
         const item = document.createElement("div");
+        item.className = "athlete-option";
         item.setAttribute("role", "option");
         item.setAttribute("aria-selected", "false");
         const name = document.createElement("span");
@@ -847,7 +848,7 @@ function createAthleteSelectionController(
         const isNewList = !existingList;
         if (isNewList) {
             list.setAttribute("id", autocompleteListId);
-            list.setAttribute("class", "autocomplete-items");
+            list.className = "autocomplete-items athlete-suggestions";
             list.setAttribute("role", "listbox");
             list.setAttribute("aria-label", "Athlete suggestions");
             input.parentNode?.appendChild(list);

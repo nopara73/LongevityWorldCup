@@ -427,6 +427,19 @@ public sealed class PlayFlowMotionBrowserTests(
             ViewportSize = new() { Width = width, Height = height },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
+        // This ordering exercises a wrapped, decorated departing row regardless of filesystem order.
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Json = new[]
+            {
+                new { Name = "András Szollosy", Flag = "Hungary", Division = "Open" },
+                new { Name = "Andrea", Flag = "Slovakia", Division = "Women's" },
+                new { Name = "Andreea Vuscan", Flag = "DrCarmen", Division = "Women's" },
+                new { Name = "Andressa Lohana de Almeida", Flag = "Brazil", Division = "Women's" },
+                new { Name = "Andrew Mackintosh", Flag = "New Zealand", Division = "Men's" },
+                new { Name = "Ron Lugbill", Flag = "USA", Division = "Men's" }
+            }
+        }));
         var page = await OpenAsync(context, "/select-athlete");
         if (enlargedText) await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
         var input = page.Locator("#playAthleteInput");

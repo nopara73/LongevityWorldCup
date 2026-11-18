@@ -1257,6 +1257,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/proof-desk.css":
                     await ProofDeskBrowserTests.AssertContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/play-athlete-flow.css":
+                    await AssertAthleteSuggestionBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/site-footer.css":
                     await AssertFooterContainerBoundariesAsync(page, source.ToArray());
                     break;
@@ -1290,6 +1293,45 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Fail($"Add a rendered container-boundary probe for {source.Key}.");
                     break;
             }
+        }
+    }
+
+    private static async Task AssertAthleteSuggestionBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        Assert.Equal([10d, 16d], conditions.Select(c => c.Value).Order());
+        Assert.All(conditions, condition =>
+        {
+            Assert.Null(condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("em", condition.Unit);
+        });
+        await NavigateAndSettleAsync(page, "/select-athlete");
+        await page.Locator("#playAthleteInput").FillAsync("Andrew Mackintosh");
+        var row = page.GetByRole(AriaRole.Option).First;
+        await Assertions.Expect(row.Locator(".athlete-option-meta")).ToBeVisibleAsync();
+        foreach (var font in new[] { 16, 32 })
+        foreach (var condition in conditions)
+        foreach (var delta in new[] { -1, 0, 1 })
+        {
+            var width = condition.Value * font + delta;
+            var result = await row.EvaluateAsync<double[]>("""
+                (row, { font, width }) => {
+                    const list = row.parentElement;
+                    list.style.fontSize = font + 'px';
+                    list.style.boxSizing = 'content-box';
+                    list.style.width = width + 'px';
+                    const name = row.querySelector('.athlete-option-name');
+                    return [list.getBoundingClientRect().width - list.clientLeft * 2
+                        - parseFloat(getComputedStyle(list).paddingInlineStart) * 2,
+                        getComputedStyle(row).display === 'grid' ? 1 : 0,
+                        getComputedStyle(name).gridRowStart === '2' ? 1 : 0,
+                        row.scrollWidth - row.clientWidth];
+                }
+                """, new { font, width });
+            Assert.Equal(width, result[0], 1);
+            Assert.Equal(width <= 16 * font ? 1 : 0, result[1]);
+            Assert.Equal(width <= 10 * font ? 1 : 0, result[2]);
+            Assert.InRange(result[3], 0, 1);
         }
     }
 

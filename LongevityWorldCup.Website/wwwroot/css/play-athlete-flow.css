@@ -66,22 +66,22 @@
 }
 
 /* The option that Enter will choose owns every active cue, including the portrait ring. */
-#playAthleteInput-autocomplete-list {
+.autocomplete-items.athlete-suggestions {
     container-type: inline-size;
     max-height: min(18rem, 42vh);
 }
 
 /* Let the viewport and action dock set the limit for a single wrapped result. */
-#playAthleteInput-autocomplete-list:has(> [role="option"]:only-child) {
+.autocomplete-items.athlete-suggestions:not(:has(> [role="option"] ~ [role="option"])) {
     max-height: none;
 }
 
-#playAthleteInput-autocomplete-list > [role="option"]:hover {
+.autocomplete-items.athlete-suggestions > [role="option"]:hover {
     background: transparent;
 }
 
-#playAthleteInput-autocomplete-list > .autocomplete-active,
-#playAthleteInput-autocomplete-list > .autocomplete-active:hover {
+.autocomplete-items.athlete-suggestions > .autocomplete-active,
+.autocomplete-items.athlete-suggestions > .autocomplete-active:hover {
     background: var(--lwc-accent-soft);
     box-shadow: inset 3px 0 var(--lwc-accent);
 }
@@ -136,7 +136,7 @@
 }
 
 @container (max-width: 16em) {
-    #playAthleteInput-autocomplete-list > [role="option"]:has(.athlete-option-meta) {
+    .autocomplete-items.athlete-suggestions > .athlete-option:has(.athlete-option-meta) {
         display: grid;
         grid-template-columns: 40px minmax(0, 1fr);
         column-gap: 0.5rem;
@@ -150,7 +150,7 @@
 }
 
 @container (max-width: 10em) {
-    #playAthleteInput-autocomplete-list > [role="option"]:has(.athlete-option-meta) > :is(.athlete-option-name, .athlete-option-names) {
+    .autocomplete-items.athlete-suggestions > .athlete-option:has(.athlete-option-meta) > :is(.athlete-option-name, .athlete-option-names) {
         grid-column: 1 / -1;
         grid-row: 2;
     }
