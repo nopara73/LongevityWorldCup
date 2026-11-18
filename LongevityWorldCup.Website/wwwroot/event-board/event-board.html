@@ -18,10 +18,17 @@
                 <i class="fas fa-bell" aria-hidden="true"></i>
             </button>
         </div>
+        <div class="event-pulse-slot">
+            <nav class="event-pulse" aria-label="Highlights by day" hidden>
+                <div class="event-pulse-grid" role="toolbar" aria-label="Jump to a day"></div>
+            </nav>
+        </div>
         <p id="webPushStatus" class="event-push-status" role="status" aria-live="polite"></p>
     </div>
     <script src="{{ASSET_WEB_PUSH_SYNC_JS}}"></script>
     <script src="{{ASSET_WEB_PUSH_JS}}" data-worker-url="{{ASSET_WEB_PUSH_WORKER_JS}}"></script>
+    <div class="event-pulse-rail"></div>
+    <script src="{{ASSET_HIGHLIGHTS_CALENDAR_JS}}"></script>
     <!--EVENT-BOARD-CONTENT-->
     <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
         <button class="option-button back-button" onclick="history.length > 1 ? history.back() : window.location.assign('/')">
