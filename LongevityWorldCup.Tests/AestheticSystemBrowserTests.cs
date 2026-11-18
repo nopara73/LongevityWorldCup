@@ -1507,26 +1507,29 @@ public sealed class AestheticSystemBrowserTests(
                     Assert.Equal("edit-profile-card", condition.Name);
                     Assert.Equal("max", condition.Bound);
                     Assert.Equal("rem", condition.Unit);
+                    Assert.Contains(condition.Value, new[] { 14d, 34d });
                     var threshold = condition.Value * fontSize;
                     foreach (var delta in new[] { -1, 0, 1, 0, -1 })
                     {
                         var width = threshold + delta;
                         var diagnostics = await page.EvaluateAsync<ContainerQueryDiagnostics>("""
-                            async width => {
+                            async ({ width, pictureAction }) => {
                                 const card = document.querySelector('[data-edit-card-boundary-probe]');
                                 Object.assign(card.style, { boxSizing: 'content-box', width: `${width}px`, maxWidth: 'none' });
                                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                                // Compact cards stack the name above the picture's actions;
-                                // wide cards keep both in the portrait's overhang row.
+                                // The two boundaries govern different layouts: the card head
+                                // stacks first, then very narrow picture buttons stack their icons.
                                 const title = card.querySelector('#character-title').getBoundingClientRect();
                                 const actions = card.querySelector('#changeProfilePicWrapper').getBoundingClientRect();
+                                const label = card.querySelector('#changeProfilePicButton .flow-action__label').getBoundingClientRect();
+                                const icon = card.querySelector('#changeProfilePicButton > i').getBoundingClientRect();
                                 return {
                                     ContainerWidth: parseFloat(getComputedStyle(card).width),
-                                    IsCompact: actions.top >= title.bottom - 1,
+                                    IsCompact: pictureAction ? icon.top >= label.bottom - 1 : actions.top >= title.bottom - 1,
                                     HorizontalOverflow: Math.max(0, card.scrollWidth - card.clientWidth)
                                 };
                             }
-                            """, width);
+                            """, new { width, pictureAction = condition.Value == 14 });
                         Assert.Equal(width, diagnostics.ContainerWidth, 1);
                         Assert.Equal(width <= threshold, diagnostics.IsCompact);
                         Assert.True(diagnostics.HorizontalOverflow <= 1, $"Edit profile overflowed at {width}px.");
