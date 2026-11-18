@@ -12,7 +12,7 @@
  *   shakes the field once.
  * - Media: tiles rise in order, pictures sharpen out of a blur, hovering
  *   leans the picture forward and the download drops its arrow into the tray.
- * - Review: the current step's hourglass keeps turning, quietly.
+ * - Review: the current step pulses once when review begins.
  *
  * Colours are the existing --lwc-* tokens and durations follow motion.css.
  * Everything that moves sits behind prefers-reduced-motion: no-preference;
@@ -418,7 +418,20 @@
     to { box-shadow: 0 0 0 14px transparent; }
 }
 
-/* ---------- Review: the page stays still while you wait ----------
-   /review introduces itself once (onboarding/application-review.html and
-   apply-flow-feel.css) and then nothing on it moves: a long wait does not
-   need a turning hourglass or a pulsing step. */
+/* ---------- Review: mark the current step once ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    .application-review-trail .is-current .application-review-step {
+        animation: reviewStepPulse 700ms 200ms var(--lwc-ease, ease);
+    }
+}
+
+@keyframes reviewStepPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 var(--lwc-accent-soft);
+    }
+
+    50% {
+        box-shadow: 0 0 0 7px var(--lwc-accent-soft);
+    }
+}
