@@ -1582,7 +1582,7 @@ window.setupProofUploadHTML = function (
                         hitImageLimit = true;
                         break;
                     }
-                    const raw = await readDataURL(file);
+                    const raw = await LwcUploadPhoto.read(file, proofOptimizationOptions.maxSize);
                     const dataUrl = await resolveProofImage(await optimizeProofImageOrFallback(raw));
                     if (dataUrl) {
                         if (!review.labels.has(dataUrl)) review.labels.set(dataUrl, file.name);
@@ -1611,7 +1611,8 @@ window.setupProofUploadHTML = function (
             }
             if (failedFiles > 0) {
                 trackProofFileRejected('client_processing_failed', failedFileSamples);
-                window.customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')
+                window.customAlert(failedFileSamples.some(LwcUploadPhoto.isHeic) ? LwcUploadPhoto.recovery
+                    : 'Some proof files could not be processed. Please try them again as images or PDFs.')
                     .then(() => focusProofRetryButton(retryButton));
             }
             const uploadNotices: string[] = [];

@@ -108,7 +108,7 @@ public sealed class BioageMobileUxBrowserTests(
         await page.Locator("#lwcToStep2Btn").TapAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
-        await page.Locator("#calculateBioageButton").TapAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
         await Task.WhenAll(
             page.WaitForURLAsync(
@@ -225,7 +225,7 @@ public sealed class BioageMobileUxBrowserTests(
         Assert.Equal("0 new biomarkers",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
         Assert.Equal(biomarkerCount, await page.Locator(
-            "#lwc-step-2 .biomarker-card input[type=\"number\"][required]").CountAsync());
+            "#lwc-step-2 .biomarker-card input[inputmode=\"decimal\"][required]").CountAsync());
 
         var bloodDrawDate = page.Locator("#blood-draw-date");
         await bloodDrawDate.FillAsync("");
@@ -261,7 +261,7 @@ public sealed class BioageMobileUxBrowserTests(
         Assert.Equal("1 new biomarker",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
 
-        await calculate.TapAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync($"{resultSelector}.show");
         Assert.Equal(path.Contains("update=1") ? "Next" : "Join the leaderboard",
             await page.Locator("#continueButton .flow-action__label").InnerTextAsync());
@@ -324,7 +324,7 @@ public sealed class BioageMobileUxBrowserTests(
 
         var calculate = page.Locator("#calculateBioageButton");
         Assert.False(await calculate.IsDisabledAsync());
-        await calculate.TapAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForSelectorAsync($"{resultSelector}.show");
         Assert.Equal(path.Contains("update=1") ? "Next" : "Join the leaderboard",
             await page.Locator("#continueButton .flow-action__label").InnerTextAsync());
@@ -407,7 +407,7 @@ public sealed class BioageMobileUxBrowserTests(
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
 
-        var requiredInputs = page.Locator("#lwc-step-2 .biomarker-card input[type=\"number\"][required]");
+        var requiredInputs = page.Locator("#lwc-step-2 .biomarker-card input[inputmode=\"decimal\"][required]");
         Assert.Equal(biomarkerCount, await requiredInputs.CountAsync());
         Assert.True(
             await requiredInputs.EvaluateAllAsync<bool>(
@@ -427,8 +427,7 @@ public sealed class BioageMobileUxBrowserTests(
         var firstUnit = page.Locator($"#{firstInputId}Unit");
         Assert.True(await firstInput.IsVisibleAsync());
         Assert.True(await firstUnit.IsVisibleAsync());
-        Assert.Equal("textfield", await firstInput.EvaluateAsync<string>(
-            "input => getComputedStyle(input).appearance"));
+        Assert.Equal("text", await firstInput.GetAttributeAsync("type"));
 
         var inlineLayout = await firstInput.EvaluateAsync<double[]>(
             """

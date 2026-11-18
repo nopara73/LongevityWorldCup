@@ -10,6 +10,101 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task Homepage_PaintsItsTitleWhileTheIconLibraryIsPending()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        await page.AddInitScriptAsync("""
+            const titleObserver = new MutationObserver(() => {
+                const title = document.querySelector('header .bannertext');
+                if (!title) return;
+                title.setAttribute('elementtiming', 'header-title');
+                titleObserver.disconnect();
+            });
+            titleObserver.observe(document, { childList: true, subtree: true });
+            new PerformanceObserver(list => {
+                if (list.getEntries().some(entry => entry.identifier === 'header-title' && entry.renderTime > 0))
+                    window.titlePainted = true;
+            }).observe({ type: 'element', buffered: true });
+            """);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task Hold(IRoute route)
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        }
+        await page.RouteAsync("**/js/icons.js*", Hold);
+        await page.RouteAsync("**/vendor/font-awesome/**/all.min.css*", Hold);
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("() => window.titlePainted === true");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await page.WaitForFunctionAsync("() => !!window.LwcIcons && !!document.querySelector('i[data-lwc-icon] svg')");
+        await Assertions.Expect(page.Locator("link[rel=stylesheet][href*='font-awesome']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    [Fact]
+    public async Task Homepage_CanPaintTheServerChampionWhileShareStylesArePending()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/share-sheet.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            var portrait = page.Locator(".podium-item.first img.podium-portrait");
+            await Assertions.Expect(portrait).ToBeVisibleAsync();
+            var src = await portrait.GetAttributeAsync("src");
+            await Assertions.Expect(page.Locator("head link[rel=preload][as=image]")).ToHaveAttributeAsync("href", src!);
+            await page.WaitForFunctionAsync("() => document.querySelector('.podium-item.first img')?.naturalWidth > 0");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await Assertions.Expect(page.Locator("link[href*='/css/share-sheet.css']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    [Fact]
+    public async Task Homepage_KeepsPaintedAthletesAndCanFindAthletesOutsideTheTopTen()
+    {
+        await using var context = await NewContextAsync(390);
+        await context.AddInitScriptAsync("""
+            document.addEventListener('DOMContentLoaded', () => {
+                window.originalChampion = document.querySelector('.podium-item.first img');
+                window.originalRow = document.querySelector('tr.server-rendered-leaderboard-row:has(img.portrait)');
+            }, { capture: true, once: true });
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        await ExpectHomepageLoadedAsync(page);
+        var rows = page.Locator(".leaderboard tbody tr[data-athlete-name]");
+        await Assertions.Expect(rows).ToHaveCountAsync(10);
+        Assert.True(await page.EvaluateAsync<bool>("() => window.originalChampion === document.querySelector('.podium-item.first img') && window.originalRow.isConnected"));
+
+        var outsideTopTen = await page.EvaluateAsync<string>("""
+            async () => {
+                const names = new Set([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')].map(row => row.dataset.athleteName));
+                return (await window.getSharedAthletes()).find(athlete => !names.has(athlete.Name)).Name;
+            }
+            """);
+        await page.Locator("#athleteSearch").FillAsync(outsideTopTen);
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible").First).ToHaveAttributeAsync("data-athlete-name", outsideTopTen);
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible")).ToHaveCountAsync(7);
+    }
+
+    [Fact]
     public async Task Homepage_FetchesItsDataWhileModulesAreStillLoading()
     {
         await using var context = await NewContextAsync(1440);
@@ -87,6 +182,9 @@ public sealed class HomepageLoadingBrowserTests(
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => window.modulesReady");
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 1", target);
+        // Only the held response should cross the synthetic deadline. Let the other
+        // shared request finish consuming its real response body before advancing time.
+        await page.EvaluateAsync("path => path === '/api/events' ? window.getSharedAthletes() : window.getSharedEvents()", target);
         await page.Clock.FastForwardAsync(10_001);
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 2", target,
             new() { Timeout = 3000 });

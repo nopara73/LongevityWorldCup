@@ -11,7 +11,7 @@ public sealed class FooterCompositionBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     private static readonly string[] Labels =
-        ["Merch", "GitHub", "History", "Ruleset", "Contact", "Podcast", "Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "RSS", "Browser notifications"];
+        ["Merch", "GitHub", "History", "Ruleset", "Contact", "Podcast", "Instagram", "YouTube", "X", "Nostr", "Reddit", "Threads", "Mastodon", "Telegram", "RSS", "Browser notifications"];
 
     private static readonly string[] Destinations =
     [
@@ -21,7 +21,7 @@ public sealed class FooterCompositionBrowserTests(
         "https://www.instagram.com/LongevityWorldCup/", "https://www.youtube.com/@longevityworldcup",
         "https://x.com/LongevityWorldC", "https://primal.net/p/npub1dgxhzvhhca4hrpzmakc2n8hpvmawtvlacdy80r4wsaghf4h5486sg8tqtl",
         "https://www.reddit.com/r/LongevityWorldCup/", "https://www.threads.com/@longevityworldcup",
-        "https://mastodon.social/@longevityworldcup", "/feeds/events.rss", "/events#eventBoardTitle"
+        "https://mastodon.social/@longevityworldcup", "https://t.me/longevityworldcup", "/feeds/events.rss", "/events#eventBoardTitle"
     ];
 
     [Theory]
@@ -160,7 +160,7 @@ public sealed class FooterCompositionBrowserTests(
             await Assertions.Expect(link).ToBeFocusedAsync();
             Assert.True(await link.EvaluateAsync<bool>(
                 "l => l.matches(':focus-visible') && parseFloat(getComputedStyle(l).outlineWidth) >= 2"));
-            if (i >= 6 && i < 13)
+            if (i >= 6 && i < 14)
             {
                 var label = link.Locator(".footer-link-label");
                 await Assertions.Expect(label).ToBeVisibleAsync();
@@ -170,7 +170,7 @@ public sealed class FooterCompositionBrowserTests(
                 Assert.Equal("inset(50%)", await label.EvaluateAsync<string>("l => getComputedStyle(l).clipPath"));
                 await Assertions.Expect(link).ToBeFocusedAsync();
             }
-            else if (i >= 13) Assert.Equal(Labels[i], await link.GetAttributeAsync("title"));
+            else if (i >= 14) Assert.Equal(Labels[i], await link.GetAttributeAsync("title"));
             await page.Keyboard.PressAsync("Tab");
         }
         await page.EvaluateAsync("() => document.activeElement?.blur()");

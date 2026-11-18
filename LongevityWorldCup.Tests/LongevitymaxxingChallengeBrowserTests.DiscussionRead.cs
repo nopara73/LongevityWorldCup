@@ -392,11 +392,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await older.ClickAsync(); await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(count);
         }
         await older.ClickAsync();
+        // A stale restart drains multiple duplicate pages before revealing the next batch.
+        await page.WaitForFunctionAsync("() => document.getElementById('lmxFeedOlder').getAttribute('aria-busy') === 'false'");
         await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(110);
         Assert.Equal(newUnread ? 13 : 12, calls);
         Assert.True(await draft.EvaluateAsync<bool>("e => e === window.restartDraft && e.selectionStart === 5 && e.selectionEnd === 9"));
         Assert.Equal(110, (await page.Locator("#lmxNotes > article").EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.feedKey)")).Distinct().Count());
         await older.ClickAsync();
+        await page.WaitForFunctionAsync("() => document.getElementById('lmxFeedOlder').getAttribute('aria-busy') === 'false'");
         await Assertions.Expect(page.Locator("#lmxNotes > article")).ToHaveCountAsync(120);
         Assert.Equal(newUnread ? 14 : 13, calls);
         if (newUnread) {

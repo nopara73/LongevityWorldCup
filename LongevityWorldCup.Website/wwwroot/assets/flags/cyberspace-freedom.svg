@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 84">
+  <title>Cyberspace Freedom flag</title>
+  <rect width="112" height="84" fill="#fff"/>
+  <!-- Outline the lettering so it renders the same without a font. -->
+  <g fill="#111" fill-rule="evenodd" transform="translate(0 33)">
+    <path d="M4 0h10v4H8v3.7h5.4v4H8V18H4Z"/>
+    <path d="M18 0h6.2C27.9 0 30 2.5 30 5.9c0 2.6-1.2 4.4-3.2 5.2l3.8 6.9H26l-3.1-6H22v6h-4V0Zm4 4v4.2h2.1c1.2 0 1.9-.7 1.9-2.1S25.3 4 24.1 4H22Z"/>
+    <path id="e" d="M34 0h10v4h-6v3h5.3v4H38v3h6v4H34Z"/>
+    <use href="#e" x="14"/>
+    <path d="M62 0h4c5 0 8 3.2 8 9s-3 9-8 9h-4V0Zm4 4v10c2.6 0 4-1.5 4-5s-1.4-5-4-5Z"/>
+    <path d="M84 0c3.8 0 6 3.5 6 9s-2.2 9-6 9-6-3.5-6-9 2.2-9 6-9Zm0 4c-1.3 0-2 1.8-2 5s.7 5 2 5 2-1.8 2-5-.7-5-2-5Z"/>
+    <path d="M94 0h4.1l2.9 8 2.9-8h4.1v18h-3.6V7.5l-2.7 7.1h-1.4l-2.7-7.1V18H94Z"/>
+  </g>
+</svg>

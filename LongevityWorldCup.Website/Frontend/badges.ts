@@ -557,27 +557,27 @@ function makeUnformattedTooltipFromServerBadge(
     }
 
     if (label === 'Pheno Age best improvement') {
-        if (suppressValues) return 'Redemption Arc: greatest age reversal from first submission according to pheno age';
+        if (suppressValues) return 'Redemption Arc: greatest age reversal from worst submission to latest result according to pheno age';
         let delta = null;
-        if (athlete && typeof athlete.phenoAgeDifference === 'number') delta = athlete.phenoAgeDifference;
-        else if (athlete && typeof athlete.PhenoAgeDiffFromBaseline === 'number') delta = athlete.PhenoAgeDiffFromBaseline;
+        if (athlete && typeof athlete.phenoAgeImprovement === 'number') delta = athlete.phenoAgeImprovement;
+        else if (athlete && typeof athlete.PhenoAgeImprovementFromWorst === 'number') delta = athlete.PhenoAgeImprovementFromWorst;
         if (Number.isFinite(delta)) {
             const years = Number(delta).toFixed(1);
-            return `Redemption Arc: greatest age reversal from first submission according to pheno age: ${years} years`;
+            return `Redemption Arc: greatest age reversal from worst submission to latest result according to pheno age: ${years} years`;
         }
-        return 'Redemption Arc: greatest age reversal from first submission according to pheno age';
+        return 'Redemption Arc: greatest age reversal from worst submission to latest result according to pheno age';
     }
 
     if (label === 'Bortz Age best improvement') {
-        if (suppressValues) return 'Redemption Arc: greatest age reversal from first submission according to bortz age';
+        if (suppressValues) return 'Redemption Arc: greatest age reversal from worst submission to latest result according to bortz age';
         let delta = null;
-        if (athlete && typeof athlete.bortzAgeDifference === 'number') delta = athlete.bortzAgeDifference;
-        else if (athlete && typeof athlete.BortzAgeDiffFromBaseline === 'number') delta = athlete.BortzAgeDiffFromBaseline;
+        if (athlete && typeof athlete.bortzAgeImprovement === 'number') delta = athlete.bortzAgeImprovement;
+        else if (athlete && typeof athlete.BortzAgeImprovementFromWorst === 'number') delta = athlete.BortzAgeImprovementFromWorst;
         if (Number.isFinite(delta)) {
             const years = Number(delta).toFixed(1);
-            return `Redemption Arc: greatest age reversal from first submission according to bortz age: ${years} years`;
+            return `Redemption Arc: greatest age reversal from worst submission to latest result according to bortz age: ${years} years`;
         }
-        return 'Redemption Arc: greatest age reversal from first submission according to bortz age';
+        return 'Redemption Arc: greatest age reversal from worst submission to latest result according to bortz age';
     }
 
     if (typeof label === 'string' && label.startsWith('Best domain')) {

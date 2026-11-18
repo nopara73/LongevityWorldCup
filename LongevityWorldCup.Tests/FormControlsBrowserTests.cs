@@ -234,6 +234,7 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
     {
         await using var context = await ContextAsync();
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/pheno-age");
         await page.WaitForFunctionAsync("() => !!window.LwcFormControls");
         await page.EvaluateAsync("""
@@ -259,9 +260,11 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(up).ToBeDisabledAsync();
         await page.EvaluateAsync("document.querySelector('#stepper-fixture').disabled = false");
         await Assertions.Expect(up).ToBeEnabledAsync();
+        // A delay between Playwright calls must not turn a press into a hold.
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await up.DispatchEventAsync("pointerdown", new { button = 0 });
         await page.EvaluateAsync("window.dispatchEvent(new Event('blur'))");
-        await page.WaitForTimeoutAsync(550);
+        await page.Clock.RunForAsync(550);
         await Assertions.Expect(input).ToHaveValueAsync("0.4");
         await up.ClickAsync();
         await Assertions.Expect(input).ToHaveValueAsync("0.5");
@@ -271,7 +274,7 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(input).ToHaveValueAsync("0.2");
         await up.DispatchEventAsync("pointerdown", new { button = 0 });
         await input.EvaluateAsync("el => { window.detachedField = el; el.closest('fieldset').remove(); }");
-        await page.WaitForTimeoutAsync(550);
+        await page.Clock.RunForAsync(550);
         Assert.Equal("0.3", await page.EvaluateAsync<string>("window.detachedField.value"));
     }
 

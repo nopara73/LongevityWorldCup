@@ -450,6 +450,213 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Fact]
+    public async Task Radar_AnimationKeepsSelectedReadingsExactAndCancelsOnClose()
+    {
+        await using var context = await NewContextAsync(320, true, reducedMotion: false);
+        await context.RouteAsync("**/js/age-visualization.js*", async route =>
+        {
+            var response = await route.FetchAsync();
+            var script = await response.TextAsync();
+            var closureEnd = script.LastIndexOf("})();", StringComparison.Ordinal);
+            Assert.True(closureEnd > 0);
+            await route.FulfillAsync(new()
+            {
+                Response = response,
+                Body = script.Insert(closureEnd,
+                    "window.radarMotionTest = () => ({frame: radarTweenFrame, values: radarDisplayValues, folds: radarFoldAnimations.length});\n")
+            });
+        });
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        var failures = await page.EvaluateAsync<string[]>("""
+            async () => {
+                const failures = [], chart = Chart.getChart(document.getElementById('ageRadarChart'));
+                const frame = () => new Promise(requestAnimationFrame);
+                const check = () => {
+                    const expectedCount = chart.canvas.dataset.clock === 'bortz' ? 6 : 5;
+                    if (chart.data.labels.length !== expectedCount) failures.push('previous clock domains remain selected');
+                    chart.data.labels.forEach((name, index) => {
+                        const value = chart.data.datasets[0].data[index];
+                        if (chart.scales.r._pointLabels[index].at(-1) !== String(value)) failures.push('axis label differs from the selected reading');
+                        if (!chart.canvas.getAttribute('aria-label').includes(`${name}: ${value}`)) failures.push('animated data replaced the selected reading');
+                        const title = chart.options.plugins.tooltip.callbacks.title([{raw:value, dataIndex:index}]);
+                        if (title !== `${value}th percentile` || !Number.isInteger(value)) failures.push('tooltip presents an invented percentile');
+                    });
+                    if (window.radarMotionTest().values?.some(value => !Number.isFinite(value) || value < 0 || value > 100)) failures.push('visual percentile leaves its scale');
+                    const card = document.getElementById('ageVisualization');
+                    if (card.scrollWidth > card.clientWidth + 1) failures.push('animated radar overflows its card');
+                };
+                // Interrupt both a clock fold and a reading morph, including a
+                // result chosen from the same control used by story scrubbing.
+                for (const clock of ['Pheno','Bortz','Pheno','Bortz']) {
+                    document.getElementById(`ageTab${clock}`).click(); check();
+                    await frame(); check();
+                    const select = document.getElementById('ageResultSelect');
+                    select.value = select.value === '0' ? '1' : '0';
+                    select.dispatchEvent(new Event('change')); check();
+                }
+                const deadline = performance.now() + 5000;
+                let updates = 0;
+                const update = chart.update.bind(chart);
+                chart.update = (...args) => { updates++; return update(...args); };
+                while (window.radarMotionTest().frame && performance.now() < deadline) { await frame(); check(); }
+                if (updates > 1) failures.push('moving the points repeatedly rebuilt the chart layout');
+                if (window.radarMotionTest().frame) failures.push('animation did not settle');
+                if (window.radarMotionTest().folds) failures.push('finished fold animations retained');
+                for (const [index, point] of chart.getDatasetMeta(0).data.entries()) {
+                    const expected = chart.scales.r.getPointPositionForValue(index, chart.data.datasets[0].data[index]);
+                    if (Math.hypot(point.x-expected.x, point.y-expected.y) > .01) failures.push('settled web differs from the selected result');
+                }
+                document.getElementById('ageTabPheno').click();
+                document.dispatchEvent(new Event('athlete-dialog-close-requested'));
+                await frame(); await frame();
+                if (window.radarMotionTest().frame || window.radarMotionTest().folds) failures.push('close left radar work running');
+                return [...new Set(failures)];
+            }
+            """);
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task Radar_WaitsForVisibilityEvenAfterTheNativeChartEntranceWouldFinish()
+    {
+        await using var context = await NewContextAsync(390, true, reducedMotion: false);
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart('ageRadarChart')?.scales.r.drawingArea > 0");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            async () => {
+                const host = document.getElementById('ageRadarWrapper'), scroller = host.closest('.modal-content');
+                const place = () => {
+                    const box = host.getBoundingClientRect();
+                    scroller.scrollBy({ top: box.top - scroller.getBoundingClientRect().top + box.height * .72, behavior: 'instant' });
+                };
+                place();
+                const values = [46, 45, 88, 5, -2, 6, 26, 92, 12.5, 51];
+                const peer = { bestBiomarkerValues: values, chronoAtLowestPhenoAge: 46, lowestPhenoAge: 40 };
+                generateAgeVisualization(40, 46, peer, [peer]);
+                place();
+                const ratio = await new Promise(resolve => {
+                    const obs = new IntersectionObserver(([entry]) => { obs.disconnect(); resolve(entry.intersectionRatio); }, { root: scroller });
+                    obs.observe(host);
+                });
+                const chart = Chart.getChart('ageRadarChart');
+                // Intentional wait: the web must stay parked for the entire native constructor animation.
+                await new Promise(resolve => setTimeout(resolve, chart.options.animation.duration + 100));
+                const scale = chart.scales.r;
+                return ratio > .1 && ratio < .45 && chart.getDatasetMeta(0).data.every((p, i) =>
+                    Math.hypot(p.x - scale.xCenter, p.y - scale.yCenter) < .1
+                    && scale._pointLabels[i].at(-1) === String(chart.data.datasets[0].data[i]));
+            }
+            """));
+    }
+
+    [Fact]
+    public async Task Radar_PointerMotionWithinADomainKeepsTheTooltipWithoutMeasuringTheCanvas()
+    {
+        await using var context = await NewContextAsync(1440, true);
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart('ageRadarChart')?.scales.r.drawingArea > 0");
+        var canvas = page.Locator("#ageRadarChart");
+        await canvas.ScrollIntoViewIfNeededAsync();
+        var hit = await canvas.EvaluateAsync<float[]>("""
+            canvas => { const p = Chart.getChart(canvas).getDatasetMeta(0).data[0], box = canvas.getBoundingClientRect();
+                return [box.left + p.x, box.top + p.y]; }
+            """);
+        await page.Mouse.MoveAsync(hit[0], hit[1]);
+        await page.WaitForFunctionAsync("() => Chart.getChart('ageRadarChart').tooltip.getActiveElements()[0]?.index === 0");
+        await canvas.EvaluateAsync("""
+            canvas => {
+                window.radarCanvasReads = 0;
+                const style = window.getComputedStyle, rect = canvas.getBoundingClientRect.bind(canvas);
+                window.getComputedStyle = function(element, ...args) {
+                    if (element === canvas) window.radarCanvasReads++;
+                    return style.call(window, element, ...args);
+                };
+                canvas.getBoundingClientRect = () => { window.radarCanvasReads++; return rect(); };
+            }
+            """);
+        for (var n = 0; n < 6; n++)
+        {
+            await page.Mouse.MoveAsync(hit[0] + 1 + n % 2, hit[1]);
+            await page.EvaluateAsync("() => new Promise(requestAnimationFrame)");
+        }
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.radarCanvasReads"));
+        Assert.Equal(0, await canvas.EvaluateAsync<int>("canvas => Chart.getChart(canvas).tooltip.getActiveElements()[0].index"));
+    }
+
+    [Fact]
+    public async Task Radar_KeyboardSkipsMissingPercentilesAndReleasesTheTooltip()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart('ageRadarChart')?.scales.r.drawingArea > 0");
+        await page.EvaluateAsync("""
+            () => {
+                const values = [46, 45, 88, 5, -2, 6, 26, 92, 12.5, 51];
+                const peer = { bestBiomarkerValues: values, chronoAtLowestPhenoAge: 46 };
+                const entry = { values, date: '2026-01-01', bio: 40, chrono: 46 };
+                window.PhenoAge = { ...PhenoAge, calculateKidneyPhenoAgeContributor: undefined };
+                generateAgeVisualization(40, 46, peer, [peer], { pheno: [entry], bortz: [] });
+            }
+            """);
+        var canvas = page.Locator("#ageRadarChart");
+        Assert.True(await canvas.EvaluateAsync<bool>("""
+            canvas => {
+                const c = Chart.getChart(canvas);
+                return c.getDatasetMeta(0).data[2].skip && !c.scales.r._pointLabels[2].includes('50')
+                    && canvas.getAttribute('aria-label').includes('Kidney: —') && canvas.tabIndex === 0;
+            }
+            """));
+        await canvas.PressAsync("Home");
+        await canvas.PressAsync("ArrowRight");
+        await canvas.PressAsync("ArrowRight");
+        Assert.True(await canvas.EvaluateAsync<bool>("""
+            canvas => {
+                const c = Chart.getChart(canvas);
+                return c.getActiveElements()[0]?.index === 3 && c.tooltip.getActiveElements()[0]?.index === 3;
+            }
+            """));
+        await canvas.PressAsync("Escape");
+        Assert.True(await canvas.EvaluateAsync<bool>("canvas => !Chart.getChart(canvas).tooltip.getActiveElements().length"));
+        await Expect(canvas).ToBeFocusedAsync();
+        await Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Radar_DisposesTabObserversAndKeepsWrappedUnderlineOnSelectedRow()
+    {
+        await using var context = await NewContextAsync(320, true);
+        await context.AddInitScriptAsync("""
+            (() => {
+                window.radarObservers = [];
+                const Native = ResizeObserver;
+                window.ResizeObserver = class extends Native {
+                    constructor(callback) { super(callback); this.targets = new Set(); window.radarObservers.push(this); }
+                    observe(target, options) { this.targets.add(target); super.observe(target, options); }
+                    disconnect() { this.targets.clear(); super.disconnect(); }
+                    unobserve(target) { this.targets.delete(target); super.unobserve(target); }
+                };
+            })();
+            """);
+        var page = await OpenAsync(context);
+        await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        // Force the real responsive tabs into their wrapped state without
+        // replacing content or hiding overflow.
+        await page.AddStyleTagAsync(new() { Content = "#detailsModal #ageClockSwitch [role=tablist] { width: 7rem; }" });
+        await page.Locator("#ageTabPheno").ClickAsync();
+        await page.WaitForFunctionAsync("""
+            () => {
+                const tab = document.getElementById('ageTabPheno'), list = tab.parentElement;
+                return tab.offsetTop > document.getElementById('ageTabBortz').offsetTop
+                    && parseFloat(list.style.getPropertyValue('--clock-tab-y')) === tab.offsetTop + tab.offsetHeight - 2;
+            }
+            """);
+        Assert.Equal(1, await page.EvaluateAsync<int>("() => window.radarObservers.filter(o => o.targets.has(document.getElementById('ageTabBortz').parentElement)).length"));
+        await page.EvaluateAsync("() => window.destroyAgeRadarChart()");
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => window.radarObservers.filter(o => o.targets.has(document.getElementById('ageTabBortz').parentElement)).length"));
+    }
+
+    [Fact]
     public async Task ClockHistory_ScrollEdgesKeepWholeFiguresAndAllAccessibleDatedReadings()
     {
         await using var context = await NewContextAsync(390, true);

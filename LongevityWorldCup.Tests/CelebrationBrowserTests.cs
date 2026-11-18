@@ -12,7 +12,7 @@ public sealed class CelebrationBrowserTests(PlaywrightBrowserFixture browserFixt
     {
         var page = await context.NewPageAsync();
         await NavigateAndSettleAsync(page, "/review");
-        await page.WaitForTimeoutAsync(900);
+        await WaitForFiniteAnimationsAsync(page, ".application-review-panel, .application-review-panel *");
         await page.EvaluateAsync("() => LwcCelebrate.skip()");
         return page;
     }
@@ -127,7 +127,6 @@ public sealed class CelebrationBrowserTests(PlaywrightBrowserFixture browserFixt
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await OpenAsync(context);
-        await page.WaitForTimeoutAsync(150);
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
         await page.EvaluateAsync("""
@@ -136,9 +135,8 @@ public sealed class CelebrationBrowserTests(PlaywrightBrowserFixture browserFixt
                 LwcCelebrate.play(document.querySelector('.application-review-seal'), { level: 'burst' });
             }
             """);
-        await page.WaitForTimeoutAsync(100);
-        Assert.Empty(errors);
         await Assertions.Expect(page.Locator(".lwc-celebration.is-static")).ToHaveCountAsync(1);
+        Assert.Empty(errors);
         await page.Keyboard.PressAsync("Tab");
         await Assertions.Expect(page.Locator(".lwc-celebration")).ToHaveCountAsync(0);
     }
@@ -148,7 +146,6 @@ public sealed class CelebrationBrowserTests(PlaywrightBrowserFixture browserFixt
     {
         await using var context = await NewContextAsync(Browser, App, new());
         var page = await OpenAsync(context);
-        await page.WaitForTimeoutAsync(150);
         await page.EvaluateAsync("() => LwcCelebrate.play(document.querySelector('.application-review-seal'), { level: 'burst' })");
         await Assertions.Expect(page.Locator(".lwc-celebration")).ToHaveCountAsync(1);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
