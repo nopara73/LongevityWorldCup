@@ -1964,6 +1964,7 @@
                 try { window.changeProfileCropper.destroy(); } catch (_) { }
             }
             window.changeProfileCropper = null;
+            LwcUploadPhoto.setCropImage(cropperImage, null);
             cropperModal.hidden = true;
             cropperModal.style.display = 'none';
             cropperModal.removeAttribute('aria-busy');
@@ -2058,7 +2059,7 @@
                     .then(() => { if (failedVersion === profilePictureReadVersion) restoreProfileCropperFocus(); });
             };
             try {
-                const source = await LwcUploadPhoto.read(file);
+                const source = await LwcUploadPhoto.prepareCrop(file);
                 if (version !== profilePictureReadVersion) return;
                 if (window.changeProfileCropper) {
                     window.changeProfileCropper.destroy();
@@ -2066,7 +2067,7 @@
                 }
                 // Cropper's ready callback never runs when image decoding fails.
                 cropperImage.onerror = failProfilePicture;
-                cropperImage.src = source;
+                LwcUploadPhoto.setCropImage(cropperImage, source);
                 cropBtn.disabled = true;
                 openChangeProfileCropperDialog();
 
