@@ -159,6 +159,15 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("check-in/receipt")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult CheckInReceipt([FromBody] LongevitymaxxingCheckInReceiptRequest request)
+    {
+        try { return Ok(_challenge.HasSubmittedCheckIn(request.AccessToken, request.SubmissionId)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
     [HttpPost("check-in")]
     [Consumes("application/json")]
     public async Task<IActionResult> CheckIn(
@@ -349,6 +358,8 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
 }
 
 public sealed record LongevitymaxxingTokenRequest(string Token);
+
+public sealed record LongevitymaxxingCheckInReceiptRequest(string AccessToken, string SubmissionId);
 
 public sealed record LongevitymaxxingEmailRequest(string Email);
 

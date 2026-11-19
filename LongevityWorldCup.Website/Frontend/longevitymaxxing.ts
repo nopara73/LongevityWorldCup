@@ -643,6 +643,8 @@
     const STORAGE_KEY = "lmxAccessToken";
     const API = "/api/longevitymaxxing";
     const REQUEST_TIMEOUT_MS = 65000;
+    const CHECK_IN_RECOVERY_WINDOW_MS = 30000;
+    const CHECK_IN_RECOVERY_DELAYS_MS = [0, 1000, 3000, 6000, 10000];
     const CALL_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
     const ANSWERS: readonly AnswerOption[] = [
         { tone: "no", label: "No", value: 0 },
@@ -836,8 +838,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const checkInDrafts = new Map<string, CheckInFormDraft>();
     const renderedCheckInDays = new WeakMap<HTMLFormElement, string>();
     const checkInResetUndo = new Map<string, { values: CheckInFormDraft; photos: File[] }>();
-    const checkInErrors = new Map<string, string>();
-    const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
+    const checkInErrors = new Map<string, { label: "Not saved" | "Save unconfirmed" | "Saved"; message: string }>();
+    interface CheckInSubmission {
+        id: string;
+        values: string;
+        photos: File[];
+        savedPhotoCount: number;
+        previouslySavedPhotos: Set<File>;
+        receipt: "unchecked" | "unknown" | "received";
+    }
+    const checkInSubmissions = new Map<string, CheckInSubmission>();
     let checkInSaving: { key: string; day: number } | null = null;
     // A submitted check-in shows on the dashboard and board before the server answers.
     let optimisticCheckIn: { participantId: string; challengeDay: number; date: string; values: Record<HabitKey, number> } | null = null;
@@ -3704,7 +3714,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             ${days.map(day => {
                 const isActive = day.challengeDay === activeDay.challengeDay;
                 const key = checkInDraftKey(day);
-                const status = checkInErrors.has(key) ? "Not saved" : checkInDrafts.has(key) ? "In progress" : day.existing ? "Saved" : "Due";
+                const status = checkInErrors.get(key)?.label ?? (checkInDrafts.has(key) ? "In progress" : day.existing ? "Saved" : "Due");
                 return `<button type="button" data-day="${day.challengeDay}" data-draft-key="${escAttr(checkInDraftKey(day))}" data-saved="${!!day.existing}" aria-pressed="${isActive ? "true" : "false"}">
                     <strong>${esc(checkInDayLabel(day))}</strong>
                     <span>${esc(formatShortDateLabel(day.date))}</span>
@@ -6038,11 +6048,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         try {
             const quoteBucket = selectQuoteBucket(draft);
             const notePhotos = getPendingNotePhotos(form);
-            let submission = checkInSubmissions.get(key);
-            if (!submission || submission.values !== values || submission.photos.length !== notePhotos.length || submission.photos.some((photo, index) => photo !== notePhotos[index])) {
-                submission = { id: window.crypto.randomUUID(), values, photos: [...notePhotos] };
-                checkInSubmissions.set(key, submission);
-            }
+            const submission = await prepareCheckInSubmission(key, currentAccessToken, values, notePhotos, submittedDay.existing?.images?.length ?? 0);
+            if (accessToken !== currentAccessToken) return;
+            const uploadPhotos = notePhotos.filter(photo => !submission.previouslySavedPhotos.has(photo));
             const payload: CheckInPayload = {
                 accessToken: currentAccessToken,
                 challengeDay: Number(form.dataset.day),
@@ -6053,13 +6061,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 note: draft.note.trim() || null,
                 submissionId: submission.id
             };
-            let result = notePhotos.length
-                ? await postCheckInWithPhotos(payload, notePhotos)
-                : await postJson(`${API}/check-in`, payload);
+            let result = await saveCheckInWithRecovery(payload, uploadPhotos, submission);
             // Whole snapshots can arrive after a newer timezone or discussion response.
             // Keep the final generation check and state acceptance in the same turn.
             while (accessToken === currentAccessToken && responseGeneration !== stateAcceptanceGeneration) {
                 responseGeneration = stateAcceptanceGeneration;
+                if (submission.receipt === "unchecked") submission.receipt = "unknown";
                 result = await postJson(`${API}/participant`, { token: currentAccessToken });
             }
             if (accessToken !== currentAccessToken) return;
@@ -6073,10 +6080,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const confirmed = saved || history;
             const confirmedNote = saved?.note || historyNote?.note || "";
             const confirmedImages = saved?.images || historyNote?.images || [];
-            const savedPhotoCount = form.querySelectorAll(".lmx-note-photo-grid.saved img").length;
             if (result.participant.id !== currentParticipantId || !confirmed ||
                 QUESTIONS.some(question => confirmed[question.key] !== draft[question.key]) ||
-                confirmedNote.trim() !== draft.note.trim() || confirmedImages.length < savedPhotoCount + notePhotos.length) {
+                confirmedNote.trim() !== draft.note.trim() || confirmedImages.length < submission.savedPhotoCount + uploadPhotos.length) {
                 throw invalidApiResponse(`${API}/check-in`);
             }
             clearPendingNotePhotos(key);
@@ -6112,7 +6118,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (quoteBucket && stillViewingSubmittedDay && !result.pendingAdvicePrompt) void showRandomCheckInQuote(quoteBucket);
         } catch (err) {
             if (accessToken === currentAccessToken) {
-                checkInErrors.set(key, messageOf(err));
+                const received = checkInSubmissions.get(key)?.receipt === "received";
+                if (received) checkInErrors.set(key, { label: "Saved", message: "Retry to refresh this day." });
+                else if (err instanceof UnconfirmedCheckInError || isTemporaryCheckInFailure(err)) {
+                    checkInErrors.set(key, { label: "Save unconfirmed", message: err instanceof UnconfirmedCheckInError ? err.message : "Your draft is here. Retry to check." });
+                } else checkInErrors.set(key, { label: "Not saved", message: messageOf(err) });
                 rolledBack = true;
             }
         } finally {
@@ -6128,6 +6138,65 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 renderCheckInEcho();
             }
         }
+    }
+
+    class UnconfirmedCheckInError extends Error {
+        constructor(message = "Your draft is here. Retry to check.") { super(message); }
+    }
+
+    function isTemporaryCheckInFailure(error: unknown): boolean {
+        return hasProperties(error, "status") && typeof error.status === "number" && [0, 408, 500, 502, 503, 504].includes(error.status);
+    }
+
+    async function checkInReceipt(token: string, submissionId: string): Promise<boolean> {
+        try { return await postJson(`${API}/check-in/receipt`, { accessToken: token, submissionId }); }
+        catch (error) {
+            if (isTemporaryCheckInFailure(error)) throw error;
+            throw new UnconfirmedCheckInError(messageOf(error));
+        }
+    }
+
+    async function prepareCheckInSubmission(key: string, token: string, values: string, photos: File[], savedPhotoCount: number): Promise<CheckInSubmission> {
+        const previous = checkInSubmissions.get(key);
+        if (previous && previous.values === values && previous.photos.length === photos.length && previous.photos.every((photo, i) => photo === photos[i])) return previous;
+
+        const previouslySavedPhotos = new Set(previous?.previouslySavedPhotos);
+        if (previous) {
+            savedPhotoCount = Math.max(savedPhotoCount, previous.savedPhotoCount);
+            // An edit needs a new ID, but photos from an accepted earlier attempt are already attached.
+            if (previous.receipt === "received" || (previous.receipt === "unknown" && await checkInReceipt(token, previous.id))) {
+                const uploaded = previous.photos.filter(photo => !previouslySavedPhotos.has(photo));
+                savedPhotoCount = Math.max(savedPhotoCount, previous.savedPhotoCount + uploaded.length);
+                uploaded.forEach(photo => previouslySavedPhotos.add(photo));
+            }
+        }
+        const submission: CheckInSubmission = { id: window.crypto.randomUUID(), values, photos: [...photos], savedPhotoCount, previouslySavedPhotos, receipt: "unchecked" };
+        if (accessToken === token) checkInSubmissions.set(key, submission);
+        return submission;
+    }
+
+    async function saveCheckInWithRecovery(payload: CheckInPayload, photos: File[], submission: CheckInSubmission): Promise<ParticipantState> {
+        let recoveryDeadline = submission.receipt === "unchecked" ? undefined : Date.now() + CHECK_IN_RECOVERY_WINDOW_MS;
+        for (const delay of CHECK_IN_RECOVERY_DELAYS_MS) {
+            if (recoveryDeadline !== undefined && Date.now() + delay >= recoveryDeadline) break;
+            if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
+            if (accessToken !== payload.accessToken || (recoveryDeadline !== undefined && Date.now() >= recoveryDeadline)) break;
+            try {
+                if (recoveryDeadline !== undefined) {
+                    // A dropped response can hide a committed upload. Only send the photos again after a receipt miss.
+                    if (submission.receipt !== "received" && await checkInReceipt(payload.accessToken, payload.submissionId)) submission.receipt = "received";
+                    if (accessToken !== payload.accessToken) break;
+                    if (submission.receipt === "received") return await postJson(`${API}/participant`, { token: payload.accessToken });
+                }
+                submission.receipt = "unchecked";
+                return photos.length ? await postCheckInWithPhotos(payload, photos) : await postJson(`${API}/check-in`, payload);
+            } catch (error) {
+                if (!isTemporaryCheckInFailure(error)) throw error;
+                if (submission.receipt === "unchecked") submission.receipt = "unknown";
+                recoveryDeadline ??= Date.now() + CHECK_IN_RECOVERY_WINDOW_MS;
+            }
+        }
+        throw new UnconfirmedCheckInError();
     }
 
     async function postCheckInWithPhotos(payload: CheckInPayload, photos: File[]): Promise<ParticipantState> {
@@ -6282,15 +6351,17 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
         if (status) {
             const error = checkInErrors.get(key);
-            updateControlText(status, error ? `Not saved. ${error}` : "");
-            status.classList.toggle("error", !!error);
+            updateControlText(status, error ? `${error.label}. ${error.message}` : "");
+            status.classList.toggle("error", !!error && error.label !== "Saved");
+            status.classList.toggle("success", error?.label === "Saved");
         }
         document.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(day => {
             const label = day.querySelector("em");
             const dirty = checkInDrafts.has(day.dataset.draftKey || "");
             day.classList.toggle("has-draft", dirty);
             if (label) {
-                updateControlText(label, checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due");
+                const error = checkInErrors.get(day.dataset.draftKey || "");
+                updateControlText(label, checkInSaving?.key === day.dataset.draftKey ? "Saving…" : error?.label ?? (dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due"));
                 label.classList.toggle("visually-hidden", day.getAttribute("aria-pressed") === "true");
             }
         });
@@ -9568,6 +9639,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
+    async function postJson(url: `${typeof API}/check-in/receipt`, payload: object): Promise<boolean>;
     async function postJson(url: `${typeof API}/discussion/replies/page`, payload: object): Promise<DiscussionReplyPage>;
     async function postJson(url: `${typeof API}/discussion/feed`, payload: object): Promise<DiscussionFeedPage>;
     async function postJson(url: `${typeof API}/discussion/thread`, payload: object): Promise<DiscussionThreadResult>;
@@ -9590,7 +9662,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
-        });
+        }, url === `${API}/check-in/receipt` ? 5000 : REQUEST_TIMEOUT_MS);
+        if (url === `${API}/check-in/receipt` && typeof data !== "boolean") throw invalidApiResponse(url);
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
@@ -9616,10 +9689,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return data;
     }
 
-    async function requestJson(url: string, options: RequestInit): Promise<unknown> {
+    async function requestJson(url: string, options: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timer = controller
-            ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+            ? window.setTimeout(() => controller.abort(), timeoutMs)
             : null;
 
         try {
@@ -9629,7 +9702,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             });
             return await readJsonResponse(response, url);
         } catch (err) {
-            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw new Error("Request timed out");
+            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw Object.assign(new Error("Request timed out"), { status: 0 });
+            if (err instanceof TypeError) throw Object.assign(err, { status: 0 });
             throw err;
         } finally {
             if (timer) window.clearTimeout(timer);
@@ -9646,7 +9720,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             } catch (_) {
                 const target = String(url || response.url || "request");
                 const typeLabel = contentType ? ` (${contentType})` : "";
-                throw new Error(`${target} returned ${response.status || "a non-JSON response"}${typeLabel}.`);
+                throw Object.assign(new Error(`${target} returned ${response.status || "a non-JSON response"}${typeLabel}.`), { status: response.status });
             }
         }
 

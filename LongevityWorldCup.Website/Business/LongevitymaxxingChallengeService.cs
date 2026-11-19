@@ -513,6 +513,12 @@ public sealed partial class LongevitymaxxingChallengeService
         return GetParticipantState(accessToken);
     }
 
+    public bool HasSubmittedCheckIn(string accessToken, string submissionId)
+    {
+        var participant = RequireParticipantByAccessToken(accessToken);
+        return _db.Run(sqlite => GetCheckInReceiptHash(sqlite, null, participant.Id, submissionId) is not null);
+    }
+
     public LongevitymaxxingParticipantState SubmitCheckIn(
         LongevitymaxxingCheckInRequest request,
         DateTimeOffset? nowUtc = null,
@@ -1695,15 +1701,21 @@ public sealed partial class LongevitymaxxingChallengeService
     private static bool HasCheckInReceipt(SqliteConnection sqlite, SqliteTransaction? transaction, string participantId, string? submissionId, string requestHash)
     {
         if (submissionId is null) return false;
+        var storedHash = GetCheckInReceiptHash(sqlite, transaction, participantId, submissionId);
+        if (storedHash is null) return false;
+        if (storedHash != requestHash) throw new InvalidOperationException("This check-in submission ID was already used for different content.");
+        return true;
+    }
+
+    private static string? GetCheckInReceiptHash(SqliteConnection sqlite, SqliteTransaction? transaction, string participantId, string submissionId)
+    {
         if (!Guid.TryParseExact(submissionId, "D", out _)) throw new InvalidOperationException("Invalid check-in submission ID.");
         using var receipt = sqlite.CreateCommand();
         receipt.Transaction = transaction;
         receipt.CommandText = "SELECT RequestHash FROM LongevitymaxxingCheckInSubmissions WHERE ParticipantId = @participantId AND SubmissionId = @submissionId;";
         Add(receipt, "@participantId", participantId);
         Add(receipt, "@submissionId", submissionId.ToLowerInvariant());
-        if (receipt.ExecuteScalar() is not string storedHash) return false;
-        if (storedHash != requestHash) throw new InvalidOperationException("This check-in submission ID was already used for different content.");
-        return true;
+        return receipt.ExecuteScalar() as string;
     }
 
     private (LongevitymaxxingParticipantState State, bool Applied) SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages, string requestHash)
