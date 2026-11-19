@@ -129,6 +129,25 @@ public sealed class HomepageLoadingBrowserTests(
         await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible")).ToHaveCountAsync(7);
     }
 
+    [Theory]
+    [InlineData(320, "improvement", "Improvement")]
+    [InlineData(1440, "bortz-improvement", "Bortz improvement")]
+    public async Task Homepage_LabelsNewlyDisplayedRowsWithTheSelectedMetric(int width, string view, string metric)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        await ExpectHomepageLoadedAsync(page);
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await page.Locator($"label[data-aging-clock-view='{view}']").ClickAsync();
+
+        await Assertions.Expect(page.Locator("#leaderboardMetricHeader")).ToHaveTextAsync(metric);
+        var scores = page.Locator(".leaderboard tbody tr[data-athlete-name]:visible .age-reduction-td");
+        await Assertions.Expect(scores.First).ToBeVisibleAsync();
+        Assert.All(await scores.EvaluateAllAsync<string[]>("cells => cells.map(cell => cell.dataset.label)"),
+            label => Assert.Equal(metric, label));
+    }
+
     [Fact]
     public async Task Homepage_FetchesItsDataWhileModulesAreStillLoading()
     {
