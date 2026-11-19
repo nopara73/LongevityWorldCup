@@ -5,7 +5,7 @@
     const rail = document.querySelector('.event-pulse-rail');
     const wide = matchMedia('(min-width: 1280px)');
     const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'full', calendar: 'gregory', timeZone: 'UTC' });
-    const weeks = new Map();
+    let blocks = new Map();
     let entries = new Map();
     let currentCell = null;
     let tabStop = null;
@@ -33,20 +33,59 @@
     }
     const monday = day => day - ((day + 3) % 7 + 7) % 7;
 
+    function makeCell(day, active) {
+        const cell = document.createElement(active ? 'button' : 'span');
+        cell.className = 'event-pulse-cell';
+        if (active) {
+            cell.type = 'button';
+            cell.tabIndex = -1;
+        } else cell.setAttribute('aria-hidden', 'true');
+        if (new Date(day * dayMs).getUTCDate() === 1) cell.classList.add('is-month-start');
+        return cell;
+    }
+
     function createWeek(start) {
         const week = document.createElement('div');
         week.className = 'event-pulse-week';
-        for (let i = 0; i < 7; i++) {
-            const cell = document.createElement('button');
-            cell.type = 'button';
-            cell.className = 'event-pulse-cell';
-            cell.disabled = true;
-            cell.tabIndex = -1;
-            cell.setAttribute('aria-hidden', 'true');
-            if (new Date((start + i) * dayMs).getUTCDate() === 1) cell.classList.add('is-month-start');
-            week.appendChild(cell);
-        }
+        for (let i = 0; i < 7; i++) week.appendChild(makeCell(start + i, false));
         return week;
+    }
+
+    function createGap(firstDay, lastDay) {
+        const gap = document.createElement('span');
+        gap.className = 'event-pulse-gap';
+        const range = formatter.formatRange(new Date(firstDay * dayMs), new Date(lastDay * dayMs));
+        gap.title = 'No highlights · ' + range;
+        gap.setAttribute('role', 'img');
+        gap.setAttribute('aria-label', gap.title);
+        return gap;
+    }
+
+    function arrangeWeeks(occupied) {
+        const next = new Map();
+        const addWeek = start => next.set(start, blocks.get(start) || createWeek(start));
+        let newer;
+        for (const start of [...occupied].sort((a, b) => b - a)) {
+            if (newer !== undefined) {
+                const emptyWeeks = (newer - start) / 7 - 1;
+                if (emptyWeeks >= 4) {
+                    // Leave short gaps to scale. Mark a month or more of empty weeks once.
+                    const key = start + '/' + newer;
+                    next.set(key, blocks.get(key) || createGap(start + 7, newer - 1));
+                } else {
+                    for (let week = newer - 7; week > start; week -= 7) addWeek(week);
+                }
+            }
+            addWeek(start);
+            newer = start;
+        }
+        for (const [key, node] of blocks) if (!next.has(key)) node.remove();
+        let sibling = grid.firstElementChild;
+        for (const node of next.values()) {
+            if (node === sibling) sibling = sibling.nextElementSibling;
+            else grid.insertBefore(node, sibling);
+        }
+        blocks = next;
     }
 
     function setTabStop(cell) {
@@ -79,7 +118,8 @@
         jump++;
         revealRow = reveal;
         const next = new Map();
-        let busiest = 0, oldest = Infinity, newest = -Infinity;
+        const occupied = new Set();
+        let busiest = 0;
         for (const [row] of units) {
             const key = row.dataset.day;
             if (!key) continue;
@@ -88,51 +128,29 @@
                 const day = entries.get(key)?.day ?? dayNumber(key);
                 entry = { day, row, count: 0 };
                 next.set(key, entry);
-                oldest = Math.min(oldest, day);
-                newest = Math.max(newest, day);
+                occupied.add(monday(day));
             }
             busiest = Math.max(busiest, ++entry.count);
         }
 
-        const firstWeek = monday(oldest), lastWeek = monday(newest);
-        for (const [start, week] of weeks) {
-            if (next.size && start >= firstWeek && start <= lastWeek) continue;
-            week.remove();
-            weeks.delete(start);
-        }
-        let sibling = grid.firstElementChild;
-        if (next.size) {
-            for (let start = lastWeek; start >= firstWeek; start -= 7) {
-                let week = weeks.get(start);
-                if (!week) {
-                    week = createWeek(start);
-                    weeks.set(start, week);
-                    grid.insertBefore(week, sibling);
-                }
-                sibling = week.nextElementSibling;
-            }
-        }
+        arrangeWeeks(occupied);
         for (const [key, old] of entries) {
-            if (next.has(key)) continue;
-            old.cell.disabled = true;
-            old.cell.setAttribute('aria-hidden', 'true');
-            old.cell.removeAttribute('aria-label');
-            old.cell.removeAttribute('title');
-            delete old.cell.dataset.day;
+            if (!next.has(key) && old.cell.isConnected) old.cell.replaceWith(makeCell(old.day, false));
         }
         for (const [key, entry] of next) {
-            const start = monday(entry.day);
-            const cell = weeks.get(start).children[entry.day - start];
-            entry.cell = cell;
             const old = entries.get(key);
+            const cell = old?.cell || makeCell(entry.day, true);
+            if (!old) {
+                const start = monday(entry.day);
+                blocks.get(start).children[entry.day - start].replaceWith(cell);
+                cell.dataset.day = key;
+            }
+            entry.cell = cell;
             if (old?.count !== entry.count) {
                 const date = formatter.format(new Date(entry.day * dayMs));
                 const label = date + ' · ' + entry.count + (entry.count === 1 ? ' highlight' : ' highlights');
                 cell.title = label;
                 cell.setAttribute('aria-label', label);
-                cell.removeAttribute('aria-hidden');
-                cell.disabled = false;
-                cell.dataset.day = key;
             }
             const level = Math.round(18 + 82 * Math.log1p(entry.count) / Math.log1p(busiest)) + '%';
             if (old?.level !== level) cell.style.setProperty('--pulse-level', level);
@@ -141,7 +159,7 @@
         entries = next;
         calendar.hidden = !next.size;
         slot.hidden = !next.size;
-        if (!tabStop?.isConnected || tabStop.disabled) setTabStop(next.values().next().value?.cell || null);
+        if (!tabStop?.isConnected) setTabStop(next.values().next().value?.cell || null);
     }
 
     grid.addEventListener('focusin', e => setTabStop(e.target.closest('button')));
