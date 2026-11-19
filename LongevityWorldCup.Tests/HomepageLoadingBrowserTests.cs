@@ -42,6 +42,34 @@ public sealed class HomepageLoadingBrowserTests(
     }
 
     [Fact]
+    public async Task Homepage_MobileToolbarFitsBeforeResponsiveStylesArrive()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await context.NewPageAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/mobile-roughness.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        var toolbar = page.Locator(".leaderboard-controls .leaderboard-toolbar");
+        double width;
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await ExpectHomepageLoadedAsync(page);
+            width = await toolbar.EvaluateAsync<double>("bar => bar.getBoundingClientRect().width");
+            Assert.InRange(width, 1, await toolbar.EvaluateAsync<double>("bar => bar.parentElement.clientWidth"));
+            Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        }
+        finally { release.TrySetResult(); }
+
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        Assert.Equal(width, await toolbar.EvaluateAsync<double>("bar => bar.getBoundingClientRect().width"), 1);
+    }
+
+    [Fact]
     public async Task Homepage_PaintsItsTitleWhileIconsAndPodiumStylesArePending()
     {
         await using var context = await NewContextAsync(390);
