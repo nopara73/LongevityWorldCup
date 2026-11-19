@@ -49,13 +49,14 @@ public sealed class NotFoundPageBrowserTests(
             """);
         var scenario = $"{path} at {width}x{height}";
         Assert.True(layout[0] > 0, $"{scenario}: Herold's photo did not load.");
-        foreach (var start in new[] { 5, 11 })
-            Assert.True(layout[start] >= layout[1] - 1 && layout[start + 1] <= layout[2] + 1 && layout[start + 2] >= layout[3] - 1 && layout[start + 3] <= layout[4] + 1,
-                $"{scenario}: the photo and Home action should share the one card.");
-        if (width >= 720 || width >= 560 && height <= 480)
-            Assert.True(layout[6] <= layout[9] && layout[10] >= layout[7], $"{scenario}: the photo should sit beside the title.");
-        else
-            Assert.True(layout[8] <= layout[10], $"{scenario}: the photo should sit above the title.");
+        // Home sits inside the one card; Herold's round seat straddles the card's
+        // top edge, centred over the title (the shared fan-cam stage).
+        Assert.True(layout[11] >= layout[1] - 1 && layout[12] <= layout[2] + 1 && layout[13] >= layout[3] - 1 && layout[14] <= layout[4] + 1,
+            $"{scenario}: the Home action should sit in the card.");
+        Assert.True(layout[5] >= layout[1] - 1 && layout[6] <= layout[2] + 1 && layout[7] < layout[3] && layout[8] > layout[3],
+            $"{scenario}: the photo should sit astride the card's top edge.");
+        Assert.True(Math.Abs((layout[5] + layout[6]) / 2 - (layout[1] + layout[2]) / 2) <= 2, $"{scenario}: the photo should be centred on the card.");
+        Assert.True(layout[8] <= layout[10], $"{scenario}: the photo should sit above the title.");
         Assert.True(layout[14] <= layout[15], $"{scenario}: Home should be in the first screen ({layout[14]}px of {layout[15]}px).");
         await ExpectNoHorizontalOverflowAsync(page);
     }

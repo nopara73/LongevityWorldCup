@@ -296,7 +296,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="/css/error-system.css?v=20261102-1">
+  <link rel="stylesheet" href="/css/error-system.css?v=20261119-1">
 </head>
 <body>
   <main class="error-card" aria-labelledby="page-title">
@@ -342,6 +342,20 @@
       var deadline = 0;
       var probe = null;
       var active = true;
+      var scheduledAt = 0;
+      // The countdown ring follows the real timer, even when the first frame
+      // paints late, so it completes exactly as the check fires.
+      function syncClock() {
+        if (!card.getAnimations || !window.requestAnimationFrame) return;
+        var startedAt = scheduledAt;
+        window.requestAnimationFrame(function () {
+          if (startedAt !== scheduledAt) return;
+          card.getAnimations({ subtree: true }).forEach(function (animation) {
+            if (animation.animationName === "fan-cam-countdown" || animation.animationName === "outage-meter")
+              animation.currentTime = Math.min(20000, performance.now() - startedAt);
+          });
+        });
+      }
       function stop() {
         clearTimeout(timer);
         clearTimeout(deadline);
@@ -361,6 +375,8 @@
           meter.classList.add("is-running");
         }
         timer = setTimeout(check, 20000);
+        scheduledAt = performance.now();
+        syncClock();
       }
       async function check() {
         if (probe || !active || document.visibilityState !== "visible") return;
