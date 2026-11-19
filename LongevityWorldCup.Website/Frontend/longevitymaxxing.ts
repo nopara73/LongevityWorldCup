@@ -6179,7 +6179,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function isTemporaryCheckInFailure(error: unknown): boolean {
-        return hasProperties(error, "status") && typeof error.status === "number" && [0, 408, 500, 502, 503, 504].includes(error.status);
+        const status = error instanceof ApiTransportError ? error.httpStatus : hasProperties(error, "status") ? error.status : undefined;
+        return typeof status === "number" && [0, 408, 500, 502, 503, 504].includes(status);
     }
 
     async function checkInReceipt(token: string, submissionId: string): Promise<boolean> {
@@ -9722,6 +9723,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return data;
     }
 
+    // Only errors from a parsed API response carry a user-facing message and the shared `status` property.
+    class ApiTransportError extends Error {
+        readonly httpStatus: number;
+        constructor(message: string, httpStatus = 0) {
+            super(message);
+            this.httpStatus = httpStatus;
+        }
+    }
+
     async function requestJson(url: string, options: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timer = controller
@@ -9735,8 +9745,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             });
             return await readJsonResponse(response, url);
         } catch (err) {
-            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw Object.assign(new Error("Request timed out"), { status: 0 });
-            if (err instanceof TypeError) throw Object.assign(err, { status: 0 });
+            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw new ApiTransportError("Request timed out");
+            if (err instanceof TypeError) throw new ApiTransportError(err.message);
             throw err;
         } finally {
             if (timer) window.clearTimeout(timer);
@@ -9753,7 +9763,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             } catch (_) {
                 const target = String(url || response.url || "request");
                 const typeLabel = contentType ? ` (${contentType})` : "";
-                throw Object.assign(new Error(`${target} returned ${response.status || "a non-JSON response"}${typeLabel}.`), { status: response.status });
+                throw new ApiTransportError(`${target} returned ${response.status || "a non-JSON response"}${typeLabel}.`, response.status);
             }
         }
 
