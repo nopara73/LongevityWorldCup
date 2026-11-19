@@ -8,8 +8,10 @@ namespace LongevityWorldCup.Website.Business;
 // this only arranges the same words into a masthead, a card, actions, panels and a footer.
 // The frame reads like a matchday ticket: a centred crest on the dark masthead with a soft accent glow,
 // an accent bar that brightens at its centre, a bevelled main action, perks as coupons with a dashed
-// edge, and a quiet foot. Clients that run CSS animation (Apple Mail, iOS Mail) play a one-time arrival:
-// the bar draws in, the crest rises, the action glows once. Reduced motion and other clients stay still.
+// edge, and a quiet foot. Clients that run CSS animation (Apple Mail, iOS Mail) play a short arrival when
+// the message opens: the bar's bright centre spreads out, the crest settles, the action glows once. Every
+// frame of it is a complete email, so a client that stops it early still shows the whole frame. The motion
+// sits in its own <style> block, so a client that rejects it keeps the dark-mode and phone rules.
 // Table layout and inline styles keep it readable in clients that drop <style>; the <style> block adds
 // dark-mode and phone refinements where clients support them.
 internal sealed partial class TransactionalEmail
@@ -134,7 +136,7 @@ internal sealed partial class TransactionalEmail
     internal TransactionalEmail Closing(string replyPrompt, string? communityHtml)
     {
         _blocks.Append($"<hr class=\"lwc-email-rule\" style=\"margin:8px 0 20px;border:0;border-top:1px solid {Border};height:0;\" />");
-        _blocks.Append($"<p class=\"lwc-email-reply lwc-email-muted\" style=\"margin:0 0 16px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Muted};\"><span aria-hidden=\"true\" class=\"lwc-email-reply-mark\" style=\"display:inline-block;margin-right:8px;color:{Accent};font-size:16px;\">&#9993;</span>{Encode(replyPrompt)}</p>");
+        _blocks.Append($"<p class=\"lwc-email-reply lwc-email-muted\" style=\"margin:0 0 16px;font-family:{FontStack};font-size:15px;line-height:1.55;color:{Muted};\"><span aria-hidden=\"true\" class=\"lwc-email-reply-mark\" style=\"display:inline-block;margin-right:8px;color:{Accent};font-size:16px;\">&#9993;&#xFE0E;</span>{Encode(replyPrompt)}</p>");
         if (communityHtml is not null)
         {
             _blocks.Append(
@@ -182,16 +184,7 @@ internal sealed partial class TransactionalEmail
             ".lwc-email-code{padding:3px 4px !important;letter-spacing:0.04em !important;}" +
             ".lwc-email-action-link{padding-left:10px !important;padding-right:10px !important;}" +
             "}" +
-            "@media (prefers-reduced-motion:no-preference){" +
-            ".lwc-email-accent{animation:lwc-email-bar 900ms cubic-bezier(.2,.8,.2,1) both;background-size:200% 100% !important;}" +
-            ".lwc-email-crest{animation:lwc-email-crest 700ms cubic-bezier(.2,.9,.3,1.2) 120ms both;}" +
-            ".lwc-email-action-cell{animation:lwc-email-glow 1600ms ease-out 700ms both;}" +
-            "@keyframes lwc-email-bar{from{background-position:100% 0;opacity:.4;}to{background-position:0 0;opacity:1;}}" +
-            "@keyframes lwc-email-crest{from{opacity:0;transform:translateY(8px) scale(.9);}to{opacity:1;transform:none;}}" +
-            "@keyframes lwc-email-glow{0%{box-shadow:0 10px 22px -12px rgba(8,118,133,.75);}35%{box-shadow:0 0 0 6px rgba(25,195,209,.28),0 10px 22px -12px rgba(8,118,133,.75);}100%{box-shadow:0 10px 22px -12px rgba(8,118,133,.75);}}" +
-            "}" +
             "@media (prefers-color-scheme:dark){" +
-            ".lwc-email-panel .lwc-email-panel-cell{border-color:#2f6f77 !important;}" +
             ".lwc-email-reply-mark{color:#5bd5dd !important;}" +
             ".lwc-email-action-cell{border-bottom-color:#04434b !important;}" +
             ".lwc-email-body,.lwc-email-canvas{background:#0d141b !important;}" +
@@ -202,12 +195,24 @@ internal sealed partial class TransactionalEmail
             ".lwc-email-subtle,.lwc-email-foot{color:#91a3b2 !important;}" +
             ".lwc-email-foot-link{color:#aebdca !important;}" +
             ".lwc-email-link,.lwc-email-panel a,.lwc-email-community a{color:#5bd5dd !important;}" +
-            ".lwc-email-panel-cell{background:#18353c !important;border-color:#42515e !important;}" +
-            ".lwc-email-community-cell{background:#202d38 !important;border-color:#42515e !important;}" +
+            ".lwc-email-panel-cell{background:#18353c !important;border-color:#2f6f77 !important;}" +
+            ".lwc-email-community-cell{background:#202d38 !important;border-color:#42515e !important;border-left-color:#5bd5dd !important;}" +
             ".lwc-email-notice-cell{background:#3d3218 !important;border-left-color:#e9bd61 !important;}" +
             ".lwc-email-list-row,.lwc-email-rule{border-top-color:#42515e !important;}" +
             ".lwc-email-code{background:#17212b !important;color:#e6edf3 !important;border-color:#5bd5dd !important;}" +
             ".lwc-email-action-link:focus-visible,.lwc-email-link:focus-visible,.lwc-email-foot-link:focus-visible{outline-color:#5bd5dd !important;}" +
+            "}" +
+            "</style>" +
+            // The arrival starts from the still frame: the bar's gradient grows out from the centre over its
+            // solid colour, the crest is visible throughout, and the glow begins and ends at the resting shadow.
+            "<style>" +
+            "@media (prefers-reduced-motion:no-preference){" +
+            ".lwc-email-accent{animation:lwc-email-bar 900ms cubic-bezier(.2,.8,.2,1) both;background-repeat:no-repeat !important;background-position:50% 0 !important;}" +
+            ".lwc-email-crest{animation:lwc-email-crest 700ms cubic-bezier(.2,.9,.3,1.2) 120ms both;}" +
+            ".lwc-email-action-cell{animation:lwc-email-glow 1600ms ease-out 700ms both;}" +
+            "@keyframes lwc-email-bar{from{background-size:0% 100%;}to{background-size:100% 100%;}}" +
+            "@keyframes lwc-email-crest{from{transform:translateY(6px) scale(.92);}to{transform:none;}}" +
+            "@keyframes lwc-email-glow{0%{box-shadow:0 10px 22px -12px rgba(8,118,133,.75);}35%{box-shadow:0 0 0 6px rgba(25,195,209,.28),0 10px 22px -12px rgba(8,118,133,.75);}100%{box-shadow:0 10px 22px -12px rgba(8,118,133,.75);}}" +
             "}" +
             "</style></head>" +
             $"<body class=\"lwc-email-body\" bgcolor=\"{Canvas}\" text=\"{Ink}\" link=\"{Accent}\" vlink=\"{Accent}\" alink=\"{Accent}\" style=\"margin:0;padding:0;background:{Canvas};\">" +
