@@ -4028,29 +4028,19 @@ function moveLeaderboardRows(mutate, motion) {
     }
 }
 
-const unrenderedBadgeSearch = new WeakMap();
+const leaderboardSearchCache = new WeakMap();
 
-function leaderboardBadgeSearchText(athlete, row) {
-    // Use the same badge labels, overflow copy and personal guess as a rendered row.
-    // Cache offscreen athletes so subsequent keystrokes do not rebuild their badges.
-    let guess;
-    if (!row) {
-        guess = window.LwcGuessState?.get(athlete)?.value;
-        const cached = unrenderedBadgeSearch.get(athlete);
-        if (cached && cached.guess === guess && cached.badges === athlete.Badges) return cached.text;
-    }
-    const cell = row || document.createElement('td');
-    if (!row) {
-        cell.className = 'athlete-td';
-        cell.innerHTML = '<span class="athlete-name-links"></span><div class="badge-section"></div>';
-        window.setBadges(athlete, cell);
-    }
-    const text = Array.from(cell.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'), badge => {
-        const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
-        return `${title} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`.trim();
-    }).join(' ');
-    if (!row) unrenderedBadgeSearch.set(athlete, { guess, badges: athlete.Badges, text });
-    return text;
+function leaderboardSearchEntry(athlete) {
+    const guess = window.LwcGuessState?.get(athlete)?.value;
+    const badges = athlete.Badges || athlete.badges;
+    const cached = leaderboardSearchCache.get(athlete);
+    if (cached && cached.guess === guess && cached.badges === badges) return cached;
+    const badgeText = window.LwcBadges.searchText(athlete, guess);
+    const text = window.normalizeString([athlete.name, athlete.displayName, badgeText, athlete.mediaContact,
+        athlete.flag, athlete.canonicalFlag, athlete.why].join(' '));
+    const entry = { guess, badges, badgeText, text };
+    leaderboardSearchCache.set(athlete, entry);
+    return entry;
 }
 
 function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
@@ -4171,22 +4161,14 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const showAll = uniqueSearchTerms.length === 0;
 
     const athleteBadgeTextByName = new Map();
+    const searchTextByAthlete = new Map();
     if (uniqueSearchTerms.length && !orderingSnapshot) {
-        const renderedRows = new Map([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')]
-            .map(row => [row.dataset.athleteName, row]));
         for (const athlete of athleteResults) {
-            athleteBadgeTextByName.set(athlete.name, leaderboardBadgeSearchText(athlete, renderedRows.get(athlete.name)));
+            const entry = leaderboardSearchEntry(athlete);
+            searchTextByAthlete.set(athlete, entry.text);
+            if (selectedState.byFlag) athleteBadgeTextByName.set(athlete.name, entry.badgeText);
         }
     }
-
-    const searchTextByAthlete = (orderingSnapshot || showAll) ? null : new Map(athleteResults.map(athlete => [athlete, [
-        athlete.name,
-        athlete.displayName,
-        athleteBadgeTextByName.get(athlete.name) || '',
-        athlete.mediaContact || '',
-        `${athlete.flag || ''} ${athlete.canonicalFlag || ''}`,
-        athlete.why || ''
-    ].map(text => window.normalizeString(text.toLowerCase())).join(' ')]));
 
     const getMatchingEntries = (state, applySearch = true) => {
         const divisions = state.divisions.map(value => value.toLowerCase());
@@ -6368,9 +6350,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     modalBadgeSection.replaceChildren();
     // Clone athleteData but disable personalLink for modal badges
     const athleteForBadges = { ...athleteData, personalLink: null };
-    window.setBadges(athleteForBadges, {
-        querySelector: () => modalBadgeSection
-    });
+    window.setBadges(athleteForBadges, modalBadgeSection);
 
     // wrap each badge in a column with its name
     const badges = Array.from(modalBadgeSection.children);
