@@ -287,7 +287,7 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         Assert.False(await page.EvaluateAsync<bool>(
             "([x, y]) => !!document.elementFromPoint(x, y)?.closest('.lb-peek-region')",
             new double[] { scanX, cardBox.Y + cardBox.Height / 2 }));
-        await Assertions.Expect(first.Locator(".athlete-name")).Not.ToHaveAttributeAsync("aria-describedby", "leaderboard-peek");
+        await Assertions.Expect(first.Locator(".athlete-name")).Not.ToHaveAttributeAsync("aria-details", "leaderboard-peek");
 
         // Pause between the row and the card for longer than its dismissal delay.
         var rowBox = (await second.BoundingBoxAsync())!;
@@ -355,11 +355,13 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
     [InlineData("bortz")]
     [InlineData("pheno")]
     [InlineData("crowd")]
+    [InlineData("improvement")]
+    [InlineData("bortz-improvement")]
     public async Task Peek_UsesComputedAgesAndTheDisplayedMetricWithoutParsing(string view)
     {
-        var (context, page) = await OpenAsync(reduce: true, crowdFixture: view == "crowd");
+        var (context, page) = await OpenAsync(reduce: true, crowdFixture: view == "crowd",
+            path: view == "ultimate" ? "/leaderboard" : $"/league/{view}");
         await using var _ = context;
-        await page.Locator($"label[for='view-{view}']").ClickAsync();
         var row = page.Locator(Rows + ":visible").First;
         await row.ScrollIntoViewIfNeededAsync();
         await page.Keyboard.PressAsync("Tab");
@@ -374,12 +376,85 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
                 const bortz = view === 'bortz' || (view === 'ultimate' && athlete.bortzRankResult != null);
                 const bio = peek.querySelector('.is-bio');
                 return peek.querySelector('.lb-peek-metric').textContent === row.querySelector('.age-reduction').textContent.trim()
-                    && (view === 'crowd' ? bio === null : bio.textContent === (bortz ? athlete.bortzRankResult : athlete.phenoRankResult).bio.toFixed(1))
+                    && (view === 'crowd' || view.endsWith('improvement') ? bio === null : bio.textContent === (bortz ? athlete.bortzRankResult : athlete.phenoRankResult).bio.toFixed(1))
                     && peek.scrollHeight <= peek.clientHeight + 1 && peek.scrollWidth <= peek.clientWidth + 1;
             }
             """));
+        var card = page.Locator("#leaderboard-peek");
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(card.GetByRole(AriaRole.Link)).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(card.Locator(".lb-peek-metric")).ToBeFocusedAsync();
+        var reference = view switch
+        {
+            "crowd" => "age today",
+            "improvement" => "highest recorded pheno age",
+            "bortz-improvement" => "highest recorded bortz age",
+            _ => "age at the blood draw"
+        };
+        await Assertions.Expect(page.GetByRole(AriaRole.Tooltip)).ToContainTextAsync(reference);
         await page.Keyboard.PressAsync("Escape");
-        await Assertions.Expect(page.Locator(".lb-peek")).ToBeHiddenAsync();
+        await Assertions.Expect(card).ToBeHiddenAsync();
+        await Assertions.Expect(row.Locator(".athlete-name")).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData("/leaderboard?search=markus", false)]
+    [InlineData("/?search=markus", true)]
+    public async Task Peek_ExplainsTheAthletesNumbersAndOpensTheirProfile(string path, bool touch)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = touch ? 390 : 1440, Height = 844 },
+            HasTouch = touch, IsMobile = touch, ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll','true')");
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            var athlete = athletes.Single(a => (string?)a!["Name"] == "Markus Mattiasson")!;
+            athlete["Placements"] = new System.Text.Json.Nodes.JsonArray(9, null, 13, 21);
+            athlete["CrowdAge"] = 46;
+            athlete["CrowdCount"] = 123;
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var row = page.Locator(Rows + "[data-athlete-name='Markus Mattiasson']:visible");
+        await page.Clock.InstallAsync();
+        var card = page.Locator("#leaderboard-peek");
+        var tip = page.GetByRole(AriaRole.Tooltip);
+        var score = row.Locator(".age-reduction");
+        if (touch) await score.TapAsync(); else await score.HoverAsync();
+        await page.Clock.RunForAsync(800);
+        await Assertions.Expect(card).ToBeVisibleAsync();
+        await Assertions.Expect(card.GetByRole(AriaRole.Link)).ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex("/athlete/markus-mattiasson$"));
+
+        async Task ReadFact(string selector, string text)
+        {
+            var fact = card.Locator(selector);
+            if (touch) await fact.TapAsync(); else await fact.HoverAsync();
+            await Assertions.Expect(tip).ToContainTextAsync(text);
+            await Assertions.Expect(tip).ToBeVisibleAsync();
+        }
+        var magnitude = (await score.InnerTextAsync()).TrimStart('-');
+        await ReadFact(".lb-peek-metric", magnitude + " below");
+        await ReadFact(".lb-peek-ages", "bortz clock estimated a biological age of " + await card.Locator(".is-bio").InnerTextAsync());
+        await ReadFact(".lb-peek-crowd", "median of 123 accepted guesses is 46.0 years");
+        await ReadFact(".lb-peek-history", "A year ago #21 · A month ago #13 · A week ago (no record) · Yesterday #9 · Today #");
+        if (!touch)
+        {
+            await tip.HoverAsync();
+            await page.Clock.RunForAsync(800);
+            await Assertions.Expect(card).ToBeVisibleAsync();
+        }
+
+        var identity = card.Locator(touch ? ".lb-peek-top img" : ".lb-peek-name");
+        if (touch) await identity.TapAsync(); else await identity.ClickAsync();
+        await Assertions.Expect(page.Locator("#detailsModal .modal-content")).ToHaveAttributeAsync("data-athlete-slug", "markus-mattiasson");
+        await Assertions.Expect(card).ToBeHiddenAsync();
+        await page.GoBackAsync();
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Assertions.Expect(row.Locator(".athlete-name")).ToBeFocusedAsync();
     }
 
     [Theory]

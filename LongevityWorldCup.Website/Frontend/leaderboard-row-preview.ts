@@ -1,4 +1,4 @@
-// The homepage and full standings share one preview for mouse and keyboard users.
+// The homepage and full standings share the same athlete preview.
 function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElement, body: HTMLTableSectionElement): void {
     type PeekAthlete = {
         readonly chronologicalAge: number;
@@ -14,10 +14,11 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
     const peek = document.createElement("div");
     peek.className = "lb-peek";
     peek.id = "leaderboard-peek";
-    peek.setAttribute("role", "tooltip");
+    peek.setAttribute("role", "group");
     peek.hidden = true;
     const peekRegion = document.createElement("div");
     peekRegion.className = "lb-peek-region";
+    peekRegion.dataset["lwcTipHost"] = "";
     peekRegion.append(peek);
     document.body.append(peekRegion);
     let peekTimer = 0;
@@ -27,24 +28,37 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
     let peekScrollX = 0;
     let peekScrollY = 0;
 
-    function sparkline(placements: readonly (number | null)[], rank: number): SVGSVGElement | null {
-        // API order is yesterday, week, month, year. Draw oldest to newest,
-        // retaining missing observations instead of closing their gaps.
-        const history = [...placements.slice(0, 4)].reverse().concat(rank);
+    function fact(className: string, label: string, explanation: string, ...children: (Node | string)[]): HTMLButtonElement {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = className;
+        button.setAttribute("aria-label", label);
+        button.dataset["lwcTip"] = explanation;
+        button.append(...children);
+        return button;
+    }
+
+    function sparkline(placements: readonly (number | null)[], rank: number): HTMLButtonElement | null {
+        const periods = ["A year ago", "A month ago", "A week ago", "Yesterday", "Today"];
+        const history = [placements[3], placements[2], placements[1], placements[0], rank];
         const points = history.flatMap((value, index) => value != null && Number.isFinite(value) && value > 0 ? [{ value, index }] : []);
         if (points.length < 2) return null;
         const ns = "http://www.w3.org/2000/svg";
         const svg = document.createElementNS(ns, "svg");
         svg.setAttribute("viewBox", "0 0 120 32");
         svg.setAttribute("class", "lb-peek-spark");
-        svg.setAttribute("role", "img");
-        svg.setAttribute("aria-label", "Ultimate rank history, oldest to newest: " + history.map(value => value ?? "unavailable").join(", "));
+        svg.setAttribute("aria-hidden", "true");
         const best = Math.min(...points.map(point => point.value));
         const range = Math.max(1, Math.max(...points.map(point => point.value)) - best);
         const line = document.createElementNS(ns, "polyline");
         line.setAttribute("points", points.map(point => `${4 + point.index * 28},${4 + (point.value - best) / range * 24}`).join(" "));
         svg.append(line);
-        return svg;
+        const positions = periods.map((period, i) => {
+            const point = points.find(point => point.index === i);
+            return `${period} ${point ? `#${point.value}` : "(no record)"}`;
+        });
+        return fact("lb-peek-history", "Ultimate League rank history",
+            `Ultimate League rank from left to right. Higher is closer to #1. ${positions.join(" · ")}.`, svg);
     }
 
     function cell(className: string, ...children: (Node | string)[]): HTMLElement {
@@ -63,51 +77,92 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
 
     function fillPeek(row: HTMLTableRowElement): boolean {
         const name = row.dataset["athleteName"] || "";
+        const rowLink = row.querySelector<HTMLAnchorElement>("a.athlete-name[href]");
+        if (!rowLink) return false;
+        const displayName = rowLink.textContent?.trim() || name;
         // Reuse the page's calculated clock values. Display metrics can be
         // percentages or improvements, and must never be parsed back into ages.
         const athlete = (window as unknown as { getLeaderboardPeek?: (name: string) => PeekAthlete | null }).getLeaderboardPeek?.(name);
         const rank = row.querySelector(".rank")?.textContent?.trim() || "";
         const metric = row.querySelector(".age-reduction")?.textContent?.trim() || "";
         const portrait = row.querySelector<HTMLImageElement>("img.portrait");
+        const view = main.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value || "ultimate";
+        const improvement = view === "improvement" || view === "bortz-improvement";
+        const labScore = !improvement && view !== "crowd";
+        const bortz = view === "bortz" || view === "bortz-improvement" || (view === "ultimate" && athlete?.bortzRankResult != null);
+        const clock = bortz ? "bortz" : "pheno";
+        const result = bortz ? athlete?.bortzRankResult : athlete?.phenoRankResult;
         peek.replaceChildren();
+        peek.setAttribute("aria-label", `${displayName} leaderboard preview`);
 
-        const top = cell("lb-peek-top");
+        const top = document.createElement("a");
+        top.className = "lb-peek-top";
+        top.href = rowLink.href;
+        top.setAttribute("aria-label", `Open ${displayName}’s profile, ranked #${rank}`);
+        const league = main.querySelector(".collapsed-title")?.getAttribute("aria-label") || "Current standings";
+        top.dataset["lwcTip"] = `${league} · Rank #${rank}. Open ${displayName}’s profile.`;
+        // Follow the row's profile flow and return focus there when it closes.
+        // Modified clicks and the link menu use the canonical href directly.
+        top.addEventListener("click", event => {
+            if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            hidePeek();
+            rowLink.click();
+        });
         if (portrait?.currentSrc || portrait?.src) {
             const picture = document.createElement("img");
             picture.src = portrait.currentSrc || portrait.src;
             picture.alt = "";
             top.append(picture);
         }
-        top.append(cell("lb-peek-id", cell("lb-peek-rank", rank), cell("lb-peek-name", row.querySelector(".athlete-name")?.textContent?.trim() || name)));
+        top.append(cell("lb-peek-id", cell("lb-peek-rank", rank), cell("lb-peek-name", displayName)));
         peek.append(top);
-        if (metric) peek.append(cell("lb-peek-metric", metric));
+        if (metric) {
+            const label = improvement ? `${clock} age improvement` : "Age reduction";
+            const estimate = improvement ? `The latest ${clock} age`
+                : view === "crowd" ? "The crowd’s age estimate"
+                : result ? `The ${clock} biological age estimate` : "The biological age estimate";
+            const reference = improvement ? `this athlete’s highest recorded ${clock} age`
+                : view === "crowd" ? "the athlete’s age today" : "the athlete’s age at the blood draw";
+            let explanation = `${estimate} minus ${reference} comes to ${metric}.`;
+            if (metric.startsWith("-") || metric.startsWith("+")) {
+                explanation = `${estimate} was ${metric.slice(1)} ${metric.startsWith("-") ? "below" : "above"} ${reference}.`;
+            }
+            if (labScore && athlete && !result) {
+                explanation = `The leaderboard assigns ${metric} when there is no eligible ${clock} result.`;
+            } else if (labScore && result) {
+                explanation += " The score uses the unrounded ages.";
+            }
+            peek.append(fact("lb-peek-metric", `${label}, ${metric}`, explanation, metric));
+        }
 
         const facts = cell("lb-peek-facts");
         if (athlete) {
-            const view = main.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value;
-            const bortz = view === "bortz" || (view === "ultimate" && athlete.bortzRankResult != null);
-            const clock = bortz || view === "pheno" || view === "ultimate";
-            const result = bortz ? athlete.bortzRankResult : athlete.phenoRankResult;
-            const age = clock ? result?.chrono : athlete.chronologicalAge;
-            const bio = clock ? result?.bio : null;
+            const age = labScore ? result?.chrono : athlete.chronologicalAge;
+            const bio = labScore ? result?.bio : null;
             if (age != null && Number.isFinite(age)) {
-                const ages = cell("lb-peek-ages", icon("fa-hourglass-half"), cell("lb-peek-age", age.toFixed(1)));
-                ages.setAttribute("aria-label", clock ? "Chronological age at test" : "Chronological age");
+                const years = age.toFixed(1);
+                const ageText = labScore ? `${displayName} was ${years} years old at the blood draw.` : `${displayName} is ${years} years old today.`;
+                const children = [icon("fa-hourglass-half"), cell("lb-peek-age", years)];
                 if (bio != null && Number.isFinite(bio)) {
-                    const value = cell("lb-peek-age is-bio", bio.toFixed(1));
-                    value.setAttribute("aria-label", bortz ? "bortz age" : "Pheno age");
-                    ages.append(icon("fa-arrow-right-long"), value);
+                    const estimate = bio.toFixed(1);
+                    children.push(icon("fa-arrow-right-long"), cell("lb-peek-age is-bio", estimate));
+                    facts.append(fact("lb-peek-ages", `Age at test ${years}, ${clock} age ${estimate}`,
+                        `${ageText} The ${clock} clock estimated a biological age of ${estimate} years from that sample.`, ...children));
+                } else {
+                    facts.append(fact("lb-peek-ages", `Chronological age ${years}`, ageText, ...children));
                 }
-                facts.append(ages);
             }
         }
         if (athlete && athlete.crowdCount > 0 && athlete.crowdAge != null && Number.isFinite(athlete.crowdAge)) {
-            const crowd = cell("lb-peek-crowd", icon("fa-people-group"), cell("lb-peek-age", athlete.crowdAge.toFixed(1)));
-            crowd.setAttribute("aria-label", "Crowd age");
-            facts.append(crowd);
+            const years = athlete.crowdAge.toFixed(1);
+            const guesses = athlete.crowdCount === 1 ? "one accepted guess" : `${athlete.crowdCount.toLocaleString("en-US")} accepted guesses`;
+            facts.append(fact("lb-peek-crowd", `Crowd age ${years}`,
+                `Visitors guessed this athlete’s age from their current profile photo. The median of ${guesses} is ${years} years.`,
+                icon("fa-people-group"), cell("lb-peek-age", years)));
         }
         if (facts.childNodes.length) peek.append(facts);
-        if (athlete && main.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value === "ultimate") {
+        if (athlete && view === "ultimate") {
             const spark = sparkline(athlete.placements, Number(row.dataset["rank"]));
             if (spark) peek.append(spark);
         }
@@ -124,7 +179,7 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
         const preferred = peek.offsetWidth;
         const right = roomRight >= preferred || (roomLeft < preferred && roomRight >= roomLeft);
         const room = right ? roomRight : roomLeft;
-        if (room < preferred) peek.style.maxWidth = `${Math.max(0, room)}px`;
+        if (clientX !== undefined && room < preferred) peek.style.maxWidth = `${Math.max(0, room)}px`;
         const left = right ? x + 12 : x - 12 - peek.offsetWidth;
         const height = peek.offsetHeight;
         const above = rowBox.top - height - 8;
@@ -151,25 +206,26 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
     function hidePeek(): void {
         cancelPeekTimer();
         if (!peekRow) return;
-        peekRow.querySelector(".athlete-name")?.removeAttribute("aria-describedby");
+        peekRow.querySelector(".athlete-name")?.removeAttribute("aria-details");
         peekRow = null;
         peek.classList.remove("is-open");
         peek.hidden = true;
+        peek.replaceChildren();
     }
 
     function showPeek(row: HTMLTableRowElement, clientX?: number): void {
+        cancelPeekTimer();
         if (!row.isConnected || row.style.display === "none" || (clientX !== undefined && !row.matches(":hover")) || !fillPeek(row)) {
             hidePeek();
             return;
         }
-        peekRow?.querySelector(".athlete-name")?.removeAttribute("aria-describedby");
+        peekRow?.querySelector(".athlete-name")?.removeAttribute("aria-details");
         peek.hidden = false;
         peek.classList.add("is-open");
         peekRow = row;
         rememberPeekScroll();
-        row.querySelector(".athlete-name")?.setAttribute("aria-describedby", peek.id);
+        row.querySelector(".athlete-name")?.setAttribute("aria-details", peek.id);
         placePeek(row, clientX);
-        peek.tabIndex = peek.scrollHeight > peek.clientHeight + 1 ? 0 : -1;
         if (clientX !== undefined) row.querySelector("img.portrait")?.dispatchEvent(new Event("lwc:portrait-preview"));
     }
 
@@ -194,23 +250,37 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
             showPeek(row, pointerX);
         }, peek.hidden ? 420 : 160);
     }, { passive: true });
-    function schedulePeekDismiss(): void {
+    function schedulePeekDismiss(event: PointerEvent): void {
+        if (event.pointerType !== "mouse") return;
         cancelPeekTimer();
-        peekTimer = window.setTimeout(() => { if (!peekRegion.matches(":hover")) hidePeek(); }, 160);
+        peekTimer = window.setTimeout(() => {
+            if (!peekRegion.matches(":hover, :focus-within") && !peekRow?.querySelector(".athlete-name:focus-visible")) hidePeek();
+        }, 160);
     }
     body.addEventListener("pointerleave", schedulePeekDismiss);
     peekRegion.addEventListener("pointerenter", cancelPeekTimer);
     peekRegion.addEventListener("pointerleave", schedulePeekDismiss);
+    // A finger can inspect the rank or score directly. The name, portrait and
+    // remaining row area retain their usual one-tap profile action.
+    body.addEventListener("click", event => {
+        if (document.documentElement.dataset["lwcInput"] !== "touch" || !(event.target instanceof Element)
+            || event.target.closest("a, button") || !event.target.closest(".rank-td, .age-reduction-td")) return;
+        const row = event.target.closest<HTMLTableRowElement>(rowSelector);
+        if (!row) return;
+        event.stopPropagation();
+        showPeek(row);
+    }, true);
     body.addEventListener("focusin", event => {
         if (!(event.target instanceof Element) || !event.target.matches(".athlete-name:focus-visible")
             || document.documentElement.dataset["lwcInput"] === "touch") return;
         const row = event.target.closest<HTMLTableRowElement>(rowSelector);
-        hidePeek();
-        if (row) showPeek(row);
+        if (row && row !== peekRow) showPeek(row);
     });
-    body.addEventListener("focusout", event => { if (!peek.contains(event.relatedTarget as Node | null)) hidePeek(); });
-    peek.addEventListener("focusout", hidePeek);
-    document.addEventListener("pointerdown", event => { if (!peek.contains(event.target as Node | null)) hidePeek(); }, true);
+    body.addEventListener("focusout", event => { if (!peekRegion.contains(event.relatedTarget as Node | null)) hidePeek(); });
+    peekRegion.addEventListener("focusout", event => {
+        if (!peekRegion.contains(event.relatedTarget as Node | null) && event.relatedTarget !== peekRow?.querySelector(".athlete-name")) hidePeek();
+    });
+    document.addEventListener("pointerdown", event => { if (!peekRegion.contains(event.target as Node | null)) hidePeek(); }, true);
     window.addEventListener("resize", hidePeek);
     window.addEventListener("pagehide", hidePeek);
     finePointer.addEventListener("change", hidePeek);
@@ -223,7 +293,7 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
             if (!peekRow || pendingPeekRow) return;
             if (!peekRow.getClientRects().length) { hidePeek(); return; }
             if (peekRegion.matches(":hover, :focus-within")) return;
-            if (peekRow.matches(":focus-within")) placePeek(peekRow);
+            if (peekRow.matches(":focus-within") || document.documentElement.dataset["lwcInput"] === "touch") placePeek(peekRow);
             else if (peekRow.matches(":hover")) placePeek(peekRow, pointerX);
             else hidePeek();
         }).observe(table);
@@ -233,9 +303,25 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
         if ((peekRow || pendingPeekRow) && (window.scrollX !== peekScrollX || window.scrollY !== peekScrollY)) hidePeek();
     }, { passive: true });
     document.addEventListener("keydown", event => {
-        if (event.key !== "Escape") return;
-        if (peek.contains(document.activeElement)) peekRow?.querySelector<HTMLElement>(".athlete-name")?.focus({ preventScroll: true });
-        hidePeek();
+        if (event.defaultPrevented) return;
+        const rowLink = peekRow?.querySelector<HTMLAnchorElement>("a.athlete-name");
+        const active = document.activeElement;
+        if (event.key === "Escape") {
+            if (peekRegion.contains(active)) rowLink?.focus({ preventScroll: true });
+            hidePeek();
+        } else if (rowLink && event.key === "Tab" && !event.altKey && !event.ctrlKey && !event.metaKey) {
+            // The floating card lives outside the table. Read its controls in
+            // sequence after the row name, then resume the row's native tab order.
+            const controls = peek.querySelectorAll<HTMLElement>("a[href], button");
+            const first = controls[0];
+            if (active === rowLink && !event.shiftKey && first) {
+                event.preventDefault();
+                first.focus({ preventScroll: true });
+            } else if ((event.shiftKey && active === first) || (!event.shiftKey && active === controls[controls.length - 1])) {
+                if (event.shiftKey) event.preventDefault();
+                rowLink.focus({ preventScroll: true });
+            }
+        }
     });
 }
 

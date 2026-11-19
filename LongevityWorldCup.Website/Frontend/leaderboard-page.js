@@ -577,7 +577,7 @@ function initializeAthletePortraitMotion() {
     function hasPortraitIntent(img, directHover = img.matches(':hover')) {
         const link = img.closest('a');
         if (directHover || document.activeElement === img || (link && document.activeElement === link)) return true;
-        return !!img.closest('tr[data-athlete-name]:hover')?.querySelector('.athlete-name[aria-describedby~="leaderboard-peek"]');
+        return !!img.closest('tr[data-athlete-name]:hover')?.querySelector('.athlete-name[aria-details~="leaderboard-peek"]');
     }
 
     // Keep the still and clip in one bitmap rendering path. Returning to the
