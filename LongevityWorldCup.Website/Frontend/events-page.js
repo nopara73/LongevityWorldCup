@@ -314,8 +314,14 @@ const eventsPageAssets = document.currentScript.dataset;
         const k=map["currentplacement"];
         if(!k) return null;
         const v=Number(a[k]);
-        if(!Number.isFinite(v)) return null;
-        return Math.max(1,Math.floor(v));
+        return Number.isFinite(v) && v >= 1 ? Math.floor(v) : null;
+    }
+
+    function athletePodcastUrl(athlete){
+        if (!athlete) return '';
+        const keys = lowerKeyMap(athlete);
+        const url = String(athlete[keys.podcastlink || keys.podcasturl || keys.podcast] || '').trim();
+        return isSafeHttpUrl(url) ? url : '';
     }
 
     function extractSlugs(text){
@@ -1706,23 +1712,49 @@ const eventsPageAssets = document.currentScript.dataset;
         }));
     }
 
-    // Compare the fetched chapter data before touching the mounted timeline.
-    // A directory refresh can update athletes who appear nowhere in this feed.
-    function chapterSnapshot(rows, athletes, linkNames) {
+    // Compute display dependencies once per athlete in this directory response.
+    // Historical badge tooltips also depend on which badges the athlete still holds.
+    function feedAthleteSnapshot(athletes){
+        const cache = new Map();
+        return slug => {
+            if (!cache.has(slug)) {
+                const athlete = athletes.get(slug);
+                if (!athlete) return null;
+                const keys = lowerKeyMap(athlete);
+                const badges = athlete[keys.badges || keys.athletebadges || keys.awards || keys.badge];
+                cache.set(slug, [athleteName(athlete), athletePic(athlete), getCurrentPlacement(athlete),
+                    athletePodcastUrl(athlete), Array.isArray(badges) ? badges.filter(badge => badge && typeof badge === 'object').map(badge =>
+                        [badge, window.makeTooltipFromServerBadge?.(badge, athlete)]) : []]);
+            }
+            return cache.get(slug);
+        };
+    }
+
+    function feedRowSlugs(row){
+        if (row.type !== EVENT_TYPE.CustomEvent) return row.slugs || [];
+        const slugs = new Set(row.slugs);
+        window.CustomEventMarkup.toPlainText(row.text, { mentionResolver: slug => {
+            slugs.add(slugifyLocal(normalizeLinkId(slug)));
+            return slug;
+        } });
+        return [...slugs];
+    }
+
+    function chapterSnapshot(rows, snapshotFor, linkNames) {
         const referenced = new Set();
         const fresh = [];
         const now = new Date();
         for (const row of rows) {
-            for (const slug of row.slugs) referenced.add(slug);
+            for (const slug of feedRowSlugs(row)) referenced.add(slug);
             const age = now - Date.parse(row.displayOccurredAt || row.occurredAt);
             if (age >= 0 && age < 86400000) fresh.push(row.id);
         }
         const locale = new Intl.DateTimeFormat().resolvedOptions();
-        return JSON.stringify([rows, [...referenced].map(slug => athletes.get(slug)), linkNames,
+        return JSON.stringify([rows, [...referenced].map(snapshotFor), linkNames,
             now.toDateString(), locale.locale, locale.timeZone, fresh]);
     }
 
-    function renderRows(rows, athletesIndex, linkNames, options=null){
+    function renderRows(rows, athletesIndex, linkNames, options){
         const tbody = document.querySelector("#eventsTable tbody");
         const table=tbody.closest('table');
         // Reobserve only the surviving, unrevealed rows after reconciliation.
@@ -1798,7 +1830,7 @@ const eventsPageAssets = document.currentScript.dataset;
             // Selection bookkeeping can change during fitting without changing
             // the event's content or its already decoded portrait.
             const { homepageHighlightSelection, ...content } = r;
-            const signature = JSON.stringify([content, dateLabel, (r.slugs || []).map(slug => athletesIndex.get(slug)), linkNames, openLinksInNewTab, allowBadgeClicks]);
+            const signature = JSON.stringify([content, dateLabel, feedRowSlugs(r).map(options.snapshotFor), linkNames, openLinksInNewTab, allowBadgeClicks]);
             const retained = existingRows.get(String(r.id));
             if (retained?._feedSignature === signature) {
                 setFeedRowIndex(retained, idx);
@@ -1873,13 +1905,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 const badgeKey = String(r.badgeLabel||"").trim().toLowerCase();
                 if(!isLost && !isSolo && badgeKey === "podcast"){
-                    const podcastUrl = (function(){
-                        if(!a) return "";
-                        const am = lowerKeyMap(a);
-                        const key = am["podcastlink"] || am["podcasturl"] || am["podcast"];
-                        const v = key ? String(a[key]).trim() : "";
-                        return isSafeHttpUrl(v) ? v : "";
-                    })();
+                    const podcastUrl = athletePodcastUrl(a);
 
                     const episodeHtml = podcastUrl
                         ? `<a href="${esc(podcastUrl)}" target="_blank" rel="noopener">episode</a>`
@@ -2857,10 +2883,12 @@ const eventsPageAssets = document.currentScript.dataset;
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
+            const snapshotFor = feedAthleteSnapshot(athletesIndex);
             const snapshot = mode === "viewAll" && root?.closest('.event-board-page')
-                ? chapterSnapshot(rows, athletesIndex, !!linkNames) : null;
+                ? chapterSnapshot(rows, snapshotFor, !!linkNames) : null;
             if (!live || snapshot === null || snapshot !== loadRoot._chapterSnapshot) {
                 renderRows(rows,athletesIndex,!!linkNames,{
+                    snapshotFor,
                     seenMode: (!live && mode !== "athlete") ? mode : null,
                     layoutOnly: !!options?.layoutOnly && !live
                 });
