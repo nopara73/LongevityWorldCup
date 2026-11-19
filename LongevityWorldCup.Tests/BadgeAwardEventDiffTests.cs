@@ -10,6 +10,24 @@ public sealed class BadgeAwardEventDiffTests
 {
     private static readonly DateTime SnapshotTimeUtc = new(2026, 8, 1, 12, 0, 0, DateTimeKind.Utc);
 
+    [Theory]
+    [InlineData("old-scoring", "corrected-scoring", false)]
+    [InlineData(null, "corrected-scoring", false)]
+    [InlineData("same-scoring", "same-scoring", true)]
+    public void ScoringCorrectionsRebaselineOnlyTheAffectedBadge(string? previousRule, string currentRule, bool announceWinner)
+    {
+        var oldWinner = Award("attila", 1, "Pheno Age best improvement");
+        var restoredWinner = Award("gabor", 1, "Pheno Age best improvement");
+        GetAwardRowType().GetProperty("DefinitionHash")!.SetValue(oldWinner, previousRule);
+        GetAwardRowType().GetProperty("DefinitionHash")!.SetValue(restoredWinner, currentRule);
+        var events = BuildBadgeAwardEventsForCurrentSnapshotChange(
+            CreateAwardRowList(oldWinner, Award("alice", label: "Podcast")),
+            CreateAwardRowList(restoredWinner, Award("alice", label: "Podcast"), Award("bob", label: "Podcast")));
+
+        Assert.Equal(announceWinner, events.Any(e => GetStringProperty(e, "AthleteSlug") == "gabor"));
+        Assert.Contains(events, e => GetStringProperty(e, "AthleteSlug") == "bob");
+    }
+
     [Fact]
     public void InitialCurrentSnapshotDoesNotAnnounceExistingAwards()
     {

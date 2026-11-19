@@ -1,8 +1,4 @@
-<!--LEADERBOARD-STYLES-START-->
-<link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
-<link rel="stylesheet" href="{{ASSET_LEADERBOARD_ORDERING_CSS}}">
-<link rel="stylesheet" href="{{ASSET_LEADERBOARD_FILTERS_CSS}}">
-<!--LEADERBOARD-STYLES-END-->
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
 
 <div id="athleteDialogRuntime"
      class="main-container athlete-dialog-runtime"
@@ -34,6 +30,13 @@
             </div>
 <!--LEADERBOARD-PODIUM-END-->
         </div>
+
+<!--PODIUM-HEADER-RUNTIME-->
+<!--LEADERBOARD-STYLES-START-->
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_ORDERING_CSS}}">
+<link rel="stylesheet" href="{{ASSET_LEADERBOARD_FILTERS_CSS}}">
+<!--LEADERBOARD-STYLES-END-->
 
         <div class="leaderboard-controls">
         <div class="leaderboard-toolbar">
@@ -116,7 +119,7 @@
         <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
         </div>
         <span id="leaderboardOrderStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
-        <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" aria-label="Current leaderboard selection" hidden>
+        <section class="leaderboard-selection-summary" id="leaderboardSelectionSummary" hidden aria-label="Current leaderboard selection">
             <span id="leaderboardResultCount" role="status" aria-live="polite" aria-atomic="true"></span>
             <div class="leaderboard-selection-chips" id="leaderboardSelectionChips"></div>
             <button type="button" id="clearLeaderboardSelection" class="leaderboard-clear-all" hidden>Clear all</button>

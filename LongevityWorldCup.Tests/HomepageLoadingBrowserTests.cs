@@ -10,6 +10,126 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task Homepage_PaintsItsTitleWhileIconsAndPodiumStylesArePending()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        await ObserveFirstScreenPaintAsync(page);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task Hold(IRoute route)
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        }
+        await page.RouteAsync("**/css/leaderboard-podium.css*", Hold);
+        await page.RouteAsync("**/js/icons.js*", Hold);
+        await page.RouteAsync("**/vendor/font-awesome/**/all.min.css*", Hold);
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("() => window.firstScreenPaints.has('header-title')");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await page.WaitForFunctionAsync("() => !!window.LwcIcons && !!document.querySelector('i[data-lwc-icon] svg')");
+        await Assertions.Expect(page.Locator("link[rel=stylesheet][href*='font-awesome']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task Homepage_PaintsTheStyledChampionWhileTableStylesAndHeaderScriptsArePending(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        await ObserveFirstScreenPaintAsync(page);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task Hold(IRoute route)
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        }
+        await page.RouteAsync("**/css/leaderboard-content.css*", Hold);
+        await page.RouteAsync("**/css/share-sheet.css*", Hold);
+        await page.RouteAsync("**/js/celebration.js*", Hold);
+        await page.RouteAsync("**/js/site-header.js*", Hold);
+
+        var portrait = page.Locator(".podium-item.first img.podium-portrait");
+        double paintedWidth;
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("""
+                () => ['header-title', 'champion-name', 'champion-portrait'].every(id => window.firstScreenPaints.has(id))
+                """);
+            await Assertions.Expect(page.Locator("head link[rel=preload][as=image]")).ToHaveAttributeAsync("href", (await portrait.GetAttributeAsync("src"))!);
+            await Assertions.Expect(portrait).ToHaveCSSAsync("border-radius", "50%");
+            paintedWidth = await portrait.EvaluateAsync<double>("img => img.getBoundingClientRect().width");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await ExpectHomepageLoadedAsync(page);
+        Assert.Equal(paintedWidth, await portrait.EvaluateAsync<double>("img => img.getBoundingClientRect().width"), 1);
+        await Assertions.Expect(page.Locator("link[href*='/css/share-sheet.css']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    private static Task ObserveFirstScreenPaintAsync(IPage page) => page.AddInitScriptAsync("""
+        const pending = new Map([
+            ['header-title', 'header .bannertext'],
+            ['champion-name', '.podium-item.first:not(.podium-skeleton-item) .athlete-name'],
+            ['champion-portrait', '.podium-item.first:not(.podium-skeleton-item) img.podium-portrait']
+        ]);
+        const marker = new MutationObserver(() => {
+            for (const [id, selector] of pending) {
+                const node = document.querySelector(selector);
+                if (!node) continue;
+                node.setAttribute('elementtiming', id);
+                pending.delete(id);
+            }
+            if (!pending.size) marker.disconnect();
+        });
+        marker.observe(document, { childList: true, subtree: true });
+        window.firstScreenPaints = new Set();
+        new PerformanceObserver(list => {
+            for (const entry of list.getEntries())
+                if (entry.renderTime > 0) window.firstScreenPaints.add(entry.identifier);
+        }).observe({ type: 'element', buffered: true });
+        """);
+
+    [Fact]
+    public async Task Homepage_KeepsPaintedAthletesAndCanFindAthletesOutsideTheTopTen()
+    {
+        await using var context = await NewContextAsync(390);
+        await context.AddInitScriptAsync("""
+            document.addEventListener('DOMContentLoaded', () => {
+                window.originalChampion = document.querySelector('.podium-item.first img');
+                window.originalRow = document.querySelector('tr.server-rendered-leaderboard-row:has(img.portrait)');
+            }, { capture: true, once: true });
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        await ExpectHomepageLoadedAsync(page);
+        var rows = page.Locator(".leaderboard tbody tr[data-athlete-name]");
+        await Assertions.Expect(rows).ToHaveCountAsync(10);
+        Assert.True(await page.EvaluateAsync<bool>("() => window.originalChampion === document.querySelector('.podium-item.first img') && window.originalRow.isConnected"));
+
+        var outsideTopTen = await page.EvaluateAsync<string>("""
+            async () => {
+                const names = new Set([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')].map(row => row.dataset.athleteName));
+                return (await window.getSharedAthletes()).find(athlete => !names.has(athlete.Name)).Name;
+            }
+            """);
+        await page.Locator("#athleteSearch").FillAsync(outsideTopTen);
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible").First).ToHaveAttributeAsync("data-athlete-name", outsideTopTen);
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible")).ToHaveCountAsync(7);
+    }
+
+    [Fact]
     public async Task Homepage_FetchesItsDataWhileModulesAreStillLoading()
     {
         await using var context = await NewContextAsync(1440);
@@ -87,6 +207,9 @@ public sealed class HomepageLoadingBrowserTests(
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => window.modulesReady");
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 1", target);
+        // Only the held response should cross the synthetic deadline. Let the other
+        // shared request finish consuming its real response body before advancing time.
+        await page.EvaluateAsync("path => path === '/api/events' ? window.getSharedAthletes() : window.getSharedEvents()", target);
         await page.Clock.FastForwardAsync(10_001);
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 2", target,
             new() { Timeout = 3000 });

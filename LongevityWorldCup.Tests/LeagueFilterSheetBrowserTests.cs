@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.RegularExpressions;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -48,6 +49,35 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
         var afterClear = page.Locator(width > 768 ? ".sidebar-toggle" : ".sidebar-close");
         await Assertions.Expect(afterClear).ToBeFocusedAsync();
         Assert.False(await afterClear.EvaluateAsync<bool>("e => e.matches(':focus-visible') || e.classList.contains('is-keyboard-focus')"));
+    }
+
+    [Theory]
+    [InlineData("/leaderboard", 1440)]
+    [InlineData("/", 390)]
+    public async Task SelectedFilterShowsOneCheckAndUsesTheNativeMarkInForcedColors(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var amateur = page.Locator("input[name=leagueTrack][value=Amateur i]");
+        await amateur.CheckAsync();
+        var marks = await amateur.EvaluateAsync<int>("""
+            input => ['::before', '::after'].filter(pseudo => {
+                const style = getComputedStyle(input, pseudo);
+                return !['none', 'normal'].includes(style.content) && style.display !== 'none' && style.opacity !== '0';
+            }).length
+            """);
+        Assert.Equal(1, marks);
+
+        await page.EmulateMediaAsync(new() { ForcedColors = ForcedColors.Active });
+        await Assertions.Expect(amateur).ToHaveCSSAsync("appearance", "auto");
+        await amateur.PressAsync("Space");
+        await Assertions.Expect(amateur).Not.ToBeCheckedAsync();
     }
 
     [Theory]
@@ -147,7 +177,8 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
         await page.SetViewportSizeAsync(390, 844);
         await Assertions.Expect(page.Locator(".sidebar-panel")).ToHaveAttributeAsync("aria-modal", "true");
         await page.SetViewportSizeAsync(1440, 900);
-        Assert.False(await page.EvaluateAsync<bool>("document.body.classList.contains('sidebar-drawer-open')"));
+        // The viewport command can return before the browser dispatches resize.
+        await Assertions.Expect(page.Locator("body")).Not.ToHaveClassAsync(new Regex(@"\bsidebar-drawer-open\b"));
         await Assertions.Expect(page.Locator(".sidebar-panel")).ToHaveAttributeAsync("role", "region");
     }
 

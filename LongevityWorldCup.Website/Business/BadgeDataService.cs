@@ -113,6 +113,8 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
 
         var currentProSlugs = BuildCurrentProSlugSet(stats.Values);
         _events.CleanupAmateurAgeReductionGraduationLinks(currentProSlugs);
+        var changedRules = ChangedScoringRules(previous, awards);
+        var correctedSlots = new HashSet<string>(StringComparer.Ordinal);
         var badgeEvents = BuildBadgeAwardEventsForCurrentSnapshotChange(previous, awards, DateTime.UtcNow, currentProSlugs);
         if (silentCorrections.Count > 0)
         {
@@ -121,7 +123,7 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
             // including collateral changes to another athlete's placement or tie.
             var uncorrected = _corrections.RevertPendingCorrections(snapshot, silentCorrections);
             var uncorrectedAwards = BuildAwards(BuildAthleteStats(_asOfUtc, uncorrected));
-            var correctedSlots = ChangedAwardSlots(uncorrectedAwards, awards);
+            correctedSlots = ChangedAwardSlots(uncorrectedAwards, awards);
             var suppressed = badgeEvents.RemoveAll(e => correctedSlots.Contains(AwardSlotKey(e.BadgeLabel, e.LeagueCategory, e.LeagueValue, e.Place)));
             _log.LogInformation("Rebaselining {CorrectionCount} approved athlete correction(s) silently; suppressed {BadgeEventCount} correction-related badge event(s).", silentCorrections.Count, suppressed);
         }
@@ -141,6 +143,8 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         _db.Run(sqlite =>
         {
             using var tx = sqlite.BeginTransaction();
+
+            SuppressCorrectionAnnouncements(sqlite, tx, changedRules, correctedSlots);
 
             using (var del = sqlite.CreateCommand())
             {
@@ -186,6 +190,42 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string AwardSlotKey(string label, string category, string? value, int? place) =>
         $"{label}|{category}|{value ?? ""}|{place?.ToString(CultureInfo.InvariantCulture) ?? ""}";
+
+    private static HashSet<string> ChangedScoringRules(IReadOnlyList<AwardRow> before, IReadOnlyList<AwardRow> after)
+    {
+        var previousRules = before.GroupBy(r => AwardSlotKey(r.BadgeLabel, r.LeagueCategory, r.LeagueValue, null))
+            .ToDictionary(g => g.Key, g => g.Select(r => r.DefinitionHash).ToHashSet());
+        return after.GroupBy(r => AwardSlotKey(r.BadgeLabel, r.LeagueCategory, r.LeagueValue, null))
+            .Where(g => previousRules.TryGetValue(g.Key, out var rules) && !rules.SetEquals(g.Select(r => r.DefinitionHash)))
+            .Select(g => g.Key).ToHashSet();
+    }
+
+    private static void SuppressCorrectionAnnouncements(SqliteConnection sqlite, SqliteTransaction tx,
+        HashSet<string> changedRules, HashSet<string> correctedSlots)
+    {
+        if (changedRules.Count == 0 && correctedSlots.Count == 0) return;
+        var ids = new List<string>();
+        using (var cmd = sqlite.CreateCommand())
+        {
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT Id, Text FROM Events WHERE Type=@type;";
+            cmd.Parameters.AddWithValue("@type", (int)EventType.BadgeAward);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var text = reader.GetString(1);
+                if (!EventHelpers.TryExtractBadgeLabel(text, out var label) ||
+                    !EventHelpers.TryExtractCategory(text, out var category)) continue;
+                label = EventHelpers.NormalizeBadgeLabel(label);
+                EventHelpers.TryExtractValue(text, out var value);
+                int? place = EventHelpers.TryExtractPlace(text, out var parsedPlace) ? parsedPlace : null;
+                if (changedRules.Contains(AwardSlotKey(label, category, value, null)) ||
+                    correctedSlots.Contains(AwardSlotKey(label, category, value, place))) ids.Add(reader.GetString(0));
+            }
+        }
+        foreach (var id in ids)
+            SocialDeliveryStore.SuppressUnsentEvent(sqlite, tx, id, "ScoringCorrection", DateTimeOffset.UtcNow);
+    }
 
     private static HashSet<string> ChangedAwardSlots(IReadOnlyList<AwardRow> before, IReadOnlyList<AwardRow> after)
     {
@@ -408,7 +448,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         if (before.Count == 0)
             return new List<BadgeEventItem>();
 
-        return BuildBadgeAwardEventsCore(before, after, occurredAtUtc, currentProSlugs);
+        // A changed scoring definition establishes a new baseline. Its ownership
+        // changes describe a recalculation, not a new competitive achievement.
+        var changedRules = ChangedScoringRules(before, after);
+        var events = BuildBadgeAwardEventsCore(before, after, occurredAtUtc, currentProSlugs);
+        events.RemoveAll(e => changedRules.Contains(AwardSlotKey(e.BadgeLabel, e.LeagueCategory, e.LeagueValue, null)));
+        return events;
     }
 
     private static List<BadgeEventItem> BuildBadgeAwardEvents(

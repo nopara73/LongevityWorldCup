@@ -303,8 +303,8 @@ function assignBestRankCandidates(athletes) {
 
     assignRankedBestCandidates(
         orderByNumberDesc(
-            rows.filter(athlete => Number.isFinite(athlete.ageReductionPercent)),
-            athlete => athlete.ageReductionPercent),
+            rows.filter(athlete => Number.isFinite(athlete.phenoPaceOfAging)),
+            athlete => -athlete.phenoPaceOfAging),
         () => ({
             leagueName: 'Pheno pace of aging',
             leagueLabel: 'Pheno pace of aging ranking',
@@ -600,12 +600,16 @@ function initializeAthletePortraitMotion() {
         const photo = new Image();
         const sync = () => {
             const style = getComputedStyle(img);
-            for (const property of ['transform', 'scale', 'rotate', 'translate', 'object-fit', 'object-position', 'object-view-box']) {
-                const value = style.getPropertyValue(property);
+            // Read the photo once before writing to its overlay. Interleaved reads
+            // and writes force style resolution repeatedly during each video frame.
+            const properties = ['transform', 'scale', 'rotate', 'translate', 'object-fit', 'object-position', 'object-view-box', 'outline'];
+            const values = properties.map(property => style.getPropertyValue(property));
+            const outlineOffset = `${parseFloat(style.outlineOffset) + img.clientLeft}px`;
+            properties.forEach((property, index) => {
+                const value = values[index];
                 if (root.style.getPropertyValue(property) !== value) root.style.setProperty(property, value);
-            }
-            root.style.outline = style.outline;
-            root.style.outlineOffset = `${parseFloat(style.outlineOffset) + img.clientLeft}px`;
+            });
+            if (root.style.outlineOffset !== outlineOffset) root.style.outlineOffset = outlineOffset;
         };
         const size = () => {
             const style = getComputedStyle(img);
@@ -676,7 +680,7 @@ function initializeAthletePortraitMotion() {
         surfaces.set(img, record);
         wrapper.classList.add('portrait-motion');
         img.after(root);
-        size();
+        if (img === profile) size();
         resize.observe(img);
         photo.decoding = 'async';
         photo.src = img.src.replace('/generated/profiles/athletes/', '/generated/thumbs/athletes/')
@@ -817,11 +821,13 @@ function initializeAthletePortraitMotion() {
         // Lazy table photos may finish loading after the first pointer entry.
         // Replay then only if that interaction is still active.
         img.addEventListener('load', () => {
+            // The reusable profile image can change while its dialog is open.
+            // Table images only need a motion surface when someone activates them.
             const motion = motionFor(img);
-            if (motion) surfaceFor(img, motion);
+            if (img === profile && motion) surfaceFor(img, motion);
             if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
         });
-        if (img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
+        if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
@@ -863,7 +869,7 @@ function initializeAthletePortraitMotion() {
         if (!records || records.some(record => !profileModal?.contains(record.target))) {
             // Server-rendered rows also work while hydration is pending or fails.
             leaderboard?.querySelectorAll('img.portrait').forEach(wire);
-            // Hydration replaces podium cards; only their final portraits autoplay.
+            // Start autoplay after the ranking has confirmed the final portraits.
             if (athleteResultsReady) {
                 podium?.querySelectorAll('img.podium-portrait').forEach(img => {
                     wire(img);
@@ -1378,7 +1384,13 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
     }
 
     const currentLoadPromise = window.getSharedAthletes()
-        .then(athletes => {
+        .then(async athletes => {
+            // A prefetched response can resolve inside DOMContentLoaded. Give the
+            // already-visible links an input turn before enhancing the board.
+            if (hasServerRenderedLeaderboardRows(document.querySelector('.leaderboard table tbody'))) {
+                if (window.scheduler?.yield) await window.scheduler.yield();
+                else await new Promise(resolve => setTimeout(resolve, 0));
+            }
             // A pull refresh can finish before the initial request. Only the
             // latest load owns the visible board, including failure handling.
             if (athleteResultsLoadPromise !== currentLoadPromise) return;
@@ -1387,7 +1399,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             const refreshFocus = refresh ? document.activeElement : null;
             const refreshScroll = refresh ? window.scrollY : null;
             // Array to store athletes with their lowest PhenoAge and age reduction
-            updateViewAllAthletesButton(athletes.length);
             const nowForCrowdAgeUtc = new Date();
             const crowdAgeAsOfUtcDate = new Date(
                 nowForCrowdAgeUtc.getUTCFullYear(),
@@ -1491,6 +1502,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 // Compute the actually lowest PhenoAge across real submissions
                 let lowestPhenoAge = Infinity;
                 let valuesForLowestPhenoAge = null;
+                let phenoRankResult = null;
 
                 athlete.Biomarkers.forEach(entry => {
                     const entryDate = getBiomarkerTestDate(entry.Date);
@@ -1512,6 +1524,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     // Only consider submissions with complete numeric data
                     if (candidateValues.every(Number.isFinite)) {
                         const ph = window.PhenoAge.calculatePhenoAge(candidateValues);
+                        if (Number.isFinite(ph) && (!phenoRankResult ||
+                            ph - ageAtEntry < phenoRankResult.bio - phenoRankResult.chrono ||
+                            (ph - ageAtEntry === phenoRankResult.bio - phenoRankResult.chrono && ageAtEntry < phenoRankResult.chrono))) {
+                            phenoRankResult = { bio: ph, chrono: ageAtEntry };
+                        }
                         if (ph < lowestPhenoAge) {
                             lowestPhenoAge = ph;
                             valuesForLowestPhenoAge = candidateValues;
@@ -1548,9 +1565,9 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 }
 
                 // Calculate the age reduction
-                const ageReduction = lowestPhenoAge - chronoAtLowestPhenoAge;
+                const ageReduction = phenoRankResult ? phenoRankResult.bio - phenoRankResult.chrono : 0;
                 const biologicalAgePercent = lowestPhenoAge / chronoAtLowestPhenoAge;
-                const ageReductionPercent = (1 - biologicalAgePercent) * 100;
+                const ageReductionPercent = phenoRankResult?.chrono > 0 ? -100 * ageReduction / phenoRankResult.chrono : null;
 
                 // Lowest bortz age and bortz age reduction (only when submissions have full Bortz biomarkers)
                 let lowestBortzAge = null;
@@ -1558,6 +1575,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 let bortzAgeReduction = null;
                 let bortzAgeReductionPercent = null;
                 let bestBortzValues = null;
+                let bortzRankResult = null;
                 if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function') {
                     let bortzMin = Infinity;
                     let chronoAtBortzMin = null;
@@ -1600,6 +1618,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     completeBortzBiomarkerSets.forEach(entry => {
                         const { ageAtEntry, values: bortzValues } = buildBortzValues(entry);
                         const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, bortzValues);
+                        if (Number.isFinite(bortzAge) && (!bortzRankResult ||
+                            bortzAge - ageAtEntry < bortzRankResult.bio - bortzRankResult.chrono ||
+                            (bortzAge - ageAtEntry === bortzRankResult.bio - bortzRankResult.chrono && ageAtEntry < bortzRankResult.chrono))) {
+                            bortzRankResult = { bio: bortzAge, chrono: ageAtEntry };
+                        }
                         if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                             bortzMin = bortzAge;
                             chronoAtBortzMin = ageAtEntry;
@@ -1609,8 +1632,8 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     if (Number.isFinite(bortzMin) && chronoAtBortzMin != null) {
                         lowestBortzAge = bortzMin;
                         chronoAtLowestBortzAge = chronoAtBortzMin;
-                        bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
-                        bortzAgeReductionPercent = (1 - lowestBortzAge / chronoAtLowestBortzAge) * 100;
+                        bortzAgeReduction = bortzRankResult.bio - bortzRankResult.chrono;
+                        bortzAgeReductionPercent = bortzRankResult.chrono > 0 ? -100 * bortzAgeReduction / bortzRankResult.chrono : null;
                     }
                 }
 
@@ -1649,8 +1672,11 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     chronoAtLowestPhenoAge: chronoAtLowestPhenoAge,
                     ageReduction: ageReduction,
                     ageReductionPercent: ageReductionPercent,
+                    phenoPaceOfAging: biologicalAgePercent,
                     bestBiomarkerValues: bestBiomarkerValues,
                     bestBortzValues: bestBortzValues,
+                    phenoRankResult: phenoRankResult,
+                    bortzRankResult: bortzRankResult,
                     personalLink: athlete.PersonalLink,
                     profilePic: athlete.ProfilePic,
                     profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
@@ -1680,10 +1706,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 return result;
             });
 
-            const getDisplayAgeReductionValue = (athlete) =>
-                (athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction))
-                    ? athlete.bortzAgeReduction
-                    : athlete.ageReduction;
             const getDisplayAgeReductionRoundedToTenths = (athlete) => {
                 const displayAgeReduction = getDisplayAgeReductionValue(athlete);
                 return Number.isFinite(displayAgeReduction) ? displayAgeReduction.toFixed(1) : null;
@@ -1787,7 +1809,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 });
             });
 
-            athletesOrderedByPace = orderByNumberDesc(athleteResults, a => a.ageReductionPercent);
+            athletesOrderedByPace = orderByNumberAsc(athleteResults, a => a.phenoPaceOfAging);
             athletesOrderedByBortzPace = orderByNumberAsc(
                 athleteResults.filter(a => a.lowestBortzAge != null && a.chronoAtLowestBortzAge != null && Number.isFinite(a.lowestBortzAge / a.chronoAtLowestBortzAge)),
                 a => a.lowestBortzAge / a.chronoAtLowestBortzAge
@@ -1801,16 +1823,23 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 return;
             }
 
-            const podiumCount = includePodium ? 3 : 0;
-
             if (includePodium) {
                 // Winners are available now; prize services must not delay their cards.
                 // Get the top three athletes from athleteResults
                 const topThree = athleteResults.slice(0, 3);
 
-                // Select the podium container and clear existing items
+                // Keep the painted portraits when the public data agrees with the HTML.
                 const podium = document.querySelector('.podium');
-                podium.innerHTML = ''; // Clear any existing podium items
+                const serverCards = [...podium.children];
+                const keepCards = podium.dataset.serverRendered === 'true'
+                    && serverCards.length === topThree.length
+                    && topThree.every((athlete, index) =>
+                        serverCards[index].dataset.athleteName === athlete.name
+                        && serverCards[index].querySelector('.athlete-profile-link')?.getAttribute('href') === getAthleteProfileHref(athlete)
+                        && serverCards[index].querySelector('.podium-portrait')?.getAttribute('src') === getAthletePortraitUrl(athlete)
+                        && serverCards[index].querySelector('.athlete-name')?.textContent === athlete.displayName
+                        && serverCards[index].querySelector('.age-reduction')?.textContent === podiumScore(athlete));
+                if (!keepCards) podium.replaceChildren();
                 podium.removeAttribute('data-server-rendered');
                 podium.setAttribute('aria-busy', 'false');
 
@@ -1835,35 +1864,35 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                             return; // Only handle top three
                     }
 
-                    // Create the podium-item div
-                    const podiumItem = document.createElement('div');
-                    podiumItem.classList.add('podium-item', rankClass);
+                    const podiumItem = keepCards ? serverCards[athlete.rank - 1] : document.createElement('div');
+                    if (!keepCards) {
+                        podiumItem.classList.add('podium-item', rankClass);
 
-                    const podiumPortraitUrl = getAthletePortraitUrl(athlete);
+                        const podiumPortraitUrl = getAthletePortraitUrl(athlete);
 
-                    // Populate the inner HTML of podiumItem
-                    podiumItem.innerHTML = `
-                        <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
-                            ${rankEmoji}
-                        </div>
-                        <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
-                        <div class="name-row">
-                            <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
-                        </div>
-                        <div class="podium-link-row">
-                            ${renderPersonalLink(athlete.personalLink, athlete.displayName)}
-                            ${renderPodcastLink(athlete.podcastLink, athlete.displayName)}
-                            ${renderMediaContact(athlete.mediaContact, true, athlete.displayName)}
-                        </div>
-                        <div class="podium-score"><span class="age-reduction">${Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1)} years</span> reduced</div>
-                        <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
-                            <div class="btc-amount">&nbsp;</div>
-                            <div class="prize-money">&mdash;</div>
-                        </a>
-                    `;
+                        podiumItem.innerHTML = `
+                            <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
+                                ${rankEmoji}
+                            </div>
+                            <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
+                            <div class="name-row">
+                                <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
+                            </div>
+                            <div class="podium-link-row">
+                            </div>
+                            <div class="podium-score"><span class="age-reduction">${podiumScore(athlete)}</span> reduced</div>
+                            <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
+                                <div class="btc-amount">&nbsp;</div>
+                                <div class="prize-money">&mdash;</div>
+                            </a>
+                        `;
 
-                    // Append the podiumItem to the podium container
-                    podium.appendChild(podiumItem);
+                        podium.appendChild(podiumItem);
+                    }
+                    podiumItem.querySelector('.podium-link-row').innerHTML =
+                        renderPersonalLink(athlete.personalLink, athlete.displayName)
+                        + renderPodcastLink(athlete.podcastLink, athlete.displayName)
+                        + renderMediaContact(athlete.mediaContact, true, athlete.displayName);
                     wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
 
                     // After appending the podium item
@@ -1874,14 +1903,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
                 });
 
-                // Attach click event listeners to athlete names
-                attachAthleteNameClickListeners();
-
-                addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
-                addClickListenerToImages('#modalProfilePic', function () {
-                    openEnlargedView(this);
-                }, img => `Enlarge ${img.alt || 'image'}`);
-
+                attachAthleteNameClickListeners(podium);
                 updatePodiumPrizes(podium);
             } else {
                 // Hide the podium container if not included
@@ -1901,92 +1923,17 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             tableBody.setAttribute('aria-busy', 'false');
             tableBody.removeAttribute('data-server-rendered');
             tableBody.removeAttribute('data-hydrating');
-            const remainingAthletes = athleteResults;
-
-            tableBody.innerHTML = ''; // Clear existing table rows
+            const serverRows = new Map([...tableBody.querySelectorAll('tr.server-rendered-leaderboard-row')]
+                .map(row => [row.dataset.athleteName, row]));
             resetRowRevealQueue();
-            let lastVisibleTier = null; // 'pro' | 'amateur' among rows actually shown in the table
-            remainingAthletes.forEach((athlete, index) => {
-                const isPro = athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
-                const tier = isPro ? 'pro' : 'amateur';
-                const rowWillBeHiddenByPodium = includePodium && athlete.rank <= podiumCount;
-                const rowWillBeHiddenByMaxAthletes = index >= maxAthletes;
-                const rowWillBeVisibleInTable = !rowWillBeHiddenByPodium && !rowWillBeHiddenByMaxAthletes;
-                if (rowWillBeVisibleInTable && lastVisibleTier === 'pro' && tier === 'amateur') {
-                    const sep = document.createElement('tr');
-                    sep.className = 'tier-separator';
-                    sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
-                    sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
-                    tableBody.appendChild(sep);
-                }
-                if (rowWillBeVisibleInTable) {
-                    lastVisibleTier = tier;
-                }
-
-                const template = document.getElementById('leaderboardRowTemplate');
-                const row = template.content.firstElementChild.cloneNode(true);
-
-                row.classList.add('tier-' + tier);
-                setProfileProBadge(row.querySelector('.pro-badge'), isPro);
-                row.setAttribute('data-tier', tier);
-                row.setAttribute('data-rank', athlete.rank);
-
-                setDisplayedRank(row.querySelector('.rank'), athlete.rank);
-                const athleteCell = row.querySelector('.athlete-td');
-                const portraitImg = athleteCell.querySelector('img.portrait');
-                portraitImg.src = getAthletePortraitUrl(athlete);
-                portraitImg.alt = `${athlete.displayName} portrait`;
-                wirePortraitFallback(portraitImg, athlete);
-                if (athlete.isNew) {
-                    portraitImg.classList.add('is-new');
-                    applyNewUI(portraitImg, row);
-                }
-                if (athlete.rankImproved) {
-                    const placesUp = athlete.lastMonthRank - athlete.rank; // e.g. 12 → 7  => 5 places up
-                    applyRankUpUI(portraitImg, placesUp, row);
-                }
-
-                const athleteNameSpan = athleteCell.querySelector('.athlete-name');
-                athleteNameSpan.href = getAthleteProfileHref(athlete);
-                const portraitLink = athleteCell.querySelector('.athlete-profile-link');
-                portraitLink.href = getAthleteProfileHref(athlete);
-                portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
-                athleteNameSpan.innerHTML = `<span class="athlete-name-content">${escapeHtml(athlete.displayName)}</span>`;
-                athleteNameSpan.title = `View stats of ${athlete.displayName}`;
-
-                window.setBadges(athlete, athleteCell);
-
-                const displayAgeReduction = getDisplayAgeReductionValue(athlete);
-                const displayAgeReductionDecimals = athlete.ageReductionDisplayDecimals || 1;
-                const ageReductionSpan = row.querySelector('.age-reduction');
-                ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(displayAgeReductionDecimals) + ' years';
-
-                const mediaContactCell = row.querySelector('.media-contact-td');
-                mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
-
-                row.setAttribute('data-division', athlete.division.toLowerCase().trim());
-                row.setAttribute('data-generation', athlete.generation.trim());
-                row.setAttribute('data-athlete-name', athlete.name);
-
-                if (rowWillBeHiddenByPodium) {
-                    row.style.display = 'none';
-                    row.classList.add('podium-athlete');
-                }
-
-                if (rowWillBeHiddenByMaxAthletes) {
-                    row.style.display = 'none';
-                    row.classList.add('extra-athlete');
-                }
-
-                row.id = `rank-${athlete.rank}`;
-                tableBody.appendChild(row);
-                attachAthleteContainerClickListener(row);
-                attachAthleteNameClickListeners();
-                addClickListenerToImages('#modalProfilePic', function () {
-                    openEnlargedView(this);
-                }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
-                addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
-            });
+            const initialRows = athleteResults.slice(0, maxAthletes).map(athlete =>
+                createLeaderboardRow(athlete, serverRows.get(athlete.name)));
+            // Preserve focus and the already-painted portraits when the server has the same rows.
+            const keep = new Set(initialRows);
+            for (const row of [...tableBody.children]) if (!keep.has(row)) row.remove();
+            const newRows = document.createDocumentFragment();
+            for (const row of initialRows) if (!row.isConnected) newRows.append(row);
+            tableBody.append(newRows);
             scheduleLeaderboardTableHeightSync();
 
             // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
@@ -2150,6 +2097,77 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
     return currentLoadPromise;
 };
 
+function createLeaderboardRow(athlete, serverRow) {
+    const isPro = Number.isFinite(athlete.bortzAgeReduction);
+    const tier = isPro ? 'pro' : 'amateur';
+    const template = document.getElementById('leaderboardRowTemplate');
+    const row = serverRow?.querySelector('.portrait-wrapper img.portrait') ? serverRow : template.content.firstElementChild.cloneNode(true);
+    row.classList.remove('server-rendered-leaderboard-row');
+    if (!row.querySelector('.pro-badge')) {
+        row.querySelector('.portrait-wrapper').append(template.content.querySelector('.pro-badge').cloneNode());
+    }
+
+    setProfileProBadge(row.querySelector('.pro-badge'), isPro);
+    row.setAttribute('data-tier', tier);
+    row.setAttribute('data-rank', athlete.rank);
+
+    setDisplayedRank(row.querySelector('.rank'), athlete.rank);
+    const athleteCell = row.querySelector('.athlete-td');
+    const portraitImg = athleteCell.querySelector('img.portrait');
+    const portraitUrl = getAthletePortraitUrl(athlete);
+    if (portraitImg.getAttribute('src') !== portraitUrl) portraitImg.src = portraitUrl;
+    portraitImg.alt = `${athlete.displayName} portrait`;
+    wirePortraitFallback(portraitImg, athlete);
+    if (athlete.isNew) {
+        portraitImg.classList.add('is-new');
+        applyNewUI(portraitImg, row);
+    }
+    if (athlete.rankImproved) {
+        const placesUp = athlete.lastMonthRank - athlete.rank; // e.g. 12 → 7  => 5 places up
+        applyRankUpUI(portraitImg, placesUp, row);
+    }
+
+    const athleteNameSpan = athleteCell.querySelector('.athlete-name');
+    athleteNameSpan.href = getAthleteProfileHref(athlete);
+    const portraitLink = athleteCell.querySelector('.athlete-profile-link');
+    portraitLink.href = getAthleteProfileHref(athlete);
+    portraitLink.setAttribute('aria-label', `View stats of ${athlete.displayName}`);
+    athleteNameSpan.innerHTML = `<span class="athlete-name-content">${escapeHtml(athlete.displayName)}</span>`;
+    athleteNameSpan.title = `View stats of ${athlete.displayName}`;
+
+    window.setBadges(athlete, athleteCell);
+
+    const displayAgeReduction = getDisplayAgeReductionValue(athlete);
+    const displayAgeReductionDecimals = athlete.ageReductionDisplayDecimals || 1;
+    const ageReductionSpan = row.querySelector('.age-reduction');
+    ageReductionSpan.textContent = (displayAgeReduction > 0 ? '+' : '') + displayAgeReduction.toFixed(displayAgeReductionDecimals) + ' years';
+
+    const mediaContactCell = row.querySelector('.media-contact-td');
+    mediaContactCell.innerHTML = renderMediaContact(athlete.mediaContact, false, athlete.displayName);
+
+    row.setAttribute('data-division', athlete.division.toLowerCase().trim());
+    row.setAttribute('data-generation', athlete.generation.trim());
+    row.setAttribute('data-athlete-name', athlete.name);
+    row.classList.toggle('tier-pro', isPro);
+    row.classList.toggle('tier-amateur', !isPro);
+    if (includePodiumGlobal && athlete.rank <= 3) {
+        row.style.display = 'none';
+        row.classList.add('podium-athlete');
+    }
+    row.id = `rank-${athlete.rank}`;
+    attachAthleteContainerClickListener(row);
+    attachAthleteNameClickListeners(row);
+    return row;
+}
+
+function createTierSeparator() {
+    const sep = document.createElement('tr');
+    sep.className = 'tier-separator';
+    sep.setAttribute('aria-label', 'Start of Amateur track (Pheno Age) section');
+    sep.innerHTML = '<td colspan="5" class="tier-separator-cell"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></td>';
+    return sep;
+}
+
 function buildPodiumSkeletonHtml() {
     return ['second', 'first', 'third'].map(rank => `
         <div class="podium-item podium-skeleton-item ${rank}" aria-hidden="true">
@@ -2279,6 +2297,14 @@ function setLeaderboardLoadingState(includePodium, maxAthletes) {
     tableBody.innerHTML = buildLeaderboardSkeletonRows(skeletonCount);
 }
 
+function getDisplayAgeReductionValue(athlete) {
+    return Number.isFinite(athlete.bortzAgeReduction) ? athlete.bortzAgeReduction : athlete.ageReduction;
+}
+
+function podiumScore(athlete) {
+    return Math.abs(getDisplayAgeReductionValue(athlete)).toFixed(athlete.ageReductionDisplayDecimals || 1) + ' years';
+}
+
 function updatePodiumPrizes(podium) {
     // Capture these exact panels so a late response cannot replace newer
     // cards, discard focus, or undo a leaderboard filter/refresh.
@@ -2350,13 +2376,12 @@ function attachAthleteContainerClickListener(container) {
     container.dataset.athleteContainerClickListener = 'true';
 }
 
-function attachAthleteNameClickListeners() {
-    document.querySelectorAll('a.athlete-name, a.athlete-profile-link').forEach(athleteNameElement => {
+function attachAthleteNameClickListeners(container) {
+    container.querySelectorAll('a.athlete-name, a.athlete-profile-link').forEach(athleteNameElement => {
         const athleteName = athleteNameElement.textContent.trim() || athleteNameElement.getAttribute('aria-label');
         if (!athleteName) return;
 
         athleteNameElement.setAttribute('aria-label', athleteNameElement.title || athleteNameElement.getAttribute('aria-label') || `View stats of ${athleteName}`);
-        athleteNameElement.removeEventListener('click', activateAthleteName);
         athleteNameElement.addEventListener('click', activateAthleteName);
     });
 }
@@ -3253,7 +3278,7 @@ function requestCloseAthleteModal() {
 }
 
 function finishAfterTransition(element, property, complete) {
-    const transition = element.getAnimations().find(animation => animation.transitionProperty === property);
+    const transition = element.getAnimations?.().find(animation => animation.transitionProperty === property);
     const remaining = transition
         ? Math.max(0, transition.effect.getComputedTiming().endTime - (transition.currentTime || 0))
         : 0;
@@ -3449,8 +3474,8 @@ function getViewAllAthletesButton() {
     return pageDocument.getElementById('viewAllAthletesBtn');
 }
 
-function updateViewAllAthletesButton(count, updateSummary = true) {
-    if (updateSummary) updateLeaderboardSelectionSummary(count);
+function updateViewAllAthletesButton(count, updateSummary = true, allowMotion = true) {
+    if (updateSummary) updateLeaderboardSelectionSummary(count, allowMotion);
     const button = getViewAllAthletesButton();
     if (!button) return;
 
@@ -3462,60 +3487,154 @@ function updateViewAllAthletesButton(count, updateSummary = true) {
     button.textContent = Number.isFinite(displayCount) ? `${label} (${displayCount})` : label;
 }
 
-function updateLeaderboardSelectionSummary(count) {
+const selectionAnimations = new Set();
+let selectionCountAnimation;
+let currentSelectionChoices = [];
+
+function animateSelection(element, frames, options, cleanup) {
+    const animation = element.animate(frames, options);
+    selectionAnimations.add(animation);
+    const finish = () => {
+        selectionAnimations.delete(animation);
+        cleanup?.();
+    };
+    animation.onfinish = finish;
+    animation.oncancel = finish;
+}
+
+function selectionGhost(chip, rect, flight) {
+    const ghost = document.createElement('span');
+    ghost.className = 'leaderboard-selection-chip--ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.append(...Array.from(chip.children, child => child.cloneNode(true)));
+    Object.assign(ghost.style, { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` });
+    if (flight) ghost.classList.add('is-flying');
+    document.body.appendChild(ghost);
+    return ghost;
+}
+
+function updateLeaderboardSelectionSummary(count, allowMotion) {
     const summary = document.getElementById('leaderboardSelectionSummary');
     if (!summary || !Number.isFinite(count)) return;
-    summary.hidden = false;
-    const isFlags = getSelectedLeaderboardState().byFlag;
-    const resultLabel = `${count} ${isFlags ? (count === 1 ? 'flag' : 'flags') : (count === 1 ? 'athlete' : 'athletes')}`;
-    const resultCount = document.getElementById('leaderboardResultCount');
-    if (resultCount.textContent !== resultLabel) resultCount.textContent = resultLabel;
-    const showResults = document.getElementById('showLeaderboardResults');
-    if (showResults) showResults.textContent = `Show ${resultLabel}`;
-
-    const choices = [];
     const state = getSelectedLeaderboardState();
+    const unit = state.byFlag ? 'flag' : 'athlete';
+    const resultLabel = `${count} ${unit}${count === 1 ? '' : 's'}`;
+    const resultCount = document.getElementById('leaderboardResultCount');
+    const showResults = document.getElementById('showLeaderboardResults');
+    const chips = document.getElementById('leaderboardSelectionChips');
+    const toggle = document.querySelector('.sidebar-toggle');
+    const choices = [];
     const viewLabels = { bortz: 'Bortz age', pheno: 'Pheno age', improvement: 'Pheno improvement', 'bortz-improvement': 'Bortz improvement', crowd: 'Crowd age' };
-    if (state.byFlag) choices.push({ label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
-    if (state.view !== 'ultimate') choices.push({ label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
+    if (state.byFlag) choices.push({ key: 'by-flag', source: document.querySelector('label[for="group-flags"]'), label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
+    if (state.view !== 'ultimate') choices.push({ key: `view:${state.view}`, source: document.querySelector(`label[for="view-${CSS.escape(state.view)}"]`), label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
     for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
         if (name === 'flag' && state.byFlag) continue;
         if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
         document.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
             const label = name === 'leagueTrack' ? getLeagueTrackLabel(input.value) : input.value;
-            choices.push({ label, remove: () => { input.checked = false; } });
+            choices.push({ key: `${name}:${input.value}`, source: input.closest('label'), label, remove: () => { input.checked = false; } });
         });
     }
-    const toggle = document.querySelector('.sidebar-toggle');
-    if (toggle) {
-        toggle.dataset.filterCount = String(choices.length);
-        toggle.setAttribute('aria-description', `${choices.length} active ${choices.length === 1 ? 'filter' : 'filters'}`);
-    }
+    const filterCount = choices.length;
     const search = document.getElementById('athleteSearch');
-    if (search?.value.trim()) choices.push({ label: `Search: ${search.value.trim()}`, remove: () => { search.value = ''; toggleClearIcon(); } });
+    if (search?.value.trim()) choices.push({ key: 'search', label: `Search: ${search.value.trim()}`, remove: () => { search.value = ''; toggleClearIcon(); } });
 
-    const chips = document.getElementById('leaderboardSelectionChips');
-    chips.replaceChildren();
-    choices.forEach((choice, index) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'leaderboard-selection-chip';
-        button.setAttribute('aria-label', `Remove ${choice.label} filter`);
-        const label = document.createElement('span');
-        label.textContent = choice.label;
-        const close = document.createElement('span');
-        close.textContent = '×';
-        close.setAttribute('aria-hidden', 'true');
-        button.append(label, close);
-        button.addEventListener('click', () => {
-            choice.remove();
-            performFilter();
-            const remaining = chips.querySelectorAll('button');
-            (remaining[Math.min(index, remaining.length - 1)] || toggle)?.focus({ preventScroll: true });
-        });
-        chips.appendChild(button);
-    });
-    document.getElementById('clearLeaderboardSelection').hidden = choices.length === 0;
+    const previous = new Map(Array.from(chips.children, chip => [chip.dataset.chipKey, chip]));
+    const changed = previous.size !== choices.length || choices.some(choice => !previous.has(choice.key));
+    const motion = allowMotion && typeof chips.animate === 'function' && document.documentElement.dataset.lwcMotion === 'on'
+        && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sheetOpen = changed && isMobileDrawerViewport() && document.querySelector('.sidebar.expanded');
+    const moveChips = motion && changed && !sheetOpen;
+    const before = new Map();
+    if (changed) {
+        for (const animation of selectionAnimations) animation.cancel();
+        if (moveChips) {
+            for (const chip of previous.values()) before.set(chip, chip.getBoundingClientRect());
+        }
+    }
+
+    if (summary.hidden) summary.hidden = false;
+    if (resultCount.textContent !== resultLabel) {
+        const oldCount = parseInt(resultCount.textContent, 10);
+        resultCount.textContent = resultLabel;
+        selectionCountAnimation?.cancel();
+        if (motion && Number.isFinite(oldCount) && oldCount !== count) {
+            selectionCountAnimation = resultCount.animate([{ transform: `translateY(${count > oldCount ? 6 : -6}px)` }, { transform: 'none' }], { duration: 180 });
+        }
+    }
+    if (showResults && showResults.textContent !== `Show ${resultLabel}`) showResults.textContent = `Show ${resultLabel}`;
+    if (toggle && toggle.dataset.filterCount !== String(filterCount)) {
+        toggle.dataset.filterCount = String(filterCount);
+        toggle.setAttribute('aria-description', `${filterCount} active ${filterCount === 1 ? 'filter' : 'filters'}`);
+    }
+
+    // Removing obsolete buttons first leaves the survivors in their natural tab order.
+    currentSelectionChoices = choices;
+    const keys = new Set(choices.map(choice => choice.key));
+    const missing = Array.from(previous.values()).filter(chip => !keys.has(chip.dataset.chipKey));
+    for (const chip of missing) chip.remove();
+    let next = chips.firstElementChild;
+    for (const choice of choices) {
+        let button = previous.get(choice.key);
+        if (!button) {
+            button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'leaderboard-selection-chip';
+            button.dataset.chipKey = choice.key;
+            const close = document.createElement('span');
+            close.textContent = '×';
+            close.setAttribute('aria-hidden', 'true');
+            button.append(document.createElement('span'), close);
+            button.addEventListener('click', () => {
+                const neighbor = button.nextElementSibling || button.previousElementSibling || toggle;
+                currentSelectionChoices.find(item => item.key === button.dataset.chipKey)?.remove();
+                performFilter();
+                (neighbor?.isConnected ? neighbor : toggle)?.focus({ preventScroll: true });
+            });
+        }
+        if (button.firstElementChild.textContent !== choice.label) {
+            button.firstElementChild.textContent = choice.label;
+            button.setAttribute('aria-label', `Remove ${choice.label} filter`);
+        }
+        if (button !== next) chips.insertBefore(button, next);
+        next = button.nextElementSibling;
+    }
+    document.getElementById('clearLeaderboardSelection').hidden = !choices.length;
+
+    if (motion && sheetOpen && showResults && choices.some(choice => !previous.has(choice.key))) {
+        animateSelection(showResults, [{ transform: 'scale(1)' }, { transform: 'scale(1.035)', boxShadow: '0 0 0 3px var(--lwc-accent-soft)' }, { transform: 'scale(1)' }], { duration: 320 });
+    }
+    if (!moveChips) return;
+
+    // Read final positions together before attaching or animating any copies.
+    const moves = Array.from(chips.children, (chip, index) => ({
+        chip, rect: chip.getBoundingClientRect(), old: before.get(chip),
+        source: before.has(chip) ? null : choices[index].source?.getBoundingClientRect()
+    }));
+    const visible = rect => rect?.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+    for (const { chip, rect, old, source } of moves) {
+        if (!visible(rect)) continue;
+        if (old) {
+            const dx = old.left - rect.left, dy = old.top - rect.top;
+            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)
+                animateSelection(chip, [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 240, easing: 'ease-out' });
+        } else if (visible(source)) {
+            const dx = source.left + source.width / 2 - rect.left - rect.width / 2;
+            const dy = source.top + source.height / 2 - rect.top - rect.height / 2;
+            const ghost = selectionGhost(chip, rect, true);
+            animateSelection(ghost, [{ transform: `translate(${dx}px, ${dy}px) scale(.85)`, opacity: .6 }, { transform: 'none', opacity: 1 }],
+                { duration: 340, easing: 'ease-out' }, () => ghost.remove());
+            animateSelection(chip, [{ boxShadow: '0 0 0 2px var(--lwc-accent)' }, { boxShadow: 'none' }], { duration: 240, delay: 340 });
+        }
+    }
+    let leaving = 0;
+    for (const chip of missing) {
+        const rect = before.get(chip);
+        if (!visible(rect)) continue;
+        const ghost = selectionGhost(chip, rect, false);
+        animateSelection(ghost, [{ opacity: 1 }, { transform: 'translateY(-6px) scale(.7)', opacity: 0 }],
+            { duration: 200, delay: Math.min(leaving++, 4) * 30, easing: 'ease-in', fill: 'forwards' }, () => ghost.remove());
+    }
 }
 
 function updateLeaderboardStateIndicator() {
@@ -3754,7 +3873,14 @@ function buildFlagTeams(entries, view) {
     return teams;
 }
 
-function renderFlagTeams(teams, view) {
+function renderFlagTeams(teams, view, cohort) {
+    // Search and the homepage limit preserve both the rank and its scale.
+    const scales = new Map();
+    for (const team of cohort) {
+        const gains = team.values.reduce((sum, value) => sum + Math.max(0, -value), 0);
+        const losses = team.values.reduce((sum, value) => sum + Math.max(0, value), 0);
+        scales.set(team.view, Math.max(scales.get(team.view) || 0, gains, losses));
+    }
     const container = document.getElementById('flagLeaderboard');
     const focused = document.activeElement;
     const focusedTeam = focused?.closest?.('.flag-team');
@@ -3775,12 +3901,12 @@ function renderFlagTeams(teams, view) {
             ? '<h3 class="flag-section-heading tier-separator tier-separator-cell" aria-label="Start of Amateur track (Pheno Age) section"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></h3>'
             : section === 'incomplete' && section !== previousSection ? '<h3 class="flag-section-heading">Incomplete teams</h3>' : '';
         previousSection = section;
-        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
+        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" style="--lwc-unit:${100 / (scales.get(team.view) || 1)}%" ${open.has(id) ? 'open' : ''}>
             <summary title="${labels[team.view]}"><span class="flag-team-rank" data-rank="${team.rank || ''}" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
             <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
             <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" data-athlete-name="${escapeHtml(a.displayName)}" alt="" loading="lazy">`).join('')}</span>
             <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`} <small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
-            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
+            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li data-delta="${team.values[index]}"><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
     const nextChildren = [...template.content.children].map(incoming => {
         if (incoming.classList.contains('flag-empty')) {
@@ -3808,6 +3934,8 @@ function renderFlagTeams(teams, view) {
             existing._flagMarkup = nextMarkup;
         }
         existing.className = incoming.className;
+        if (existing.style.getPropertyValue('--lwc-unit') !== incoming.style.getPropertyValue('--lwc-unit'))
+            existing.style.setProperty('--lwc-unit', incoming.style.getPropertyValue('--lwc-unit'));
         existing.dataset.clock = incoming.dataset.clock;
         existing.dataset.flag = incoming.dataset.flag;
         return existing;
@@ -3830,6 +3958,7 @@ function renderFlagTeams(teams, view) {
         element.querySelectorAll('.flag-team-portraits img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
         element.querySelectorAll('.flag-athlete-link img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
     });
+    window.LwcDisclosure?.refresh(container);
 }
 
 const leaderboardRowAnimations = new Map();
@@ -3888,11 +4017,36 @@ function moveLeaderboardRows(mutate, motion) {
     }
 }
 
+const unrenderedBadgeSearch = new WeakMap();
+
+function leaderboardBadgeSearchText(athlete, row) {
+    // Use the same badge labels, overflow copy and personal guess as a rendered row.
+    // Cache offscreen athletes so subsequent keystrokes do not rebuild their badges.
+    let guess;
+    if (!row) {
+        guess = window.LwcGuessState?.get(athlete)?.value;
+        const cached = unrenderedBadgeSearch.get(athlete);
+        if (cached && cached.guess === guess && cached.badges === athlete.Badges) return cached.text;
+    }
+    const cell = row || document.createElement('td');
+    if (!row) {
+        cell.className = 'athlete-td';
+        cell.innerHTML = '<span class="athlete-name-links"></span><div class="badge-section"></div>';
+        window.setBadges(athlete, cell);
+    }
+    const text = Array.from(cell.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'), badge => {
+        const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
+        return `${title} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`.trim();
+    }).join(' ');
+    if (!row) unrenderedBadgeSearch.set(athlete, { guess, badges: athlete.Badges, text });
+    return text;
+}
+
 function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     // Immediate filter changes already consume the current query. A stale timer
     // must not rewrite a profile URL opened from those freshly filtered rows.
     debouncedFilter.cancel();
-    const rowMotion = captureLeaderboardRowMotion();
+    const rowMotion = renderedLeaderboardSelection ? captureLeaderboardRowMotion() : null;
     const selectedState = getSelectedLeaderboardState();
     const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
     const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: document.getElementById('athleteSearch').value });
@@ -4009,24 +4163,15 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const showAll = uniqueSearchTerms.length === 0;
 
     const athleteBadgeTextByName = new Map();
-    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
-        const athleteName = row.getAttribute('data-athlete-name');
-        if (!athleteName) return;
+    if (uniqueSearchTerms.length && !orderingSnapshot) {
+        const renderedRows = new Map([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')]
+            .map(row => [row.dataset.athleteName, row]));
+        for (const athlete of athleteResults) {
+            athleteBadgeTextByName.set(athlete.name, leaderboardBadgeSearchText(athlete, renderedRows.get(athlete.name)));
+        }
+    }
 
-        const badgeSearchText = Array.from(row.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'))
-            .map(badge => {
-                const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
-                const ariaLabel = badge.getAttribute('aria-label') || '';
-                const text = badge.textContent || '';
-                return `${title} ${ariaLabel} ${text}`.trim();
-            })
-            .filter(Boolean)
-            .join(' ');
-
-        athleteBadgeTextByName.set(athleteName, badgeSearchText);
-    });
-
-    const searchTextByAthlete = orderingSnapshot ? null : new Map(athleteResults.map(athlete => [athlete, [
+    const searchTextByAthlete = (orderingSnapshot || showAll) ? null : new Map(athleteResults.map(athlete => [athlete, [
         athlete.name,
         athlete.displayName,
         athleteBadgeTextByName.get(athlete.name) || '',
@@ -4072,17 +4217,18 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             const key = JSON.stringify(state);
             if (!matchingTeamsByState.has(key)) {
                 const teams = buildFlagTeams(getMatchingEntries(state, false), state.view);
-                matchingTeamsByState.set(key, teams.filter(team => uniqueSearchTerms.every(term =>
+                const matching = teams.filter(team => uniqueSearchTerms.every(term =>
                     window.normalizeString(team.flag.toLowerCase()).includes(term) ||
-                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term)))));
+                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term))));
+                matchingTeamsByState.set(key, { cohort: teams, matching });
             }
             return matchingTeamsByState.get(key);
         };
-        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
-        const matchingTeams = getMatchingFlagTeams(selectedState);
-        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
+        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).matching.flatMap(team => team.eligibleEntries);
+        const { cohort, matching: matchingTeams } = getMatchingFlagTeams(selectedState);
+        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView, cohort);
         markFlagSearchReasons(uniqueSearchTerms, matchingTeams, athleteBadgeTextByName);
-        updateViewAllAthletesButton(matchingTeams.length);
+        updateViewAllAthletesButton(matchingTeams.length, true, updateUrl);
         updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
         updateLeaderboardTitles(selectedState);
         document.querySelector('.podium')?.style.setProperty('display', 'none');
@@ -4099,15 +4245,21 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     tableBody.querySelector('.leaderboard-load-error-row')?.remove();
     const allRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)'));
     const rowsByName = new Map(allRows.filter(row => row.dataset.athleteName).map(row => [row.dataset.athleteName, row]));
-    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const entriesByAthlete = new Map(matchingEntries.map(entry => [entry.athlete, entry]));
     const unslicedFilteredAthletes = matchingEntries.map(entry => entry.athlete);
     athleteDialogBoardSequence = unslicedFilteredAthletes;
     const filteredAthletes = unslicedFilteredAthletes.slice(0, maxAthletesGlobal);
-    updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot);
+    updateViewAllAthletesButton(unslicedFilteredAthletes.length, !orderingSnapshot, updateUrl);
 
+    for (const athlete of filteredAthletes) {
+        if (rowsByName.has(athlete.name)) continue;
+        const row = createLeaderboardRow(athlete);
+        rowsByName.set(athlete.name, row);
+        allRows.push(row);
+    }
+    window.LwcLeaderboardOrder.renderValues(matchingEntries, selectedState.ordering, rowsByName);
     const tableRows = allRows;
-    const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
+    let tierSeparatorRow = tableBody.querySelector('.tier-separator');
 
     // Remove 'blurred' class from all podium items
     const podiumItems = document.querySelectorAll('.podium-item');
@@ -4154,7 +4306,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
 
     // Show tier separator when both pro and amateur rows are visible in the table (first amateur after at least one pro); hide for clock views.
     // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
-    if (tierSeparatorRow) {
+    {
         let separatorShouldShow = false;
         if (currentLeaderboardView === 'ultimate' && selectedState.ordering.sort === 'rank') {
             const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
@@ -4167,7 +4319,11 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
                 }
             }
         }
-        tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
+        if (separatorShouldShow && !tierSeparatorRow) {
+            tierSeparatorRow = createTierSeparator();
+            allRows.push(tierSeparatorRow);
+        }
+        if (tierSeparatorRow) tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
     }
 
     // Reorder tbody so visible rows match the athletes actually shown in the table.
@@ -4679,6 +4835,12 @@ document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(labe
     });
 });
 
+function isRequestedNamedFilter(value) {
+    const raw = new URLSearchParams(location.search).get('filters');
+    const requested = raw ? parseFiltersParam(raw) : [getLeagueRouteState(location.pathname).filterLabel || ''];
+    return requested.some(filter => filter.toLowerCase() === value.toLowerCase());
+}
+
 function generateDivisionFilters(athletes) {
     const filterSection = document.querySelector('#division-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
@@ -4688,6 +4850,9 @@ function generateDivisionFilters(athletes) {
         acc[athlete.division] = (acc[athlete.division] || 0) + 1;
         return acc;
     }, {});
+    ["Women's", "Men's", "Open"].forEach(division => {
+        if (isRequestedNamedFilter(division)) divisionCounts[division] ??= 0;
+    });
 
     // Generate the filter items with icons and counts
     Object.keys(divisionCounts).forEach(division => {
@@ -4749,7 +4914,7 @@ function generateGenerationFilters(athletes) {
 
     orderedGenerations.forEach(generation => {
         const count = generationCounts[generation] || 0;
-        if (count > 0) { // Only show generations with at least one athlete
+        if (count > 0 || isRequestedNamedFilter(generation)) {
             const icon = window.TryGetGenerationFaIcon ? window.TryGetGenerationFaIcon(generation) : '';
 
             const li = document.createElement('li');
@@ -4777,7 +4942,7 @@ function generateExclusiveFilters(athletes) {
         return athlete.exclusiveLeague === "Prosperan" ? count + 1 : count;
     }, 0);
 
-    if (prosperanCount > 0) {
+    if (prosperanCount > 0 || isRequestedNamedFilter('Prosperan')) {
         const li = document.createElement('li');
         li.innerHTML = `
         <label data-exclusive-league="Prosperan">
@@ -7185,7 +7350,6 @@ function syncLeaderboardTableHeight() {
 
     // Complete geometry reads before writing styles. Sidebar measurements must
     // not invalidate every athlete and badge through inherited board variables.
-    const headHeight = table.tHead?.getBoundingClientRect().height;
     if (isMobileDrawerViewport()) {
         leaderboard.style.removeProperty('min-height');
         sidebar?.style.removeProperty('--leaderboard-table-height');
@@ -7194,6 +7358,7 @@ function syncLeaderboardTableHeight() {
         sidebar?.style.removeProperty('--leaderboard-head-height');
         return;
     }
+    const headHeight = table.tHead?.getBoundingClientRect().height;
     const tableHeight = table.getBoundingClientRect().height;
     // Hover/expansion temporarily hides the rail title. Keep its measured
     // footprint so opening the overlay cannot shorten the board beneath it.
@@ -7413,6 +7578,7 @@ function getSearchSnippet(text, term) {
 
 let searchReasonPopover;
 let searchReasonOwner;
+const searchReasonPayloads = new WeakMap();
 
 function closeSearchReason() {
     if (searchReasonPopover?.matches(':popover-open')) searchReasonPopover.hidePopover();
@@ -7441,7 +7607,10 @@ function placeSearchReason() {
 }
 
 function appendSearchReason(host, source, text, terms, className = '') {
-    const chip = document.createElement('button');
+    const existing = host.querySelector(`:scope > .search-reason--${source.kind}`);
+    const chip = existing || document.createElement('button');
+    searchReasonPayloads.set(chip, { text, terms });
+    if (existing) return chip;
     chip.type = 'button';
     chip.className = `search-reason search-reason--${source.kind} ${className}`.trim();
     chip.innerHTML = `<i class="fas ${source.icon}" aria-hidden="true"></i>`;
@@ -7449,6 +7618,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
     chip.setAttribute('aria-expanded', 'false');
     chip.setAttribute('aria-controls', 'leaderboardSearchReason');
     chip.addEventListener('click', event => {
+        const { text, terms } = searchReasonPayloads.get(chip);
         event.preventDefault();
         event.stopPropagation();
         const wasOpen = searchReasonOwner === chip && searchReasonPopover?.matches(':popover-open');
@@ -7485,6 +7655,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
         placeSearchReason();
     });
     host.appendChild(chip);
+    return chip;
 }
 
 function clearSearchReasons(scope) {
@@ -7496,8 +7667,25 @@ function clearSearchReasons(scope) {
 function markSearchReasons(terms, entries, view) {
     const board = document.querySelector('.leaderboard table tbody');
     if (!board) return;
-    clearSearchReasons(athleteDialogRuntime);
-    if (!terms.length) return;
+    if (!terms.length) { clearSearchReasons(athleteDialogRuntime); return; }
+    closeSearchReason();
+    // A longer query often keeps the same evidence. Retain those buttons and
+    // marks so typing does not restart their animations or touch-target setup.
+    const unusedChips = new Set(athleteDialogRuntime.querySelectorAll('.search-reason'));
+    const unusedMarks = new Set(athleteDialogRuntime.querySelectorAll('.is-search-hit, .is-search-value'));
+    const preceding = new Map();
+    const reportReason = (host, ...args) => {
+        const chip = appendSearchReason(host, ...args);
+        const previous = preceding.get(host);
+        const next = previous ? previous.nextElementSibling : host.querySelector(':scope > .search-reason');
+        if (chip !== next) host.insertBefore(chip, next);
+        preceding.set(host, chip);
+        unusedChips.delete(chip);
+    };
+    const mark = (node, name) => {
+        node?.classList.toggle(name, true);
+        unusedMarks.delete(node);
+    };
     const entryByName = new Map(entries.map(entry => [entry.athlete.name, entry]));
     board.querySelectorAll('tr[data-athlete-name]').forEach(row => {
         const entry = entryByName.get(row.dataset.athleteName);
@@ -7515,7 +7703,7 @@ function markSearchReasons(terms, entries, view) {
         pending = pending.filter(term => {
             const hits = badges.filter(badge => normalizeSearchText(`${badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || ''} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`).includes(term));
             hits.forEach(badge => {
-                badge.classList.add('is-search-hit');
+                mark(badge, 'is-search-hit');
                 const text = [badge.getAttribute('title') || badge.getAttribute('data-badge-tip'), badge.getAttribute('aria-label'), badge.textContent]
                     .find(value => normalizeSearchText(value).includes(term));
                 badgeReasons.add(getSearchSnippet(text, term));
@@ -7523,7 +7711,7 @@ function markSearchReasons(terms, entries, view) {
             if (hits.length) badgeTerms.push(term);
             return hits.length === 0;
         });
-        if (badgeTerms.length) appendSearchReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
+        if (badgeTerms.length) reportReason(identity, { kind: 'badge', icon: 'fa-medal', label: 'Badge match' }, [...badgeReasons].join('\n'), badgeTerms);
 
         SEARCH_REASON_SOURCES.forEach(source => {
             const text = source.read(athlete);
@@ -7531,31 +7719,45 @@ function markSearchReasons(terms, entries, view) {
             const hits = pending.filter(term => normalized.includes(term));
             if (!hits.length) return;
             pending = pending.filter(term => !hits.includes(term));
-            appendSearchReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
+            reportReason(identity, source, [...new Set(hits.map(term => getSearchSnippet(text, term)))].join('\n'), hits);
         });
         const metricParts = getMetricSearchParts(entry, view);
         const metricHits = pending.filter(term => metricParts.some(part => normalizeSearchText(part.value).includes(term)));
         if (metricHits.length) {
-            row.querySelector('.age-reduction')?.classList.add('is-search-value');
+            mark(row.querySelector('.age-reduction'), 'is-search-value');
             const hiddenHits = metricHits.filter(term => !normalizeSearchText(entry.metric).includes(term));
-            if (hiddenHits.length) appendSearchReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
+            if (hiddenHits.length) reportReason(identity, { kind: 'metric', icon: 'fa-chart-line', label: 'Score match' },
                 [...new Set(metricParts.filter(part => hiddenHits.some(term => normalizeSearchText(part.value).includes(term))).map(part => part.label))].join('\n'), hiddenHits);
         }
-        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) row.querySelector('.rank')?.classList.add('is-search-value');
+        if (pending.some(term => !metricHits.includes(term) && String(entry.rank).includes(term))) mark(row.querySelector('.rank'), 'is-search-value');
     });
+    unusedChips.forEach(chip => chip.remove());
+    unusedMarks.forEach(node => node.classList.remove('is-search-hit', 'is-search-value'));
 }
 
 function markFlagSearchReasons(terms, teams, badgeTextByName) {
-    clearSearchReasons(athleteDialogRuntime);
+    const athleteTable = document.querySelector('.leaderboard table');
+    if (athleteTable) clearSearchReasons(athleteTable);
+    else closeSearchReason();
     const board = document.getElementById('flagLeaderboard');
-    board.querySelectorAll('.flag-team').forEach(row => {
-        const team = teams.find(team => row.dataset.flag === team.flag);
-        if (!team) return;
+    board.querySelectorAll('.flag-team').forEach((row, index) => {
+        const team = teams[index];
         const name = row.querySelector('.flag-team-name > span:last-child');
-        name.textContent = team.flag;
-        if (!terms.length) return;
-        window.highlightText(name, terms);
-        const pending = terms.filter(term => !normalizeSearchText(team.flag).includes(term));
+        const normalized = normalizeSearchText(team.flag);
+        const matches = terms.filter(term => normalized.includes(term));
+        const key = matches.join(' ');
+        if ((name._flagHighlights || '') !== key) {
+            let label = name.querySelector(':scope > .flag-name-label');
+            if (!label) {
+                label = document.createElement('span');
+                label.className = 'flag-name-label';
+                label.textContent = team.flag;
+                name.firstChild.replaceWith(label);
+            }
+            window.highlightText(label, matches);
+            name._flagHighlights = key;
+        }
+        const pending = terms.filter(term => !normalized.includes(term));
         const evidence = new Set();
         pending.forEach(term => {
             for (const entry of team.entries) {
@@ -7568,6 +7770,7 @@ function markFlagSearchReasons(terms, teams, badgeTextByName) {
             }
         });
         if (evidence.size) appendSearchReason(name, { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
+        else name.querySelector(':scope > .search-reason')?.remove();
     });
 }
 
@@ -7886,10 +8089,8 @@ window.getLeaderboardPeek = name => {
     if (!athlete) return null;
     return Object.freeze({
         chronologicalAge: athlete.chronologicalAge,
-        lowestBortzAge: athlete.lowestBortzAge,
-        chronoAtLowestBortzAge: athlete.chronoAtLowestBortzAge,
-        lowestPhenoAge: athlete.lowestPhenoAge,
-        chronoAtLowestPhenoAge: athlete.chronoAtLowestPhenoAge,
+        bortzRankResult: athlete.bortzRankResult,
+        phenoRankResult: athlete.phenoRankResult,
         crowdAge: athlete.crowdAge,
         crowdCount: athlete.crowdCount,
         placements: athlete.placements
