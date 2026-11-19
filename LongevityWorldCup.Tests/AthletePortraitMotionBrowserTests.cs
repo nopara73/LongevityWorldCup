@@ -187,9 +187,6 @@ public sealed class AthletePortraitMotionBrowserTests(
         else
         {
             image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
-            // The delayed “New athlete” tooltip casts a shadow across the face pixels.
-            // Keep the portrait hover active while isolating it from the tooltip.
-            await image.EvaluateAsync("img => img.setAttribute('data-lwc-no-tip', '')");
             await image.ScrollIntoViewIfNeededAsync();
             await image.EvaluateAsync("img => img.decode()");
             await image.HoverAsync();
@@ -237,10 +234,12 @@ public sealed class AthletePortraitMotionBrowserTests(
 
         // Matching CSS is insufficient: Chromium crops a video differently
         // from an image. Compare the actual painted face at the resting pose.
+        // The independently timed tooltip and row preview cast shadows into the face crop.
+        var faceCapture = new LocatorScreenshotOptions { Style = "#lwc-tip, #leaderboard-peek { box-shadow: none !important; }" };
         await painted.EvaluateAsync("surface => surface.style.visibility = 'hidden'");
-        var still = await image.ScreenshotAsync();
+        var still = await image.ScreenshotAsync(faceCapture);
         await painted.EvaluateAsync("surface => surface.style.removeProperty('visibility')");
-        var moving = await image.ScreenshotAsync();
+        var moving = await image.ScreenshotAsync(faceCapture);
         if (Environment.GetEnvironmentVariable("LWC_UI_ARTIFACT_DIR") is { Length: > 0 } pixelDirectory)
         {
             await File.WriteAllBytesAsync(Path.Combine(pixelDirectory, $"{surface}-{width}-still.png"), still);
@@ -285,7 +284,7 @@ public sealed class AthletePortraitMotionBrowserTests(
         await Assertions.Expect(image).ToHaveCSSAsync("transform", handoffTransform);
         await Assertions.Expect(motionSurface).ToHaveCSSAsync("object-view-box", handoffCrop);
         await Assertions.Expect(motionSurface).ToHaveCSSAsync("transform", handoffTransform);
-        Assert.InRange(MeanFaceDifference(still, await image.ScreenshotAsync()), 0, .1);
+        Assert.InRange(MeanFaceDifference(still, await image.ScreenshotAsync(faceCapture)), 0, .1);
     }
 
     private static double MeanFaceDifference(byte[] first, byte[] second)
