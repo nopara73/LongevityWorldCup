@@ -8,7 +8,7 @@ internal static partial class HomepagePodiumAssets
     // The podium, header, typography and layout keep their normal blocking styles.
     private static readonly HashSet<string> EnhancementStyles = new(StringComparer.Ordinal)
     {
-        "/vendor/font-awesome/6.7.2/css/all.min.css",
+        "/vendor/font-awesome/6.7.2/css/all.min.css", "/css/icons.css",
         "/css/badges.css", "/css/mobile-roughness.css", "/css/flow-controls.css",
         "/vendor/flag-icons/css/flag-icons.min.css", "/css/entry-journey.css",
         "/css/prize-pool.css", "/css/merch-shelf.css", "/css/touch.css", "/css/pointer.css",
@@ -29,8 +29,8 @@ internal static partial class HomepagePodiumAssets
               <link rel="preload" href="{{ASSET_FONT_AWESOME_CSS}}" as="style">
               """
             : $$$"""
+              <link rel="preload" as="style" fetchpriority="high" href="{{ASSET_SITE_HEADER_CSS}}">
               <link rel="preload" as="image" fetchpriority="high" href="{{{WebUtility.HtmlEncode(portrait)}}}">
-              <link rel="preload" as="style" href="{{ASSET_SITE_HEADER_CSS}}">
               <link rel="preload" as="style" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
               """;
         return head.Replace("<!--FIRST-SCREEN-PRELOADS-->", preloads, StringComparison.Ordinal)
@@ -43,6 +43,11 @@ internal static partial class HomepagePodiumAssets
         // The table still waits for its stylesheet. Keep its download behind the first screen.
         if (path == "/css/leaderboard-content.css")
             return match.Value[..^1] + " fetchpriority=\"low\">";
+
+        // This entire sheet is inside the same media query. Light pages can paint
+        // immediately and a live theme change still enables the dark surfaces.
+        if (path == "/css/dark-system.css")
+            return match.Value[..^1] + " media=\"(prefers-color-scheme: dark) and (forced-colors: none)\">";
 
         // With scripting disabled the media query matches immediately. Otherwise each
         // enhancement joins the cascade in its original position once downloaded.

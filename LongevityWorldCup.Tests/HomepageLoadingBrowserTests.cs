@@ -14,6 +14,7 @@ public sealed class HomepageLoadingBrowserTests(
     {
         await using var context = await NewContextAsync(390);
         var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
         await ObserveFirstScreenPaintAsync(page);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         async Task Hold(IRoute route)
@@ -22,6 +23,9 @@ public sealed class HomepageLoadingBrowserTests(
             await route.ContinueAsync();
         }
         await page.RouteAsync("**/css/leaderboard-podium.css*", Hold);
+        await page.RouteAsync("**/css/portrait-system.css*", Hold);
+        await page.RouteAsync("**/css/dark-system.css*", Hold);
+        await page.RouteAsync("**/css/icons.css*", Hold);
         await page.RouteAsync("**/js/icons.js*", Hold);
         await page.RouteAsync("**/vendor/font-awesome/**/all.min.css*", Hold);
         try
