@@ -92,8 +92,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
             FROM Events e LEFT JOIN SocialDeliveries d ON d.EventId = e.Id AND d.Platform = @platform
             WHERE (d.Status IS NULL OR d.Status = 'pending')
               AND (d.NextAttemptAtUtc IS NULL OR d.NextAttemptAtUtc <= @now)
-              AND (@customOnly = 0 OR e.Type = @custom OR d.RecordJson IS NOT NULL)
-            ORDER BY e.OccurredAt DESC;
+              AND (@customOnly = 0 OR e.Type = @custom OR d.RecordJson IS NOT NULL);
             """;
         cmd.Parameters.AddWithValue("@platform", platform);
         cmd.Parameters.AddWithValue("@now", Timestamp(now));
