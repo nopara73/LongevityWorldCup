@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Hosting;
@@ -11,6 +12,23 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class AgeImprovementTop10EventTests
 {
+    [Theory]
+    [InlineData("[2,null,4]", "[2,null,4,null]")]
+    [InlineData("[6,5,4,3,2]", "[6,5,4,3]")]
+    [InlineData("bad json", "[null,null,null,null]")]
+    [InlineData("null", "[null,null,null,null]")]
+    public void StartupAndSingleAthleteReadsAgreeOnHistoricalPlacements(string stored, string expected)
+    {
+        using var fixture = StartupFixture.Create(stored);
+        var snapshot = fixture.Athletes.GetAthletesSnapshot();
+        foreach (var (slug, placements) in new[] { ("nopara73", expected), ("majoros_gabor", "[11,12,13,14]") })
+        {
+            var athlete = snapshot.Single(a => a!["AthleteSlug"]!.GetValue<string>() == slug);
+            Assert.Equal(placements, athlete!["Placements"]!.ToJsonString());
+            Assert.Equal(placements, JsonSerializer.Serialize(fixture.Athletes.GetPlacements(slug)));
+        }
+    }
+
     [Fact]
     public void StartupEmitsPhenoImprovementTop10ChangeWhenChangedAthleteEntersAtFirstPlace()
     {
@@ -37,6 +55,36 @@ public sealed class AgeImprovementTop10EventTests
         Assert.DoesNotContain("prevPlace[", text);
     }
 
+    [Fact]
+    public async Task PhenoLeaderboardBaselinesAtStartupAndPublishesFollowingFileUpdateOnce()
+    {
+        using var fixture = StartupFixture.Create();
+        Assert.Empty(fixture.Events.GetEvents(type: EventType.PhenoAgeTop10Change));
+        var standings = fixture.Athletes.GetBiologicalAgeLeaderboard("pheno");
+        var candidate = standings.Last();
+        Assert.Equal(2, candidate.Rank);
+        var path = Path.Combine(fixture.Root, "athletes", candidate.Slug, "athlete.json");
+        var athlete = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+        foreach (var result in athlete["Biomarkers"]!.AsArray().OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            // Synthetic strong result to exercise the actual file -> score -> event path.
+            result["RdwPc"] = 9;
+            result["CrpMgL"] = 0.01;
+            result["AlbGL"] = 55;
+        }
+        await File.WriteAllTextAsync(path, athlete.ToJsonString());
+        var reload = typeof(AthleteDataService).GetMethod("ReloadFromSourceAsync",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        await (Task)reload.Invoke(fixture.Athletes, [CancellationToken.None])!;
+        Assert.Equal(candidate.Slug, fixture.Athletes.GetBiologicalAgeLeaderboard("pheno")[0].Slug);
+        var announcement = Assert.Single(fixture.Events.GetEvents(type: EventType.PhenoAgeTop10Change));
+        Assert.Contains($"slug[{candidate.Slug}]", announcement.Text);
+        Assert.Contains("place[1]", announcement.Text);
+        Assert.Contains("prevPlace[2]", announcement.Text);
+        await (Task)reload.Invoke(fixture.Athletes, [CancellationToken.None])!;
+        Assert.Single(fixture.Events.GetEvents(type: EventType.PhenoAgeTop10Change));
+    }
+
     private sealed class StartupFixture : IDisposable
     {
         private readonly string _root;
@@ -51,11 +99,12 @@ public sealed class AgeImprovementTop10EventTests
             _slackEvents = slackEvents;
         }
 
+        public string Root => _root;
         public DatabaseManager Database { get; }
         public EventDataService Events { get; }
         public AthleteDataService Athletes { get; }
 
-        public static StartupFixture Create()
+        public static StartupFixture Create(string storedPlacements = "[]")
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-age-improvement-events-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(root, "athletes"));
@@ -66,7 +115,7 @@ public sealed class AgeImprovementTop10EventTests
 
             var env = new TestWebHostEnvironment(root);
             var database = new DatabaseManager(dbPath: Path.Combine(root, "test.db"));
-            SeedStoredPlacements(database);
+            SeedStoredPlacements(database, storedPlacements);
 
             var config = new Config().UseFilePathsForTesting(
                 Path.Combine(root, "config.json"),
@@ -114,7 +163,7 @@ public sealed class AgeImprovementTop10EventTests
             return new StartupFixture(root, database, events, athletes, slackEvents);
         }
 
-        private static void SeedStoredPlacements(DatabaseManager database)
+        private static void SeedStoredPlacements(DatabaseManager database, string storedPlacements)
         {
             var joinedAt = new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc).ToString("o");
             database.Run(sqlite =>
@@ -140,10 +189,11 @@ public sealed class AgeImprovementTop10EventTests
 
                     INSERT INTO Athletes (Key, AgeGuesses, JoinedAt, Placements, TestSig, PhenoImprovementTop10Placement)
                     VALUES
-                        ('nopara73', '[]', @joinedAt, '[]', 'old-nopara73-signature', 1),
-                        ('majoros_gabor', '[]', @joinedAt, '[]', 'old-majoros-gabor-signature', NULL);
+                        ('nopara73', '[]', @joinedAt, @placements, 'old-nopara73-signature', 1),
+                        ('majoros_gabor', '[]', @joinedAt, '[11,12,13,14]', 'old-majoros-gabor-signature', NULL);
                     """;
                 cmd.Parameters.AddWithValue("@joinedAt", joinedAt);
+                cmd.Parameters.AddWithValue("@placements", storedPlacements);
                 cmd.ExecuteNonQuery();
             });
         }

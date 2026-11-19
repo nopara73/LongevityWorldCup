@@ -8,14 +8,17 @@ public class FacebookEventService
     private readonly FacebookApiClient _facebook;
     private readonly ILogger<FacebookEventService> _log;
     private readonly CustomEventImageService _customEventImages;
+    private readonly ThreadsEventService? _messageComposer;
     private readonly object _lockObj = new();
     private Dictionary<string, AthleteForX> _bySlug = new(StringComparer.OrdinalIgnoreCase);
 
-    public FacebookEventService(FacebookApiClient facebook, ILogger<FacebookEventService> log, CustomEventImageService customEventImages)
+    public FacebookEventService(FacebookApiClient facebook, ILogger<FacebookEventService> log, CustomEventImageService customEventImages,
+        ThreadsEventService? messageComposer = null)
     {
         _facebook = facebook;
         _log = log;
         _customEventImages = customEventImages ?? throw new ArgumentNullException(nameof(customEventImages));
+        _messageComposer = messageComposer;
     }
 
     public bool IsConfigured => _facebook.IsConfigured;
@@ -31,6 +34,7 @@ public class FacebookEventService
 
         lock (_lockObj)
             _bySlug = map;
+        _messageComposer?.SetAthletesForThreads(items);
     }
 
     public async Task SendAsync(string text)
@@ -60,9 +64,9 @@ public class FacebookEventService
 
     public async Task<bool> TrySendEventAsync(EventType type, string rawText, string? eventId, bool visibleOnWebsite = true)
     {
-        if (type == EventType.DonationReceived)
+        if (type != EventType.CustomEvent)
         {
-            var message = DonationReceivedPost.BuildText(rawText, visibleOnWebsite ? eventId : null);
+            var message = TryBuildMessage(type, rawText, eventId, visibleOnWebsite);
             return !string.IsNullOrWhiteSpace(message) && await TrySendAsync(message);
         }
 
@@ -118,7 +122,8 @@ public class FacebookEventService
             return DonationReceivedPost.BuildText(rawText, visibleOnWebsite ? eventId : null);
 
         if (type != EventType.CustomEvent || string.IsNullOrWhiteSpace(eventId))
-            return null;
+            return type == EventType.CustomEvent ? null
+                : _messageComposer?.TryBuildMessage(type, rawText, eventId, visibleOnWebsite, ResolveMention);
 
         return CustomEventSocialComposer.BuildPlan(eventId, rawText, 63206, ResolveMention, includeEventUrl: visibleOnWebsite).PostText;
     }

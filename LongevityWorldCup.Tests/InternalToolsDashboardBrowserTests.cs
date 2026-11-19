@@ -317,8 +317,74 @@ public sealed class InternalToolsDashboardBrowserTests(
         await Assertions.Expect(rows.Nth(3).Locator(".funnel-drop")).ToHaveTextAsync("drop 0");
         Assert.Equal("100%", await rows.Nth(1).Locator(".funnel-fill").EvaluateAsync<string>("e => e.style.width"));
         Assert.Equal(0, await rows.Nth(2).Locator(".funnel-fill").EvaluateAsync<double>("e => e.getBoundingClientRect().width"));
+        var geometry = await rows.Nth(1).EvaluateAsync<double[]>(
+            """
+            row => {
+                const box = selector => row.querySelector(selector).getBoundingClientRect();
+                const scale = box('.funnel-bar').width;
+                return [box('.funnel-cohort').width / scale, box('.funnel-leak').width / scale,
+                    box('.funnel-leak').top - box('.funnel-fill').bottom];
+            }
+            """);
+        Assert.InRange(geometry[0], 0.66, 0.67);
+        Assert.InRange(geometry[1], 0.33, 0.34);
+        Assert.True(geometry[2] >= 0, "Returning sessions must not cover a lost session.");
+        await page.EmulateMediaAsync(new() { ForcedColors = ForcedColors.Active });
+        Assert.True(await rows.Nth(1).EvaluateAsync<bool>("""
+            row => {
+                const color = element => getComputedStyle(element).backgroundColor;
+                const bars = ['.funnel-fill', '.funnel-cohort', '.funnel-leak'].map(s => color(row.querySelector(s)));
+                const keys = ['.reach-key', '.cohort-key', '.drop-key'].map(s => color(document.querySelector(s)));
+                return new Set(bars).size === 3 && bars.every((bar, i) => bar === keys[i] && bar !== 'rgba(0, 0, 0, 0)');
+            }
+            """), "In high contrast, reach, prior cohort and drop-off must remain visible and match the legend.");
+        await rows.Nth(2).ClickAsync();
+        await Assertions.Expect(page.Locator("#eventSamples")).ToHaveTextAsync("No event samples.");
         var widths = await page.Locator(".funnel-fill").EvaluateAllAsync<double[]>("fills => fills.map(e => parseFloat(e.style.width))");
         Assert.All(widths, value => Assert.True(double.IsFinite(value) && value >= 0 && value <= 100));
+    }
+
+    [Fact]
+    public async Task Statistics_IdenticallyTitledDecisionsKeepTheirEvidenceAndFocusOnRefresh()
+    {
+        await using var context = await NewContextAsync(1181, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
+        var at = DateTime.UtcNow.AddHours(-1).ToString("O", CultureInfo.InvariantCulture);
+        var events = (from flow in new[] { "pheno", "bortz" }
+                      from index in Enumerable.Range(1, 3)
+                      select Event("calculator_validation_failed", flow, flow + index, "/calculator", "failed", at,
+                          index == 1 ? "mobile" : "desktop", "direct")).ToArray();
+        payload["events"] = JsonSerializer.SerializeToNode(events);
+        var desktopPayload = payload.DeepClone();
+        desktopPayload["events"] = JsonSerializer.SerializeToNode(events.Where((_, i) => i % 3 != 0));
+        await page.RouteAsync("**/api/site-statistics/dashboard**", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = (route.Request.Url.Contains("device=desktop", StringComparison.Ordinal) ? desktopPayload : payload).ToJsonString()
+        }));
+        await page.GotoAsync(Statistics + "?tab=Onboarding%20Diagnostics");
+        var decisions = page.Locator(".decision-card").Filter(new() { HasText = "repeats at" });
+        await Assertions.Expect(decisions).ToHaveCountAsync(2);
+        var pheno = decisions.Filter(new() { HasText = "pheno" });
+        await pheno.FocusAsync();
+        var pairedInvestigation = page.Locator(".investigation-row.is-paired");
+        await Assertions.Expect(page.Locator(".is-paired")).ToHaveCountAsync(2);
+        await pheno.EvaluateAsync("button => window.savedDecision = button");
+        await page.Locator("#statsDevice").DispatchEventAsync("change");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        Assert.True(await pheno.EvaluateAsync<bool>("button => button === window.savedDecision && document.activeElement === button"));
+        await pairedInvestigation.PressAsync("Enter");
+        var samples = page.Locator("#eventSamples .sample-row");
+        await Assertions.Expect(samples).ToHaveCountAsync(3);
+        Assert.All(await samples.AllTextContentsAsync(), text => Assert.Contains("pheno", text));
+        await Assertions.Expect(page.Locator("#drilldownTitle")).ToBeFocusedAsync();
+        await page.Locator("#eventSamples [data-session='pheno1']").ClickAsync();
+        await page.Locator("#statsDevice").SelectOptionAsync("desktop");
+        await Assertions.Expect(samples).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#sessionTimeline h3")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^Session pheno[23]$"));
+        await decisions.Filter(new() { HasText = "bortz" }).ClickAsync();
+        Assert.All(await samples.AllTextContentsAsync(), text => Assert.Contains("bortz", text));
     }
 
     [Fact]
@@ -333,6 +399,211 @@ public sealed class InternalToolsDashboardBrowserTests(
         var bounds = await icon.BoundingBoxAsync();
         Assert.NotNull(bounds);
         Assert.True(bounds.Width >= 22 && bounds.Height >= 22);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Statistics_DeferredOldViewCannotCompleteANewerFilterRequest(bool cachedDiagnostics)
+    {
+        await using var context = await NewContextAsync(1440, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var release = new TaskCompletionSource();
+        var newerRequested = new TaskCompletionSource();
+        await page.RouteAsync("**/api/site-statistics/dashboard**", async route =>
+        {
+            if (route.Request.Url.Contains("range=30d", StringComparison.Ordinal))
+            {
+                newerRequested.TrySetResult();
+                await release.Task;
+            }
+            await route.FulfillAsync(new() { ContentType = "application/json", Body = DashboardPayload(diagnostics: true) });
+        });
+        try
+        {
+            await page.GotoAsync(Statistics + (cachedDiagnostics ? "?tab=Onboarding%20Diagnostics" : ""));
+            await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+            await page.EvaluateAsync("""
+                () => {
+                    window.deferredStatisticsPaints = [];
+                    document.startViewTransition = paint => {
+                        window.deferredStatisticsPaints.push(paint);
+                        return { finished: Promise.resolve(), skipTransition() {} };
+                    };
+                }
+                """);
+            if (!cachedDiagnostics) await page.Locator("#statsDiagnostics > summary").ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = cachedDiagnostics ? "Overview" : "Onboarding Diagnostics", Exact = true }).ClickAsync();
+            await page.WaitForFunctionAsync("() => window.deferredStatisticsPaints.length === 1");
+            await page.Locator("#statsRange").SelectOptionAsync("30d");
+            await newerRequested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await page.EvaluateAsync("window.deferredStatisticsPaints.shift()()");
+            await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "true");
+            await Assertions.Expect(page.Locator("#statsExport")).ToBeDisabledAsync();
+            await Assertions.Expect(page.Locator("#statsStatus")).ToHaveTextAsync("Loading redacted analytics...");
+            release.TrySetResult();
+            await page.WaitForFunctionAsync("() => window.deferredStatisticsPaints.length === 1 || document.querySelector('.stats-page').getAttribute('aria-busy') === 'false'");
+            await page.EvaluateAsync("() => window.deferredStatisticsPaints.shift()?.()");
+            await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+            await Assertions.Expect(page.Locator("#statsExport")).ToBeEnabledAsync();
+            await Assertions.Expect(page.Locator("#statsStatus")).ToContainTextAsync(cachedDiagnostics ? "Updated" : "Complete Last 30 days diagnostic windows loaded");
+        }
+        finally { release.TrySetResult(); }
+    }
+
+    [Theory]
+    [InlineData("hu-HU")]
+    [InlineData("de-DE")]
+    public async Task Statistics_CountOverlayKeepsThousandsInEveryBrowserLocale(string locale)
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(), Locale = locale,
+            ViewportSize = new() { Width = 1440, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        var page = await context.NewPageAsync();
+        var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
+        payload["trafficSummary"]!["totals"]!["sessions"] = 22100;
+        await RouteDashboardAsync(page, payload.ToJsonString());
+        await page.GotoAsync(Statistics);
+        var figure = page.Locator(".traffic-metric strong").First;
+        await Assertions.Expect(figure).ToHaveTextAsync("22,100");
+        var count = await figure.EvaluateAsync<string>("e => { window.LwcCharts.count(e, 22000); return e.dataset.lwcCount; }");
+        Assert.Equal("22,000", count);
+        await Assertions.Expect(figure).ToHaveTextAsync("22,100");
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(195)]
+    public async Task Statistics_NarrowTabsStayAvailableAndIndicatorFollowsWrappedTarget(int width)
+    {
+        await using var context = await NewContextAsync(width, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        await RouteDashboardAsync(page, DashboardPayload(diagnostics: true));
+        await page.GotoAsync(Statistics + "?tab=Onboarding%20Diagnostics");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await page.EvaluateAsync("scrollTo(0, 700)");
+        await page.WaitForFunctionAsync("() => getComputedStyle(document.querySelector('#statsTabs')).position === 'sticky'");
+        var position = await page.Locator("#statsTabs").EvaluateAsync<JsonElement>("""
+            e => {
+                const host = e.getBoundingClientRect();
+                const target = e.querySelector('summary').getBoundingClientRect();
+                return { top: host.top, indicator: parseFloat(getComputedStyle(e, '::after').top), target: target.bottom - host.top };
+            }
+            """);
+        Assert.InRange(position.GetProperty("top").GetDouble(), -1, 1);
+        Assert.InRange(position.GetProperty("target").GetDouble() - position.GetProperty("indicator").GetDouble(), 2, 6);
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Fact]
+    public async Task Statistics_ReducedMotionCancelsAnActiveDayAnimation()
+    {
+        await using var context = await NewContextAsync(1440, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await RouteDashboardAsync(page, DashboardPayload(diagnostics: false));
+        await page.AddInitScriptAsync("""
+            const originalAnimate = Element.prototype.animate;
+            Element.prototype.animate = function(frames, options) {
+                const animation = originalAnimate.call(this, frames, options);
+                if (this.id === 'trafficOverview' && frames[0].opacity === 0 && !frames[0].transform) {
+                    window.initialStatisticsFade = animation;
+                    animation.pause();
+                }
+                return animation;
+            };
+            """);
+        await page.GotoAsync(Statistics);
+        await page.Locator("#trafficDailyChart").WaitForAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.WaitForFunctionAsync("() => window.initialStatisticsFade.playState === 'idle'");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.EvaluateAsync("""
+            () => {
+                const day = document.querySelector('#trafficDay');
+                day.selectedIndex = 0;
+                day.dispatchEvent(new Event('change'));
+                window.dayAnimation = document.querySelector('#trafficDayDetail').getAnimations()[0];
+                window.dayAnimation.pause();
+            }
+            """);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.WaitForFunctionAsync("() => window.dayAnimation.playState === 'idle'");
+        await page.Locator("#statsRange").SelectOptionAsync("30d");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        Assert.Empty(await page.EvaluateAsync<string[]>("() => document.querySelector('#trafficOverview').getAnimations({ subtree: true }).map(a => JSON.stringify({ state: a.playState, name: a.animationName, property: a.transitionProperty, target: a.effect.target.outerHTML.slice(0, 200) }))"));
+    }
+
+    [Fact]
+    public async Task Statistics_EnlargedTextKeepsFiltersAndFiguresReadable()
+    {
+        await using var context = await NewContextAsync(390, ColorScheme.Dark);
+        var page = await context.NewPageAsync();
+        var payload = JsonNode.Parse(DashboardPayload(diagnostics: false))!;
+        payload["trafficSummary"]!["totals"]!["sessions"] = 22100;
+        payload["trafficSummary"]!["totals"]!["pageViews"] = 44200;
+        await RouteDashboardAsync(page, payload.ToJsonString());
+        await page.GotoAsync(Statistics);
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await page.AddStyleTagAsync(new() { Content = ".stats-controls, .traffic-metrics { font-size: 21px; } .traffic-metric > strong { font-size: 48px; }" });
+        await page.Locator("#statsSource").SelectOptionAsync("ai");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        var clipped = await page.EvaluateAsync<string[]>("""
+            () => {
+                const canvas = document.createElement('canvas').getContext('2d');
+                return [...document.querySelectorAll('.stats-controls select')].filter(select => {
+                    const style = getComputedStyle(select);
+                    canvas.font = style.font;
+                    const text = select.selectedOptions[0].textContent;
+                    return canvas.measureText(text).width > select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) + 1;
+                }).map(select => select.id);
+            }
+            """);
+        Assert.Empty(clipped);
+        var wrappedFigures = await page.EvaluateAsync<string[]>("""
+            () => [...document.querySelectorAll(".traffic-metric > strong")].flatMap(e => {
+                const range = document.createRange();
+                range.selectNodeContents(e);
+                const rects = [...range.getClientRects()].map(rect => rect.toJSON());
+                if (rects.length === 1) return [];
+                const grid = e.closest('.traffic-metrics');
+                const style = getComputedStyle(e);
+                return [JSON.stringify({
+                    text: e.textContent, rects, figure: e.getBoundingClientRect().toJSON(),
+                    grid: grid.getBoundingClientRect().toJSON(),
+                    columns: getComputedStyle(grid).gridTemplateColumns,
+                    gridFont: getComputedStyle(grid).fontSize, font: style.font,
+                    visibility: style.visibility, fonts: document.fonts.status,
+                    busy: document.querySelector('.stats-page').getAttribute('aria-busy'),
+                    viewport: [innerWidth, innerHeight]
+                })];
+            })
+            """);
+        Assert.Empty(wrappedFigures);
+        await FlowActionDockBrowserTests.ExpectNoHorizontalOverflowAsync(page);
+    }
+
+    [Fact]
+    public async Task Statistics_CondensedHeaderKeepsTabletTouchTargets()
+    {
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1024, Height = 768 },
+            HasTouch = true, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await RouteDashboardAsync(page, DashboardPayload(diagnostics: false));
+        await page.GotoAsync(Statistics);
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        await page.EvaluateAsync("scrollTo(0, 650)");
+        await Assertions.Expect(page.Locator(".stats-header")).ToHaveAttributeAsync("data-condensed", "");
+        var heights = await page.Locator(".stats-controls select, .stats-controls button").EvaluateAllAsync<double[]>(
+            "elements => elements.map(e => e.getBoundingClientRect().height)");
+        Assert.All(heights, height => Assert.True(height >= 44, $"Touch target is only {height}px tall."));
     }
 
     private Task<IBrowserContext> NewContextAsync(int width, ColorScheme scheme)

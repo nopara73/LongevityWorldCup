@@ -5,6 +5,17 @@ namespace LongevityWorldCup.Website.Tools;
 
 public static class PhenoStatsCalculator
 {
+    public sealed record RankedResult(DateTime DateUtc, double BiologicalAge, double ChronologicalAge)
+    {
+        public double AgeReduction => BiologicalAge - ChronologicalAge;
+        public double? AgeReductionPercent => ChronologicalAge > 0 ? -100 * AgeReduction / ChronologicalAge : null;
+    }
+
+    private static RankedResult BestForRanking(RankedResult? current, RankedResult candidate) =>
+        current is null || candidate.AgeReduction < current.AgeReduction ||
+        (candidate.AgeReduction == current.AgeReduction && candidate.DateUtc < current.DateUtc)
+            ? candidate : current;
+
     public sealed class Result
     {
         public required string Slug { get; init; }
@@ -15,6 +26,8 @@ public static class PhenoStatsCalculator
         public double? LowestBortzAge { get; init; }
         public DateTime? LowestPhenoAgeDateUtc { get; init; }
         public DateTime? LowestBortzAgeDateUtc { get; init; }
+        public RankedResult? PhenoRankResult { get; init; }
+        public RankedResult? BortzRankResult { get; init; }
         public double? AgeReduction { get; init; }
         public double? BortzAgeReduction { get; init; }
         public double? PhenoPaceOfAging { get; init; }
@@ -76,12 +89,12 @@ public static class PhenoStatsCalculator
         double lowestBortz = double.PositiveInfinity;
         DateTime? lowestBortzDateUtc = null;
         double chronoAtLowestBortz = double.NaN;
-        double? firstPheno = null;
-        double? lastPheno = null;
-        double? firstBortz = null;
-        double? lastBortz = null;
-        var phenoSubmissions = new List<(DateTime DateUtc, int Index, double PhenoAge)>();
-        var bortzSubmissions = new List<(DateTime DateUtc, int Index, double BortzAge)>();
+        var phenoSubmissions = new List<(DateTime DateUtc, int Index, double Age)>();
+        var bortzSubmissions = new List<(DateTime DateUtc, int Index, double Age)>();
+        // Rank each whole panel by its age reduction. Absolute-age records and
+        // their existing pace/badge metrics are tracked independently.
+        RankedResult? phenoRankResult = null;
+        RankedResult? bortzRankResult = null;
 
         double? bestAlb = null, bestCreat = null, bestGlu = null, bestCrp = null, bestWbc = null, bestLym = null, bestMcv = null, bestRdw = null, bestAlp = null;
         double[]? bestBortzValues = null;
@@ -107,9 +120,8 @@ public static class PhenoStatsCalculator
                     if (!double.IsNaN(bortzAge) && !double.IsInfinity(bortzAge))
                     {
                         bortzSubmissionCount++;
-                        if (!firstBortz.HasValue) firstBortz = bortzAge;
-                        lastBortz = bortzAge;
                         bortzSubmissions.Add((entryDate, currentIndex, bortzAge));
+                        bortzRankResult = BestForRanking(bortzRankResult, new(entryDate, bortzAge, ageAtEntry));
                         if (bortzAge < lowestBortz)
                         {
                             lowestBortz = bortzAge;
@@ -138,9 +150,8 @@ public static class PhenoStatsCalculator
 
                     if (!double.IsNaN(ph) && !double.IsInfinity(ph))
                     {
-                        if (!firstPheno.HasValue) firstPheno = ph;
-                        lastPheno = ph;
                         phenoSubmissions.Add((entryDate, currentIndex, ph));
+                        phenoRankResult = BestForRanking(phenoRankResult, new(entryDate, ph, ageAtEntry));
                         if (ph < lowestPheno)
                         {
                             lowestPheno = ph;
@@ -177,10 +188,10 @@ public static class PhenoStatsCalculator
 
         double? ageReduction = null;
         if (!double.IsInfinity(lowestPheno) && !double.IsNaN(chronoAtLowest))
-            ageReduction = lowestPheno - chronoAtLowest;
+            ageReduction = phenoRankResult?.AgeReduction ?? lowestPheno - chronoAtLowest;
         double? bortzAgeReduction = null;
         if (!double.IsInfinity(lowestBortz) && !double.IsNaN(chronoAtLowestBortz))
-            bortzAgeReduction = lowestBortz - chronoAtLowestBortz;
+            bortzAgeReduction = bortzRankResult?.AgeReduction;
         double? phenoPaceOfAging = null;
         if (!double.IsInfinity(lowestPheno) && !double.IsNaN(chronoAtLowest) && chronoAtLowest > 0)
             phenoPaceOfAging = lowestPheno / chronoAtLowest;
@@ -209,34 +220,8 @@ public static class PhenoStatsCalculator
             };
         }
 
-        double? phenoDiffFromBaseline = null;
-        if (firstPheno.HasValue && lastPheno.HasValue)
-            phenoDiffFromBaseline = lastPheno.Value - firstPheno.Value;
-        double? phenoImprovementFromWorst = null;
-        if (phenoSubmissions.Count >= 2)
-        {
-            var latestPheno = phenoSubmissions
-                .OrderBy(s => s.DateUtc)
-                .ThenBy(s => s.Index)
-                .Last()
-                .PhenoAge;
-            var worstPheno = phenoSubmissions.Max(s => s.PhenoAge);
-            phenoImprovementFromWorst = latestPheno - worstPheno;
-        }
-        double? bortzDiffFromBaseline = null;
-        if (firstBortz.HasValue && lastBortz.HasValue)
-            bortzDiffFromBaseline = lastBortz.Value - firstBortz.Value;
-        double? bortzImprovementFromWorst = null;
-        if (bortzSubmissions.Count >= 2)
-        {
-            var latestBortz = bortzSubmissions
-                .OrderBy(s => s.DateUtc)
-                .ThenBy(s => s.Index)
-                .Last()
-                .BortzAge;
-            var worstBortz = bortzSubmissions.Max(s => s.BortzAge);
-            bortzImprovementFromWorst = latestBortz - worstBortz;
-        }
+        var (phenoDiffFromBaseline, phenoImprovementFromWorst) = ComputeAgeChanges(phenoSubmissions);
+        var (bortzDiffFromBaseline, bortzImprovementFromWorst) = ComputeAgeChanges(bortzSubmissions);
 
         double? crowdAge = null;
         int crowdCount = 0;
@@ -262,6 +247,8 @@ public static class PhenoStatsCalculator
             LowestBortzAge = double.IsInfinity(lowestBortz) ? null : lowestBortz,
             LowestPhenoAgeDateUtc = lowestPhenoDateUtc,
             LowestBortzAgeDateUtc = lowestBortzDateUtc,
+            PhenoRankResult = phenoRankResult,
+            BortzRankResult = bortzRankResult,
             AgeReduction = ageReduction,
             BortzAgeReduction = bortzAgeReduction,
             PhenoPaceOfAging = phenoPaceOfAging,
@@ -280,6 +267,18 @@ public static class PhenoStatsCalculator
             CrowdCount = crowdCount,
             BestBortzValues = bestBortzValues
         };
+    }
+
+    private static (double? FromBaseline, double? FromWorst) ComputeAgeChanges(
+        IReadOnlyList<(DateTime DateUtc, int Index, double Age)> submissions)
+    {
+        if (submissions.Count == 0)
+            return (null, null);
+
+        var ordered = submissions.OrderBy(s => s.DateUtc).ThenBy(s => s.Index).ToArray();
+        var latest = ordered[^1].Age;
+        return (latest - ordered[0].Age,
+            submissions.Count >= 2 ? latest - submissions.Max(s => s.Age) : null);
     }
 
     private static bool TryBuildBortzInput(JsonObject entry, double ageAtEntry, out double[] values)

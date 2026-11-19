@@ -74,6 +74,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var textarea = original.Locator("textarea");
         await textarea.FillAsync("My reply stays exactly here.");
         await textarea.EvaluateAsync("e => { e.setSelectionRange(3, 8); window.feedDraft = e; }");
+        await WaitForFiniteAnimationsAsync(page);
         var top = await textarea.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
         foreach (var notes in new[] { state["notes"]!.AsArray(), state["public"]!["notes"]!.AsArray() }) {
             var fresh = notes[0]!.DeepClone().AsObject();
@@ -98,6 +99,111 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(original.Locator("textarea")).ToHaveValueAsync("My reply stays exactly here.");
         await Assertions.Expect(original.Locator(":scope > p").First).ToHaveTextAsync("An update received while someone is reading.");
         await Assertions.Expect(page.Locator("#lmxFeedNew")).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task DiscussionFeed_NewPostsOpensTheAnnouncedPostAboveAnAthleteLink(int width)
+    {
+        var touch = width == 390;
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = width, Height = 844 }, IsMobile = touch, HasTouch = touch,
+            DeviceScaleFactor = touch ? 3 : 1, ColorScheme = touch ? ColorScheme.Dark : ColorScheme.Light
+        });
+        var state = LargeDiscussionFeedState(18);
+        var pinned = state["notes"]![0]!;
+        var day = pinned["challengeDay"]!.GetValue<int>();
+        state["readContext"] = ReadPostContext(10, "p2", day, null);
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var author = DiscussionThread(page, "p2", day).Locator(".lmx-discussion-post-author a.lmx-discussion-author-identity");
+        await Assertions.Expect(author).ToHaveAttributeAsync("href", "/athlete/ari-able");
+        await author.EvaluateAsync("e => window.scrollBy({ top: e.getBoundingClientRect().top - 80, behavior: 'instant' })");
+
+        var post = pinned.DeepClone();
+        post["participantId"] = "new-runner";
+        post["displayName"] = "New Runner";
+        post["updatedAtUtc"] = "2026-07-03T12:01:00Z";
+        post["lastActivityAtUtc"] = "2026-07-03T12:01:00Z";
+        state["notes"]!.AsArray().Add(post);
+        await page.Clock.FastForwardAsync(61_000);
+        var button = page.Locator("#lmxFeedNew");
+        await Assertions.Expect(button).ToHaveTextAsync("New posts · 1");
+        await WaitForFiniteAnimationsAsync(page, "#lmxFeedNew");
+        var capture = Environment.GetEnvironmentVariable("LWC_FEED_CAPTURE_DIR");
+        if (!string.IsNullOrEmpty(capture)) await page.ScreenshotAsync(new() { Path = Path.Combine(capture, $"new-posts-header-{width}.png") });
+        if (touch) {
+            var box = (await button.BoundingBoxAsync())!;
+            await page.Touchscreen.TapAsync(box.X + 12, box.Y + box.Height / 2);
+        } else {
+            await button.FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+        }
+
+        var destination = DiscussionThread(page, "new-runner", day);
+        await Assertions.Expect(destination).ToBeFocusedAsync();
+        await Assertions.Expect(destination.Locator(".lmx-discussion-post-header")).ToBeInViewportAsync();
+        await Assertions.Expect(page.Locator("#lmxNotes > article").First).ToHaveAttributeAsync("data-discussion-post-participant-id", "p2");
+        await Assertions.Expect(button).ToBeHiddenAsync();
+    }
+
+    [Fact]
+    public async Task DiscussionFeed_NewPostsRevealsTheNewReplyBeyondTheCurrentBatch()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = LargeDiscussionFeedState(18);
+        var notes = state["notes"]!.AsArray();
+        var day = notes[0]!["challengeDay"]!.GetValue<int>();
+        var read = ReadPostContext(10, "p2", day, null);
+        foreach (var note in notes.Skip(1).Take(9)) {
+            var mention = ReadPostContext(10, (string)note!["participantId"]!, day, null);
+            read["threads"]!.AsArray().Add(mention["threads"]![0]!.DeepClone());
+        }
+        state["readContext"] = read;
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var thread = DiscussionThread(page, "feed-015", day);
+        await Assertions.Expect(thread).ToHaveCountAsync(0);
+
+        var changed = notes[15]!;
+        changed["replies"]!.AsArray().Add(JsonSerializer.SerializeToNode(Reply(
+            "fresh-reply", "p4", "Cam", "Here's the update.", "2026-07-03T12:01:00Z")));
+        changed["replyCount"] = 1;
+        changed["lastActivityAtUtc"] = "2026-07-03T12:01:00Z";
+        await page.Clock.FastForwardAsync(61_000);
+        await page.Locator("#lmxFeedNew").ClickAsync();
+
+        var reply = thread.Locator("[data-discussion-reply-id='fresh-reply']");
+        await Assertions.Expect(reply).ToBeFocusedAsync();
+        await Assertions.Expect(reply).ToBeInViewportAsync();
+        await Assertions.Expect(page.Locator("#lmxFeedNew")).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscussionFeed_ReadReceiptsKeepOnlyGenuineNewPostsQueued(bool atTop)
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var state = LargeDiscussionFeedState(18);
+        var notes = state["notes"]!.AsArray();
+        var day = notes[0]!["challengeDay"]!.GetValue<int>();
+        state["readContext"] = ReadPostContext(10, "p2", day, null);
+        var page = await OpenDiscussionFeedAsync(context, state, automatic: false);
+        var post = notes[0]!.DeepClone();
+        post["participantId"] = "new-runner";
+        notes.Add(post);
+        await page.Clock.FastForwardAsync(61_000);
+        var button = page.Locator("#lmxFeedNew");
+        await Assertions.Expect(button).ToHaveTextAsync("New posts · 1");
+
+        var position = atTop ? page.Locator("#lmxNotesTitle") : DiscussionThread(page, "feed-006", day);
+        await position.EvaluateAsync("e => e.scrollIntoView({ block: 'start', behavior: 'instant' })");
+        state["readContext"] = ReadPostContext(11, "p2", day, null, unread: false);
+        await page.Clock.FastForwardAsync(61_000);
+        await Assertions.Expect(DiscussionThread(page, "p2", day).Locator(".lmx-discussion-count")).ToHaveTextAsync("0 replies");
+        await Assertions.Expect(button).ToHaveTextAsync("New posts · 1");
+        await button.ClickAsync();
+        await Assertions.Expect(DiscussionThread(page, "new-runner", day)).ToBeFocusedAsync();
     }
 
     [Theory]
@@ -156,6 +262,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(articles).ToHaveCountAsync(expected);
         }
         var target = articles.Nth(32);
+        // Compare the reading position after the newly revealed posts have landed,
+        // rather than bookmarking a transient translate/scale frame.
+        await WaitForFiniteAnimationsAsync(page);
         await target.EvaluateAsync("e => window.scrollTo({top: e.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'})");
         var key = await target.GetAttributeAsync("data-feed-key");
         var top = await target.EvaluateAsync<double>("e => e.getBoundingClientRect().top");
@@ -250,7 +359,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             }
             await older.ClickAsync();
             await requested.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            if (readerMovesAway) await page.Mouse.WheelAsync(0, -600);
+            await WaitForFiniteAnimationsAsync(page);
+            if (readerMovesAway) {
+                const int wheelDistance = 600;
+                var beforeWheel = await page.EvaluateAsync<double>("() => scrollY");
+                await page.Mouse.WheelAsync(0, -wheelDistance);
+                // Establish the reader's new position before the pending history can change the page.
+                await page.WaitForFunctionAsync("target => scrollY <= target", Math.Max(0, beforeWheel - wheelDistance) + 1);
+            }
             await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
             var anchor = await articles.EvaluateAllAsync<string>("items => items.find(e => e.getBoundingClientRect().bottom > 60 && e.getBoundingClientRect().top < innerHeight).dataset.feedKey");
             var reading = page.Locator($"#lmxNotes > article[data-feed-key='{anchor}']");

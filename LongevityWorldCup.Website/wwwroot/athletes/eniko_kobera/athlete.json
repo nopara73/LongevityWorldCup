@@ -1,0 +1,28 @@
+{
+  "Name": "Eniko Kobera",
+  "DisplayName": null,
+  "MediaContact": "instagram.com/koberaeniko/",
+  "DateOfBirth": {
+    "Year": 1969,
+    "Month": 9,
+    "Day": 20
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-11-03",
+      "AlbGL": 47,
+      "CreatUmolL": 96,
+      "GluMmolL": 5.81,
+      "CrpMgL": 1.4,
+      "LymPc": 30.8,
+      "McvFL": 86.8,
+      "RdwPc": 12.8,
+      "AlpUL": 129,
+      "Wbc1000cellsuL": 5.35
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "Healthy and active old age. :)",
+  "PersonalLink": null
+}

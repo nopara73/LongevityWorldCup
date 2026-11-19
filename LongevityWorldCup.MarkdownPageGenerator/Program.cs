@@ -375,6 +375,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     var canonicalPath = WebUtility.HtmlEncode(page.CanonicalPath);
     var sourceUrl = WebUtility.HtmlEncode(page.SourceUrl);
     var pageClass = WebUtility.HtmlEncode("documentation-page-" + page.CanonicalPath.Trim('/'));
+    // Pages with a dated timeline load the living-timeline layer.
+    var hasTimeline = documentHtml.Contains("class=\"documentation-timeline\"", StringComparison.Ordinal);
+    var timelineStyle = hasTimeline ? "\n    <link rel=\"stylesheet\" href=\"{{ASSET_HISTORY_TIMELINE_CSS}}\">" : string.Empty;
+    var timelineScript = hasTimeline ? "\n    <script src=\"{{ASSET_HISTORY_TIMELINE_JS}}\" defer></script>" : string.Empty;
 
     return $$"""
 <!DOCTYPE html>
@@ -391,13 +395,13 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-page {
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: minmax(min(12rem, 26vw), min(15rem, 30vw)) minmax(0, 47rem);
-            gap: clamp(1.5rem, 3vw, 2.75rem);
+            grid-template-columns: var(--lwc-aside) minmax(0, 1fr);
+            gap: var(--lwc-grid-gap-lg);
             align-items: start;
-            justify-content: center;
-            max-width: 72rem;
-            margin: 2.5rem auto 4rem;
-            padding: 0 clamp(1rem, 3vw, 1.5rem);
+            justify-content: stretch;
+            max-width: calc(var(--lwc-container-page) + var(--lwc-gutter-start) + var(--lwc-gutter-end));
+            margin: var(--lwc-page-top) auto var(--lwc-page-bottom-safe);
+            padding: 0 var(--lwc-gutter-end) 0 var(--lwc-gutter-start);
         }
 
         /* Contents: one rail. Every section link sits on it, and it fills with
@@ -671,11 +675,23 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             counter-increment: documentation-chapter;
         }
 
-        /* Collect flex lines using the longest word, not the entire title. */
+        /* The accent rule follows the final line of a wrapped title. */
         .documentation-chapter-title {
             flex: 1 1 min-content;
             min-width: 0;
             max-width: 100%;
+            overflow: clip visible;
+        }
+
+        .documentation-chapter-title::after {
+            content: "";
+            display: inline-block;
+            width: 100%;
+            height: 2px;
+            margin: 0 calc(1.15rem - 100%) 0 .85rem;
+            vertical-align: middle;
+            background: linear-gradient(90deg, var(--lwc-accent), transparent 26rem);
+            opacity: .55;
         }
 
         .documentation-document :is(h2.documentation-chapter, .ruleset-rule > h2)::before {
@@ -940,10 +956,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-page #where-to-go-next + ul > li {
             position: relative;
-            flex: 1 1 13.5rem;
+            flex: 1 1 15rem;
             min-width: 0;
             margin: 0;
-            padding: 1rem 3rem 1.05rem 1.1rem;
+            padding: 1.1rem 3.75rem 1.15rem 1.15rem;
             border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
             border-radius: var(--lwc-radius-lg, 8px);
             background: var(--lwc-surface, #ffffff);
@@ -957,15 +973,23 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-page #where-to-go-next + ul > li::before {
             content: "\2192" / "";
             position: absolute;
-            top: 1rem;
+            top: 50%;
             right: 1rem;
+            translate: 0 -50%;
+            display: grid;
+            place-items: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lwc-accent) 45%, var(--lwc-border));
             color: var(--lwc-accent, var(--primary-color));
             pointer-events: none;
         }
 
         .documentation-page #where-to-go-next + ul > li > a {
             border-radius: inherit;
-            font-size: 1.06rem;
+            color: var(--lwc-ink);
+            font-size: 1.12rem;
             font-weight: 700;
             text-decoration: none;
         }
@@ -1093,6 +1117,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             line-height: 1.4;
         }
 
+        .documentation-timeline-title {
+            max-inline-size: 100%;
+        }
+
         .documentation-timeline-entry.is-announced .documentation-timeline-date {
             border: 1px dashed var(--lwc-accent, var(--primary-color));
             background: transparent;
@@ -1175,8 +1203,6 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         @media (max-width: 900px) {
             .documentation-page {
                 display: block;
-                margin: 1rem auto 3rem;
-                padding: 0 1rem;
             }
 
             /* Phones and tablets: the contents fold into a bar above the document
@@ -1374,7 +1400,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         @media (max-width: 600px) {
             .documentation-page {
-                padding-inline: min(1rem, 5vw);
+                padding-inline: max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-left, 0px)) max(min(var(--lwc-gutter), 5vw), env(safe-area-inset-right, 0px));
             }
 
             .documentation-document {
@@ -1422,12 +1448,14 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-page #where-to-go-next + ul > li {
-                padding: 0.8rem 2.6rem 0.85rem 0.85rem;
+                padding: .8rem min(3rem, 44px) .85rem min(.85rem, 14px);
             }
 
             .documentation-page #where-to-go-next + ul > li::before {
-                top: 0.8rem;
-                right: 0.85rem;
+                right: min(.7rem, 10px);
+                width: 28px;
+                height: 28px;
+                font-size: 16px;
             }
 
             .documentation-page #where-to-go-next + ul > li > a {
@@ -1464,7 +1492,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
         }
     </style>{{(page.Reference ? ReferencePage.Style : string.Empty)}}
-    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">
+    <link rel="stylesheet" href="{{"{{ASSET_DOCUMENTATION_READING_CSS}}"}}">{{timelineStyle}}
 </head>
 <body>
     <!--HEADER-->
@@ -1475,7 +1503,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         </article>
     </main>
     <!--FOOTER-->
-    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}
+    <script src="{{"{{ASSET_DOCUMENTATION_JS}}"}}" data-canonical-path="{{canonicalPath}}"></script>{{(page.Reference ? ReferencePage.Script : string.Empty)}}{{timelineScript}}
 </body>
 </html>
 """;

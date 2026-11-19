@@ -38,7 +38,7 @@ public sealed partial class BioageResultScoreboardBrowserTests(
             await FillBortzBiomarkersAsync(page);
         else
             await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForFunctionAsync("selector => document.querySelector(selector)?.classList.contains('show')", resultSelector);
         await page.WaitForFunctionAsync("() => /\\d/.test(document.getElementById('yearsText').textContent)");
 
@@ -98,6 +98,34 @@ public sealed partial class BioageResultScoreboardBrowserTests(
             }
             """);
         Assert.True(layout[0] <= layout[1] - 8, $"{path}: loaded rank ends at {layout[0]}px behind actions at {layout[1]}px.");
+    }
+
+    [Theory]
+    [InlineData(390, true)]
+    [InlineData(1440, false)]
+    public async Task Result_LateRankPreservesTheReadersManualScroll(int width, bool reducedMotion)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = reducedMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("""
+            window.__rankGate = new Promise(resolve => window.__releaseRank = resolve);
+            window.getSharedAthletes = () => window.__rankGate.then(() => fetch('/api/data/athletes').then(response => response.json()));
+            """);
+        var page = await context.NewPageAsync();
+        await CalculateAsync(page, "/pheno-age");
+        await page.WaitForFunctionAsync("() => document.querySelector('.bioageform.show')?.dataset.bioageResultStage === 'rank'");
+        await page.WaitForFunctionAsync("() => { const age = document.querySelector('#animatedAge').getBoundingClientRect(); return age.top >= 0 && age.bottom <= innerHeight; }");
+        var initialY = await page.EvaluateAsync<double>("scrollY");
+        await page.Mouse.WheelAsync(0, -120);
+        await page.WaitForFunctionAsync("y => scrollY < y - 20", initialY);
+        var readerY = await page.EvaluateAsync<double>("scrollY");
+        await page.EvaluateAsync("window.__releaseRank()");
+        await Assertions.Expect(page.Locator("[data-bioage-result-rank]")).ToHaveAttributeAsync("aria-busy", "false");
+        await WaitForFiniteAnimationsAsync(page);
+        Assert.InRange(Math.Abs(await page.EvaluateAsync<double>("scrollY") - readerY), 0, 1);
     }
 
     [Theory]
@@ -249,7 +277,7 @@ public sealed partial class BioageResultScoreboardBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForFunctionAsync("() => document.querySelector('.bioageform.show') && /\\d|years/.test(document.getElementById('yearsText').textContent)");
     }
 }

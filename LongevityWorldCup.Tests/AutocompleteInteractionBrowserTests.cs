@@ -132,7 +132,7 @@ public sealed class AutocompleteInteractionBrowserTests(
             """
             popup => {
                 const bounds = popup.getBoundingClientRect();
-                return Array.from(popup.children).filter(option => {
+                return Array.from(popup.querySelectorAll(':scope > [role="option"]')).filter(option => {
                     const rect = option.getBoundingClientRect();
                     const top = Math.max(rect.top, bounds.top + popup.clientTop);
                     const bottom = Math.min(rect.bottom, bounds.bottom - 4);
@@ -145,7 +145,7 @@ public sealed class AutocompleteInteractionBrowserTests(
         Assert.Empty(obscuredOptions);
 
         var option = list.GetByRole(AriaRole.Option).Nth(3);
-        var selectedFlag = await option.InnerTextAsync();
+        var selectedFlag = await option.Locator(".lwc-flag-name").InnerTextAsync();
         await option.ClickAsync();
         Assert.Equal(selectedFlag, await input.InputValueAsync());
         Assert.Equal("false", await input.GetAttributeAsync("aria-expanded"));
@@ -365,7 +365,7 @@ public sealed class AutocompleteInteractionBrowserTests(
         await context.RouteAsync("**/api/data/flags", route => route.FulfillAsync(new()
         {
             ContentType = "application/json",
-            Body = """["Argentina","Australia","Austria","Belgium","Brazil","Canada","Denmark","Estonia","France","Germany","Hungary","India","Italy","Japan","United Kingdom","United States"]"""
+            Body = """["Argentina","Australia","Austria","Belgium","Brazil","Canada","Denmark","Estonia","France","Germany","Hungary","India","Italy","Japan","Liberland","United Kingdom","United States"]"""
         }));
         await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
         {

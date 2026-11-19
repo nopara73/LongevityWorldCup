@@ -6,7 +6,6 @@
 //   arrow grows in or turns over instead of swapping.
 // - The ranking tabs share one ink bar that slides to the chosen tab.
 // - Row changes retain readable names while the controller settles their new order.
-// - Resting the pointer on a row peeks at that athlete's key numbers.
 // - On phones a rank rail on the edge shows where you are in the long list and
 //   scrubs or jumps to rank anchors and the Pro/Amateur boundary.
 // - Switching By Flag updates immediately with a short settling cue.
@@ -14,7 +13,7 @@
 // Classic script for the full /leaderboard page only. It never replaces the
 // page's own handlers: rows keep their identity and nothing waits on an animation. Motion follows
 // the shared gate (first trusted press) and prefers-reduced-motion keeps all of
-// it off; the peek and rail still work without motion.
+// it off; the rail still works without motion.
 
 function initializeLeaderboardFeel(): void {
     const main = document.querySelector<HTMLElement>('main[data-leaderboard-page="full"]');
@@ -25,21 +24,9 @@ function initializeLeaderboardFeel(): void {
     const body = table.tBodies[0];
     const byFlag = document.getElementById("group-flags") as HTMLInputElement | null;
 
-    type PeekAthlete = {
-        readonly chronologicalAge: number;
-        readonly lowestBortzAge: number | null;
-        readonly chronoAtLowestBortzAge: number | null;
-        readonly lowestPhenoAge: number;
-        readonly chronoAtLowestPhenoAge: number;
-        readonly crowdAge: number | null;
-        readonly crowdCount: number;
-        readonly placements: readonly (number | null)[];
-    };
-
     const root = document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const phone = window.matchMedia("(max-width: 768px)");
-    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const rowSelector = "tr[data-athlete-name]";
 
     function moving(): boolean {
@@ -195,179 +182,6 @@ function initializeLeaderboardFeel(): void {
 
     // Row motion is owned by the leaderboard controller on both board surfaces.
 
-    // 5) Peek: rest the pointer on a row to see that athlete's key numbers.
-    const peek = document.createElement("div");
-    peek.className = "lb-peek";
-    peek.id = "leaderboard-peek";
-    peek.setAttribute("role", "tooltip");
-    peek.hidden = true;
-    document.body.append(peek);
-    let peekTimer = 0;
-    let peekRow: HTMLTableRowElement | null = null;
-    let peekAnimation: Animation | null = null;
-
-    function sparkline(placements: readonly (number | null)[], rank: number): SVGSVGElement | null {
-        // API order is yesterday, week, month, year. Draw oldest to newest,
-        // retaining missing observations instead of closing their gaps.
-        const history = [...placements.slice(0, 4)].reverse().concat(rank);
-        const points = history.flatMap((value, index) => value != null && Number.isFinite(value) && value > 0 ? [{ value, index }] : []);
-        if (points.length < 2) return null;
-        const ns = "http://www.w3.org/2000/svg";
-        const svg = document.createElementNS(ns, "svg");
-        svg.setAttribute("viewBox", "0 0 120 32");
-        svg.setAttribute("class", "lb-peek-spark");
-        svg.setAttribute("role", "img");
-        svg.setAttribute("aria-label", "Ultimate rank history, oldest to newest: " + history.map(value => value ?? "unavailable").join(", "));
-        const best = Math.min(...points.map(point => point.value));
-        const range = Math.max(1, Math.max(...points.map(point => point.value)) - best);
-        const line = document.createElementNS(ns, "polyline");
-        line.setAttribute("points", points.map(point => `${4 + point.index * 28},${4 + (point.value - best) / range * 24}`).join(" "));
-        svg.append(line);
-        return svg;
-    }
-
-    function cell(className: string, ...children: (Node | string)[]): HTMLElement {
-        const element = document.createElement("span");
-        element.className = className;
-        element.append(...children);
-        return element;
-    }
-
-    function icon(name: string): HTMLElement {
-        const element = document.createElement("i");
-        element.className = `fas ${name}`;
-        element.setAttribute("aria-hidden", "true");
-        return element;
-    }
-
-    function fillPeek(row: HTMLTableRowElement): boolean {
-        const name = row.dataset["athleteName"] || "";
-        // Reuse the page's calculated clock values. Display metrics can be
-        // percentages or improvements, and must never be parsed back into ages.
-        const athlete = (window as unknown as { getLeaderboardPeek?: (name: string) => PeekAthlete | null }).getLeaderboardPeek?.(name);
-        const rank = row.querySelector(".rank")?.textContent?.trim() || "";
-        const metric = row.querySelector(".age-reduction")?.textContent?.trim() || "";
-        const portrait = row.querySelector<HTMLImageElement>("img.portrait");
-        peek.replaceChildren();
-
-        const top = cell("lb-peek-top");
-        if (portrait?.currentSrc || portrait?.src) {
-            const picture = document.createElement("img");
-            picture.src = portrait.currentSrc || portrait.src;
-            picture.alt = "";
-            top.append(picture);
-        }
-        top.append(cell("lb-peek-id", cell("lb-peek-rank", rank), cell("lb-peek-name", row.querySelector(".athlete-name")?.textContent?.trim() || name)));
-        peek.append(top);
-        if (metric) peek.append(cell("lb-peek-metric", metric));
-
-        const facts = cell("lb-peek-facts");
-        if (athlete) {
-            const view = main!.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value;
-            const bortz = view === "bortz" || (view === "ultimate" && athlete.lowestBortzAge != null);
-            const clock = bortz || view === "pheno" || view === "ultimate";
-            const age = clock ? (bortz ? athlete.chronoAtLowestBortzAge : athlete.chronoAtLowestPhenoAge) : athlete.chronologicalAge;
-            const bio = clock ? (bortz ? athlete.lowestBortzAge : athlete.lowestPhenoAge) : null;
-            if (age != null && Number.isFinite(age)) {
-                const ages = cell("lb-peek-ages", icon("fa-hourglass-half"), cell("lb-peek-age", age.toFixed(1)));
-                ages.setAttribute("aria-label", clock ? "Chronological age at test" : "Chronological age");
-                if (bio != null && Number.isFinite(bio)) {
-                    const value = cell("lb-peek-age is-bio", bio.toFixed(1));
-                    value.setAttribute("aria-label", bortz ? "bortz age" : "Pheno age");
-                    ages.append(icon("fa-arrow-right-long"), value);
-                }
-                facts.append(ages);
-            }
-        }
-        if (athlete && athlete.crowdCount > 0 && athlete.crowdAge != null && Number.isFinite(athlete.crowdAge)) {
-            const crowd = cell("lb-peek-crowd", icon("fa-people-group"), cell("lb-peek-age", athlete.crowdAge.toFixed(1)));
-            crowd.setAttribute("aria-label", "Crowd age");
-            facts.append(crowd);
-        }
-        if (facts.childNodes.length) peek.append(facts);
-        if (athlete && main!.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value === "ultimate") {
-            const spark = sparkline(athlete.placements, Number(row.dataset["rank"]));
-            if (spark) peek.append(spark);
-        }
-        return Boolean(rank || metric);
-    }
-
-    function placePeek(row: HTMLTableRowElement): void {
-        const anchor = row.querySelector<HTMLElement>(".athlete-identity, .athlete-td") ?? row;
-        const box = anchor.getBoundingClientRect();
-        const rowBox = row.getBoundingClientRect();
-        const width = peek.offsetWidth;
-        const height = peek.offsetHeight;
-        const left = Math.min(window.innerWidth - width - 12, Math.max(12, box.left + Math.min(box.width, 220) + 12));
-        const above = rowBox.top - height - 8;
-        const top = above > stickyTop() + head.getBoundingClientRect().height ? above : rowBox.bottom + 8;
-        peek.style.left = `${left}px`;
-        peek.style.top = `${Math.max(8, Math.min(window.innerHeight - height - 8, top))}px`;
-    }
-
-    function hidePeek(): void {
-        window.clearTimeout(peekTimer);
-        peekRow?.querySelector(".athlete-name")?.removeAttribute("aria-describedby");
-        peekRow = null;
-        peekAnimation?.cancel();
-        peekAnimation = null;
-        peek.classList.remove("is-open");
-        peek.hidden = true;
-    }
-
-    function showPeek(row: HTMLTableRowElement): void {
-        if (phone.matches || !row.isConnected || row.style.display === "none" || !fillPeek(row)) return;
-        peek.hidden = false;
-        peek.classList.add("is-open");
-        peek.tabIndex = peek.scrollHeight > peek.clientHeight + 1 ? 0 : -1;
-        peekRow = row;
-        row.querySelector(".athlete-name")?.setAttribute("aria-describedby", peek.id);
-        placePeek(row);
-        if (moving() && typeof peek.animate === "function") {
-            peekAnimation?.cancel();
-            try {
-                peekAnimation = peek.animate(
-                    [{ opacity: 0, translate: "0 6px", scale: "0.97" }, { opacity: 1, translate: "0 0", scale: "1" }],
-                    { duration: token("--lwc-motion-base", 200), easing: ease("--lwc-ease-enter") });
-            } catch { peekAnimation = null; }
-        }
-    }
-
-    body.addEventListener("pointerover", event => {
-        if (!finePointer.matches || event.pointerType !== "mouse" || !(event.target instanceof Element)) return;
-        // Badge explainers and other row links own their own hover surfaces.
-        if (event.target.closest(".badge-class, .badge-section, .athlete-name-links, button")) { hidePeek(); return; }
-        const row = event.target.closest<HTMLTableRowElement>(rowSelector);
-        if (!row || row === peekRow || !body.contains(row)) return;
-        hidePeek();
-        peekRow = row;
-        // Already peeking: move straight to the next row; otherwise wait for a rest.
-        peekTimer = window.setTimeout(() => { if (peekRow === row) showPeek(row); }, 420);
-    });
-    body.addEventListener("pointerleave", () => {
-        window.clearTimeout(peekTimer);
-        peekTimer = window.setTimeout(() => { if (!peek.matches(":hover")) hidePeek(); }, 160);
-    });
-    peek.addEventListener("pointerenter", () => window.clearTimeout(peekTimer));
-    peek.addEventListener("pointerleave", hidePeek);
-    body.addEventListener("focusin", event => {
-        if (!(event.target instanceof Element) || !event.target.matches(".athlete-name:focus-visible")) return;
-        const row = event.target.closest<HTMLTableRowElement>(rowSelector);
-        hidePeek();
-        if (row) showPeek(row);
-    });
-    body.addEventListener("focusout", event => { if (!peek.contains(event.relatedTarget as Node | null)) hidePeek(); });
-    peek.addEventListener("focusout", hidePeek);
-    document.addEventListener("pointerdown", event => { if (!peek.contains(event.target as Node | null)) hidePeek(); }, true);
-    window.addEventListener("resize", hidePeek);
-    reduced.addEventListener("change", hidePeek);
-    window.addEventListener("scroll", () => { if (!peek.hidden || peekRow) hidePeek(); }, { passive: true });
-    document.addEventListener("keydown", event => {
-        if (event.key !== "Escape") return;
-        if (peek.contains(document.activeElement)) peekRow?.querySelector<HTMLElement>(".athlete-name")?.focus({ preventScroll: true });
-        hidePeek();
-    });
-
     // 6) Phone rank rail: where you are in the long list, and a way to jump.
     const rail = document.createElement("div");
     rail.className = "lb-rail";
@@ -379,16 +193,55 @@ function initializeLeaderboardFeel(): void {
     const thumb = document.createElement("span");
     thumb.className = "lb-rail-thumb";
     thumb.setAttribute("aria-hidden", "true");
-    rail.append(track, thumb);
+    // While scrubbing, a balloon beside the thumb shows who is under it.
+    const balloon = document.createElement("div");
+    balloon.className = "lb-rail-balloon";
+    balloon.setAttribute("aria-hidden", "true");
+    const balloonPicture = document.createElement("img");
+    balloonPicture.alt = "";
+    balloonPicture.decoding = "async";
+    const balloonRank = document.createElement("strong");
+    const balloonName = document.createElement("span");
+    balloon.append(balloonPicture, balloonRank, balloonName);
+    rail.append(track, thumb, balloon);
     document.body.append(rail);
+    let balloonRow: HTMLTableRowElement | null = null;
     let railRows: HTMLTableRowElement[] = [];
     let railFrame = 0;
     let railHide = 0;
     let scrubbing = false;
+    let scrubIndex: number | null = null;
     let railDirty = true;
+    let tickKey = "";
+    let activePointer: number | null = null;
+    let captureTarget: HTMLElement | null = null;
+    let pointerStartY = 0;
+    let suppressClick = false;
+    let balloonAnimation: Animation | null = null;
+
+    function finishBalloonMotion(): void {
+        balloonAnimation?.cancel();
+        balloonAnimation = null;
+    }
+
+    function endScrub(event?: PointerEvent): void {
+        if (event && event.pointerId !== activePointer) return;
+        const pointer = activePointer;
+        activePointer = null;
+        if (scrubbing || event?.type === "pointercancel") suppressClick = true;
+        scrubbing = false;
+        scrubIndex = null;
+        rail.classList.remove("is-scrubbing");
+        finishBalloonMotion();
+        if (pointer !== null && captureTarget?.hasPointerCapture(pointer)) captureTarget.releasePointerCapture(pointer);
+        captureTarget = null;
+        queueRail();
+    }
 
     function hideRail(): void {
         window.clearTimeout(railHide);
+        if (activePointer !== null) endScrub();
+        finishBalloonMotion();
         rail.classList.remove("is-visible", "is-scrubbing");
         rail.inert = true;
         scrubbing = false;
@@ -399,67 +252,81 @@ function initializeLeaderboardFeel(): void {
     }
 
     function buildRail(): void {
-        railRows = shownRows();
         railDirty = false;
-        track.replaceChildren();
-        const count = railRows.length;
+        balloonRow = null;
         const fits = phone.matches && window.innerWidth >= 360 && window.innerHeight >= 500
             && parseFloat(getComputedStyle(root).fontSize) <= 20 && !byFlag?.checked;
-        board!.classList.toggle("has-rank-rail", count >= 30 && fits);
-        if (count < 30 || !fits) { hideRail(); return; }
-        const stops = [0, 0.25, 0.5, 0.75, 1].map(fraction => Math.min(count - 1, Math.round(fraction * (count - 1))));
-        for (const index of new Set(stops)) {
-            const row = railRows[index];
-            if (!row) continue;
-            const tick = document.createElement("button");
-            tick.type = "button";
-            tick.className = "lb-rail-tick";
-            tick.textContent = rankOf(row);
-            tick.setAttribute("aria-label", `Jump to rank ${rankOf(row)}`);
-            tick.style.top = `${(index / (count - 1)) * 100}%`;
-            tick.dataset["index"] = String(index);
-            track.append(tick);
+        railRows = fits ? shownRows() : [];
+        const count = railRows.length;
+        if (count >= 30) {
+            // Place the fixed scrubber inside the board, including with classic scrollbars.
+            const inset = document.documentElement.clientWidth - board!.getBoundingClientRect().right;
+            rail.style.right = `${inset + 2}px`;
         }
+        board!.classList.toggle("has-rank-rail", count >= 30);
+        if (count < 30) { tickKey = ""; track.replaceChildren(); hideRail(); return; }
+        const stops = [0, 0.25, 0.5, 0.75, 1].map(fraction => Math.min(count - 1, Math.round(fraction * (count - 1))));
+        const marks = [...new Set(stops)].map(index => ({ index, section: false }));
         const separator = body.querySelector<HTMLTableRowElement>("tr.tier-separator");
         if (separator && separator.style.display !== "none" && separator.getClientRects().length) {
             const after = railRows.findIndex(row => row.compareDocumentPosition(separator) & Node.DOCUMENT_POSITION_PRECEDING);
             if (after > 0) {
-                const mark = document.createElement("button");
-                mark.type = "button";
-                mark.className = "lb-rail-tick is-section";
-                mark.setAttribute("aria-label", `Jump to Amateur, rank ${rankOf(railRows[after]!)}`);
-                mark.style.top = `${(after / (count - 1)) * 100}%`;
-                mark.dataset["index"] = String(after);
-                track.append(mark);
+                marks.push({ index: after, section: true });
             }
         }
+        marks.sort((a, b) => a.index - b.index);
+        const key = JSON.stringify(marks.map(mark => [mark.index, mark.section, rankOf(railRows[mark.index]!)]));
+        // Resizing the viewport or sticky header must not detach a focused tick.
+        if (key === tickKey) return;
+        tickKey = key;
+        track.replaceChildren(...marks.map(({ index, section }) => {
+            const tick = document.createElement("button");
+            tick.type = "button";
+            tick.className = `lb-rail-tick${section ? " is-section" : ""}`;
+            const rank = rankOf(railRows[index]!);
+            tick.textContent = section ? "" : rank;
+            tick.setAttribute("aria-label", section ? `Jump to Amateur, rank ${rank}` : `Jump to rank ${rank}`);
+            tick.dataset["index"] = String(index);
+            return tick;
+        }));
+    }
+
+    function placeTicks(): boolean {
         // Keep boundary and rank targets distinct even when their ranks are
         // close. Scrubbing still uses the continuous row index scale.
-        const ticks = Array.from(track.querySelectorAll<HTMLButtonElement>("button"))
-            .sort((a, b) => Number(a.dataset["index"]) - Number(b.dataset["index"]));
-        const positions = ticks.map(tick => Number(tick.dataset["index"]) / (count - 1) * track.clientHeight);
+        const ticks = Array.from(track.querySelectorAll<HTMLButtonElement>("button"));
+        if (track.clientHeight < (ticks.length - 1) * 44) return false;
+        const positions = ticks.map(tick => Number(tick.dataset["index"]) / (railRows.length - 1) * track.clientHeight);
         for (let i = 1; i < positions.length; i++) positions[i] = Math.max(positions[i]!, positions[i - 1]! + 44);
         if (positions.length) positions[positions.length - 1] = Math.min(positions[positions.length - 1]!, track.clientHeight);
         for (let i = positions.length - 2; i >= 0; i--) positions[i] = Math.min(positions[i]!, positions[i + 1]! - 44);
-        ticks.forEach((tick, i) => { tick.style.top = `${positions[i]}px`; track.append(tick); });
+        ticks.forEach((tick, i) => { tick.style.top = `${positions[i]}px`; });
+        return true;
     }
 
     function railActive(): boolean {
         if (!board!.classList.contains("has-rank-rail") || byFlag?.checked
             || document.querySelector("dialog[open], .modal[style*='display: block'], .sidebar-overlay.active")) return false;
         const box = table!.getBoundingClientRect();
-        return box.top < window.innerHeight * 0.5 && box.bottom > window.innerHeight * 0.6;
+        const headTop = head.getBoundingClientRect().top;
+        // The last jump can reach the document's scroll limit before its row
+        // reaches the header. Keep engaged navigation available to return up.
+        const engaged = activePointer !== null || rail.contains(document.activeElement);
+        const bottomLimit = engaged ? stickyTop() + head.getBoundingClientRect().height + 1 : window.innerHeight * 0.6;
+        return headTop <= stickyTop() + 2 && box.top <= stickyTop() + 2 && box.bottom > bottomLimit;
     }
 
     function syncRail(): void {
         railFrame = 0;
-        if (railDirty || !railRows[0]?.isConnected) buildRail();
-        if (!railActive()) {
+        const line = stickyTop() + head.getBoundingClientRect().height + 8;
+        // Measure ticks, thumb and pointer positions against the same geometry.
+        rail.style.top = `${Math.round(line + 4)}px`;
+        if (railDirty) buildRail();
+        if (!railActive() || !placeTicks()) {
             hideRail();
             return;
         }
         if (railRows.length < 30) { hideRail(); return; }
-        const line = stickyTop() + head.getBoundingClientRect().height + 8;
         let low = 0;
         let high = railRows.length - 1;
         while (low < high) {
@@ -467,13 +334,35 @@ function initializeLeaderboardFeel(): void {
             if ((railRows[mid]?.getBoundingClientRect().bottom ?? 0) < line) low = mid + 1;
             else high = mid;
         }
-        const current = railRows[low];
+        // At the document's end, the selected scrub row may not be able to
+        // scroll all the way to the header. Keep its label under the pointer.
+        const selected = scrubIndex === null ? low : Math.min(scrubIndex, railRows.length - 1);
+        const current = railRows[selected];
         thumb.textContent = current ? rankOf(current) : "";
-        thumb.style.top = `${12 + (low / (railRows.length - 1)) * track.clientHeight}px`;
+        const thumbTop = 12 + (selected / (railRows.length - 1)) * track.clientHeight;
+        thumb.style.top = `${thumbTop}px`;
+        if (current && current !== balloonRow) {
+            balloonRow = current;
+            const portrait = current.querySelector<HTMLImageElement>("img.portrait");
+            const src = portrait?.currentSrc || portrait?.src || "";
+            balloonPicture.hidden = !src;
+            if (src && balloonPicture.src !== src) balloonPicture.src = src;
+            balloonRank.textContent = rankOf(current);
+            balloonName.textContent = current.dataset["athleteName"] || "";
+            finishBalloonMotion();
+            if (scrubbing && moving() && typeof balloonRank.animate === "function") {
+                try {
+                    balloonAnimation = balloonRank.animate([{ transform: "translateY(40%)", opacity: 0.2 }, { transform: "none", opacity: 1 }],
+                        { duration: 140, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+                } catch { /* Optional motion must not interrupt rank navigation. */ }
+            }
+        }
+        const halfBalloon = balloon.offsetHeight / 2;
+        balloon.style.top = `${Math.max(halfBalloon, Math.min(rail.clientHeight - halfBalloon, thumbTop))}px`;
         rail.classList.add("is-visible");
         rail.inert = false;
         window.clearTimeout(railHide);
-        if (!scrubbing && !rail.contains(document.activeElement)) railHide = window.setTimeout(hideRail, 1600);
+        if (activePointer === null && !rail.contains(document.activeElement)) railHide = window.setTimeout(hideRail, 1600);
     }
 
     function queueRail(): void {
@@ -484,9 +373,11 @@ function initializeLeaderboardFeel(): void {
         if (railDirty) buildRail();
         const row = railRows[Math.max(0, Math.min(railRows.length - 1, index))];
         if (!row || !row.getClientRects().length) return;
-        const offset = stickyTop() + head.getBoundingClientRect().height + 4;
+        if (scrubbing) scrubIndex = Math.max(0, Math.min(railRows.length - 1, index));
+        const offset = stickyTop() + head.getBoundingClientRect().height + (index === 0 ? 0 : 4);
         const y = row.getBoundingClientRect().top + window.scrollY - offset;
         window.scrollTo({ top: y, behavior: smooth && moving() ? "smooth" : "instant" });
+        queueRail();
     }
 
     function indexAt(clientY: number): number {
@@ -496,39 +387,56 @@ function initializeLeaderboardFeel(): void {
     }
 
     rail.addEventListener("pointerdown", event => {
-        if (!(event.target instanceof Element)) return;
+        if (!(event.target instanceof Element) || event.button !== 0 || !event.isPrimary || activePointer !== null || rail.inert) return;
         const tick = event.target.closest<HTMLElement>(".lb-rail-tick");
-        if (tick) return;
+        activePointer = event.pointerId;
+        pointerStartY = event.clientY;
+        suppressClick = false;
+        captureTarget = tick || rail;
+        captureTarget.setPointerCapture(event.pointerId);
+        window.clearTimeout(railHide);
+        if (tick) return; // Keep native tap, click and keyboard activation.
         scrubbing = true;
         rail.classList.add("is-scrubbing");
-        rail.setPointerCapture(event.pointerId);
         jumpTo(indexAt(event.clientY), false);
         event.preventDefault();
     });
     rail.addEventListener("click", event => {
+        if (suppressClick && event.detail !== 0) { event.preventDefault(); return; }
         const tick = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button.lb-rail-tick") : null;
         if (tick) jumpTo(Number(tick.dataset["index"]), true);
     });
     rail.addEventListener("focusin", () => window.clearTimeout(railHide));
     rail.addEventListener("focusout", queueRail);
     rail.addEventListener("pointermove", event => {
+        if (event.pointerId !== activePointer) return;
+        if (!scrubbing && Math.abs(event.clientY - pointerStartY) >= 4) {
+            scrubbing = true;
+            rail.classList.add("is-scrubbing");
+        }
         if (scrubbing) jumpTo(indexAt(event.clientY), false);
     });
-    const endScrub = () => {
-        if (!scrubbing) return;
-        scrubbing = false;
-        rail.classList.remove("is-scrubbing");
-        queueRail();
-    };
     rail.addEventListener("pointerup", endScrub);
     rail.addEventListener("pointercancel", endScrub);
     rail.addEventListener("lostpointercapture", endScrub);
 
     window.addEventListener("scroll", queueRail, { passive: true });
-    const invalidateRows = () => { railDirty = true; hidePeek(); queueRail(); queueHead(); requestAnimationFrame(placeInk); };
-    new MutationObserver(invalidateRows).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "hidden"], characterData: true });
-    window.addEventListener("resize", invalidateRows, { passive: true });
-    if (typeof ResizeObserver === "function") new ResizeObserver(invalidateRows).observe(table);
+    const invalidateRows = () => { railDirty = true; queueRail(); queueHead(); requestAnimationFrame(placeInk); };
+    // The controller signals in-place rank, filter and metric changes. Also
+    // catch row replacements during loading or recovery, without remeasuring
+    // the rail for portrait frames or badge updates inside individual rows.
+    document.addEventListener("lwc:standings-ready", invalidateRows);
+    new MutationObserver(invalidateRows).observe(body, { childList: true });
+    window.addEventListener("resize", () => { endScrub(); invalidateRows(); }, { passive: true });
+    window.visualViewport?.addEventListener("resize", () => { endScrub(); queueRail(); }, { passive: true });
+    reduced.addEventListener("change", finishBalloonMotion);
+    window.addEventListener("pagehide", hideRail);
+    if (typeof ResizeObserver === "function") {
+        new ResizeObserver(invalidateRows).observe(table);
+        const geometry = new ResizeObserver(queueRail);
+        geometry.observe(head);
+        geometry.observe(track);
+    }
     queueRail();
 
     // By Flag applies its native change immediately. Keep feedback on the

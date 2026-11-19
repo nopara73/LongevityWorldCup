@@ -30,6 +30,10 @@ namespace LongevityWorldCup.Website.Middleware
         private const string LeaderboardRuntimeScriptsStartMarker = "<!--LEADERBOARD-RUNTIME-SCRIPTS-START-->";
         private const string LeaderboardStylesStartMarker = "<!--LEADERBOARD-STYLES-START-->";
         private const string LeaderboardStylesEndMarker = "<!--LEADERBOARD-STYLES-END-->";
+        private const string HeaderRuntime = """
+            <script src="{{ASSET_CELEBRATION_JS}}"></script>
+            <script src="{{ASSET_SITE_HEADER_JS}}"></script>
+            """;
         private const string AthleteDialogRuntimeId = "athleteDialogRuntime";
         private static readonly UTF8Encoding SharedSearchUtf8 = new(false, true);
         private static readonly IReadOnlyList<string> AthleteDialogModulePaths =
@@ -126,12 +130,20 @@ namespace LongevityWorldCup.Website.Middleware
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
                     var leaderboardPath = GetRequestCanonicalPath(context);
-                    if ((leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)) &&
-                        string.Equals(context.Request.Query["group"].FirstOrDefault(), "flags", StringComparison.OrdinalIgnoreCase))
+                    if (leaderboardPath == "/leaderboard" || IsLeagueRoute(leaderboardPath) || IsFlagRoute(leaderboardPath)
+                        || (leaderboardPath == "/" && !context.Request.Query.ContainsKey("athlete")
+                            && new[] { "filters", "view", "group", "search", "sort", "redact", "redacted" }.Any(context.Request.Query.ContainsKey)))
                     {
-                        var selection = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date)
-                            .Select(leaderboardPath, context.Request.Query);
-                        seo = seo with { PageTitle = $"{selection.RailTitle} | Longevity World Cup" };
+                        var snapshot = GetPublicLeaderboardSnapshot(context);
+                        var selection = snapshot.Select(leaderboardPath, context.Request.Query);
+                        if (leaderboardPath != "/" && (selection.ByFlag || selection.DocumentTitle.Length > 0))
+                            seo = seo with { PageTitle = $"{(selection.ByFlag ? selection.RailTitle : selection.DocumentTitle)} | Longevity World Cup" };
+                        var title = selection.ByFlag ? selection.RailTitle : selection.DocumentTitle.Length > 0 ? selection.DocumentTitle : selection.RailTitle;
+                        // Keep search canonical policy separate from a social object's exact selected view.
+                        seo = seo with { OgTitle = title, OgImageUrl = BuildDefaultOgImageUrl(),
+                            OgUrl = SiteBaseUrl + leaderboardPath + context.Request.QueryString };
+                        if (_leagueOgImages.IsConfigured && _leagueOgImages.TryGetLeaderboardPayload(snapshot, leaderboardPath, context.Request.Query, out var payload))
+                            seo = seo with { OgTitle = payload.PreviewTitle, OgImageUrl = _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload), OgUrl = SiteBaseUrl + payload.SharePath };
                     }
 
                     if (usesSharedHead)
@@ -143,7 +155,7 @@ namespace LongevityWorldCup.Website.Middleware
                             .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
                             .Replace("{{SEO_OG_TITLE}}", EncodeMeta(previewTitle))
                             .Replace("{{SEO_OG_DESCRIPTION}}", EncodeMeta(seo.OgDescription))
-                            .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.CanonicalUrl))
+                            .Replace("{{SEO_OG_URL}}", EncodeMeta(seo.OgUrl ?? seo.CanonicalUrl))
                             .Replace("{{SEO_OG_IMAGE}}", EncodeMeta(seo.OgImageUrl))
                             .Replace("{{SEO_OG_IMAGE_WIDTH}}", seo.OgImageWidth.ToString(CultureInfo.InvariantCulture))
                             .Replace("{{SEO_OG_IMAGE_HEIGHT}}", seo.OgImageHeight.ToString(CultureInfo.InvariantCulture))
@@ -154,9 +166,10 @@ namespace LongevityWorldCup.Website.Middleware
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
                     leaderboardContent = leaderboardContent.Replace("<!--GUESS-MY-AGE-->", guessMyAge);
+                    string? championPortrait = null;
                     if (containsLeaderboardContent)
                     {
-                        leaderboardContent = ApplyPublicContent(leaderboardContent, context);
+                        leaderboardContent = ApplyPublicContent(leaderboardContent, context, out championPortrait);
                         leaderboardContent = ApplyLongevitymaxxingPromo(leaderboardContent);
                     }
 
@@ -179,12 +192,21 @@ namespace LongevityWorldCup.Website.Middleware
                         header = RemoveHeaderTagline(header);
                     }
 
+                    // On a populated homepage the browser can paint the real podium before
+                    // executing the header scripts. Preserve their order ahead of the board runtime.
+                    header = header.Replace("<!--HEADER-RUNTIME-->", championPortrait is null ? HeaderRuntime : string.Empty);
+                    leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null
+                        ? string.Empty : HeaderRuntime + "\n" + HomepagePodiumAssets.SectionStyles);
+                    // These template boundaries are only used while assembling the response.
+                    leaderboardContent = Regex.Replace(leaderboardContent, @"<!--(?:LEADERBOARD|ATHLETE-DIALOG|ORDER)-[A-Z-]+-->", string.Empty);
+
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("{{SEO_DESCRIPTION}}", EncodeMeta(seo.Description))
                         .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
                         .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
-                        .Replace("<!--HEAD-->", head)
+                        .Replace("<!--HEAD-->", HomepagePodiumAssets.PrepareHead(head, championPortrait))
+                        .Replace("<!--HOMEPAGE-SECTION-STYLES-->", championPortrait is null ? HomepagePodiumAssets.SectionStyles : string.Empty)
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
@@ -200,15 +222,11 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
-                        bodyContent = InjectPortraitSystem(bodyContent);
-                        bodyContent = InjectTouchLayer(bodyContent);
-                        bodyContent = InjectPointerLayer(bodyContent);
-                        bodyContent = InjectAestheticSystemStylesheet(bodyContent);
-                        bodyContent = InjectDepthSystem(bodyContent);
-                        bodyContent = InjectScrollChoreography(bodyContent);
-                        bodyContent = InjectImageViewer(bodyContent);
-                        bodyContent = InjectDisclosureLayer(bodyContent);
+                        bodyContent = InjectSharedHeadAssets(bodyContent, championPortrait is not null);
                     }
+
+                    if (championPortrait is not null)
+                        bodyContent = HomepagePodiumAssets.PrioritizeStyles(bodyContent);
 
                     if (ShouldRemoveJoinGameButtons(path))
                     {
@@ -424,13 +442,14 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     $"{Environment.NewLine}{content}{Environment.NewLine}");
         }
 
-        private string ApplyPublicContent(string html, HttpContext context)
+        private string ApplyPublicContent(string html, HttpContext context, out string? championPortrait)
         {
+            championPortrait = null;
             try
             {
                 var path = GetRequestCanonicalPath(context);
                 var asOf = DateTime.UtcNow.Date;
-                var snapshot = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), asOf);
+                var snapshot = GetPublicLeaderboardSnapshot(context);
                 var selection = IsLeaderboardDocument(path)
                     ? snapshot.Select(IsAthleteRoute(path) ? "/" : path, context.Request.Query)
                     : null;
@@ -452,7 +471,12 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                             .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     }
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
-                    html = Regex.Replace(html, "(<div class=\"collapsed-title\"[^>]*>).*?(</div>)",
+                    if (selection.LeagueTitle.Length > 0)
+                    {
+                        html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardLeagueTitle", System.Net.WebUtility.HtmlEncode(selection.LeagueTitle))
+                            .Replace("id=\"leaderboardLeagueTitle\" hidden", "id=\"leaderboardLeagueTitle\"", StringComparison.Ordinal);
+                    }
+                    html = Regex.Replace(html, "(<span class=\"collapsed-title\"[^>]*>).*?(</span>)",
                         match => match.Groups[1].Value.TrimEnd('>') +
                             $" title=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(selection.RailTitle)}\">" +
                             System.Net.WebUtility.HtmlEncode(selection.RailTitle.ToUpperInvariant()) + match.Groups[2].Value, RegexOptions.Singleline);
@@ -464,16 +488,23 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 if (selection is not null && ShouldRenderLeaderboardRows(context))
                 {
                     var table = selection.Snapshot;
+                    var total = selection.ByFlag ? selection.FlagTeams.Count : table.Rows.Count;
+                    var unit = selection.ByFlag ? "flag" : "athlete";
+                    html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardResultCount", $"{total} {unit}{(total == 1 ? "" : "s")}")
+                        .Replace("id=\"leaderboardSelectionSummary\" hidden", "id=\"leaderboardSelectionSummary\"", StringComparison.Ordinal);
                     if (selection.ByFlag)
                     {
                         var teams = selection.FlagTeams;
                         var isPreview = path is "/" or "/contribute" || IsAthleteRoute(path);
-                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(isPreview ? teams.Take(10) : teams, selection.View == "ultimate"), StringComparison.Ordinal);
+                        html = html.Replace("<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", FlagLeaderboardHtmlRenderer.Render(teams, selection.View == "ultimate", isPreview ? 10 : null), StringComparison.Ordinal);
                     }
                     if (path is "/" or "/contribute" || IsAthleteRoute(path))
                     {
                         var visible = table.Rows.Take(10).ToList();
                         var podium = snapshot.Select("/", QueryCollection.Empty).Snapshot;
+                        if (path == "/" && IsHomepageRequest(context) && selection.IsDefault &&
+                            podium.Rows.FirstOrDefault()?.LeaderboardThumbnailUrl is { Length: > 0 } portrait)
+                            championPortrait = portrait;
                         html = Regex.Replace(html, "<!--LEADERBOARD-PODIUM-START-->.*?<!--LEADERBOARD-PODIUM-END-->",
                             _ => "<!--LEADERBOARD-PODIUM-START-->" + LeaderboardHtmlRenderer.RenderPodium(podium, visible.Select(r => r.Slug).ToHashSet()) + "<!--LEADERBOARD-PODIUM-END-->", RegexOptions.Singleline);
                         var podiumDisplay = selection.IsDefault ? "flex" : "none";
@@ -498,9 +529,19 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             }
             catch (Exception ex)
             {
+                championPortrait = null;
                 _logger.LogWarning(ex, "Falling back to client rendering after public page rendering failed.");
                 return html;
             }
+        }
+
+        private PublicLeaderboardSnapshot GetPublicLeaderboardSnapshot(HttpContext context)
+        {
+            const string key = "Lwc.PublicLeaderboardSnapshot";
+            if (context.Items[key] is PublicLeaderboardSnapshot snapshot) return snapshot;
+            snapshot = new PublicLeaderboardSnapshot(athleteSnapshots.GetAthletesSnapshot(), DateTime.UtcNow.Date);
+            context.Items[key] = snapshot;
+            return snapshot;
         }
 
         private static string DecodeSharedSearchQuery(string query)
@@ -592,18 +633,27 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             return Path.Combine(environment.ContentRootPath, "wwwroot");
         }
 
-        private string InjectAestheticSystemStylesheet(string html)
+        private string InjectSharedHeadAssets(string html, bool hasHomepagePodium)
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
+            var headEnd = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+            if (headEnd < 0) return html;
 
+            // On the populated homepage, Chrome must discover the title's styles before
+            // the startup script lets the parser open the body and compete for bandwidth.
+            var startup = hasHomepagePodium
+                ? html.IndexOf("<script id=\"homepage-startup\">", 0, headEnd, StringComparison.Ordinal)
+                : -1;
+            var assets = PortraitAssets() + TouchAssets() + PointerAssets() + AestheticAssets()
+                + DepthAssets() + ScrollAssets() + ImageViewerAssets() + DisclosureAssets();
+            return html.Insert(startup >= 0 ? startup : headEnd, assets);
+        }
+
+        private string AestheticAssets()
+        {
             // Shared interaction and type styles precede the palette, dark
             // lighting and the final depth scale. Component states retain priority.
-            var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
+            // The layout system closes the group so every page shares its column.
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/empty-state.js")}\" defer></script>{Environment.NewLine}"
@@ -615,116 +665,61 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/charts.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/type-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}"
-                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, stylesheet);
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/layout-system.css")}\">{Environment.NewLine}"
+                + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/layout-system.js")}\" defer></script>{Environment.NewLine}";
         }
 
         // The touch layer goes in ahead of motion and the aesthetic system, which keep the final say.
-        private string InjectTouchLayer(string html)
+        private string TouchAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Pointer behavior follows touch; the surface systems retain their
         // page-specific focus and control treatments later in the cascade.
-        private string InjectPointerLayer(string html)
+        private string PointerAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/pointer.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Surface and depth tokens follow the palette; components retain their
         // semantic colours, focus indicators and transition ownership.
-        private string InjectDepthSystem(string html)
+        private string DepthAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Sections, cards, lists and numbers arrive through one shared scroll vocabulary.
-        private string InjectScrollChoreography(string html)
+        private string ScrollAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/scroll-choreography.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Pictures open into one shared viewer: flight from the page, zoom, pan, swipe and dismiss.
-        private string InjectImageViewer(string html)
+        private string ImageViewerAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/image-viewer.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/image-viewer.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/image-viewer.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Everything that opens and closes (details, reveal-more toggles, flag
         // rosters) shares one motion and marker; it loads after the surface systems.
-        private string InjectDisclosureLayer(string html)
+        private string DisclosureAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/disclosure.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/disclosure.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/disclosure.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Athlete portraits share one frame, loading, fallback and motion treatment on every page.
-        private string InjectPortraitSystem(string html)
+        private string PortraitAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)
@@ -845,6 +840,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     [
                         "/js/play-athlete-flow.js",
                         "/js/misc.js",
+                        "/js/flags.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
                         "/js/badges.js",
@@ -1271,24 +1267,22 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return false;
             }
 
-            if (!_leagueOgImages.TryGetCurrentPayload(leagueSlug, out var payload))
+            if (!LeagueOgImageService.TryGetLeagueDisplayName(leagueSlug, out var displayName))
             {
                 return false;
             }
 
             var requestCanonicalPath = GetRequestCanonicalPath(context);
             var canonicalPath = string.Equals(requestCanonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
-                                string.Equals(payload.InternalSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
+                                string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
                 ? "/leaderboard"
-                : $"/league/{payload.RouteSlug}";
+                : $"/league/{leagueSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
-            var title = $"{payload.DisplayName} | Longevity World Cup";
-            var description = string.Equals(payload.InternalSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
+            var title = $"{displayName} | Longevity World Cup";
+            var description = string.Equals(leagueSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
                 ? "Compare longevity athletes in the Ultimate League: Pro and Amateur rankings, biological age reduction, biomarker results, and athlete profiles."
-                : $"Explore {payload.DisplayName} longevity rankings, compare biological age reduction, and view athlete profiles and submitted biomarker results.";
-            var ogImageUrl = _leagueOgImages.IsConfigured
-                ? _leagueOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload)
-                : BuildDefaultOgImageUrl();
+                : $"Explore {displayName} longevity rankings, compare biological age reduction, and view athlete profiles and submitted biomarker results.";
+            var ogImageUrl = BuildDefaultOgImageUrl();
 
             seo = new SeoMeta(
                 canonicalPath,
@@ -1296,7 +1290,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 "index, follow",
                 canonicalUrl,
                 title,
-                payload.DisplayName,
+                displayName,
                 "",
                 ogImageUrl
             );
@@ -1538,6 +1532,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                     "https://www.youtube.com/@longevityworldcup",
                     "https://www.instagram.com/LongevityWorldCup/",
                     "https://www.threads.com/@longevityworldcup",
+                    "https://t.me/longevityworldcup",
                     "https://primal.net/p/npub1dgxhzvhhca4hrpzmakc2n8hpvmawtvlacdy80r4wsaghf4h5486sg8tqtl"
                 },
                 ["knowsAbout"] = new[]
@@ -1914,7 +1909,10 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             string OgImageUrl,
             int OgImageWidth = 1200,
             int OgImageHeight = 630
-        );
+        )
+        {
+            public string? OgUrl { get; init; }
+        }
 
         private sealed record LeaderboardViewSeo(string Title, string Description);
 

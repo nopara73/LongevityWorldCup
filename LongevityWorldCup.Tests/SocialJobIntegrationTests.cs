@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Jobs;
+using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
@@ -17,6 +18,139 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class SocialJobIntegrationTests
 {
+    [Fact]
+    public void ScoringRebaselineAtomicallyStopsQueuedAwardsAndPreservesPublishedReceipts()
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true);
+        using var badges = new BadgeDataService(fixture.Athletes, fixture.Events, fixture.Database, NullLogger<BadgeDataService>.Instance);
+        fixture.Athletes.Dispose();
+        var now = DateTimeOffset.UtcNow;
+        var id = fixture.InsertEvent(EventType.BadgeAward,
+            "slug[former_holder] badge[Pheno Age – lowest] cat[Global] val[] place[1]", now.UtcDateTime,
+            xProcessed: 0, threadsProcessed: 0, facebookProcessed: 0);
+        var store = new SocialDeliveryStore(fixture.Database);
+        store.Prepare(SocialDeliveryStore.Bluesky, id, "prepared under the old rule", "former_holder", now);
+        store.Complete(SocialDeliveryStore.Mastodon, id, new("published-id", "https://mastodon.social/@lwc/published"), now);
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = """
+                UPDATE BadgeAwards SET DefinitionHash='old-rule' WHERE BadgeLabel='Pheno Age – lowest';
+                CREATE TRIGGER FailAwards BEFORE INSERT ON BadgeAwards BEGIN SELECT RAISE(ABORT, 'test rollback'); END;
+                """;
+            cmd.ExecuteNonQuery();
+        });
+
+        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(badges.ComputeAndPersistAwards);
+        Assert.Equal((0, null), fixture.ReadPlatformState(id, "X"));
+        Assert.Contains(store.GetPending(SocialDeliveryStore.Bluesky, true, now), p => p.Event.Id == id);
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "DROP TRIGGER FailAwards;";
+            cmd.ExecuteNonQuery();
+        });
+        badges.ComputeAndPersistAwards();
+        badges.ComputeAndPersistAwards();
+
+        // A response from work already in flight must not undo the correction.
+        store.Fail(SocialDeliveryStore.Bluesky, id, "NetworkError", TimeSpan.FromMinutes(2), true, now);
+
+        foreach (var platform in new[] { "X", "Threads", "Facebook" })
+            Assert.Equal((1, "ScoringCorrection"), fixture.ReadPlatformState(id, platform));
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Platform,Status,LastErrorCode,RemoteUri FROM SocialDeliveries WHERE EventId=@id;";
+            cmd.Parameters.AddWithValue("@id", id);
+            using var reader = cmd.ExecuteReader();
+            var count = 0;
+            while (reader.Read())
+            {
+                count++;
+                if (reader.GetString(0) == SocialDeliveryStore.Mastodon)
+                {
+                    Assert.Equal("sent", reader.GetString(1));
+                    Assert.Equal("https://mastodon.social/@lwc/published", reader.GetString(3));
+                }
+                else
+                {
+                    Assert.Equal("skipped", reader.GetString(1));
+                    Assert.Equal("ScoringCorrection", reader.GetString(2));
+                }
+            }
+            Assert.Equal(7, count);
+        });
+    }
+
+    [Theory]
+    [InlineData("X", false)]
+    [InlineData("Threads", false)]
+    [InlineData("Facebook", false)]
+    [InlineData("X", true)]
+    [InlineData("Threads", true)]
+    [InlineData("Facebook", true)]
+    public async Task DailyJobsValidateTheAthleteWhoCurrentlyHoldsTheAward(string platform, bool current)
+    {
+        using var fixture = SocialJobFixture.Create(enableThreads: true, seedLeaderboardAssets: true);
+        using var badges = new BadgeDataService(fixture.Athletes, fixture.Events, fixture.Database, NullLogger<BadgeDataService>.Instance);
+        BlockPeriodicReminders(fixture);
+        var winner = fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT AthleteSlug FROM BadgeAwards WHERE BadgeLabel='Pheno Age – lowest' AND LeagueCategory='Global' AND Place=1 LIMIT 1;";
+            return (string)cmd.ExecuteScalar()!;
+        });
+        var subject = current ? winner : fixture.Athletes.GetAthletesForX().First(a => a.Slug != winner).Slug;
+        var id = fixture.InsertEvent(EventType.BadgeAward, $"slug[{subject}] badge[Pheno Age – lowest] cat[Global] val[] place[1]",
+            DateTime.UtcNow, xProcessed: 0, threadsProcessed: 0, facebookProcessed: 0);
+
+        await DonationJob(fixture, platform).Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Equal((1, current ? null : nameof(SocialEventSkipReason.SupersededBadgeAward)), fixture.ReadPlatformState(id, platform));
+        if (current) Assert.NotEmpty(DonationRequests(fixture, platform));
+    }
+
+    [Theory]
+    [InlineData("bluesky", false)]
+    [InlineData("mastodon", false)]
+    [InlineData("nostr", false)]
+    [InlineData("instagram", false)]
+    [InlineData("webpush", false)]
+    [InlineData("mastodon", true)]
+    [InlineData("nostr", true)]
+    [InlineData("instagram", true)]
+    public void PreparedAwardsAreRecheckedAndUnconfirmedAttemptsRetainTheirHistory(string platform, bool attempted)
+    {
+        using var fixture = SocialJobFixture.Create();
+        var now = DateTimeOffset.UtcNow;
+        SocialDeliveryStore.InitializeChannel(fixture.Database, platform);
+        var text = "slug[alice] badge[Pheno Age best improvement] cat[Global] val[] place[1]";
+        var id = fixture.InsertEvent(EventType.BadgeAward, text, now.UtcDateTime);
+        var store = new SocialDeliveryStore(fixture.Database);
+        store.Prepare(platform, id, "saved immutable request", "alice", now);
+        Assert.False(store.SuppressIfSuperseded(platform, id, null, now));
+        if (attempted) Assert.True(store.BeginAttempt(platform, id, now));
+
+        Assert.True(store.SuppressIfSuperseded(platform, id, SocialEventSkipReason.SupersededBadgeAward, now));
+        store.Fail(platform, id, "NetworkError", TimeSpan.FromMinutes(2), true, now);
+        Assert.False(store.BeginAttempt(platform, id, now.AddMinutes(3)));
+        Assert.Empty(store.GetPending(platform, customOnly: true, now));
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Status,LastErrorCode,RecordJson,FirstAttemptAtUtc FROM SocialDeliveries WHERE EventId=@id AND Platform=@platform;";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@platform", platform);
+            using var reader = cmd.ExecuteReader();
+            Assert.True(reader.Read());
+            Assert.Equal(attempted ? "review" : "skipped", reader.GetString(0));
+            Assert.Equal(nameof(SocialEventSkipReason.SupersededBadgeAward), reader.GetString(1));
+            Assert.Equal("saved immutable request", reader.GetString(2));
+            Assert.Equal(attempted, !reader.IsDBNull(3));
+        });
+    }
+
     [Fact]
     public async Task BlueskyDonation_FailedSendRetriesAndCompletesExactlyOnce()
     {
@@ -371,7 +505,7 @@ public sealed class SocialJobIntegrationTests
         var donation = ("donation-transaction", DateTime.UtcNow.AddDays(-30), 8455L);
         fixture.Events.CreateDonationReceivedEvents([donation]);
         var receipt = Assert.Single(fixture.Events.GetPendingXEvents());
-        Assert.Equal(8, receipt.XPriority);
+        Assert.Equal(SocialHeadlineTier.Community, receipt.Headline.Tier);
         Assert.Equal(
             $"Someone has donated 0.00008455 BTC 🎉\n\nThank you for helping fund the prize pool!\n\nhttps://longevityworldcup.com/contribute?utm_content=donation-{receipt.Id}#contribute",
             fixture.FacebookEvents.TryBuildMessage(receipt.Type, receipt.Text, receipt.Id));
@@ -443,7 +577,7 @@ public sealed class SocialJobIntegrationTests
     [Theory]
     [InlineData("X", SocialEventSkipReason.UnsupportedEventPayload)]
     [InlineData("Threads", SocialEventSkipReason.UnsupportedEventPayload)]
-    [InlineData("Facebook", SocialEventSkipReason.EmptyMessage)]
+    [InlineData("Facebook", SocialEventSkipReason.UnsupportedEventPayload)]
     public async Task DonationReceivedEvent_InvalidReceiptDoesNotSend(string platform, SocialEventSkipReason expectedReason)
     {
         using var fixture = SocialJobFixture.Create(enableThreads: true);
@@ -542,10 +676,74 @@ public sealed class SocialJobIntegrationTests
     }
 
     [Fact]
-    public async Task FacebookJob_MarksNonCustomRowsSkippedBeforePostingCustomEvent()
+    public void RankEventRetriesRecognizeBothLegacyAndEnrichedPlacements()
+    {
+        using var fixture = SocialJobFixture.Create();
+        var old = DateTime.UtcNow.AddHours(-1);
+        var current = DateTime.UtcNow;
+        var before = new Dictionary<string, int?> { ["alice"] = 10 };
+        void Emit(DateTime at, bool known) => fixture.Events.CreateNewRankEvents(
+            [("alice", at, 6, "bob")], skipIfExists: true, previousRanks: known ? before : null);
+
+        Emit(old, false);
+        Emit(old, true);
+        Emit(current, true);
+        Emit(current, false);
+        var rows = fixture.Events.GetPendingXEvents();
+        Assert.Collection(rows,
+            newer => Assert.Equal("slug[alice] rank[6] prev[bob] prevPlace[10]", newer.Text),
+            older => Assert.Equal("slug[alice] rank[6] prev[bob]", older.Text));
+    }
+
+    [Fact]
+    public async Task BroadcastQueuesLeadWithTheOverallClimbEvenWhenTheSecondaryPodiumIsNewer()
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
+        BlockPeriodicReminders(fixture);
+        var now = DateTime.UtcNow;
+        var store = new SocialDeliveryStore(fixture.Database);
+        string Add(EventType type, string text, int seconds) => fixture.InsertEvent(type, text, now.AddSeconds(seconds),
+            xProcessed: 0, threadsProcessed: 0, facebookProcessed: 0);
+
+        const string rank = "slug[benjamin_garden] rank[6] prev[siim_land] prevPlace[10]";
+        fixture.Athletes.UpdateAthletesJsonInPlace(athlete =>
+        {
+            if ((string?)athlete["AthleteSlug"] == "benjamin_garden") athlete["CurrentPlacement"] = 6;
+            if ((string?)athlete["AthleteSlug"] == "siim_land") athlete["CurrentPlacement"] = null;
+        });
+        var unranked = Add(EventType.NewRank, "slug[siim_land] rank[2]", -7);
+        var superseded = Add(EventType.NewRank, "slug[benjamin_garden] rank[4]", -6);
+        var overall = Add(EventType.NewRank, rank, -5);
+        var clock = Add(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[9] ageReduction[-18]", -4);
+        var title = Add(EventType.BadgeAward, "slug[benjamin_garden] badge[Age reduction] cat[Generation] val[Millennial] place[1]", -3);
+        var improvement = Add(EventType.AgeImprovementTop10Change,
+            "slug[benjamin_garden] clock[pheno] place[3] improvement[-6.36] ageReduction[-18]", -2);
+        var lowerOverall = Add(EventType.NewRank, "slug[another] rank[10]", -1);
+
+        string[] expected = [unranked, superseded, overall, lowerOverall, clock, title, improvement];
+        Assert.Equal(expected, fixture.Events.GetPendingXEvents().Select(e => e.Id));
+        Assert.Equal(expected, fixture.Events.GetPendingThreadsEvents().Select(e => e.Id));
+        Assert.Equal(unranked, Assert.Single(fixture.Events.GetPendingFacebookEvents(limit: 1)).Id);
+        var ids = expected.ToHashSet();
+        Assert.Equal(expected, store.GetPending(SocialDeliveryStore.WebPush, false, now)
+            .Where(candidate => ids.Contains(candidate.Event.Id)).Select(candidate => candidate.Event.Id));
+
+        await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
+        var post = Assert.Single(fixture.FacebookRequests);
+        Assert.Equal((1, nameof(SocialEventSkipReason.SupersededUltimateRank)), fixture.ReadPlatformState(unranked, "Facebook"));
+        Assert.Equal((1, nameof(SocialEventSkipReason.SupersededUltimateRank)), fixture.ReadPlatformState(superseded, "Facebook"));
+        Assert.Contains("Benjamin Garden climbed from #10 to #6 in the Ultimate League.",
+            WebUtility.UrlDecode(await post.Content!.ReadAsStringAsync()));
+        Assert.Contains("from #10 to #6", XMessageBuilder.ForEventText(EventType.NewRank, rank, slug => slug));
+        Assert.Equal((1, null), fixture.ReadPlatformState(overall, "Facebook"));
+        Assert.Equal((0, null), fixture.ReadPlatformState(improvement, "Facebook"));
+    }
+
+    [Fact]
+    public async Task FacebookJob_SkipsUnsupportedRowsBeforePostingCustomEvent()
     {
         using var fixture = SocialJobFixture.Create(facebookSendSucceeds: true);
-        var rankId = fixture.InsertEvent(EventType.NewRank, "slug[alice] rank[1]", DateTime.UtcNow, facebookProcessed: 0);
+        var rankId = fixture.InsertEvent(EventType.NewRank, "slug[alice] rank[11]", DateTime.UtcNow, facebookProcessed: 0);
         var badgeId = fixture.InsertEvent(EventType.BadgeAward, "slug[alice] badge[Crowd Age - lowest] cat[Global] val[] place[1]", DateTime.UtcNow.AddMinutes(-1), facebookProcessed: 0);
         var customId = fixture.InsertEvent(
             EventType.CustomEvent,
@@ -558,10 +756,43 @@ public sealed class SocialJobIntegrationTests
 
         await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
 
-        Assert.Equal((1, SocialEventSkipReason.FacebookSupportsCustomEventsOnly.ToString()), fixture.ReadPlatformState(rankId, "Facebook"));
-        Assert.Equal((1, SocialEventSkipReason.FacebookSupportsCustomEventsOnly.ToString()), fixture.ReadPlatformState(badgeId, "Facebook"));
+        Assert.Equal((1, SocialEventSkipReason.UnsupportedEventPayload.ToString()), fixture.ReadPlatformState(rankId, "Facebook"));
+        Assert.Equal((1, SocialEventSkipReason.YoungestLookingBadge.ToString()), fixture.ReadPlatformState(badgeId, "Facebook"));
         Assert.Equal((1, null), fixture.ReadPlatformState(customId, "Facebook"));
         Assert.Single(fixture.FacebookRequests);
+    }
+
+    [Theory]
+    [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]")]
+    [InlineData(EventType.CrowdAgeTop10Change, "slug[benjamin_garden] place[3] prevPlace[8] crowdAge[35.2] crowdCount[123]")]
+    [InlineData(EventType.AgeImprovementTop10Change, "slug[benjamin_garden] clock[bortz] place[3] prevPlace[8] improvement[-4.5] ageReduction[-20.4]")]
+    [InlineData(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[6] prevPlace[8] ageReduction[-20.4]")]
+    public async Task FacebookJob_PostsEligibleAthleteEventsOnceAndKeepsSubjectCooldown(EventType type, string raw)
+    {
+        using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
+        BlockPeriodicReminders(fixture);
+        if (type == EventType.NewRank)
+        {
+            var rank = fixture.Athletes.GetLeagueSlugsInRankOrder("ultimate").ToList().IndexOf("benjamin_garden") + 1;
+            Assert.InRange(rank, 1, 10);
+            raw = $"slug[benjamin_garden] rank[{rank}] prev[siim_land]";
+        }
+        var id = fixture.InsertEvent(type, raw, DateTime.UtcNow, facebookProcessed: 0);
+        await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
+        Assert.Equal((1, null), fixture.ReadPlatformState(id, "Facebook"));
+        var request = Assert.Single(fixture.FacebookRequests);
+        var body = WebUtility.UrlDecode(await request.Content!.ReadAsStringAsync());
+        Assert.Contains("Benjamin Garden", body);
+        Assert.DoesNotContain("slug[", body);
+        // Force the startup-rescan ordering that used to recreate cleared milestones.
+        // This must not queue another post while the athlete is on subject cooldown.
+        await (Task)typeof(AthleteDataService)
+            .GetMethod("ReloadFromSourceAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(fixture.Athletes, [CancellationToken.None])!;
+        var duplicateSubject = fixture.InsertEvent(type, raw, DateTime.UtcNow.AddSeconds(1), facebookProcessed: 0);
+        await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
+        Assert.Single(fixture.FacebookRequests);
+        Assert.Equal((0, null), fixture.ReadPlatformState(duplicateSubject, "Facebook"));
     }
 
     [Fact]
@@ -1000,6 +1231,7 @@ public sealed class SocialJobIntegrationTests
             bool facebookSendSucceeds = true,
             Action? onFacebookRequest = null,
             bool seedLeaderboardAssets = false,
+            bool seedMatureRoster = false,
             bool xMediaUploadSucceeds = true,
             bool enableThreads = false,
             Func<HttpRequestMessage, HttpResponseMessage>? responseOverride = null)
@@ -1009,6 +1241,16 @@ public sealed class SocialJobIntegrationTests
             Directory.CreateDirectory(Path.Combine(root, "generated", "thumbs", "athletes"));
             if (seedLeaderboardAssets)
                 SeedLeaderboardFiles(root);
+            if (seedMatureRoster)
+            {
+                var source = Path.Combine(FindRepositoryRoot(), "LongevityWorldCup.Website", "wwwroot", "athletes");
+                foreach (var json in Directory.EnumerateFiles(source, "athlete.json", SearchOption.AllDirectories).Order().Take(40))
+                {
+                    var destination = Path.Combine(root, "athletes", Path.GetFileName(Path.GetDirectoryName(json)!), "athlete.json");
+                    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                    File.Copy(json, destination, overwrite: true);
+                }
+            }
 
             var env = new TestWebHostEnvironment(root);
             var database = new DatabaseManager(dbPath: Path.Combine(root, "test.db"));
@@ -1073,7 +1315,7 @@ public sealed class SocialJobIntegrationTests
             var customImages = new CustomEventImageService(env, NullLogger<CustomEventImageService>.Instance);
             var xEvents = new XEventService(xClient, NullLogger<XEventService>.Instance, serviceProvider, customImages);
             var threadsEvents = new ThreadsEventService(threadsClient, NullLogger<ThreadsEventService>.Instance, serviceProvider, customImages);
-            var facebookEvents = new FacebookEventService(facebookClient, NullLogger<FacebookEventService>.Instance, customImages);
+            var facebookEvents = new FacebookEventService(facebookClient, NullLogger<FacebookEventService>.Instance, customImages, threadsEvents);
             var slackEvents = new SlackEventService(
                 new SlackWebhookClient(new HttpClient(new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK), [])), config, NullLogger<SlackWebhookClient>.Instance),
                 NullLogger<SlackEventService>.Instance);
@@ -1091,7 +1333,16 @@ public sealed class SocialJobIntegrationTests
             database.Run(sqlite =>
             {
                 using var cmd = sqlite.CreateCommand();
-                cmd.CommandText = "DELETE FROM Events;";
+                // Keep startup history for event deduplication. Deleting it lets the
+                // asynchronous roster rescan recreate athlete-count milestones and
+                // race the events explicitly inserted by each dispatch test.
+                cmd.CommandText = """
+                    UPDATE Events SET SlackProcessed=1, XProcessed=1, ThreadsProcessed=1, FacebookProcessed=1;
+                    INSERT OR REPLACE INTO SocialDeliveries (EventId, Platform, Status, LastErrorCode, UpdatedAtUtc)
+                    SELECT e.Id, c.Platform, 'skipped', 'FixtureBaseline', @now
+                    FROM Events e CROSS JOIN SocialDeliveryChannels c;
+                    """;
+                cmd.Parameters.AddWithValue("@now", DateTime.UtcNow.ToString("o"));
                 cmd.ExecuteNonQuery();
             });
 

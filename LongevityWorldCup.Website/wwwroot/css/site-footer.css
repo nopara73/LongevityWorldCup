@@ -161,11 +161,12 @@
 }
 
 .footer-follow-links {
+    --footer-icon-gap: min(0.5rem, 8px);
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.5rem;
-    max-width: min(100%, calc(4 * var(--footer-icon-size) + 3 * 0.5rem));
+    gap: var(--footer-icon-gap);
+    max-width: min(100%, calc(5 * var(--footer-icon-size) + 4 * var(--footer-icon-gap)));
 }
 
 .footer-follow-links--primary {
@@ -281,7 +282,7 @@
 }
 
 /* Give subscriptions their own row when the smaller icons need more room. */
-@container (max-width: 20rem) {
+@container (max-width: 24rem) {
     .footer-subscriptions {
         flex-basis: 100%;
         justify-content: center;

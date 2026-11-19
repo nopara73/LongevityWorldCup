@@ -540,23 +540,21 @@ public sealed class ApplyStageLifecycleBrowserTests(
                 ContentType = "application/javascript"
             });
         });
-        if (delayRead) await context.AddInitScriptAsync("""
-            window.FileReader = class extends FileReader {
-                constructor() {
-                    super();
-                    window.releaseProfileRead = null;
-                    let released = false;
-                    this.addEventListener('load', event => {
-                        if (released) return;
-                        event.stopImmediatePropagation();
-                        window.releaseProfileRead = () => { released = true; this.dispatchEvent(new ProgressEvent('load')); };
-                    });
-                }
-            };
-            """);
         var page = await context.NewPageAsync();
         await page.GotoAsync("/apply?fake=1");
         await ReadyAsync(page);
+        if (delayRead) await page.EvaluateAsync("""
+            () => {
+                const prepare = LwcUploadPhoto.prepareCrop;
+                LwcUploadPhoto.prepareCrop = async file => {
+                    const blob = await prepare(file);
+                    await new Promise(resolve => {
+                        window.releaseProfileRead = () => { window.releaseProfileRead = null; resolve(); };
+                    });
+                    return blob;
+                };
+            }
+            """);
         await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
         var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         await page.Locator("#profilePicInput").SetInputFilesAsync(Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
