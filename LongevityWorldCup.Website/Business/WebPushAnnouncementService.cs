@@ -38,7 +38,8 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
                     continue;
                 }
                 if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(item.Type, item.Text, item.OccurredAtUtc,
-                        candidate.Headline, now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
+                        candidate.Headline, now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason,
+                        athletes.SupersededAnnouncementReason))
                 {
                     deliveries.Skip(SocialDeliveryStore.WebPush, item.Id, reason.ToString(), now);
                     continue;
@@ -57,8 +58,8 @@ public sealed class WebPushAnnouncementService(EventDataService events, WebPushS
             foreach (var announcement in store.Pending())
             {
                 ct.ThrowIfCancellationRequested();
-                if (deliveries.SuppressSupersededBadge(SocialDeliveryStore.WebPush, announcement.Id, announcement.Type,
-                        announcement.Text, athletes.IsCurrentBadgeAward, now)) continue;
+                if (deliveries.SuppressIfSuperseded(SocialDeliveryStore.WebPush, announcement.Id,
+                        athletes.SupersededAnnouncementReason(announcement.Type, announcement.Text), now)) continue;
                 var payload = announcement.Payload ?? store.Prepare(announcement, BuildPayload(announcement, assets,
                     announcement.Type == EventType.CustomEvent ? null : messageComposer.TryBuildMessage(
                         announcement.Type, announcement.Text, announcement.Id, announcement.VisibleOnWebsite, ResolveName)), now);

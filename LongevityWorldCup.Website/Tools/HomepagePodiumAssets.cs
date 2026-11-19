@@ -5,6 +5,7 @@ namespace LongevityWorldCup.Website.Tools;
 
 internal static partial class HomepagePodiumAssets
 {
+    private const string EnhancementMedia = "not all and (scripting:enabled)";
     // The podium, header, typography and layout keep their normal blocking styles.
     private static readonly HashSet<string> EnhancementStyles = new(StringComparer.Ordinal)
     {
@@ -32,6 +33,11 @@ internal static partial class HomepagePodiumAssets
               <link rel="preload" as="style" fetchpriority="high" href="{{ASSET_SITE_HEADER_CSS}}">
               <link rel="preload" as="image" fetchpriority="high" href="{{{WebUtility.HtmlEncode(portrait)}}}">
               <link rel="preload" as="style" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
+              <script>
+              document.addEventListener('load', ({ target }) => {
+                  if (target instanceof HTMLLinkElement && target.media === '{{{EnhancementMedia}}}') target.media = 'all';
+              }, true);
+              </script>
               """;
         return head.Replace("<!--FIRST-SCREEN-PRELOADS-->", preloads, StringComparison.Ordinal)
             .Replace("{{ICON_SCRIPT_LOADING}}", portrait is null ? "" : " defer", StringComparison.Ordinal);
@@ -52,7 +58,7 @@ internal static partial class HomepagePodiumAssets
         // With scripting disabled the media query matches immediately. Otherwise each
         // enhancement joins the cascade in its original position once downloaded.
         return EnhancementStyles.Contains(path)
-            ? match.Value[..^1] + " media=\"not all and (scripting: enabled)\" onload=\"this.media='all'\">"
+            ? match.Value[..^1] + $" media=\"{EnhancementMedia}\">"
             : match.Value;
     });
 

@@ -1,3 +1,56 @@
+/* Native feedback is available with the first screen. The shared pointer,
+   touch and motion sheets take precedence when their richer states arrive. */
+@layer homepage-input {
+    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+        :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover))
+            :is(.athlete-profile-link, .podium-rank) {
+            translate: 0 -5px;
+        }
+
+        :root:not([data-lwc-input="touch"]) :is(.option-button, .flow-action, .rankings-btn, .leaderboard-order-toggle, .view-badge):not(:disabled, [aria-disabled="true"], :active):hover {
+            translate: 0 -1px;
+        }
+    }
+
+    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: reduce) {
+        :root:has(> head > link[href^="/css/pointer.css"][media^="not all"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) .podium-portrait {
+            outline: 2px solid var(--lwc-accent, #087685);
+            outline-offset: 2px;
+        }
+    }
+
+    :where(a[href], button:enabled, input, select, summary, [tabindex]):focus-visible {
+        outline: 3px solid var(--lwc-accent, #087685);
+        outline-offset: 2px;
+    }
+
+    @media (any-pointer: coarse) {
+        :where(a[href], button:enabled, label, summary, [role="button"], [role="tab"], .podium-item, tr[data-athlete-name]) {
+            -webkit-tap-highlight-color: color-mix(in srgb, var(--lwc-accent, #087685) 22%, transparent);
+        }
+
+        [data-home-press],
+        :root:has(> head > link[href^="/css/touch.css"][media^="not all"]) [data-lwc-pressed] {
+            filter: brightness(.86);
+        }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        :where(.athlete-profile-link, .podium-rank, button, .option-button, .flow-action, .view-badge) {
+            transition: translate 140ms ease, scale 90ms ease;
+        }
+
+        :root:not([data-lwc-touch]) :where(button:enabled, a[href], summary, .view-badge):active,
+        [data-home-press], [data-lwc-pressed="control"] {
+            scale: .95;
+        }
+
+        [data-lwc-pressed="card"] {
+            scale: .985;
+        }
+    }
+}
+
 .dialog {
     display: none;
     position: fixed;

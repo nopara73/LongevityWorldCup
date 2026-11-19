@@ -2526,6 +2526,16 @@
             let encodingCropper = null;
             let pendingProfileSource = null;
             let profileReadVersion = 0;
+            const cropImage = document.getElementById('cropperImage');
+
+            function clearCropper() {
+                cropImage.onerror = null;
+                if (cropper) {
+                    try { cropper.destroy(); } catch (_) { }
+                    cropper = null;
+                }
+                LwcUploadPhoto.setCropImage(cropImage, null);
+            }
 
             function syncProfileCropLayout() {
                 document.getElementById('cropButton').disabled = !!encodingCropper || !cropper?.ready;
@@ -2550,11 +2560,7 @@
                 const failedVersion = ++profileReadVersion;
                 applicationProfilePending = false;
                 pendingProfileSource = null;
-                document.getElementById('cropperImage').onerror = null;
-                if (cropper) {
-                    try { cropper.destroy(); } catch (_) { }
-                    cropper = null;
-                }
+                clearCropper();
                 document.getElementById('uploadPart').style.display = '';
                 document.getElementById('croppingPart').style.display = 'none';
                 if (currentStage === 4) document.getElementById('nextButton').disabled = !profilePic;
@@ -2570,20 +2576,18 @@
                     nextButton.disabled = true;
                     document.getElementById('cropButton').disabled = true;
                     updateUploadButtons();
-                    if (cropper) cropper.destroy();
-                    cropper = null;
-                    const image = document.getElementById('cropperImage');
+                    clearCropper();
                     // Reading bytes successfully does not mean the browser can decode them.
-                    image.onerror = () => failProfileUpload(version);
-                    image.src = source;
+                    cropImage.onerror = () => failProfileUpload(version);
+                    LwcUploadPhoto.setCropImage(cropImage, source);
                     document.getElementById('uploadPart').style.display = 'none';
                     document.getElementById('croppingPart').style.display = 'block';
-                    cropper = new LwcPortraitCropper(document.getElementById('cropperImage'), {
+                    cropper = new LwcPortraitCropper(cropImage, {
                         maxHeight: 320,
                         error: () => failProfileUpload(version),
                         ready() {
                             if (version !== profileReadVersion) return;
-                            image.onerror = null;
+                            cropImage.onerror = null;
                             window.requestAnimationFrame(syncProfileCropLayout);
                         },
                         minCropBoxWidth: 200,
@@ -2618,7 +2622,7 @@
                     const version = ++profileReadVersion;
                     pendingProfileSource = null;
                     try {
-                        const source = await LwcUploadPhoto.read(file);
+                        const source = await LwcUploadPhoto.prepareCrop(file);
                         if (version !== profileReadVersion) return;
                         // Back can leave this stage while the photo is being prepared.
                         if (currentStage === 4) showProfileCrop(source);
@@ -2681,10 +2685,7 @@
                         pendingProfileSource = null;
                         ++profileReadVersion;
 
-                        try { activeCropper.destroy(); } catch (_) { }
-                        if (cropper === activeCropper) {
-                            cropper = null; // Reset the Cropper instance
-                        }
+                        clearCropper();
 
                         document.getElementById('uploadPart').style.display = '';
                         document.getElementById('croppingPart').style.display = 'none';
@@ -2708,11 +2709,7 @@
                     applicationProfilePending = false;
                     pendingProfileSource = null;
                     ++profileReadVersion;
-                    document.getElementById('cropperImage').onerror = null;
-                    if (cropper) {
-                        try { cropper.destroy(); } catch (_) { }
-                        cropper = null;
-                    }
+                    clearCropper();
 
                     document.getElementById('uploadPart').style.display = '';
                     document.getElementById('croppingPart').style.display = 'none';

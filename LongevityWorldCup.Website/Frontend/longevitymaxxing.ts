@@ -6608,10 +6608,20 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const profile = purpose === "profile";
         if (profile && !heic && file.size <= 1024 * 1024 && /^image\/(jpeg|png|webp)$/i.test(file.type)) return file;
 
-        let image: HTMLImageElement | ImageBitmap | undefined;
+        try {
+            if (heic) return await LwcUploadPhoto.withHeicImage(file, image => encodeChallengePhoto(file, image, profile));
+            const image = await loadProfileBitmap(file);
+            try { return await encodeChallengePhoto(file, image, profile); }
+            finally { closeImageBitmap(image); }
+        } catch {
+            if (heic) throw new PhotoPreparationError(LwcUploadPhoto.recovery);
+            return file;
+        }
+    }
+
+    async function encodeChallengePhoto(file: File, image: HTMLImageElement | ImageBitmap, profile: boolean): Promise<File> {
         const canvas = document.createElement("canvas");
         try {
-            image = heic ? await LwcUploadPhoto.decode(file) : await loadProfileBitmap(file);
             const maxDimension = profile ? 1600 : NOTE_PHOTO_MAX_DIMENSION;
             const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
             canvas.width = Math.max(1, Math.round(image.width * scale));
@@ -6628,11 +6638,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (!blob) throw new Error("Photo encoding failed.");
             const extension = blob.type === "image/webp" ? "webp" : "jpg";
             return new File([blob], replaceImageExtension(file.name, extension), { type: blob.type });
-        } catch {
-            if (heic) throw new PhotoPreparationError(LwcUploadPhoto.recovery);
-            return file;
         } finally {
-            if (image) closeImageBitmap(image);
             canvas.width = canvas.height = 0;
         }
     }

@@ -4264,6 +4264,22 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     color:#17212b;
     transition:none;
 }
+#detailsModal .proof-preview-unavailable img{ opacity:0; }
+#detailsModal .proof-preview-unavailable::after{
+    content:"\f00e" / "";
+    position:absolute;
+    inset:0;
+    margin:auto;
+    width:2.75rem;
+    height:2.75rem;
+    display:grid;
+    place-items:center;
+    border:1px solid #b6b6ae;
+    border-radius:50%;
+    color:#445353;
+    font:900 1.15rem/1 "Font Awesome 6 Free";
+    pointer-events:none;
+}
 #detailsModal .proof-number{
     position:absolute;
     top:0;
@@ -5651,4 +5667,82 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     :root:not([data-lwc-touch]) .leaderboard tr[data-athlete-name]:active .portrait {
         scale: .92;
     }
+}
+
+/* Identify the athlete immediately as a mouse moves down either standings table. */
+@media (any-hover: hover) and (any-pointer: fine) {
+    :root:not([data-lwc-input="touch"]) #athleteLeaderboard > table > tbody > tr[data-athlete-name]:is(:hover, :has(.athlete-name:focus-visible)):not(:active) {
+        background-color:color-mix(in srgb, var(--lwc-accent) 13%, var(--lwc-surface));
+    }
+    :root:not([data-lwc-input="touch"]) #athleteLeaderboard tr[data-athlete-name]:is(:hover, :has(.athlete-name:focus-visible)) .athlete-name {
+        color:var(--lwc-accent-hover);
+        text-decoration-color:currentColor;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        #athleteLeaderboard tr[data-athlete-name] .portrait-wrapper {
+            transition:translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease);
+        }
+        :root:not([data-lwc-input="touch"]) #athleteLeaderboard tr[data-athlete-name]:is(:hover, :has(.athlete-name:focus-visible)):not(:active) .portrait-wrapper {
+            translate:2px -2px;
+        }
+    }
+}
+
+/* Athlete preview shared by the homepage and the full standings. */
+.lb-peek-region{ position:fixed; z-index:40; }
+/* Bridge the gap toward the row. Taper the corner so scanning down nearby
+   portraits can drift a few pixels without hitting an invisible card edge. */
+.lb-peek-region::before{
+    position:absolute; left:0; bottom:-8px;
+    width:calc(100% + 8px); height:calc(min(50%, 48px) + 8px);
+    clip-path:polygon(0 0, calc(100% - 8px) 0, 100% calc(100% - 8px), 100% 100%, 0 100%);
+    transform:scale(var(--bridge-x, 1), var(--bridge-y, 1));
+}
+.lb-peek-region:has(> .lb-peek.is-open)::before{ content:""; }
+.lb-peek-region.to-right::before{ left:-8px; --bridge-x:-1; }
+.lb-peek-region.below::before{ top:-8px; bottom:auto; --bridge-y:-1; }
+.lb-peek{
+    position:relative; width:min(16.5rem, calc(100vw - 24px)); box-sizing:border-box;
+    display:grid; gap:var(--lwc-space-2); padding:var(--lwc-space-3) var(--lwc-space-4);
+    background:var(--lwc-surface); color:var(--lwc-ink);
+    border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-md, 10px);
+    box-shadow:var(--lwc-shadow-md);
+    max-height:calc(100dvh - 16px); overflow:auto; overscroll-behavior:contain;
+    font-variant-numeric:tabular-nums;
+}
+.lb-peek[hidden]{ display:none; }
+@media (prefers-reduced-motion: no-preference) {
+    .lb-peek.is-open { animation:lb-peek-arrive var(--lwc-motion-fast, 140ms) var(--lwc-ease-enter, ease-out); }
+    @keyframes lb-peek-arrive { from { opacity:0; translate:0 4px; } }
+}
+.lb-peek-top{ display:flex; align-items:center; gap:var(--lwc-space-3); min-width:0; color:inherit; text-decoration:none; }
+.lb-peek-top:is(:hover, :focus-visible) .lb-peek-name{ color:var(--lwc-accent-hover); text-decoration:underline; text-underline-offset:.15em; }
+.lb-peek-top > img{ width:44px; height:44px; border-radius:50%; object-fit:cover; flex:none; box-shadow:0 0 0 2px var(--lwc-surface), 0 0 0 3px var(--lwc-border); }
+.lb-peek-id{ display:grid; min-width:0; line-height:1.2; }
+.lb-peek-rank{ color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; }
+.lb-peek-rank::before{ content:"#"; }
+.lb-peek-name{ font-weight:700; overflow-wrap:anywhere; }
+.lb-peek button{
+    appearance:none; min-height:0; margin:0; padding:0; border:0; border-radius:0; background:none; color:inherit;
+    font:inherit; font-variant-numeric:inherit; text-align:start; cursor:help;
+}
+.lb-peek :is(a, button):focus-visible{ outline:2px solid var(--lwc-accent); outline-offset:2px; }
+.lb-peek button:is(:hover, :focus-visible) .lb-peek-age, .lb-peek button.lb-peek-metric:is(:hover, :focus-visible){
+    text-decoration:underline dotted; text-underline-offset:.18em;
+}
+.lb-peek button.lb-peek-metric{
+    font-size:1.5rem; font-weight:800; line-height:1.25; letter-spacing:-.01em; color:var(--lwc-accent); overflow-wrap:anywhere;
+    padding-bottom:var(--lwc-space-2); border-bottom:1px solid var(--lwc-border);
+}
+.lb-peek-facts{ display:flex; flex-wrap:wrap; gap:var(--lwc-space-2) var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
+.lb-peek-facts > button{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:.4em; }
+.lb-peek-facts i{ font-size:.8em; opacity:.8; }
+.lb-peek-age{ color:var(--lwc-ink); font-weight:700; }
+.lb-peek-age.is-bio{ color:var(--lwc-accent); }
+.lb-peek-spark{ display:block; width:100%; height:32px; overflow:visible; }
+.lb-peek-spark polyline{ fill:none; stroke:var(--lwc-accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; opacity:.75; }
+.lb-peek-spark circle{ fill:var(--lwc-accent); stroke:var(--lwc-surface); stroke-width:1.5; }
+.lb-peek-history:is(:hover, :focus-visible) polyline{ opacity:1; }
+@media (pointer:coarse) {
+    .lb-peek button{ min-height: 2.75rem; }
 }

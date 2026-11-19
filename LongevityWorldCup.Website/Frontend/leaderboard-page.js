@@ -574,6 +574,12 @@ function initializeAthletePortraitMotion() {
         }
     }
 
+    function hasPortraitIntent(img, directHover = img.matches(':hover')) {
+        const link = img.closest('a');
+        if (directHover || document.activeElement === img || (link && document.activeElement === link)) return true;
+        return !!img.closest('tr[data-athlete-name]:hover')?.querySelector('.athlete-name[aria-details~="leaderboard-peek"]');
+    }
+
     // Keep the still and clip in one bitmap rendering path. Returning to the
     // responsive <img> would change sharpness, even with a matching crop.
     function surfaceFor(img, motion) {
@@ -595,8 +601,8 @@ function initializeAthletePortraitMotion() {
         const context = live.getContext('2d', { alpha: false });
         if (!stillContext || !context) return null;
         root.append(still, live);
-        let ready = false, loaded = false, disposed = false, playing = false;
-        let frame = 0, until = 0, entrance = null;
+        let disposed = false, playing = false;
+        let frame = 0, until = 0;
         const photo = new Image();
         const sync = () => {
             const style = getComputedStyle(img);
@@ -645,20 +651,9 @@ function initializeAthletePortraitMotion() {
             until = performance.now() + 450;
             if (!disposed && !playing && !frame) frame = requestAnimationFrame(tick);
         };
-        const settle = () => {
-            if (disposed || ready || !loaded) return;
-            ready = true;
-            entrance?.cancel();
-            follow();
-            if (img.matches(':hover') || document.activeElement === img || document.activeElement === img.closest('a')) play(img);
-            if (reducedMotion.matches) return;
-            if (img === profile && profileReady(motion) && profilePlayed !== motion) visiblePortraits?.observe(img);
-            else if (podium?.contains(img) && athleteResultsReady && !podiumPlayed.has(motion)) visiblePortraits?.observe(img);
-        };
         const resize = new ResizeObserver(size);
         const record = {
-            motion, wrapper, root, live, context, sync, size, follow, settle,
-            get ready() { return ready; },
+            motion, wrapper, live, context, sync, size, follow,
             setPlaying(value) {
                 playing = value;
                 if (value) { cancelAnimationFrame(frame); frame = 0; }
@@ -669,7 +664,6 @@ function initializeAthletePortraitMotion() {
                 active.get(img)?.stop();
                 disposed = true;
                 cancelAnimationFrame(frame);
-                entrance?.cancel();
                 resize.disconnect();
                 photo.removeAttribute('src');
                 root.remove();
@@ -680,22 +674,17 @@ function initializeAthletePortraitMotion() {
         surfaces.set(img, record);
         wrapper.classList.add('portrait-motion');
         img.after(root);
-        if (img === profile) size();
         resize.observe(img);
         photo.decoding = 'async';
+        photo.fetchPriority = 'low';
         photo.src = img.src.replace('/generated/profiles/athletes/', '/generated/thumbs/athletes/')
             .replace(/(?:_thumb_(?:sm|md))?_([0-9a-f]{64}\.webp)(?=[?#]|$)/, '_thumb_md_$1');
         void photo.decode().then(() => {
             if (disposed || !img.isConnected || motionFor(img) !== motion) { record.dispose(); return; }
             stillContext.drawImage(photo, 0, 0, 320, 320);
-            loaded = true;
-            root.style.opacity = '1';
-            if (reducedMotion.matches || typeof root.animate !== 'function') settle();
-            else {
-                entrance = root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-                entrance.finished.then(settle, () => {});
-            }
-        }, () => record.dispose());
+            still.style.opacity = '1';
+            follow();
+        }, () => still.remove()); // The displayed photo remains underneath the clip.
         return record;
     }
 
@@ -710,7 +699,7 @@ function initializeAthletePortraitMotion() {
         const wrapper = img.parentElement;
         if (!wrapper || !img.naturalWidth || !img.checkVisibility?.()) return false;
         const portrait = surfaceFor(img, motion);
-        if (!portrait?.ready) return false;
+        if (!portrait) return false;
 
         if (podium?.contains(img)) {
             podiumPlayed.add(motion);
@@ -730,7 +719,6 @@ function initializeAthletePortraitMotion() {
         video.hidden = true;
         const surface = portrait.live;
         const context = portrait.context;
-        portrait.size();
         portrait.setPlaying(true);
         let frame = 0;
         let finishFrame = 0;
@@ -799,8 +787,11 @@ function initializeAthletePortraitMotion() {
             video.appendChild(source);
         }
         img.after(video);
-        syncOverlay();
         video.play().catch(stop);
+        frame = requestAnimationFrame(now => {
+            portrait.size();
+            syncOverlay(now);
+        });
         return true;
     }
 
@@ -816,6 +807,9 @@ function initializeAthletePortraitMotion() {
             if (pointerInside) play(img);
         });
         img.addEventListener('pointerleave', () => { pointerInside = false; });
+        img.addEventListener('lwc:portrait-preview', () => {
+            if (!pointerInside && !active.has(img)) play(img);
+        });
         img.addEventListener('focus', () => play(img));
         link?.addEventListener('focus', () => play(img));
         // Lazy table photos may finish loading after the first pointer entry.
@@ -825,7 +819,7 @@ function initializeAthletePortraitMotion() {
             // Table images only need a motion surface when someone activates them.
             const motion = motionFor(img);
             if (img === profile && motion) surfaceFor(img, motion);
-            if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
+            if (hasPortraitIntent(img, pointerInside)) play(img);
         });
         if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
     }
@@ -905,10 +899,7 @@ function initializeAthletePortraitMotion() {
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
-        for (const portrait of surfaces.values()) {
-            if (reducedMotion.matches) portrait.settle();
-            portrait.follow();
-        }
+        for (const portrait of surfaces.values()) portrait.follow();
     });
     scan();
 }
@@ -2432,6 +2423,9 @@ function openEnlargedView(imgElement, settings) {
         pushHistory: settings?.pushHistory !== false,
         ownsHistory: state => state?.modal === 'enlarged',
         historyState: (image, index) => ({ modal: 'enlarged', enlargedImage: getEnlargedImageHistoryState(image, { currentImageIndex: index }) }),
+        onLoad(image) {
+            if (image.closest('.proof-preview-unavailable')) image.src = image.dataset.fullSrc || image.src;
+        },
         beforeClose(image) {
             const item = image.closest('.proof-item');
             if (item?.hidden) gallery?._setExpanded?.(true);
@@ -4019,29 +4013,19 @@ function moveLeaderboardRows(mutate, motion) {
     }
 }
 
-const unrenderedBadgeSearch = new WeakMap();
+const leaderboardSearchCache = new WeakMap();
 
-function leaderboardBadgeSearchText(athlete, row) {
-    // Use the same badge labels, overflow copy and personal guess as a rendered row.
-    // Cache offscreen athletes so subsequent keystrokes do not rebuild their badges.
-    let guess;
-    if (!row) {
-        guess = window.LwcGuessState?.get(athlete)?.value;
-        const cached = unrenderedBadgeSearch.get(athlete);
-        if (cached && cached.guess === guess && cached.badges === athlete.Badges) return cached.text;
-    }
-    const cell = row || document.createElement('td');
-    if (!row) {
-        cell.className = 'athlete-td';
-        cell.innerHTML = '<span class="athlete-name-links"></span><div class="badge-section"></div>';
-        window.setBadges(athlete, cell);
-    }
-    const text = Array.from(cell.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'), badge => {
-        const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
-        return `${title} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`.trim();
-    }).join(' ');
-    if (!row) unrenderedBadgeSearch.set(athlete, { guess, badges: athlete.Badges, text });
-    return text;
+function leaderboardSearchEntry(athlete) {
+    const guess = window.LwcGuessState?.get(athlete)?.value;
+    const badges = athlete.Badges || athlete.badges;
+    const cached = leaderboardSearchCache.get(athlete);
+    if (cached && cached.guess === guess && cached.badges === badges) return cached;
+    const badgeText = window.LwcBadges.searchText(athlete, guess);
+    const text = window.normalizeString([athlete.name, athlete.displayName, badgeText, athlete.mediaContact,
+        athlete.flag, athlete.canonicalFlag, athlete.why].join(' '));
+    const entry = { guess, badges, badgeText, text };
+    leaderboardSearchCache.set(athlete, entry);
+    return entry;
 }
 
 function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
@@ -4162,22 +4146,14 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const showAll = uniqueSearchTerms.length === 0;
 
     const athleteBadgeTextByName = new Map();
+    const searchTextByAthlete = new Map();
     if (uniqueSearchTerms.length && !orderingSnapshot) {
-        const renderedRows = new Map([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')]
-            .map(row => [row.dataset.athleteName, row]));
         for (const athlete of athleteResults) {
-            athleteBadgeTextByName.set(athlete.name, leaderboardBadgeSearchText(athlete, renderedRows.get(athlete.name)));
+            const entry = leaderboardSearchEntry(athlete);
+            searchTextByAthlete.set(athlete, entry.text);
+            if (selectedState.byFlag) athleteBadgeTextByName.set(athlete.name, entry.badgeText);
         }
     }
-
-    const searchTextByAthlete = (orderingSnapshot || showAll) ? null : new Map(athleteResults.map(athlete => [athlete, [
-        athlete.name,
-        athlete.displayName,
-        athleteBadgeTextByName.get(athlete.name) || '',
-        athlete.mediaContact || '',
-        `${athlete.flag || ''} ${athlete.canonicalFlag || ''}`,
-        athlete.why || ''
-    ].map(text => window.normalizeString(text.toLowerCase())).join(' ')]));
 
     const getMatchingEntries = (state, applySearch = true) => {
         const divisions = state.divisions.map(value => value.toLowerCase());
@@ -6359,9 +6335,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     modalBadgeSection.replaceChildren();
     // Clone athleteData but disable personalLink for modal badges
     const athleteForBadges = { ...athleteData, personalLink: null };
-    window.setBadges(athleteForBadges, {
-        querySelector: () => modalBadgeSection
-    });
+    window.setBadges(athleteForBadges, modalBadgeSection);
 
     // wrap each badge in a column with its name
     const badges = Array.from(modalBadgeSection.children);
@@ -7176,6 +7150,8 @@ function populateProofsGallery(fullAthleteData) {
         ? fullAthleteData.Proofs.filter(Boolean)
         : [];
     const previewCount = 6;
+    const requestId = currentAthleteModalRequestId;
+    const retryDelays = [2000, 10000];
     const toggle = proofsGallery.closest('.proofs-section')?.querySelector('.proofs-toggle');
     proofsGallery.dataset.proofCount = String(proofs.length);
     const setExpanded = expanded => {
@@ -7205,19 +7181,36 @@ function populateProofsGallery(fullAthleteData) {
         const previewUrl = /^\/athletes\/[\w-]+\/proof_[\w.-]+\.(?:webp|png|jpe?g|bmp|gif)(?:\?|$)/i.test(proofUrl)
             ? proofUrl.replace('/athletes/', '/api/proof-previews/')
             : proofUrl;
-        if (previewUrl !== proofUrl) {
-            img.dataset.fullSrc = proofUrl;
-            img.onerror = () => {
-                img.onerror = null;
+        if (previewUrl !== proofUrl) img.dataset.fullSrc = proofUrl;
+        const label = `Enlarge proof image ${index + 1}`;
+        let retries = 0;
+        const isCurrent = () => img.isConnected && requestId === currentAthleteModalRequestId;
+        img.onerror = () => {
+            if (!isCurrent()) return;
+            if (img.getAttribute('src') !== proofUrl) {
                 img.src = proofUrl;
-            };
-        }
-        img.src = previewUrl;
+                return;
+            }
+            proofItem.classList.add('proof-preview-unavailable');
+            img.setAttribute('aria-label', `Open proof ${index + 1} (preview unavailable)`);
+            // Both sources may fail during the same interruption. Start each
+            // retry with the smaller preview and leave other sheets alone.
+            if (retries < retryDelays.length) {
+                window.setTimeout(() => {
+                    if (isCurrent() && proofItem.classList.contains('proof-preview-unavailable')) img.src = previewUrl;
+                }, retryDelays[retries++]);
+            }
+        };
+        img.onload = () => {
+            proofItem.classList.remove('proof-preview-unavailable');
+            img.setAttribute('aria-label', label);
+        };
         img.alt = `Proof image ${index + 1}`;
         img.setAttribute('role', 'button');
         img.setAttribute('tabindex', '0');
-        img.setAttribute('aria-label', `Enlarge proof image ${index + 1}`);
+        img.setAttribute('aria-label', label);
         img.loading = 'lazy';
+        img.src = previewUrl;
         proofItem.appendChild(img);
         const number = document.createElement('span');
         number.className = 'proof-number';

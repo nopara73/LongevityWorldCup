@@ -94,15 +94,34 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, true)]
-    [InlineData(390, false)]
-    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark)
+    [InlineData(1440, true, false)]
+    [InlineData(390, false, false)]
+    [InlineData(390, false, true)]
+    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark, bool rejectGradients)
     {
-        await using var context = await NewContextAsync(width, dark);
+        await using var context = await NewContextAsync(width, dark, reducedMotion: !rejectGradients);
+        if (rejectGradients)
+        {
+            await context.AddInitScriptAsync("""
+                const proto = CanvasRenderingContext2D.prototype;
+                for (const name of ['createRadialGradient', 'createConicGradient', 'createLinearGradient']) {
+                    const native = proto[name];
+                    proto[name] = function (...args) {
+                        if (this.canvas.id === 'ageRadarChart') {
+                            this.canvas.dataset[name] = 'rejected';
+                            args[0] = NaN;
+                        }
+                        return native.apply(this, args);
+                    };
+                }
+                """);
+        }
         var page = await OpenAsync(context);
         await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        var canvas = page.Locator("#detailsModal .modal-content:not(.is-loading) #ageRadarChart[tabindex]");
+        await canvas.ScrollIntoViewIfNeededAsync();
 
-        // Chart.js may rewrite the colour (for example to hex while it eases between clocks), so compare painted pixels.
+        // Sample the plotted reading itself: the labels can still exist around a blank radar.
         const string wears = """
             token => {
                 const chart = Chart.getChart(document.getElementById('ageRadarChart'));
@@ -113,11 +132,28 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                     context.fillRect(0, 0, 1, 1);
                     return [...context.getImageData(0, 0, 1, 1).data];
                 };
-                const actual = paint(String(chart.getDatasetMeta(0).dataset.options.borderColor));
-                return paint(expected).every((channel, index) => Math.abs(channel - actual[index]) <= 3);
+                const point = chart.scales.r.getPointPositionForValue(0, chart.data.datasets[0].data[0]);
+                const ratio = chart.currentDevicePixelRatio;
+                const actual = chart.ctx.getImageData(Math.round(point.x * ratio), Math.round(point.y * ratio), 1, 1).data;
+                // The clock colours are slightly translucent and composite against the web.
+                return paint(expected).every((channel, index) => Math.abs(channel - actual[index]) <= 12);
             }
             """;
         await page.WaitForFunctionAsync(wears, "--athlete-modal-chart-bortz");
+        if (rejectGradients)
+        {
+            await Expect(canvas).ToHaveAttributeAsync("data-create-conic-gradient", "rejected");
+            await canvas.PressAsync("Home");
+            await Expect(canvas).ToHaveAttributeAsync("data-create-linear-gradient", "rejected");
+            Assert.True(await canvas.EvaluateAsync<bool>("""
+                element => {
+                    const chart = Chart.getChart(element);
+                    chart.draw();
+                    return chart.tooltip.getActiveElements()[0]?.index === 0 &&
+                        chart.tooltip.title[0] === chart.data.datasets[0].data[0] + 'th percentile';
+                }
+                """));
+        }
         var label = await page.EvaluateAsync<string[]>("""
             () => {
                 const chart = Chart.getChart(document.getElementById('ageRadarChart'));
@@ -608,6 +644,13 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             }
             """));
         await canvas.PressAsync("Home");
+        var contributors = await canvas.EvaluateAsync<string[]>("canvas => Chart.getChart(canvas)._radarTooltipContributors[0]");
+        Assert.NotEmpty(contributors);
+        foreach (var contributor in contributors)
+        {
+            await Expect(page.Locator("#ageRadarFocus")).ToContainTextAsync(contributor);
+            Assert.Contains(contributor, await canvas.GetAttributeAsync("aria-description"));
+        }
         await canvas.PressAsync("ArrowRight");
         await canvas.PressAsync("ArrowRight");
         Assert.True(await canvas.EvaluateAsync<bool>("""
@@ -618,6 +661,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             """));
         await canvas.PressAsync("Escape");
         Assert.True(await canvas.EvaluateAsync<bool>("canvas => !Chart.getChart(canvas).tooltip.getActiveElements().length"));
+        await Expect(page.Locator("#ageRadarFocus")).ToBeEmptyAsync();
         await Expect(canvas).ToBeFocusedAsync();
         await Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
     }
