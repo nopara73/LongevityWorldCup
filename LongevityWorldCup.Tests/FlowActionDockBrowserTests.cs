@@ -1249,6 +1249,17 @@ public sealed class FlowActionDockBrowserTests(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
     }
 
+    internal static async Task RevealBioageResultAsync(IPage page)
+    {
+        if (page.Url.Contains("update=1", StringComparison.Ordinal))
+        {
+            await page.Locator("#calculateBioageButton").ClickAsync();
+            return;
+        }
+        await Assertions.Expect(page.Locator(".bioage-live-readout")).ToHaveAttributeAsync("data-complete", "true");
+        await page.Locator(".bioage-live-readout").ClickAsync();
+    }
+
     internal static async Task FillPhenoBiomarkersAsync(IPage page)
     {
         await SetFormValuesAsync(

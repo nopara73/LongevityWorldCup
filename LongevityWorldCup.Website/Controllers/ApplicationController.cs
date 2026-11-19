@@ -187,6 +187,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("application")]
+        [RequestSizeLimit(Middleware.ApplicationUploadLimitMiddleware.MaxBodyBytes)]
         [RequestTimeout(PublicRequestTimeoutPolicies.ApplicationSubmission)]
         public async Task<IActionResult> Application([FromBody] ApplicantData applicantData, CancellationToken ct)
         {
@@ -395,11 +396,6 @@ namespace LongevityWorldCup.Website.Controllers
 
             if (applicantData.Biomarkers?.Any() is true && !HasValidBiomarkerDates(applicantData.Biomarkers))
             {
-                if (HasFutureBiomarkerDates(applicantData.Biomarkers))
-                {
-                    return await BadRequestWithStatsAsync("future_biomarker_date", "Biomarker date cannot be in the future.").ConfigureAwait(false);
-                }
-
                 return await BadRequestWithStatsAsync("invalid_biomarker_date", "Biomarker date is invalid.").ConfigureAwait(false);
             }
 
@@ -871,7 +867,7 @@ namespace LongevityWorldCup.Website.Controllers
                     if (!invoiceResult.Success)
                     {
                         _logger.LogError(
-                            "Application submission was saved but payment checkout creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
+                            "Application submission was saved but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
                             submissionId,
                             submissionKind,
                             zipSizeBytes,
@@ -1087,6 +1083,17 @@ namespace LongevityWorldCup.Website.Controllers
             return completedResponse is null
                 ? NotFound(new { status = "pending" })
                 : Ok(completedResponse);
+        }
+
+        [HttpGet("/api/payments/stripe/checkout/{orderId}")]
+        public IActionResult RetiredStripeCheckout(string orderId)
+        {
+            Response.Headers.CacheControl = "no-store";
+            Response.Headers["Referrer-Policy"] = "no-referrer";
+            var payment = _applicationPayments.GetByOrder(orderId);
+            return payment?.InvoiceId?.StartsWith("stripe_", StringComparison.Ordinal) == true
+                ? LocalRedirect("/review?checkout=unavailable")
+                : NotFound();
         }
 
         private Task TrackApplicationSubmitEventAsync(
@@ -1699,14 +1706,18 @@ namespace LongevityWorldCup.Website.Controllers
             bool isEditSubmissionOnly,
             CancellationToken ct)
         {
-            if (CheckoutConfiguration.ValidateNewCheckout(config) is { } configurationError)
-                return (false, null, null, configurationError);
+            if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl))
+                return (false, null, null, "BTCPayBaseUrl is missing in config.");
+            if (string.IsNullOrWhiteSpace(config.BTCPayStoreId))
+                return (false, null, null, "BTCPayStoreId is missing in config.");
+            if (string.IsNullOrWhiteSpace(config.BTCPayGreenfieldApiKey))
+                return (false, null, null, "BTCPayGreenfieldApiKey is missing in config.");
 
             var amount = requestedAmountUsd < 0m ? 0m : requestedAmountUsd;
             if (amount <= 0m)
                 return (false, null, null, "Requested amount must be greater than zero.");
 
-            var orderId = $"lwc-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}";
+            var orderId = $"lwc-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}";
             var offerType = applicantData.PaymentOffer?.OfferType?.Trim();
             var source = applicantData.PaymentOffer?.Source?.Trim();
             var currency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
@@ -1749,8 +1760,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
-                return (false, null, null, CheckoutConfiguration.UseStripe(config)
-                    ? "Stripe checkout creation timed out." : "BTCPay invoice creation timed out.");
+                return (false, null, null, "BTCPay invoice creation timed out.");
             }
         }
 
@@ -2603,7 +2613,6 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static bool HasValidBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
         {
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
             return biomarkers.All(biomarker =>
                 biomarker is not null &&
                 DateOnly.TryParseExact(
@@ -2611,22 +2620,7 @@ namespace LongevityWorldCup.Website.Controllers
                     "yyyy-MM-dd",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
-                    out var resultDate)
-                && resultDate <= today);
-        }
-
-        private static bool HasFutureBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
-        {
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            return biomarkers.Any(biomarker =>
-                biomarker is not null &&
-                DateOnly.TryParseExact(
-                    biomarker.Date,
-                    "yyyy-MM-dd",
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.None,
-                    out var resultDate)
-                && resultDate > today);
+                    out _));
         }
 
         private static bool HasRequiredBiomarkerValues(IEnumerable<BiomarkerData> biomarkers)

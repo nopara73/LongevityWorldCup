@@ -28,14 +28,6 @@ public sealed class ApplicationPaymentStore
                 );
                 CREATE INDEX IF NOT EXISTS IX_ApplicationPayments_Due
                     ON ApplicationPayments (State, NextAttemptUtc);
-                CREATE TABLE IF NOT EXISTS StripePaymentReceipts (
-                    SessionId TEXT PRIMARY KEY,
-                    OrderId TEXT NOT NULL,
-                    ReceivedAtUtc INTEGER NOT NULL,
-                    Data TEXT NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS IX_StripePaymentReceipts_Order
-                    ON StripePaymentReceipts (OrderId, ReceivedAtUtc);
                 """;
             command.ExecuteNonQuery();
         });
@@ -43,16 +35,10 @@ public sealed class ApplicationPaymentStore
 
     public void Register(Config config, BtcpayInvoiceCreateRequest request, DateTimeOffset now)
     {
-        var stripe = CheckoutConfiguration.UseStripe(config);
-        var link = stripe ? CheckoutConfiguration.FindLink(config, request) : null;
         var payment = new ApplicationPayment(
-            request.OrderId, null, stripe ? CheckoutConfiguration.StripeBaseUrl : config.BTCPayBaseUrl!.TrimEnd('/'),
-            stripe ? CheckoutConfiguration.AccountId(config) : config.BTCPayStoreId!,
+            request.OrderId, null, config.BTCPayBaseUrl!.TrimEnd('/'), config.BTCPayStoreId!,
             request.BuyerName, request.BuyerEmail, request.Metadata["submissionType"]?.ToString(),
-            now, now.AddMinutes(1), SubmissionId: request.Metadata.GetValueOrDefault("submissionId")?.ToString(),
-            Provider: stripe ? "Stripe" : "BTCPay", ExpectedAmount: request.Amount, Currency: request.Currency,
-            LiveMode: stripe ? CheckoutConfiguration.LiveMode(config) : null,
-            StripePaymentLinkId: link?.Id, CheckoutLink: link?.Url, ReturnUrl: request.RedirectUrl);
+            now, now.AddMinutes(1), SubmissionId: request.Metadata.GetValueOrDefault("submissionId")?.ToString());
         Write(db =>
         {
             using var command = db.CreateCommand();
@@ -85,33 +71,6 @@ public sealed class ApplicationPaymentStore
 
     public ApplicationPayment? GetByInvoice(string invoiceId) => Read("InvoiceId", invoiceId);
     internal ApplicationPayment? GetByOrder(string orderId) => Read("OrderId", orderId);
-
-    internal BtcpayInvoiceLookupResult? GetStripeReceipt(string orderId) => _database.Run(db =>
-    {
-        using var command = db.CreateCommand();
-        command.CommandText = "SELECT Data FROM StripePaymentReceipts WHERE OrderId = $order ORDER BY ReceivedAtUtc, SessionId LIMIT 1;";
-        command.Parameters.AddWithValue("$order", orderId);
-        return command.ExecuteScalar() is string data ? JsonSerializer.Deserialize<BtcpayInvoiceLookupResult>(data) : null;
-    });
-
-    internal void RecordStripeReceipt(string orderId, string sessionId, BtcpayInvoiceLookupResult invoice, DateTimeOffset now)
-        => Write(db =>
-        {
-            using var command = db.CreateCommand();
-            // Keep the signed evidence separate from the outbox lease so a concurrent poll cannot overwrite it.
-            // Replays are harmless; retain any second paid session for reconciliation without fulfilling twice.
-            command.CommandText = """
-                INSERT OR IGNORE INTO StripePaymentReceipts (SessionId, OrderId, ReceivedAtUtc, Data)
-                VALUES ($session, $order, $now, $data);
-                UPDATE ApplicationPayments SET NextAttemptUtc = MIN(NextAttemptUtc, $now)
-                WHERE OrderId = $order AND State = 'Pending';
-                """;
-            command.Parameters.AddWithValue("$order", orderId);
-            command.Parameters.AddWithValue("$session", sessionId);
-            command.Parameters.AddWithValue("$now", now.ToUnixTimeMilliseconds());
-            command.Parameters.AddWithValue("$data", JsonSerializer.Serialize(invoice));
-            command.ExecuteNonQuery();
-        });
 
     internal static async Task<bool> WasLegacyNotificationSentAsync(string contentRoot, string invoiceId, CancellationToken ct)
     {
@@ -230,14 +189,7 @@ public sealed record ApplicationPayment(
     string? LastError = null,
     DateTimeOffset? SentAtUtc = null,
     string? SubmissionId = null,
-    DateTimeOffset? PaymentObservedAtUtc = null,
-    string Provider = "BTCPay",
-    decimal? ExpectedAmount = null,
-    string? Currency = null,
-    bool? LiveMode = null,
-    string? StripePaymentLinkId = null,
-    string? CheckoutLink = null,
-    string? ReturnUrl = null)
+    DateTimeOffset? PaymentObservedAtUtc = null)
 {
     public string MessageId => $"lwc-payment-{OrderId}@longevityworldcup.com";
 }

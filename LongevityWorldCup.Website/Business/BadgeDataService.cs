@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
     }
 
     /// <summary>
-    /// Compute the snapshot and replace BadgeAwards in a single transaction.
+    /// Compute current awards and persist changes in a single transaction.
     /// </summary>
     public void ComputeAndPersistAwards()
     {
@@ -113,6 +113,8 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
 
         var currentProSlugs = BuildCurrentProSlugSet(stats.Values);
         _events.CleanupAmateurAgeReductionGraduationLinks(currentProSlugs);
+        var changedRules = ChangedScoringRules(previous, awards);
+        var correctedSlots = new HashSet<string>(StringComparer.Ordinal);
         var badgeEvents = BuildBadgeAwardEventsForCurrentSnapshotChange(previous, awards, DateTime.UtcNow, currentProSlugs);
         if (silentCorrections.Count > 0)
         {
@@ -121,7 +123,7 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
             // including collateral changes to another athlete's placement or tie.
             var uncorrected = _corrections.RevertPendingCorrections(snapshot, silentCorrections);
             var uncorrectedAwards = BuildAwards(BuildAthleteStats(_asOfUtc, uncorrected));
-            var correctedSlots = ChangedAwardSlots(uncorrectedAwards, awards);
+            correctedSlots = ChangedAwardSlots(uncorrectedAwards, awards);
             var suppressed = badgeEvents.RemoveAll(e => correctedSlots.Contains(AwardSlotKey(e.BadgeLabel, e.LeagueCategory, e.LeagueValue, e.Place)));
             _log.LogInformation("Rebaselining {CorrectionCount} approved athlete correction(s) silently; suppressed {BadgeEventCount} correction-related badge event(s).", silentCorrections.Count, suppressed);
         }
@@ -136,45 +138,13 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
                 stats.Count);
         }
 
-        var now = DateTime.UtcNow.ToString("o");
-
         _db.Run(sqlite =>
         {
             using var tx = sqlite.BeginTransaction();
 
-            using (var del = sqlite.CreateCommand())
-            {
-                del.Transaction = tx;
-                del.CommandText = $"DELETE FROM {AwardsTable};";
-                del.ExecuteNonQuery();
-            }
+            SuppressCorrectionAnnouncements(sqlite, tx, changedRules, correctedSlots);
 
-            using (var ins = sqlite.CreateCommand())
-            {
-                ins.Transaction = tx;
-                ins.CommandText = $@"
-INSERT INTO {AwardsTable} (BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt)
-VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
-                var pBL = ins.Parameters.Add("@bl", SqliteType.Text);
-                var pLC = ins.Parameters.Add("@lc", SqliteType.Text);
-                var pLV = ins.Parameters.Add("@lv", SqliteType.Text);
-                var pP = ins.Parameters.Add("@p", SqliteType.Integer);
-                var pA = ins.Parameters.Add("@a", SqliteType.Text);
-                var pD = ins.Parameters.Add("@dh", SqliteType.Text);
-                var pU = ins.Parameters.Add("@u", SqliteType.Text);
-
-                foreach (var r in awards)
-                {
-                    pBL.Value = r.BadgeLabel;
-                    pLC.Value = r.LeagueCategory;
-                    pLV.Value = r.LeagueValue is null ? (object)DBNull.Value : r.LeagueValue;
-                    pP.Value = r.Place.HasValue ? r.Place.Value : (object)DBNull.Value;
-                    pA.Value = r.AthleteSlug;
-                    pD.Value = r.DefinitionHash ?? (object)DBNull.Value;
-                    pU.Value = now;
-                    ins.ExecuteNonQuery();
-                }
-            }
+            StoreAwardsIfChanged(sqlite, tx, awards);
 
             AthleteDataCorrections.CompleteBadgeBaselines(sqlite, tx, silentCorrections);
             tx.Commit();
@@ -184,8 +154,101 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             CreateBadgeAwardEvents(badgeEvents);
     }
 
+    private static void StoreAwardsIfChanged(SqliteConnection sqlite, SqliteTransaction tx, IReadOnlyList<AwardRow> awards)
+    {
+        // Compare the physical award rows inside the write transaction. Nullable keys
+        // allow duplicate rows in legacy databases, so compare their multiplicities.
+        using var compare = sqlite.CreateCommand();
+        compare.Transaction = tx;
+        compare.CommandText = $"""
+            WITH desired AS (
+                SELECT value ->> '$.BadgeLabel', value ->> '$.LeagueCategory', value ->> '$.LeagueValue',
+                       value ->> '$.Place', value ->> '$.AthleteSlug', value ->> '$.DefinitionHash', COUNT(*)
+                FROM json_each(@awards) GROUP BY 1,2,3,4,5,6
+            ), stored AS (
+                SELECT BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, COUNT(*)
+                FROM {AwardsTable} GROUP BY 1,2,3,4,5,6
+            )
+            SELECT NOT EXISTS(SELECT * FROM desired EXCEPT SELECT * FROM stored)
+               AND NOT EXISTS(SELECT * FROM stored EXCEPT SELECT * FROM desired);
+            """;
+        compare.Parameters.AddWithValue("@awards", System.Text.Json.JsonSerializer.Serialize(awards));
+        if ((long)compare.ExecuteScalar()! == 1) return;
+
+        var now = DateTime.UtcNow.ToString("o");
+        using (var del = sqlite.CreateCommand())
+        {
+            del.Transaction = tx;
+            del.CommandText = $"DELETE FROM {AwardsTable};";
+            del.ExecuteNonQuery();
+        }
+
+        using (var ins = sqlite.CreateCommand())
+        {
+            ins.Transaction = tx;
+            ins.CommandText = $@"
+INSERT INTO {AwardsTable} (BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt)
+VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
+            var pBL = ins.Parameters.Add("@bl", SqliteType.Text);
+            var pLC = ins.Parameters.Add("@lc", SqliteType.Text);
+            var pLV = ins.Parameters.Add("@lv", SqliteType.Text);
+            var pP = ins.Parameters.Add("@p", SqliteType.Integer);
+            var pA = ins.Parameters.Add("@a", SqliteType.Text);
+            var pD = ins.Parameters.Add("@dh", SqliteType.Text);
+            var pU = ins.Parameters.Add("@u", SqliteType.Text);
+
+            foreach (var r in awards)
+            {
+                pBL.Value = r.BadgeLabel;
+                pLC.Value = r.LeagueCategory;
+                pLV.Value = r.LeagueValue is null ? (object)DBNull.Value : r.LeagueValue;
+                pP.Value = r.Place.HasValue ? r.Place.Value : (object)DBNull.Value;
+                pA.Value = r.AthleteSlug;
+                pD.Value = r.DefinitionHash ?? (object)DBNull.Value;
+                pU.Value = now;
+                ins.ExecuteNonQuery();
+            }
+        }
+    }
+
     private static string AwardSlotKey(string label, string category, string? value, int? place) =>
         $"{label}|{category}|{value ?? ""}|{place?.ToString(CultureInfo.InvariantCulture) ?? ""}";
+
+    private static HashSet<string> ChangedScoringRules(IReadOnlyList<AwardRow> before, IReadOnlyList<AwardRow> after)
+    {
+        var previousRules = before.GroupBy(r => AwardSlotKey(r.BadgeLabel, r.LeagueCategory, r.LeagueValue, null))
+            .ToDictionary(g => g.Key, g => g.Select(r => r.DefinitionHash).ToHashSet());
+        return after.GroupBy(r => AwardSlotKey(r.BadgeLabel, r.LeagueCategory, r.LeagueValue, null))
+            .Where(g => previousRules.TryGetValue(g.Key, out var rules) && !rules.SetEquals(g.Select(r => r.DefinitionHash)))
+            .Select(g => g.Key).ToHashSet();
+    }
+
+    private static void SuppressCorrectionAnnouncements(SqliteConnection sqlite, SqliteTransaction tx,
+        HashSet<string> changedRules, HashSet<string> correctedSlots)
+    {
+        if (changedRules.Count == 0 && correctedSlots.Count == 0) return;
+        var ids = new List<string>();
+        using (var cmd = sqlite.CreateCommand())
+        {
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT Id, Text FROM Events WHERE Type=@type;";
+            cmd.Parameters.AddWithValue("@type", (int)EventType.BadgeAward);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var text = reader.GetString(1);
+                if (!EventHelpers.TryExtractBadgeLabel(text, out var label) ||
+                    !EventHelpers.TryExtractCategory(text, out var category)) continue;
+                label = EventHelpers.NormalizeBadgeLabel(label);
+                EventHelpers.TryExtractValue(text, out var value);
+                int? place = EventHelpers.TryExtractPlace(text, out var parsedPlace) ? parsedPlace : null;
+                if (changedRules.Contains(AwardSlotKey(label, category, value, null)) ||
+                    correctedSlots.Contains(AwardSlotKey(label, category, value, place))) ids.Add(reader.GetString(0));
+            }
+        }
+        foreach (var id in ids)
+            SocialDeliveryStore.SuppressUnsentEvent(sqlite, tx, id, "ScoringCorrection", DateTimeOffset.UtcNow);
+    }
 
     private static HashSet<string> ChangedAwardSlots(IReadOnlyList<AwardRow> before, IReadOnlyList<AwardRow> after)
     {
@@ -255,7 +318,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         AddLeagueRankingAwards(stats, awards);
         AddDomainAwards(stats, awards);
         AddSubmissionAwards(stats, awards);
-        AddPhenoDiffAwards(stats, awards);
+        AddImprovementAwards(stats, awards);
         AddCrowdAwards(stats, awards);
         AddEditorialAwards(stats, awards);
 
@@ -408,7 +471,12 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         if (before.Count == 0)
             return new List<BadgeEventItem>();
 
-        return BuildBadgeAwardEventsCore(before, after, occurredAtUtc, currentProSlugs);
+        // A changed scoring definition establishes a new baseline. Its ownership
+        // changes describe a recalculation, not a new competitive achievement.
+        var changedRules = ChangedScoringRules(before, after);
+        var events = BuildBadgeAwardEventsCore(before, after, occurredAtUtc, currentProSlugs);
+        events.RemoveAll(e => changedRules.Contains(AwardSlotKey(e.BadgeLabel, e.LeagueCategory, e.LeagueValue, null)));
+        return events;
     }
 
     private static List<BadgeEventItem> BuildBadgeAwardEvents(
@@ -912,6 +980,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private sealed class AthleteStats
     {
+        public required PhenoStatsCalculator.Result Core { get; init; }
         public required string Slug { get; init; }
         public required string Name { get; init; }
         public DateTime? DobUtc { get; init; }
@@ -923,7 +992,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         public double? PhenoPaceOfAging { get; init; }
         public double? BortzPaceOfAging { get; init; }
         public int SubmissionCount { get; init; }
-        public int BortzSubmissionCount { get; init; }
         public string? Division { get; init; }
         public string? Generation { get; init; }
         public string? Exclusive { get; init; }
@@ -1008,7 +1076,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
     private static string BuildImprovementRuleHash(string label, string metricKey)
     {
-        var sig = $"label={label}|category=Global|metric={metricKey}|agg=min|requires_subs>=2|ties=allowed|place=1";
+        var sig = $"label={label}|category=Global|metric={metricKey}|agg=min|requires_subs>=2|requires_improvement<0|ties=allowed|place=1";
         return ComputeRuleHash(sig);
     }
 
@@ -1109,7 +1177,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         };
     }
 
-    private Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf, JsonArray snapshot)
+    private static Dictionary<string, AthleteStats> BuildAthleteStats(DateTime asOf, JsonArray snapshot)
     {
         var core = PhenoStatsCalculator.BuildAll(snapshot, asOf);
         var result = new Dictionary<string, AthleteStats>(StringComparer.OrdinalIgnoreCase);
@@ -1118,6 +1186,7 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             var r = kv.Value;
             result[kv.Key] = new AthleteStats
             {
+                Core = r,
                 Slug = kv.Key,
                 Name = r.Name,
                 DobUtc = r.DobUtc,
@@ -1129,7 +1198,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 PhenoPaceOfAging = r.PhenoPaceOfAging,
                 BortzPaceOfAging = r.BortzPaceOfAging,
                 SubmissionCount = r.SubmissionCount,
-                BortzSubmissionCount = r.BortzSubmissionCount,
                 Division = r.Division,
                 Generation = r.Generation,
                 Exclusive = r.Exclusive,
@@ -1417,52 +1485,29 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         }
     }
 
-    private static void AddPhenoDiffAwards(
+    private static void AddImprovementAwards(
         Dictionary<string, AthleteStats> stats,
         List<AwardRow> awards)
     {
-        var phenoCandidates = stats.Values
-            .Where(s => s.PhenoAgeDiffFromBaseline.HasValue && s.SubmissionCount >= 2)
-            .Select(s => new { s.Slug, Diff = s.PhenoAgeDiffFromBaseline!.Value })
-            .ToList();
-
-        if (phenoCandidates.Count > 0)
+        foreach (var (clock, label) in new[]
         {
-            var best = phenoCandidates.Min(x => x.Diff);
-            var ruleHash = BuildImprovementRuleHash("Pheno Age best improvement", "pheno_last_minus_baseline");
-            foreach (var x in phenoCandidates.Where(x => x.Diff == best))
+            ("pheno", "Pheno Age best improvement"),
+            ("bortz", "Bortz Age best improvement")
+        })
+        {
+            var ruleHash = BuildImprovementRuleHash(label, $"{clock}_latest_by_test_date_minus_worst");
+            foreach (var winner in AgeImprovementRanking.RedemptionArcHolders(stats.Values.Select(s => s.Core), clock))
             {
                 awards.Add(new AwardRow
                 {
-                    BadgeLabel = "Pheno Age best improvement",
+                    BadgeLabel = label,
                     LeagueCategory = "Global",
                     LeagueValue = null,
                     Place = 1,
-                    AthleteSlug = x.Slug,
+                    AthleteSlug = winner.Slug,
                     DefinitionHash = ruleHash
                 });
             }
-        }
-
-        var bortzCandidates = stats.Values
-            .Where(s => s.BortzAgeDiffFromBaseline.HasValue && s.BortzSubmissionCount >= 2)
-            .Select(s => new { s.Slug, Diff = s.BortzAgeDiffFromBaseline!.Value })
-            .ToList();
-        if (bortzCandidates.Count == 0) return;
-
-        var bortzBest = bortzCandidates.Min(x => x.Diff);
-        var bortzRuleHash = BuildImprovementRuleHash("Bortz Age best improvement", "bortz_last_minus_baseline");
-        foreach (var x in bortzCandidates.Where(x => x.Diff == bortzBest))
-        {
-            awards.Add(new AwardRow
-            {
-                BadgeLabel = "Bortz Age best improvement",
-                LeagueCategory = "Global",
-                LeagueValue = null,
-                Place = 1,
-                AthleteSlug = x.Slug,
-                DefinitionHash = bortzRuleHash
-            });
         }
     }
 

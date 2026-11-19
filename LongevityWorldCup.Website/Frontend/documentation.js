@@ -229,6 +229,7 @@ function setDocumentationNavOpen(documentationNav, open) {
     const updateTimelines = () => {
         const line = window.innerHeight * 0.5;
         for (const timeline of timelines) {
+            if (timeline.hasAttribute("data-live")) continue;
             const bounds = timeline.getBoundingClientRect();
             const fill = Math.min(1, Math.max(0, (line - bounds.top) / Math.max(1, bounds.height)));
             timeline.style.setProperty("--timeline-fill", fill.toFixed(4));
@@ -488,6 +489,8 @@ function setDocumentationNavOpen(documentationNav, open) {
         }
         const limit = (hashTarget ? hashTarget.getBoundingClientRect().top : 0) + window.innerHeight * 1.05;
         for (const block of blocks) {
+            // Keep reading text, figures, list rails and navigation visible from first paint.
+            if (block.matches("h2, p, ul, .documentation-next")) continue;
             const top = block.getBoundingClientRect().top;
             const entry = block.parentElement?.closest(".documentation-reveal-marker");
             if (top <= limit) {

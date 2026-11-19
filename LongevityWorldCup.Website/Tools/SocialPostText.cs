@@ -104,6 +104,15 @@ internal static class SocialPostText
         return $"{lead}\n\nImprovement: {improvementText} years from worst to latest eligible result.\n\n{athleteUrl}";
     }
 
+    internal static string BuildPhenoAgeTop10Line(
+        string athleteName, int place, int? previousPlace, double ageReduction, string athleteUrl)
+    {
+        var movement = previousPlace.HasValue
+            ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {CrowdOrdinal(place)}"
+            : $"entered the top 10 at {CrowdOrdinal(place)}";
+        return $"{athleteName} {movement} in Pheno Age.\n\nAge reduction: {FormatSignedYears(ageReduction)} years.\n\n{athleteUrl}";
+    }
+
     private static string CrowdOrdinal(int n)
     {
         var suffix = (n % 100) is 11 or 12 or 13

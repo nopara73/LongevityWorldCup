@@ -120,7 +120,7 @@ public sealed class InteractionMotionBrowserTests(
             """);
         Assert.Contains("opacity", opening);
 
-        await page.WaitForTimeoutAsync(400);
+        await WaitForFiniteAnimationsAsync(page, "#custom-alert, .custom-alert-panel");
         var close = page.Locator("#custom-alert-close");
         await close.EvaluateAsync("""
             button => button.addEventListener('click', () => {
@@ -189,7 +189,7 @@ public sealed class InteractionMotionBrowserTests(
         Assert.Contains("opacity", opening);
         Assert.Contains("scale", opening);
 
-        await page.WaitForTimeoutAsync(400);
+        await WaitForFiniteAnimationsAsync(page, "#leaderboardOrderPanel");
         var exiting = await CaptureEventMotionAsync(toggle, "click", "#leaderboardOrderPanel", () => toggle.ClickAsync());
         Assert.Equal("none", await page.Locator("#leaderboardOrderPanel").EvaluateAsync<string>("panel => getComputedStyle(panel).pointerEvents"));
         Assert.Contains("opacity", exiting);
@@ -427,7 +427,7 @@ public sealed class InteractionMotionBrowserTests(
 
         await page.EvaluateAsync("() => { const toast = document.getElementById('copiedText'); toast.textContent = 'Copied'; toast.hidden = false; }");
         // A real toast stays two seconds; let its entrance finish first.
-        await page.WaitForTimeoutAsync(900);
+        await WaitForFiniteAnimationsAsync(page, "#copiedText");
         var exiting = await page.EvaluateAsync<string[]>($$"""
             () => { document.getElementById('copiedText').hidden = true; return ({{RunningMotionScript}})('#copiedText'); }
             """);

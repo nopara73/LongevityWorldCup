@@ -115,7 +115,7 @@ The payload path writes the same event flags as the designer/API path. Selected 
 Daily social jobs process pending rows where the platform `Processed` column is `0`.
 
 - X and Threads can post supported fresh primary Events, Custom Events, and donation receipts. Donation acknowledgments remain eligible regardless of the athlete-highlight freshness cutoff. Stale primary Events, unsupported event types, unsupported payloads, and non-postable badge variants are marked processed with a skip reason.
-- Facebook daily posting supports Custom Events and donation receipts. Other Facebook event types are terminal skips and retain the `FacebookSupportsCustomEventsOnly` skip reason.
+- Facebook daily posting uses the same event eligibility, freshness, and athlete cooldown rules as X and Threads, including podium changes, supported badges, improvement announcements, milestones, and donation receipts.
 - Subject cooldown for X and Threads leaves the row unprocessed so it can be retried on a later run.
 - Platform send failures leave the row unprocessed so the next job run can retry.
 - Successful sends mark the row processed and clear any old skip reason for that platform.

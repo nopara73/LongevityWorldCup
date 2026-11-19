@@ -1,7 +1,8 @@
+using System.Net.Http.Json;
 using LongevityWorldCup.Website.Business;
-using LongevityWorldCup.Website.Controllers;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -16,12 +17,14 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var access = await fixture.ConfirmParticipantAsync("retry@example.com", "Retry Riley");
         var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
         var request = new LongevitymaxxingCheckInRequest(access, 12, 2, 2, 2, 2, "Original note.", Guid.NewGuid().ToString());
+        Assert.False(fixture.Service.HasSubmittedCheckIn(access, request.SubmissionId!));
         using var first = CreatePngStream();
         using var second = CreatePngStream(8, 8);
         var initial = await fixture.Service.SubmitCheckInAsync(request, [CreatePngFormFile(first), CreatePngFormFile(second)], now);
         var initialUrls = Assert.Single(initial.Notes).Images.Select(image => image.Url).ToArray();
         fixture.Service.SubmitCheckIn(request with { Note = "A later edit.", SubmissionId = Guid.NewGuid().ToString() }, now.AddMinutes(1));
         var restarted = new LongevitymaxxingChallengeService(fixture.Db, fixture.Config, fixture.Http, fixture.Environment, fixture.Email, NullLogger<LongevitymaxxingChallengeService>.Instance, fixture.Athletes, fixture.Statistics);
+        Assert.True(restarted.HasSubmittedCheckIn(access, request.SubmissionId!));
         using var retryFirst = CreatePngStream();
         using var retrySecond = CreatePngStream(8, 8);
         var replay = await restarted.SubmitCheckInAsync(request, [CreatePngFormFile(retryFirst), CreatePngFormFile(retrySecond)], now.AddMinutes(2));
@@ -58,6 +61,9 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         var request = new LongevitymaxxingCheckInRequest(access, 12, 2, 2, 2, 2, "Original.", Guid.NewGuid().ToString());
         using var image = CreatePngStream();
         await fixture.Service.SubmitCheckInAsync(request, [CreatePngFormFile(image)], now);
+        Assert.False(fixture.Service.HasSubmittedCheckIn(otherAccess, request.SubmissionId!));
+        Assert.Throws<UnauthorizedAccessException>(() => fixture.Service.HasSubmittedCheckIn("invalid-token", request.SubmissionId!));
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.HasSubmittedCheckIn(access, "invalid-id"));
         using var changed = CreatePngStream(8, 8);
         await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.SubmitCheckInAsync(request, [CreatePngFormFile(changed)], now));
         Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(request with { Note = "Changed." }, now));
@@ -131,19 +137,39 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task MultipartController_PreservesTheSubmissionIdentityOnRetry()
+    public async Task MultipartCheckInApi_ConfirmsBothPhotosByReceiptAndAcceptsReplay()
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("controller-retry@example.com", "Controller Riley");
         var day = fixture.Service.GetParticipantState(access).EligibleDays.First().ChallengeDay;
-        var controller = new LongevitymaxxingController(fixture.Service) { ControllerContext = new() { HttpContext = new DefaultHttpContext() } };
-        var form = new LongevitymaxxingCheckInFormRequest { AccessToken = access, ChallengeDay = day, Sleep = 2, Exercise = 2, Nutrition = 2, Vices = 2, Note = "Controller upload.", SubmissionId = Guid.NewGuid().ToString() };
-        using var first = CreatePngStream();
-        using var retry = CreatePngStream();
-        Assert.IsType<OkObjectResult>(await controller.CheckInWithPhotos(form, [CreatePngFormFile(first)], CancellationToken.None));
-        var result = Assert.IsType<OkObjectResult>(await controller.CheckInWithPhotos(form, [CreatePngFormFile(retry)], CancellationToken.None));
-        var state = Assert.IsType<LongevitymaxxingParticipantState>(result.Value);
-        Assert.Single(Assert.Single(state.Notes).Images);
+        var submissionId = Guid.NewGuid().ToString();
+        await using var factory = new TestWebApplicationFactory(builder => builder.ConfigureTestServices(services => services.AddSingleton(fixture.Service)));
+        using var client = factory.CreateClient();
+
+        async Task<bool> ReceivedAsync()
+        {
+            using var response = await client.PostAsJsonAsync("/api/longevitymaxxing/check-in/receipt", new { accessToken = access, submissionId });
+            response.EnsureSuccessStatusCode();
+            Assert.True(response.Headers.CacheControl?.NoStore);
+            return await response.Content.ReadFromJsonAsync<bool>();
+        }
+
+        Assert.False(await ReceivedAsync());
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var form = new MultipartFormDataContent {
+                { new StringContent(access), "accessToken" }, { new StringContent(submissionId), "submissionId" },
+                { new StringContent(day.ToString()), "challengeDay" }, { new StringContent("Controller upload."), "note" },
+                { new StreamContent(CreatePngStream()), "notePhotos", "walk.png" },
+                { new StreamContent(CreatePngStream(8, 8)), "notePhotos", "lunch.png" }
+            };
+            foreach (var habit in new[] { "sleep", "exercise", "nutrition", "vices" }) form.Add(new StringContent("2"), habit);
+            using var response = await client.PostAsync("/api/longevitymaxxing/check-in", form);
+            response.EnsureSuccessStatusCode();
+            Assert.True(await ReceivedAsync());
+        }
+        Assert.Equal(2, Assert.Single(fixture.Service.GetParticipantState(access).Notes).Images.Count);
+        Assert.Equal(2, Directory.GetFiles(PhotoDirectory(fixture)).Length);
     }
 
     private static string PhotoDirectory(TestChallengeFixture fixture) => Path.Combine(fixture.ContentRoot, "generated", "longevitymaxxing", "check-in-photos");

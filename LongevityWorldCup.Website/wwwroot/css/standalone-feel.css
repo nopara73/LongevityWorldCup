@@ -12,7 +12,7 @@
  *   shakes the field once.
  * - Media: tiles rise in order, pictures sharpen out of a blur, hovering
  *   leans the picture forward and the download drops its arrow into the tray.
- * - Review: the current step's hourglass keeps turning, quietly.
+ * - Review: the current step pulses once when review begins.
  *
  * Colours are the existing --lwc-* tokens and durations follow motion.css.
  * Everything that moves sits behind prefers-reduced-motion: no-preference;
@@ -418,25 +418,20 @@
     to { box-shadow: 0 0 0 14px transparent; }
 }
 
-/* ---------- Review: the hourglass keeps turning ---------- */
+/* ---------- Review: mark the current step once ---------- */
 
 @media (prefers-reduced-motion: no-preference) {
-    .application-review-trail li.is-current .application-review-step {
-        animation: review-current 2600ms 1500ms var(--lwc-ease-standard, ease) infinite;
-    }
-
-    .application-review-trail li.is-current .fa-hourglass-half {
-        animation: review-hourglass 7000ms 1500ms var(--lwc-ease-standard, ease) infinite;
+    .application-review-trail .is-current .application-review-step {
+        animation: reviewStepPulse 700ms 200ms var(--lwc-ease, ease);
     }
 }
 
-@keyframes review-current {
-    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-accent) 40%, transparent); }
-    60% { box-shadow: 0 0 0 9px transparent; }
-}
+@keyframes reviewStepPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 var(--lwc-accent-soft);
+    }
 
-@keyframes review-hourglass {
-    0%, 35% { rotate: 0deg; }
-    50%, 85% { rotate: 180deg; }
-    100% { rotate: 360deg; }
+    50% {
+        box-shadow: 0 0 0 7px var(--lwc-accent-soft);
+    }
 }

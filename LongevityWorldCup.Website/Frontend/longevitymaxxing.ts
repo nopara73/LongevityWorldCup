@@ -643,6 +643,8 @@
     const STORAGE_KEY = "lmxAccessToken";
     const API = "/api/longevitymaxxing";
     const REQUEST_TIMEOUT_MS = 65000;
+    const CHECK_IN_RECOVERY_WINDOW_MS = 30000;
+    const CHECK_IN_RECOVERY_DELAYS_MS = [0, 1000, 3000, 6000, 10000];
     const CALL_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
     const ANSWERS: readonly AnswerOption[] = [
         { tone: "no", label: "No", value: 0 },
@@ -651,6 +653,7 @@
     ];
     const MAX_NOTE_PHOTOS = 4;
     const MAX_NOTE_MENTIONS = 5;
+    const supportsContentFieldSizing = CSS.supports("field-sizing", "content");
     const DISCUSSION_BATCH_SIZE = 10;
     const DISCUSSION_AUTO_BATCHES = 3;
     const DISCUSSION_FEED_STORAGE_KEY = "lmxDiscussionFeedAdviceV2";
@@ -835,8 +838,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const checkInDrafts = new Map<string, CheckInFormDraft>();
     const renderedCheckInDays = new WeakMap<HTMLFormElement, string>();
     const checkInResetUndo = new Map<string, { values: CheckInFormDraft; photos: File[] }>();
-    const checkInErrors = new Map<string, string>();
-    const checkInSubmissions = new Map<string, { id: string; values: string; photos: File[] }>();
+    const checkInErrors = new Map<string, { label: "Not saved" | "Save unconfirmed" | "Saved"; message: string }>();
+    interface CheckInSubmission {
+        id: string;
+        values: string;
+        photos: File[];
+        savedPhotoCount: number;
+        previouslySavedPhotos: Set<File>;
+        receipt: "unchecked" | "unknown" | "received";
+    }
+    const checkInSubmissions = new Map<string, CheckInSubmission>();
     let checkInSaving: { key: string; day: number } | null = null;
     // A submitted check-in shows on the dashboard and board before the server answers.
     let optimisticCheckIn: { participantId: string; challengeDay: number; date: string; values: Record<HabitKey, number> } | null = null;
@@ -900,6 +911,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let timeZoneCountryCodes: Map<string, string[]> | null = null;
     let preferredTimeZoneIds: Map<string, string> | null = null;
     let regionDisplayNames: Intl.DisplayNames | null = null;
+    const timeZoneRenderKeys = new WeakMap<Element, string>();
+    const timeZoneOffsetLabels = new Map<string, string>();
+    let timeZoneOffsetMinute = -1;
     let quoteDialogLastFocus: HTMLElement | null = null;
     let adviceStoryDraft: { id: string; body: string } | null = null;
     let adviceCheckInEditing: { participantId: string; adviceId: string; challengeDay: number } | null = null;
@@ -1200,22 +1214,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireDiscussionFeed(): void {
         window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).addEventListener("change", syncDiscussionReplyActionOrder);
         requiredButton("lmxFeedOlder").addEventListener("click", () => void loadDiscussionFeed(true));
-        requiredButton("lmxFeedNew").addEventListener("click", () => {
-            discussionReadHolds.clear();
-            const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
-            discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
-            discussionFeedUpdates.clear();
-            discussionFeedOrder = discussionThreadsInHotOrder(Array.from(discussionFeedNotes.values()), false)
-                .map(discussionPermalink);
-            discussionFeedOrder.forEach((key, index) => {
-                if (visible.has(key)) discussionFeedVisible = Math.max(discussionFeedVisible, index + 1);
-            });
-            discussionFeedPending.clear();
-            renderNotes(currentDiscussionNotes(), !!participantState);
-            const first = document.querySelector<HTMLElement>("#lmxNotes article");
-            first?.focus({ preventScroll: true });
-            first?.scrollIntoView({ block: "start", behavior: "instant" });
-        });
+        requiredButton("lmxFeedNew").addEventListener("click", showNewDiscussionPosts);
         const sentinel = document.getElementById("lmxFeedSentinel");
         if (sentinel && typeof IntersectionObserver === "function") {
             discussionFeedObserver = new IntersectionObserver(entries => {
@@ -1231,6 +1230,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 !discussionMutation && !discussionFeedLoading)
                 void refreshDiscussionFeed();
         }, 60_000);
+    }
+
+    function showNewDiscussionPosts(): void {
+        const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
+        const previousNotes = new Map(discussionFeedOrder.filter(key => discussionFeedPending.has(key))
+            .map(key => [key, discussionFeedNotes.get(key)!]));
+        discussionReadHolds.clear();
+        discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
+        discussionFeedUpdates.clear();
+        discussionFeedOrder = discussionThreadsInHotOrder(Array.from(discussionFeedNotes.values()), false).map(discussionPermalink);
+
+        const pendingKeys = discussionFeedOrder.filter(key => discussionFeedPending.has(key));
+        const targetKey = pendingKeys.find(key => !previousNotes.has(key)) ?? pendingKeys[0];
+        discussionFeedOrder.forEach((key, index) => {
+            if (visible.has(key) || discussionFeedPending.has(key))
+                discussionFeedVisible = Math.max(discussionFeedVisible, index + 1);
+        });
+        discussionFeedPending.clear();
+        renderNotes(currentDiscussionNotes(), !!participantState);
+        if (!targetKey) return;
+
+        const note = discussionFeedNotes.get(targetKey)!;
+        const previous = previousNotes.get(targetKey);
+        let href = targetKey;
+        if (previous) {
+            const previousReplyIds = new Set((previous.advice?.replies ?? previous.replies)?.map(reply => reply.id));
+            const newReply = (note.advice?.replies ?? note.replies)?.find(reply =>
+                !previousReplyIds.has(reply.id) && Date.parse(reply.createdAtUtc) >= discussionActivityTimestamp(previous));
+            href = newReply ? `${targetKey}/reply/${encodeURIComponent(newReply.id)}` : discussionUnreadLink(note)?.href ?? targetKey;
+        }
+        const article = document.querySelector<HTMLElement>(`#lmxNotes > article[data-feed-key="${CSS.escape(targetKey)}"]`);
+        if (article) openDiscussionLink(href, article, false);
     }
 
     async function refreshDiscussionFeed(): Promise<void> {
@@ -1295,20 +1326,30 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     discussionFeedHasHistory = !!discussionFeedBefore;
                 }
             }
-            let priorityChanged = false;
+            const atTop = (document.getElementById("lmxNotes")?.getBoundingClientRect().top || 0) >= -80;
+            const reorderNow = atTop && !hasUnpublishedDiscussionWork();
+            let reorder = false;
             for (const note of notes) {
                 const key = discussionPermalink(note);
-                if ((priorities.get(key) || 0) === discussionUnreadPriority(note)) continue;
-                priorityChanged = true;
-                discussionFeedUpdates.set(key, note);
-                discussionFeedPending.add(key);
+                const before = priorities.get(key) || 0;
+                const priority = discussionUnreadPriority(note);
+                if (before === priority) continue;
+                if (reorderNow && (priority || discussionFeedOrder.includes(key))) {
+                    discussionFeedNotes.set(key, note);
+                    discussionFeedUpdates.delete(key);
+                    discussionFeedPending.delete(key);
+                    reorder = true;
+                } else if (priority > before) {
+                    discussionFeedUpdates.set(key, note);
+                    discussionFeedPending.add(key);
+                } else if (discussionFeedUpdates.has(key) && JSON.stringify(discussionFeedNotes.get(key)) === JSON.stringify(note)) {
+                    // A read receipt can withdraw a notification without changing the post.
+                    discussionFeedUpdates.delete(key);
+                    discussionFeedPending.delete(key);
+                }
             }
-            const atTop = (document.getElementById("lmxNotes")?.getBoundingClientRect().top || 0) >= -80;
-            if (priorityChanged && atTop && !hasUnpublishedDiscussionWork()) {
-                discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
-                discussionFeedUpdates.clear(); discussionFeedPending.clear(); reconcileAdviceFeedOrder();
-            }
-            if (queueDiscussionFeedUpdates(notes) || unavailable.length || priorityChanged && atTop && !hasUnpublishedDiscussionWork()) renderNotes(currentDiscussionNotes(), !!participantState);
+            if (reorder) reconcileAdviceFeedOrder();
+            if (queueDiscussionFeedUpdates(notes) || unavailable.length || reorder) renderNotes(currentDiscussionNotes(), !!participantState);
             else updateDiscussionFeedControls();
         } catch { /* A background refresh must not interrupt reading or drafts. */ }
         finally { discussionFeedRefreshing = false; }
@@ -1545,13 +1586,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (!note) continue;
                 const key = discussionPermalink(note);
                 const previous = discussionFeedNotes.get(key);
-                const priorityChanged = (oldPriorities.get(key) || 0) !== discussionUnreadPriority(note);
+                const priorityIncreased = discussionUnreadPriority(note) > (oldPriorities.get(key) || 0);
                 if (restarts && !previous && (discussionUnreadPriority(note) || discussionNeedsAdvice(note))) {
                     discussionFeedUpdates.set(key, note);
                     discussionFeedPending.add(key);
                 } else if (!previous) added.set(key, thread);
                 else if (restarts && !isOlderAdviceThread(note, previous) &&
-                    (priorityChanged || JSON.stringify(note) !== JSON.stringify(previous))) {
+                    (priorityIncreased || JSON.stringify(note) !== JSON.stringify(previous))) {
                     discussionFeedUpdates.set(key, note);
                     discussionFeedPending.add(key);
                 }
@@ -1636,13 +1677,47 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireAccessTabs() {
         document.querySelectorAll<HTMLButtonElement>("[data-lmx-access-tab]").forEach(button => {
             button.addEventListener("click", () => {
-                accessTab = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
-                renderPanels(publicState || {});
+                setAccessTab(button.dataset.lmxAccessTab === "signin" ? "signin" : "signup");
             });
             button.addEventListener("keydown", event => {
                 handleAccessTabKeydown(event, button);
             });
         });
+    }
+
+    let accessCardAnimations: Animation[] = [];
+
+    function setAccessTab(next: AccessTab): void {
+        if (next === accessTab) return;
+        const card = document.querySelector<HTMLElement>(".lmx-action-card");
+        // Capture the visible height before canceling only our previous effects.
+        // Measure the new natural height after cancellation so rapid reversals
+        // cannot keep animating toward the panel that was just hidden.
+        const before = card?.getBoundingClientRect().height || 0;
+        accessCardAnimations.forEach(animation => animation.cancel());
+        accessCardAnimations = [];
+        accessTab = next;
+        renderPanels(publicState || {});
+        morphAccessCard(card, before, next);
+    }
+
+    // Switching between Sign up and Sign in: the card glides to its new height
+    // and the incoming panel slides in from the side of its tab.
+    function morphAccessCard(card: HTMLElement | null, before: number, tab: "signin" | "signup"): void {
+        if (!card || !before || typeof card.animate !== "function"
+            || window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            || document.documentElement.dataset.lwcMotion === "off") return;
+        const after = card.getBoundingClientRect().height;
+        if (Math.abs(after - before) > 1) {
+            accessCardAnimations.push(card.animate(
+                [{ height: `${before}px`, overflow: "hidden" }, { height: `${after}px`, overflow: "hidden" }],
+                { duration: 280, easing: "cubic-bezier(0.2, 0, 0, 1)" }));
+        }
+        const panel = document.getElementById(tab === "signin" ? "lmxResendPanel" : "lmxSignupPanel");
+        const from = tab === "signin" ? 18 : -18;
+        if (panel) accessCardAnimations.push(panel.animate(
+            [{ transform: `translateX(${from}px)` }, { transform: "none" }],
+            { duration: 260, easing: "cubic-bezier(0, 0, 0, 1)" }));
     }
 
     function wireIdentityControls() {
@@ -2958,8 +3033,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         event.preventDefault();
         const nextTab = tabs[nextIndex];
         if (!nextTab) return;
-        accessTab = nextTab;
-        renderPanels(publicState || {});
+        setAccessTab(nextTab);
         document.querySelector<HTMLElement>(`[data-lmx-access-tab="${accessTab}"]`)?.focus();
     }
 
@@ -3667,7 +3741,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             ${days.map(day => {
                 const isActive = day.challengeDay === activeDay.challengeDay;
                 const key = checkInDraftKey(day);
-                const status = checkInErrors.has(key) ? "Not saved" : checkInDrafts.has(key) ? "In progress" : day.existing ? "Saved" : "Due";
+                const status = checkInErrors.get(key)?.label ?? (checkInDrafts.has(key) ? "In progress" : day.existing ? "Saved" : "Due");
                 return `<button type="button" data-day="${day.challengeDay}" data-draft-key="${escAttr(checkInDraftKey(day))}" data-saved="${!!day.existing}" aria-pressed="${isActive ? "true" : "false"}">
                     <strong>${esc(checkInDayLabel(day))}</strong>
                     <span>${esc(formatShortDateLabel(day.date))}</span>
@@ -3705,6 +3779,14 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const row = publicState?.leaderboard.find(candidate => candidate.participantId === participantState?.participant.id);
         const limit = row?.characterAllowance?.limit ?? 146 + Math.min(154, Math.max(0, row?.totalPoints || 0));
         return Math.max(limit, originalBody.length);
+    }
+
+    function updateControlText(element: HTMLElement, value: string): void {
+        if (element.textContent === value) return;
+        // Preserve the text node so counters do not look like inserted UI to
+        // the shared page observers on every keystroke.
+        if (element.childNodes.length === 1 && element.firstChild instanceof Text) element.firstChild.data = value;
+        else element.textContent = value;
     }
 
     function characterAllowanceDescription(characterLimit: number): string {
@@ -3775,7 +3857,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span id="lmx-note-${day.challengeDay}-count" class="lmx-note-character-count" data-note-character-count></span>
                 </div>
                 </div>
-                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="${discussionCharacterLimit(note)}" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
+                <div class="lmx-checkin-note-editor">
+                    <textarea id="lmx-note-${day.challengeDay}" data-character-limit="${discussionCharacterLimit(note)}" placeholder="Visible publicly"
+                        data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false"
+                        aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">\n${esc(draft ? draft.note : note)}</textarea>
+                </div>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
@@ -3851,8 +3937,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         function renderSuggestions(): void {
             if (composing || textarea.readOnly || textarea.disabled) { closeList(); return; }
             const context = activeMentionContext(textarea);
+            if (!context || isCompletedMentionContext(context)) { closeList(); return; }
             const rows = mentionableParticipants();
-            if (!context || isCompletedMentionContext(context) || contextContinuesPastParticipant(context, rows)) {
+            if (contextContinuesPastParticipant(context, rows)) {
                 closeList();
                 return;
             }
@@ -3941,6 +4028,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
 
         function closeList(): void {
+            if (list.hidden && !list.childNodes.length) return;
             list.hidden = true;
             list.innerHTML = "";
             matches = [];
@@ -4198,11 +4286,18 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         document.addEventListener("focusout", hideTooltip);
         document.addEventListener("keydown", event => { if (event.key === "Escape") hideTooltip(); });
-        window.addEventListener("scroll", () => {
+        const repositionTooltip = () => {
             if (tooltipOwner && document.activeElement === tooltipOwner) showTooltip(tooltipOwner);
             else hideTooltip();
-        }, true);
-        window.addEventListener("resize", hideTooltip);
+        };
+        window.addEventListener("scroll", repositionTooltip, true);
+        window.addEventListener("resize", repositionTooltip);
+    }
+
+    function openDiscussionLink(href: string, thread: HTMLElement | undefined, readIntent: boolean | "conversation"): void {
+        const url = new URL(href, window.location.href);
+        if (window.location.hash !== url.hash) window.history.pushState(window.history.state, "", url.href);
+        void navigateDiscussion(url.hash, thread, readIntent);
     }
 
     async function navigateDiscussion(hash: string, localThread?: HTMLElement, readIntent: boolean | "conversation" = false): Promise<void> {
@@ -4227,7 +4322,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let thread = localThread?.isConnected ? localThread : null;
         const notes = participantState ? participantDiscussionThreads(participantState)
             : publicState ? publicDiscussionThreads(publicState) : [];
-        let note = discussionPageThreads(notes).find(candidate => discussionPermalink(candidate) === permalink);
+        let note = thread?.dataset.feedKey === permalink ? discussionFeedNotes.get(permalink) : undefined;
+        note ??= discussionPageThreads(notes).find(candidate => discussionPermalink(candidate) === permalink);
         const status = (message: string, retry = false) => {
             let element = document.getElementById("lmxDiscussionLinkStatus");
             if (!element) {
@@ -4748,7 +4844,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const permalink = discussionPermalink(note);
         const when = discussionTimeHtml(note.updatedAtUtc, permalink, note.kind === "participant-joined" ? "Joined" : "Post updated");
         const day = note.systemPostId ? ""
-            : `<span title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
+            : `<span class="lmx-day-chip" title="${escAttr(formatDateLabel(note.date))}">Day ${note.challengeDay}</span>`;
         const replies = discussionNeedsAdvice(note) && !replyCount && !unreadLink ? "" : replyCount || canReply || unreadLink
             ? `<a class="lmx-discussion-count${unreadLink ? " lmx-unread-link" : ""}" data-discussion-link
                 data-read-label="${escAttr(replyLabel)}" data-read-href="${escAttr(`${permalink}/replies`)}" href="${escAttr(unreadLink?.href || `${permalink}/replies`)}"
@@ -5507,10 +5603,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const photos = getPendingNotePhotos(form);
         const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
         revokePendingNotePhotoUrls(key);
-        const urls = photos.map(photo => URL.createObjectURL(photo));
+        const urls = renderPendingPhotoPreviews(previews, photos, "data-remove-photo");
         if (urls.length) pendingNotePhotoUrls.set(key, urls);
-
-        previews.innerHTML = pendingDiscussionPhotosHtml(photos, urls, "data-remove-photo");
 
         previews.querySelectorAll<HTMLElement>("[data-remove-photo]").forEach(button => {
             button.addEventListener("click", () => removePendingNotePhoto(form, Number(button.dataset.removePhoto)));
@@ -5651,12 +5745,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         changeScores.disabled = adviceStorySaving;
         submit.disabled = adviceStorySaving;
         dialog.querySelector<HTMLTextAreaElement>("textarea")!.readOnly = adviceStorySaving;
-        dialog.setAttribute("aria-busy", String(adviceStorySaving));
+        if (dialog.getAttribute("aria-busy") !== String(adviceStorySaving)) dialog.setAttribute("aria-busy", String(adviceStorySaving));
         if (!prompt || adviceStoryDraft?.id !== prompt.id) {
             submit.textContent = prompt ? "Continue" : "Close";
             return;
         }
-        submit.textContent = "Post";
+        updateControlText(submit, "Post");
         const overLimit = updateAdviceStoryCount(dialog.querySelector<HTMLTextAreaElement>("textarea")!,
             dialog.querySelector<HTMLElement>("#lmxAdviceStoryCount")!, prompt.characterLimit);
         submit.disabled = adviceStorySaving || !adviceStoryDraft?.body.trim() || overLimit;
@@ -5666,10 +5760,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const limit = Math.max(2000, allowance ?? discussionCharacterLimit());
         const length = textarea.value.length;
         const over = Math.max(0, length - limit);
-        count.textContent = over ? `${over} over` : `${length}/${limit}`;
+        updateControlText(count, over ? `${over} over` : `${length}/${limit}`);
         count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${limit} characters`);
         count.classList.toggle("over-limit", over > 0);
-        textarea.setAttribute("aria-invalid", String(over > 0));
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
         return over > 0;
     }
 
@@ -5988,11 +6082,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         try {
             const quoteBucket = selectQuoteBucket(draft);
             const notePhotos = getPendingNotePhotos(form);
-            let submission = checkInSubmissions.get(key);
-            if (!submission || submission.values !== values || submission.photos.length !== notePhotos.length || submission.photos.some((photo, index) => photo !== notePhotos[index])) {
-                submission = { id: window.crypto.randomUUID(), values, photos: [...notePhotos] };
-                checkInSubmissions.set(key, submission);
-            }
+            const submission = await prepareCheckInSubmission(key, currentAccessToken, values, notePhotos, submittedDay.existing?.images?.length ?? 0);
+            if (accessToken !== currentAccessToken) return;
+            const uploadPhotos = notePhotos.filter(photo => !submission.previouslySavedPhotos.has(photo));
             const payload: CheckInPayload = {
                 accessToken: currentAccessToken,
                 challengeDay: Number(form.dataset.day),
@@ -6003,13 +6095,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 note: draft.note.trim() || null,
                 submissionId: submission.id
             };
-            let result = notePhotos.length
-                ? await postCheckInWithPhotos(payload, notePhotos)
-                : await postJson(`${API}/check-in`, payload);
+            let result = await saveCheckInWithRecovery(payload, uploadPhotos, submission);
             // Whole snapshots can arrive after a newer timezone or discussion response.
             // Keep the final generation check and state acceptance in the same turn.
             while (accessToken === currentAccessToken && responseGeneration !== stateAcceptanceGeneration) {
                 responseGeneration = stateAcceptanceGeneration;
+                if (submission.receipt === "unchecked") submission.receipt = "unknown";
                 result = await postJson(`${API}/participant`, { token: currentAccessToken });
             }
             if (accessToken !== currentAccessToken) return;
@@ -6023,10 +6114,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const confirmed = saved || history;
             const confirmedNote = saved?.note || historyNote?.note || "";
             const confirmedImages = saved?.images || historyNote?.images || [];
-            const savedPhotoCount = form.querySelectorAll(".lmx-note-photo-grid.saved img").length;
             if (result.participant.id !== currentParticipantId || !confirmed ||
                 QUESTIONS.some(question => confirmed[question.key] !== draft[question.key]) ||
-                confirmedNote.trim() !== draft.note.trim() || confirmedImages.length < savedPhotoCount + notePhotos.length) {
+                confirmedNote.trim() !== draft.note.trim() || confirmedImages.length < submission.savedPhotoCount + uploadPhotos.length) {
                 throw invalidApiResponse(`${API}/check-in`);
             }
             clearPendingNotePhotos(key);
@@ -6062,7 +6152,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (quoteBucket && stillViewingSubmittedDay && !result.pendingAdvicePrompt) void showRandomCheckInQuote(quoteBucket);
         } catch (err) {
             if (accessToken === currentAccessToken) {
-                checkInErrors.set(key, messageOf(err));
+                const received = checkInSubmissions.get(key)?.receipt === "received";
+                if (received) checkInErrors.set(key, { label: "Saved", message: "Retry to refresh this day." });
+                else if (err instanceof UnconfirmedCheckInError || isTemporaryCheckInFailure(err)) {
+                    checkInErrors.set(key, { label: "Save unconfirmed", message: err instanceof UnconfirmedCheckInError ? err.message : "Your draft is here. Retry to check." });
+                } else checkInErrors.set(key, { label: "Not saved", message: messageOf(err) });
                 rolledBack = true;
             }
         } finally {
@@ -6078,6 +6172,66 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 renderCheckInEcho();
             }
         }
+    }
+
+    class UnconfirmedCheckInError extends Error {
+        constructor(message = "Your draft is here. Retry to check.") { super(message); }
+    }
+
+    function isTemporaryCheckInFailure(error: unknown): boolean {
+        const status = error instanceof ApiTransportError ? error.httpStatus : hasProperties(error, "status") ? error.status : undefined;
+        return typeof status === "number" && [0, 408, 500, 502, 503, 504].includes(status);
+    }
+
+    async function checkInReceipt(token: string, submissionId: string): Promise<boolean> {
+        try { return await postJson(`${API}/check-in/receipt`, { accessToken: token, submissionId }); }
+        catch (error) {
+            if (isTemporaryCheckInFailure(error)) throw error;
+            throw new UnconfirmedCheckInError(messageOf(error));
+        }
+    }
+
+    async function prepareCheckInSubmission(key: string, token: string, values: string, photos: File[], savedPhotoCount: number): Promise<CheckInSubmission> {
+        const previous = checkInSubmissions.get(key);
+        if (previous && previous.values === values && previous.photos.length === photos.length && previous.photos.every((photo, i) => photo === photos[i])) return previous;
+
+        const previouslySavedPhotos = new Set(previous?.previouslySavedPhotos);
+        if (previous) {
+            savedPhotoCount = Math.max(savedPhotoCount, previous.savedPhotoCount);
+            // An edit needs a new ID, but photos from an accepted earlier attempt are already attached.
+            if (previous.receipt === "received" || (previous.receipt === "unknown" && await checkInReceipt(token, previous.id))) {
+                const uploaded = previous.photos.filter(photo => !previouslySavedPhotos.has(photo));
+                savedPhotoCount = Math.max(savedPhotoCount, previous.savedPhotoCount + uploaded.length);
+                uploaded.forEach(photo => previouslySavedPhotos.add(photo));
+            }
+        }
+        const submission: CheckInSubmission = { id: window.crypto.randomUUID(), values, photos: [...photos], savedPhotoCount, previouslySavedPhotos, receipt: "unchecked" };
+        if (accessToken === token) checkInSubmissions.set(key, submission);
+        return submission;
+    }
+
+    async function saveCheckInWithRecovery(payload: CheckInPayload, photos: File[], submission: CheckInSubmission): Promise<ParticipantState> {
+        let recoveryDeadline = submission.receipt === "unchecked" ? undefined : Date.now() + CHECK_IN_RECOVERY_WINDOW_MS;
+        for (const delay of CHECK_IN_RECOVERY_DELAYS_MS) {
+            if (recoveryDeadline !== undefined && Date.now() + delay >= recoveryDeadline) break;
+            if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
+            if (accessToken !== payload.accessToken || (recoveryDeadline !== undefined && Date.now() >= recoveryDeadline)) break;
+            try {
+                if (recoveryDeadline !== undefined) {
+                    // A dropped response can hide a committed upload. Only send the photos again after a receipt miss.
+                    if (submission.receipt !== "received" && await checkInReceipt(payload.accessToken, payload.submissionId)) submission.receipt = "received";
+                    if (accessToken !== payload.accessToken) break;
+                    if (submission.receipt === "received") return await postJson(`${API}/participant`, { token: payload.accessToken });
+                }
+                submission.receipt = "unchecked";
+                return photos.length ? await postCheckInWithPhotos(payload, photos) : await postJson(`${API}/check-in`, payload);
+            } catch (error) {
+                if (!isTemporaryCheckInFailure(error)) throw error;
+                if (submission.receipt === "unchecked") submission.receipt = "unknown";
+                recoveryDeadline ??= Date.now() + CHECK_IN_RECOVERY_WINDOW_MS;
+            }
+        }
+        throw new UnconfirmedCheckInError();
     }
 
     async function postCheckInWithPhotos(payload: CheckInPayload, photos: File[]): Promise<ParticipantState> {
@@ -6175,12 +6329,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const noteLength = draft.note.length;
         const characterLimit = checkInCharacterLimit(form);
         if (note) {
+            const editor = note.parentElement;
+            if (!supportsContentFieldSizing && editor && editor.dataset.remarks !== draft.note) {
+                editor.dataset.remarks = draft.note;
+            }
             const over = Math.max(0, noteLength - characterLimit);
             note.dataset.characterLimit = String(characterLimit);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
-            note.setAttribute("aria-invalid", String(over > 0));
+            if (note.getAttribute("aria-invalid") !== String(over > 0)) note.setAttribute("aria-invalid", String(over > 0));
             const count = form.querySelector<HTMLElement>("[data-note-character-count]")!;
-            count.textContent = over ? `${over} over` : `${noteLength}/${characterLimit}`;
+            updateControlText(count, over ? `${over} over` : `${noteLength}/${characterLimit}`);
             count.title = characterAllowanceDescription(characterLimit);
             count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${noteLength} of ${characterLimit} characters`);
             count.classList.toggle("over-limit", over > 0);
@@ -6214,28 +6372,31 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             reset.hidden = !changed && !canUndo;
             reset.title = canUndo ? "Undo reset" : "Reset this check-in";
             reset.setAttribute("aria-label", reset.title);
-            reset.innerHTML = canUndo ? "Undo" : `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
+            if (canUndo) updateControlText(reset, "Undo");
+            else if (!reset.querySelector(".fa-rotate-left")) reset.innerHTML = `<i class="fas fa-rotate-left" aria-hidden="true"></i>`;
         }
         const progress = form.querySelector<HTMLElement>("[data-checkin-progress]");
         if (progress) {
             const answered = QUESTIONS.filter(q => draft[q.key] !== null).length;
-            progress.textContent = checkInSaving
+            updateControlText(progress, checkInSaving
                 ? savingThisDay ? "" : `Saving Day ${checkInSaving.day}…`
                 : saved ? "Saved"
-                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`;
+                    : complete ? "" : `${answered}/${QUESTIONS.length} answered`);
             progress.classList.toggle("visually-hidden", saved && !checkInSaving);
         }
         if (status) {
             const error = checkInErrors.get(key);
-            status.textContent = error ? `Not saved. ${error}` : "";
-            status.classList.toggle("error", !!error);
+            updateControlText(status, error ? `${error.label}. ${error.message}` : "");
+            status.classList.toggle("error", !!error && error.label !== "Saved");
+            status.classList.toggle("success", error?.label === "Saved");
         }
         document.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(day => {
             const label = day.querySelector("em");
             const dirty = checkInDrafts.has(day.dataset.draftKey || "");
             day.classList.toggle("has-draft", dirty);
             if (label) {
-                label.textContent = checkInSaving?.key === day.dataset.draftKey ? "Saving…" : checkInErrors.has(day.dataset.draftKey || "") ? "Not saved" : dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due";
+                const error = checkInErrors.get(day.dataset.draftKey || "");
+                updateControlText(label, checkInSaving?.key === day.dataset.draftKey ? "Saving…" : error?.label ?? (dirty ? "In progress" : day.dataset.saved === "true" ? "Saved" : "Due"));
                 label.classList.toggle("visually-hidden", day.getAttribute("aria-pressed") === "true");
             }
         });
@@ -6382,7 +6543,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let restoreUploadFocus = false;
         try {
             if (!draft.preparedFile) {
-                draft.preparedFile = await prepareProfilePictureFile(file);
+                draft.preparedFile = await prepareChallengePhoto(file, "profile");
                 if (profilePictureDraft !== draft) return;
                 try { draft.previewUrl = URL.createObjectURL(draft.preparedFile); } catch { /* The file can still upload without a local preview. */ }
                 renderProfilePictureControls(participantState.participant);
@@ -6406,7 +6567,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             clearProfilePictureDraft();
         } catch (err) {
             if (profilePictureDraft === draft && accessToken === currentAccessToken) {
-                draft.error = hasProperties(err, "status") ? messageOf(err) : "Couldn’t upload the picture. Try again.";
+                draft.error = err instanceof PhotoPreparationError || hasProperties(err, "status") ? messageOf(err) : "Couldn’t upload the picture. Try again.";
             }
         } finally {
             if (profilePictureDraft === draft) draft.uploading = false;
@@ -6427,66 +6588,58 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (row) row.profileImageUrl = image;
     }
 
-    async function prepareProfilePictureFile(file: File): Promise<File> {
-        const type = String(file.type || "");
-        const isServerPreferred = /^image\/(jpeg|png|webp)$/i.test(type);
-        const shouldNormalize = file.size > 1024 * 1024 || !isServerPreferred;
-        if (!shouldNormalize) return file;
+    class PhotoPreparationError extends Error { }
+
+    function prepareNotePhotoFile(file: File): Promise<File> {
+        let prepared = preparedDiscussionPhotos.get(file);
+        if (!prepared) {
+            prepared = prepareChallengePhoto(file, "discussion").catch(error => {
+                preparedDiscussionPhotos.delete(file);
+                throw error;
+            });
+            preparedDiscussionPhotos.set(file, prepared);
+        }
+        return prepared;
+    }
+
+    async function prepareChallengePhoto(file: File, purpose: "profile" | "discussion"): Promise<File> {
+        const heic = LwcUploadPhoto.isHeic(file);
+        if (heic && file.size > 32 * 1024 * 1024) throw new PhotoPreparationError("Choose a photo under 32 MB.");
+        const profile = purpose === "profile";
+        if (profile && !heic && file.size <= 1024 * 1024 && /^image\/(jpeg|png|webp)$/i.test(file.type)) return file;
 
         try {
-            const bitmap = await loadProfileBitmap(file);
-            const maxDimension = 1600;
-            const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
-            const width = Math.max(1, Math.round(bitmap.width * scale));
-            const height = Math.max(1, Math.round(bitmap.height * scale));
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return file;
-
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            closeImageBitmap(bitmap);
-
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
-            if (!blob) return file;
-            return new File([blob], replaceImageExtension(file.name || "profile-picture", "jpg"), { type: "image/jpeg" });
-        } catch (_) {
+            if (heic) return await LwcUploadPhoto.withHeicImage(file, image => encodeChallengePhoto(file, image, profile));
+            const image = await loadProfileBitmap(file);
+            try { return await encodeChallengePhoto(file, image, profile); }
+            finally { closeImageBitmap(image); }
+        } catch {
+            if (heic) throw new PhotoPreparationError(LwcUploadPhoto.recovery);
             return file;
         }
     }
 
-    async function prepareNotePhotoFile(file: File): Promise<File> {
+    async function encodeChallengePhoto(file: File, image: HTMLImageElement | ImageBitmap, profile: boolean): Promise<File> {
+        const canvas = document.createElement("canvas");
         try {
-            const bitmap = await loadProfileBitmap(file);
-            const scale = Math.min(1, NOTE_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
-            const width = Math.max(1, Math.round(bitmap.width * scale));
-            const height = Math.max(1, Math.round(bitmap.height * scale));
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return file;
-
+            const maxDimension = profile ? 1600 : NOTE_PHOTO_MAX_DIMENSION;
+            const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+            const ctx = canvas.getContext("2d")!;
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            closeImageBitmap(bitmap);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-            let blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
-            let extension = "webp";
-            if (!blob || blob.type !== "image/webp") {
+            let blob = profile ? null : await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
+            if (blob?.type !== "image/webp") {
                 blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
-                extension = "jpg";
             }
-
-            if (!blob) return file;
-            const type = blob.type || (extension === "jpg" ? "image/jpeg" : "image/webp");
-            return new File([blob], replaceImageExtension(file.name || "check-in-photo", extension), { type });
-        } catch (_) {
-            return file;
+            if (!blob) throw new Error("Photo encoding failed.");
+            const extension = blob.type === "image/webp" ? "webp" : "jpg";
+            return new File([blob], replaceImageExtension(file.name, extension), { type: blob.type });
+        } finally {
+            canvas.width = canvas.height = 0;
         }
     }
 
@@ -6727,8 +6880,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             link.addEventListener("click", event => {
                 if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
                 event.preventDefault();
-                if (window.location.hash !== link.hash) window.history.pushState(window.history.state, "", link.href);
-                void navigateDiscussion(link.hash, link.closest<HTMLElement>("article[data-discussion-post-participant-id]") || undefined,
+                openDiscussionLink(link.href, link.closest<HTMLElement>("article[data-discussion-post-participant-id]") || undefined,
                     link.classList.contains("lmx-discussion-count") ? "conversation" : true);
             });
         });
@@ -7174,12 +7326,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             (discussionDraftHasChanges(draft) || discussionMutation === draft.key));
     }
 
-    function pendingDiscussionPhotosHtml(photos: File[], urls: string[], removeAttribute: string): string {
-        return photos.map((photo, index) => `<figure class="lmx-pending-photo">
+    function renderPendingPhotoPreviews(previews: Element, photos: File[], removeAttribute: string): string[] {
+        const urls = photos.map(photo => LwcUploadPhoto.isHeic(photo) ? "" : URL.createObjectURL(photo));
+        previews.innerHTML = photos.map((photo, index) => `<figure class="lmx-pending-photo">
             <div class="lmx-pending-photo-frame">
-                <button class="lmx-note-photo is-local-photo" type="button" data-photo-src="${escAttr(urls[index])}"
+                <button class="lmx-note-photo is-local-photo" type="button" ${urls[index] ? `data-photo-src="${escAttr(urls[index])}"` : 'disabled aria-busy="true"'}
                     aria-label="${escAttr(`Preview ${photo.name}`)}" title="${escAttr(photo.name)}">
-                    <img src="${escAttr(urls[index])}" alt="" decoding="async">
+                    <img ${urls[index] ? `src="${escAttr(urls[index])}"` : ""} alt="" decoding="async">
                 </button>
                 <button type="button" class="lmx-note-photo-remove" ${removeAttribute}="${index}" title="Remove photo" aria-label="${escAttr(`Remove ${photo.name}`)}">
                     <i class="fas fa-xmark" aria-hidden="true"></i>
@@ -7187,6 +7340,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             </div>
             <figcaption>${esc(photo.name)}</figcaption>
         </figure>`).join("");
+
+        previews.querySelectorAll<HTMLButtonElement>(".is-local-photo").forEach((button, index) => {
+            if (!button.disabled) return;
+            const figure = button.closest("figure")!;
+            const photo = photos[index]!;
+            void prepareNotePhotoFile(photo).then(prepared => {
+                // A removal, re-render or closed draft can retire this preview during decode.
+                if (!button.isConnected) return;
+                const url = URL.createObjectURL(prepared);
+                urls[index] = url;
+                button.querySelector("img")!.src = url;
+                button.dataset.photoSrc = url;
+                button.disabled = false;
+            }).catch(() => {
+                figure.querySelector("figcaption")!.textContent = `${photo.name} · ${LwcUploadPhoto.recovery}`;
+            }).finally(() => button.removeAttribute("aria-busy"));
+        });
+        return urls;
     }
 
     function revokeDiscussionPhotoPreviews(draft: DiscussionDraft): void {
@@ -7199,8 +7370,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!previews) return;
         revokeDiscussionPhotoPreviews(draft);
         const photos = draft.photos || [];
-        draft.photoUrls = photos.map(photo => URL.createObjectURL(photo));
-        previews.innerHTML = pendingDiscussionPhotosHtml(photos, draft.photoUrls, "data-remove-reply-photo");
+        draft.photoUrls = renderPendingPhotoPreviews(previews, photos, "data-remove-reply-photo");
         previews.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(button => {
             button.addEventListener("click", () => {
                 if (discussionMutation === draft.key) return;
@@ -7233,11 +7403,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     async function postDiscussionDraft(draft: DiscussionDraft, payload: DiscussionReplyPayload): Promise<ParticipantState> {
-        const prepared = await Promise.all((draft.photos || []).map(photo => {
-            let result = preparedDiscussionPhotos.get(photo);
-            if (!result) { result = prepareNotePhotoFile(photo); preparedDiscussionPhotos.set(photo, result); }
-            return result;
-        }));
+        const prepared = await Promise.all((draft.photos || []).map(prepareNotePhotoFile));
         const hashes = await Promise.all(prepared.map(async photo => {
             const hash = await crypto.subtle.digest("SHA-256", await photo.arrayBuffer());
             return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
@@ -7561,11 +7727,22 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         };
         wireMentionAutocomplete(textarea, () => {
             if (discussionMutation === draft.key) return;
+            const wasDirty = discussionDraftHasChanges(draft);
+            const previousError = draft.error;
+            const previousNotice = draft.notice;
+            const storageFailed = discussionDraftStorageFailed;
             draft.body = textarea.value;
             draft.notice = null;
-            rememberSelection();
+            draft.selectionStart = textarea.selectionStart;
+            draft.selectionEnd = textarea.selectionEnd;
             if (draft.errorKind !== "auth" && draft.error && draft.body.trim() !== draft.submittedBody) { draft.error = null; draft.errorKind = null; }
-            updateDiscussionDraftControls();
+            // Typing changes this composer, not every reply and history control in the feed.
+            if (wasDirty !== discussionDraftHasChanges(draft) || previousError !== draft.error) updateDiscussionDraftControls();
+            else {
+                persistDiscussionDrafts();
+                if (previousNotice || storageFailed !== discussionDraftStorageFailed) updateDiscussionComposerControls(composer, draft);
+                else updateDiscussionComposerInput(composer, draft);
+            }
         });
         textarea.addEventListener("select", rememberSelection);
         textarea.addEventListener("blur", rememberSelection);
@@ -7700,58 +7877,74 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderDiscussionDiscardUndo();
         document.querySelectorAll<HTMLElement>("[data-discussion-draft]").forEach(composer => {
             const draft = discussionDrafts.get(composer.dataset.discussionDraft || "");
-            if (!draft) return;
-            const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
-            const archived = discussionDraftArchived(draft, advice);
-            const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
-            const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
-            if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
-            updateDiscussionComposerContext(composer, draft);
-            const pending = discussionMutation === draft.key;
-            const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
-            textarea.readOnly = pending;
+            if (draft) {
+                updateDiscussionComposerContext(composer, draft);
+                updateDiscussionComposerControls(composer, draft);
+            }
+        });
+    }
+
+    function updateDiscussionComposerInput(composer: HTMLElement, draft: DiscussionDraft): void {
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        // Native sizing grows and shrinks without two synchronous layouts per letter.
+        if (!supportsContentFieldSizing) {
             textarea.style.height = "auto";
             textarea.style.height = `${Math.min(textarea.scrollHeight + 2, parseFloat(getComputedStyle(textarea).maxHeight))}px`;
-            if (pending) {
-                composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
-                textarea.setAttribute("aria-expanded", "false");
-                textarea.removeAttribute("aria-activedescendant");
-            }
-            const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
-            const length = draft.body.length;
-            const characterLimit = discussionCharacterLimit(draft.originalBody);
-            const over = Math.max(0, length - characterLimit);
-            textarea.dataset.characterLimit = String(characterLimit);
-            count.textContent = over ? `${over} over` : `${length}/${characterLimit}`;
-            count.title = characterAllowanceDescription(characterLimit);
-            count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
-            count.classList.toggle("over-limit", over > 0);
-            textarea.setAttribute("aria-invalid", String(over > 0));
-            count.classList.toggle("at-limit", draft.body.length >= characterLimit);
-            const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
-            if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
-                : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
-            const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
-            submit.disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
-            submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
-                : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
-            if (pending) submit.setAttribute("aria-busy", "true");
-            else submit.removeAttribute("aria-busy");
-            const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
-            if (discard) discard.disabled = pending || !discussionDraftHasChanges(draft);
-            composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
-                control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
-            });
-            composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
-            const status = composer.querySelector<HTMLElement>(".lmx-status")!;
-            status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
-                : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
-                : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
-                : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
-                : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
-                : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
-            status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
+        }
+        const count = composer.querySelector<HTMLElement>("[data-reply-count]")!;
+        const length = draft.body.length;
+        const characterLimit = discussionCharacterLimit(draft.originalBody);
+        const over = Math.max(0, length - characterLimit);
+        textarea.dataset.characterLimit = String(characterLimit);
+        updateControlText(count, over ? `${over} over` : `${length}/${characterLimit}`);
+        count.title = characterAllowanceDescription(characterLimit);
+        count.setAttribute("aria-label", over ? `${over} characters over the limit` : `${length} of ${characterLimit} characters`);
+        count.classList.toggle("over-limit", over > 0);
+        if (textarea.getAttribute("aria-invalid") !== String(over > 0)) textarea.setAttribute("aria-invalid", String(over > 0));
+        count.classList.toggle("at-limit", draft.body.length >= characterLimit);
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        const disabled = !!discussionMutation || !discussionDraftCanSubmit(draft);
+        if (submit.disabled !== disabled) submit.disabled = disabled;
+        const discard = composer.querySelector<HTMLButtonElement>("[data-reply-action='discard']");
+        const cannotDiscard = discussionMutation === draft.key || !discussionDraftHasChanges(draft);
+        if (discard && discard.disabled !== cannotDiscard) discard.disabled = cannotDiscard;
+    }
+
+    function updateDiscussionComposerControls(composer: HTMLElement, draft: DiscussionDraft): void {
+        updateDiscussionComposerInput(composer, draft);
+        const advice = Array.from(discussionFeedNotes.values()).find(note => isDiscussionDraftThread(note, draft))?.advice;
+        const archived = discussionDraftArchived(draft, advice);
+        const adviceBlocked = !!draft.isAdvice && !canGiveDiscussionAdvice(advice, draft.postParticipantId);
+        const retarget = composer.querySelector<HTMLButtonElement>("[data-advice-retarget]");
+        if (retarget) retarget.hidden = !archived || !advice?.activeAdviceReplyId || !!draft.editReplyId;
+        const pending = discussionMutation === draft.key;
+        const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
+        if (textarea.readOnly !== pending) textarea.readOnly = pending;
+        if (pending) {
+            composer.querySelector<HTMLElement>(".lmx-mention-options")!.hidden = true;
+            textarea.setAttribute("aria-expanded", "false");
+            textarea.removeAttribute("aria-activedescendant");
+        }
+        const hint = composer.querySelector<HTMLElement>("[data-draft-hint]");
+        if (hint) hint.textContent = pending ? (draft.editReplyId ? "Saving your edit…" : "Posting your reply…")
+            : draft.photos?.length ? "Photos kept while this page is open" : discussionDraftStorageFailed ? "" : "Draft saved in this tab";
+        const submit = composer.querySelector<HTMLButtonElement>("[data-reply-action='submit']")!;
+        submit.textContent = pending ? (draft.editReplyId ? "Saving…" : "Posting…")
+            : draft.errorKind === "auth" ? "Sign in" : draft.error ? "Retry" : draft.editReplyId ? "Save reply" : draft.isAdvice ? "Post advice" : "Post reply";
+        if (pending) submit.setAttribute("aria-busy", "true");
+        else submit.removeAttribute("aria-busy");
+        composer.querySelectorAll<HTMLButtonElement | HTMLInputElement>("[data-reply-photo-button], [data-reply-photos]").forEach(control => {
+            control.disabled = pending || (draft.photos?.length || 0) >= MAX_NOTE_PHOTOS;
         });
+        composer.querySelectorAll<HTMLButtonElement>("[data-remove-reply-photo]").forEach(control => { control.disabled = pending; });
+        const status = composer.querySelector<HTMLElement>(".lmx-status")!;
+        status.textContent = archived ? "This conversation is now archived. Your draft is kept. Review it before moving to the active conversation."
+            : adviceBlocked ? "Only someone ranked above the current adviser can give better advice. Your draft is kept."
+            : draft.needsPhotos ? "Photos weren’t kept after reload. Add them again before posting."
+            : draft.error ? `Couldn’t confirm your ${draft.editReplyId ? "edit" : "reply"}. ${draft.error}`
+            : discussionMutation && !pending ? "Finishing another reply. You can keep writing."
+            : draft.notice || (discussionDraftStorageFailed ? "Draft couldn’t be saved in this tab. Keep this page open." : "");
+        status.classList.toggle("error", !!draft.error || discussionDraftStorageFailed);
     }
 
     async function deleteDiscussionReply(button: HTMLButtonElement): Promise<void> {
@@ -7971,7 +8164,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (hasProperties(err, "status") && err.status === 409) {
                     try { await refreshDiscussionState(); } catch { /* Preserve the draft even if recovery is offline. */ }
                 }
-                draft.errorKind = isAuthFailure(err) ? "auth" : hasProperties(err, "status") && err.status === 400 ? "validation" : "network";
+                draft.errorKind = isAuthFailure(err) ? "auth" : err instanceof PhotoPreparationError || (hasProperties(err, "status") && err.status === 400) ? "validation" : "network";
                 draft.error = draft.errorKind === "auth" ? "Sign in again to continue. Your draft is kept."
                     : draft.errorKind === "validation" ? messageOf(err)
                     : navigator.onLine === false ? "You’re offline. Your draft is kept; retry when connected."
@@ -8205,6 +8398,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function calculateQuotePhenoStats(athlete: AthleteRecord, dob: Date, chronologicalAge: number): QuotePhenoStats {
         let lowestPhenoAge = Infinity;
+        let bestAgeReduction = Infinity;
         let chronoAtLowestPhenoAge = chronologicalAge;
         const phenoAgeApi = readSharedWindowApi().PhenoAge;
         const phenoSubmissionAges = quoteBiomarkers(athlete)
@@ -8227,6 +8421,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const phenoAge = phenoAgeApi && typeof phenoAgeApi.calculatePhenoAge === "function"
                     ? phenoAgeApi.calculatePhenoAge(values)
                     : NaN;
+                if (Number.isFinite(phenoAge)) bestAgeReduction = Math.min(bestAgeReduction, phenoAge - ageAtEntry);
                 if (Number.isFinite(phenoAge) && phenoAge < lowestPhenoAge) {
                     lowestPhenoAge = phenoAge;
                     chronoAtLowestPhenoAge = ageAtEntry;
@@ -8240,9 +8435,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             chronoAtLowestPhenoAge = chronologicalAge;
         }
 
-        const ageReduction = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge)
-            ? lowestPhenoAge - chronoAtLowestPhenoAge
-            : null;
+        const ageReduction = Number.isFinite(bestAgeReduction) ? bestAgeReduction
+            : Number.isFinite(chronologicalAge) ? 0 : null;
         const ageReductionPercent = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge) && chronoAtLowestPhenoAge > 0
             ? (1 - lowestPhenoAge / chronoAtLowestPhenoAge) * 100
             : null;
@@ -8268,6 +8462,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let bortzAgeReduction = null;
         let bortzAgeImprovement = null;
         let bortzMin = Infinity;
+        let bestAgeReduction = Infinity;
         const bortzAgeApi = readSharedWindowApi().BortzAge;
 
         const bortzSubmissionAges = quoteBiomarkers(athlete)
@@ -8279,6 +8474,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const bortzAge = bortzAgeApi && typeof bortzAgeApi.calculateBortzAge === "function"
                     ? bortzAgeApi.calculateBortzAge(ageAtEntry, values)
                     : NaN;
+                if (Number.isFinite(bortzAge)) bestAgeReduction = Math.min(bestAgeReduction, bortzAge - ageAtEntry);
                 if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                     bortzMin = bortzAge;
                     chronoAtLowestBortzAge = ageAtEntry;
@@ -8289,7 +8485,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         if (Number.isFinite(bortzMin) && chronoAtLowestBortzAge !== null) {
             lowestBortzAge = bortzMin;
-            bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
+            bortzAgeReduction = bestAgeReduction;
         }
 
         if (bortzSubmissionAges.length >= 2) {
@@ -9483,6 +9679,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
+    async function postJson(url: `${typeof API}/check-in/receipt`, payload: object): Promise<boolean>;
     async function postJson(url: `${typeof API}/discussion/replies/page`, payload: object): Promise<DiscussionReplyPage>;
     async function postJson(url: `${typeof API}/discussion/feed`, payload: object): Promise<DiscussionFeedPage>;
     async function postJson(url: `${typeof API}/discussion/thread`, payload: object): Promise<DiscussionThreadResult>;
@@ -9505,7 +9702,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
-        });
+        }, url === `${API}/check-in/receipt` ? 5000 : REQUEST_TIMEOUT_MS);
+        if (url === `${API}/check-in/receipt` && typeof data !== "boolean") throw invalidApiResponse(url);
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
@@ -9531,10 +9729,19 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return data;
     }
 
-    async function requestJson(url: string, options: RequestInit): Promise<unknown> {
+    // Only errors from a parsed API response carry a user-facing message and the shared `status` property.
+    class ApiTransportError extends Error {
+        readonly httpStatus: number;
+        constructor(message: string, httpStatus = 0) {
+            super(message);
+            this.httpStatus = httpStatus;
+        }
+    }
+
+    async function requestJson(url: string, options: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timer = controller
-            ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+            ? window.setTimeout(() => controller.abort(), timeoutMs)
             : null;
 
         try {
@@ -9544,7 +9751,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             });
             return await readJsonResponse(response, url);
         } catch (err) {
-            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw new Error("Request timed out");
+            if (controller?.signal.aborted || (hasStringProperty(err, "name") && err.name === "AbortError")) throw new ApiTransportError("Request timed out");
+            if (err instanceof TypeError) throw new ApiTransportError(err.message);
             throw err;
         } finally {
             if (timer) window.clearTimeout(timer);
@@ -9561,7 +9769,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             } catch (_) {
                 const target = String(url || response.url || "request");
                 const typeLabel = contentType ? ` (${contentType})` : "";
-                throw new Error(`${target} returned ${response.status || "a non-JSON response"}${typeLabel}.`);
+                throw new ApiTransportError(`${target} returned ${response.status || "a non-JSON response"}${typeLabel}.`, response.status);
             }
         }
 
@@ -9732,6 +9940,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             .filter(item => item.score > 0)
             .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone));
 
+        // Consecutive prefixes often produce the same options. Keep those
+        // controls in place; refresh their offsets when the current minute changes.
+        const renderKey = `${Math.floor(Date.now() / 60000)}\n${matches.map(item => item.zone).join("\n")}`;
+        if (timeZoneRenderKeys.get(list) === renderKey) {
+            setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
+            return;
+        }
         list.innerHTML = matches.length
             ? matches.map((item, index) => timeZoneOptionHtml(item.zone, `${list.id}-option-${index}`)).join("")
             : `<div class="lmx-timezone-empty">No timezone found</div>`;
@@ -9739,6 +9954,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         list.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.addEventListener("click", () => chooseTimeZone(picker, option.dataset.timeZone || "UTC"));
         });
+        timeZoneRenderKeys.set(list, renderKey);
         setActiveTimeZoneOption(picker, list.querySelector<HTMLElement>(".lmx-timezone-option"));
     }
 
@@ -9752,7 +9968,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function setActiveTimeZoneOption(picker: HTMLElement, active: HTMLElement | null): void {
         picker.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.classList.toggle("active", option === active);
-            option.setAttribute("aria-selected", option === active ? "true" : "false");
+            const selected = option === active ? "true" : "false";
+            if (option.getAttribute("aria-selected") !== selected) option.setAttribute("aria-selected", selected);
         });
         const input = picker.querySelector(".lmx-timezone-search input");
         if (active) input?.setAttribute("aria-activedescendant", active.id);
@@ -9936,17 +10153,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function timeZoneOffsetLabel(zone: string): string {
+        const now = new Date();
+        const minute = Math.floor(now.getTime() / 60000);
+        if (minute !== timeZoneOffsetMinute) {
+            timeZoneOffsetMinute = minute;
+            timeZoneOffsetLabels.clear();
+        }
+        let label = timeZoneOffsetLabels.get(zone);
+        if (label !== undefined) return label;
         try {
             const parts = new Intl.DateTimeFormat("en-US", {
                 timeZone: zone,
                 timeZoneName: "shortOffset",
                 hour: "2-digit",
                 minute: "2-digit"
-            }).formatToParts(new Date());
-            return parts.find(part => part.type === "timeZoneName")?.value || zone;
+            }).formatToParts(now);
+            label = parts.find(part => part.type === "timeZoneName")?.value || zone;
         } catch (_) {
-            return zone || "UTC";
+            label = zone || "UTC";
         }
+        timeZoneOffsetLabels.set(zone, label);
+        return label;
     }
 
 
