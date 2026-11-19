@@ -137,6 +137,44 @@ public sealed class HomepageLoadingBrowserTests(
     }
 
     [Theory]
+    [InlineData(390, "improvement")]
+    [InlineData(1440, "bortz-improvement")]
+    public async Task Homepage_KeepsFilteredPreviewRowsAndKeyboardFocusDuringHydration(int width, string view)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        try
+        {
+            await page.GotoAsync($"/?view={view}", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            var preview = page.Locator(".leaderboard tr.server-rendered-leaderboard-row:visible");
+            await Assertions.Expect(preview.First).ToBeVisibleAsync();
+            await preview.EvaluateAllAsync<object?>("""
+                rows => {
+                    window.paintedRows = rows.map(row => ({ row, portrait: row.querySelector('img.portrait') }));
+                    window.focusedAthlete = rows.at(-1).querySelector('.athlete-name');
+                    window.focusedAthlete.focus({ preventScroll: true });
+                }
+                """);
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => window.paintedRows.every(({row, portrait}) => row.isConnected && (!portrait || portrait === row.querySelector('img.portrait')))"));
+        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement === window.focusedAthlete"));
+    }
+
+    [Theory]
     [InlineData(320, "improvement", "Improvement")]
     [InlineData(1440, "bortz-improvement", "Bortz improvement")]
     public async Task Homepage_LabelsNewlyDisplayedRowsWithTheSelectedMetric(int width, string view, string metric)

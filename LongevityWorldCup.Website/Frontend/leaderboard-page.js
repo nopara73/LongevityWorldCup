@@ -1917,23 +1917,22 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
             window.computeBadges(athleteResults);
 
-            // Populate the table with athletes ranked >3
             const tableBody = document.querySelector('.leaderboard table tbody');
             tableBody.classList.remove('loading-skeleton');
             tableBody.setAttribute('aria-busy', 'false');
             tableBody.removeAttribute('data-server-rendered');
             tableBody.removeAttribute('data-hydrating');
-            const serverRows = new Map([...tableBody.querySelectorAll('tr.server-rendered-leaderboard-row')]
-                .map(row => [row.dataset.athleteName, row]));
             resetRowRevealQueue();
-            const initialRows = athleteResults.slice(0, maxAthletes).map(athlete =>
-                createLeaderboardRow(athlete, serverRows.get(athlete.name)));
-            // Preserve focus and the already-painted portraits when the server has the same rows.
-            const keep = new Set(initialRows);
-            for (const row of [...tableBody.children]) if (!keep.has(row)) row.remove();
-            const newRows = document.createDocumentFragment();
-            for (const row of initialRows) if (!row.isConnected) newRows.append(row);
-            tableBody.append(newRows);
+            // Hydrate the rows painted for this URL. performFilter fills the selected board below.
+            const athletesByName = new Map(athleteResults.map(athlete => [athlete.name, athlete]));
+            for (const row of [...tableBody.children]) {
+                const athlete = athletesByName.get(row.dataset.athleteName);
+                if (!athlete || !row.classList.contains('server-rendered-leaderboard-row')) {
+                    row.remove();
+                    continue;
+                }
+                createLeaderboardRow(athlete, row);
+            }
             scheduleLeaderboardTableHeightSync();
 
             // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
@@ -2101,8 +2100,11 @@ function createLeaderboardRow(athlete, serverRow) {
     const isPro = Number.isFinite(athlete.bortzAgeReduction);
     const tier = isPro ? 'pro' : 'amateur';
     const template = document.getElementById('leaderboardRowTemplate');
-    const row = serverRow?.querySelector('.portrait-wrapper img.portrait') ? serverRow : template.content.firstElementChild.cloneNode(true);
+    const row = serverRow || template.content.firstElementChild.cloneNode(true);
     row.classList.remove('server-rendered-leaderboard-row');
+    if (serverRow && !row.querySelector('.portrait-wrapper')) {
+        row.querySelector('.athlete-td').prepend(template.content.querySelector('.portrait-wrapper').cloneNode(true));
+    }
     if (!row.querySelector('.pro-badge')) {
         row.querySelector('.portrait-wrapper').append(template.content.querySelector('.pro-badge').cloneNode());
     }
