@@ -822,13 +822,8 @@ function initializeAthletePortraitMotion() {
         // Lazy table photos may finish loading after the first pointer entry.
         // Replay then only if that interaction is still active.
         img.addEventListener('load', () => {
-            // The reusable profile image can change while its dialog is open.
-            // Table images only need a motion surface when someone activates them.
-            const motion = motionFor(img);
-            if (img === profile && motion) surfaceFor(img, motion);
             if (hasPortraitIntent(img, pointerInside)) play(img);
         }, options);
-        if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motion);
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {

@@ -7,7 +7,6 @@ internal static partial class HomepagePodiumAssets
 {
     public const string SectionStyles = """
         <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
-        <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
         <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
         <link rel="stylesheet" href="{{ASSET_MERCH_SHELF_CSS}}">
         """;

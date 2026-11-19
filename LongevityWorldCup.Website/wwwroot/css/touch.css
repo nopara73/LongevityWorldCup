@@ -42,8 +42,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    :root[data-lwc-touch] [data-lwc-pressed="control"] {
+    :root[data-lwc-touch] .athlete-profile-link[data-lwc-pressed="control"] {
         filter: brightness(.86);
+    }
+
+    .home-page [data-lwc-pressed="control"]:not(.athlete-profile-link) {
+        outline: 2px solid var(--lwc-accent, #087685);
+        outline-offset: -2px;
     }
 }
 

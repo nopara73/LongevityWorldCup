@@ -31,7 +31,12 @@
 
         [data-home-press],
         :root:has(> head > link[href^="/css/touch.css"][media^="not all"]) [data-lwc-pressed] {
-            filter: brightness(.86);
+            &.athlete-profile-link { filter: brightness(.86); }
+            /* An outline keeps a stretched link's full card tappable. */
+            &:not(.athlete-profile-link) {
+                outline: 2px solid var(--lwc-accent, #087685);
+                outline-offset: -2px;
+            }
         }
     }
 
