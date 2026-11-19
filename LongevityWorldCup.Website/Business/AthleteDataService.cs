@@ -1719,39 +1719,29 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             _eventDataService.CreateCrowdAgeTop10ChangeEvents(changed);
     }
 
-    private IReadOnlyList<AgeImprovementLeaderboardEntry> GetAgeImprovementStandings(string clock) =>
-        AgeImprovementRanking.Rank(PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date).Values, clock);
+    private IReadOnlyCollection<PhenoStatsCalculator.Result> CalculateCurrentAthleteScores() =>
+        PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date).Values;
 
-    private IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> GetAgeImprovementTop10Snapshot(string clock) =>
-        GetAgeImprovementStandings(clock).Take(10)
-            .Select(row => (row.Slug, Place: row.Rank, row.Clock, row.Improvement, row.AgeReduction))
-            .ToList();
+    private IReadOnlyList<AgeImprovementLeaderboardEntry> GetAgeImprovementStandings(string clock) =>
+        AgeImprovementRanking.Rank(CalculateCurrentAthleteScores(), clock);
 
     private void SyncAgeImprovementTop10Placements(bool emitEvents, IEnumerable<string>? eventSubjectSlugs = null)
     {
-        SyncAgeImprovementTop10Placements(
-            clock: "pheno",
-            placementColumn: PhenoImprovementTop10PlacementColumn,
-            currentTop10: GetAgeImprovementTop10Snapshot("pheno"),
-            emitEvents: emitEvents,
-            eventSubjectSlugs: eventSubjectSlugs);
-
-        SyncAgeImprovementTop10Placements(
-            clock: "bortz",
-            placementColumn: BortzImprovementTop10PlacementColumn,
-            currentTop10: GetAgeImprovementTop10Snapshot("bortz"),
-            emitEvents: emitEvents,
-            eventSubjectSlugs: eventSubjectSlugs);
+        var scores = CalculateCurrentAthleteScores();
+        SyncAgeImprovementTop10Placements("pheno", PhenoImprovementTop10PlacementColumn, scores, emitEvents, eventSubjectSlugs);
+        SyncAgeImprovementTop10Placements("bortz", BortzImprovementTop10PlacementColumn, scores, emitEvents, eventSubjectSlugs);
     }
 
     private void SyncAgeImprovementTop10Placements(
         string clock,
         string placementColumn,
-        IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> currentTop10,
+        IReadOnlyCollection<PhenoStatsCalculator.Result> scores,
         bool emitEvents,
         IEnumerable<string>? eventSubjectSlugs)
     {
-        var currentBySlug = currentTop10.ToDictionary(x => x.Slug, x => x, StringComparer.OrdinalIgnoreCase);
+        var currentBySlug = AgeImprovementRanking.Rank(scores, clock)
+            .Take(10)
+            .ToDictionary(row => row.Slug, StringComparer.OrdinalIgnoreCase);
         var eventSubjects = BuildTop10EventSubjectSet(emitEvents, eventSubjectSlugs);
         var changed = new List<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, int Place, int? PreviousPlace, string? PreviousSlug, double Improvement, double AgeReduction)>();
         var nowUtc = DateTime.UtcNow;
@@ -1789,23 +1779,21 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             foreach (var (slug, previousPlace) in stored)
             {
                 currentBySlug.TryGetValue(slug, out var current);
-                int? currentPlace = current.Place is >= 1 and <= 10 ? current.Place : null;
+                int? currentPlace = current?.Rank;
 
-                if (emitEvents &&
-                    currentPlace.HasValue &&
-                    previousPlace != currentPlace)
+                if (emitEvents && current is not null && previousPlace != current.Rank)
                 {
-                    previousSlugByPlace.TryGetValue(currentPlace.Value, out var previousSlug);
+                    previousSlugByPlace.TryGetValue(current.Rank, out var previousSlug);
                     if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
                         previousSlug = null;
 
-                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, currentPlace.Value, previousSlug, eventSubjects))
+                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, current.Rank, previousSlug, eventSubjects))
                     {
                         changed.Add((
                             slug,
                             nowUtc,
                             clock,
-                            currentPlace.Value,
+                            current.Rank,
                             previousPlace,
                             previousSlug,
                             current.Improvement,
@@ -2232,23 +2220,22 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText = "SELECT Placements FROM Athletes WHERE Key=@k";
             cmd.Parameters.AddWithValue("@k", athleteSlug);
-            var txt = cmd.ExecuteScalar() as string ?? "[]";
-
-            int?[] result;
-            try
-            {
-                var arr = JsonSerializer.Deserialize<int?[]>(txt) ?? Array.Empty<int?>();
-                result = new int?[4];
-                for (int i = 0; i < 4; i++)
-                    result[i] = i < arr.Length ? arr[i] : null;
-            }
-            catch
-            {
-                result = new int?[4];
-            }
-
-            return result;
+            return ParsePlacements(cmd.ExecuteScalar() as string);
         });
+    }
+
+    private static int?[] ParsePlacements(string? json)
+    {
+        try
+        {
+            var placements = json is null ? null : JsonSerializer.Deserialize<int?[]>(json);
+            Array.Resize(ref placements, 4);
+            return placements;
+        }
+        catch (JsonException)
+        {
+            return new int?[4];
+        }
     }
 
     public void SetPlacements(string athleteSlug, int?[] placements)
@@ -2308,29 +2295,28 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private void HydratePlacementsIntoAthletesJson()
     {
-        List<string> slugs;
-        lock (_athletesJsonLock)
+        var stored = _db.Run(sqlite =>
         {
-            slugs = _athletes
-                .OfType<JsonObject>()
-                .Select(a => a["AthleteSlug"]!.GetValue<string>())
-                .ToList();
-        }
-
-        var bySlug = new Dictionary<string, int?[]>(StringComparer.OrdinalIgnoreCase);
-        foreach (var slug in slugs)
-            bySlug[slug] = GetPlacements(slug);
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Key, Placements FROM Athletes";
+            using var reader = cmd.ExecuteReader();
+            var bySlug = new Dictionary<string, string?>(StringComparer.Ordinal);
+            while (reader.Read())
+            {
+                if (reader.GetValue(0) is string slug)
+                    bySlug.Add(slug, reader.GetValue(1) as string);
+            }
+            return bySlug;
+        });
 
         lock (_athletesJsonLock)
         {
             foreach (var athleteJson in _athletes.OfType<JsonObject>())
             {
                 var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
-                if (!bySlug.TryGetValue(slug, out var p))
-                    continue;
-
+                var placements = ParsePlacements(stored.GetValueOrDefault(slug));
                 var arr = new JsonArray();
-                foreach (var v in p) arr.Add(v is int x ? JsonValue.Create(x) : null);
+                foreach (var v in placements) arr.Add(v is int x ? JsonValue.Create(x) : null);
                 athleteJson["Placements"] = arr;
             }
         }
