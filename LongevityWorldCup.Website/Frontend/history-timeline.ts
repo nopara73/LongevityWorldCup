@@ -86,7 +86,11 @@ interface Window {
                 settle(strip);
             });
         });
-        reduced.addEventListener("change", () => { if (reduced.matches) strips.forEach(strip => { observer.unobserve(strip); settle(strip); }); });
+        // Older engines only offer MediaQueryList.addListener; the strips then
+        // keep the preference they loaded with.
+        if (typeof reduced.addEventListener === "function") {
+            reduced.addEventListener("change", () => { if (reduced.matches) strips.forEach(strip => { observer.unobserve(strip); settle(strip); }); });
+        }
     }
 
     function start(): void {
@@ -129,7 +133,7 @@ interface Window {
             const goingUp = shownYear !== "" && year < shownYear;
             shownYear = year;
             yearAnimation?.cancel();
-            if (reduced.matches || !yearFace.textContent) { settleYear(); return; }
+            if (reduced.matches || !yearFace.textContent || typeof yearFace.animate !== "function") { settleYear(); return; }
             const out = yearFace.animate(
                 [{ transform: "none", opacity: 1 }, { transform: `translateY(${goingUp ? 40 : -40}%)`, opacity: 0 }],
                 { duration: 160, easing: "cubic-bezier(.3,0,1,1)" }

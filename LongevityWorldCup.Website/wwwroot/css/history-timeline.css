@@ -257,15 +257,16 @@
 
     /* Phones: the strip swipes, and the second print peeks in from the right.
        The scroller clips, so the prints cast a shorter shadow that fits
-       inside it. */
+       inside it; its bleed and shadow room are in px, like the shadow, so
+       they stay put with enlarged text. */
     @media (max-width: 600px) {
         .documentation-timeline .history-evidence {
             --evidence-height: 10.5rem;
             flex-wrap: nowrap;
             overflow-x: auto;
-            margin: 1rem -0.5rem -0.5rem;
-            padding: 0.5rem 0.5rem 1.75rem;
-            scroll-padding-inline: 0.5rem;
+            margin: 1rem -8px -8px;
+            padding: 0.5rem 8px 28px;
+            scroll-padding-inline: 8px;
             scroll-snap-type: x mandatory;
             scrollbar-width: none;
         }
