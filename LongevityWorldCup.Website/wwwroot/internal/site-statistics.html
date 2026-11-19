@@ -136,7 +136,7 @@
 
         <section id="drilldownPanel" class="stats-panel drilldown-panel" hidden>
             <div class="panel-heading">
-                <h2 id="drilldownTitle">Drilldown</h2>
+                <h2 id="drilldownTitle" tabindex="-1">Drilldown</h2>
                 <div class="drilldown-actions">
                     <button id="copyLink" class="stats-button small" type="button">Copy link</button>
                     <button id="resetDrilldown" class="stats-button small" type="button">Reset drilldown</button>
@@ -157,6 +157,11 @@
                     <span id="primaryMeta" class="panel-meta"></span>
                 </div>
                 <div id="flowSelectors" class="flow-selectors"></div>
+                <div class="funnel-legend">
+                    <span><i class="reach-key"></i>Reached</span>
+                    <span><i class="cohort-key"></i>Previous step</span>
+                    <span><i class="drop-key"></i>Drop-off</span>
+                </div>
                 <div id="primaryFunnel" class="funnel"></div>
             </div>
 

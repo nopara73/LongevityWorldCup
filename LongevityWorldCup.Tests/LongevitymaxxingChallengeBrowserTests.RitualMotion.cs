@@ -157,9 +157,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             entered.TrySetResult();
             await release.Task.WaitAsync(TimeSpan.FromSeconds(30));
-            await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Connection interrupted. Try again.\"}" });
+            await route.FulfillAsync(new() { Status = 429, ContentType = "application/json", Body = "{\"message\":\"Too many requests. Try again.\"}" });
         });
-        var responseTask = page.WaitForResponseAsync(response => new Uri(response.Url).AbsolutePath == "/api/longevitymaxxing/check-in" && response.Status == 503);
+        var responseTask = page.WaitForResponseAsync(response => new Uri(response.Url).AbsolutePath == "/api/longevitymaxxing/check-in" && response.Status == 429);
         try
         {
             await save.ClickAsync();
@@ -192,7 +192,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(historyDay).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bempty\b"));
         await Assertions.Expect(page.Locator("#lmxBoardMeta")).ToHaveTextAsync(initialMeta);
         Assert.Equal(initialStandings, await page.Locator("#lmxHeroHighlights").InnerTextAsync());
-        await Assertions.Expect(form.Locator("[data-checkin-status]")).ToContainTextAsync("Not saved. Connection interrupted");
+        await Assertions.Expect(form.Locator("[data-checkin-status]")).ToContainTextAsync("Not saved. Too many requests");
         Assert.True(await form.Locator(".lmx-question[data-key='vices'] input[value='2']").IsCheckedAsync());
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
     }
@@ -274,7 +274,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.RouteAsync("**/api/longevitymaxxing/check-in", async route =>
         {
             await release.Task.WaitAsync(TimeSpan.FromSeconds(30));
-            await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Connection interrupted. Try again.\"}" });
+            await route.FulfillAsync(new() { Status = 429, ContentType = "application/json", Body = "{\"message\":\"Too many requests. Try again.\"}" });
         });
         try
         {
@@ -302,7 +302,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await page.Locator("#lmxCheckinTab").ClickAsync();
         var form = page.Locator(".lmx-checkin-card");
         await AnswerHabitAsync(form, "sleep", "yes");
-        await page.WaitForTimeoutAsync(400);
+        await WaitForFiniteAnimationsAsync(page, ".lmx-checkin-card, .lmx-checkin-card *");
         await TakeMotionLogAsync(page);
         var session = await context.NewCDPSessionAsync(page);
         await session.SendAsync("Emulation.setCPUThrottlingRate", new Dictionary<string, object> { ["rate"] = cpuSlowdown });

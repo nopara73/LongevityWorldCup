@@ -916,6 +916,12 @@ select:focus-visible,
     font-variant-numeric: tabular-nums;
 }
 
+.decision-card.is-paired, .investigation-row.is-paired {
+    background: var(--row-hover);
+    border-color: var(--cyan);
+}
+.investigation-row .decision-rank { display: inline-grid; width: 22px; height: 22px; margin-inline-end: 6px; font-size: 12px; vertical-align: middle; }
+
 .decision-body { display: grid; gap: 6px; min-width: 0; }
 .decision-title { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
 
@@ -1097,7 +1103,26 @@ select:focus-visible,
 /* ---------- Diagnostics: funnel + friction ---------- */
 .flow-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 8px; }
 .flow-selectors:empty { display: none; }
-.flow-selectors:not(:empty) + .funnel { margin-top: 14px; }
+/* Both tracks use the largest reached cohort as their common scale. */
+.funnel-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 8px; font-size: 12px; color: var(--muted); }
+.funnel-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.funnel-legend i { display: inline-block; width: 16px; height: 5px; border-radius: 3px; }
+.funnel-legend .reach-key, .funnel-fill {
+    background-color: var(--cyan);
+    background-image: linear-gradient(90deg, var(--pink), var(--cyan));
+}
+.funnel-legend .cohort-key, .funnel-cohort { background: var(--muted); }
+.funnel-legend .drop-key, .funnel-leak {
+    background-color: var(--red);
+    background-image: repeating-linear-gradient(125deg, var(--red) 0 2px, var(--panel) 2px 4px);
+}
+
+@media (forced-colors: active) {
+    .funnel-bar, .funnel-legend i { forced-color-adjust: none; }
+    .funnel-legend .reach-key, .funnel-fill { background: Highlight; }
+    .funnel-legend .cohort-key, .funnel-cohort { background: GrayText; }
+    .funnel-legend .drop-key, .funnel-leak { background: CanvasText; }
+}
 
 .flow-card { display: grid; gap: 8px; padding: 12px 14px; }
 .flow-card.active { border-color: var(--cyan); background: var(--cyan-soft); }
@@ -1115,8 +1140,11 @@ select:focus-visible,
 }
 
 .funnel-name { font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
-.funnel-bar { height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
-.funnel-fill { display: block; height: 100%; min-width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--pink), var(--cyan)); }
+.funnel-bar { display: grid; grid-template-rows: 7px 5px; row-gap: 2px; min-width: 0; }
+.funnel-fill { display: block; height: 100%; min-width: 0; border-radius: 999px; }
+.funnel-cohort { display: flex; justify-content: flex-end; overflow: hidden; border-radius: 999px; }
+.funnel-leak { display: block; }
+.funnel-row:is(:hover, :focus-visible) .funnel-number { color: var(--cyan); }
 .funnel-number { font-size: 15px; text-align: right; }
 .funnel-rate, .funnel-drop { color: var(--muted); font-size: 12px; text-align: right; }
 
@@ -1414,7 +1442,6 @@ select:focus-visible,
     .stats-page[aria-busy="false"]:not([data-stats-settled]) .decision-support-grid > .stats-panel:nth-child(2),
     .stats-page[aria-busy="false"]:not([data-stats-settled]) .stats-main-grid > .stats-panel:nth-child(2) { animation-delay: 80ms; }
 
-    .funnel-fill,
     .stats-page:not([data-stats-settled]) .traffic-meter > i,
     .stacked-bar > span {
         transform-origin: left center;

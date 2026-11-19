@@ -106,11 +106,16 @@ interface Window {
         scope.querySelectorAll<HTMLImageElement>(selector).forEach(mark);
     }
 
+    function hasLayoutBox(element: Element): boolean {
+        // Callers retain their explicit hidden/disclosure exclusions.
+        return element.checkVisibility?.() ?? element.getClientRects().length > 0;
+    }
+
     function neighbours(image: HTMLImageElement): HTMLImageElement[] {
         const group = image.closest(GROUPS);
         if (!group) return [image];
         const images = Array.from(group.querySelectorAll<HTMLImageElement>('img[data-lwc-viewable]'))
-            .filter(candidate => candidate.checkVisibility() && !candidate.closest('[hidden], details:not([open])'));
+            .filter(candidate => hasLayoutBox(candidate) && !candidate.closest('[hidden], details:not([open])'));
         return images.includes(image) ? images : [image];
     }
 
@@ -164,14 +169,21 @@ interface Window {
         return { x: Math.min(roomX, Math.max(-roomX, p.x)), y: Math.min(roomY, Math.max(-roomY, p.y)), z };
     }
 
+    function setButtonDisabled(button: HTMLButtonElement, disabled: boolean): void {
+        if (button.disabled === disabled) return;
+        // Disabling the focused control sends keyboard input to the underlying page.
+        if (disabled && document.activeElement === button) dialog?.focus({ preventScroll: true });
+        button.disabled = disabled;
+    }
+
     function apply(p: Pose): void {
         pose = p;
         picture.style.transform = transformOf(p);
         dialog?.toggleAttribute('data-zoomed', p.z > 1.01);
         if (dialog) {
-            dialog.querySelector<HTMLButtonElement>('[data-zoom="out"]')!.disabled = !loadedImage || (options.kind === 'proof' ? proofZoom <= 1 : p.z <= 1);
-            dialog.querySelector<HTMLButtonElement>('[data-zoom="in"]')!.disabled = !loadedImage || (options.kind === 'proof' ? proofZoom >= 3 : p.z >= maxZoom);
-            dialog.querySelector<HTMLButtonElement>('[data-zoom="fit"]')!.disabled = !loadedImage;
+            setButtonDisabled(dialog.querySelector<HTMLButtonElement>('[data-zoom="out"]')!, !loadedImage || (options.kind === 'proof' ? proofZoom <= 1 : p.z <= 1));
+            setButtonDisabled(dialog.querySelector<HTMLButtonElement>('[data-zoom="in"]')!, !loadedImage || (options.kind === 'proof' ? proofZoom >= 3 : p.z >= maxZoom));
+            setButtonDisabled(dialog.querySelector<HTMLButtonElement>('[data-zoom="fit"]')!, !loadedImage);
             dialog.dataset.proofZoom = String(proofZoom);
             dialog.querySelector('.lwc-viewer-zoom-status')!.textContent = `${Math.round((options.kind === 'proof' ? proofZoom : p.z) * 100)}%`;
         }
@@ -302,8 +314,8 @@ interface Window {
     function syncChrome(): void {
         const many = set.length > 1;
         dialog!.toggleAttribute('data-many', many);
-        prevButton.disabled = index === 0;
-        nextButton.disabled = index === set.length - 1;
+        setButtonDisabled(prevButton, index === 0);
+        setButtonDisabled(nextButton, index === set.length - 1);
         const start = Math.max(0, Math.min(index - 4, set.length - 9));
         dots.replaceChildren(...set.slice(start, start + 9).map((_, i) => {
             const dot = document.createElement('span'); dot.toggleAttribute('data-current', start + i === index); return dot;
@@ -552,7 +564,7 @@ interface Window {
         if (event.key === 'Escape') { event.preventDefault(); requestClose(); return; }
         if (event.key === 'Tab') {
             const controls = Array.from(dialog!.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]'))
-                .filter(control => control.checkVisibility() && !control.closest('[hidden]'));
+                .filter(control => hasLayoutBox(control) && !control.closest('[hidden]'));
             const first = controls[0]; const last = controls.at(-1);
             if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }

@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -192,10 +193,10 @@ public sealed class PlayFlowMotionBrowserTests(
         });
         var page = await OpenAsync(context, "/play");
         var name = await PickAmateurAsync(page);
-        await Task.Delay(2000);
-
         var continueButton = page.Locator("#continueGameBtn");
+        await Assertions.Expect(continueButton).ToBeEnabledAsync();
         await continueButton.FocusAsync();
+        await Assertions.Expect(continueButton).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Enter");
         await Assertions.Expect(page.Locator("#playAthleteInput")).ToBeFocusedAsync();
         await WaitForMoveToSettleAsync(page);
@@ -380,15 +381,16 @@ public sealed class PlayFlowMotionBrowserTests(
             () => {
                 const list = document.getElementById('playAthleteInput-autocomplete-list');
                 const rows = [...list.querySelectorAll(':scope > [role=option]')];
-                const observer = new MutationObserver(() => {
+                const observer = new MutationObserver(records => {
                     const options = [...list.querySelectorAll(':scope > [role=option]')];
                     const kept = options.filter(option => rows.includes(option)).length;
+                    const reinserted = records.flatMap(record => [...record.removedNodes]).filter(node => options.includes(node)).length;
                     const leaving = [...list.querySelectorAll('.autocomplete-item--leaving')];
                     const cleanLeaving = leaving.every(item => !item.id && !item.hasAttribute('role') && item.getAttribute('aria-hidden') === 'true');
                     const animated = options.filter(option => option.getAnimations().length > 0).length
                         + leaving.filter(item => item.getAnimations().length > 0).length;
                     window.__rowChange = [options.length, kept, leaving.length, cleanLeaving ? 1 : 0, animated,
-                        options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0];
+                        options.every((option, index) => option.id === `playAthleteInput-autocomplete-list-option-${index}`) ? 1 : 0, reinserted];
                     observer.disconnect();
                 });
                 observer.observe(list, { childList: true });
@@ -402,6 +404,7 @@ public sealed class PlayFlowMotionBrowserTests(
         Assert.True(change[2] > 0 && change[3] == 1, "Rows that stop matching should fade out, already gone from the listbox.");
         Assert.True(change[4] > 0, "Entering, leaving or moving rows should animate.");
         Assert.True(change[5] == 1, "Option ids must follow the visible order.");
+        Assert.Equal(0, change[6]); // Retained options keep their place in the DOM while typing.
 
         await input.PressAsync("ArrowDown");
         var activeId = await input.GetAttributeAsync("aria-activedescendant");
@@ -425,6 +428,19 @@ public sealed class PlayFlowMotionBrowserTests(
             ViewportSize = new() { Width = width, Height = height },
             ColorScheme = dark ? ColorScheme.Dark : ColorScheme.Light
         });
+        // This ordering exercises a wrapped, decorated departing row regardless of filesystem order.
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new()
+        {
+            Json = new[]
+            {
+                new { Name = "András Szollosy", Flag = "Hungary", Division = "Open" },
+                new { Name = "Andrea", Flag = "Slovakia", Division = "Women's" },
+                new { Name = "Andreea Vuscan", Flag = "DrCarmen", Division = "Women's" },
+                new { Name = "Andressa Lohana de Almeida", Flag = "Brazil", Division = "Women's" },
+                new { Name = "Andrew Mackintosh", Flag = "New Zealand", Division = "Men's" },
+                new { Name = "Ron Lugbill", Flag = "USA", Division = "Men's" }
+            }
+        }));
         var page = await OpenAsync(context, "/select-athlete");
         if (enlargedText) await page.AddStyleTagAsync(new() { Content = "html { font-size: 200% !important; }" });
         var input = page.Locator("#playAthleteInput");
@@ -478,12 +494,30 @@ public sealed class PlayFlowMotionBrowserTests(
             """);
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForFunctionAsync("() => document.body.classList.contains('play-route-hydrating')");
-        await page.EvaluateAsync("() => window.__releaseHeader()");
-        await page.WaitForFunctionAsync("() => document.documentElement.dataset.playMove === 'forward'");
-        Assert.Equal("visible", await page.Locator("#athleteDashboardPanel").EvaluateAsync<string>("panel => getComputedStyle(panel).visibility"));
-        Assert.Null(await page.Locator("body").GetAttributeAsync("aria-busy"));
-        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement?.matches('#athleteDashboardActions .flow-action:not(.back-button)')"));
+        // Record the arrival in the browser before the transition marker is cleared.
+        await page.EvaluateAsync("""
+            () => {
+                const root = document.documentElement;
+                const observer = new MutationObserver(() => {
+                    if (root.dataset.playMove !== 'forward') return;
+                    const panel = document.getElementById('athleteDashboardPanel');
+                    window.__dashboardArrival = {
+                        visibility: getComputedStyle(panel).visibility,
+                        busy: document.body.getAttribute('aria-busy'),
+                        focused: Boolean(document.activeElement?.matches('#athleteDashboardActions .flow-action:not(.back-button)'))
+                    };
+                    observer.disconnect();
+                });
+                observer.observe(root, { attributeFilter: ['data-play-move'] });
+                window.__releaseHeader();
+            }
+            """);
+        await page.WaitForFunctionAsync("() => window.__dashboardArrival !== undefined");
         await WaitForMoveToSettleAsync(page);
+        var arrival = await page.EvaluateAsync<JsonElement>("() => window.__dashboardArrival");
+        Assert.Equal("visible", arrival.GetProperty("visibility").GetString());
+        Assert.Null(arrival.GetProperty("busy").GetString());
+        Assert.True(arrival.GetProperty("focused").GetBoolean());
     }
 
     [Theory]
@@ -704,15 +738,17 @@ public sealed class PlayFlowMotionBrowserTests(
         var box = await back.BoundingBoxAsync();
         Assert.NotNull(box);
         await page.Mouse.MoveAsync(box!.X + box.Width / 2, box.Y + box.Height / 2);
-        await Task.Delay(250);
-        var hover = await back.EvaluateAsync<string>("button => getComputedStyle(button.querySelector('i')).translate");
-        Assert.StartsWith("-3px", hover);
+        await Assertions.Expect(back.Locator("i")).ToHaveCSSAsync("translate", new System.Text.RegularExpressions.Regex("^-3px"));
         await page.Mouse.DownAsync();
-        await Task.Delay(250);
-        var pressed = await back.EvaluateAsync<string>("button => getComputedStyle(button).scale");
-        await page.Mouse.MoveAsync(5, 5);
-        await page.Mouse.UpAsync();
-        Assert.Equal("0.965", pressed);
+        try
+        {
+            await Assertions.Expect(back).ToHaveCSSAsync("scale", "0.965");
+        }
+        finally
+        {
+            await page.Mouse.MoveAsync(5, 5);
+            await page.Mouse.UpAsync();
+        }
     }
 
     [Theory]

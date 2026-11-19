@@ -5,7 +5,7 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.WorkloadA)]
-public sealed class DocumentationTimelineBrowserTests(
+public sealed partial class DocumentationTimelineBrowserTests(
     PlaywrightBrowserFixture browserFixture,
     BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
@@ -67,7 +67,11 @@ public sealed class DocumentationTimelineBrowserTests(
                     if (Math.abs(markerCenterX - railLeft) > 1.5) issues.push(`${name}: marker is off the rail`);
                     if (markerCenterY < dateBox.top - 2 || markerCenterY > dateBox.bottom + 2) issues.push(`${name}: marker is not level with the date`);
                     const hollow = marker.backgroundColor !== marker.borderTopColor;
-                    if (hollow !== /announced/i.test(date.textContent)) issues.push(`${name}: announced marker does not match`);
+                    const announced = /announced/i.test(date.textContent);
+                    const waiting = rail.hasAttribute('data-live') && !entry.classList.contains('is-passed');
+                    if (hollow !== (announced || waiting)) issues.push(`${name}: marker fill does not match its reading state`);
+                    if (rail.hasAttribute('data-live') && (marker.borderTopStyle === 'dashed') !== announced)
+                        issues.push(`${name}: announced marker does not match`);
                     const link = document.querySelector(`.documentation-nav a[href="#${CSS.escape(heading.id)}"]`);
                     if (!link) issues.push(`${name}: contents link missing`);
                     else if (link.textContent !== name) issues.push(`${name}: contents link text changed to ${link.textContent}`);
@@ -82,6 +86,7 @@ public sealed class DocumentationTimelineBrowserTests(
     [Theory]
     [InlineData("/about")]
     [InlineData("/ruleset")]
+    [InlineData("/privacy")]
     public async Task OtherDocumentationPages_HaveNoTimeline(string path)
     {
         await using var context = await Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = App.BaseAddress.ToString() });
@@ -89,6 +94,7 @@ public sealed class DocumentationTimelineBrowserTests(
         var page = await context.NewPageAsync();
         await page.GotoAsync(path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         Assert.Equal(0, await page.Locator(".documentation-timeline, .documentation-nav-timeline").CountAsync());
+        Assert.Equal(0, await page.Locator("script[src*='history-timeline'], link[href*='history-timeline']").CountAsync());
         Assert.True(await page.Locator(".documentation-document h2").CountAsync() > 0);
     }
 

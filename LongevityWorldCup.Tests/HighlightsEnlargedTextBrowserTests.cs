@@ -225,11 +225,21 @@ public sealed class HighlightsEnlargedTextBrowserTests(
                 """
         }));
         var page = await context.NewPageAsync();
-        const string pausedTime = "2026-10-17T08:00:01Z";
-        await page.Clock.SetFixedTimeAsync(pausedTime);
-        await page.Clock.PauseAtAsync(pausedTime);
+        await page.Clock.SetFixedTimeAsync("2026-10-17T08:00:01Z");
         await NavigateAndSettleAsync(page, "/");
-        await page.Clock.RunForAsync(500);
+        await page.EvaluateAsync("() => fitHomepageHighlights()");
+        await page.EvaluateAsync("""
+            () => {
+                window.completedHighlightFit = null;
+                const fit = fitHomepageHighlightsNow;
+                fitHomepageHighlightsNow = async function () {
+                    const viewport = `${innerWidth}x${innerHeight}`;
+                    await fit();
+                    if (viewport === `${innerWidth}x${innerHeight}`)
+                        window.completedHighlightFit = viewport;
+                };
+            }
+            """);
         var announcement = page.Locator($"tr.main-row[data-event-id='resize-announcement-{announcementIndex}']");
         var expander = announcement.Locator(".custom-event-expander");
         await expander.FocusAsync();
@@ -238,19 +248,25 @@ public sealed class HighlightsEnlargedTextBrowserTests(
 
         foreach (var width in new[] { 600, 1440, 390 })
         {
-            await page.SetViewportSizeAsync(width, 844);
-            // Advance the pending responsive layout work before checking the interaction.
-            await page.Clock.RunForAsync(600);
+            await ResizeAndWaitForHighlightsAsync(page, width, 844);
             await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "true");
             await Assertions.Expect(expander).ToBeFocusedAsync();
         }
         var rules = announcement.Locator("+ tr.custom-event-details").GetByRole(AriaRole.Link, new() { Name = "Read the rules" });
         await rules.FocusAsync();
-        await page.SetViewportSizeAsync(844, 390);
-        await page.Clock.RunForAsync(600);
+        await ResizeAndWaitForHighlightsAsync(page, 844, 390);
         await Assertions.Expect(rules).ToBeFocusedAsync();
         await expander.TapAsync();
         await Assertions.Expect(expander).ToHaveAttributeAsync("aria-expanded", "false");
+    }
+
+    private static async Task ResizeAndWaitForHighlightsAsync(IPage page, int width, int height)
+    {
+        // Native resize/ResizeObserver delivery can follow SetViewportSizeAsync.
+        // Observe the resulting fit, including its asynchronous row update.
+        await page.EvaluateAsync("() => { window.completedHighlightFit = null; }");
+        await page.SetViewportSizeAsync(width, height);
+        await page.WaitForFunctionAsync("viewport => window.completedHighlightFit === viewport", $"{width}x{height}");
     }
 
     private static string WithAthletePageFields(string json)

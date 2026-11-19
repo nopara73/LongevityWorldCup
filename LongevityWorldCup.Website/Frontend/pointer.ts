@@ -22,6 +22,7 @@ interface LwcPointerApi {
     readonly modality: () => "pointer" | "keyboard" | "touch";
     readonly refreshRing: () => void;
     readonly hideTip: () => void;
+    readonly hasTextSelection: (scope: Node) => boolean;
 }
 
 interface Window {
@@ -110,9 +111,8 @@ interface Window {
     const warmWindow = 700;
 
     function mountTip(owner: HTMLElement): void {
-        // A popover outside a modal is still inert. Keep long explanations
-        // inside the modal's focus and pointer boundary.
-        const host = owner.closest("dialog:modal") || document.body;
+        // Moving into the tip stays inside the owning preview or modal.
+        const host = owner.closest("[data-lwc-tip-host], dialog:modal") || document.body;
         if (tip.parentElement !== host) host.append(tip);
     }
 
@@ -173,6 +173,7 @@ interface Window {
 
     function placeTip(owner: HTMLElement): void {
         const rect = owner.getBoundingClientRect();
+        const bounds = owner.closest("[data-lwc-tip-host]")?.getBoundingClientRect() ?? rect;
         const margin = 8;
         const gap = 9;
         const viewportWidth = document.documentElement.clientWidth;
@@ -183,11 +184,11 @@ interface Window {
         const height = tip.offsetHeight;
         const centre = rect.left + rect.width / 2;
         const left = Math.min(Math.max(margin, centre - width / 2), viewportWidth - width - margin);
-        const above = rect.top - gap - height;
+        const above = bounds.top - gap - height;
         const fitsAbove = above >= margin;
-        const fitsBelow = rect.bottom + gap + height <= viewportHeight - margin;
+        const fitsBelow = bounds.bottom + gap + height <= viewportHeight - margin;
         const placeBelow = !fitsAbove && fitsBelow;
-        const top = Math.max(margin, Math.min(placeBelow ? rect.bottom + gap : above, viewportHeight - height - margin));
+        const top = Math.max(margin, Math.min(placeBelow ? bounds.bottom + gap : above, viewportHeight - height - margin));
         tip.dataset.side = placeBelow ? "bottom" : "top";
         tip.style.left = `${Math.round(left)}px`;
         tip.style.top = `${Math.round(top)}px`;
@@ -336,6 +337,13 @@ interface Window {
         scheduleTip(target, coldDelay);
     }
     document.addEventListener("pointerover", pointerOver, { passive: true });
+
+    // An explicit explanation button also works on tap or keyboard activation.
+    document.addEventListener("click", event => {
+        if (event.defaultPrevented) return;
+        const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button[data-lwc-tip]") : null;
+        if (button) scheduleTip(button, 0, modality === "keyboard" ? "keyboard" : "pointer");
+    });
 
     document.addEventListener("pointerout", event => {
         if (!tipOwner) return;
@@ -539,6 +547,21 @@ interface Window {
         "[data-lwc-arrows='line']",
     ].join(", ");
 
+    // Browser caret navigation uses a collapsed selection in ordinary text.
+    // Let it keep the arrow/Home/End keys even inside our navigable lists.
+    function hasTextSelection(scope: Node): boolean {
+        const selection = window.getSelection();
+        if (!selection?.rangeCount) return false;
+        if (!selection.isCollapsed) {
+            return !!selection.toString().trim()
+                && (scope.contains(selection.anchorNode) || scope.contains(selection.focusNode));
+        }
+        const anchor = selection.anchorNode;
+        const element = anchor?.parentElement;
+        return !!anchor && anchor.nodeType === Node.TEXT_NODE && !!anchor.textContent?.trim()
+            && scope.contains(anchor) && !!element && getComputedStyle(element).userSelect !== "none";
+    }
+
     function visible(element: Element): boolean {
         if (!(element instanceof HTMLElement)) return false;
         if (element.hidden || element.closest("[hidden], [inert], [aria-hidden='true']")) return false;
@@ -647,6 +670,7 @@ interface Window {
         const body = current.closest(rowLists);
         // The innermost list wins, so a tab strip inside a row still moves sideways.
         const lineInside = line && (!body || body.contains(line));
+        if (hasTextSelection((lineInside ? line : body) || current)) return;
         const handled = lineInside
             ? moveInLine(line, current, event.key)
             : body ? moveInRows(body, current, event.key) : false;
@@ -710,5 +734,6 @@ interface Window {
         modality: () => modality,
         refreshRing,
         hideTip: () => hideTip(true),
+        hasTextSelection,
     };
 })();

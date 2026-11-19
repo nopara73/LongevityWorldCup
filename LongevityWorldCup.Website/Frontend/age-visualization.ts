@@ -59,7 +59,8 @@
 
     interface RadarPluginChart {
         readonly ctx: CanvasRenderingContext2D;
-        readonly data: { readonly labels?: readonly unknown[] };
+        readonly data: RadarChartInstance['data'];
+        getActiveElements(): Array<{ index: number }>;
         readonly scales?: { readonly r?: RadarScale };
     }
 
@@ -206,7 +207,7 @@
             var phenoAge = window.PhenoAge;
             var contributorFn = phenoAge && phenoAge[dom.contributor];
             if (typeof contributorFn !== 'function') {
-                values.push(50);
+                values.push(Number.NaN);
                 tooltipContributors.push([]);
                 continue;
             }
@@ -216,7 +217,7 @@
                 return a.bestBiomarkerValues ? contributor(a.bestBiomarkerValues) : NaN;
             });
             var pct = scoreToPercentile(myScore, allScores);
-            values.push(pct !== null ? pct : 50);
+            values.push(pct ?? Number.NaN);
             var indices = PHENO_DOMAIN_BIOMARKER_INDICES[dom.key];
             var parts: string[] = [];
             if (indices) {
@@ -262,7 +263,7 @@
                 return a.bestBortzValues ? getBortzDomainContribution(a.bestBortzValues, indices) : NaN;
             });
             var pct = scoreToPercentile(myScore, allScores);
-            values.push(pct !== null ? pct : 50);
+            values.push(pct ?? Number.NaN);
             var parts: string[] = [];
             if (indices && features) {
                 for (var j = 0; j < indices.length; j++) {
@@ -282,25 +283,17 @@
     }
 
     var radarChartInstance: RadarChartInstance | null = null;
+    var radarInput: AbortController | null = null;
     var radarResizeObserver: ResizeObserver | null = null;
     var clockTabResizeObserver: ResizeObserver | null = null;
     var radarResizeFrame = 0;
     var radarBuildGeneration = 0;
     var radarBuildFrame = 0;
     var radarBuildTimer = 0;
-    const RADAR_ANIMATION_DURATION_MS = 220;
     const RADAR_WEB_BOUNDARY_PERCENTILE = 80;
     const RADAR_SCALE_MAX_PERCENTILE = 100;
 
-    function getRadarAnimationDuration(): number {
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-            return RADAR_ANIMATION_DURATION_MS;
-        }
-
-        return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? 0
-            : RADAR_ANIMATION_DURATION_MS;
-    }
+    const radarMotionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
     function scheduleRadarResize() {
         if (radarResizeFrame) return;
@@ -312,6 +305,8 @@
     }
 
     function cancelRadarResize() {
+        radarResizeObserver?.disconnect();
+        radarResizeObserver = null;
         if (!radarResizeFrame) return;
         if (window.cancelAnimationFrame) window.cancelAnimationFrame(radarResizeFrame);
         else window.clearTimeout(radarResizeFrame);
@@ -327,16 +322,16 @@
     }
 
     function destroyRadarChart() {
+        radarInput?.abort();
+        radarInput = null;
+        cancelRadarDrawIn();
+        radarAwaitingView = false;
         cancelRadarTween();
         radarDisplayValues = null;
         cancelRadarBuild();
         cancelRadarResize();
         clockTabResizeObserver?.disconnect();
         clockTabResizeObserver = null;
-        if (radarResizeObserver) {
-            radarResizeObserver.disconnect();
-            radarResizeObserver = null;
-        }
         if (radarChartInstance) {
             radarChartInstance.destroy();
             radarChartInstance = null;
@@ -380,6 +375,130 @@
     var radarFoldAnimations: Animation[] = [];
     var radarDisplayValues: number[] | null = null;
 
+    // The radar reads as an instrument rather than a picture:
+    // - The result is the one solid, filled web with points; everything else is
+    //   a quieter reference behind it.
+    // - It compares: the field's middle (the 50th percentile) is a dotted grey
+    //   ring with a faint band inside it, and the previous blood test of the
+    //   same clock stays as a dashed ghost in the clock's colour, with a short
+    //   line showing where each domain moved.
+    // - It draws in when it comes into view: a sweep beam turns once round the
+    //   dial and the web grows out of the centre behind it. Only the shape
+    //   moves; the axis labels always print the real result.
+    // - It answers the pointer: the hovered domain's spoke lights from the
+    //   centre to its point, and the point rings.
+    var radarSweep: number | null = null;
+    var radarGhostValues: number[] | null = null;
+    var radarDrawInFrame = 0;
+    var radarAwaitingView = false;
+    var radarDrawInObserver: IntersectionObserver | null = null;
+    const RADAR_FIELD_PERCENTILE = 50;
+
+    function cancelRadarDrawIn(): void {
+        if (radarDrawInFrame) cancelAnimationFrame(radarDrawInFrame);
+        radarDrawInFrame = 0;
+        radarDrawInObserver?.disconnect();
+        radarDrawInObserver = null;
+        radarSweep = null;
+    }
+
+    // Stops a draw-in and shows the finished web at once (closing mid-sweep).
+    function finishRadarDrawIn(): void {
+        var running = radarDrawInFrame !== 0;
+        cancelRadarDrawIn();
+        if (!running || !radarChartInstance) return;
+        drawRadarFrame(radarChartInstance, null);
+    }
+
+    // Only a new reading or a resize needs the scale, labels and dataset options rebuilt.
+    function drawRadarFrame(chart: RadarChartInstance, values: number[] | null): void {
+        radarDisplayValues = values;
+        const positions = values ?? chart.data.datasets[0]?.data;
+        const scale = chart.scales.r;
+        if (!positions || !scale) return;
+        var meta = chart.getDatasetMeta(0);
+        meta.data.forEach(function (point, index) {
+            var value = positions[index];
+            if (value === undefined || !Number.isFinite(value) || point.skip) return;
+            var position = scale.getPointPositionForValue(index, value);
+            point.x = position.x;
+            point.y = position.y;
+        });
+        // Assigning the line's points invalidates its cached Path2D.
+        meta.dataset.points = meta.data;
+        chart.draw();
+    }
+
+    function startRadarDrawIn(chart: RadarChartInstance): void {
+        // The clock or date can change while the dial is offscreen.
+        const target = chart.data.datasets[0]?.data ?? [];
+        if (radarMotionPreference?.matches || !target.length) {
+            chart.draw();
+            return;
+        }
+        var sweepMs = 900;
+        var growMs = sweepMs * 0.35;
+        var clock = function (): number { return Number(document.timeline?.currentTime ?? performance.now()); };
+        var start = clock();
+        var lastPass = ((target.length - 1) / target.length) * sweepMs;
+        function frame(): void {
+            if (radarChartInstance !== chart) { radarDrawInFrame = 0; return; }
+            var elapsed = clock() - start;
+            if (radarMotionPreference?.matches || elapsed >= Math.max(sweepMs, lastPass + growMs)) {
+                radarDrawInFrame = 0;
+                radarSweep = null;
+                drawRadarFrame(chart, null);
+                return;
+            }
+            radarSweep = elapsed < sweepMs ? elapsed / sweepMs : null;
+            // Each domain starts growing as the beam passes its spoke.
+            var values = target.map(function (value, index) {
+                var passAt = (index / target.length) * sweepMs;
+                var local = Math.min(1, Math.max(0, (elapsed - passAt) / growMs));
+                return Math.max(0, Math.min(RADAR_SCALE_MAX_PERCENTILE, value * easeOutBack(local)));
+            });
+            drawRadarFrame(chart, values);
+            radarDrawInFrame = requestAnimationFrame(frame);
+        }
+        frame();
+    }
+
+    function observeRadarViewport(chart: RadarChartInstance, host: HTMLElement): void {
+        const scroller = host.closest<HTMLElement>('.modal-content');
+        const header = scroller?.querySelector<HTMLElement>('.modal-sticky-header');
+        function updateViewport(): void {
+            // The sticky header covers part of the scrollport. Keep the whole dial reachable
+            // in short windows and measure its visibility against that same clear space.
+            const inset = scroller && header?.offsetHeight
+                ? Math.max(0, Math.ceil(header.getBoundingClientRect().bottom - scroller.getBoundingClientRect().top - scroller.clientTop))
+                : 0;
+            if (scroller) host.style.setProperty('--radar-available-height', Math.max(0, scroller.clientHeight - inset - 2) + 'px');
+            if (!radarAwaitingView) return;
+            radarDrawInObserver?.disconnect();
+            radarDrawInObserver = new IntersectionObserver((entries, observer) => {
+                const entry = entries.at(-1);
+                if (observer !== radarDrawInObserver || !entry?.isIntersecting || entry.intersectionRatio < 1
+                    || !entry.boundingClientRect.width || !entry.boundingClientRect.height) return;
+                observer.disconnect();
+                radarDrawInObserver = null;
+                radarAwaitingView = false;
+                startRadarDrawIn(chart);
+            }, { root: scroller, rootMargin: '-' + inset + 'px 0px 0px', threshold: 1 });
+            radarDrawInObserver.observe(host);
+        }
+        updateViewport();
+        if ('ResizeObserver' in window) {
+            radarResizeObserver = new ResizeObserver((entries, observer) => {
+                if (observer !== radarResizeObserver) return;
+                if (entries.some(entry => entry.target !== host)) updateViewport();
+                if (entries.some(entry => entry.target === host)) scheduleRadarResize();
+            });
+            radarResizeObserver.observe(host);
+            if (scroller) radarResizeObserver.observe(scroller);
+            if (header) radarResizeObserver.observe(header);
+        }
+    }
+
     function cancelRadarTween(): void {
         if (radarTweenFrame) cancelAnimationFrame(radarTweenFrame);
         radarTweenFrame = 0;
@@ -400,45 +519,108 @@
         var total = duration + stagger * Math.max(0, to.length - 1);
         function frame(): void {
             if (radarChartInstance !== chart || !dataset) { radarTweenFrame = 0; return; }
-            if (!getRadarAnimationDuration()) {
+            if (radarMotionPreference?.matches) {
                 cancelRadarTween();
-                radarDisplayValues = null;
-                chart.update('none');
+                drawRadarFrame(chart, null);
                 return;
             }
             var elapsed = clock() - start;
             if (elapsed >= total) {
                 radarTweenFrame = 0;
-                radarDisplayValues = to.slice();
-                chart.update('none');
+                drawRadarFrame(chart, done ? to.slice() : null);
                 if (done) done();
                 else cancelRadarTween();
                 return;
             }
-            radarDisplayValues = to.map(function (target, index) {
-                var origin = from[index] ?? 0;
+            var values = to.map(function (target, index) {
+                var previous = from[index];
+                var origin = previous !== undefined && Number.isFinite(previous) ? previous : 0;
                 var t = Math.min(1, Math.max(0, (elapsed - index * stagger) / duration));
                 return Math.max(0, Math.min(RADAR_SCALE_MAX_PERCENTILE, origin + (target - origin) * ease(t)));
             });
-            chart.update('none');
+            drawRadarFrame(chart, values);
             radarTweenFrame = requestAnimationFrame(frame);
         }
         radarTweenFrame = requestAnimationFrame(frame);
+    }
+
+    function setRadarFocus(chart: RadarChartInstance, index: number, announce = false): void {
+        if (announce || index < 0) {
+            const status = document.getElementById('ageRadarFocus');
+            const text = announce ? [chart.data.labels?.[index], 'Percentile ' + chart.data.datasets[0]?.data[index],
+                ...(chart._radarTooltipContributors?.[index] || [])].join('. ') : '';
+            if (status && status.textContent !== text) status.textContent = text;
+        }
+        if ((chart.getActiveElements()[0]?.index ?? -1) === index) return;
+        var point = chart.getDatasetMeta(0).data[index];
+        var active = point ? [{ datasetIndex: 0, index }] : [];
+        chart.setActiveElements(active);
+        chart.tooltip.setActiveElements(active, point ?? { x: 0, y: 0 });
+        chart.render();
+    }
+
+    function bindRadarFocus(chart: RadarChartInstance, canvas: HTMLCanvasElement): void {
+        radarInput = new AbortController();
+        var options = { signal: radarInput.signal };
+        canvas.tabIndex = 0;
+        // The borderless canvas is sized to Chart.js CSS pixels. Pointer offsets
+        // keep hit testing local even when the dialog scrolls or the browser zooms.
+        function pointAt(event: PointerEvent): void {
+            var hit = -1;
+            var distance = Infinity;
+            var x = event.offsetX;
+            var y = event.offsetY;
+            chart.getDatasetMeta(0).data.forEach(function (point, index) {
+                if (point.skip || !point.inRange(x, y)) return;
+                var d = (point.x - x) ** 2 + (point.y - y) ** 2;
+                if (d < distance) { hit = index; distance = d; }
+            });
+            setRadarFocus(chart, hit);
+        }
+        canvas.addEventListener('pointermove', event => { if (event.pointerType !== 'touch') pointAt(event); }, options);
+        canvas.addEventListener('pointerup', pointAt, options);
+        canvas.addEventListener('pointerleave', event => { if (event.pointerType !== 'touch') setRadarFocus(chart, -1); }, options);
+        canvas.addEventListener('pointercancel', () => setRadarFocus(chart, -1), options);
+        canvas.addEventListener('blur', () => setRadarFocus(chart, -1), options);
+        canvas.addEventListener('keydown', event => {
+            if (event.defaultPrevented || event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+            var points = chart.getDatasetMeta(0).data;
+            var active = chart.getActiveElements()[0]?.index;
+            if (event.key === 'Escape' && active !== undefined) {
+                event.preventDefault();
+                event.stopPropagation();
+                setRadarFocus(chart, -1);
+                return;
+            }
+            var step = event.key === 'ArrowLeft' || event.key === 'End' ? -1 : 1;
+            var from = active ?? (step > 0 ? -1 : points.length);
+            if (event.key === 'Home') from = -1;
+            else if (event.key === 'End') from = points.length;
+            else if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+            event.preventDefault();
+            for (var n = 1; n <= points.length; n++) {
+                var next = (from + n * step + points.length) % points.length;
+                if (!points[next]?.skip) { setRadarFocus(chart, next, true); break; }
+            }
+        }, options);
+        radarInput.signal.addEventListener('abort', () => canvas.removeAttribute('tabindex'), { once: true });
     }
 
     function applyRadarData(data: RadarData | null): void {
         if (!radarChartInstance || !data) return;
         var chart = radarChartInstance;
         var dataset = chart.data.datasets[0];
+        setRadarFocus(chart, -1);
         var previousLabels = chart.data.labels || [];
         var previousValues = radarDisplayValues?.slice() || dataset?.data.slice() || [];
+        if (radarDrawInFrame) cancelRadarDrawIn();
         cancelRadarTween();
         var sameShape = previousLabels.length === data.labels.length
             && previousLabels.every(function (label, index) { return label === data.labels[index]; });
         chart.data.labels = data.labels;
         if (dataset) dataset.data = data.values;
         chart._radarTooltipContributors = data.tooltipContributors;
-        if (!getRadarAnimationDuration() || !dataset) {
+        if (radarAwaitingView || radarMotionPreference?.matches || !dataset) {
             radarDisplayValues = null;
             chart.update('none');
             return;
@@ -457,8 +639,7 @@
         var unfold = function (): void {
             if (radarChartInstance !== chart || !dataset) return;
             var zeros = data.values.map(function () { return 0; });
-            radarDisplayValues = zeros;
-            chart.update('none');
+            drawRadarFrame(chart, zeros);
             if (wrapper) radarFoldAnimations.push(wrapper.animate(
                 [{ transform: 'rotate(' + (16 * turn) + 'deg) scale(.92)', opacity: 0.25 }, { transform: 'none', opacity: 1 }],
                 { duration: 560, easing: 'cubic-bezier(.2, 0, 0, 1)' }
@@ -509,7 +690,8 @@
         }
         var selectedIndex = 0;
         readings.forEach(function (reading, index) {
-            if (reading.bio < (readings[selectedIndex]?.bio ?? Infinity)) selectedIndex = index;
+            var selected = readings[selectedIndex];
+            if (!selected || reading.bio - reading.chrono < selected.bio - selected.chrono) selectedIndex = index;
         });
         return { readings: readings, selectedIndex: selectedIndex };
     }
@@ -575,6 +757,8 @@
             const reading = state.readings[index];
             if (!reading) return;
             state.selectedIndex = index;
+            var previousReading = index > 0 ? state.readings[index - 1] : undefined;
+            radarGhostValues = previousReading && previousReading.data.labels.length === reading.data.labels.length ? previousReading.data.values.slice() : null;
             // The web takes the chosen clock's colour, so set it before the chart redraws.
             if (canvas) canvas.dataset.clock = useBortz ? 'bortz' : 'pheno';
             applyRadarData(reading.data);
@@ -588,9 +772,16 @@
             }
             if (canvas) {
                 canvas.dataset.resultDate = reading.date || '';
+                const details = reading.data.tooltipContributors.flatMap((lines, i) =>
+                    lines.length ? [reading.data.labels[i] + '. ' + lines.join('. ')] : []);
+                if (details.length) canvas.setAttribute('aria-description', details.join('. '));
+                else canvas.removeAttribute('aria-description');
                 canvas.setAttribute('aria-label', (useBortz ? 'Bortz Age' : 'Pheno Age') + ': '
                     + resultLabel(reading) + '. Domain percentiles: ' + reading.data.labels.map(function (label, domainIndex) {
-                        return label + ': ' + reading.data.values[domainIndex];
+                        var value = reading.data.values[domainIndex];
+                        var prior = previousReading?.data.values[domainIndex];
+                        return label + ': ' + (Number.isFinite(value) ? value : '—')
+                            + (Number.isFinite(prior) ? ' (previous: ' + prior + ')' : '');
                     }).join('; ') + '.');
             }
         }
@@ -707,9 +898,10 @@
             var radarFill = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream-soft').trim() || 'rgba(246,244,237,.18)') : 'rgba(246,244,237,.18)';
             var radarStroke = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
             // The web wears the selected clock's colour from Results over time.
+            var phenoColor = modalStyles?.getPropertyValue('--athlete-modal-chart-pheno').trim();
+            var bortzColor = modalStyles?.getPropertyValue('--athlete-modal-chart-bortz').trim();
             function clockColor(alpha?: number): string {
-                var token = canvas?.dataset.clock === 'pheno' ? '--athlete-modal-chart-pheno' : '--athlete-modal-chart-bortz';
-                var color = modalStyles ? modalStyles.getPropertyValue(token).trim() : '';
+                var color = canvas?.dataset.clock === 'pheno' ? phenoColor : bortzColor;
                 if (!color) return alpha == null ? radarStroke : radarFill;
                 if (alpha == null) return color;
                 var channels = color.match(/rgba?\(([^)]+)\)/)?.[1]?.split(',').slice(0, 3).join(',');
@@ -775,6 +967,194 @@
                 }
             };
 
+            function polygon(chart: RadarPluginChart, values: readonly number[] | number): void {
+                var scale = chart.scales?.r;
+                if (!scale) return;
+                chart.ctx.beginPath();
+                var count = chart.data.labels.length;
+                // Start after a gap so the last and first valid spokes can still connect.
+                var gap = typeof values === 'number' ? -1 : values.findIndex(value => !Number.isFinite(value));
+                var move = true;
+                for (var step = 0; step < count; step++) {
+                    var index = (gap + 1 + step) % count;
+                    var value = typeof values === 'number' ? values : values[index];
+                    if (value === undefined || !Number.isFinite(value)) { move = true; continue; }
+                    var point = scale.getPointPositionForValue(index, value);
+                    if (move) chart.ctx.moveTo(point.x, point.y);
+                    else chart.ctx.lineTo(point.x, point.y);
+                    move = false;
+                }
+                if (gap === -1) chart.ctx.closePath();
+            }
+
+            // Under the web: the field's middle ring and the previous result's ghost.
+            var radarComparePlugin = {
+                id: 'radarCompare',
+                beforeTooltipDraw: () => !radarAwaitingView,
+                beforeDatasetsDraw: function (chart: RadarPluginChart): false | void {
+                    var count = chart.data.labels?.length ?? 0;
+                    if (!count || !chart.scales?.r) return;
+                    var c = chart.ctx;
+                    c.save();
+                    // The field's middle: a dotted grey ring with a faint band inside
+                    // it, so it reads as a reference apart from the solid grid rings.
+                    c.setLineDash([0, 6]);
+                    c.lineCap = 'round';
+                    c.lineWidth = 2.25;
+                    c.strokeStyle = radarLabelColor;
+                    c.globalAlpha = 0.65;
+                    polygon(chart, RADAR_FIELD_PERCENTILE);
+                    c.stroke();
+                    c.globalAlpha = 0.05;
+                    c.fillStyle = radarLabelColor;
+                    c.fill();
+                    if (radarAwaitingView) {
+                        c.restore();
+                        return false; // Grid and labels only. Skip the ghost, result, sweep and focus layers.
+                    }
+                    if (radarGhostValues && radarGhostValues.length === count && !radarDisplayValues) {
+                        // The previous result: an unfilled dashed web in the clock's colour.
+                        c.setLineDash([5, 4]);
+                        c.lineWidth = 1.5;
+                        c.globalAlpha = 0.55;
+                        c.strokeStyle = clockColor();
+                        polygon(chart, radarGhostValues);
+                        c.stroke();
+                        // Each domain's move from the previous result to this one.
+                        const scale = chart.scales.r;
+                        var now = chart.data.datasets[0]?.data || [];
+                        c.setLineDash([]);
+                        c.globalAlpha = 0.75;
+                        c.lineWidth = 2;
+                        c.lineCap = 'round';
+                        radarGhostValues.forEach(function (was, index) {
+                            var current = now[index];
+                            if (current === undefined || !Number.isFinite(was) || !Number.isFinite(current)) return;
+                            var from = scale!.getPointPositionForValue(index, was);
+                            var to = scale!.getPointPositionForValue(index, current);
+                            if (Math.hypot(to.x - from.x, to.y - from.y) < 3) return;
+                            c.strokeStyle = current >= was ? clockColor() : radarLabelColor;
+                            c.beginPath();
+                            c.moveTo(from.x, from.y);
+                            c.lineTo(to.x, to.y);
+                            c.stroke();
+                        });
+                    }
+                    c.restore();
+                }
+            };
+
+            function hasRadarArea(scale: RadarScale | undefined): scale is RadarScale & { drawingArea: number } {
+                return !!scale && Number.isFinite(scale.xCenter) && Number.isFinite(scale.yCenter)
+                    && Number.isFinite(scale.drawingArea) && (scale.drawingArea ?? 0) > 0;
+            }
+
+            // A rejected gradient must not interrupt Chart.js or get retried every animation frame.
+            const failedGradients = new Set<string>();
+            function optionalGradient(kind: 'conic' | 'linear' | 'radial', build: () => CanvasGradient): CanvasGradient | null {
+                if (failedGradients.has(kind)) return null;
+                try {
+                    return build();
+                } catch {
+                    failedGradients.add(kind);
+                    return null;
+                }
+            }
+
+            // While drawing in, the web is revealed behind a turning beam.
+            var radarSweepPlugin = {
+                id: 'radarSweep',
+                beforeDatasetDraw: function (chart: RadarPluginChart): void {
+                    const scale = chart.scales?.r;
+                    chart.ctx.save();
+                    if (radarSweep === null || !hasRadarArea(scale)) return;
+                    var start = -Math.PI / 2;
+                    chart.ctx.beginPath();
+                    chart.ctx.moveTo(scale.xCenter, scale.yCenter);
+                    chart.ctx.arc(scale.xCenter, scale.yCenter, scale.drawingArea * 1.2, start, start + Math.PI * 2 * Math.max(0.001, radarSweep));
+                    chart.ctx.closePath();
+                    chart.ctx.clip();
+                },
+                afterDatasetDraw: function (chart: RadarPluginChart): void {
+                    chart.ctx.restore();
+                },
+                afterDatasetsDraw: function (chart: RadarPluginChart): void {
+                    const scale = chart.scales?.r;
+                    if (radarSweep === null || !hasRadarArea(scale)) return;
+                    var angle = -Math.PI / 2 + Math.PI * 2 * radarSweep;
+                    var reach = scale.drawingArea * 1.05;
+                    var c = chart.ctx;
+                    var trail = optionalGradient('conic', () => {
+                        const gradient = c.createConicGradient(angle - 0.6, scale.xCenter, scale.yCenter);
+                        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                        gradient.addColorStop(0.095, clockColor(0.22));
+                        gradient.addColorStop(0.1, 'rgba(0,0,0,0)');
+                        return gradient;
+                    });
+                    c.save();
+                    if (trail) {
+                        c.fillStyle = trail;
+                        c.beginPath();
+                        c.moveTo(scale.xCenter, scale.yCenter);
+                        c.arc(scale.xCenter, scale.yCenter, reach, angle - 0.6, angle);
+                        c.closePath();
+                        c.fill();
+                    }
+                    c.strokeStyle = clockColor();
+                    c.lineWidth = 2;
+                    c.shadowColor = clockColor(0.8);
+                    c.shadowBlur = 10;
+                    c.beginPath();
+                    c.moveTo(scale.xCenter, scale.yCenter);
+                    c.lineTo(scale.xCenter + Math.cos(angle) * reach, scale.yCenter + Math.sin(angle) * reach);
+                    c.stroke();
+                    c.restore();
+                }
+            };
+
+            // The hovered domain's spoke lights from the centre to its point.
+            var radarFocusPlugin = {
+                id: 'radarFocus',
+                afterDatasetsDraw: function (chart: RadarPluginChart): void {
+                    const scale = chart.scales?.r;
+                    var active = chart.getActiveElements();
+                    var hit = active[0];
+                    if (!hasRadarArea(scale) || !hit || radarSweep !== null) return;
+                    var values = radarDisplayValues || chart.data.datasets[0]?.data || [];
+                    var point = scale.getPointPositionForValue(hit.index, values[hit.index] ?? 0);
+                    var rim = scale.getPointPositionForValue(hit.index, RADAR_SCALE_MAX_PERCENTILE);
+                    var c = chart.ctx;
+                    var beam = optionalGradient('linear', () => {
+                        const gradient = c.createLinearGradient(scale.xCenter, scale.yCenter, rim.x, rim.y);
+                        gradient.addColorStop(0, clockColor(0.05));
+                        gradient.addColorStop(1, clockColor(0.9));
+                        return gradient;
+                    });
+                    c.save();
+                    c.strokeStyle = beam ?? clockColor(0.9);
+                    c.lineWidth = 3;
+                    c.lineCap = 'round';
+                    c.beginPath();
+                    c.moveTo(scale.xCenter, scale.yCenter);
+                    c.lineTo(point.x, point.y);
+                    c.stroke();
+                    c.setLineDash([2, 4]);
+                    c.lineWidth = 1;
+                    c.strokeStyle = clockColor(0.5);
+                    c.beginPath();
+                    c.moveTo(point.x, point.y);
+                    c.lineTo(rim.x, rim.y);
+                    c.stroke();
+                    c.setLineDash([]);
+                    c.lineWidth = 2;
+                    c.strokeStyle = clockColor();
+                    c.beginPath();
+                    c.arc(point.x, point.y, 11, 0, Math.PI * 2);
+                    c.stroke();
+                    c.restore();
+                }
+            };
+
             var radarWebSpokesPlugin = {
                 id: 'radarWebSpokes',
                 beforeDatasetsDraw: function (chart: RadarPluginChart): void {
@@ -797,9 +1177,10 @@
                 }
             };
 
+            radarAwaitingView = 'IntersectionObserver' in window;
             radarChartInstance = new ChartConstructor(ctx, {
                 type: 'radar',
-                plugins: [radarWebSpokesPlugin, radarGlowPlugin, radarMotionPlugin],
+                plugins: [radarWebSpokesPlugin, radarComparePlugin, radarGlowPlugin, radarSweepPlugin, radarMotionPlugin, radarFocusPlugin],
                 data: {
                     labels: data.labels,
                     datasets: [{
@@ -807,13 +1188,16 @@
                         data: data.values,
                         // The web deepens toward its rim, so strong domains read as reach, not just area.
                         backgroundColor: function (context: { readonly chart: RadarPluginChart }) {
-                            var scale = context.chart.scales?.r;
-                            if (!scale || !scale.drawingArea) return clockColor(0.16);
-                            var gradient = context.chart.ctx.createRadialGradient(scale.xCenter, scale.yCenter, 0, scale.xCenter, scale.yCenter, scale.drawingArea);
-                            gradient.addColorStop(0, clockColor(0.04));
-                            gradient.addColorStop(0.7, clockColor(0.2));
-                            gradient.addColorStop(1, clockColor(0.36));
-                            return gradient;
+                            const scale = context.chart.scales?.r;
+                            if (!hasRadarArea(scale)) return clockColor(0.16);
+                            return optionalGradient('radial', () => {
+                                const { xCenter, yCenter, drawingArea } = scale;
+                                const gradient = context.chart.ctx.createRadialGradient(xCenter, yCenter, 0, xCenter, yCenter, drawingArea);
+                                gradient.addColorStop(0, clockColor(0.04));
+                                gradient.addColorStop(0.7, clockColor(0.2));
+                                gradient.addColorStop(1, clockColor(0.36));
+                                return gradient;
+                            }) ?? clockColor(0.16);
                         },
                         borderColor: function () { return clockColor(); },
                         // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.
@@ -834,6 +1218,7 @@
                     }]
                 },
                 options: {
+                    events: [],
                     responsive: true,
                     // The wrapper sets a landscape shape, so side labels no longer shrink the web inside a square.
                     maintainAspectRatio: false,
@@ -852,7 +1237,7 @@
                             // Moving or resizing between contributors can carry stale bounds outside a narrow canvas.
                             animations: {
                                 numbers: { duration: 0 },
-                                opacity: { duration: function () { return getRadarAnimationDuration() ? 200 : 0; } }
+                                opacity: { duration: () => radarMotionPreference?.matches ? 0 : 200 }
                             },
                             titleFont: function (context: { readonly chart: { readonly width: number } }) { return { ...tooltipFont(context), weight: '600' }; },
                             bodyFont: tooltipFont,
@@ -899,8 +1284,9 @@
                                 },
                                 color: radarLabelColor,
                                 // Each domain carries its percentile under its name, like a labelled axis.
+                                // It always prints the real result: only the shape animates.
                                 callback: function (this: { readonly chart?: { readonly width: number; readonly data: { readonly datasets: ReadonlyArray<{ readonly data: readonly unknown[] }> } } }, label: string, index: number): string | string[] {
-                                    var value = Number(radarDisplayValues?.[index] ?? this?.chart?.data.datasets[0]?.data[index]);
+                                    var value = Number(this?.chart?.data.datasets[0]?.data[index]);
                                     var width = this?.chart?.width ?? 420;
                                     var names = width < 260 ? wrapRadarText(label, Math.max(32, width * .28), 11, '500') : [label];
                                     return Number.isFinite(value) ? names.concat(String(Math.round(value))) : names;
@@ -919,16 +1305,13 @@
                             angleLines: { display: false }
                         }
                     },
-                    animation: { duration: getRadarAnimationDuration() },
+                    animation: { duration: 0 }, // The visibility-triggered sweep owns the entrance.
                     hover: { mode: 'nearest' }
                 }
             });
             radarChartInstance._radarTooltipContributors = contributors;
-            if (radarResizeObserver && wrapper) radarResizeObserver.disconnect();
-            if ('ResizeObserver' in window) {
-                radarResizeObserver = new ResizeObserver(scheduleRadarResize);
-                radarResizeObserver.observe(wrapper);
-            }
+            bindRadarFocus(radarChartInstance, canvas);
+            observeRadarViewport(radarChartInstance, wrapper);
         }
 
         const load = loadChart;
@@ -1017,6 +1400,7 @@
     // its whole card before the existing completion path destroys it.
     function cancelRadarWork(): void {
         cancelRadarBuild();
+        finishRadarDrawIn();
         cancelRadarTween();
         cancelRadarResize();
     }

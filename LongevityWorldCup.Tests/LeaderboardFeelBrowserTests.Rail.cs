@@ -47,8 +47,9 @@ public sealed partial class LeaderboardFeelBrowserTests
                     && document.activeElement === window.railFocusedTick;
             }
             """));
+        var railHeight = await page.Locator(".lb-rail").EvaluateAsync<double>("rail => rail.getBoundingClientRect().height");
         await page.SetViewportSizeAsync(width, 700);
-        await page.WaitForTimeoutAsync(100);
+        await page.WaitForFunctionAsync("height => document.querySelector('.lb-rail').getBoundingClientRect().height !== height", railHeight);
         Assert.True(await page.EvaluateAsync<bool>("document.activeElement === window.railFocusedTick"));
     }
 
@@ -89,15 +90,14 @@ public sealed partial class LeaderboardFeelBrowserTests
         var lastRank = await last.TextContentAsync();
         await last.FocusAsync();
         await last.PressAsync("Enter");
-        await page.WaitForTimeoutAsync(100);
-        Assert.True(await page.EvaluateAsync<bool>("""
+        await page.WaitForFunctionAsync("""
             () => {
                 const rail = document.querySelector('.lb-rail');
                 const last = [...document.querySelectorAll('#athleteLeaderboard tbody tr[data-athlete-name]')].at(-1).getBoundingClientRect();
                 return rail.classList.contains('is-visible') && !rail.inert && rail.contains(document.activeElement)
                     && last.top >= document.querySelector('#athleteLeaderboard thead').getBoundingClientRect().bottom && last.bottom <= innerHeight;
             }
-            """));
+            """);
         var box = (await page.Locator(".lb-rail-track").BoundingBoxAsync())!;
         await page.Mouse.MoveAsync(box.X + box.Width - 2, box.Y + box.Height * .61f);
         await page.Mouse.DownAsync();
@@ -124,7 +124,9 @@ public sealed partial class LeaderboardFeelBrowserTests
         await page.Mouse.MoveAsync(x, y);
         await page.Mouse.DownAsync();
         await page.Mouse.MoveAsync(x, y + 70, new() { Steps = 4 });
-        await page.WaitForTimeoutAsync(100);
+        // Reduced-motion jumps are instant; allow the scroll event's queued rail
+        // refresh to run before recording the position that other pointers must retain.
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         Assert.True(await page.Locator(".lb-rail").EvaluateAsync<bool>("r => r.classList.contains('is-scrubbing')"));
         var scroll = await page.EvaluateAsync<double>("scrollY");
         await page.Locator(".lb-rail").DispatchEventAsync("pointermove", new { pointerId = 99, clientY = 150 });
@@ -150,27 +152,31 @@ public sealed partial class LeaderboardFeelBrowserTests
         await PinRailAsync(page);
         var fraction = await page.Locator(Rows).EvaluateAllAsync<double>("""
             (rows, longName) => {
+                rows = rows.filter(row => row.style.display !== 'none' && row.getClientRects().length > 0);
                 const ordered = rows.slice().sort((a, b) => a.dataset.athleteName.length - b.dataset.athleteName.length);
-                return rows.indexOf(longName ? ordered.at(-1) : ordered[0]) / (rows.length - 1);
+                const target = longName ? ordered.at(-1) : ordered[0];
+                window.railExpectedAthleteName = target.dataset.athleteName;
+                return rows.indexOf(target) / (rows.length - 1);
             }
             """, longName);
         var box = (await page.Locator(".lb-rail-track").BoundingBoxAsync())!;
         await page.Mouse.MoveAsync(box.X + box.Width - 2, box.Y + box.Height * .61f);
         await page.Mouse.DownAsync();
         await page.Mouse.MoveAsync(box.X + box.Width - 2, box.Y + box.Height * (float)fraction);
-        await page.WaitForTimeoutAsync(100);
-        Assert.True(await page.Locator(".lb-rail-balloon").EvaluateAsync<bool>("""
-            balloon => {
+        await page.WaitForFunctionAsync("""
+            () => {
+                const balloon = document.querySelector('.lb-rail-balloon');
                 const name = balloon.querySelector('span'), box = balloon.getBoundingClientRect();
                 const thumb = document.querySelector('.lb-rail-thumb').textContent;
                 const row = [...document.querySelectorAll('#athleteLeaderboard tbody tr[data-athlete-name]')].find(r => r.querySelector('.rank').textContent.trim() === thumb);
-                return name.textContent === row.dataset.athleteName && name.scrollWidth <= name.clientWidth + 1
+                return name.textContent === window.railExpectedAthleteName
+                    && name.textContent === row?.dataset.athleteName && name.scrollWidth <= name.clientWidth + 1
                     && name.scrollHeight <= name.clientHeight + 1 && balloon.scrollWidth <= balloon.clientWidth + 1
                     && balloon.scrollHeight <= balloon.clientHeight + 1 && box.left >= 0 && box.right <= innerWidth
                     && box.top >= document.querySelector('#athleteLeaderboard thead').getBoundingClientRect().bottom
                     && box.bottom <= innerHeight && getComputedStyle(balloon).opacity === '1';
             }
-            """));
+            """);
         if (!longName)
         {
             Assert.True(await page.Locator(".lb-rail-balloon").EvaluateAsync<bool>("""

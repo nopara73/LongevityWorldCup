@@ -256,6 +256,36 @@
             }
         }
 
+        /* At high zoom, keep labels readable independently of their icons. */
+        @container edit-profile-card (max-width: 14rem) {
+            #changeProfilePicWrapper > .option-button.flow-action:not(.icon-only) {
+                flex-direction: column;
+                gap: 0.35rem;
+                padding-inline: 0.5rem;
+            }
+
+            #changeProfilePicWrapper > .flow-action > i {
+                position: static;
+                transform: none;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions > .autocomplete-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.35rem;
+                padding-inline: 0.35rem;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions .lwc-flag-name {
+                width: 100%;
+            }
+
+            .edit-profile-main .autocomplete-items.lwc-flag-suggestions .lwc-flag-share {
+                left: 0.35rem;
+                right: 0.35rem;
+            }
+        }
+
         /* Restore controls: quiet circles that return a value to its original. */
         .edit-profile-main .option-button.icon-only {
             flex: 0 0 auto;
@@ -880,6 +910,85 @@
         .no-scroll {
             overflow: hidden;
         }
+        /* A changed field shows its original value and an accent edge. */
+        #editOptionsGroup .niceInputFieldDisplayWrapper {
+            position: relative;
+        }
+
+        #editOptionsGroup .niceInputFieldDisplayWrapper::before {
+            content: "";
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            left: -10px;
+            width: 3px;
+            border-radius: 3px;
+            background: var(--lwc-accent, #087685);
+            transform: scaleY(0);
+            transform-origin: 50% 0;
+            transition: transform 260ms var(--lwc-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+            pointer-events: none;
+        }
+
+        #editOptionsGroup .niceInputFieldDisplayWrapper.is-changed::before {
+            transform: none;
+        }
+
+        .profile-field-was {
+            grid-column: 1 / -1;
+            display: none;
+            align-items: baseline;
+            gap: 6px;
+            min-width: 0;
+            margin: 6px 0 0;
+            color: var(--lwc-muted, #52606d);
+            font-size: 0.82rem;
+            line-height: 1.4;
+        }
+
+        .profile-field-was__icon {
+            flex: 0 0 auto;
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.75rem;
+            color: var(--lwc-accent, #087685);
+        }
+
+        .profile-field-was__value {
+            min-width: 0;
+            text-decoration: line-through;
+            text-decoration-color: color-mix(in srgb, var(--lwc-muted, #52606d) 70%, transparent);
+            overflow-wrap: anywhere;
+        }
+
+        .niceInputFieldDisplayWrapper.is-changed > .profile-field-was {
+            display: flex;
+        }
+
+        /* Keep the count inside the wrapping label so it never steals a
+           column from a word at narrow widths or enlarged text. */
+        .profile-change-count {
+            display: inline-grid;
+            place-items: center;
+            min-width: 1.4em;
+            height: 1.4em;
+            margin-left: 0.55em;
+            padding: 0 0.35em;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--main-action-color, #217a3c);
+            font-size: 0.8em;
+            font-weight: 800;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            vertical-align: baseline;
+        }
+
+        .profile-change-count[hidden], .profile-field-was[hidden] { display: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            #editOptionsGroup .niceInputFieldDisplayWrapper::before { transition: none; }
+        }
     </style>
     <link rel="stylesheet" href="{{ASSET_FLAG_FIELD_CSS}}">
     <link rel="stylesheet" href="{{ASSET_PORTRAIT_CROP_CSS}}">
@@ -997,6 +1106,7 @@
                         <button type="button" id="undoProfileDraftButton" hidden>Undo reset</button>
                         <p id="profileDraftStatus" class="profile-draft-status" role="status" hidden></p>
                     </div>
+                    <span id="profileChangesDescription" class="visually-hidden"></span>
                     <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="overflow" data-flow-dock-inline-back-first>
                         <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
                             <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
@@ -1137,9 +1247,70 @@
                 && value.Name.trim();
         }
 
+        const profileComparisons = new Map();
+        let profileChangeCount = 0;
         let originalAthlete = null;
-        let tempAthlete = null;
+        let storedPortrait = null;
+        let hasStoredProfileDraft = false;
         let rejectedProfilePicture = null;
+
+        function readDraftPart(key) {
+            try { return JSON.parse(getSessionItem(key)); }
+            catch { removeSessionItem(key); return null; }
+        }
+
+        function restoreProfileDraft(original) {
+            const restored = { ...original };
+            const draft = readDraftPart('tempAthlete');
+            if (!isValidSelectedAthlete(draft) || draft.Name !== original.Name) {
+                if (draft) clearProfileDraft();
+                return restored;
+            }
+
+            hasStoredProfileDraft = true;
+            let text = draft;
+            if (typeof draft.PortraitRevision === 'string' && typeof draft.ProfilePic === 'string') {
+                storedPortrait = { revision: draft.PortraitRevision, value: draft.ProfilePic };
+                const edits = readDraftPart('tempAthleteEdits');
+                if (edits?.Name === draft.Name && edits.PortraitRevision === storedPortrait.revision) text = edits;
+            }
+            // Older tabs saved a complete athlete. Both formats restore only editable fields.
+            for (const { key } of getProfileEditFields()) {
+                const source = key === 'ProfilePic' ? draft : text;
+                if (Object.hasOwn(source, key)) restored[key] = source[key];
+            }
+            return restored;
+        }
+
+        function clearProfileDraft(allowTombstone = false) {
+            if (!removeSessionItem('tempAthlete') && !(allowTombstone && setSessionItem('tempAthlete', 'null'))) return false;
+            removeSessionItem('tempAthleteEdits');
+            hasStoredProfileDraft = false;
+            storedPortrait = null;
+            return true;
+        }
+
+        function saveProfileDraft(changed) {
+            if (!changed.length) return clearProfileDraft();
+            const fields = { Name: athlete.Name };
+            for (const { key } of changed) if (key !== 'ProfilePic') fields[key] = athlete[key];
+            const withPortrait = changed.some(field => field.key === 'ProfilePic');
+            if (withPortrait && storedPortrait && storedPortrait.value === athlete.ProfilePic) {
+                fields.PortraitRevision = storedPortrait.revision;
+                return setSessionItem('tempAthleteEdits', JSON.stringify(fields));
+            }
+            // Replacing the portrait and its current text in one write leaves the previous
+            // draft recoverable on quota failure. Later keystrokes only write small edits.
+            if (withPortrait) {
+                fields.PortraitRevision = crypto.getRandomValues(new Uint32Array(4)).join('-');
+                fields.ProfilePic = athlete.ProfilePic;
+            }
+            if (!setSessionItem('tempAthlete', JSON.stringify(fields))) return false;
+            if (storedPortrait) removeSessionItem('tempAthleteEdits');
+            storedPortrait = withPortrait ? { revision: fields.PortraitRevision, value: fields.ProfilePic } : null;
+            hasStoredProfileDraft = true;
+            return true;
+        }
 
         function recoverEditProfilePicture() {
             isEditProfileSubmitting = false;
@@ -1161,26 +1332,12 @@
 
         if (!isValidSelectedAthlete(originalAthlete)) {
             removeSessionItem('selectedAthlete');
-            removeSessionItem('tempAthlete');
+            clearProfileDraft();
             window.location.replace('/select-athlete');
             originalAthlete = {};
         }
 
-        try {
-            const tempAthleteJson = getSessionItem('tempAthlete');
-            tempAthlete = tempAthleteJson ? JSON.parse(tempAthleteJson) : null;
-        } catch {
-            removeSessionItem('tempAthlete');
-            tempAthlete = null;
-        }
-
-        if (tempAthlete && (!isValidSelectedAthlete(tempAthlete) || tempAthlete.Name !== originalAthlete.Name)) {
-            removeSessionItem('tempAthlete');
-            tempAthlete = null;
-        }
-        const athlete = isValidSelectedAthlete(tempAthlete)
-            ? tempAthlete
-            : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
+        const athlete = restoreProfileDraft(originalAthlete);
 
         function getAthleteDisplayName() {
             if (typeof athlete?.DisplayName === 'string' && athlete.DisplayName.trim()) {
@@ -1209,7 +1366,7 @@
                 setSessionItem('contactEmail', reviewContactEmail);
                 setLocalItem('contactEmail', reviewContactEmail);
             }
-            const draftCleared = removeSessionItem('tempAthlete') || setSessionItem('tempAthlete', 'null');
+            const draftCleared = clearProfileDraft(true);
             if (draftCleared) window.clearPendingApplicationSubmission(submissionContext.submissionId);
             // If cleanup is blocked, retain the submission receipt so re-entry
             // recovers the accepted request instead of offering its draft again.
@@ -1247,7 +1404,6 @@
             athleteImage.addEventListener('error', () => {
                 if (athleteImage.getAttribute('src') !== portraitPlaceholder) athleteImage.src = portraitPlaceholder;
             });
-            athleteImage.dataset.profilePicValue = athlete.ProfilePic || '';
             athleteImage.src = portraitPlaceholder;
             athleteImage.alt = `${athleteDisplayName} headshot`;
             athleteImage.className = 'illustration';
@@ -1463,11 +1619,11 @@
                                     type: `HTTP ${responseStatus}`,
                                     message: txt
                                 });
-                                customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
+                                customAlert(responseStatus === 413 ? txt : `Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
                                     isEditProfileSubmitting = false;
                                     updateSubmitButtonState();
                                     submitButton.disabled = false;
-                                    submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
+                                    setSubmitChangeRequestButton();
                                     submitButton.focus();
                                 });
                             });
@@ -1486,7 +1642,7 @@
                             isEditProfileSubmitting = false;
                             updateSubmitButtonState();
                             submitButton.disabled = false;
-                            submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
+                            setSubmitChangeRequestButton();
                             submitButton.focus();
                         });
                     });
@@ -1568,8 +1724,9 @@
         function setProfilePictureValue(value) {
             const image = document.querySelector('.edit-profile-visual .illustration');
             const placeholder = document.querySelector('meta[name="lwc-athlete-placeholder"]').content;
-            const source = value || placeholder;
-            image.dataset.profilePicValue = value || '';
+            athlete.ProfilePic = normalizeEditText(value);
+            const source = athlete.ProfilePic || placeholder;
+            image.dataset.profilePicValue = athlete.ProfilePic;
             const request = String((Number(image.dataset.profilePicRequest) || 0) + 1);
             image.dataset.profilePicRequest = request;
             if (image.getAttribute('src') === source && image.complete && image.naturalWidth) return;
@@ -1597,7 +1754,6 @@
 
         function restoreProfilePicToOriginal() {
             setProfilePictureValue(originalAthlete.ProfilePic);
-            athlete.ProfilePic = originalAthlete.ProfilePic;
             const restoreButton = document.getElementById('restoreProfilePicButton');
             if (document.activeElement === restoreButton) changeProfileBtn.focus({ preventScroll: true });
             restoreButton.style.display = 'none';
@@ -1656,8 +1812,81 @@
 
         function setSubmitChangeRequestButton() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
+            submitButton.innerHTML = '<span class="flow-action__label">Submit change request <span class="profile-change-count" aria-hidden="true" hidden></span></span><i class="fa fa-rocket" aria-hidden="true"></i>';
             submitButton.setAttribute('type', 'submit');
+            submitButton.setAttribute('aria-describedby', 'profileChangesDescription');
+            renderProfileChangeCount();
+        }
+
+        function renderProfileChangeCount() {
+            const submit = document.getElementById('submitButton');
+            const count = submit.querySelector('.profile-change-count');
+            // Submission feedback temporarily owns the button's contents.
+            if (count) {
+                const text = String(profileChangeCount);
+                if (count.textContent !== text) count.textContent = text;
+                count.hidden = !profileChangeCount;
+            }
+            if (profileChangeCount) {
+                if (submit.dataset.changes !== String(profileChangeCount)) submit.dataset.changes = String(profileChangeCount);
+            } else if (submit.hasAttribute('data-changes')) delete submit.dataset.changes;
+            const description = document.getElementById('profileChangesDescription');
+            const text = profileChangeCount ? `${profileChangeCount} pending profile ${profileChangeCount === 1 ? 'change' : 'changes'}` : '';
+            if (description.textContent !== text) description.textContent = text;
+        }
+
+        function updateProfileComparisons(changed) {
+            const changedKeys = new Set(changed.map(field => field.key));
+            getProfileEditFields().forEach(field => {
+                if (field.key === 'ProfilePic') return;
+                let comparison = profileComparisons.get(field.key);
+                if (!comparison) {
+                    const input = document.getElementById(field.id);
+                    const wrapper = input.closest('.niceInputFieldDisplayWrapper');
+                    const original = field.normalize(originalAthlete[field.key]);
+                    const before = field.key === 'Division'
+                        ? [...input.options].find(option => option.value === original)?.textContent || original
+                        : original;
+                    const previous = document.createElement('p');
+                    previous.id = field.id + 'Previous';
+                    previous.className = 'profile-field-was';
+                    previous.hidden = true;
+                    const prefix = document.createElement('span');
+                    prefix.className = 'visually-hidden';
+                    prefix.textContent = 'Previous value: ';
+                    const value = document.createElement('span');
+                    value.className = 'profile-field-was__value';
+                    value.textContent = before;
+                    const history = document.createElement('i');
+                    history.className = 'fas fa-history profile-field-was__icon';
+                    history.setAttribute('aria-hidden', 'true');
+                    previous.append(history, prefix);
+                    if (field.key === 'Flag') {
+                        const icon = document.createElement('span');
+                        icon.innerHTML = window.LwcFlags.renderFlagIcon(before);
+                        icon.setAttribute('aria-hidden', 'true');
+                        previous.append(icon);
+                    }
+                    previous.append(value);
+                    wrapper.append(previous);
+                    comparison = { input, wrapper, previous, before, changed: false };
+                    profileComparisons.set(field.key, comparison);
+                }
+                const isChanged = changedKeys.has(field.key);
+                if (comparison.changed === isChanged) return;
+                comparison.changed = isChanged;
+                comparison.wrapper.classList.toggle('is-changed', isChanged);
+                comparison.previous.hidden = !isChanged || !comparison.before;
+                const descriptions = (comparison.input.getAttribute('aria-describedby') || '').split(/\s+/)
+                    .filter(id => id && id !== comparison.previous.id);
+                if (!comparison.previous.hidden) descriptions.push(comparison.previous.id);
+                if (descriptions.length) comparison.input.setAttribute('aria-describedby', descriptions.join(' '));
+                else comparison.input.removeAttribute('aria-describedby');
+            });
+            if (profileChangeCount !== changed.length) {
+                profileChangeCount = changed.length;
+                renderProfileChangeCount();
+            }
         }
 
         const changeProfileBtn = document.getElementById('changeProfilePicButton');
@@ -1779,6 +2008,7 @@
                 try { window.changeProfileCropper.destroy(); } catch (_) { }
             }
             window.changeProfileCropper = null;
+            LwcUploadPhoto.setCropImage(cropperImage, null);
             cropperModal.hidden = true;
             cropperModal.style.display = 'none';
             cropperModal.removeAttribute('aria-busy');
@@ -1851,7 +2081,7 @@
                 || extension === 'heif';
         }
 
-        function handleProfilePictureSelection(e) {
+        async function handleProfilePictureSelection(e) {
             const input = e.target;
             const file = input.files && input.files[0];
             if (!file) return;
@@ -1869,45 +2099,40 @@
                 if (version !== profilePictureReadVersion) return;
                 closeChangeProfileCropperDialog({ restoreFocus: false });
                 const failedVersion = profilePictureReadVersion;
-                customAlert('Profile picture upload failed. Please try another image.')
+                customAlert(LwcUploadPhoto.isHeic(file) ? LwcUploadPhoto.recovery : 'Profile picture upload failed. Please try another image.')
                     .then(() => { if (failedVersion === profilePictureReadVersion) restoreProfileCropperFocus(); });
             };
-            const reader = new FileReader();
-            reader.onload = (evt) => {
+            try {
+                const source = await LwcUploadPhoto.prepareCrop(file);
                 if (version !== profilePictureReadVersion) return;
-                try {
-                    if (window.changeProfileCropper) {
-                        window.changeProfileCropper.destroy();
-                        window.changeProfileCropper = null;
-                    }
-                    // Cropper's ready callback never runs when image decoding fails.
-                    cropperImage.onerror = failProfilePicture;
-                    cropperImage.src = evt.target.result;
-                    cropBtn.disabled = true;
-                    openChangeProfileCropperDialog();
-
-                    // expose globally so crop/cancel buttons can access it
-                    window.changeProfileCropper = new LwcPortraitCropper(cropperImage, {
-                        error: failProfilePicture,
-                        // The stage observer handles viewport and text reflow,
-                        // preserving image coordinates across aspect changes.
-                        ready() {
-                            requestAnimationFrame(() => {
-                                if (version !== profilePictureReadVersion || cropperModal.hidden) return;
-                                cropperImage.onerror = null;
-                                cropBtn.disabled = false;
-                                refreshProfileCropperLayout();
-                                if (document.activeElement === cropperModal) cropBtn.focus({ preventScroll: true });
-                            });
-                        },
-                    });
-                } catch (_) {
-                    failProfilePicture();
+                if (window.changeProfileCropper) {
+                    window.changeProfileCropper.destroy();
+                    window.changeProfileCropper = null;
                 }
-            };
-            reader.onerror = failProfilePicture;
-            reader.onabort = reader.onerror;
-            reader.readAsDataURL(file);
+                // Cropper's ready callback never runs when image decoding fails.
+                cropperImage.onerror = failProfilePicture;
+                LwcUploadPhoto.setCropImage(cropperImage, source);
+                cropBtn.disabled = true;
+                openChangeProfileCropperDialog();
+
+                // expose globally so crop/cancel buttons can access it
+                window.changeProfileCropper = new LwcPortraitCropper(cropperImage, {
+                    error: failProfilePicture,
+                    // The stage observer handles viewport and text reflow,
+                    // preserving image coordinates across aspect changes.
+                    ready() {
+                        requestAnimationFrame(() => {
+                            if (version !== profilePictureReadVersion || cropperModal.hidden) return;
+                            cropperImage.onerror = null;
+                            cropBtn.disabled = false;
+                            refreshProfileCropperLayout();
+                            if (document.activeElement === cropperModal) cropBtn.focus({ preventScroll: true });
+                        });
+                    },
+                });
+            } catch {
+                failProfilePicture();
+            }
         }
 
         changeProfileInput.addEventListener('change', handleProfilePictureSelection);
@@ -1952,7 +2177,6 @@
                 const cropWindow = activeCropper.windowRect();
                 setProfilePictureValue(newSrc);
                 imgEl.alt = getAthleteDisplayName() + ' headshot';
-                athlete.ProfilePic = newSrc;
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
 
                 // enable the “Submit Change Request” button now that there’s a new image
@@ -2024,6 +2248,7 @@
                 document.getElementById(field.restoreId).style.display = isChanged ? 'inline-flex' : 'none';
                 return isChanged;
             });
+            updateProfileComparisons(changed);
             const anyChanged = changed.length > 0;
             if (rejectedProfilePicture !== null && athlete.ProfilePic !== rejectedProfilePicture.value) {
                 rejectedProfilePicture = null;
@@ -2031,12 +2256,10 @@
             }
             submitButton.disabled = isEditProfileSubmitting || !anyChanged || rejectedProfilePicture !== null;
             if (anyChanged) resetProfileDraftSnapshot = null;
-            const draftSaved = anyChanged
-                ? setSessionItem('tempAthlete', JSON.stringify(athlete))
-                : removeSessionItem('tempAthlete');
-            hasUnsavedProfileDraft = !draftSaved && (anyChanged || Boolean(resetProfileDraftSnapshot));
+            const draftSaved = saveProfileDraft(changed);
+            hasUnsavedProfileDraft = !draftSaved && (anyChanged || hasStoredProfileDraft || Boolean(resetProfileDraftSnapshot));
             const summary = document.getElementById('profileDraftSummary');
-            summary.hidden = !anyChanged && !resetProfileDraftSnapshot;
+            summary.hidden = !anyChanged && !resetProfileDraftSnapshot && !hasUnsavedProfileDraft;
             const status = document.getElementById('profileDraftStatus');
             const message = hasUnsavedProfileDraft ? 'Changes could not be saved. Keep this page open.' : '';
             if (status.textContent !== message) status.textContent = message;
@@ -2065,7 +2288,7 @@
         }
 
         function readProfileField(field) {
-            return field.key === 'ProfilePic' ? document.querySelector('.edit-profile-visual .illustration').dataset.profilePicValue
+            return field.key === 'ProfilePic' ? athlete.ProfilePic
                 : document.getElementById(field.id).value;
         }
 
@@ -2181,6 +2404,7 @@
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@2.3.1/dist/cropper.min.js" integrity="sha384-q877KRoDGCc9TE0/aHg20sWS2aLAr60y01aKWeVzpJhbJh90PH+lt1GmABR1GOdz" crossorigin="anonymous" defer></script>
+    <script src="{{ASSET_UPLOAD_PHOTO_JS}}" data-decoder="{{ASSET_HEIC_DECODER_JS}}"></script>
     <script src="{{ASSET_PORTRAIT_CROPPER_JS}}" defer></script>
 </body>
 </html>

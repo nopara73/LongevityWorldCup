@@ -113,10 +113,12 @@ public sealed class ApplicationPaymentEmailSenderTests
         public override Task AuthenticateAsync(Encoding encoding, ICredentials credentials, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
-        public override Task<string> SendAsync(FormatOptions options, MimeMessage message, CancellationToken cancellationToken = default, ITransferProgress? progress = null)
+        public override Task<SendResult> SendAsync(FormatOptions options, ISendRequest request, CancellationToken cancellationToken = default)
         {
             SendCalls++;
-            return SendFailure is null ? Task.FromResult("250 OK") : Task.FromException<string>(SendFailure);
+            return SendFailure is null
+                ? Task.FromResult<SendResult>(new SmtpSendResult(SmtpStatusCode.Ok, "OK", request.Message.To.Mailboxes.ToArray(), []))
+                : Task.FromException<SendResult>(SendFailure);
         }
 
         public override Task DisconnectAsync(bool quit, CancellationToken cancellationToken = default)

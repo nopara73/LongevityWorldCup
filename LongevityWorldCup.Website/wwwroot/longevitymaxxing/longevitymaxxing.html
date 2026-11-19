@@ -4,6 +4,7 @@
     <!--HEAD-->
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <link rel="stylesheet" href="{{ASSET_LONGEVITYMAXXING_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_LMX_DISCUSSION_CSS}}">
 </head>
 <body>
 <!--HEADER-->
@@ -248,7 +249,7 @@
                                         Upload profile picture
                                     </button>
                                     <button id="lmxChooseProfilePictureButton" class="lmx-button secondary" type="button" hidden>Choose another</button>
-                                    <input id="lmxProfilePictureInput" type="file" accept="image/*" tabindex="-1" aria-label="Choose profile picture">
+                                    <input id="lmxProfilePictureInput" type="file" accept="image/*,.heic,.heif" tabindex="-1" aria-label="Choose profile picture">
                                     <div id="lmxProfilePictureStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                                 </div>
                             </div>
@@ -310,10 +311,8 @@
         <section id="lmxNotesPanel" class="lmx-card lmx-hidden" aria-labelledby="lmxNotesTitle">
             <div class="lmx-notes-header">
                 <h2 id="lmxNotesTitle">Discussion</h2>
-            </div>
-            <div class="lmx-feed-updates">
                 <button id="lmxFeedNew" class="lmx-feed-button lmx-feed-new" type="button" aria-controls="lmxNotes" hidden>
-                    <i class="fas fa-arrow-up" aria-hidden="true"></i><span>New posts</span>
+                    <i class="fas fa-comment-dots" aria-hidden="true"></i><span>New posts</span>
                 </button>
             </div>
             <div id="lmxNotes" class="lmx-notes"></div>
@@ -335,6 +334,8 @@
 
 <!--FOOTER-->
 <script src="{{ASSET_CUSTOM_EVENT_MARKUP_JS}}" defer></script>
+<script src="{{ASSET_UPLOAD_PHOTO_JS}}" data-decoder="{{ASSET_HEIC_DECODER_JS}}"></script>
 <script src="{{ASSET_LONGEVITYMAXXING_JS}}" defer></script>
+<script src="{{ASSET_LMX_DISCUSSION_JS}}" defer></script>
 </body>
 </html>
