@@ -98,6 +98,8 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
     {
         using var client = factory.CreateClient();
         var shared = await client.GetStringAsync($"/css/{name}.css");
+        if (name == "leaderboard-content")
+            shared = await client.GetStringAsync("/css/leaderboard-podium.css") + "\n" + shared;
         var scoped = await client.GetStringAsync($"/css/athlete-dialog/{name}.css");
         Assert.Equal("@scope (#athleteDialogRuntime) {\n" + Regex.Replace(shared, @":root\b", ":scope", RegexOptions.IgnoreCase) + "}\n", scoped);
     }

@@ -1,3 +1,32 @@
+/* Leaderboard rank-change cues */
+.leaderboard tbody .rank.lb-rolling{
+    position:relative; display:inline-block; overflow:hidden; color:transparent !important; vertical-align:middle;
+}
+.leaderboard tbody .rank.lb-rolling::before,
+.leaderboard tbody .rank.lb-rolling::after{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    animation-duration:620ms; animation-timing-function:cubic-bezier(.3,.8,.2,1); animation-fill-mode:both;
+}
+.leaderboard tbody .rank.lb-rolling::before{ content:attr(data-was) / ""; color:var(--lwc-muted); animation-delay:120ms; }
+.leaderboard tbody .rank.lb-rolling::after{ content:attr(data-now) / ""; animation-delay:120ms; }
+.leaderboard tbody .rank.lb-rolling.is-up::before{ animation-name:lb-roll-out-up; }
+.leaderboard tbody .rank.lb-rolling.is-up::after{ animation-name:lb-roll-in-up; color:var(--lwc-success); }
+.leaderboard tbody .rank.lb-rolling.is-down::before{ animation-name:lb-roll-out-down; }
+.leaderboard tbody .rank.lb-rolling.is-down::after{ animation-name:lb-roll-in-down; color:var(--lwc-danger); }
+.leaderboard tbody .rank[data-place].lb-rolling::after{ color:#17212b; }
+@keyframes lb-roll-out-up{ from{ transform:none; opacity:1; } to{ transform:translateY(-110%); opacity:0; } }
+@keyframes lb-roll-in-up{ from{ transform:translateY(110%); opacity:0; } to{ transform:none; opacity:1; } }
+@keyframes lb-roll-out-down{ from{ transform:none; opacity:1; } to{ transform:translateY(110%); opacity:0; } }
+@keyframes lb-roll-in-down{ from{ transform:translateY(-110%); opacity:0; } to{ transform:none; opacity:1; } }
+
+/* Retain a static directional edge without competing with row motion. */
+@media (min-width: 769px){
+    .leaderboard tbody tr[data-lb-moved] > td.rank-td{ box-shadow:inset 3px 0 0 var(--lb-edge, transparent); }
+    .leaderboard tbody tr[data-lb-moved="up"]{ --lb-edge:color-mix(in srgb, var(--lwc-success) 70%, transparent); }
+    .leaderboard tbody tr[data-lb-moved="down"]{ --lb-edge:color-mix(in srgb, var(--lwc-danger) 35%, transparent); }
+    .leaderboard tbody tr:has(> td .rank[data-place="1"]) > td.rank-td{ box-shadow:inset 3px 0 0 var(--lwc-gold); }
+}
+
 /* Flag teams share the selected clock and the leaderboard's filter rail. */
 .leaderboard-group-switcher { flex: 0 0 auto; }
 .leaderboard-group-switcher input { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
@@ -143,32 +172,12 @@
  }
  .leaderboard-recovery p{ margin:0; }
  #comingSoon{ font-size:.5rem; font-weight:normal; }
-
- /* Common transition for table rows and podium items */
- .leaderboard table tbody tr, .podium-item{ transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
  .leaderboard table tbody tr.fade-in{ animation:filterRowFade var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
- .podium-item.fade-in{ animation:filterPodiumFade var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
 
  @keyframes filterRowFade{
      from{ opacity:.82; }
      to{ opacity:1; }
  }
-
- @keyframes filterPodiumFade{
-     from{ opacity:.82; transform:translateY(1px); }
-     to{ opacity:1; transform:translateY(0); }
- }
-
- @media (prefers-reduced-motion: reduce){
-     .leaderboard table tbody tr.fade-in,
-     .podium-item.fade-in{ animation:none; }
- }
-
- /* =========================
-    3) Global layout / shell
-    ========================= */
- .main-container{ display:flex; align-items:flex-start; }
- .content{ flex-grow:1; transition:margin-left var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
 
  .leaderboard{
      --leaderboard-table-height: calc(100vh - 2rem);
@@ -180,65 +189,6 @@
 
  .leaderboard .sidebar{
      --leaderboard-sidebar-viewport-height: max(0px, min(calc(100dvh - var(--leaderboard-sidebar-sticky-top) - 1rem), calc(100dvh - var(--leaderboard-sidebar-viewport-top, 0px) - 1rem)));
- }
-
- .podium-skeleton-item{
-     pointer-events:none;
-     cursor:default;
- }
-
- .podium-skeleton-item:hover,
- .leaderboard table tbody tr.leaderboard-skeleton-row:hover{
-     transform:none;
-     box-shadow:none;
- }
-
- .podium-skeleton-item .athlete-name,
- .podium-skeleton-item .podium-skeleton-line,
- .podium-skeleton-item .podium-skeleton-portrait,
- .leaderboard-portrait-skeleton,
- .leaderboard-skeleton-block{
-     border-radius:999px;
- }
-
- .podium-skeleton-item .podium-skeleton-portrait{
-     width:var(--podium-portrait-size);
-     height:var(--podium-portrait-size);
-     margin:0 auto 1.6rem;
- }
-
- .podium-skeleton-item .name-row{
-     width:100%;
- }
-
- .podium .podium-skeleton-item .athlete-name{
-     display:block;
-     width:75%;
-     margin:0 auto;
-     color:transparent;
-     text-decoration:none;
-     cursor:default;
- }
-
- .podium-skeleton-link{
-     width:44px;
-     height:44px;
- }
-
- .podium-skeleton-item .age-reduction{
-     width:66%;
-     margin-inline:auto;
- }
-
- .podium-skeleton-caption{
-     display:block;
-     width:4em;
-     margin-inline:auto;
- }
-
- .podium-skeleton-prize{
-     border-top-color:var(--lwc-border);
-     background:var(--lwc-surface-muted);
  }
 
  .leaderboard table tbody.loading-skeleton tr{
@@ -727,71 +677,10 @@
      transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
  }
  .portrait:hover{ transform: scale(var(--portrait-hover-scale)); }
- .portrait.portrait-fallback,
- #modalProfilePic.portrait-fallback,
- .podium-item .podium-portrait.portrait-fallback{
-     object-fit:contain;
-     background:#fff;
-     padding:.35rem;
- }
-
- /* PODIUM portrait (bounded even if not wrapped) */
- .podium-item .podium-portrait{
-     width:var(--podium-portrait-size); height:var(--podium-portrait-size); aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
-     border:3px solid var(--podium-metal); box-shadow:var(--lwc-shadow-md, 0 10px 28px rgba(15,23,42,.1)); margin:0 0 1.6rem; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); will-change:transform;
-     flex:0 0 auto; box-sizing:border-box; /* include border in the height */
- }
- .podium-item .podium-portrait:hover{ transform: scale(1.04); }
-
- .portrait-motion{ position:relative; }
- .athlete-portrait-motion{
-     position:absolute; top:3px; left:3px;
-     border-radius:50%; overflow:hidden; object-fit:cover; pointer-events:none; opacity:0; z-index:1;
- }
- .athlete-portrait-motion > canvas{
-     position:absolute; inset:0; width:100%; height:100%;
-     object-fit:inherit; object-position:inherit; object-view-box:inherit;
- }
- .athlete-portrait-frame{ opacity:0; }
- .podium-item .athlete-portrait-motion{
-     width:calc(var(--podium-portrait-size) - 6px); height:calc(var(--podium-portrait-size) - 6px);
- }
  #athlete-profile .athlete-portrait-motion{ width:calc(100% - 6px); height:calc(100% - 6px); }
 
- /* When wrapped on podium: wrapper defines circle, img fills it */
- .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:0 0 1.6rem; flex:0 0 auto; }
- .podium-item .rank-change img.podium-portrait{
-     width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); box-sizing:border-box;
- }
- .podium-item .rank-change img.podium-portrait{ margin:0; }
- .podium-item .rank-change img.podium-portrait:hover{ transform: scale(1.04); }
-
- .podium .name-row {
-     display: flex;
-     align-items: center;
-     gap: .25rem;
-     max-width: 100%
- }
- .podium .name-row .athlete-name {
-     flex: 1;
-     min-width: 0;
-     white-space: normal;
-     overflow-wrap: anywhere;
-     line-height: 1.25
- }
-
- /* Rank-change wrapper */
- .rank-change{ position: relative; display: inline-block; z-index: 0; }
- .rank-change img{ display:block; position:relative; z-index:1; }
-
  /* Rings (green = rank-up only in table, blue = new athlete) */
- .rank-change.rank-up img.portrait{ border-color:#2ecc71; }     /* no green ring on podium */
- img.portrait.is-new,
- .rank-change img.portrait.is-new,
- img.podium-portrait.is-new{
-     border-color:#3B82F6;
-     box-shadow:0 0 0 2px rgba(59,130,246,.16);
- }
+ .rank-change.rank-up img.portrait{ border-color:#2ecc71; }
  .leaderboard tr.is-new-athlete.is-new-revealed,
  .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed{
      --leaderboard-change-duration:calc(var(--lwc-duration-normal, 220ms) * 4);
@@ -841,9 +730,6 @@
  .rank-change img:hover + .new-bubble{
      left: calc(var(--arrow-left) + var(--arrow-cover-extra) + var(--arrow-hover-shift));
  }
- /* Never show arrow bubbles on the podium */
- .podium .rank-arrow, .podium-item .rank-arrow{ display:none !important; }
- .podium .new-bubble, .podium-item .new-bubble{ display:none !important; }
 
  /* PRO badge overlay – table only (not on podium); white text, black frame */
  .portrait-wrapper{ position:relative; display:inline-block; }
@@ -882,7 +768,6 @@
  tr.tier-pro .pro-badge{ display:flex; }
  /* Hide PRO ribbon on leaderboard/podium; show only in modal when profile is opened */
  .leaderboard .pro-badge{ display:none !important; }
- .podium .pro-badge{ display:none !important; }
  @media (min-width: 768px){
      .pro-badge{ right:2px; bottom:8px; font-size:11px; padding:3px 8px; }
  }
@@ -914,95 +799,9 @@
  }
 
  /* =========================
-    7) Podium
-    The top three stand on a stepped plinth as wide as the board below it.
-    ========================= */
- .podium{
-     --podium-gold-surface:#fff9db;
-     --podium-silver-surface:#e9eef2;
-     --podium-bronze-surface:#f3e8da;
-     display:flex; flex-wrap:wrap; justify-content:center; align-items:stretch; gap:0;
-     container:podium / inline-size;
-     margin:0 0 var(--lwc-space-6); padding:0;
- }
- @media (prefers-color-scheme:dark){
-     .podium{
-         --podium-gold-surface:#3a3320;
-         --podium-silver-surface:#29333d;
-         --podium-bronze-surface:#382e26;
-     }
- }
- .podium-item{
-     --podium-portrait-size:120px;
-     --podium-step:4.75rem;
-     position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-     width:calc(100% / 3); max-width:384px; margin:0; padding:0; box-sizing:border-box;
-     text-align:center; cursor:pointer;
-     transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
- }
- .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
- /* Each placing starts lower than the one above it and all three share a floor,
-    so the steps keep their order however long a name wraps. */
- .podium-item.first{ --podium-metal:var(--lwc-gold, #f5c542); --podium-surface:var(--podium-gold-surface); --podium-portrait-size:160px; --podium-step:7.75rem; order:2; }
- .podium-item.second{ --podium-metal:var(--lwc-silver, #c9d2da); --podium-surface:var(--podium-silver-surface); --podium-portrait-size:132px; --podium-step:6.125rem; order:1; margin-top:66px; }
- .podium-item.third{ --podium-metal:var(--lwc-bronze, #dba06d); --podium-surface:var(--podium-bronze-surface); --podium-portrait-size:120px; order:3; margin-top:108px; }
-
- /* Prize steps stay on the shared floor, even when a different name wraps. */
- .podium-item-lower{
-     position:relative; align-self:stretch; flex:0 0 auto; min-height:var(--podium-step); margin-top:auto; padding:var(--lwc-space-3) var(--lwc-space-2) 0; box-sizing:border-box;
-     display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-     border-top:3px solid var(--podium-metal); background:var(--podium-surface); color:var(--lwc-ink, #17212b); text-decoration:none; cursor:pointer;
-     transition:filter var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
- }
- .podium-item-lower:hover,
- .podium-item-lower:focus-visible{ filter:brightness(.96); }
- .podium-item-lower:focus-visible{ outline:3px solid var(--lwc-accent); outline-offset:-5px; }
- @media (forced-colors:active){
-     .podium-item-lower:focus-visible{ outline-offset:-5px !important; }
- }
- .podium-item.first .podium-item-lower{ border-radius:var(--radius-md, 8px) var(--radius-md, 8px) 0 0; }
- .podium-item.second .podium-item-lower{ border-radius:var(--radius-md, 8px) 0 0 0; }
- .podium-item.third .podium-item-lower{ border-radius:0 var(--radius-md, 8px) 0 0; }
- .prize-money{ max-width:100%; overflow-wrap:anywhere; font-weight:bold; font-size:1.55rem; line-height:1.2; color:var(--lwc-success, #1f7a38); font-variant-numeric:tabular-nums; }
- .podium-item.first .prize-money{ font-size:1.9rem; }
- .btc-amount{ order:1; margin-top:.15rem; font-weight:normal; font-size:.72rem; color:inherit; line-height:1.2; }
-
- /* The placing icon sits in the leaderboard's rank chip, worn as a medal. */
- .podium-rank{
-     position:absolute; top:calc(var(--podium-portrait-size) - 18px); left:50%; z-index:2; width:32px; height:32px; margin-left:-16px; padding:0;
-     display:flex; justify-content:center; align-items:center; box-sizing:border-box;
-     border-radius:50%; background:var(--podium-metal); box-shadow:0 0 0 3px var(--lwc-canvas, #f3f5f7); font-size:.85rem;
- }
- .podium-rank i{ color:#17212b !important; }
-
- .podium .athlete-name{ color:var(--lwc-ink); text-decoration-color:var(--lwc-border-strong); }
- .podium-score{ margin-bottom:var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
- .podium-score .age-reduction{ display:block; color:var(--lwc-accent); font-size:1.5rem; line-height:1.2; text-align:center; font-variant-numeric:tabular-nums; }
- .podium-item.first .podium-score .age-reduction{ font-size:1.9rem; }
-
- /* Enlarged text can also exhaust a narrow desktop's three columns. Keep the
-    same cards and font sizes, giving each placing a full row when needed. */
- @media (min-width: 933px), (min-width: 769px) and (min-height: 481px){
-     @container podium (max-width: 32em){
-         .podium-item{
-             width:100%; max-width:none; margin:0 0 var(--lwc-space-3); padding:var(--lwc-space-3) var(--lwc-space-3) 0; overflow:hidden;
-             border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-lg); background:var(--lwc-surface); box-shadow:var(--lwc-shadow-sm);
-         }
-         .podium-item.first{ order:1; }
-         .podium-item.second{ order:2; margin-top:0; }
-         .podium-item.third{ order:3; margin-top:0; }
-         .podium-item .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 18px); }
-         .podium-item:is(.first, .second, .third) > .podium-item-lower{
-             min-height:0; margin:auto calc(-1 * var(--lwc-space-3)) 0; padding:var(--lwc-space-3); border-radius:0;
-         }
-     }
- }
-
- /* =========================
     8) Table row bits
     ========================= */
  .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
- .age-reduction{ font-weight:700; color:var(--lwc-success, #1f7a38); text-align:left; }
  .athlete-td{
      display:flex;
      align-items:center;
@@ -1015,26 +814,10 @@
  .athlete-identity .athlete-name{ min-width:0; max-width:100%; }
  .athlete-name-links{ display:inline-flex; align-items:center; flex:0 0 auto; gap:.125rem; }
  .athlete-name-links:empty{ display:none; }
-
- .athlete-name{
-     color:var(--primary-color); text-decoration:underline; text-decoration-thickness:.08em; text-underline-offset:.18em; text-align:left; cursor:pointer;
-     transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-     display:inline-flex; align-items:center; min-height:44px; padding:.5rem .45rem; white-space:pre-wrap; overflow-wrap:normal; word-break:normal; hyphens:none; border-radius:8px;
-     border:0; background:transparent; font:inherit; appearance:none; -webkit-appearance:none; box-sizing:border-box;
- }
  .athlete-name-content{ min-width:0; }
  /* Let an otherwise unbreakable name shrink inside the wider table too.
     Phones override this with their per-row, whole-word fallback below. */
  .leaderboard table tbody .athlete-name{ overflow-wrap:anywhere; }
- .athlete-name:hover{
-     color:var(--secondary-color); background-color:rgba(8,118,133,.08); box-shadow:inset 0 0 0 1px rgba(8,118,133,.12);
- }
- .athlete-name:focus-visible{
-     color:var(--secondary-color); background-color:rgba(8,118,133,.08); outline:3px solid rgba(0,188,212,.38); outline-offset:2px;
- }
- .athlete-profile-link:focus-visible{ outline:3px solid var(--primary-color); outline-offset:3px; border-radius:8px; }
- .podium .athlete-name{ font-size:1.2rem; font-weight:700; min-height:0; padding-block:.3rem; }
- .podium-item.first .athlete-name{ font-size:1.4rem; }
 
  .media-contact{
      color:var(--lwc-accent, #087685); text-decoration:none; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); font-size:1.5rem; padding:.5rem; margin:10px 0;
@@ -1042,24 +825,6 @@
  .media-contact:hover{ color:var(--primary-color); }
  .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
  .media-contact-handle{ display:inline-block; max-width:100%; overflow-wrap:anywhere; }
-
- .personal-link-icon{
-     display:inline-flex; align-items:center; justify-content:center; width:2rem; height:2rem;
-     color:var(--primary-color); font-size:1rem; text-decoration:none; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
-     margin-left:.15rem; border-radius:50%; box-sizing:border-box; vertical-align:middle;
- }
- .personal-link-icon:first-of-type{ margin-left:0; }
- .personal-link-icon:hover,
- .personal-link-icon:focus-visible{ color:var(--secondary-color); background-color:rgba(0,188,212,.08); }
- .podium-link-row{ display:inline-flex; align-items:center; justify-content:center; gap:var(--space-1, .25rem); }
- .podium-link-row .personal-link-icon{
-     width:44px;
-     height:44px;
-     flex:0 0 44px;
-     margin-left:0;
-     margin-right:0;
- }
- .podium-link-row .personal-link-icon i{ width:auto; }
 
  .leaderboard table tbody tr{ scroll-margin-top:0; }
  .leaderboard table tbody tr:target{ background:var(--lwc-accent-soft, rgba(8,118,133,.16)); transition:background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
@@ -2256,13 +2021,6 @@
     13) Mobile
     ========================= */
  @media (min-width: 769px) and (max-width: 900px){
-     .content{
-         padding-left:max(1rem, env(safe-area-inset-left));
-         padding-right:max(1rem, env(safe-area-inset-right));
-         box-sizing:border-box;
-         width:100%;
-         max-width:100%;
-     }
      .leaderboard{ overflow:visible; }
      .leaderboard table{
          width:100%;
@@ -2285,13 +2043,6 @@
  }
 
  @media (max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape){
-     .content{
-         padding-left:max(1rem, env(safe-area-inset-left));
-         padding-right:max(1rem, env(safe-area-inset-right));
-         box-sizing:border-box;
-         width:100%;
-         max-width:100%;
-     }
      .leaderboard-toolbar{
          flex-direction:column; align-items:stretch; gap:.75rem; margin-top:1.25rem;
          width:100%;
@@ -2338,8 +2089,6 @@
      }
 
      .sidebar-toggle{ align-self:center; width:44px; height:44px; box-sizing:border-box; flex-shrink:0; margin-right:0; }
-
-     .main-container{ flex-direction:column; }
      .leaderboard{ overflow:visible; min-height:0; }
      .sidebar{
          width:320px; max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
@@ -2377,73 +2126,6 @@
          outline:3px solid var(--lwc-accent); outline-offset:2px; box-shadow:none;
      }
      .filter-section label{ min-height:44px; padding:.52rem .65rem; }
-     .content{ margin-left:0; }
-
-     /* Phones: the three become cards, champion first. */
-     .podium{ flex-wrap:wrap; align-items:stretch; gap:var(--lwc-space-3); width:100%; margin:0 0 var(--lwc-space-5); padding:0; }
-     .podium-item{
-         width:calc((100% - var(--lwc-space-3)) / 2); max-width:none; padding:var(--lwc-space-3) var(--lwc-space-2) 0; overflow:hidden;
-         border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-lg); background:var(--lwc-surface); box-shadow:var(--lwc-shadow-sm);
-     }
-     .podium-item.first{ --podium-portrait-size:104px; order:1; width:100%; max-width:440px; }
-     .podium-item.second{ --podium-portrait-size:clamp(72px, 22vw, 84px); order:2; margin-top:0; }
-     .podium-item.third{ --podium-portrait-size:clamp(72px, 22vw, 84px); order:3; margin-top:0; }
-     .podium-item .podium-portrait,
-     .podium-item .rank-change,
-     .podium-skeleton-item .podium-skeleton-portrait{ margin:0 auto 1.2rem; }
-     .podium-item .name-row{ justify-content:center; }
-     .podium .athlete-name{ font-size:var(--lwc-type-body); }
-     .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); width:28px; height:28px; margin-left:-14px; font-size:.75rem; box-shadow:0 0 0 3px var(--lwc-surface, #fff); }
-     .podium-link-row{ flex-wrap:wrap; max-width:100%; gap:0; }
-     .podium-score{ margin-bottom:var(--lwc-space-2); }
-     .podium-score .age-reduction{ font-size:1.25rem; }
-     .podium-item .podium-item-lower,
-     .podium-item.first .podium-item-lower{ flex:0 0 auto; min-height:0; margin:auto calc(-1 * var(--lwc-space-2)) 0; padding:var(--lwc-space-2) var(--lwc-space-2) var(--lwc-space-3); border-radius:0; }
-     .podium .prize-money,
-     .podium-item.first .prize-money{ font-size:1.25rem; }
-     .podium .btc-amount{ font-size:.7rem; }
-     .podium-item.first{
-         display:grid; grid-template-columns:var(--podium-portrait-size) minmax(0, 1fr); grid-template-areas:"portrait name" "portrait score" "portrait links" "prize prize";
-         column-gap:var(--lwc-space-4); row-gap:0; align-content:start; padding:var(--lwc-space-4) var(--lwc-space-4) 0; text-align:left;
-     }
-     .podium-item.first > .athlete-profile-link,
-     .podium-item.first > .podium-skeleton-portrait{ grid-area:portrait; align-self:start; }
-     .podium-item.first .podium-portrait,
-     .podium-item.first .rank-change,
-     .podium-item.first .podium-skeleton-portrait{ margin:0; }
-     .podium-item.first .podium-rank{ top:calc(var(--lwc-space-4) + var(--podium-portrait-size) - 16px); left:calc(var(--lwc-space-4) + var(--podium-portrait-size) / 2); }
-     .podium-item.first > .name-row{ grid-area:name; justify-content:flex-start; }
-     .podium-item.first .athlete-name{ padding-inline:0; font-size:1.25rem; }
-     .podium-item.first > .podium-link-row{ grid-area:links; justify-self:start; justify-content:flex-start; }
-     .podium-item.first > .podium-score{ grid-area:score; justify-self:start; margin-bottom:0; }
-     .podium-item.first .podium-score .age-reduction{ font-size:1.6rem; text-align:left; }
-     .podium-item.first > .podium-item-lower{ grid-area:prize; margin:var(--lwc-space-4) calc(-1 * var(--lwc-space-4)) 0; flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:var(--lwc-space-2); }
-     .podium-item.first .btc-amount{ margin-top:0; }
-     .podium-skeleton-item.first .age-reduction{ margin-inline:0; }
-
-     /* Enlarged text: each card gets the full width and the champion stacks like
-        the other two, so names wrap between words instead of letter by letter. */
-     @container podium (max-width: 16em) {
-         .podium-item,
-         .podium-item.second,
-         .podium-item.third{ width:100%; }
-         .podium-item.first{
-             max-width:none;
-             grid-template-columns:minmax(0, 1fr); grid-template-areas:"portrait" "name" "score" "links" "prize";
-             justify-items:center; padding:var(--lwc-space-3) var(--lwc-space-3) 0; text-align:center;
-         }
-         .podium-item.first > .athlete-profile-link,
-         .podium-item.first > .podium-skeleton-portrait{ align-self:center; }
-         .podium-item.first .podium-portrait,
-         .podium-item.first .rank-change,
-         .podium-item.first .podium-skeleton-portrait{ margin:0 auto 1.2rem; }
-         .podium-item.first .podium-rank{ top:calc(var(--lwc-space-3) + var(--podium-portrait-size) - 16px); left:50%; }
-         .podium-item.first > .name-row{ justify-content:center; }
-         .podium-item.first > :is(.podium-link-row, .podium-score){ justify-self:center; justify-content:center; }
-         .podium-item.first .podium-score .age-reduction{ text-align:center; }
-         .podium-item.first > .podium-item-lower{ justify-self:stretch; margin-inline:calc(-1 * var(--lwc-space-3)); }
-         .podium .name-row .athlete-name{ overflow-wrap:anywhere; text-align:center; }
-     }
 
      .leaderboard table{ width:100%; table-layout:auto; }
      .leaderboard table th:last-child,
@@ -2634,15 +2316,6 @@
      }
 
      @media (max-width: 360px) {
-         .main-container {
-             margin-left: -0.5rem;
-             margin-right: -0.5rem;
-         }
-
-         .content {
-             padding-left: 0;
-             padding-right: 0;
-         }
 
          .leaderboard-toolbar {
              width: 100%;
@@ -2878,11 +2551,6 @@
              white-space: nowrap;
          }
 
-         .athlete-name {
-             padding-left: 0.25rem;
-             padding-right: 0.25rem;
-         }
-
          .leaderboard table tbody tr:has(.rank[data-place="1"]) { --row-metal: var(--lwc-gold); }
          .leaderboard table tbody tr:has(.rank[data-place="2"]) { --row-metal: var(--lwc-silver); }
          .leaderboard table tbody tr:has(.rank[data-place="3"]) { --row-metal: var(--lwc-bronze); }
@@ -3075,11 +2743,6 @@
          letter-spacing:.06em;
      }
 
-     .content{
-         padding-left:max(.75rem, env(safe-area-inset-left));
-         padding-right:max(.75rem, env(safe-area-inset-right));
-     }
-
      .leaderboard-toolbar{
          flex-direction:row;
          align-items:center;
@@ -3150,10 +2813,6 @@
      .leaderboard{ --portrait-size:34px; }
      .leaderboard .portrait{
          margin:.28rem 0;
-     }
-
-     .athlete-name{
-         padding:.35rem .32rem;
      }
 
      #detailsModal .modal-content:not(.guess-mode){

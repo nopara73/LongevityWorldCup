@@ -10,35 +10,24 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
-    public async Task Homepage_PaintsItsTitleWhileTheIconLibraryIsPending()
+    public async Task Homepage_PaintsItsTitleWhileIconsAndPodiumStylesArePending()
     {
         await using var context = await NewContextAsync(390);
         var page = await context.NewPageAsync();
-        await page.AddInitScriptAsync("""
-            const titleObserver = new MutationObserver(() => {
-                const title = document.querySelector('header .bannertext');
-                if (!title) return;
-                title.setAttribute('elementtiming', 'header-title');
-                titleObserver.disconnect();
-            });
-            titleObserver.observe(document, { childList: true, subtree: true });
-            new PerformanceObserver(list => {
-                if (list.getEntries().some(entry => entry.identifier === 'header-title' && entry.renderTime > 0))
-                    window.titlePainted = true;
-            }).observe({ type: 'element', buffered: true });
-            """);
+        await ObserveFirstScreenPaintAsync(page);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         async Task Hold(IRoute route)
         {
             await release.Task;
             await route.ContinueAsync();
         }
+        await page.RouteAsync("**/css/leaderboard-podium.css*", Hold);
         await page.RouteAsync("**/js/icons.js*", Hold);
         await page.RouteAsync("**/vendor/font-awesome/**/all.min.css*", Hold);
         try
         {
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
-            await page.WaitForFunctionAsync("() => window.titlePainted === true");
+            await page.WaitForFunctionAsync("() => window.firstScreenPaints.has('header-title')");
         }
         finally
         {
@@ -48,32 +37,68 @@ public sealed class HomepageLoadingBrowserTests(
         await Assertions.Expect(page.Locator("link[rel=stylesheet][href*='font-awesome']")).ToHaveAttributeAsync("media", "all");
     }
 
-    [Fact]
-    public async Task Homepage_CanPaintTheServerChampionWhileShareStylesArePending()
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task Homepage_PaintsTheStyledChampionWhileTableStylesAndHeaderScriptsArePending(int width)
     {
-        await using var context = await NewContextAsync(390);
+        await using var context = await NewContextAsync(width);
         var page = await context.NewPageAsync();
+        await ObserveFirstScreenPaintAsync(page);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await page.RouteAsync("**/css/share-sheet.css*", async route =>
+        async Task Hold(IRoute route)
         {
             await release.Task;
             await route.ContinueAsync();
-        });
+        }
+        await page.RouteAsync("**/css/leaderboard-content.css*", Hold);
+        await page.RouteAsync("**/css/share-sheet.css*", Hold);
+        await page.RouteAsync("**/js/celebration.js*", Hold);
+        await page.RouteAsync("**/js/site-header.js*", Hold);
+
+        var portrait = page.Locator(".podium-item.first img.podium-portrait");
+        double paintedWidth;
         try
         {
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
-            var portrait = page.Locator(".podium-item.first img.podium-portrait");
-            await Assertions.Expect(portrait).ToBeVisibleAsync();
-            var src = await portrait.GetAttributeAsync("src");
-            await Assertions.Expect(page.Locator("head link[rel=preload][as=image]")).ToHaveAttributeAsync("href", src!);
-            await page.WaitForFunctionAsync("() => document.querySelector('.podium-item.first img')?.naturalWidth > 0");
+            await page.WaitForFunctionAsync("""
+                () => ['header-title', 'champion-name', 'champion-portrait'].every(id => window.firstScreenPaints.has(id))
+                """);
+            await Assertions.Expect(page.Locator("head link[rel=preload][as=image]")).ToHaveAttributeAsync("href", (await portrait.GetAttributeAsync("src"))!);
+            await Assertions.Expect(portrait).ToHaveCSSAsync("border-radius", "50%");
+            paintedWidth = await portrait.EvaluateAsync<double>("img => img.getBoundingClientRect().width");
         }
         finally
         {
             release.TrySetResult();
         }
+        await ExpectHomepageLoadedAsync(page);
+        Assert.Equal(paintedWidth, await portrait.EvaluateAsync<double>("img => img.getBoundingClientRect().width"), 1);
         await Assertions.Expect(page.Locator("link[href*='/css/share-sheet.css']")).ToHaveAttributeAsync("media", "all");
     }
+
+    private static Task ObserveFirstScreenPaintAsync(IPage page) => page.AddInitScriptAsync("""
+        const pending = new Map([
+            ['header-title', 'header .bannertext'],
+            ['champion-name', '.podium-item.first:not(.podium-skeleton-item) .athlete-name'],
+            ['champion-portrait', '.podium-item.first:not(.podium-skeleton-item) img.podium-portrait']
+        ]);
+        const marker = new MutationObserver(() => {
+            for (const [id, selector] of pending) {
+                const node = document.querySelector(selector);
+                if (!node) continue;
+                node.setAttribute('elementtiming', id);
+                pending.delete(id);
+            }
+            if (!pending.size) marker.disconnect();
+        });
+        marker.observe(document, { childList: true, subtree: true });
+        window.firstScreenPaints = new Set();
+        new PerformanceObserver(list => {
+            for (const entry of list.getEntries())
+                if (entry.renderTime > 0) window.firstScreenPaints.add(entry.identifier);
+        }).observe({ type: 'element', buffered: true });
+        """);
 
     [Fact]
     public async Task Homepage_KeepsPaintedAthletesAndCanFindAthletesOutsideTheTopTen()
