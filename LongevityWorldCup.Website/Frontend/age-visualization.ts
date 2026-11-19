@@ -529,7 +529,13 @@
         radarTweenFrame = requestAnimationFrame(frame);
     }
 
-    function setRadarFocus(chart: RadarChartInstance, index: number): void {
+    function setRadarFocus(chart: RadarChartInstance, index: number, announce = false): void {
+        if (announce || index < 0) {
+            const status = document.getElementById('ageRadarFocus');
+            const text = announce ? [chart.data.labels?.[index], 'Percentile ' + chart.data.datasets[0]?.data[index],
+                ...(chart._radarTooltipContributors?.[index] || [])].join('. ') : '';
+            if (status && status.textContent !== text) status.textContent = text;
+        }
         if ((chart.getActiveElements()[0]?.index ?? -1) === index) return;
         var point = chart.getDatasetMeta(0).data[index];
         var active = point ? [{ datasetIndex: 0, index }] : [];
@@ -579,7 +585,7 @@
             event.preventDefault();
             for (var n = 1; n <= points.length; n++) {
                 var next = (from + n * step + points.length) % points.length;
-                if (!points[next]?.skip) { setRadarFocus(chart, next); break; }
+                if (!points[next]?.skip) { setRadarFocus(chart, next, true); break; }
             }
         }, options);
         radarInput.signal.addEventListener('abort', () => canvas.removeAttribute('tabindex'), { once: true });
@@ -751,6 +757,10 @@
             }
             if (canvas) {
                 canvas.dataset.resultDate = reading.date || '';
+                const details = reading.data.tooltipContributors.flatMap((lines, i) =>
+                    lines.length ? [reading.data.labels[i] + '. ' + lines.join('. ')] : []);
+                if (details.length) canvas.setAttribute('aria-description', details.join('. '));
+                else canvas.removeAttribute('aria-description');
                 canvas.setAttribute('aria-label', (useBortz ? 'Bortz Age' : 'Pheno Age') + ': '
                     + resultLabel(reading) + '. Domain percentiles: ' + reading.data.labels.map(function (label, domainIndex) {
                         var value = reading.data.values[domainIndex];

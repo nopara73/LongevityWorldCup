@@ -622,6 +622,13 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             }
             """));
         await canvas.PressAsync("Home");
+        var contributors = await canvas.EvaluateAsync<string[]>("canvas => Chart.getChart(canvas)._radarTooltipContributors[0]");
+        Assert.NotEmpty(contributors);
+        foreach (var contributor in contributors)
+        {
+            await Expect(page.Locator("#ageRadarFocus")).ToContainTextAsync(contributor);
+            Assert.Contains(contributor, await canvas.GetAttributeAsync("aria-description"));
+        }
         await canvas.PressAsync("ArrowRight");
         await canvas.PressAsync("ArrowRight");
         Assert.True(await canvas.EvaluateAsync<bool>("""
@@ -632,6 +639,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             """));
         await canvas.PressAsync("Escape");
         Assert.True(await canvas.EvaluateAsync<bool>("canvas => !Chart.getChart(canvas).tooltip.getActiveElements().length"));
+        await Expect(page.Locator("#ageRadarFocus")).ToBeEmptyAsync();
         await Expect(canvas).ToBeFocusedAsync();
         await Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
     }
