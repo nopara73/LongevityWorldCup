@@ -2155,7 +2155,7 @@
         el("drilldownBreadcrumb").textContent = `${state.tab} / ${flowLabel(state.selectedFlow)} / ${state.selectedLabel || "all events"}`;
         renderSummary(selected);
         renderSamples(selected);
-        renderTimeline(session, selected);
+        renderTimeline(session, action?.events ?? state.events);
     }
 
     function renderSummary(events: DashboardEvent[]): void {
@@ -2202,7 +2202,7 @@
             updateContent(host, empty("Select an event sample to inspect an anonymous session timeline."));
             return;
         }
-        const rows = state.events
+        const rows = contextEvents
             .filter(e => e.sessionHash === sessionHash)
             .sort((a, b) => a.time - b.time);
         if (!rows.length) {
