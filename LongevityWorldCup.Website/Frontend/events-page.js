@@ -2327,20 +2327,25 @@ const eventsPageAssets = document.currentScript.dataset;
             const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10, restoredFeed?.rendered || 0);
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
-            window.highlightsCalendar?.update(units, row => {
+            window.highlightsCalendar?.update(units, async (row, isCurrent) => {
                 if (!row.isConnected) {
-                    const index = table._feedPending.findIndex(unit => unit[0] === row);
-                    if (index < 0) return;
+                    const pending = table._feedPending;
                     window.clearTimeout(table._feedMoreTimer);
                     table._feedLoadingMore = false;
-                    const added = table._feedPending.splice(0, index + FEED_CHUNK);
-                    appendFeedUnits(table, added);
-                    added.forEach(([event]) => event.classList.add('is-visible'));
+                    // Keep a long archive jump responsive to a second selection.
+                    while (pending.length && !row.isConnected && isCurrent()) {
+                        const added = pending.splice(0, FEED_CHUNK);
+                        appendFeedUnits(table, added);
+                        added.forEach(([event]) => event.classList.add('is-visible'));
+                        if (!row.isConnected && pending.length)
+                            await (window.scheduler?.yield?.() ?? new Promise(resolve => setTimeout(resolve, 0)));
+                    }
+                    if (pending !== table._feedPending) return;
                     mountFeedMore(table);
                     queueMonthHandoff();
                 }
                 // A just-mounted chapter has not received its first resize entry yet.
-                measureMonthHeading(row.parentElement.firstElementChild);
+                if (row.isConnected && isCurrent()) measureMonthHeading(row.parentElement.firstElementChild);
             });
         } else {
             // Keep unchanged rows and their images attached. Reattaching the

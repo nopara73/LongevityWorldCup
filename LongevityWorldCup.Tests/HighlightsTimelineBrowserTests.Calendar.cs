@@ -44,8 +44,19 @@ public sealed partial class HighlightsTimelineBrowserTests
         Assert.Equal(0, await pendingRow.CountAsync());
         var pendingDate = start.AddDays(-3 * 145).AddHours(-8);
         var pendingDay = calendar.Locator($"button[data-day='{pendingDate.Year}-{pendingDate.Month}-{pendingDate.Day}']");
+        await pendingDay.EvaluateAsync("""
+            button => {
+                const count = () => document.querySelectorAll('#eventsTable tr.main-row').length;
+                let before;
+                button.addEventListener('click', () => { before = count(); }, {once:true});
+                button.closest('.event-pulse').addEventListener('click', () => {
+                    window.rowsAddedDuringCalendarClick = count() - before;
+                }, {once:true});
+            }
+            """);
         await pendingDay.PressAsync("Enter");
         await Assertions.Expect(pendingDay).ToHaveAttributeAsync("aria-current", "date");
+        Assert.InRange(await page.EvaluateAsync<int>("window.rowsAddedDuringCalendarClick"), 0, 40);
         Assert.InRange(await pendingRow.EvaluateAsync<double>("""
             row => row.getBoundingClientRect().top - row.parentElement.querySelector('.events-month-row').getBoundingClientRect().bottom
             """), -1, 2);

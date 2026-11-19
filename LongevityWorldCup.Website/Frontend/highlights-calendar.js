@@ -10,6 +10,7 @@
     let currentCell = null;
     let tabStop = null;
     let revealRow;
+    let jump = 0;
 
     function placeCalendar() {
         const parent = wide.matches ? rail : slot;
@@ -75,6 +76,7 @@
     }
 
     function update(units, reveal) {
+        jump++;
         revealRow = reveal;
         const next = new Map();
         let busiest = 0, oldest = Infinity, newest = -Infinity;
@@ -167,10 +169,12 @@
         e.preventDefault();
         target?.cell.focus();
     });
-    grid.addEventListener('click', e => {
+    grid.addEventListener('click', async e => {
         const entry = entries.get(e.target.closest('button')?.dataset.day);
         if (!entry) return;
-        revealRow(entry.row);
+        const request = ++jump;
+        await revealRow(entry.row, () => request === jump);
+        if (request !== jump || !entry.row.isConnected) return;
         entry.row.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
     });
 
