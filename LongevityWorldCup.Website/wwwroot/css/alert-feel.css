@@ -1,10 +1,9 @@
 /* The shared alert's feel (Frontend/alert-feel.ts sets [data-feel] on
-   #custom-alert, .is-speaking + data-speak on the panel, .has-queue and
-   --alert-queue on the dialog). Colours come from the panel's own
+   #custom-alert, .is-speaking + data-speak + data-speak-via on the panel,
+   .has-queue on the dialog). Colours come from the panel's own
    --alert-tone tokens; site-header.css keeps the base look. */
 
 #custom-alert[data-feel] { perspective: 900px; }
-#custom-alert[data-feel] .custom-alert-panel { overflow: clip; }
 
 /* ------------------------------------------------------------ tone bar */
 /* The top edge draws in from the centre, in the tone's colour. */
@@ -67,29 +66,20 @@
 @keyframes alert-breathe { 50% { box-shadow: 0 0 0 6px var(--lwc-surface), 0 0 0 11px var(--alert-tone-soft); } }
 
 /* ------------------------------------------------------------ the message */
-/* The message settles a beat after the medallion, so the eye reads in order. */
-#custom-alert[data-feel] .custom-alert-panel.is-speaking #custom-alert-message {
+/* On arrival the message settles a beat after the medallion, so the eye reads
+   in order. A dealt alert's message is already on screen and stays put. */
+#custom-alert[data-feel] .custom-alert-panel.is-speaking:not([data-speak-via="deal"]) #custom-alert-message {
     animation: alert-message-in 360ms cubic-bezier(.2, 0, 0, 1) 120ms backwards;
 }
 @keyframes alert-message-in { from { opacity: 0; transform: translateY(6px); } }
 
 /* OK answers the press. */
-#custom-alert[data-feel] #custom-alert-close { transition: background-color 160ms ease, scale 160ms cubic-bezier(.34, 1.4, .64, 1), box-shadow 160ms ease; }
-#custom-alert[data-feel] #custom-alert-close:active { scale: .97; }
+@media (prefers-reduced-motion: no-preference) {
+    #custom-alert[data-feel] #custom-alert-close { transition: background-color 160ms ease, scale 160ms cubic-bezier(.34, 1.4, .64, 1), box-shadow 160ms ease; }
+    #custom-alert[data-feel] #custom-alert-close:active { scale: .97; }
+}
 
 /* ------------------------------------------------------------ hand-over */
-#custom-alert[data-feel] .custom-alert-ghost {
-    position: absolute;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    padding: 0 clamp(1.25rem, 5vw, 1.75rem);
-    max-width: 22rem;
-    color: var(--lwc-ink);
-    text-align: center;
-    pointer-events: none;
-}
-#custom-alert[data-feel] .custom-alert-panel.is-handing-over::before { animation: none; }
 /* While the medallion turns over it still wears the previous tone. */
 #custom-alert[data-feel] .custom-alert-panel[data-flip-tone="success"] .custom-alert-mark { background: var(--lwc-success-soft); color: var(--lwc-success); }
 #custom-alert[data-feel] .custom-alert-panel[data-flip-tone="warning"] .custom-alert-mark { background: var(--lwc-warning-soft); color: var(--lwc-warning); }
@@ -130,4 +120,5 @@
     #custom-alert[data-feel] .custom-alert-panel.is-speaking .custom-alert-mark i,
     #custom-alert[data-feel] .custom-alert-panel.is-speaking .custom-alert-mark::after,
     #custom-alert[data-feel] .custom-alert-panel.is-speaking #custom-alert-message { animation: none !important; }
+    #custom-alert[data-feel] .custom-alert-deck > span { transition: none; }
 }
