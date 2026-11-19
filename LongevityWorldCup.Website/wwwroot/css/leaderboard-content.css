@@ -4264,6 +4264,22 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     color:#17212b;
     transition:none;
 }
+#detailsModal .proof-preview-unavailable img{ opacity:0; }
+#detailsModal .proof-preview-unavailable::after{
+    content:"\f00e" / "";
+    position:absolute;
+    inset:0;
+    margin:auto;
+    width:2.75rem;
+    height:2.75rem;
+    display:grid;
+    place-items:center;
+    border:1px solid #b6b6ae;
+    border-radius:50%;
+    color:#445353;
+    font:900 1.15rem/1 "Font Awesome 6 Free";
+    pointer-events:none;
+}
 #detailsModal .proof-number{
     position:absolute;
     top:0;

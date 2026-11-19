@@ -2423,6 +2423,9 @@ function openEnlargedView(imgElement, settings) {
         pushHistory: settings?.pushHistory !== false,
         ownsHistory: state => state?.modal === 'enlarged',
         historyState: (image, index) => ({ modal: 'enlarged', enlargedImage: getEnlargedImageHistoryState(image, { currentImageIndex: index }) }),
+        onLoad(image) {
+            if (image.closest('.proof-preview-unavailable')) image.src = image.dataset.fullSrc || image.src;
+        },
         beforeClose(image) {
             const item = image.closest('.proof-item');
             if (item?.hidden) gallery?._setExpanded?.(true);
@@ -7147,6 +7150,8 @@ function populateProofsGallery(fullAthleteData) {
         ? fullAthleteData.Proofs.filter(Boolean)
         : [];
     const previewCount = 6;
+    const requestId = currentAthleteModalRequestId;
+    const retryDelays = [2000, 10000];
     const toggle = proofsGallery.closest('.proofs-section')?.querySelector('.proofs-toggle');
     proofsGallery.dataset.proofCount = String(proofs.length);
     const setExpanded = expanded => {
@@ -7176,19 +7181,36 @@ function populateProofsGallery(fullAthleteData) {
         const previewUrl = /^\/athletes\/[\w-]+\/proof_[\w.-]+\.(?:webp|png|jpe?g|bmp|gif)(?:\?|$)/i.test(proofUrl)
             ? proofUrl.replace('/athletes/', '/api/proof-previews/')
             : proofUrl;
-        if (previewUrl !== proofUrl) {
-            img.dataset.fullSrc = proofUrl;
-            img.onerror = () => {
-                img.onerror = null;
+        if (previewUrl !== proofUrl) img.dataset.fullSrc = proofUrl;
+        const label = `Enlarge proof image ${index + 1}`;
+        let retries = 0;
+        const isCurrent = () => img.isConnected && requestId === currentAthleteModalRequestId;
+        img.onerror = () => {
+            if (!isCurrent()) return;
+            if (img.getAttribute('src') !== proofUrl) {
                 img.src = proofUrl;
-            };
-        }
-        img.src = previewUrl;
+                return;
+            }
+            proofItem.classList.add('proof-preview-unavailable');
+            img.setAttribute('aria-label', `Open proof ${index + 1} (preview unavailable)`);
+            // Both sources may fail during the same interruption. Start each
+            // retry with the smaller preview and leave other sheets alone.
+            if (retries < retryDelays.length) {
+                window.setTimeout(() => {
+                    if (isCurrent() && proofItem.classList.contains('proof-preview-unavailable')) img.src = previewUrl;
+                }, retryDelays[retries++]);
+            }
+        };
+        img.onload = () => {
+            proofItem.classList.remove('proof-preview-unavailable');
+            img.setAttribute('aria-label', label);
+        };
         img.alt = `Proof image ${index + 1}`;
         img.setAttribute('role', 'button');
         img.setAttribute('tabindex', '0');
-        img.setAttribute('aria-label', `Enlarge proof image ${index + 1}`);
+        img.setAttribute('aria-label', label);
         img.loading = 'lazy';
+        img.src = previewUrl;
         proofItem.appendChild(img);
         const number = document.createElement('span');
         number.className = 'proof-number';
