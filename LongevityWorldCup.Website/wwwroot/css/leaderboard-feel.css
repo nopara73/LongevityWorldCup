@@ -5,7 +5,7 @@
  * the script appends, so the homepage embed and the athlete dialog are
  * untouched. Colours come only from --lwc-* tokens. Movement stays between
  * 140ms and 280ms on the shared motion curves and is switched off entirely by
- * prefers-reduced-motion; the static states (condensed head, ink bar, peek,
+ * prefers-reduced-motion; the static states (condensed head, ink bar,
  * rail) still apply without it.
  */
 
@@ -75,46 +75,6 @@ html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-sw
     background:var(--lwc-accent); pointer-events:none; opacity:0;
 }
 
-/* 5) Peek: the athlete's key numbers beside a resting pointer. */
-.lb-peek-region{ position:fixed; z-index:40; }
-/* Join the 8px gap to the row and stop 1px short of the pointer's column.
-   The card remains reachable at any pointer speed, and vertical scans stay clear. */
-.lb-peek-region::before{
-    position:absolute; left:0; top:0;
-    width:calc(100% + 11px); height:calc(100% + 8px);
-}
-.lb-peek-region:has(> .lb-peek.is-open)::before{ content:""; }
-.lb-peek-region.to-right::before{ left:-11px; }
-.lb-peek-region.below::before{ top:-8px; }
-.lb-peek{
-    position:relative; width:min(16.5rem, calc(100vw - 24px)); box-sizing:border-box;
-    display:grid; gap:var(--lwc-space-2); padding:var(--lwc-space-3) var(--lwc-space-4);
-    background:var(--lwc-surface); color:var(--lwc-ink);
-    border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-md, 10px);
-    box-shadow:var(--lwc-shadow-md);
-    max-height:calc(100dvh - 16px); overflow:auto; overscroll-behavior:contain;
-    font-variant-numeric:tabular-nums;
-}
-.lb-peek[hidden]{ display:none; }
-.lb-peek-top{ display:flex; align-items:center; gap:var(--lwc-space-3); min-width:0; }
-.lb-peek-top > img{ width:44px; height:44px; border-radius:50%; object-fit:cover; flex:none; box-shadow:0 0 0 2px var(--lwc-surface), 0 0 0 3px var(--lwc-border); }
-.lb-peek-id{ display:grid; min-width:0; line-height:1.2; }
-.lb-peek-rank{ color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; }
-.lb-peek-rank::before{ content:"#"; }
-.lb-peek-name{ font-weight:700; overflow-wrap:anywhere; }
-.lb-peek-metric{
-    font-size:1.5rem; font-weight:800; line-height:1.25; letter-spacing:-.01em; color:var(--lwc-accent); overflow-wrap:anywhere;
-    padding-bottom:var(--lwc-space-2); border-bottom:1px solid var(--lwc-border);
-}
-.lb-peek-facts{ display:flex; flex-wrap:wrap; gap:var(--lwc-space-2) var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
-.lb-peek-facts > span{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:.4em; }
-.lb-peek-facts i{ font-size:.8em; opacity:.8; }
-.lb-peek-age{ color:var(--lwc-ink); font-weight:700; }
-.lb-peek-age.is-bio{ color:var(--lwc-accent); }
-.lb-peek-spark{ width:100%; height:32px; overflow:visible; }
-.lb-peek-spark polyline{ fill:none; stroke:var(--lwc-accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; opacity:.75; }
-.lb-peek-spark circle{ fill:var(--lwc-accent); stroke:var(--lwc-surface); stroke-width:1.5; }
-
 /* Rows: a pointer brings an accent edge forward; a press gives way. */
 @media (hover:hover) and (pointer:fine){
     main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name] > td:first-child{
@@ -174,7 +134,6 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
     main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]{
         scroll-margin-top:calc(var(--board-sticky-top, 52px) + var(--board-head-height, 52px) + 8px);
     }
-    .lb-peek{ display:none; }
 }
 
 @media (prefers-reduced-motion:no-preference){
@@ -194,11 +153,11 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
     }
     .lb-rail-thumb{ transition:scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease); }
 }
-html:not([data-lwc-motion="on"]) :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+html:not([data-lwc-motion="on"]) :is(.lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
 html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg),
 html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard th::after{ transition:none !important; }
 @media (prefers-reduced-motion:reduce){
-    :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+    :is(.lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
     main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg){ transition:none !important; }
 }
 

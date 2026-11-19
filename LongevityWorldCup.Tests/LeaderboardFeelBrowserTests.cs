@@ -10,7 +10,7 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
 {
     private const string Rows = "#athleteLeaderboard > table > tbody > tr[data-athlete-name]";
 
-    private async Task<(IBrowserContext Context, IPage Page)> OpenAsync(int width = 1440, bool reduce = false, bool crowdFixture = false)
+    private async Task<(IBrowserContext Context, IPage Page)> OpenAsync(int width = 1440, bool reduce = false, bool crowdFixture = false, string path = "/leaderboard")
     {
         var context = await NewContextAsync(Browser, App, new()
         {
@@ -26,7 +26,7 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
             }
         });
         var page = await context.NewPageAsync();
-        await NavigateAndSettleAsync(page, "/leaderboard");
+        await NavigateAndSettleAsync(page, path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         return (context, page);
     }
@@ -263,6 +263,11 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         var peek = page.Locator("#leaderboard-peek");
         var name = peek.Locator(".lb-peek-name");
 
+        // Layout can send a boundary event when scrolling a row under a stationary mouse.
+        await first.Locator(".rank").DispatchEventAsync("pointerover", new { pointerType = "mouse" });
+        await page.Clock.RunForAsync(500);
+        await Assertions.Expect(peek).ToBeHiddenAsync();
+
         // Deliver the scroll notification after the pointer is already at its new position.
         await first.EvaluateAsync("""
             row => row.addEventListener('pointerover', () => requestAnimationFrame(() => window.dispatchEvent(new Event('scroll'))), { once: true })
@@ -278,6 +283,10 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         var pointerX = scoreBox.X + scoreBox.Width / 2;
         var gap = Math.Max(cardBox.X - pointerX, pointerX - (cardBox.X + cardBox.Width));
         Assert.InRange(gap, 10, 14);
+        var scanX = pointerX + (cardBox.X > pointerX ? 3 : -3);
+        Assert.False(await page.EvaluateAsync<bool>(
+            "([x, y]) => !!document.elementFromPoint(x, y)?.closest('.lb-peek-region')",
+            new double[] { scanX, cardBox.Y + cardBox.Height / 2 }));
         await Assertions.Expect(first.Locator(".athlete-name")).Not.ToHaveAttributeAsync("aria-describedby", "leaderboard-peek");
 
         // Pause between the row and the card for longer than its dismissal delay.
@@ -295,6 +304,36 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         await second.Locator("a.media-contact").HoverAsync();
         await Assertions.Expect(page.Locator(".lwc-tip")).ToBeVisibleAsync();
         await Assertions.Expect(peek).ToBeHiddenAsync();
+    }
+
+    [Theory]
+    [InlineData("/", 1440, false)]
+    [InlineData("/", 390, true)]
+    [InlineData("/leaderboard", 700, false)]
+    public async Task FirstMouseHover_IdentifiesTheAthleteAcrossTheRow(string path, int width, bool reduce)
+    {
+        var (context, page) = await OpenAsync(width, reduce, path: path);
+        await using var _ = context;
+        var rows = page.Locator(Rows + ":visible");
+        var row = rows.Nth(1);
+        var name = row.Locator(".athlete-name");
+        var face = row.Locator(".portrait-wrapper");
+        await row.ScrollIntoViewIfNeededAsync();
+        await page.Mouse.MoveAsync(1, 1);
+        var restingColor = await name.EvaluateAsync<string>("el => getComputedStyle(el).color");
+        await row.Locator(".age-reduction").HoverAsync();
+        await Assertions.Expect(name).Not.ToHaveCSSAsync("color", restingColor);
+        await Assertions.Expect(face).ToHaveCSSAsync("translate", reduce ? "none" : "2px -2px");
+        var card = page.Locator("#leaderboard-peek");
+        await Assertions.Expect(card.Locator(".lb-peek-name")).ToHaveTextAsync(await name.InnerTextAsync());
+        var bounds = (await card.BoundingBoxAsync())!;
+        Assert.InRange(bounds.X, 0, width - bounds.Width + 1);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(card).ToBeHiddenAsync();
+        var next = rows.Nth(2);
+        await next.Locator(".rank").HoverAsync();
+        await Assertions.Expect(card.Locator(".lb-peek-name")).ToHaveTextAsync(await next.Locator(".athlete-name").InnerTextAsync());
+        await Assertions.Expect(name).ToHaveCSSAsync("color", restingColor);
     }
 
     [Theory]

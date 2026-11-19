@@ -531,9 +531,11 @@ public sealed class AthletePortraitMotionBrowserTests(
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task HoverBeforePortraitLoads_PlaysOnlyIfThePointerRemains(bool remainHovered)
+    [InlineData(true, ".portrait")]
+    [InlineData(false, ".portrait")]
+    [InlineData(true, ".age-reduction")]
+    [InlineData(false, ".age-reduction")]
+    public async Task HoverBeforePortraitLoads_PlaysOnlyIfThePointerRemains(bool remainHovered, string hoverTarget)
     {
         await using var context = await NewContextAsync();
         await context.AddInitScriptAsync("window.holdTableMotion = true");
@@ -551,8 +553,9 @@ public sealed class AthletePortraitMotionBrowserTests(
         {
             var page = await LoadAsync(context, "/leaderboard");
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
-            var image = page.Locator(".leaderboard a[href='/athlete/anna-buky'] img.portrait").First;
-            await image.HoverAsync();
+            var row = page.Locator(".leaderboard tr[data-athlete-name]").Filter(new() { Has = page.Locator("a[href='/athlete/anna-buky']") }).First;
+            var image = row.Locator("img.portrait");
+            await row.Locator(hoverTarget).HoverAsync();
             Assert.Equal(0, await image.EvaluateAsync<int>("img => img.naturalWidth"));
             var peekName = page.Locator("#leaderboard-peek .lb-peek-name");
             var athleteName = await image.EvaluateAsync<string>("img => img.closest('tr').querySelector('.athlete-name').textContent.trim()");

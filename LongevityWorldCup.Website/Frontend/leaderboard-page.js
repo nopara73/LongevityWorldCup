@@ -574,6 +574,12 @@ function initializeAthletePortraitMotion() {
         }
     }
 
+    function hasPortraitIntent(img, directHover = img.matches(':hover')) {
+        const link = img.closest('a');
+        if (directHover || document.activeElement === img || (link && document.activeElement === link)) return true;
+        return !!img.closest('tr[data-athlete-name]:hover')?.querySelector('.athlete-name[aria-describedby~="leaderboard-peek"]');
+    }
+
     // Keep the still and clip in one bitmap rendering path. Returning to the
     // responsive <img> would change sharpness, even with a matching crop.
     function surfaceFor(img, motion) {
@@ -650,7 +656,7 @@ function initializeAthletePortraitMotion() {
             ready = true;
             entrance?.cancel();
             follow();
-            if (img.matches(':hover') || document.activeElement === img || document.activeElement === img.closest('a')) play(img);
+            if (hasPortraitIntent(img)) play(img);
             if (reducedMotion.matches) return;
             if (img === profile && profileReady(motion) && profilePlayed !== motion) visiblePortraits?.observe(img);
             else if (podium?.contains(img) && athleteResultsReady && !podiumPlayed.has(motion)) visiblePortraits?.observe(img);
@@ -816,6 +822,9 @@ function initializeAthletePortraitMotion() {
             if (pointerInside) play(img);
         });
         img.addEventListener('pointerleave', () => { pointerInside = false; });
+        img.addEventListener('lwc:portrait-preview', () => {
+            if (!pointerInside && !active.has(img)) play(img);
+        });
         img.addEventListener('focus', () => play(img));
         link?.addEventListener('focus', () => play(img));
         // Lazy table photos may finish loading after the first pointer entry.
@@ -825,7 +834,7 @@ function initializeAthletePortraitMotion() {
             // Table images only need a motion surface when someone activates them.
             const motion = motionFor(img);
             if (img === profile && motion) surfaceFor(img, motion);
-            if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
+            if (hasPortraitIntent(img, pointerInside)) play(img);
         });
         if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
     }
