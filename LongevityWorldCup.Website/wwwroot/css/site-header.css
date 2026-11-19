@@ -2616,12 +2616,26 @@ html:has(#site-menu[open][data-page-scrollbar]) { scrollbar-gutter: stable; }
         transform: translateY(-4px);
         transition: opacity 120ms ease, transform 160ms ease;
     }
+
+    /* The indicator folds with its tile, and the Escape that closes the menu
+       does not flash a focus ring on the tile that held focus. */
+    .site-menu.is-closing .site-menu-pages .nav-glide {
+        opacity: 0;
+        transition: opacity 120ms ease;
+    }
+
+    #site-menu.is-closing .footer-link:focus-visible {
+        outline-color: transparent;
+    }
 }
 
+/* The deal moves the tiles and icons, never fades them: the panel's first
+   visible frame already holds readable links (see "Keep menu content
+   readable during arrival"). */
 @keyframes site-menu-tile-in {
-    from { opacity: 0; transform: translateY(8px); }
+    from { transform: translateY(8px); }
 }
 
 @keyframes site-menu-icon-in {
-    from { opacity: 0; transform: scale(0.6); }
+    from { transform: scale(0.6); }
 }

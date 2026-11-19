@@ -613,6 +613,9 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         if (isOpen() || !customAlertDialog.hidden || !loadingDialog.hidden || !build()) return;
         clearTimeout(closeTimer);
         opener = fromToggle || document.activeElement;
+        // Read before showModal() moves focus into the menu: :focus-visible
+        // only matches the element that still has focus.
+        const fromKeyboard = Boolean(opener && opener.matches && opener.matches(':focus-visible'));
         resetDrag();
         menu.classList.remove('is-closing');
         menu.dataset.layout = sheetQuery.matches ? 'sheet' : 'panel';
@@ -626,7 +629,6 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         menu.classList.add('is-open');
         // A keyboard opening lands on the first link; a pointer opening rests
         // on the current page (or the panel) so no link looks pre-selected.
-        const fromKeyboard = Boolean(opener && opener.matches && opener.matches(':focus-visible'));
         const current = body.querySelector('.site-menu-pages [aria-current="page"]')
             || (fromKeyboard ? body.querySelector('.footer-link') : null);
         (current || panel).focus({ preventScroll: true });
