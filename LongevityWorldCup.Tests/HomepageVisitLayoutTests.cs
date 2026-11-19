@@ -24,7 +24,8 @@ public sealed class HomepageVisitLayoutTests(
         await context.AddInitScriptAsync("""
             localStorage.setItem('lwcHomepageVisitCount:v1', '3');
             const firstSection = new MutationObserver(() => {
-                const section = document.querySelector('main > :is(.main-container, .lwc-highlights-countdown-wrapper)');
+                const section = [...document.querySelectorAll('main > :is(.main-container, .lwc-highlights-countdown-wrapper)')]
+                    .find(candidate => candidate.getClientRects().length);
                 if (!section) return;
                 window.highlightsOpenedFirst = section.matches('.lwc-highlights-countdown-wrapper');
                 firstSection.disconnect();

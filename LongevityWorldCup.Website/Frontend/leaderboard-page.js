@@ -1875,7 +1875,6 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
                         podiumItem.innerHTML = `
                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
-                                ${podiumSymbol(rankClass)}
                             </div>
                             <a class="athlete-profile-link" href="${escapeHtml(profileHref)}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${escapeHtml(athlete.displayName)} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
                             <div class="name-row">
@@ -2471,10 +2470,6 @@ function renderMediaContact(contact, isPodium, athleteName) {
     </a>`;
 }
 
-function podiumSymbol(name) {
-    return `<svg class="podium-symbol" aria-hidden="true" focusable="false"><use href="#podium-${name}"></use></svg>`;
-}
-
 function updatePodiumLinks(row, athlete) {
     const template = document.createElement('template');
     template.innerHTML = renderPersonalLink(athlete.personalLink, athlete.displayName)
@@ -2506,18 +2501,14 @@ function updatePodiumLinks(row, athlete) {
 function renderPersonalLink(link, athleteName) {
     const href = window.normalizeWebUrl(link);
     if (!href) return '';
-    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="${escapeHtml(`Visit personal page of ${athleteName}`)}">
-        ${podiumSymbol('link')}
-    </a>`;
+    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="${escapeHtml(`Visit personal page of ${athleteName}`)}"></a>`;
 }
 
 function renderPodcastLink(link, athleteName) {
     const href = window.normalizeWebUrl(link);
     if (!href) return '';
     const label = escapeHtml(`Listen to ${athleteName}'s podcast appearance`);
-    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="${label}" title="${label}">
-        ${podiumSymbol('podcast')}
-    </a>`;
+    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="${label}" title="${label}"></a>`;
 }
 
 const modal = document.getElementById("detailsModal");

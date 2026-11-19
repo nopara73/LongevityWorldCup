@@ -19,7 +19,7 @@ public static class LeaderboardHtmlRenderer
             var place = new[] { "1st", "2nd", "3rd" }[row.Rank - 1];
             var blurred = visibleSlugs.Contains(row.Slug) ? "" : " blurred";
             sb.Append($"<div class=\"podium-item {rankClass}{blurred}\" data-athlete-name=\"{EncodeAttribute(row.AthleteName ?? row.DisplayName)}\">")
-                .Append($"<div class=\"podium-rank\" title=\"{place} Place\">{PodiumSymbol(rankClass)}</div>")
+                .Append($"<div class=\"podium-rank\" title=\"{place} Place\"></div>")
                 .Append($"<a class=\"athlete-profile-link\" href=\"{EncodeAttribute(row.AthletePath)}\" aria-label=\"View stats of {EncodeAttribute(row.DisplayName)}\"><img src=\"{EncodeAttribute(row.LeaderboardThumbnailUrl)}\" alt=\"{EncodeAttribute(row.DisplayName)} portrait\" class=\"podium-portrait\" {PodiumPortraitLoading(row.Rank)}></a>")
                 .Append($"<div class=\"name-row\"><a class=\"athlete-name\" href=\"{EncodeAttribute(row.AthletePath)}\" title=\"View stats of {EncodeAttribute(row.DisplayName)}\">{EncodeText(row.DisplayName)}</a></div>")
                 .Append(RenderPodiumLinks(athlete))
@@ -29,29 +29,26 @@ public static class LeaderboardHtmlRenderer
         return sb.ToString();
     }
 
-    private static string PodiumSymbol(string name) =>
-        $"<svg class=\"podium-symbol\" aria-hidden=\"true\" focusable=\"false\"><use href=\"#podium-{name}\"></use></svg>";
-
     private static string RenderPodiumLinks(PublicAthlete athlete)
     {
         var row = athlete.Row;
         var name = row.DisplayName;
         var links = new StringBuilder("<div class=\"podium-link-row\">");
-        void AddLink(string? href, string kind, string glyph, string label, string title)
+        void AddLink(string? href, string kind, string label, string title)
         {
             if (href is null) return;
             links.Append($"<a href=\"{EncodeAttribute(href)}\" target=\"_blank\" rel=\"noopener\" class=\"personal-link-icon podium-{kind}-link\" aria-label=\"{EncodeAttribute(label)}\" title=\"{EncodeAttribute(title)}\"")
-                .Append(kind == "media" ? " data-contact-glyph" : "").Append('>').Append(PodiumSymbol(glyph)).Append("</a>");
+                .Append(kind == "media" ? " data-contact-glyph" : "").Append("></a>");
         }
 
-        AddLink(PublicWebUrl(athlete.Source["PersonalLink"]?.ToString()), "personal", "link", "Visit athlete's personal page", $"Visit personal page of {name}");
+        AddLink(PublicWebUrl(athlete.Source["PersonalLink"]?.ToString()), "personal", "Visit athlete's personal page", $"Visit personal page of {name}");
         var podcastLabel = $"Listen to {name}'s podcast appearance";
-        AddLink(PublicWebUrl(athlete.Source["PodcastLink"]?.ToString()), "podcast", "podcast", podcastLabel, podcastLabel);
+        AddLink(PublicWebUrl(athlete.Source["PodcastLink"]?.ToString()), "podcast", podcastLabel, podcastLabel);
         var contact = row.MediaContact;
         if (contact.StartsWith('@'))
             links.Append($"<span class=\"media-contact-handle\" title=\"{EncodeAttribute($"Contact {name}")}\">{EncodeText(contact)}</span>");
         else if (PublicWebUrl(contact) is { } href)
-            AddLink(href, "media", "contact", $"Contact {name}", $"Contact {name}");
+            AddLink(href, "media", $"Contact {name}", $"Contact {name}");
         else if (!string.IsNullOrWhiteSpace(athlete.Source["MediaContact"]?.ToString()))
             // The public HTML omits email addresses. Keep the eventual touch target's footprint.
             links.Append("<span class=\"podium-contact-slot\" aria-hidden=\"true\"></span>");

@@ -97,6 +97,14 @@
     }
 }
 
+/* The repeat-visit board holds its desktop column while the shelf is parsed. */
+.homepage-main[data-homepage-visit-layout="repeat"] > [data-homepage-shelf] { display:none; }
+@media (min-width: 992px) {
+    .homepage-main[data-homepage-visit-layout="repeat"] > .lwc-highlights-countdown-wrapper:not(:has(#lwc-countdown-box))::after {
+        content:""; flex:1 1 0;
+    }
+}
+
 html body main.homepage-main {
     --home-gap: var(--lwc-space-5);
     --home-card-inset: 20px;

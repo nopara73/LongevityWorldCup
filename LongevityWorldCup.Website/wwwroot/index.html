@@ -119,7 +119,6 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     <a href="/about">longevity&nbsp;leaderboards</a>
 </p>
 
-<template id="homepage-highlights"><!--HOMEPAGE-HIGHLIGHTS--></template>
 <script>
 (() => {
     const main = document.currentScript.closest('main');
@@ -150,10 +149,11 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     }
 })();
 </script>
+<template id="homepage-highlights"><div class="lwc-highlights-countdown-wrapper"><div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div></div></template>
 <script>
     if (document.currentScript.closest('main').dataset.homepageVisitLayout === 'repeat') {
-        const template = document.getElementById('homepage-highlights');
-        template.replaceWith(template.content);
+        const board = document.getElementById('homepage-highlights');
+        board.replaceWith(board.content);
     }
 </script>
 <!--LEADERBOARD-CONTENT-->
@@ -163,15 +163,22 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     </a>
 </div>
 
-<noscript><!--HOMEPAGE-HIGHLIGHTS--></noscript>
+<!--HOMEPAGE-HIGHLIGHTS-->
 <script>
-    // First visits keep the standings first, including with scripting disabled.
-    const highlightsTemplate = document.getElementById('homepage-highlights');
-    if (highlightsTemplate) {
-        document.currentScript.before(highlightsTemplate.content);
-        highlightsTemplate.remove();
+    // Keep the actual board, its View all link and keyboard focus in place.
+    {
+        const shelf = document.currentScript.previousElementSibling;
+        const board = document.getElementById('homepage-highlights');
+        if (board) {
+            shelf.prepend(board.content.querySelector('#events-root-index'));
+            board.remove();
+        } else {
+            document.getElementById('events-root-index').after(shelf.querySelector('#lwc-countdown-box'));
+            shelf.remove();
+        }
     }
 </script>
+<!--HOMEPAGE-LEADERBOARD-RUNTIME-->
 <!--HOMEPAGE-EVENT-RUNTIME-->
 
 

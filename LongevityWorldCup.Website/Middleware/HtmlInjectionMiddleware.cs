@@ -122,19 +122,18 @@ namespace LongevityWorldCup.Website.Middleware
                     var progressBar = await ReadPartialAsync("main-progress-bar.html", bodyContent.Contains("<!--MAIN-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var subProgressBar = await ReadPartialAsync("sub-progress-bar.html", bodyContent.Contains("<!--SUB-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var needsAthleteDialogRuntime = !containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path);
-                    var leaderboardContent = CompactStaticTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
+                    var leaderboardContent = CompactStaticMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
                     var guessMyAge = await ReadPartialAsync("guess-my-age.html",
                         bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
                     var homepageHighlights = await ReadPartialAsync("homepage-highlights.html", bodyContent.Contains("<!--HOMEPAGE-HIGHLIGHTS-->", StringComparison.Ordinal));
                     var eventBoardContent = await ReadPartialAsync("event-board-content.html", homepageHighlights.Length > 0 || bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
                     if (homepageHighlights.Length > 0)
                     {
-                        // Only markup belongs in an inert template. Classic scripts keep their
-                        // parser ordering and run once, whichever section leads this visit.
+                        // Parse both sections before running their classic scripts, in their original order.
                         var events = eventBoardContent.Split("<!--EVENT-BOARD-RUNTIME-->", 2, StringSplitOptions.None);
-                        bodyContent = bodyContent.Replace("<!--HOMEPAGE-HIGHLIGHTS-->", homepageHighlights, StringComparison.Ordinal)
+                        bodyContent = bodyContent.Replace("<!--HOMEPAGE-HIGHLIGHTS-->", CompactStaticMarkup(homepageHighlights), StringComparison.Ordinal)
                             .Replace("<!--HOMEPAGE-EVENT-RUNTIME-->", events[1], StringComparison.Ordinal);
-                        eventBoardContent = events[0];
+                        eventBoardContent = CompactStaticMarkup(events[0]);
                     }
                     var ageVisualization = await ReadPartialAsync("age-visualization.html",
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
@@ -202,11 +201,19 @@ namespace LongevityWorldCup.Website.Middleware
                         header = RemoveHeaderTagline(header);
                     }
 
-                    // On a populated homepage the browser can paint the real podium before
-                    // executing the header scripts. Preserve their order ahead of the board runtime.
                     header = header.Replace("<!--HEADER-RUNTIME-->", championPortrait is null ? HeaderRuntime : string.Empty);
                     leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null
                         ? string.Empty : HeaderRuntime + "\n" + HomepagePodiumAssets.SectionStyles);
+                    if (homepageHighlights.Length > 0)
+                    {
+                        var runtime = leaderboardContent.IndexOf(LeaderboardRuntimeScriptsStartMarker, StringComparison.Ordinal);
+                        if (runtime >= 0)
+                        {
+                            var scripts = leaderboardContent[(runtime + LeaderboardRuntimeScriptsStartMarker.Length)..];
+                            bodyContent = bodyContent.Replace("<!--HOMEPAGE-LEADERBOARD-RUNTIME-->", scripts, StringComparison.Ordinal);
+                            leaderboardContent = leaderboardContent[..runtime];
+                        }
+                    }
                     // These template boundaries are only used while assembling the response.
                     leaderboardContent = Regex.Replace(leaderboardContent, @"<!--(?:LEADERBOARD|ATHLETE-DIALOG|ORDER)-[A-Z-]+-->", string.Empty);
 
@@ -342,13 +349,9 @@ namespace LongevityWorldCup.Website.Middleware
             };
         }
 
-        private static string CompactStaticTableMarkup(string html) => Regex.Replace(
-            html,
-            @"<table(?: class=""athlete-info-table""[^>]*)?>.*?</table>",
-            // Compact only static leaderboard/profile table tag indentation,
-            // before athlete content is injected. Keep all inter-element line breaks.
-            table => Regex.Replace(table.Value, @"(?m)^[ \t]+(?=<)", string.Empty),
-            RegexOptions.Singleline);
+        // These static fragments contain ordinary HTML. Keep line breaks between
+        // elements and perform this before injecting any athlete-authored content.
+        private static string CompactStaticMarkup(string html) => Regex.Replace(html, @"(?m)^[ \t]+(?=<)", string.Empty);
 
         private static bool TryBuildAthleteDialogRuntime(string leaderboardContent, out string runtime)
         {

@@ -113,7 +113,7 @@ public sealed class HomepageArrivalBrowserTests(
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
-    public async Task LateParsedContent_RemainsVisibleWithoutRestartingTheEntrance(int width)
+    public async Task DelayedRuntime_KeepsTheParsedSectionsVisibleWithoutRestartingTheEntrance(int width)
     {
         await using var context = await NewContextAsync(width);
         await HoldOpeningFrameAsync(context);
@@ -147,17 +147,16 @@ public sealed class HomepageArrivalBrowserTests(
         {
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
             await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
-            // The preload scanner can request the held runtime ahead of the parser.
-            // Wait for the standings, while the lower sections are still absent.
-            await Assertions.Expect(page.Locator("#athleteLeaderboard")).ToBeAttachedAsync();
-            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+            // Both sections are available before the shared board runtime runs.
+            await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeAttachedAsync();
+            await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
             await page.EvaluateAsync("window.releaseOpeningFrame()");
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
             Assert.Equal(new[] { "main-logo-image", "podium-item first", "podium-item second", "podium-item third" },
                 await page.EvaluateAsync<string[]>("arrivalTargets"));
             Assert.DoesNotContain("events-root-index", await page.EvaluateAsync<string[]>("arrivalTargets"));
-            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+            await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
         }
         finally
         {
