@@ -41,6 +41,12 @@
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    :root[data-lwc-touch] [data-lwc-pressed="control"] {
+        filter: brightness(.86);
+    }
+}
+
 /* Cards and rows also tint, so the press reads with reduced motion too. */
 :root[data-lwc-touch] [data-lwc-pressed="card"] {
     box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--lwc-accent) 7%, transparent);

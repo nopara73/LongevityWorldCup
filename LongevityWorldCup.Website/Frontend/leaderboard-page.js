@@ -557,7 +557,7 @@ function initializeAthletePortraitMotion() {
         }
     ];
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const wired = new WeakSet();
+    const bindings = new WeakMap();
     const active = new Map();
     const surfaces = new Map();
     const podiumPlayed = new Set();
@@ -653,7 +653,7 @@ function initializeAthletePortraitMotion() {
         };
         const resize = new ResizeObserver(size);
         const record = {
-            motion, wrapper, live, context, sync, size, follow,
+            motion, wrapper, live, context, sync, follow,
             setPlaying(value) {
                 playing = value;
                 if (value) { cancelAnimationFrame(frame); frame = 0; }
@@ -719,11 +719,10 @@ function initializeAthletePortraitMotion() {
         video.hidden = true;
         const surface = portrait.live;
         const context = portrait.context;
-        portrait.setPlaying(true);
         let frame = 0;
         let finishFrame = 0;
         let fadeTimer = 0;
-        let firstPaint = null;
+        let visibleSince = 0;
         let finishing = false;
         let replayRequested = false;
         const stop = () => {
@@ -748,12 +747,11 @@ function initializeAthletePortraitMotion() {
                     surface.height = video.videoHeight;
                 }
                 context.drawImage(video, 0, 0, surface.width, surface.height);
-                firstPaint ??= now;
                 // Blend while the clip is still moving. Its first/last frames
                 // return to the photo's pose; ended only clears an invisible
                 // surface, rather than starting a frozen-frame dissolve.
                 const remaining = Number.isFinite(video.duration) ? (video.duration - video.currentTime) * 1000 : Infinity;
-                const blend = Math.max(0, Math.min(1, (now - firstPaint) / 180, remaining / 280));
+                const blend = Math.max(0, Math.min(1, (now - visibleSince) / 180, remaining / 280));
                 surface.style.opacity = `${blend * blend * (3 - 2 * blend)}`;
             }
             frame = requestAnimationFrame(syncOverlay);
@@ -772,7 +770,13 @@ function initializeAthletePortraitMotion() {
             fadeTimer = window.setTimeout(complete, 80);
         };
         active.set(img, { motion, stop, replay: () => { if (finishing) replayRequested = true; } });
-        video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+        video.addEventListener('playing', () => {
+            if (active.get(img)?.stop !== stop) return;
+            visibleSince = performance.now() - Math.min(180, video.currentTime * 1000);
+            video.classList.add('is-playing');
+            portrait.setPlaying(true);
+            syncOverlay();
+        }, { once: true });
         video.addEventListener('ended', finish, { once: true });
         video.addEventListener('error', stop, { once: true });
         for (const [extension, type] of [['webm', 'video/webm'], ['mp4', 'video/mp4']]) {
@@ -788,30 +792,33 @@ function initializeAthletePortraitMotion() {
         }
         img.after(video);
         video.play().catch(stop);
-        frame = requestAnimationFrame(now => {
-            portrait.size();
-            syncOverlay(now);
-        });
         return true;
     }
 
-    function wire(img) {
-        if (wired.has(img) || !motionFor(img)) return;
-        wired.add(img);
-        let pointerInside = false;
+    function wire(img, motion) {
+        const previous = bindings.get(img);
+        if (!motion && !previous) return;
         const link = img.closest('a');
+        if (previous && previous.motion === motion && previous.link === link) return;
+        previous?.controller.abort();
+        bindings.delete(img);
+        if (!motion) return;
+        const controller = new AbortController();
+        const options = { passive: true, signal: controller.signal };
+        bindings.set(img, { link, motion, controller });
+        let pointerInside = false;
         const follow = () => surfaces.get(img)?.follow();
-        for (const event of ['pointermove', 'pointerenter', 'pointerleave', 'pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur']) img.addEventListener(event, follow, { passive: true });
+        for (const event of ['pointermove', 'pointerenter', 'pointerleave', 'pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur']) img.addEventListener(event, follow, options);
         img.addEventListener('pointerenter', event => {
             pointerInside = event.pointerType !== 'touch';
             if (pointerInside) play(img);
-        });
-        img.addEventListener('pointerleave', () => { pointerInside = false; });
+        }, options);
+        img.addEventListener('pointerleave', () => { pointerInside = false; }, options);
         img.addEventListener('lwc:portrait-preview', () => {
             if (!pointerInside && !active.has(img)) play(img);
-        });
-        img.addEventListener('focus', () => play(img));
-        link?.addEventListener('focus', () => play(img));
+        }, options);
+        img.addEventListener('focus', () => play(img), options);
+        link?.addEventListener('focus', () => play(img), options);
         // Lazy table photos may finish loading after the first pointer entry.
         // Replay then only if that interaction is still active.
         img.addEventListener('load', () => {
@@ -820,8 +827,8 @@ function initializeAthletePortraitMotion() {
             const motion = motionFor(img);
             if (img === profile && motion) surfaceFor(img, motion);
             if (hasPortraitIntent(img, pointerInside)) play(img);
-        });
-        if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
+        }, options);
+        if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motion);
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
@@ -833,7 +840,7 @@ function initializeAthletePortraitMotion() {
                 const motion = motionFor(img);
                 if (img === profile) {
                     if (!profileReady(motion) || profilePlayed === motion) return;
-                } else if (podiumPlayed.has(motion)) return;
+                } else if (!athleteResultsReady || !podium?.contains(img) || podiumPlayed.has(motion)) return;
                 play(img);
             };
             if (img.complete) start();
@@ -849,59 +856,80 @@ function initializeAthletePortraitMotion() {
             && motion;
     }
 
-    function scan(records) {
-        const profileOnly = records && records.every(record => profileModal?.contains(record.target));
-        for (const [img, portrait] of surfaces) {
-            if (profileOnly && img !== profile) continue;
-            if (!img.isConnected || motionFor(img) !== portrait.motion || img.parentElement !== portrait.wrapper) portrait.dispose();
+    function updateBinding(img, motion) {
+        const surface = surfaces.get(img);
+        if (surface && (surface.motion !== motion || surface.wrapper !== img.parentElement)) surface.dispose();
+        wire(img, motion);
+    }
+
+    const boardPortrait = 'img.portrait, img.podium-portrait';
+    function updateBoardImage(img) {
+        const onPodium = podium?.contains(img);
+        const motion = onPodium || leaderboard?.contains(img) ? motionFor(img) : null;
+        updateBinding(img, motion);
+        // Direct interaction works on the first rendered photo. Only automatic
+        // playback waits for the rankings to confirm which winners are visible.
+        if (onPodium && athleteResultsReady && motion && !podiumPlayed.has(motion) && !reducedMotion.matches) {
+            visiblePortraits?.observe(img);
+        } else {
+            visiblePortraits?.unobserve(img);
         }
-        for (const [img, playback] of active) {
-            if (!img.isConnected || motionFor(img) !== playback.motion) playback.stop();
-        }
-        // Paging changes the profile, not the hundreds of portraits behind it.
-        // Only a board mutation (or the initial scan) needs to recheck those photos.
-        if (!records || records.some(record => !profileModal?.contains(record.target))) {
-            // Server-rendered rows also work while hydration is pending or fails.
-            leaderboard?.querySelectorAll('img.portrait').forEach(wire);
-            // Start autoplay after the ranking has confirmed the final portraits.
-            if (athleteResultsReady) {
-                podium?.querySelectorAll('img.podium-portrait').forEach(img => {
-                    wire(img);
-                    const motion = motionFor(img);
-                    if (motion && !podiumPlayed.has(motion) && !reducedMotion.matches) visiblePortraits?.observe(img);
-                });
+    }
+
+    function updatePodium() {
+        podium?.querySelectorAll('img.podium-portrait').forEach(updateBoardImage);
+    }
+
+    const updates = new MutationObserver(records => {
+        const changed = new Set();
+        const collect = node => {
+            if (!(node instanceof Element)) return;
+            if (node.matches(boardPortrait)) changed.add(node);
+            else if (node.childElementCount) node.querySelectorAll(boardPortrait).forEach(img => changed.add(img));
+        };
+        for (const record of records) {
+            if (record.type === 'attributes') {
+                if (record.target.matches(boardPortrait)) changed.add(record.target);
+            } else {
+                record.removedNodes.forEach(collect);
+                record.addedNodes.forEach(collect);
             }
         }
+        changed.forEach(updateBoardImage);
+    });
+    for (const root of [podium, leaderboard]) {
+        if (!root) continue;
+        root.querySelectorAll(boardPortrait).forEach(updateBoardImage);
+        updates.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    }
+    document.addEventListener('lwc:standings-ready', updatePodium);
 
+    function updateProfile() {
         if (!profile) return;
-        const profileMotion = motionFor(profile);
-        if (!profileReady(profileMotion)) {
+        const motion = motionFor(profile);
+        updateBinding(profile, motion);
+        if (!profileReady(motion)) {
             visiblePortraits?.unobserve(profile);
             profilePlayed = null;
             active.get(profile)?.stop();
-            return;
+        } else if (profilePlayed !== motion && !reducedMotion.matches) {
+            visiblePortraits?.observe(profile);
         }
-        wire(profile);
-        // The portrait is already visible. Start its decorative clip from the
-        // browser's visibility report instead of forcing the rebuilt card to
-        // resolve layout synchronously inside every pager click.
-        if (profilePlayed !== profileMotion) visiblePortraits?.observe(profile);
     }
-
-    const updates = new MutationObserver(scan);
-    if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
-    if (leaderboard) updates.observe(leaderboard, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (profile) {
-        updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
-        updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
-        updates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
-        profile.addEventListener('load', () => scan([]));
+        const profileUpdates = new MutationObserver(updateProfile);
+        profileUpdates.observe(profile, { attributes: true, attributeFilter: ['src'] });
+        profileUpdates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
+        profileUpdates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
+        profile.addEventListener('load', updateProfile);
+        updateProfile();
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
         for (const portrait of surfaces.values()) portrait.follow();
+        updatePodium();
+        updateProfile();
     });
-    scan();
 }
 
 function markAthleteSkippedForGuessMyAge(athlete) {
@@ -1819,18 +1847,10 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 // Get the top three athletes from athleteResults
                 const topThree = athleteResults.slice(0, 3);
 
-                // Keep the painted portraits when the public data agrees with the HTML.
+                // Reconcile each placing independently, including on a pull refresh.
                 const podium = document.querySelector('.podium');
-                const serverCards = [...podium.children];
-                const keepCards = podium.dataset.serverRendered === 'true'
-                    && serverCards.length === topThree.length
-                    && topThree.every((athlete, index) =>
-                        serverCards[index].dataset.athleteName === athlete.name
-                        && serverCards[index].querySelector('.athlete-profile-link')?.getAttribute('href') === getAthleteProfileHref(athlete)
-                        && serverCards[index].querySelector('.podium-portrait')?.getAttribute('src') === getAthletePortraitUrl(athlete)
-                        && serverCards[index].querySelector('.athlete-name')?.textContent === athlete.displayName
-                        && serverCards[index].querySelector('.age-reduction')?.textContent === podiumScore(athlete));
-                if (!keepCards) podium.replaceChildren();
+                const previousCards = [...podium.children];
+                previousCards.slice(topThree.length).forEach(card => card.remove());
                 podium.removeAttribute('data-server-rendered');
                 podium.setAttribute('aria-busy', 'false');
 
@@ -1855,30 +1875,46 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                             return; // Only handle top three
                     }
 
-                    const podiumItem = keepCards ? serverCards[athlete.rank - 1] : document.createElement('div');
-                    if (!keepCards) {
+                    const previous = previousCards[athlete.rank - 1];
+                    const profileHref = getAthleteProfileHref(athlete);
+                    const podiumPortraitUrl = getAthletePortraitUrl(athlete);
+                    const score = podiumScore(athlete);
+                    const keepPortrait = previous?.dataset.athleteName === athlete.name
+                        && previous.querySelector('.athlete-profile-link')?.getAttribute('href') === profileHref
+                        && previous.querySelector('.podium-portrait')?.getAttribute('src') === podiumPortraitUrl;
+                    const podiumItem = keepPortrait ? previous : document.createElement('div');
+                    if (keepPortrait) {
+                        const name = podiumItem.querySelector('.athlete-name');
+                        if (name.textContent !== athlete.displayName) {
+                            name.textContent = athlete.displayName;
+                            name.title = `View stats of ${athlete.displayName}`;
+                            podiumItem.querySelector('.athlete-profile-link').setAttribute('aria-label', name.title);
+                            podiumItem.querySelector('.podium-portrait').alt = `${athlete.displayName} portrait`;
+                        }
+                        const metric = podiumItem.querySelector('.age-reduction');
+                        if (metric.textContent !== score) metric.textContent = score;
+                    } else {
                         podiumItem.classList.add('podium-item', rankClass);
-
-                        const podiumPortraitUrl = getAthletePortraitUrl(athlete);
 
                         podiumItem.innerHTML = `
                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
                                 ${rankEmoji}
                             </div>
-                            <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
+                            <a class="athlete-profile-link" href="${escapeHtml(profileHref)}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${escapeHtml(athlete.displayName)} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
                             <div class="name-row">
-                                <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
+                                <a class="athlete-name" href="${escapeHtml(profileHref)}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
                             </div>
                             <div class="podium-link-row">
                             </div>
-                            <div class="podium-score"><span class="age-reduction">${podiumScore(athlete)}</span> reduced</div>
+                            <div class="podium-score"><span class="age-reduction">${score}</span> reduced</div>
                             <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
                                 <div class="btc-amount">&nbsp;</div>
                                 <div class="prize-money">&mdash;</div>
                             </a>
                         `;
 
-                        podium.appendChild(podiumItem);
+                        if (previous) previous.replaceWith(podiumItem);
+                        else podium.appendChild(podiumItem);
                     }
                     podiumItem.querySelector('.podium-link-row').innerHTML =
                         renderPersonalLink(athlete.personalLink, athlete.displayName)
@@ -4388,11 +4424,13 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
     const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
     updateLeaderboardStateIndicator();
     scheduleLeaderboardTableHeightSync();
-    renderedLeaderboardSelection = getLeaderboardSelectionKey();
+    const selection = getLeaderboardSelectionKey();
+    const selectionChanged = Boolean(renderedLeaderboardSelection && renderedLeaderboardSelection !== selection);
+    renderedLeaderboardSelection = selection;
     // All row cues compare the same committed selection. Reading every filter
     // again for each athlete turns a single input into thousands of DOM queries.
     renderedStandingsComparable = !hasActiveLeaderboardState();
-    pageDocument.dispatchEvent(new Event('lwc:standings-ready'));
+    pageDocument.dispatchEvent(new CustomEvent('lwc:standings-ready', { detail: { selectionChanged } }));
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
     if (!updateUrl) {

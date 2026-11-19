@@ -195,7 +195,10 @@ namespace LongevityWorldCup.Website.Middleware
                     // On a populated homepage the browser can paint the real podium before
                     // executing the header scripts. Preserve their order ahead of the board runtime.
                     header = header.Replace("<!--HEADER-RUNTIME-->", championPortrait is null ? HeaderRuntime : string.Empty);
-                    leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null ? string.Empty : HeaderRuntime);
+                    leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null
+                        ? string.Empty : HeaderRuntime + "\n" + HomepagePodiumAssets.SectionStyles);
+                    // These template boundaries are only used while assembling the response.
+                    leaderboardContent = Regex.Replace(leaderboardContent, @"<!--(?:LEADERBOARD|ATHLETE-DIALOG|ORDER)-[A-Z-]+-->", string.Empty);
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
@@ -203,6 +206,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
                         .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
                         .Replace("<!--HEAD-->", HomepagePodiumAssets.PrepareHead(head, championPortrait))
+                        .Replace("<!--HOMEPAGE-SECTION-STYLES-->", championPortrait is null ? HomepagePodiumAssets.SectionStyles : string.Empty)
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)

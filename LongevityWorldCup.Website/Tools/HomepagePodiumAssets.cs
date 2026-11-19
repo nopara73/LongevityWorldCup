@@ -5,6 +5,13 @@ namespace LongevityWorldCup.Website.Tools;
 
 internal static partial class HomepagePodiumAssets
 {
+    public const string SectionStyles = """
+        <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
+        <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
+        <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
+        <link rel="stylesheet" href="{{ASSET_MERCH_SHELF_CSS}}">
+        """;
+
     private const string EnhancementMedia = "not all and (scripting:enabled)";
     // The podium, header, typography and layout keep their normal blocking styles.
     private static readonly HashSet<string> EnhancementStyles = new(StringComparer.Ordinal)
@@ -46,8 +53,8 @@ internal static partial class HomepagePodiumAssets
     public static string PrioritizeStyles(string html) => VersionedStyle().Replace(html, match =>
     {
         var path = match.Groups[1].Value;
-        // The table still waits for its stylesheet. Keep its download behind the first screen.
-        if (path == "/css/leaderboard-content.css")
+        // Later sections wait for their styles in the body, behind the title and winners.
+        if (path is "/css/leaderboard-content.css" or "/css/homepage.css")
             return match.Value[..^1] + " fetchpriority=\"low\">";
 
         // This entire sheet is inside the same media query. Light pages can paint

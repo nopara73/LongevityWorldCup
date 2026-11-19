@@ -57,6 +57,7 @@ public sealed class HomepageLoadingBrowserTests(
             await route.ContinueAsync();
         }
         await page.RouteAsync("**/css/leaderboard-content.css*", Hold);
+        await page.RouteAsync("**/css/homepage.css*", Hold);
         await page.RouteAsync("**/css/portrait-system.css*", Hold);
         await page.RouteAsync("**/css/share-sheet.css*", Hold);
         await page.RouteAsync("**/js/celebration.js*", Hold);
@@ -134,6 +135,17 @@ public sealed class HomepageLoadingBrowserTests(
                 await Assertions.Expect(link).ToHaveAttributeAsync("data-lwc-pressed", "control");
                 await Assertions.Expect(link).ToHaveCSSAsync("filter", "brightness(0.86)");
                 await CancelAsync();
+                styles.TrySetResult();
+                await page.WaitForLoadStateAsync(LoadState.Load);
+                await PressAsync();
+                if (reduceMotion)
+                {
+                    await Assertions.Expect(link).ToHaveCSSAsync("filter", "brightness(0.86)");
+                    await Assertions.Expect(link).ToHaveCSSAsync("scale", "none");
+                }
+                else await Assertions.Expect(link).ToHaveCSSAsync("scale", "0.95");
+                await CancelAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "none");
                 await cdp.DetachAsync();
             }
             else

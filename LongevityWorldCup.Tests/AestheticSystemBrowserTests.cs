@@ -1234,6 +1234,7 @@ public sealed class AestheticSystemBrowserTests(
                         source.Where(condition => condition.Name != "lwc-bar").ToArray());
                     break;
                 case "css/leaderboard-podium.css":
+                case "css/homepage-first-screen.css":
                     await AssertFontRelativeLeaderboardBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/leaderboard-ordering.css":
@@ -1249,10 +1250,7 @@ public sealed class AestheticSystemBrowserTests(
                         source.Where(condition => condition.Name == "play-player-card").ToArray());
                     break;
                 case "css/homepage.css":
-                    await AssertNewsletterContainerBoundariesAsync(page,
-                        source.Where(condition => condition.Name == "newsletter-section").ToArray());
-                    await AssertFontRelativeLeaderboardBoundariesAsync(page,
-                        source.Where(condition => condition.Name != "newsletter-section").ToArray());
+                    await AssertNewsletterContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/prize-pool.css":
                     await AssertPrizePoolContainerBoundariesAsync(page, source.ToArray());

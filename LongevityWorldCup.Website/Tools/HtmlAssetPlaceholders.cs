@@ -103,6 +103,7 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_SITE_STATISTICS_TRACKING_JS}}"] = "/js/site-statistics-tracking.js",
         ["{{ASSET_SITE_WEBMANIFEST}}"] = "/assets/site.webmanifest",
         ["{{ASSET_TROLLFACE}}"] = "/assets/content-images/trollface.png",
+        ["{{ASSET_HOMEPAGE_FIRST_SCREEN_CSS}}"] = "/css/homepage-first-screen.css",
         ["{{ASSET_HOMEPAGE_CSS}}"] = "/css/homepage.css",
         ["{{ASSET_HOMEPAGE_JS}}"] = "/js/homepage.js",
         ["{{ASSET_CELEBRATION_CSS}}"] = "/css/celebration.css",

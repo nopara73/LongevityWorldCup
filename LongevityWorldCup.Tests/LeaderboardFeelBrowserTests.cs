@@ -324,6 +324,10 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         // Late table content can change its height while the pointer rests on a score.
         await row.EvaluateAsync("""
             row => row.addEventListener('pointermove', () => {
+                const sibling = document.createElement('tr');
+                sibling.id = 'late-preview-sibling';
+                sibling.hidden = true;
+                row.parentElement.append(sibling);
                 row.closest('table').createTFoot().insertRow().insertCell().style.height = '40px';
             }, { once: true })
             """);
@@ -335,19 +339,28 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         var bounds = (await card.BoundingBoxAsync())!;
         Assert.InRange(bounds.X, 0, width - bounds.Width + 1);
         await card.HoverAsync();
+        var cardLink = card.Locator("a.lb-peek-top");
+        await cardLink.FocusAsync();
         await row.EvaluateAsync("""
             async row => {
+                document.getElementById('late-preview-sibling').remove();
+                document.dispatchEvent(new Event('lwc:standings-ready'));
                 row.closest('table').tFoot.rows[0].cells[0].style.height = '80px';
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             }
             """);
         await Assertions.Expect(card).ToBeVisibleAsync();
+        await Assertions.Expect(cardLink).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(card).ToBeHiddenAsync();
+        await Assertions.Expect(name).ToBeFocusedAsync();
+        await name.BlurAsync();
         var next = rows.Nth(2);
         await next.Locator(".rank").HoverAsync();
         await Assertions.Expect(card.Locator(".lb-peek-name")).ToHaveTextAsync(await next.Locator(".athlete-name").InnerTextAsync());
         await Assertions.Expect(name).ToHaveCSSAsync("color", restingColor);
+        await next.EvaluateAsync("row => row.remove()");
+        await Assertions.Expect(card).ToBeHiddenAsync();
     }
 
     [Theory]
