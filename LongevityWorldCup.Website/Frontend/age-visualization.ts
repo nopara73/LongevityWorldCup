@@ -1124,6 +1124,7 @@
                 }
             };
 
+            let radialGradientAvailable = true;
             radarChartInstance = new ChartConstructor(ctx, {
                 type: 'radar',
                 plugins: [radarWebSpokesPlugin, radarComparePlugin, radarGlowPlugin, radarSweepPlugin, radarMotionPlugin, radarFocusPlugin],
@@ -1134,13 +1135,23 @@
                         data: data.values,
                         // The web deepens toward its rim, so strong domains read as reach, not just area.
                         backgroundColor: function (context: { readonly chart: RadarPluginChart }) {
-                            var scale = context.chart.scales?.r;
-                            if (!scale || !scale.drawingArea) return clockColor(0.16);
-                            var gradient = context.chart.ctx.createRadialGradient(scale.xCenter, scale.yCenter, 0, scale.xCenter, scale.yCenter, scale.drawingArea);
-                            gradient.addColorStop(0, clockColor(0.04));
-                            gradient.addColorStop(0.7, clockColor(0.2));
-                            gradient.addColorStop(1, clockColor(0.36));
-                            return gradient;
+                            const scale = context.chart.scales?.r;
+                            const radius = scale?.drawingArea ?? 0;
+                            if (radialGradientAvailable && scale && Number.isFinite(scale.xCenter) && Number.isFinite(scale.yCenter)
+                                && Number.isFinite(radius) && radius > 0) {
+                                try {
+                                    const { xCenter, yCenter } = scale;
+                                    const gradient = context.chart.ctx.createRadialGradient(xCenter, yCenter, 0, xCenter, yCenter, radius);
+                                    gradient.addColorStop(0, clockColor(0.04));
+                                    gradient.addColorStop(0.7, clockColor(0.2));
+                                    gradient.addColorStop(1, clockColor(0.36));
+                                    return gradient;
+                                } catch {
+                                    // Keep this chart on a solid fill through subsequent redraws.
+                                    radialGradientAvailable = false;
+                                }
+                            }
+                            return clockColor(0.16);
                         },
                         borderColor: function () { return clockColor(); },
                         // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.

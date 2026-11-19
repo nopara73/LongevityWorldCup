@@ -94,15 +94,26 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, true)]
-    [InlineData(390, false)]
-    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark)
+    [InlineData(1440, true, false)]
+    [InlineData(390, false, false)]
+    [InlineData(390, false, true)]
+    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark, bool rejectRadialGradient)
     {
         await using var context = await NewContextAsync(width, dark);
+        if (rejectRadialGradient)
+        {
+            await context.AddInitScriptAsync("""
+                const createGradient = CanvasRenderingContext2D.prototype.createRadialGradient;
+                CanvasRenderingContext2D.prototype.createRadialGradient = function (...args) {
+                    if (this.canvas.id === 'ageRadarChart') args[5] = NaN;
+                    return createGradient.apply(this, args);
+                };
+                """);
+        }
         var page = await OpenAsync(context);
         await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
 
-        // Chart.js may rewrite the colour (for example to hex while it eases between clocks), so compare painted pixels.
+        // Sample the plotted reading itself: the labels can still exist around a blank radar.
         const string wears = """
             token => {
                 const chart = Chart.getChart(document.getElementById('ageRadarChart'));
@@ -113,8 +124,11 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                     context.fillRect(0, 0, 1, 1);
                     return [...context.getImageData(0, 0, 1, 1).data];
                 };
-                const actual = paint(String(chart.getDatasetMeta(0).dataset.options.borderColor));
-                return paint(expected).every((channel, index) => Math.abs(channel - actual[index]) <= 3);
+                const point = chart.scales.r.getPointPositionForValue(0, chart.data.datasets[0].data[0]);
+                const ratio = chart.currentDevicePixelRatio;
+                const actual = chart.ctx.getImageData(Math.round(point.x * ratio), Math.round(point.y * ratio), 1, 1).data;
+                // The clock colours are slightly translucent and composite against the web.
+                return paint(expected).every((channel, index) => Math.abs(channel - actual[index]) <= 12);
             }
             """;
         await page.WaitForFunctionAsync(wears, "--athlete-modal-chart-bortz");
