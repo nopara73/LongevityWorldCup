@@ -1024,17 +1024,34 @@
                 }
             };
 
+            function hasRadarArea(scale: RadarScale | undefined): scale is RadarScale & { drawingArea: number } {
+                return !!scale && Number.isFinite(scale.xCenter) && Number.isFinite(scale.yCenter)
+                    && Number.isFinite(scale.drawingArea) && (scale.drawingArea ?? 0) > 0;
+            }
+
+            // A rejected gradient must not interrupt Chart.js or get retried every animation frame.
+            const failedGradients = new Set<string>();
+            function optionalGradient(kind: 'conic' | 'linear' | 'radial', build: () => CanvasGradient): CanvasGradient | null {
+                if (failedGradients.has(kind)) return null;
+                try {
+                    return build();
+                } catch {
+                    failedGradients.add(kind);
+                    return null;
+                }
+            }
+
             // While drawing in, the web is revealed behind a turning beam.
             var radarSweepPlugin = {
                 id: 'radarSweep',
                 beforeDatasetDraw: function (chart: RadarPluginChart): void {
-                    var scale = chart.scales?.r;
+                    const scale = chart.scales?.r;
                     chart.ctx.save();
-                    if (radarSweep === null || !scale) return;
+                    if (radarSweep === null || !hasRadarArea(scale)) return;
                     var start = -Math.PI / 2;
                     chart.ctx.beginPath();
                     chart.ctx.moveTo(scale.xCenter, scale.yCenter);
-                    chart.ctx.arc(scale.xCenter, scale.yCenter, (scale.drawingArea || 200) * 1.2, start, start + Math.PI * 2 * Math.max(0.001, radarSweep));
+                    chart.ctx.arc(scale.xCenter, scale.yCenter, scale.drawingArea * 1.2, start, start + Math.PI * 2 * Math.max(0.001, radarSweep));
                     chart.ctx.closePath();
                     chart.ctx.clip();
                 },
@@ -1042,17 +1059,20 @@
                     chart.ctx.restore();
                 },
                 afterDatasetsDraw: function (chart: RadarPluginChart): void {
-                    var scale = chart.scales?.r;
-                    if (radarSweep === null || !scale) return;
+                    const scale = chart.scales?.r;
+                    if (radarSweep === null || !hasRadarArea(scale)) return;
                     var angle = -Math.PI / 2 + Math.PI * 2 * radarSweep;
-                    var reach = (scale.drawingArea || 200) * 1.05;
+                    var reach = scale.drawingArea * 1.05;
                     var c = chart.ctx;
+                    var trail = optionalGradient('conic', () => {
+                        const gradient = c.createConicGradient(angle - 0.6, scale.xCenter, scale.yCenter);
+                        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                        gradient.addColorStop(0.095, clockColor(0.22));
+                        gradient.addColorStop(0.1, 'rgba(0,0,0,0)');
+                        return gradient;
+                    });
                     c.save();
-                    var trail = c.createConicGradient ? c.createConicGradient(angle - 0.6, scale.xCenter, scale.yCenter) : null;
                     if (trail) {
-                        trail.addColorStop(0, 'rgba(0,0,0,0)');
-                        trail.addColorStop(0.095, clockColor(0.22));
-                        trail.addColorStop(0.1, 'rgba(0,0,0,0)');
                         c.fillStyle = trail;
                         c.beginPath();
                         c.moveTo(scale.xCenter, scale.yCenter);
@@ -1076,19 +1096,22 @@
             var radarFocusPlugin = {
                 id: 'radarFocus',
                 afterDatasetsDraw: function (chart: RadarPluginChart): void {
-                    var scale = chart.scales?.r;
+                    const scale = chart.scales?.r;
                     var active = chart.getActiveElements();
                     var hit = active[0];
-                    if (!scale || !hit || radarSweep !== null) return;
+                    if (!hasRadarArea(scale) || !hit || radarSweep !== null) return;
                     var values = radarDisplayValues || chart.data.datasets[0]?.data || [];
                     var point = scale.getPointPositionForValue(hit.index, values[hit.index] ?? 0);
                     var rim = scale.getPointPositionForValue(hit.index, RADAR_SCALE_MAX_PERCENTILE);
                     var c = chart.ctx;
+                    var beam = optionalGradient('linear', () => {
+                        const gradient = c.createLinearGradient(scale.xCenter, scale.yCenter, rim.x, rim.y);
+                        gradient.addColorStop(0, clockColor(0.05));
+                        gradient.addColorStop(1, clockColor(0.9));
+                        return gradient;
+                    });
                     c.save();
-                    var beam = c.createLinearGradient(scale.xCenter, scale.yCenter, rim.x, rim.y);
-                    beam.addColorStop(0, clockColor(0.05));
-                    beam.addColorStop(1, clockColor(0.9));
-                    c.strokeStyle = beam;
+                    c.strokeStyle = beam ?? clockColor(0.9);
                     c.lineWidth = 3;
                     c.lineCap = 'round';
                     c.beginPath();
@@ -1134,7 +1157,6 @@
                 }
             };
 
-            let radialGradientAvailable = true;
             radarChartInstance = new ChartConstructor(ctx, {
                 type: 'radar',
                 plugins: [radarWebSpokesPlugin, radarComparePlugin, radarGlowPlugin, radarSweepPlugin, radarMotionPlugin, radarFocusPlugin],
@@ -1146,22 +1168,15 @@
                         // The web deepens toward its rim, so strong domains read as reach, not just area.
                         backgroundColor: function (context: { readonly chart: RadarPluginChart }) {
                             const scale = context.chart.scales?.r;
-                            const radius = scale?.drawingArea ?? 0;
-                            if (radialGradientAvailable && scale && Number.isFinite(scale.xCenter) && Number.isFinite(scale.yCenter)
-                                && Number.isFinite(radius) && radius > 0) {
-                                try {
-                                    const { xCenter, yCenter } = scale;
-                                    const gradient = context.chart.ctx.createRadialGradient(xCenter, yCenter, 0, xCenter, yCenter, radius);
-                                    gradient.addColorStop(0, clockColor(0.04));
-                                    gradient.addColorStop(0.7, clockColor(0.2));
-                                    gradient.addColorStop(1, clockColor(0.36));
-                                    return gradient;
-                                } catch {
-                                    // Keep this chart on a solid fill through subsequent redraws.
-                                    radialGradientAvailable = false;
-                                }
-                            }
-                            return clockColor(0.16);
+                            if (!hasRadarArea(scale)) return clockColor(0.16);
+                            return optionalGradient('radial', () => {
+                                const { xCenter, yCenter, drawingArea } = scale;
+                                const gradient = context.chart.ctx.createRadialGradient(xCenter, yCenter, 0, xCenter, yCenter, drawingArea);
+                                gradient.addColorStop(0, clockColor(0.04));
+                                gradient.addColorStop(0.7, clockColor(0.2));
+                                gradient.addColorStop(1, clockColor(0.36));
+                                return gradient;
+                            }) ?? clockColor(0.16);
                         },
                         borderColor: function () { return clockColor(); },
                         // Results switch in Chart.js's 'active' mode, which would otherwise paint a saturated hover colour.

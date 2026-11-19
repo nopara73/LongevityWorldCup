@@ -97,21 +97,29 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     [InlineData(1440, true, false)]
     [InlineData(390, false, false)]
     [InlineData(390, false, true)]
-    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark, bool rejectRadialGradient)
+    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark, bool rejectGradients)
     {
-        await using var context = await NewContextAsync(width, dark);
-        if (rejectRadialGradient)
+        await using var context = await NewContextAsync(width, dark, reducedMotion: !rejectGradients);
+        if (rejectGradients)
         {
             await context.AddInitScriptAsync("""
-                const createGradient = CanvasRenderingContext2D.prototype.createRadialGradient;
-                CanvasRenderingContext2D.prototype.createRadialGradient = function (...args) {
-                    if (this.canvas.id === 'ageRadarChart') args[5] = NaN;
-                    return createGradient.apply(this, args);
-                };
+                const proto = CanvasRenderingContext2D.prototype;
+                for (const name of ['createRadialGradient', 'createConicGradient', 'createLinearGradient']) {
+                    const native = proto[name];
+                    proto[name] = function (...args) {
+                        if (this.canvas.id === 'ageRadarChart') {
+                            this.canvas.dataset[name] = 'rejected';
+                            args[0] = NaN;
+                        }
+                        return native.apply(this, args);
+                    };
+                }
                 """);
         }
         var page = await OpenAsync(context);
         await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        var canvas = page.Locator("#detailsModal .modal-content:not(.is-loading) #ageRadarChart[tabindex]");
+        await canvas.ScrollIntoViewIfNeededAsync();
 
         // Sample the plotted reading itself: the labels can still exist around a blank radar.
         const string wears = """
@@ -132,6 +140,20 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             }
             """;
         await page.WaitForFunctionAsync(wears, "--athlete-modal-chart-bortz");
+        if (rejectGradients)
+        {
+            await Expect(canvas).ToHaveAttributeAsync("data-create-conic-gradient", "rejected");
+            await canvas.PressAsync("Home");
+            await Expect(canvas).ToHaveAttributeAsync("data-create-linear-gradient", "rejected");
+            Assert.True(await canvas.EvaluateAsync<bool>("""
+                element => {
+                    const chart = Chart.getChart(element);
+                    chart.draw();
+                    return chart.tooltip.getActiveElements()[0]?.index === 0 &&
+                        chart.tooltip.title[0] === chart.data.datasets[0].data[0] + 'th percentile';
+                }
+                """));
+        }
         var label = await page.EvaluateAsync<string[]>("""
             () => {
                 const chart = Chart.getChart(document.getElementById('ageRadarChart'));
