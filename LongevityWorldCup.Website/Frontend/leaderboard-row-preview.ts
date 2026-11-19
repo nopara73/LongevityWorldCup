@@ -158,7 +158,7 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
     }
 
     function showPeek(row: HTMLTableRowElement, clientX?: number): void {
-        if (!row.isConnected || row.style.display === "none" || !fillPeek(row)) {
+        if (!row.isConnected || row.style.display === "none" || (clientX !== undefined && !row.matches(":hover")) || !fillPeek(row)) {
             hidePeek();
             return;
         }
@@ -217,7 +217,17 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
     document.addEventListener("lwc:standings-ready", hidePeek);
     // Row replacement can also happen during loading or recovery, before standings are ready.
     new MutationObserver(hidePeek).observe(body, { childList: true });
-    if (typeof ResizeObserver === "function") new ResizeObserver(hidePeek).observe(table);
+    if (typeof ResizeObserver === "function") {
+        new ResizeObserver(() => {
+            // Other rows can finish laying out during a dwell or while the card is being read.
+            if (!peekRow || pendingPeekRow) return;
+            if (!peekRow.getClientRects().length) { hidePeek(); return; }
+            if (peekRegion.matches(":hover, :focus-within")) return;
+            if (peekRow.matches(":focus-within")) placePeek(peekRow);
+            else if (peekRow.matches(":hover")) placePeek(peekRow, pointerX);
+            else hidePeek();
+        }).observe(table);
+    }
     window.addEventListener("scroll", () => {
         // A queued scroll event can arrive after the pointer entered at the new position.
         if ((peekRow || pendingPeekRow) && (window.scrollX !== peekScrollX || window.scrollY !== peekScrollY)) hidePeek();

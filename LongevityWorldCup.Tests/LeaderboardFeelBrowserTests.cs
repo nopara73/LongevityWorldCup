@@ -321,6 +321,12 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         await row.ScrollIntoViewIfNeededAsync();
         await page.Mouse.MoveAsync(1, 1);
         var restingColor = await name.EvaluateAsync<string>("el => getComputedStyle(el).color");
+        // Late table content can change its height while the pointer rests on a score.
+        await row.EvaluateAsync("""
+            row => row.addEventListener('pointermove', () => {
+                row.closest('table').createTFoot().insertRow().insertCell().style.height = '40px';
+            }, { once: true })
+            """);
         await row.Locator(".age-reduction").HoverAsync();
         await Assertions.Expect(name).Not.ToHaveCSSAsync("color", restingColor);
         await Assertions.Expect(face).ToHaveCSSAsync("translate", reduce ? "none" : "2px -2px");
@@ -328,6 +334,14 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         await Assertions.Expect(card.Locator(".lb-peek-name")).ToHaveTextAsync(await name.InnerTextAsync());
         var bounds = (await card.BoundingBoxAsync())!;
         Assert.InRange(bounds.X, 0, width - bounds.Width + 1);
+        await card.HoverAsync();
+        await row.EvaluateAsync("""
+            async row => {
+                row.closest('table').tFoot.rows[0].cells[0].style.height = '80px';
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
+        await Assertions.Expect(card).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(card).ToBeHiddenAsync();
         var next = rows.Nth(2);
