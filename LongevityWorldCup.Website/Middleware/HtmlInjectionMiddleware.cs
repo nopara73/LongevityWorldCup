@@ -222,14 +222,7 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
-                        bodyContent = InjectPortraitSystem(bodyContent);
-                        bodyContent = InjectTouchLayer(bodyContent);
-                        bodyContent = InjectPointerLayer(bodyContent);
-                        bodyContent = InjectAestheticSystemStylesheet(bodyContent);
-                        bodyContent = InjectDepthSystem(bodyContent);
-                        bodyContent = InjectScrollChoreography(bodyContent);
-                        bodyContent = InjectImageViewer(bodyContent);
-                        bodyContent = InjectDisclosureLayer(bodyContent);
+                        bodyContent = InjectSharedHeadAssets(bodyContent, championPortrait is not null);
                     }
 
                     if (championPortrait is not null)
@@ -640,19 +633,27 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             return Path.Combine(environment.ContentRootPath, "wwwroot");
         }
 
-        private string InjectAestheticSystemStylesheet(string html)
+        private string InjectSharedHeadAssets(string html, bool hasHomepagePodium)
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
+            var headEnd = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+            if (headEnd < 0) return html;
 
+            // On the populated homepage, Chrome must discover the title's styles before
+            // the startup script lets the parser open the body and compete for bandwidth.
+            var startup = hasHomepagePodium
+                ? html.IndexOf("<script id=\"homepage-startup\">", 0, headEnd, StringComparison.Ordinal)
+                : -1;
+            var assets = PortraitAssets() + TouchAssets() + PointerAssets() + AestheticAssets()
+                + DepthAssets() + ScrollAssets() + ImageViewerAssets() + DisclosureAssets();
+            return html.Insert(startup >= 0 ? startup : headEnd, assets);
+        }
+
+        private string AestheticAssets()
+        {
             // Shared interaction and type styles precede the palette, dark
             // lighting and the final depth scale. Component states retain priority.
             // The layout system closes the group so every page shares its column.
-            var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/empty-state.js")}\" defer></script>{Environment.NewLine}"
@@ -667,115 +668,58 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/layout-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/layout-system.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, stylesheet);
         }
 
         // The touch layer goes in ahead of motion and the aesthetic system, which keep the final say.
-        private string InjectTouchLayer(string html)
+        private string TouchAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Pointer behavior follows touch; the surface systems retain their
         // page-specific focus and control treatments later in the cascade.
-        private string InjectPointerLayer(string html)
+        private string PointerAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/pointer.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Surface and depth tokens follow the palette; components retain their
         // semantic colours, focus indicators and transition ownership.
-        private string InjectDepthSystem(string html)
+        private string DepthAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Sections, cards, lists and numbers arrive through one shared scroll vocabulary.
-        private string InjectScrollChoreography(string html)
+        private string ScrollAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/scroll-choreography.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Pictures open into one shared viewer: flight from the page, zoom, pan, swipe and dismiss.
-        private string InjectImageViewer(string html)
+        private string ImageViewerAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/image-viewer.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/image-viewer.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/image-viewer.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Everything that opens and closes (details, reveal-more toggles, flag
         // rosters) shares one motion and marker; it loads after the surface systems.
-        private string InjectDisclosureLayer(string html)
+        private string DisclosureAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/disclosure.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/disclosure.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/disclosure.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Athlete portraits share one frame, loading, fallback and motion treatment on every page.
-        private string InjectPortraitSystem(string html)
+        private string PortraitAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)

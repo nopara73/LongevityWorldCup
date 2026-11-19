@@ -10,6 +10,38 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task Homepage_DiscoversTheTitleStylesBeforeStartingTheBody()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/aesthetic-system.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.Locator("head #homepage-startup").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+            // The parser has reached the startup script. All four preloads match their
+            // consuming stylesheets, and Chrome is still prioritizing the document head.
+            Assert.True(await page.EvaluateAsync<bool>("""
+                () => !document.body && ['aesthetic', 'type', 'layout', 'depth'].every(name => {
+                    const style = document.head.querySelector(`link[rel=stylesheet][href^="/css/${name}-system.css?"]`);
+                    const preload = document.head.querySelector(`link[rel=preload][as=style][href^="/css/${name}-system.css?"]`);
+                    return !!style && preload?.href === style.href;
+                })
+                """));
+        }
+        finally { release.TrySetResult(); }
+
+        await ExpectHomepageLoadedAsync(page);
+    }
+
+    [Fact]
     public async Task Homepage_PaintsItsTitleWhileIconsAndPodiumStylesArePending()
     {
         await using var context = await NewContextAsync(390);
