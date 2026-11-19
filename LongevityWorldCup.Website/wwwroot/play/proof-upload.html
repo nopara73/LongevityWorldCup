@@ -674,6 +674,7 @@
         if (!isValidSelectedAthlete(athlete)) {
             removeSessionItem('selectedAthlete');
             removeSessionItem('tempAthlete');
+            removeSessionItem('tempAthleteEdits');
             window.location.replace('/select-athlete');
             athlete = {};
         }

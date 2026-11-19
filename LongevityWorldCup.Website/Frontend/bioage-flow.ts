@@ -1665,6 +1665,7 @@ interface Window {
         const remove = typeof removeItem === 'function' ? removeItem : removeSessionItem;
         remove('selectedAthlete');
         remove('tempAthlete');
+        remove('tempAthleteEdits');
         window.location.replace('/select-athlete');
     }
 

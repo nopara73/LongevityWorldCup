@@ -115,6 +115,7 @@ function getStoredSelectedAthlete(): PlayAthlete | null {
 
     removeSessionItem("selectedAthlete");
     removeSessionItem("tempAthlete");
+    removeSessionItem("tempAthleteEdits");
     return null;
 }
 
@@ -142,6 +143,7 @@ function readRequiredSelectedAthlete(): PlayAthlete | null {
     if (!isValidSelectedAthlete(athlete)) {
         removeSessionItem("selectedAthlete");
         removeSessionItem("tempAthlete");
+        removeSessionItem("tempAthleteEdits");
         window.location.replace("/select-athlete");
         return null;
     }
@@ -151,10 +153,8 @@ function readRequiredSelectedAthlete(): PlayAthlete | null {
 
 function clearStaleTempAthlete(selectedAthleteName: string): void {
     const tempJson = getSessionItem("tempAthlete");
-    if (!tempJson) return;
-
     try {
-        const tempAthlete = JSON.parse(tempJson);
+        const tempAthlete = tempJson ? JSON.parse(tempJson) : null;
         if (isPlayObject(tempAthlete) && Reflect.get(tempAthlete, "Name") === selectedAthleteName) {
             return;
         }
@@ -162,6 +162,7 @@ function clearStaleTempAthlete(selectedAthleteName: string): void {
     }
 
     removeSessionItem("tempAthlete");
+    removeSessionItem("tempAthleteEdits");
 }
 
 function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
