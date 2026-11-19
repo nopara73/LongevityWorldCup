@@ -15,6 +15,10 @@ OWNED_WEB_DIRS = ("athletes", "js", "css", "onboarding", "research", "helstab-ki
 SERVICE = "longevityworldcup.service"
 
 
+class ReleaseRecoveryError(OSError):
+    """A runtime path could not be put back. Both release trees must be retained."""
+
+
 def stage_release(live, published, candidate, manifest):
     candidate.mkdir()
     runtime_excludes = ["--exclude=/" + pattern for pattern in RUNTIME_PATHS]
@@ -36,16 +40,23 @@ def switch_release(live, incoming, outgoing):
     mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGHUP, signal.SIGTERM})
     try:
         with ExitStack() as undo:
+            def restore(source, destination):
+                try:
+                    source.rename(destination)
+                except OSError as error:
+                    raise ReleaseRecoveryError(f"Could not restore {destination}") from error
+
             def move(source, destination):
                 if os.path.lexists(destination):
                     raise FileExistsError(destination)
                 source.rename(destination)
-                undo.callback(destination.rename, source)
+                undo.callback(restore, destination, source)
 
-            move(live, outgoing)
             for pattern in RUNTIME_PATHS:
-                for path in outgoing.glob(pattern):
-                    move(path, incoming / path.relative_to(outgoing))
+                for path in live.glob(pattern):
+                    move(path, incoming / path.relative_to(live))
+            # Keep the static files at their public path until these two renames.
+            move(live, outgoing)
             move(incoming, live)
             undo.pop_all()
     finally:
@@ -67,6 +78,9 @@ def deploy(live, published, manifest, verify_command):
             switch_release(live, candidate, previous)
             service("start")
             subprocess.run(verify_command, check=True)
+        except ReleaseRecoveryError:
+            keep_for_recovery = True
+            raise
         except BaseException:
             try:
                 if previous.exists():

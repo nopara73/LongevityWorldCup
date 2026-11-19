@@ -82,6 +82,23 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual((self.live / "app.dll").read_text(), "old")
         self.assertEqual(list(self.root.glob(".release-*")), [])
 
+    def test_failed_filesystem_recovery_keeps_both_trees_for_repair(self):
+        rename = Path.rename
+
+        def fail_handoff_and_restore(source, destination):
+            if source == self.live / "wwwroot/generated" or (destination == self.live / "AppData"):
+                raise OSError("unavailable filesystem")
+            return rename(source, destination)
+
+        with patch.object(Path, "rename", fail_handoff_and_restore), patch.object(release, "service") as service:
+            with self.assertRaises(release.ReleaseRecoveryError):
+                release.deploy(self.live, self.published, self.manifest, ["true"])
+        service.assert_called_once_with("stop")
+        work, = self.root.glob(".release-*")
+        self.assertEqual((work / "next/AppData/subscriptions.txt").read_text(), "original")
+        self.assertEqual((self.live / "app.dll").read_text(), "old")
+        self.assertEqual((self.live / "wwwroot/generated/photo").stat().st_ino, self.upload.st_ino)
+
     def test_failed_live_probe_rolls_back_code_and_keeps_writes_from_new_release(self):
         transitions = []
 
