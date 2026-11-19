@@ -3,12 +3,13 @@
    .is-shown, .has-portrait, .has-chips, .is-stamped, and .is-lit per chip.
    Only --lwc-* colours; the podium's ring and icon language. */
 
-/* The header makes room: title on the left, card on the right. */
+/* The header makes room: title on the left, card on the right. The title keeps
+   its place from step to step; the card hangs beside it from the same top line. */
 .convergence-stage-head.is-carded {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     column-gap: var(--lwc-space-4, 1rem);
-    align-items: end;
+    align-items: start;
 }
 .convergence-stage-head.is-carded > :not(h1):not(.apply-card) { grid-column: 1 / -1; }
 .convergence-stage-head.is-carded > h1 { grid-column: 1; }

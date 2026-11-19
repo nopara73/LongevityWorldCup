@@ -8,15 +8,21 @@
 //   link, the media contact and the email become valid: link, envelope and
 //   the rocket from the Apply button, the same icon language as the podium.
 // - The motivation from "Finding your why" rides along as a one-line quote.
-// - Pressing Apply stamps the card.
+// - Sending the application stamps the card.
 //
 // The card is aria-hidden decoration: every value is still in its own field.
 // convergence.html keeps all validation and navigation.
 
 (() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const reduced = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+    const moving = (element: Element): boolean => !reduced?.matches && typeof element.animate === "function";
 
     interface LwcFlagsLike { getFlagIconCode?: (flag: unknown) => string }
+    // convergence.html's own silent predicates, the ones that enable Next and Apply.
+    interface ApplyPageLike {
+        isOptionalUrl?: (value: string) => boolean;
+        normalizeContactEmail?: (value: string) => string | null;
+    }
 
     function start(): void {
         const head = document.querySelector<HTMLElement>(".convergence-stage-head");
@@ -38,7 +44,6 @@
                 <i class="fas fa-rocket" data-chip="email"></i>
             </span>`;
         title.after(card);
-        head.classList.add("has-apply-card");
 
         const $ = <T extends HTMLElement>(id: string): T | null => document.getElementById(id) as T | null;
         const portrait = card.querySelector<HTMLImageElement>(".apply-card-portrait img")!;
@@ -51,16 +56,21 @@
             email: card.querySelector<HTMLElement>('[data-chip="email"]')!,
         };
 
-        const filled = (input: HTMLInputElement | HTMLTextAreaElement | null, errorId: string): boolean => {
-            if (!input || !input.value.trim()) return false;
-            const error = $(errorId);
-            return input.validity.valid && !(error && error.textContent && error.textContent.trim());
+        // A chip lights only when its field would pass the page's own check, not
+        // when its error text happens to be empty (errors only show after blur).
+        const page = window as unknown as ApplyPageLike;
+        const value = (id: string): string => ($<HTMLInputElement>(id)?.value || "").trim();
+        const linkReady = (): boolean => {
+            const link = value("personalLink");
+            return !!link && typeof page.isOptionalUrl === "function" && page.isOptionalUrl(link);
         };
+        const mediaReady = (): boolean => !!value("mediaContact");
+        const emailReady = (): boolean => typeof page.normalizeContactEmail === "function" && !!page.normalizeContactEmail(value("accountEmail"));
 
         function lightChip(chip: HTMLElement, on: boolean): void {
             const was = chip.classList.contains("is-lit");
             chip.classList.toggle("is-lit", on);
-            if (on && !was && !reduced.matches) {
+            if (on && !was && moving(chip)) {
                 chip.animate(
                     [{ transform: "scale(.6)", opacity: .4 }, { transform: "scale(1.25)", opacity: 1, offset: .55 }, { transform: "scale(1)", opacity: 1 }],
                     { duration: 460, easing: "cubic-bezier(.34,1.4,.64,1)" }
@@ -78,7 +88,6 @@
             const show = stage >= 4 && (!!name || !!src);
             const appearing = show && !card.classList.contains("is-shown");
             card.classList.toggle("is-shown", show);
-            card.dataset.stage = String(stage);
             head!.classList.toggle("is-carded", show);
 
             if (src && portrait.getAttribute("src") !== src) portrait.src = src;
@@ -93,30 +102,38 @@
             // Chips speak only from the steps that ask for them.
             const late = stage >= 6;
             card.classList.toggle("has-chips", late);
-            lightChip(chips.link, late && filled($<HTMLInputElement>("personalLink"), "personalLinkError"));
-            lightChip(chips.media, late && filled($<HTMLInputElement>("mediaContact"), "mediaContactError"));
-            lightChip(chips.email, stage >= 7 && filled($<HTMLInputElement>("accountEmail"), "accountEmailError"));
+            lightChip(chips.link, late && linkReady());
+            lightChip(chips.media, late && mediaReady());
+            lightChip(chips.email, stage >= 7 && emailReady());
 
-            if (appearing && !reduced.matches) {
+            if (appearing && moving(card)) {
                 card.animate(
                     [{ opacity: 0, transform: "translateY(10px) scale(.96)" }, { opacity: 1, transform: "none" }],
                     { duration: 420, easing: "cubic-bezier(.2,0,0,1)" }
                 );
             }
-            if (stage !== shownStage && shownStage && show && !appearing && !reduced.matches) {
+            if (stage !== shownStage && shownStage && show && !appearing && moving(card)) {
                 card.animate([{ transform: "translateY(-3px)" }, { transform: "none" }], { duration: 300, easing: "cubic-bezier(.2,0,0,1)" });
             }
             shownStage = stage;
         }
 
-        // Stamp the card when Apply is pressed on the last step.
-        document.getElementById("nextButton")?.addEventListener("click", event => {
-            const button = event.currentTarget as HTMLButtonElement;
-            if (Number(document.body.dataset.convergenceStage) !== 7 || button.disabled) return;
-            card.classList.remove("is-stamped");
-            void card.offsetWidth;
-            card.classList.add("is-stamped");
-        });
+        // Stamp the card when the application is really sent. The page disables
+        // Apply in the same click only once submission starts; a refused click
+        // (a missing step, an alert) leaves it enabled and the card unstamped.
+        // Capture runs before the page's own handler, so it sees the button as
+        // it was when pressed.
+        const apply = document.getElementById("nextButton") as HTMLButtonElement | null;
+        document.addEventListener("click", event => {
+            if (!apply || !(event.target instanceof Node) || !apply.contains(event.target)) return;
+            if (Number(document.body.dataset.convergenceStage) !== 7 || apply.disabled) return;
+            window.setTimeout(() => {
+                if (!apply.disabled || Number(document.body.dataset.convergenceStage) !== 7) return;
+                card.classList.remove("is-stamped");
+                void card.offsetWidth;
+                card.classList.add("is-stamped");
+            }, 0);
+        }, true);
 
         let queued = false;
         const schedule = (): void => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; sync(); }); } };
@@ -124,11 +141,6 @@
         const profile = $("profileImage");
         if (profile) new MutationObserver(schedule).observe(profile, { attributes: true, attributeFilter: ["src"] });
         ["input", "change", "blur"].forEach(type => document.addEventListener(type, schedule, true));
-        // Error messages change after validation runs.
-        ["personalLinkError", "mediaContactError", "accountEmailError"].forEach(id => {
-            const el = $(id);
-            if (el) new MutationObserver(schedule).observe(el, { childList: true, characterData: true, subtree: true });
-        });
         schedule();
     }
 
