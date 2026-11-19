@@ -651,6 +651,7 @@
     ];
     const MAX_NOTE_PHOTOS = 4;
     const MAX_NOTE_MENTIONS = 5;
+    const supportsContentFieldSizing = CSS.supports("field-sizing", "content");
     const DISCUSSION_BATCH_SIZE = 10;
     const DISCUSSION_AUTO_BATCHES = 3;
     const DISCUSSION_FEED_STORAGE_KEY = "lmxDiscussionFeedAdviceV2";
@@ -3819,7 +3820,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     <span id="lmx-note-${day.challengeDay}-count" class="lmx-note-character-count" data-note-character-count></span>
                 </div>
                 </div>
-                <textarea id="lmx-note-${day.challengeDay}" data-character-limit="${discussionCharacterLimit(note)}" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">${esc(draft ? draft.note : note)}</textarea>
+                <div class="lmx-checkin-note-editor">
+                    <textarea id="lmx-note-${day.challengeDay}" data-character-limit="${discussionCharacterLimit(note)}" placeholder="Visible publicly"
+                        data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false"
+                        aria-controls="lmx-mentions-${day.challengeDay}" aria-describedby="lmx-note-${day.challengeDay}-count">\n${esc(draft ? draft.note : note)}</textarea>
+                </div>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
@@ -6220,6 +6225,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const noteLength = draft.note.length;
         const characterLimit = checkInCharacterLimit(form);
         if (note) {
+            const editor = note.parentElement;
+            if (!supportsContentFieldSizing && editor && editor.dataset.remarks !== draft.note) {
+                editor.dataset.remarks = draft.note;
+            }
             const over = Math.max(0, noteLength - characterLimit);
             note.dataset.characterLimit = String(characterLimit);
             note.setCustomValidity(over ? `Remove ${over} characters before saving.` : "");
@@ -7767,7 +7776,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function updateDiscussionComposerInput(composer: HTMLElement, draft: DiscussionDraft): void {
         const textarea = composer.querySelector<HTMLTextAreaElement>("textarea")!;
         // Native sizing grows and shrinks without two synchronous layouts per letter.
-        if (!CSS.supports("field-sizing", "content")) {
+        if (!supportsContentFieldSizing) {
             textarea.style.height = "auto";
             textarea.style.height = `${Math.min(textarea.scrollHeight + 2, parseFloat(getComputedStyle(textarea).maxHeight))}px`;
         }

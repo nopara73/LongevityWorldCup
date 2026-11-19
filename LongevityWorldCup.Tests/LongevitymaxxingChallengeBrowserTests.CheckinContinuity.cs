@@ -71,7 +71,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var form = page.Locator(".lmx-checkin-card");
         await AnswerHabitAsync(form, "sleep", "no");
         await AnswerHabitAsync(form, "exercise", "yes");
-        const string note = "  A walk with @Ari tomorrow.  ";
+        const string note = "\n  A walk with @Ari tomorrow.\n\nTake the longer route home.  ";
         await form.Locator("textarea").First.FillAsync(note);
         await AddCheckInPhotosAsync(form, "walk.png");
         await page.Locator(".lmx-checkin-switcher button[data-day='21']").ClickAsync();

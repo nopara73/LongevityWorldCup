@@ -1017,7 +1017,8 @@
 
 .lmx-field input,
 .lmx-field select,
-.lmx-field textarea {
+.lmx-field textarea,
+.lmx-checkin-note-editor[data-remarks]::after {
     width: 100%;
     box-sizing: border-box;
     min-height: 44px;
@@ -6452,7 +6453,29 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     font-variant-numeric: tabular-nums;
 }
 
+.lmx-checkin-note-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.lmx-checkin-note-editor > textarea,
+.lmx-checkin-note-editor[data-remarks]::after {
+    grid-area: 1 / 1;
+    max-height: min(24rem, 50dvh);
+}
+
+/* Older browsers size the grid row from the same text, including a final empty line. */
+.lmx-checkin-note-editor[data-remarks]::after {
+    content: attr(data-remarks) "\200b";
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: hidden;
+    visibility: hidden;
+}
+
 :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea {
+    field-sizing: content;
+    resize: none;
     border: 1px solid var(--lmx-border);
     border-radius: var(--lwc-radius-md);
     background: var(--lmx-surface);
