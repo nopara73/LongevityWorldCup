@@ -1214,22 +1214,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function wireDiscussionFeed(): void {
         window.matchMedia(MOBILE_DISCUSSION_ACTIONS_QUERY).addEventListener("change", syncDiscussionReplyActionOrder);
         requiredButton("lmxFeedOlder").addEventListener("click", () => void loadDiscussionFeed(true));
-        requiredButton("lmxFeedNew").addEventListener("click", () => {
-            discussionReadHolds.clear();
-            const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
-            discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
-            discussionFeedUpdates.clear();
-            discussionFeedOrder = discussionThreadsInHotOrder(Array.from(discussionFeedNotes.values()), false)
-                .map(discussionPermalink);
-            discussionFeedOrder.forEach((key, index) => {
-                if (visible.has(key)) discussionFeedVisible = Math.max(discussionFeedVisible, index + 1);
-            });
-            discussionFeedPending.clear();
-            renderNotes(currentDiscussionNotes(), !!participantState);
-            const first = document.querySelector<HTMLElement>("#lmxNotes article");
-            first?.focus({ preventScroll: true });
-            first?.scrollIntoView({ block: "start", behavior: "instant" });
-        });
+        requiredButton("lmxFeedNew").addEventListener("click", showNewDiscussionPosts);
         const sentinel = document.getElementById("lmxFeedSentinel");
         if (sentinel && typeof IntersectionObserver === "function") {
             discussionFeedObserver = new IntersectionObserver(entries => {
@@ -1245,6 +1230,38 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 !discussionMutation && !discussionFeedLoading)
                 void refreshDiscussionFeed();
         }, 60_000);
+    }
+
+    function showNewDiscussionPosts(): void {
+        const visible = new Set(discussionFeedOrder.slice(0, discussionFeedVisible));
+        const previousNotes = new Map(discussionFeedOrder.filter(key => discussionFeedPending.has(key))
+            .map(key => [key, discussionFeedNotes.get(key)!]));
+        discussionReadHolds.clear();
+        discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
+        discussionFeedUpdates.clear();
+        discussionFeedOrder = discussionThreadsInHotOrder(Array.from(discussionFeedNotes.values()), false).map(discussionPermalink);
+
+        const pendingKeys = discussionFeedOrder.filter(key => discussionFeedPending.has(key));
+        const targetKey = pendingKeys.find(key => !previousNotes.has(key)) ?? pendingKeys[0];
+        discussionFeedOrder.forEach((key, index) => {
+            if (visible.has(key) || discussionFeedPending.has(key))
+                discussionFeedVisible = Math.max(discussionFeedVisible, index + 1);
+        });
+        discussionFeedPending.clear();
+        renderNotes(currentDiscussionNotes(), !!participantState);
+        if (!targetKey) return;
+
+        const note = discussionFeedNotes.get(targetKey)!;
+        const previous = previousNotes.get(targetKey);
+        let href = targetKey;
+        if (previous) {
+            const previousReplyIds = new Set((previous.advice?.replies ?? previous.replies)?.map(reply => reply.id));
+            const newReply = (note.advice?.replies ?? note.replies)?.find(reply =>
+                !previousReplyIds.has(reply.id) && Date.parse(reply.createdAtUtc) >= discussionActivityTimestamp(previous));
+            href = newReply ? `${targetKey}/reply/${encodeURIComponent(newReply.id)}` : discussionUnreadLink(note)?.href ?? targetKey;
+        }
+        const article = document.querySelector<HTMLElement>(`#lmxNotes > article[data-feed-key="${CSS.escape(targetKey)}"]`);
+        if (article) openDiscussionLink(href, article, false);
     }
 
     async function refreshDiscussionFeed(): Promise<void> {
@@ -1309,20 +1326,30 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     discussionFeedHasHistory = !!discussionFeedBefore;
                 }
             }
-            let priorityChanged = false;
+            const atTop = (document.getElementById("lmxNotes")?.getBoundingClientRect().top || 0) >= -80;
+            const reorderNow = atTop && !hasUnpublishedDiscussionWork();
+            let reorder = false;
             for (const note of notes) {
                 const key = discussionPermalink(note);
-                if ((priorities.get(key) || 0) === discussionUnreadPriority(note)) continue;
-                priorityChanged = true;
-                discussionFeedUpdates.set(key, note);
-                discussionFeedPending.add(key);
+                const before = priorities.get(key) || 0;
+                const priority = discussionUnreadPriority(note);
+                if (before === priority) continue;
+                if (reorderNow && (priority || discussionFeedOrder.includes(key))) {
+                    discussionFeedNotes.set(key, note);
+                    discussionFeedUpdates.delete(key);
+                    discussionFeedPending.delete(key);
+                    reorder = true;
+                } else if (priority > before) {
+                    discussionFeedUpdates.set(key, note);
+                    discussionFeedPending.add(key);
+                } else if (discussionFeedUpdates.has(key) && JSON.stringify(discussionFeedNotes.get(key)) === JSON.stringify(note)) {
+                    // A read receipt can withdraw a notification without changing the post.
+                    discussionFeedUpdates.delete(key);
+                    discussionFeedPending.delete(key);
+                }
             }
-            const atTop = (document.getElementById("lmxNotes")?.getBoundingClientRect().top || 0) >= -80;
-            if (priorityChanged && atTop && !hasUnpublishedDiscussionWork()) {
-                discussionFeedUpdates.forEach((note, key) => discussionFeedNotes.set(key, note));
-                discussionFeedUpdates.clear(); discussionFeedPending.clear(); reconcileAdviceFeedOrder();
-            }
-            if (queueDiscussionFeedUpdates(notes) || unavailable.length || priorityChanged && atTop && !hasUnpublishedDiscussionWork()) renderNotes(currentDiscussionNotes(), !!participantState);
+            if (reorder) reconcileAdviceFeedOrder();
+            if (queueDiscussionFeedUpdates(notes) || unavailable.length || reorder) renderNotes(currentDiscussionNotes(), !!participantState);
             else updateDiscussionFeedControls();
         } catch { /* A background refresh must not interrupt reading or drafts. */ }
         finally { discussionFeedRefreshing = false; }
@@ -1559,13 +1586,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 if (!note) continue;
                 const key = discussionPermalink(note);
                 const previous = discussionFeedNotes.get(key);
-                const priorityChanged = (oldPriorities.get(key) || 0) !== discussionUnreadPriority(note);
+                const priorityIncreased = discussionUnreadPriority(note) > (oldPriorities.get(key) || 0);
                 if (restarts && !previous && (discussionUnreadPriority(note) || discussionNeedsAdvice(note))) {
                     discussionFeedUpdates.set(key, note);
                     discussionFeedPending.add(key);
                 } else if (!previous) added.set(key, thread);
                 else if (restarts && !isOlderAdviceThread(note, previous) &&
-                    (priorityChanged || JSON.stringify(note) !== JSON.stringify(previous))) {
+                    (priorityIncreased || JSON.stringify(note) !== JSON.stringify(previous))) {
                     discussionFeedUpdates.set(key, note);
                     discussionFeedPending.add(key);
                 }
@@ -4267,6 +4294,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         window.addEventListener("resize", repositionTooltip);
     }
 
+    function openDiscussionLink(href: string, thread: HTMLElement | undefined, readIntent: boolean | "conversation"): void {
+        const url = new URL(href, window.location.href);
+        if (window.location.hash !== url.hash) window.history.pushState(window.history.state, "", url.href);
+        void navigateDiscussion(url.hash, thread, readIntent);
+    }
+
     async function navigateDiscussion(hash: string, localThread?: HTMLElement, readIntent: boolean | "conversation" = false): Promise<void> {
         const generation = ++discussionNavigationGeneration;
         const tokenAtStart = accessToken;
@@ -4289,7 +4322,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         let thread = localThread?.isConnected ? localThread : null;
         const notes = participantState ? participantDiscussionThreads(participantState)
             : publicState ? publicDiscussionThreads(publicState) : [];
-        let note = discussionPageThreads(notes).find(candidate => discussionPermalink(candidate) === permalink);
+        let note = thread?.dataset.feedKey === permalink ? discussionFeedNotes.get(permalink) : undefined;
+        note ??= discussionPageThreads(notes).find(candidate => discussionPermalink(candidate) === permalink);
         const status = (message: string, retry = false) => {
             let element = document.getElementById("lmxDiscussionLinkStatus");
             if (!element) {
@@ -6839,8 +6873,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             link.addEventListener("click", event => {
                 if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
                 event.preventDefault();
-                if (window.location.hash !== link.hash) window.history.pushState(window.history.state, "", link.href);
-                void navigateDiscussion(link.hash, link.closest<HTMLElement>("article[data-discussion-post-participant-id]") || undefined,
+                openDiscussionLink(link.href, link.closest<HTMLElement>("article[data-discussion-post-participant-id]") || undefined,
                     link.classList.contains("lmx-discussion-count") ? "conversation" : true);
             });
         });

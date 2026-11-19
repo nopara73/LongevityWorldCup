@@ -4784,20 +4784,13 @@ a.lmx-note-mention:focus-visible {
     box-shadow: none;
 }
 
-.lmx-feed-updates {
+.lmx-notes-header:has(> .lmx-feed-new:not([hidden])) {
     position: sticky;
-    top: 5.75rem;
+    top: var(--site-visible-sticky-height, var(--site-sticky-height, 0px));
     z-index: 2;
-    height: 0;
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
 }
 
 .lmx-feed-new {
-    transform: translateY(-50%);
-    pointer-events: auto;
-    align-self: flex-start;
     color: var(--lmx-accent-hover);
     border-color: var(--lmx-accent);
     background: var(--lmx-surface);
@@ -5322,11 +5315,6 @@ a.lmx-note-mention:focus-visible {
 
     .lmx-card-head {
         margin-bottom: 0.7rem;
-    }
-
-    .lmx-notes-header {
-        align-items: stretch;
-        flex-direction: column;
     }
 
     .lmx-tab {
@@ -5933,6 +5921,11 @@ a.lmx-note-mention:focus-visible {
     background: var(--lmx-surface-accent);
 }
 
+.lmx-page .lmx-notes-header {
+    flex-wrap: wrap;
+    padding-block: 0;
+}
+
 .lmx-page .lmx-board-header h2,
 .lmx-page .lmx-notes-header h2 {
     margin: 0;
@@ -6142,11 +6135,6 @@ a.lmx-note-mention:focus-visible {
 
     .lmx-page .lmx-note {
         padding: min(var(--lwc-space-4), 16px) var(--lmx-pad);
-    }
-
-    .lmx-page .lmx-notes-header {
-        flex-direction: row;
-        align-items: center;
     }
 
     .lmx-page .lmx-life-strip span {
