@@ -1943,6 +1943,24 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         };
     }
 
+    internal SocialEventSkipReason? SupersededAnnouncementReason(EventType type, string text)
+    {
+        if (type == EventType.BadgeAward)
+            return IsCurrentBadgeAward(text) ? null : SocialEventSkipReason.SupersededBadgeAward;
+
+        if (type != EventType.NewRank || !EventHelpers.TryExtractSlug(text, out var slug)
+            || !EventHelpers.TryExtractRank(text, out var claimedRank)) return null;
+
+        lock (_athletesJsonLock)
+        {
+            var athlete = _athletes.OfType<JsonObject>().FirstOrDefault(a =>
+                string.Equals(a["AthleteSlug"]?.GetValue<string>(), slug, StringComparison.OrdinalIgnoreCase));
+            return athlete is not null && athlete.TryGetPropertyValue("CurrentPlacement", out var published)
+                && published?.GetValue<int>() != claimedRank
+                ? SocialEventSkipReason.SupersededUltimateRank : null;
+        }
+    }
+
     public bool IsCurrentBadgeAward(string text)
     {
         if (!EventHelpers.TryExtractBadgeLabel(text, out var label) ||

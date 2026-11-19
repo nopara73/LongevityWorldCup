@@ -129,10 +129,10 @@ public sealed class SocialJobIntegrationTests
         var id = fixture.InsertEvent(EventType.BadgeAward, text, now.UtcDateTime);
         var store = new SocialDeliveryStore(fixture.Database);
         store.Prepare(platform, id, "saved immutable request", "alice", now);
-        Assert.False(store.SuppressSupersededBadge(platform, id, EventType.BadgeAward, text, _ => true, now));
+        Assert.False(store.SuppressIfSuperseded(platform, id, null, now));
         if (attempted) Assert.True(store.BeginAttempt(platform, id, now));
 
-        Assert.True(store.SuppressSupersededBadge(platform, id, EventType.BadgeAward, text, _ => false, now));
+        Assert.True(store.SuppressIfSuperseded(platform, id, SocialEventSkipReason.SupersededBadgeAward, now));
         store.Fail(platform, id, "NetworkError", TimeSpan.FromMinutes(2), true, now);
         Assert.False(store.BeginAttempt(platform, id, now.AddMinutes(3)));
         Assert.Empty(store.GetPending(platform, customOnly: true, now));
@@ -706,6 +706,13 @@ public sealed class SocialJobIntegrationTests
             xProcessed: 0, threadsProcessed: 0, facebookProcessed: 0);
 
         const string rank = "slug[benjamin_garden] rank[6] prev[siim_land] prevPlace[10]";
+        fixture.Athletes.UpdateAthletesJsonInPlace(athlete =>
+        {
+            if ((string?)athlete["AthleteSlug"] == "benjamin_garden") athlete["CurrentPlacement"] = 6;
+            if ((string?)athlete["AthleteSlug"] == "siim_land") athlete["CurrentPlacement"] = null;
+        });
+        var unranked = Add(EventType.NewRank, "slug[siim_land] rank[2]", -7);
+        var superseded = Add(EventType.NewRank, "slug[benjamin_garden] rank[4]", -6);
         var overall = Add(EventType.NewRank, rank, -5);
         var clock = Add(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[9] ageReduction[-18]", -4);
         var title = Add(EventType.BadgeAward, "slug[benjamin_garden] badge[Age reduction] cat[Generation] val[Millennial] place[1]", -3);
@@ -713,16 +720,18 @@ public sealed class SocialJobIntegrationTests
             "slug[benjamin_garden] clock[pheno] place[3] improvement[-6.36] ageReduction[-18]", -2);
         var lowerOverall = Add(EventType.NewRank, "slug[another] rank[10]", -1);
 
-        string[] expected = [overall, lowerOverall, clock, title, improvement];
+        string[] expected = [unranked, superseded, overall, lowerOverall, clock, title, improvement];
         Assert.Equal(expected, fixture.Events.GetPendingXEvents().Select(e => e.Id));
         Assert.Equal(expected, fixture.Events.GetPendingThreadsEvents().Select(e => e.Id));
-        Assert.Equal(overall, Assert.Single(fixture.Events.GetPendingFacebookEvents(limit: 1)).Id);
+        Assert.Equal(unranked, Assert.Single(fixture.Events.GetPendingFacebookEvents(limit: 1)).Id);
         var ids = expected.ToHashSet();
         Assert.Equal(expected, store.GetPending(SocialDeliveryStore.WebPush, false, now)
             .Where(candidate => ids.Contains(candidate.Event.Id)).Select(candidate => candidate.Event.Id));
 
         await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
         var post = Assert.Single(fixture.FacebookRequests);
+        Assert.Equal((1, nameof(SocialEventSkipReason.SupersededUltimateRank)), fixture.ReadPlatformState(unranked, "Facebook"));
+        Assert.Equal((1, nameof(SocialEventSkipReason.SupersededUltimateRank)), fixture.ReadPlatformState(superseded, "Facebook"));
         Assert.Contains("Benjamin Garden climbed from #10 to #6 in the Ultimate League.",
             WebUtility.UrlDecode(await post.Content!.ReadAsStringAsync()));
         Assert.Contains("from #10 to #6", XMessageBuilder.ForEventText(EventType.NewRank, rank, slug => slug));
@@ -762,6 +771,12 @@ public sealed class SocialJobIntegrationTests
     {
         using var fixture = SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
         BlockPeriodicReminders(fixture);
+        if (type == EventType.NewRank)
+        {
+            var rank = fixture.Athletes.GetLeagueSlugsInRankOrder("ultimate").ToList().IndexOf("benjamin_garden") + 1;
+            Assert.InRange(rank, 1, 10);
+            raw = $"slug[benjamin_garden] rank[{rank}] prev[siim_land]";
+        }
         var id = fixture.InsertEvent(type, raw, DateTime.UtcNow, facebookProcessed: 0);
         await fixture.CreateFacebookJob().Execute(TestJobExecutionContext.Now());
         Assert.Equal((1, null), fixture.ReadPlatformState(id, "Facebook"));
