@@ -28,6 +28,7 @@ public sealed class HomepageVisitLayoutTests(
                     .find(candidate => candidate.getClientRects().length);
                 if (!section) return;
                 window.highlightsOpenedFirst = section.matches('.lwc-highlights-countdown-wrapper');
+                window.storeOpenedWithHighlights = !!section.querySelector('#lwc-countdown-box .lwc-merch-mobile-slide');
                 firstSection.disconnect();
             });
             firstSection.observe(document, { childList: true, subtree: true });
@@ -37,6 +38,7 @@ public sealed class HomepageVisitLayoutTests(
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
 
         Assert.Equal(expectedVisits == 4, await page.EvaluateAsync<bool>("window.highlightsOpenedFirst"));
+        Assert.Equal(expectedVisits == 4, await page.EvaluateAsync<bool>("window.storeOpenedWithHighlights"));
         Assert.Equal(expectedVisits, await page.EvaluateAsync<int>(
             "Number(localStorage.getItem('lwcHomepageVisitCount:v1'))"));
         await Assertions.Expect(page.Locator("main")).ToHaveAttributeAsync(

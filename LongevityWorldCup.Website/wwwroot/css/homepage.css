@@ -1343,11 +1343,11 @@ button:hover {
         gap: 0.45rem;
     }
 
-    .lwc-merch-body.has-merch-carousel .lwc-merch-grid {
+    .lwc-merch-body:has(> .lwc-merch-mobile-carousel) > .lwc-merch-grid {
         display: none;
     }
 
-    .lwc-merch-body.has-merch-carousel .lwc-merch-mobile-carousel {
+    .lwc-merch-body > .lwc-merch-mobile-carousel {
         display: flex;
         flex-direction: column;
         gap: 0.44rem;

@@ -149,7 +149,12 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     }
 })();
 </script>
-<template id="homepage-highlights"><div class="lwc-highlights-countdown-wrapper"><div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div></div></template>
+<template id="homepage-highlights">
+    <div class="lwc-highlights-countdown-wrapper">
+        <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
+        <!--HOMEPAGE-MERCH-->
+    </div>
+</template>
 <script>
     if (document.currentScript.closest('main').dataset.homepageVisitLayout === 'repeat') {
         const board = document.getElementById('homepage-highlights');
@@ -163,17 +168,18 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     </a>
 </div>
 
-<!--HOMEPAGE-HIGHLIGHTS-->
+<noscript>
+    <link rel="stylesheet" href="{{ASSET_EVENT_BOARD_CSS}}">
+    <div class="lwc-highlights-countdown-wrapper">
+        <div id="events-root-index" class="events-board"><div class="header-bar"><span>Highlights</span><a class="view-all" href="/events">View all</a></div></div>
+        <!--HOMEPAGE-STATIC-MERCH-->
+    </div>
+</noscript>
 <script>
-    // Keep the actual board, its View all link and keyboard focus in place.
     {
-        const shelf = document.currentScript.previousElementSibling;
-        const board = document.getElementById('homepage-highlights');
-        if (board) {
-            shelf.prepend(board.content.querySelector('#events-root-index'));
-            board.remove();
-        } else {
-            document.getElementById('events-root-index').after(shelf.querySelector('#lwc-countdown-box'));
+        const shelf = document.getElementById('homepage-highlights');
+        if (shelf) {
+            document.currentScript.before(shelf.content);
             shelf.remove();
         }
     }

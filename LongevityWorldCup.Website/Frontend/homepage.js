@@ -507,9 +507,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    setActiveSlide(0);
-    merchCarousel.hidden = false;
-    merchCarousel.parentElement.classList.add('has-merch-carousel');
+    // Keep a product the visitor already focused or scrolled to in the native strip.
+    const focusedProduct = slides.indexOf(document.activeElement);
+    setActiveSlide(focusedProduct >= 0 ? focusedProduct : slideNearestScroll());
+    merchCarousel.querySelector('.lwc-merch-mobile-dots').inert = false;
     syncLayout();
     phone.addEventListener('change', syncLayout);
     let layoutFrame = 0;

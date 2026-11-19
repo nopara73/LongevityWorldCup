@@ -125,13 +125,16 @@ namespace LongevityWorldCup.Website.Middleware
                     var leaderboardContent = CompactStaticMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
                     var guessMyAge = await ReadPartialAsync("guess-my-age.html",
                         bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
-                    var homepageHighlights = await ReadPartialAsync("homepage-highlights.html", bodyContent.Contains("<!--HOMEPAGE-HIGHLIGHTS-->", StringComparison.Ordinal));
-                    var eventBoardContent = await ReadPartialAsync("event-board-content.html", homepageHighlights.Length > 0 || bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
-                    if (homepageHighlights.Length > 0)
+                    var homepageMerch = await ReadPartialAsync("homepage-merch.html", bodyContent.Contains("<!--HOMEPAGE-MERCH-->", StringComparison.Ordinal));
+                    var eventBoardContent = await ReadPartialAsync("event-board-content.html", homepageMerch.Length > 0 || bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
+                    if (homepageMerch.Length > 0)
                     {
                         // Parse both sections before running their classic scripts, in their original order.
                         var events = eventBoardContent.Split("<!--EVENT-BOARD-RUNTIME-->", 2, StringSplitOptions.None);
-                        bodyContent = bodyContent.Replace("<!--HOMEPAGE-HIGHLIGHTS-->", CompactStaticMarkup(homepageHighlights), StringComparison.Ordinal)
+                        var shelf = CompactStaticMarkup(homepageMerch);
+                        var carousel = CompactStaticMarkup(await ReadPartialAsync("homepage-merch-carousel.html", true));
+                        bodyContent = bodyContent.Replace("<!--HOMEPAGE-MERCH-->", shelf.Replace("<!--HOMEPAGE-MERCH-CAROUSEL-->", carousel), StringComparison.Ordinal)
+                            .Replace("<!--HOMEPAGE-STATIC-MERCH-->", shelf.Replace("<!--HOMEPAGE-MERCH-CAROUSEL-->", string.Empty), StringComparison.Ordinal)
                             .Replace("<!--HOMEPAGE-EVENT-RUNTIME-->", events[1], StringComparison.Ordinal);
                         eventBoardContent = CompactStaticMarkup(events[0]);
                     }
@@ -204,7 +207,7 @@ namespace LongevityWorldCup.Website.Middleware
                     header = header.Replace("<!--HEADER-RUNTIME-->", championPortrait is null ? HeaderRuntime : string.Empty);
                     leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null
                         ? string.Empty : HeaderRuntime + "\n" + HomepagePodiumAssets.SectionStyles);
-                    if (homepageHighlights.Length > 0)
+                    if (homepageMerch.Length > 0)
                     {
                         var runtime = leaderboardContent.IndexOf(LeaderboardRuntimeScriptsStartMarker, StringComparison.Ordinal);
                         if (runtime >= 0)
