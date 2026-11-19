@@ -20,6 +20,7 @@ public sealed class FrontendTypeScriptBuildTests
         "empty-state",
         "field-validation",
         "flow-action-dock",
+        "footer-feel",
         "form-controls",
         "history-timeline",
         "initial-view",

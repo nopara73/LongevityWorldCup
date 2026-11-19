@@ -9,7 +9,8 @@ namespace LongevityWorldCup.Tests;
 public sealed class PageWeightTests(TestWebApplicationFactory factory)
 {
     [Theory]
-    [InlineData("/", 110_000)]
+    // The shared footer links its own stylesheet and script (footer-feel), 139 bytes of references.
+    [InlineData("/", 110_500)]
     [InlineData("/athlete/michael-lustgarten", 110_000)]
     [InlineData("/leaderboard", 430_000)]
     [InlineData("/events", 80_000)]

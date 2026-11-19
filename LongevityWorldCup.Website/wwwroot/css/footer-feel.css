@@ -1,7 +1,15 @@
 /* The site footer's arrival and touch. Frontend/footer-feel.ts sets
-   [data-feel] on footer.footer, --follow-i / --rail-i per link, .is-arrived
-   once the footer is in view and .is-launching on the crest when pressed.
-   Colours: the footer's own --footer-* tokens and the accent. */
+   [data-feel] on footer.footer, --follow-i / --rail-i per link (and
+   --glide-i / --sub-i on the footer), .is-waiting while an off-screen footer
+   is still to arrive, .is-arrived once it has (with .is-settled when it shows
+   at once), .is-dealt once its deal is over, [data-pulsed] once the crest's
+   pulse is spent and .is-launching on the crest when pressed. Without
+   .is-waiting the footer always shows as it ends. Colours: the footer's own
+   --footer-* tokens and the accent. */
+
+/* The band keeps its own stacking, so lifting its parts above the glow never
+   lifts them above the page's docked or sticky bars. */
+.footer[data-feel] { isolation: isolate; }
 
 /* ------------------------------------------------------------ the horizon */
 /* An accent line draws out from the crest along the band's top edge. */
@@ -15,12 +23,8 @@
     background: linear-gradient(90deg, transparent, var(--footer-accent) 30%, var(--footer-accent) 70%, transparent);
     opacity: .85;
     transform-origin: center;
-    transform: scaleX(0);
-    pointer-events: none;
-}
-.footer[data-feel].is-arrived::before {
-    transform: scaleX(1);
     transition: transform 1100ms cubic-bezier(.2, 0, 0, 1);
+    pointer-events: none;
 }
 /* A soft glow under the horizon so the band reads lit from the seal. */
 .footer[data-feel]::after {
@@ -32,20 +36,26 @@
     height: 9rem;
     translate: -50% 0;
     background: radial-gradient(50% 100% at 50% 0%, color-mix(in srgb, var(--footer-accent) 16%, transparent), transparent 70%);
-    opacity: 0;
     transition: opacity 900ms ease 200ms;
     pointer-events: none;
 }
-.footer[data-feel].is-arrived::after { opacity: 1; }
+/* Waiting off screen: the horizon is folded into the crest and the glow is
+   out, ready to draw and light as the footer arrives. */
+@media screen and (prefers-reduced-motion: no-preference) {
+    .footer[data-feel].is-waiting::before { transform: scaleX(0); }
+    .footer[data-feel].is-waiting::after { opacity: 0; }
+}
+.footer[data-feel].is-settled::before,
+.footer[data-feel].is-settled::after { transition: none; }
 .footer[data-feel] > * { position: relative; z-index: 1; }
 .footer[data-feel] > .footer-crest { position: absolute; z-index: 2; }
 
 /* ------------------------------------------------------------ the crest */
-.footer[data-feel] .footer-crest {
-    transition: translate 260ms cubic-bezier(.34, 1.4, .64, 1), box-shadow 260ms ease;
-}
-.footer[data-feel].is-arrived .footer-crest {
-    animation: footer-crest-pulse 1100ms cubic-bezier(.2, 0, 0, 1) 300ms;
+/* One pulse as the footer arrives; never again after it or a press. */
+@media (prefers-reduced-motion: no-preference) {
+    .footer[data-feel].is-arrived:not(.is-settled, [data-pulsed]) .footer-crest {
+        animation: footer-crest-pulse 1100ms cubic-bezier(.2, 0, 0, 1) 300ms;
+    }
 }
 @keyframes footer-crest-pulse {
     0% { box-shadow: 0 6px 16px -8px rgba(2, 12, 18, .7), 0 0 0 0 color-mix(in srgb, var(--footer-accent) 60%, transparent); }
@@ -61,25 +71,38 @@
 }
 
 /* ------------------------------------------------------------ dealing in */
-@media (prefers-reduced-motion: no-preference) {
+/* Screen only: print and reduced motion always show every link. */
+@media screen and (prefers-reduced-motion: no-preference) {
     /* The rail's tiles and the follow icons arrive one after another. */
-    .footer[data-feel]:not(.is-arrived) .footer-column--explore .footer-link,
-    .footer[data-feel]:not(.is-arrived) :is(.footer-follow-links, .footer-subscriptions) .footer-link {
+    .footer[data-feel].is-waiting .footer-column--explore .footer-link,
+    .footer[data-feel].is-waiting :is(.footer-follow-links, .footer-subscriptions) .footer-link {
         opacity: 0;
     }
-    .footer[data-feel].is-arrived .footer-column--explore .footer-link {
+    .footer[data-feel].is-arrived:not(.is-settled, .is-dealt) .footer-column--explore .footer-link {
         animation: footer-tile-in 460ms cubic-bezier(.2, 0, 0, 1) both;
         animation-delay: calc(120ms + var(--rail-i, 0) * 45ms);
     }
-    .footer[data-feel].is-arrived :is(.footer-follow-links, .footer-subscriptions) .footer-link {
+    .footer[data-feel].is-arrived:not(.is-settled, .is-dealt) :is(.footer-follow-links, .footer-subscriptions) .footer-link {
         animation: footer-icon-in 520ms cubic-bezier(.34, 1.4, .64, 1) both;
         animation-delay: calc(380ms + var(--follow-i, 0) * 40ms);
+    }
+    /* The rail's current-page marker and the subscriptions' divider wait
+       with the rest and arrive with their own tile and icon. */
+    .footer[data-feel].is-waiting .footer-column--explore .nav-glide { opacity: 0; }
+    .footer[data-feel].is-waiting .footer-subscriptions { border-left-color: transparent; }
+    .footer[data-feel].is-arrived:not(.is-settled, .is-dealt) .footer-column--explore .nav-glide {
+        animation: footer-glide-in 300ms ease backwards;
+        animation-delay: calc(280ms + var(--glide-i, 0) * 45ms);
+    }
+    .footer[data-feel].is-arrived:not(.is-settled, .is-dealt) .footer-subscriptions {
+        transition: border-left-color 300ms ease calc(380ms + var(--sub-i, 0) * 40ms);
     }
     /* The existing whole-group rise would double the deal-in. */
     .footer[data-feel] :is(.footer-column--explore, .footer-follow-links, .footer-subscriptions) { animation: none; }
 }
 @keyframes footer-tile-in { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
 @keyframes footer-icon-in { from { opacity: 0; scale: .4; } to { opacity: 1; scale: 1; } }
+@keyframes footer-glide-in { from { opacity: 0; } }
 
 /* ------------------------------------------------------------ touch */
 /* Follow icons: the ring fills with the accent, the icon lifts. */
@@ -100,10 +123,8 @@
 .footer[data-feel] .footer-link:active { scale: .95; }
 
 @media (prefers-reduced-motion: reduce) {
-    .footer[data-feel]::before { transform: none; transition: none; }
+    .footer[data-feel]::before,
     .footer[data-feel]::after { transition: none; }
-    .footer[data-feel] .footer-crest,
-    .footer[data-feel].is-arrived .footer-crest,
-    .footer[data-feel] .footer-crest.is-launching { animation: none; transition: none; }
+    .footer[data-feel] .footer-crest.is-launching { animation: none; }
     .footer[data-feel] :is(.footer-follow-links, .footer-subscriptions) .footer-link:hover { translate: none; }
 }
