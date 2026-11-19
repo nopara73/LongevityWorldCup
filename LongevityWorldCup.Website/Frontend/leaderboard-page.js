@@ -1851,25 +1851,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
                 // Loop through the top three athletes and create podium items
                 topThree.forEach(athlete => {
-                    let rankClass, rankEmoji;
-
-                    switch (athlete.rank) {
-                        case 1:
-                            rankClass = 'first';
-                            rankEmoji = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
-                            break;
-                        case 2:
-                            rankClass = 'second';
-                            rankEmoji = '<i class="fa-solid fa-medal" style="color: silver;"></i>';
-                            break;
-                        case 3:
-                            rankClass = 'third';
-                            rankEmoji = '<i class="fa-solid fa-award" style="color: #cd7f32;"></i>';
-                            break;
-                        default:
-                            return; // Only handle top three
-                    }
-
+                    const rankClass = ['first', 'second', 'third'][athlete.rank - 1];
                     const previous = previousCards[athlete.rank - 1];
                     const profileHref = getAthleteProfileHref(athlete);
                     const podiumPortraitUrl = getAthletePortraitUrl(athlete);
@@ -1893,7 +1875,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
                         podiumItem.innerHTML = `
                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
-                                ${rankEmoji}
+                                ${podiumSymbol(rankClass)}
                             </div>
                             <a class="athlete-profile-link" href="${escapeHtml(profileHref)}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${escapeHtml(athlete.displayName)} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
                             <div class="name-row">
@@ -1911,10 +1893,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                         if (previous) previous.replaceWith(podiumItem);
                         else podium.appendChild(podiumItem);
                     }
-                    podiumItem.querySelector('.podium-link-row').innerHTML =
-                        renderPersonalLink(athlete.personalLink, athlete.displayName)
-                        + renderPodcastLink(athlete.podcastLink, athlete.displayName)
-                        + renderMediaContact(athlete.mediaContact, true, athlete.displayName);
+                    updatePodiumLinks(podiumItem.querySelector('.podium-link-row'), athlete);
                     wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
 
                     // After appending the podium item
@@ -2492,11 +2471,43 @@ function renderMediaContact(contact, isPodium, athleteName) {
     </a>`;
 }
 
+function podiumSymbol(name) {
+    return `<svg class="podium-symbol" aria-hidden="true" focusable="false"><use href="#podium-${name}"></use></svg>`;
+}
+
+function updatePodiumLinks(row, athlete) {
+    const template = document.createElement('template');
+    template.innerHTML = renderPersonalLink(athlete.personalLink, athlete.displayName)
+        + renderPodcastLink(athlete.podcastLink, athlete.displayName)
+        + renderMediaContact(athlete.mediaContact, true, athlete.displayName);
+
+    // Keep the original link (and keyboard focus) when the live destination agrees.
+    // Only the contact glyph needs the browser's platform-specific icon.
+    const desired = [...template.content.children];
+    for (const current of [...row.children]) {
+        const index = desired.findIndex(link =>
+            link.className === current.className && link.href === current.href && link.title === current.title &&
+            (link.tagName === 'A' || link.textContent === current.textContent));
+        if (index < 0) {
+            current.remove();
+            continue;
+        }
+        if (current.hasAttribute('data-contact-glyph')) {
+            current.replaceChildren(...desired[index].childNodes);
+            current.removeAttribute('data-contact-glyph');
+        }
+        desired[index] = current;
+    }
+    desired.forEach((link, index) => {
+        if (row.children[index] !== link) row.insertBefore(link, row.children[index] || null);
+    });
+}
+
 function renderPersonalLink(link, athleteName) {
     const href = window.normalizeWebUrl(link);
     if (!href) return '';
     return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="${escapeHtml(`Visit personal page of ${athleteName}`)}">
-        <i class="fa fa-link"></i>
+        ${podiumSymbol('link')}
     </a>`;
 }
 
@@ -2505,7 +2516,7 @@ function renderPodcastLink(link, athleteName) {
     if (!href) return '';
     const label = escapeHtml(`Listen to ${athleteName}'s podcast appearance`);
     return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="${label}" title="${label}">
-        <i class="fa fa-microphone"></i>
+        ${podiumSymbol('podcast')}
     </a>`;
 }
 
@@ -4490,21 +4501,12 @@ function updateRankingExplanation(currentLeaderboardView, byFlag = getSelectedLe
     const explanation = document.getElementById('rankingExplanation');
     if (!explanation) return;
 
-    const explanations = {
-        ultimate: '<strong><a href="/ruleset#point-system-ranking">Ultimate League</a></strong> ranks Pro athletes before Amateur athletes, then by effective age reduction and tie-breakers within each track.',
-        bortz: '<strong><a href="/bortz-age">Bortz age</a></strong> estimates biological age from advanced blood-test markers.',
-        pheno: '<strong><a href="/pheno-age">Pheno age</a></strong> estimates biological age from common blood-test markers.',
-        improvement: '<strong>Pheno improvement</strong> ranks each athlete’s latest <a href="/pheno-age">pheno age</a> against their worst pheno age.',
-        'bortz-improvement': '<strong>Bortz improvement</strong> ranks each athlete’s latest <a href="/bortz-age">bortz age</a> against their worst bortz age.',
-        crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.'
-    };
-
     const html = byFlag
         ? (currentLeaderboardView === 'ultimate'
             ? 'Top-three total age reduction. Complete Bortz teams first, then complete Pheno teams.'
             : 'Top-three total years. Lower wins.')
-        : explanations[currentLeaderboardView] || '';
-    explanation.innerHTML = html;
+        : document.getElementById('ranking-copy-' + currentLeaderboardView)?.innerHTML || '';
+    if (explanation.innerHTML !== html) explanation.innerHTML = html;
     explanation.classList.toggle('is-visible', html.length > 0);
 }
 

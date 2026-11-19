@@ -31,6 +31,16 @@
 <!--LEADERBOARD-PODIUM-END-->
         </div>
 
+        <!-- Placing artwork from the bundled Font Awesome Free set. -->
+        <svg class="podium-symbols" aria-hidden="true" width="0" height="0" style="position:absolute">
+            <symbol id="podium-first" viewBox="0 0 576 534"><path transform="translate(0 459) scale(1 -1)" d="M309 342Q327 354 328 376Q328 393 316 404Q305 416 288 416Q271 416 260 404Q248 393 248 376Q249 353 267 342L210 227Q202 214 188 210Q174 207 161 217L72 288Q80 298 80 312Q80 329 68 340Q57 352 40 352Q23 352 12 340Q0 329 0 312Q0 295 12 284Q23 272 40 272Q40 272 40 272Q41 272 41 272L86 21Q91 -3 108 -17Q126 -32 149 -32H427Q450 -32 468 -17Q485 -3 490 21L535 272Q535 272 536 272Q536 272 536 272Q553 272 564 284Q576 295 576 312Q576 329 564 340Q553 352 536 352Q519 352 508 340Q496 329 496 312Q496 298 504 288L415 217Q402 207 388 210Q374 214 366 227L309 342Z"/></symbol>
+            <symbol id="podium-second" viewBox="0 0 512 534"><path transform="translate(0 459) scale(1 -1)" d="M4 410Q0 416 0 423Q2 446 25 448H134Q152 447 161 432L230 318Q156 308 106 256L4 410ZM508 410 406 256 508 410 406 256Q356 308 282 318L351 432Q360 447 378 448H487Q510 446 512 423Q512 416 508 410ZM80 112Q80 160 104 200Q127 240 168 264Q210 288 256 288Q302 288 344 264Q385 240 408 200Q432 160 432 112Q432 64 408 24Q385 -16 344 -40Q302 -64 256 -64Q210 -64 168 -40Q127 -16 104 24Q80 64 80 112ZM264 207Q256 217 248 207L225 161Q223 157 218 156L168 149Q156 144 163 133L199 98Q202 94 202 89L193 40Q193 34 197 30Q201 27 207 30L252 53Q256 55 260 53L305 30Q318 26 319 40L310 89Q309 94 313 98L349 133Q356 144 344 149L294 156Q289 157 287 161L264 207Z"/></symbol>
+            <symbol id="podium-third" viewBox="0 0 384 534"><path transform="translate(0 459) scale(1 -1)" d="M174 442Q192 453 210 442L228 431Q237 425 248 425L269 427Q291 427 301 408L311 389Q316 380 325 375L345 365Q363 355 363 333L361 312Q361 301 367 292L379 274Q390 256 379 238L367 220Q361 211 361 200L363 179Q363 157 344 147L325 137Q316 132 311 123L301 103Q291 85 270 85L248 87Q237 87 228 81L210 69Q192 58 174 69L156 81Q147 87 136 87L115 85Q93 85 83 104L73 123Q68 132 59 137L40 147Q21 157 21 178L23 200Q23 211 17 220L6 238Q-5 256 6 274L17 292Q23 301 23 312L21 333Q21 355 40 365L59 375Q68 380 73 389L83 408Q93 427 115 427L136 425Q147 425 156 431L174 442ZM272 256Q271 301 232 325Q192 347 152 325Q113 301 112 256Q113 211 152 187Q192 165 232 187Q271 211 272 256ZM1 6 44 109 1 6 44 109Q45 109 45 108L54 89Q75 53 116 53L138 55Q138 55 138 54L156 43Q164 38 172 35L135 -54Q131 -63 121 -64Q112 -65 107 -57L74 -8L18 -16Q9 -17 3 -10Q-2 -2 1 6ZM249 -54 212 35 249 -54 212 35Q220 38 228 43L246 54Q246 55 246 55L268 53Q309 53 330 89L339 108Q339 109 340 109L383 6Q386 -2 381 -10Q375 -17 366 -16L310 -8L277 -57Q272 -64 263 -64Q253 -63 249 -54Z"/></symbol>
+            <symbol id="podium-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.6a4 4 0 0 0 5.7.4l3-3a4 4 0 0 0-5.7-5.7l-1.4 1.4 M14 10.4a4 4 0 0 0-5.7-.4l-3 3a4 4 0 0 0 5.7 5.7l1.4-1.4"/></g></symbol>
+            <symbol id="podium-podcast" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></g></symbol>
+            <symbol id="podium-contact" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 7 5a2 2 0 0 0 2 0l7-5"/></g></symbol>
+        </svg>
+
 <!--PODIUM-HEADER-RUNTIME-->
 <!--LEADERBOARD-STYLES-START-->
 <link rel="stylesheet" href="{{ASSET_LEADERBOARD_CONTENT_CSS}}">
@@ -116,6 +126,12 @@
         <div class="leaderboard-controls-status">
         <div class="leaderboard-identity">
         <h2 class="leaderboard-league-title" id="leaderboardLeagueTitle" hidden></h2>
+        <template id="ranking-copy-ultimate"><strong><a href="/ruleset#point-system-ranking">Ultimate League</a></strong> ranks Pro athletes before Amateur athletes, then by effective age reduction and tie-breakers within each track.</template>
+        <template id="ranking-copy-bortz"><strong><a href="/bortz-age">Bortz age</a></strong> estimates biological age from advanced blood-test markers.</template>
+        <template id="ranking-copy-pheno"><strong><a href="/pheno-age">Pheno age</a></strong> estimates biological age from common blood-test markers.</template>
+        <template id="ranking-copy-improvement"><strong>Pheno improvement</strong> ranks each athlete’s latest <a href="/pheno-age">pheno age</a> against their worst pheno age.</template>
+        <template id="ranking-copy-bortz-improvement"><strong>Bortz improvement</strong> ranks each athlete’s latest <a href="/bortz-age">bortz age</a> against their worst bortz age.</template>
+        <template id="ranking-copy-crowd"><strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.</template>
         <div class="ranking-explanation" id="rankingExplanation" aria-live="polite"></div>
         </div>
         <span id="leaderboardOrderStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>

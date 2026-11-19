@@ -210,13 +210,32 @@ html body main .podium .podium-item.first img.podium-portrait{
  .podium-item.first .prize-money{ font-size:1.9rem; }
  .btc-amount{ order:1; margin-top:.15rem; font-weight:normal; font-size:.72rem; color:inherit; line-height:1.2; }
 
+ /* Only the live amounts are pending. Match their line boxes without animating
+    the whole step or showing a value that could be mistaken for a result. */
+ @media (scripting:enabled){
+     .podium-item-lower[aria-busy="true"] :is(.prize-money, .btc-amount){
+         position:relative; color:transparent; min-width:min(6ch, 100%);
+     }
+     .podium-item-lower[aria-busy="true"] .btc-amount{ min-width:min(15ch, 100%); }
+     .podium-item-lower[aria-busy="true"] :is(.prize-money, .btc-amount)::after{
+         content:""; position:absolute; inset-inline:8%; top:50%; height:.36em;
+         transform:translateY(-50%); border-radius:1em;
+         background:color-mix(in srgb, var(--lwc-ink, #17212b) 17%, var(--podium-surface));
+     }
+ }
+
  /* The placing icon sits in the leaderboard's rank chip, worn as a medal. */
  .podium-rank{
      position:absolute; top:calc(var(--podium-portrait-size) - 18px); left:50%; z-index:2; width:32px; height:32px; margin-left:-16px; padding:0;
      display:flex; justify-content:center; align-items:center; box-sizing:border-box;
      border-radius:50%; background:var(--podium-metal); box-shadow:0 0 0 3px var(--lwc-canvas, #f3f5f7); font-size:.85rem;
  }
- .podium-rank i{ color:#17212b !important; }
+ .podium-symbol{ display:block; width:1em; height:1em; fill:currentColor; pointer-events:none; }
+ .podium-rank .podium-symbol{ color:#17212b; }
+ .podium-link-row .podium-symbol{ width:1.25em; height:1.25em; }
+ @media (forced-colors:active){
+     .podium-rank .podium-symbol{ color:CanvasText; }
+ }
 
  .podium .athlete-name{ color:var(--lwc-ink); text-decoration-color:var(--lwc-border-strong); }
  .podium-score{ margin-bottom:var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
@@ -267,6 +286,7 @@ html body main .podium .podium-item.first img.podium-portrait{
  .personal-link-icon:hover,
  .personal-link-icon:focus-visible{ color:var(--secondary-color); background-color:rgba(0,188,212,.08); }
  .podium-link-row{ display:inline-flex; align-items:center; justify-content:center; gap:var(--space-1, .25rem); }
+ .podium-contact-slot,
  .podium-link-row .personal-link-icon{
      width:44px;
      height:44px;

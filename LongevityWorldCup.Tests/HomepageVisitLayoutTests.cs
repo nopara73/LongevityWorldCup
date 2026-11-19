@@ -21,11 +21,21 @@ public sealed class HomepageVisitLayoutTests(
         {
             ReducedMotion = ReducedMotion.Reduce
         });
-        await context.AddInitScriptAsync("localStorage.setItem('lwcHomepageVisitCount:v1', '3');");
+        await context.AddInitScriptAsync("""
+            localStorage.setItem('lwcHomepageVisitCount:v1', '3');
+            const firstSection = new MutationObserver(() => {
+                const section = document.querySelector('main > :is(.main-container, .lwc-highlights-countdown-wrapper)');
+                if (!section) return;
+                window.highlightsOpenedFirst = section.matches('.lwc-highlights-countdown-wrapper');
+                firstSection.disconnect();
+            });
+            firstSection.observe(document, { childList: true, subtree: true });
+            """);
         var page = await context.NewPageAsync();
         await page.GotoAsync(path);
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
 
+        Assert.Equal(expectedVisits == 4, await page.EvaluateAsync<bool>("window.highlightsOpenedFirst"));
         Assert.Equal(expectedVisits, await page.EvaluateAsync<int>(
             "Number(localStorage.getItem('lwcHomepageVisitCount:v1'))"));
         await Assertions.Expect(page.Locator("main")).ToHaveAttributeAsync(
