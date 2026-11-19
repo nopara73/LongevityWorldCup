@@ -601,8 +601,8 @@ function initializeAthletePortraitMotion() {
         const context = live.getContext('2d', { alpha: false });
         if (!stillContext || !context) return null;
         root.append(still, live);
-        let ready = false, loaded = false, disposed = false, playing = false;
-        let frame = 0, until = 0, entrance = null;
+        let disposed = false, playing = false;
+        let frame = 0, until = 0;
         const photo = new Image();
         const sync = () => {
             const style = getComputedStyle(img);
@@ -651,20 +651,9 @@ function initializeAthletePortraitMotion() {
             until = performance.now() + 450;
             if (!disposed && !playing && !frame) frame = requestAnimationFrame(tick);
         };
-        const settle = () => {
-            if (disposed || ready || !loaded) return;
-            ready = true;
-            entrance?.cancel();
-            follow();
-            if (hasPortraitIntent(img)) play(img);
-            if (reducedMotion.matches) return;
-            if (img === profile && profileReady(motion) && profilePlayed !== motion) visiblePortraits?.observe(img);
-            else if (podium?.contains(img) && athleteResultsReady && !podiumPlayed.has(motion)) visiblePortraits?.observe(img);
-        };
         const resize = new ResizeObserver(size);
         const record = {
-            motion, wrapper, root, live, context, sync, size, follow, settle,
-            get ready() { return ready; },
+            motion, wrapper, live, context, sync, size, follow,
             setPlaying(value) {
                 playing = value;
                 if (value) { cancelAnimationFrame(frame); frame = 0; }
@@ -675,7 +664,6 @@ function initializeAthletePortraitMotion() {
                 active.get(img)?.stop();
                 disposed = true;
                 cancelAnimationFrame(frame);
-                entrance?.cancel();
                 resize.disconnect();
                 photo.removeAttribute('src');
                 root.remove();
@@ -686,22 +674,17 @@ function initializeAthletePortraitMotion() {
         surfaces.set(img, record);
         wrapper.classList.add('portrait-motion');
         img.after(root);
-        if (img === profile) size();
         resize.observe(img);
         photo.decoding = 'async';
+        photo.fetchPriority = 'low';
         photo.src = img.src.replace('/generated/profiles/athletes/', '/generated/thumbs/athletes/')
             .replace(/(?:_thumb_(?:sm|md))?_([0-9a-f]{64}\.webp)(?=[?#]|$)/, '_thumb_md_$1');
         void photo.decode().then(() => {
             if (disposed || !img.isConnected || motionFor(img) !== motion) { record.dispose(); return; }
             stillContext.drawImage(photo, 0, 0, 320, 320);
-            loaded = true;
-            root.style.opacity = '1';
-            if (reducedMotion.matches || typeof root.animate !== 'function') settle();
-            else {
-                entrance = root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-                entrance.finished.then(settle, () => {});
-            }
-        }, () => record.dispose());
+            still.style.opacity = '1';
+            follow();
+        }, () => still.remove()); // The displayed photo remains underneath the clip.
         return record;
     }
 
@@ -716,7 +699,7 @@ function initializeAthletePortraitMotion() {
         const wrapper = img.parentElement;
         if (!wrapper || !img.naturalWidth || !img.checkVisibility?.()) return false;
         const portrait = surfaceFor(img, motion);
-        if (!portrait?.ready) return false;
+        if (!portrait) return false;
 
         if (podium?.contains(img)) {
             podiumPlayed.add(motion);
@@ -736,7 +719,6 @@ function initializeAthletePortraitMotion() {
         video.hidden = true;
         const surface = portrait.live;
         const context = portrait.context;
-        portrait.size();
         portrait.setPlaying(true);
         let frame = 0;
         let finishFrame = 0;
@@ -805,8 +787,11 @@ function initializeAthletePortraitMotion() {
             video.appendChild(source);
         }
         img.after(video);
-        syncOverlay();
         video.play().catch(stop);
+        frame = requestAnimationFrame(now => {
+            portrait.size();
+            syncOverlay(now);
+        });
         return true;
     }
 
@@ -914,10 +899,7 @@ function initializeAthletePortraitMotion() {
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
-        for (const portrait of surfaces.values()) {
-            if (reducedMotion.matches) portrait.settle();
-            portrait.follow();
-        }
+        for (const portrait of surfaces.values()) portrait.follow();
     });
     scan();
 }

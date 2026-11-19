@@ -9,6 +9,21 @@
     <link rel="stylesheet" href="{{ASSET_MERCH_SHELF_CSS}}">
     <link rel="expect" href="#lwc-site-header" blocking="render">
     <script>
+if (matchMedia('(any-pointer: coarse)').matches) {
+    let pressed;
+    const release = () => {
+        pressed?.removeAttribute('data-home-press');
+        pressed = null;
+    };
+    addEventListener('pointerdown', event => {
+        release();
+        if (!window.LwcTouch && event.isPrimary && event.pointerType === 'touch') {
+            pressed = event.target.closest?.('a[href],button:enabled,summary,label,[role=button],[role=tab],tr[data-athlete-name]');
+            pressed?.setAttribute('data-home-press', '');
+        }
+    }, true);
+    for (const type of ['pointerup', 'pointercancel', 'scroll', 'pagehide']) addEventListener(type, release, true);
+}
 // Hydrated cards share the first frame's entrance timeline.
 (() => {
     const root = document.documentElement;

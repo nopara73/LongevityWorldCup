@@ -490,6 +490,54 @@ public sealed class AthletePortraitMotionBrowserTests(
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FirstTablePortraitGesture_PlaysBeforeTheOptionalStillIsReady(bool keyboard)
+    {
+        await using var context = await NewContextAsync();
+        await context.AddInitScriptAsync("""
+            const decode = HTMLImageElement.prototype.decode;
+            const waitForStill = new Promise(resolve => window.releaseMotionStill = resolve);
+            HTMLImageElement.prototype.decode = function () {
+                if (!this.isConnected && this.src.includes('/anna_buky_thumb_md_')) {
+                    window.motionStillRequested = true;
+                    return waitForStill.then(() => decode.call(this));
+                }
+                return decode.call(this);
+            };
+            window.holdTableMotion = true;
+            """);
+        var page = await LoadAsync(context, "/leaderboard");
+        var link = page.Locator(".leaderboard a[href='/athlete/anna-buky']:has(img.portrait)").First;
+        var image = link.Locator("img.portrait");
+        await image.ScrollIntoViewIfNeededAsync();
+        await image.EvaluateAsync("img => img.decode()");
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        Assert.Equal(0, await page.Locator(".leaderboard span.athlete-portrait-motion").CountAsync());
+        try
+        {
+            if (keyboard)
+            {
+                await link.FocusAsync();
+                await page.Keyboard.PressAsync("Tab");
+            }
+            else
+            {
+                await image.HoverAsync();
+                await page.Mouse.MoveAsync(0, 0);
+            }
+
+            await page.WaitForFunctionAsync("() => window.motionStillRequested");
+            await ExpectPortraitPlayingAsync(link.Locator("video.athlete-portrait-motion"));
+            await Assertions.Expect(link.Locator(".athlete-portrait-frame")).ToHaveCSSAsync("opacity", "1");
+            await Assertions.Expect(link.Locator(".athlete-portrait-still")).ToHaveCSSAsync("opacity", "0");
+            Assert.Equal(1, await link.Locator("video").CountAsync());
+        }
+        finally { await page.EvaluateAsync("() => window.releaseMotionStill()"); }
+        await Assertions.Expect(link.Locator(".athlete-portrait-still")).ToHaveCSSAsync("opacity", "1");
+    }
+
+    [Theory]
     [InlineData(1440)]
     [InlineData(390)]
     public async Task ApprovedTablePortraits_ReplayOnHover_AndKeepTheirLinksAndAlignment(int width)

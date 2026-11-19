@@ -84,6 +84,80 @@ public sealed class HomepageLoadingBrowserTests(
         await Assertions.Expect(page.Locator("link[href*='/css/share-sheet.css']")).ToHaveAttributeAsync("media", "all");
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task FirstScreen_RespondsBeforeInteractionAssetsArrive(bool touch, bool reduceMotion)
+    {
+        await using var context = await NewContextAsync(touch ? 390 : 1440, touch);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = reduceMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference });
+        await ObserveFirstScreenPaintAsync(page);
+        var styles = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var scripts = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        foreach (var layer in new[] { "pointer", "touch", "motion" })
+        {
+            await page.RouteAsync($"**/css/{layer}.css*", async route => { await styles.Task; await route.ContinueAsync(); });
+            await page.RouteAsync($"**/js/{layer}.js*", async route => { await scripts.Task; await route.ContinueAsync(); });
+        }
+        var link = page.Locator(".podium-item.first .athlete-profile-link").First;
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("() => window.firstScreenPaints.has('champion-portrait')");
+            if (touch)
+            {
+                var cdp = await context.NewCDPSessionAsync(page);
+                var image = link.Locator("img");
+                await image.EvaluateAsync("img => img.scrollIntoView({ block: 'center' })");
+                async Task PressAsync()
+                {
+                    var box = (await image.BoundingBoxAsync())!;
+                    await cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> {
+                        ["type"] = "touchStart", ["touchPoints"] = new[] { new { x = box.X + box.Width / 2, y = box.Y + box.Height / 2 } }
+                    });
+                }
+                Task CancelAsync() => cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> {
+                    ["type"] = "touchCancel", ["touchPoints"] = Array.Empty<object>()
+                });
+
+                await PressAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "brightness(0.86)");
+                if (reduceMotion) await Assertions.Expect(link).ToHaveCSSAsync("scale", "none");
+                await CancelAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "none");
+                scripts.TrySetResult();
+                await page.WaitForFunctionAsync("() => !!window.LwcTouch");
+                await PressAsync();
+                await Assertions.Expect(link).ToHaveAttributeAsync("data-lwc-pressed", "control");
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "brightness(0.86)");
+                await CancelAsync();
+                await cdp.DetachAsync();
+            }
+            else
+            {
+                var image = link.Locator("img");
+                await image.HoverAsync();
+                if (reduceMotion)
+                {
+                    await Assertions.Expect(link).ToHaveCSSAsync("translate", "none");
+                    await Assertions.Expect(image).ToHaveCSSAsync("transform", "none");
+                    await Assertions.Expect(image).ToHaveCSSAsync("outline-style", "solid");
+                }
+                else await Assertions.Expect(link).ToHaveCSSAsync("translate", "0px -5px");
+                await page.Keyboard.PressAsync("Tab");
+                await link.FocusAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("outline-style", "solid");
+            }
+        }
+        finally { styles.TrySetResult(); scripts.TrySetResult(); }
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        foreach (var layer in new[] { "pointer", "touch", "motion" })
+            await Assertions.Expect(page.Locator($"link[href*='/css/{layer}.css']")).ToHaveAttributeAsync("media", "all");
+    }
+
     private static Task ObserveFirstScreenPaintAsync(IPage page) => page.AddInitScriptAsync("""
         const pending = new Map([
             ['header-title', 'header .bannertext'],
@@ -465,12 +539,14 @@ public sealed class HomepageLoadingBrowserTests(
         Assert.Equal(2, attempts);
     }
 
-    private async Task<IBrowserContext> NewContextAsync(int width)
+    private async Task<IBrowserContext> NewContextAsync(int width, bool touch = false)
     {
         var context = await Browser.NewContextAsync(new()
         {
             BaseURL = App.BaseAddress.ToString(),
             Locale = "en-US",
+            HasTouch = touch,
+            IsMobile = touch,
             ViewportSize = new() { Width = width, Height = 1000 },
             ReducedMotion = ReducedMotion.Reduce
         });
