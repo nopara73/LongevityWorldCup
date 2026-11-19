@@ -4,6 +4,7 @@ using LongevityWorldCup.Website.Tools;
 using System.Text.Json;
 using System.Text;
 using System.Security.Cryptography;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using SixLabors.ImageSharp;
@@ -456,6 +457,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         // Build up a JsonArray by reading every athlete.json under wwwroot/athletes
         var athletesRoot = new JsonArray();
+        var portraitTime = new Stopwatch();
+        // Each image is published before the next athlete reuses this scan's buffer.
+        using var portraitBuffer = new MemoryStream();
         var activeGeneratedProfileAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var athletesDir = Path.Combine(_env.WebRootPath, "athletes");
         var files = Directory.EnumerateFiles(athletesDir, "athlete.json", SearchOption.AllDirectories);
@@ -491,6 +495,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             // so we can look up this JsonObject later by slug
             athlete["AthleteSlug"] = folderName.Replace('-', '_'); // e.g. "michelle_franz_montan"
 
+            portraitTime.Start();
             // PROFILE PIC: look for "{key}.*" in that same folder
             var pic = Directory
                 .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
@@ -500,7 +505,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 .FirstOrDefault();
             var publishedProfile = pic is null
                 ? null
-                : await PublishProfileImageSnapshotAsync(pic, folderName, cancellationToken).ConfigureAwait(false);
+                : await PublishProfileImageSnapshotAsync(pic, folderName, portraitBuffer, cancellationToken).ConfigureAwait(false);
             var profileImageId = publishedProfile?.ImageId;
             athlete[ProfileImageIdProperty] = profileImageId;
             var profilePicUrl = publishedProfile?.Url;
@@ -534,6 +539,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     quality: LeaderboardThumbQuality,
                     cancellationToken: cancellationToken) ?? profilePicUrl;
 
+            portraitTime.Stop();
+
             // PROOFS: look for proof_*.ext
             var proofs = new JsonArray();
             var proofFiles = Directory
@@ -552,7 +559,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        portraitTime.Start();
         PruneStaleGeneratedProfileAssets(activeGeneratedProfileAssets, cancellationToken);
+        portraitTime.Stop();
+        _logger?.LogInformation("Checked portraits for {AthleteCount} athletes in {PortraitElapsedMs} ms.",
+            athletesRoot.Count, portraitTime.ElapsedMilliseconds);
         return athletesRoot;
     }
 
@@ -572,9 +583,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private async Task<PublishedProfileImage> PublishProfileImageSnapshotAsync(
         string sourcePath,
         string folderName,
+        MemoryStream portraitBuffer,
         CancellationToken cancellationToken)
     {
-        byte[] sourceBytes;
         for (var attempt = 0; ; attempt++)
         {
             try
@@ -586,9 +597,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     FileShare.Read | FileShare.Delete,
                     bufferSize: 64 * 1024,
                     options: FileOptions.Asynchronous | FileOptions.SequentialScan);
-                using var buffer = new MemoryStream();
-                await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-                sourceBytes = buffer.ToArray();
+                portraitBuffer.SetLength(0);
+                await stream.CopyToAsync(portraitBuffer, cancellationToken).ConfigureAwait(false);
                 break;
             }
             catch (IOException) when (attempt < 5)
@@ -597,7 +607,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             }
         }
 
-        var imageId = Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant();
+        var sourceBytes = portraitBuffer.GetBuffer().AsMemory(0, checked((int)portraitBuffer.Length));
+        var imageId = Convert.ToHexStringLower(SHA256.HashData(sourceBytes.Span));
         var extension = Path.GetExtension(sourcePath).ToLowerInvariant();
         var publishedFileName = $"{folderName}_{imageId}{extension}";
         var publishedPath = Path.Combine(_publishedProfileDir, publishedFileName);

@@ -17,6 +17,32 @@ public sealed class CrowdAgeProfileImageTests
     private const string AthleteSlug = "profile_history";
 
     [Fact]
+    public void EachPortraitIsPublishedWithItsExactLengthAndHash()
+    {
+        using var workspace = new TestWorkspace();
+        var first = CreateProfileImage(new Rgba32(35, 120, 210), 256);
+        var second = CreateProfileImage(new Rgba32(225, 95, 55), 17);
+        Assert.True(first.Length > second.Length);
+        workspace.WriteProfileImage(first);
+
+        const string secondSlug = "second_portrait";
+        var sourceRoot = Path.Combine(workspace.WebRoot, "athletes");
+        var secondFolder = Directory.CreateDirectory(Path.Combine(sourceRoot, secondSlug));
+        File.Copy(Path.Combine(sourceRoot, AthleteSlug, "athlete.json"), Path.Combine(secondFolder.FullName, "athlete.json"));
+        File.WriteAllBytes(Path.Combine(secondFolder.FullName, $"{secondSlug}.png"), second);
+
+        using var factory = CreateFactory(workspace);
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        foreach (var (slug, bytes) in new[] { (AthleteSlug, first), (secondSlug, second) })
+        {
+            Assert.True(athletes.TryGetProfileImageId(slug, out var id));
+            Assert.Equal(Hash(bytes), id);
+            var published = Path.Combine(workspace.WebRoot, "generated", "profiles", "athletes", $"{slug}_{id}.png");
+            Assert.Equal(bytes, File.ReadAllBytes(published));
+        }
+    }
+
+    [Fact]
     public async Task SourceReloadPublishesCrowdStatsAsOneCompleteSnapshot()
     {
         using var workspace = new TestWorkspace();
@@ -316,9 +342,9 @@ public sealed class CrowdAgeProfileImageTests
             profileImageId,
             StringComparison.Ordinal);
 
-    private static byte[] CreateProfileImage(Rgba32 color)
+    private static byte[] CreateProfileImage(Rgba32 color, int size = 32)
     {
-        using var image = new Image<Rgba32>(32, 32, color);
+        using var image = new Image<Rgba32>(size, size, color);
         using var stream = new MemoryStream();
         image.SaveAsPng(stream);
         return stream.ToArray();
