@@ -33,7 +33,7 @@ public sealed class NostrAnnouncementService(
             string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
                 ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
 
-            foreach (var pending in deliveries.GetPending(Platform, customOnly, now))
+            foreach (var pending in athletes.ReadPublishedEvents(() => deliveries.GetPending(Platform, customOnly, now)))
             {
                 ct.ThrowIfCancellationRequested();
                 var item = pending.Event;
@@ -42,11 +42,10 @@ public sealed class NostrAnnouncementService(
                     deliveries.Skip(Platform, item.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = item.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
-                    && EventHelpers.TryExtractSlug(item.Text, out var slug) ? slug.Trim() : null;
+                var subject = pending.Headline.Subject;
                 if (pending.RecordJson is null)
                 {
-                    if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Priority,
+                    if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Headline,
                         now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
                     {
                         deliveries.Skip(Platform, item.Id, reason.ToString(), now);
@@ -70,7 +69,8 @@ public sealed class NostrAnnouncementService(
                     }
                     var saved = JsonSerializer.Deserialize<NostrEvent>(json)
                         ?? throw new NostrRelayException("NostrInvalidPreparedEvent");
-                    deliveries.BeginAttempt(Platform, item.Id, time.GetUtcNow());
+                    if (deliveries.SuppressSupersededBadge(Platform, item.Id, item.Type, item.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
+                    if (!deliveries.BeginAttempt(Platform, item.Id, time.GetUtcNow())) continue;
                     var receipt = await relays.PublishAsync(saved, ct);
                     deliveries.Complete(Platform, item.Id, receipt, time.GetUtcNow());
                     log.LogInformation("Nostr delivered event {EventId}: {NostrEventId}", item.Id, receipt.Id);

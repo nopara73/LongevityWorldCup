@@ -11,6 +11,18 @@ internal enum RedditBeginResult { Started, AlreadyStarted, DailyLimit, NotPendin
 
 public sealed class RedditDeliveryStore(DatabaseManager db, ILogger<RedditDeliveryStore>? log = null)
 {
+    internal string[] GetBlockedLinks(string[]? configured) => db.Run(sqlite =>
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'RedditBlockedLinks');";
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0) return configured ?? [];
+        cmd.CommandText = "SELECT Link FROM RedditBlockedLinks ORDER BY Link;";
+        using var reader = cmd.ExecuteReader();
+        var links = new List<string>(configured ?? []);
+        while (reader.Read()) links.Add(reader.GetString(0));
+        return links.Distinct(StringComparer.Ordinal).ToArray();
+    });
+
     internal bool IsActive => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();

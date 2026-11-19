@@ -187,6 +187,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("application")]
+        [RequestSizeLimit(Middleware.ApplicationUploadLimitMiddleware.MaxBodyBytes)]
         [RequestTimeout(PublicRequestTimeoutPolicies.ApplicationSubmission)]
         public async Task<IActionResult> Application([FromBody] ApplicantData applicantData, CancellationToken ct)
         {

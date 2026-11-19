@@ -438,6 +438,69 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         }
     }
 
+    [Theory]
+    [InlineData("/league/millennials", "athlete", "tr[data-athlete-name]")]
+    [InlineData("/leaderboard?group=flags", "flag", ".flag-team")]
+    public async Task KnownTotal_IsVisibleBeforeHydration(string path, string unit, string selector)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { JavaScriptEnabled = false });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path);
+        var count = await page.Locator($"#athleteLeaderboard {selector}:visible").CountAsync();
+        Assert.True(count > 0);
+        var total = page.Locator("#leaderboardResultCount");
+        await Assertions.Expect(total).ToBeVisibleAsync();
+        await Assertions.Expect(total).ToHaveTextAsync($"{count} {unit}{(count == 1 ? "" : "s")}");
+    }
+
+    [Fact]
+    public async Task NarrowEnlargedSelection_KeepsLeagueNamesReadable()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = 320, Height = 720 } });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?filters=millennials,women%27s");
+        var labels = page.Locator("#leaderboardSelectionChips button span:first-child");
+        await Assertions.Expect(labels).ToHaveCountAsync(2);
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        Assert.True(await labels.EvaluateAllAsync<bool>("""
+            labels => labels.every(label => label.clientWidth > 0 && label.scrollWidth <= label.clientWidth + 1
+                && label.scrollHeight <= label.clientHeight + 1)
+            """));
+        Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task EditingSearch_PreservesChipNodesAndFocusWithoutMeasuringThem(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 844 } });
+        var page = await context.NewPageAsync();
+        await OpenFilteredAsync(page);
+        var search = page.Locator("#athleteSearch");
+        await search.PressAsync("z");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Remove Search: z filter" }).WaitForAsync();
+        await page.Locator("#leaderboardSelectionChips button").First.FocusAsync();
+        await page.EvaluateAsync("""
+            () => {
+                window.originalChips = [...document.querySelectorAll('#leaderboardSelectionChips button')];
+                window.chipReads = 0;
+                // Instrument only the selected chips; updating search text needs no chip geometry.
+                for (const chip of originalChips) {
+                    const original = chip.getBoundingClientRect.bind(chip);
+                    chip.getBoundingClientRect = () => { chipReads++; return original(); };
+                }
+                const input = document.getElementById('athleteSearch');
+                input.value = 'zz';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            """);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Remove Search: zz filter" }).WaitForAsync();
+        Assert.True(await page.EvaluateAsync<bool>("originalChips.every(chip => chip.isConnected)"));
+        Assert.True(await page.EvaluateAsync<bool>("document.activeElement === originalChips[0]"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("chipReads"));
+    }
+
     [Fact]
     public async Task EmptySearch_CanBeRemovedWithoutLosingTheSelectedLeague()
     {
@@ -549,6 +612,8 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
             ["DateOfBirth"] = new JsonObject { ["Year"] = 1975, ["Month"] = 1, ["Day"] = 1 },
             ["Division"] = division, ["Flag"] = flag, ["Why"] = "",
             ["Biomarkers"] = new JsonArray(Biomarkers("2024-01-01", crp + 5), Biomarkers("2025-01-01", crp)),
+            ["PhenoAgeImprovementFromWorst"] = -2.5,
+            ["BortzAgeImprovementFromWorst"] = professional ? JsonValue.Create(-1.5) : null,
             ["CrowdAge"] = 30, ["CrowdCount"] = 150,
             ["Placements"] = new JsonArray(), ["Badges"] = new JsonArray()
         };

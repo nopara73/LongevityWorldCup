@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using LongevityWorldCup.Website.Business;
@@ -6,11 +7,14 @@ namespace LongevityWorldCup.Website.Tools;
 
 public static class FlagLeaderboardHtmlRenderer
 {
-    public static string Render(IEnumerable<FlagLeaderboardTeam> teams, bool separateClocks = false)
+    public static string Render(IReadOnlyList<FlagLeaderboardTeam> teams, bool separateClocks = false, int? limit = null)
     {
         var html = new StringBuilder();
         var previousSection = "";
-        foreach (var team in teams)
+        var scales = teams.GroupBy(team => team.View).ToDictionary(group => group.Key, group => group.Max(team =>
+            Math.Max(team.Athletes.Sum(a => Math.Max(0, -a.EffectiveAgeReductionYears!.Value)),
+                team.Athletes.Sum(a => Math.Max(0, a.EffectiveAgeReductionYears!.Value)))));
+        foreach (var team in teams.Take(limit ?? teams.Count))
         {
             var section = team.Rank.HasValue ? separateClocks ? team.View : "" : "incomplete";
             var isAmateur = section == "pheno";
@@ -20,7 +24,9 @@ public static class FlagLeaderboardHtmlRenderer
                 html.Append("<h3 class=\"flag-section-heading\">Incomplete teams</h3>");
             previousSection = section;
             var rank = team.Rank?.ToString() ?? "—";
-            html.Append($"<details class=\"flag-team{(isAmateur ? " tier-amateur" : "")}\" id=\"flag-team-{team.Flag.Slug}\" data-clock=\"{team.View}\" data-flag=\"{Encode(team.Flag.Name)}\">")
+            var scale = scales[team.View];
+            var unit = (100 / (scale > 0 ? scale : 1)).ToString("R", CultureInfo.InvariantCulture);
+            html.Append($"<details class=\"flag-team{(isAmateur ? " tier-amateur" : "")}\" id=\"flag-team-{team.Flag.Slug}\" data-clock=\"{team.View}\" data-flag=\"{Encode(team.Flag.Name)}\" style=\"--lwc-unit:{unit}%\">")
                 .Append($"<summary title=\"{FlagLeaderboard.Label(team.View)}\"><span class=\"flag-team-rank\" data-rank=\"{team.Rank?.ToString() ?? ""}\" aria-label=\"{(team.Rank.HasValue ? "Rank " + rank : "Unranked")}\">{rank}</span>")
                 .Append($"<span class=\"flag-team-name\"><span class=\"flag-team-icon\" aria-hidden=\"true\">{Icon(team.Flag.Name)}</span><span>{Encode(team.Flag.Name)}</span></span>")
                 .Append("<span class=\"flag-team-portraits\" aria-hidden=\"true\">");
@@ -31,7 +37,7 @@ public static class FlagLeaderboardHtmlRenderer
             foreach (var athlete in team.Athletes)
             {
                 place++;
-                html.Append($"<li><a class=\"flag-athlete-link\" href=\"{Encode(athlete.AthletePath)}\"><span class=\"flag-athlete-rank\" title=\"Rank within this team\">{place}</span>")
+                html.Append($"<li data-delta=\"{athlete.EffectiveAgeReductionYears!.Value.ToString("R", CultureInfo.InvariantCulture)}\"><a class=\"flag-athlete-link\" href=\"{Encode(athlete.AthletePath)}\"><span class=\"flag-athlete-rank\" title=\"Rank within this team\">{place}</span>")
                     .Append($"<img src=\"{Portrait(athlete)}\" alt=\"\" loading=\"lazy\"><span class=\"flag-athlete-name\">{Encode(athlete.DisplayName)}<small>{athlete.Track}</small></span>")
                     .Append($"<span class=\"flag-athlete-metric\">{PublicHtmlFormat.Signed(athlete.EffectiveAgeReductionYears, 1)} <small>years</small></span></a></li>");
             }

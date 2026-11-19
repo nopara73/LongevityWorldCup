@@ -64,27 +64,28 @@ public class XDailyPostJob : IJob
         }
 
         _events.SetAthletesForX(_athletes.GetAthletesForX());
-        var pending = _events.GetPendingXEvents();
+        var pending = _athletes.ReadPublishedEvents(() => _events.GetPendingXEvents());
         var freshCutoff = DateTime.UtcNow.AddDays(-7);
         var skippedEvents = new List<(string Id, SocialEventSkipReason Reason)>();
 
-        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, xPriority) in pending)
+        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, headline) in pending)
         {
-            if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(
+            if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(
                     type,
                     text,
                     occurredAtUtc,
-                    xPriority,
+                    headline,
                     freshCutoff,
                     _athletes.HasSingleGlobalPlaceOneBadgeHolder,
-                    out var skipReason))
+                    out var skipReason,
+                    _athletes.IsCurrentBadgeAward))
             {
                 skippedEvents.Add((id, skipReason));
                 continue;
             }
 
             var nowUtc = DateTime.UtcNow;
-            var subjectSlug = TryGetSubjectSlugForEvent(type, text);
+            var subjectSlug = headline.Subject;
             if (!string.IsNullOrWhiteSpace(subjectSlug) && _fillerLog.IsSubjectOnCooldown(subjectSlug, SubjectCooldown, nowUtc))
             {
                 _logger.LogInformation("XDailyPostJob skipped event {Id} because subject {SubjectSlug} is on cooldown ({CooldownDays}d)", id, subjectSlug, SubjectCooldown.TotalDays);
@@ -452,23 +453,6 @@ public class XDailyPostJob : IJob
         minDays = 0;
         maxDays = 0;
         return false;
-    }
-
-    private static string? TryGetSubjectSlugForEvent(EventType type, string rawText)
-    {
-        if (type == EventType.NewRank ||
-            type == EventType.BadgeAward ||
-            type == EventType.BecamePro ||
-            type == EventType.BiologicalAgeImproved ||
-            type == EventType.CrowdAgeTop10Change ||
-            type == EventType.AgeImprovementTop10Change ||
-            type == EventType.PhenoAgeTop10Change)
-        {
-            if (EventHelpers.TryExtractSlug(rawText, out var slug) && !string.IsNullOrWhiteSpace(slug))
-                return slug.Trim();
-        }
-
-        return null;
     }
 
     private string? TryGetSubjectSlugForFiller(FillerType fillerType, string payloadText)

@@ -9,6 +9,56 @@ namespace LongevityWorldCup.Tests;
 public sealed class DocumentationMotionBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Theory]
+    [InlineData("/about")]
+    [InlineData("/history")]
+    [InlineData("/ruleset")]
+    [InlineData("/privacy")]
+    public async Task HeadingsAndClosingLinks_AreVisibleBeforeScrolling(string path)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        var landmarks = page.Locator(".documentation-document h2, .documentation-next");
+        Assert.NotEmpty(await landmarks.AllAsync());
+        var hidden = await landmarks.EvaluateAllAsync<string[]>(
+            """
+            elements => elements.filter(el => {
+                for (let node = el; node; node = node.parentElement) {
+                    if (Number(getComputedStyle(node).opacity) < 1) return true;
+                }
+                return false;
+            }).map(el => el.id || el.className)
+            """);
+        Assert.Empty(hidden);
+    }
+
+    [Theory]
+    [InlineData("/ruleset", "#point-system-ranking-body > ul")]
+    [InlineData("/privacy", ".documentation-document > ul")]
+    public async Task ReadingList_BelowTheFoldHasItsTextAndStopsOnFirstPaint(string path, string selector)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        Assert.True(await page.Locator(selector).EvaluateAsync<bool>("""
+            list => list.getBoundingClientRect().top > innerHeight &&
+                getComputedStyle(list).opacity === '1' &&
+                [...list.children].every(item => {
+                    const stop = getComputedStyle(item, '::before');
+                    return stop.content !== 'none' && stop.transform === 'none';
+                })
+            """), "The list and its markers should already be visible before scrolling.");
+    }
+
     [Fact]
     public async Task Rules_InitializeOnceReverseFoldsAndKeepTheirAccessibleState()
     {
