@@ -199,7 +199,10 @@ function initializeLeaderboardFeel(): void {
     peek.id = "leaderboard-peek";
     peek.setAttribute("role", "tooltip");
     peek.hidden = true;
-    document.body.append(peek);
+    const peekRegion = document.createElement("div");
+    peekRegion.className = "lb-peek-region";
+    peekRegion.append(peek);
+    document.body.append(peekRegion);
     let peekTimer = 0;
     let peekRow: HTMLTableRowElement | null = null;
     let pendingPeekRow: HTMLTableRowElement | null = null;
@@ -301,11 +304,15 @@ function initializeLeaderboardFeel(): void {
         const height = peek.offsetHeight;
         const x = clientX ?? (row.querySelector(".athlete-name") ?? row).getBoundingClientRect().right;
         // Leave the pointer's column clear to scan vertically in either direction.
-        const left = x + 12 + width <= window.innerWidth - 12 ? x + 12 : x - 12 - width;
+        const right = x + 12 + width <= window.innerWidth - 12;
+        const left = right ? x + 12 : x - 12 - width;
         const above = rowBox.top - height - 8;
-        const top = above > stickyTop() + head.getBoundingClientRect().height ? above : rowBox.bottom + 8;
-        peek.style.left = `${Math.max(12, Math.min(window.innerWidth - width - 12, left))}px`;
-        peek.style.top = `${Math.max(8, Math.min(window.innerHeight - height - 8, top))}px`;
+        const below = above <= stickyTop() + head.getBoundingClientRect().height;
+        const top = below ? rowBox.bottom + 8 : above;
+        peekRegion.classList.toggle("to-right", right);
+        peekRegion.classList.toggle("below", below);
+        peekRegion.style.left = `${Math.max(12, Math.min(window.innerWidth - width - 12, left))}px`;
+        peekRegion.style.top = `${Math.max(8, Math.min(window.innerHeight - height - 8, top))}px`;
     }
 
     function cancelPeekTimer(): void {
@@ -373,11 +380,11 @@ function initializeLeaderboardFeel(): void {
     body.addEventListener("pointermove", event => { if (pendingPeekRow) pointerX = event.clientX; }, { passive: true });
     function schedulePeekDismiss(): void {
         cancelPeekTimer();
-        peekTimer = window.setTimeout(() => { if (!peek.matches(":hover")) hidePeek(); }, 160);
+        peekTimer = window.setTimeout(() => { if (!peekRegion.matches(":hover")) hidePeek(); }, 160);
     }
     body.addEventListener("pointerleave", schedulePeekDismiss);
-    peek.addEventListener("pointerenter", cancelPeekTimer);
-    peek.addEventListener("pointerleave", schedulePeekDismiss);
+    peekRegion.addEventListener("pointerenter", cancelPeekTimer);
+    peekRegion.addEventListener("pointerleave", schedulePeekDismiss);
     body.addEventListener("focusin", event => {
         if (!(event.target instanceof Element) || !event.target.matches(".athlete-name:focus-visible")) return;
         const row = event.target.closest<HTMLTableRowElement>(rowSelector);
