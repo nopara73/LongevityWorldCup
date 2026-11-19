@@ -6,16 +6,14 @@
     <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
     <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
-    <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_MERCH_SHELF_CSS}}">
     <link rel="expect" href="#lwc-site-header" blocking="render">
     <script>
-// Let native Back/Forward restore the saved viewport without scroll
-// anchoring adding offsets while fonts and the board finish hydrating.
+// Preserve the saved scroll position on Back/Forward navigation.
 if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !location.hash) {
     document.documentElement.classList.add('homepage-restoring');
 }
-// One clock from first paint, including cards replaced during hydration.
-// No hidden base styles, extra requests, or waits for content readiness.
+// Hydrated cards share the first frame's entrance timeline.
 (() => {
     if (location.pathname === '/contribute' && !location.hash) {
         history.replaceState(history.state, '', location.pathname + location.search + '#contribute');

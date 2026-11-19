@@ -381,6 +381,12 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         });
         var checkInCalls = 0;
         var adviceMutationCalls = 0;
+        var resumeCheckIn = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/longevitymaxxing/check-in/receipt", async route =>
+        {
+            await resumeCheckIn.Task;
+            await FulfillJsonAsync(route, "false");
+        });
         await context.RouteAsync("**/api/longevitymaxxing/check-in", async route =>
         {
             var payload = JsonNode.Parse(route.Request.PostData!)!;
@@ -436,10 +442,13 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true }).ClickAsync();
         await form.Locator("[data-key='exercise'] .lmx-answer-option:has(input[value='1'])").ClickAsync();
         await form.Locator("button[type=submit]").ClickAsync();
-        await Assertions.Expect(form).ToContainTextAsync("Temporarily unavailable.");
-        await Assertions.Expect(dialog).ToBeHiddenAsync();
-        await Assertions.Expect(form.Locator("[data-key='exercise'] input[value='1']")).ToBeCheckedAsync();
-        await form.Locator("button[type=submit]").ClickAsync();
+        try
+        {
+            await Assertions.Expect(form.Locator("button[type=submit]")).ToHaveAttributeAsync("aria-busy", "true");
+            await Assertions.Expect(dialog).ToBeHiddenAsync();
+            await Assertions.Expect(form.Locator("[data-key='exercise'] input[value='1']")).ToBeCheckedAsync();
+        }
+        finally { resumeCheckIn.TrySetResult(); }
         await Assertions.Expect(dialog).ToBeVisibleAsync();
         await Assertions.Expect(dialog.Locator("textarea")).ToHaveValueAsync(draft);
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true }).ClickAsync();

@@ -122,7 +122,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         var html = await client.GetStringAsync(path);
 
         Assert.Equal(
-            2,
+            path == "/" ? 1 : 2,
             html.Split("/vendor/font-awesome/6.7.2/css/all.min.css?v=", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("cdnjs.cloudflare.com/ajax/libs/font-awesome", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("{{ASSET_FONT_AWESOME_CSS}}", html);

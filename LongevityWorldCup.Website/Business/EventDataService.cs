@@ -30,6 +30,9 @@ public record EventItem(string Id, EventType Type, string Text, DateTime Occurre
     }
 }
 
+internal sealed record RankedSocialEvent(string Id, EventType Type, string Text, DateTime OccurredAtUtc,
+    double Relevance, bool VisibleOnWebsite, SocialHeadline Headline);
+
 public enum EventType
 {
     General = 0,
@@ -45,7 +48,8 @@ public enum EventType
     BiologicalAgeImproved = 10,
     CrowdAgeTop10Change = 11,
     AgeImprovementTop10Change = 12,
-    TestResultAccepted = 13
+    TestResultAccepted = 13,
+    PhenoAgeTop10Change = 14
 }
 
 public sealed record CustomEventDeliveryTargets(
@@ -355,7 +359,7 @@ public sealed partial class EventDataService : IDisposable
                     if (affected != 1) continue;
 
                     var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
-                    if (ShouldSkipSlackNotification(type, occurredAtUtc, freshCutoffUtc))
+                    if (ShouldSkipSlackNotification(type, occurredAtUtc, freshCutoffUtc, text))
                         continue;
 
                     notify.Add((type, text));
@@ -368,13 +372,8 @@ public sealed partial class EventDataService : IDisposable
         foreach (var n in notify) FireAndForgetSlack(n.Type, n.RawText);
     }
 
-    internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc)
-    {
-        if (type is EventType.BecamePro or EventType.BiologicalAgeImproved or EventType.TestResultAccepted)
-            return true;
-
-        return type == EventType.AthleteCountMilestone && EnsureUtc(occurredAtUtc) < freshCutoffUtc;
-    }
+    internal static bool ShouldSkipSlackNotification(EventType type, DateTime occurredAtUtc, DateTime freshCutoffUtc, string text = "") =>
+        SocialEventSkipPolicy.ConversationSkipReason(type, text, EnsureUtc(occurredAtUtc), freshCutoffUtc) is not null;
 
     private void ProcessPendingImmediateCustomEvents()
     {
@@ -635,13 +634,20 @@ public sealed partial class EventDataService : IDisposable
         };
     }
 
-    public const int XPriorityPrimaryMax = 8;
+    internal IReadOnlyList<RankedSocialEvent> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null) =>
+        GetPendingSocialEvents("XProcessed", fromUtc, toUtc, limit);
 
-    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite, int XPriority)> GetPendingXEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
+    internal IReadOnlyList<RankedSocialEvent> GetPendingThreadsEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null) =>
+        GetPendingSocialEvents("ThreadsProcessed", fromUtc, toUtc, limit);
+
+    internal IReadOnlyList<RankedSocialEvent> GetPendingFacebookEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null) =>
+        GetPendingSocialEvents("FacebookProcessed", fromUtc, toUtc, limit);
+
+    private IReadOnlyList<RankedSocialEvent> GetPendingSocialEvents(string processedColumn, DateTime? fromUtc, DateTime? toUtc, int? limit)
     {
         var list = _db.Run(sqlite =>
         {
-            var filters = new List<string> { "XProcessed = 0" };
+            var filters = new List<string> { processedColumn + " = 0" };
             var parameters = new List<SqliteParameter>();
 
             if (fromUtc.HasValue)
@@ -656,13 +662,7 @@ public sealed partial class EventDataService : IDisposable
             }
 
             var sql = "SELECT Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite FROM Events WHERE " +
-                string.Join(" AND ", filters) +
-                " ORDER BY OccurredAt DESC";
-            if (limit.HasValue)
-            {
-                sql += " LIMIT @limit";
-                parameters.Add(new SqliteParameter("@limit", limit.Value));
-            }
+                string.Join(" AND ", filters);
 
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText = sql;
@@ -679,62 +679,12 @@ public sealed partial class EventDataService : IDisposable
             }
             return result;
         });
-        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, e.VisibleOnWebsite, GetXPriority(e.Type, e.Text))).ToList();
-        withPriority.Sort((a, b) =>
-        {
-            if (a.Item7 != b.Item7) return a.Item7.CompareTo(b.Item7);
-            return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
-        });
-        return withPriority;
-    }
-
-    internal static int GetXPriority(EventType type, string text)
-    {
-        if (type == EventType.NewRank)
-        {
-            if (EventHelpers.TryExtractRank(text, out var rank) && rank >= 1 && rank <= 3)
-                return 0;
-            return 99;
-        }
-
-        if (type == EventType.BadgeAward)
-        {
-            if (!EventHelpers.TryExtractBadgeLabel(text, out var label)) return 99;
-            var norm = EventHelpers.NormalizeBadgeLabel(label);
-
-            if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase)) return 99;
-
-            if (EventHelpers.TryExtractPlace(text, out var place) && place == 1
-                && EventHelpers.TryExtractCategory(text, out var cat)
-                && !string.Equals(cat, "Global", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(norm, "Age reduction", StringComparison.OrdinalIgnoreCase))
-                return 1;
-
-            if (string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase)) return 2;
-            if (string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase)) return 3;
-            if (string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase)) return 4;
-            if (string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase)) return 5;
-            if (string.Equals(norm, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase)) return 6;
-            if (string.Equals(norm, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase)) return 7;
-            return 99;
-        }
-
-        if (type is EventType.AthleteCountMilestone or EventType.DonationReceived)
-        {
-            return 8;
-        }
-
-        if (type == EventType.CrowdAgeTop10Change)
-        {
-            return 8;
-        }
-
-        if (type == EventType.AgeImprovementTop10Change)
-        {
-            return 8;
-        }
-
-        return 99;
+        var ordered = list.Select(e => new RankedSocialEvent(e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance,
+                e.VisibleOnWebsite, SocialHeadline.For(e.Type, e.Text)))
+            .OrderBy(e => e.Headline.Priority)
+            .ThenByDescending(e => e.OccurredAtUtc)
+            .ThenBy(e => e.Id, StringComparer.Ordinal);
+        return (limit is >= 0 ? ordered.Take(limit.Value) : ordered).ToList();
     }
 
     public void MarkEventsXProcessed(IEnumerable<string> ids)
@@ -793,57 +743,6 @@ public sealed partial class EventDataService : IDisposable
         });
     }
 
-    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite, int XPriority)> GetPendingThreadsEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
-    {
-        var list = _db.Run(sqlite =>
-        {
-            var filters = new List<string> { "ThreadsProcessed = 0" };
-            var parameters = new List<SqliteParameter>();
-
-            if (fromUtc.HasValue)
-            {
-                filters.Add("OccurredAt >= @from");
-                parameters.Add(new SqliteParameter("@from", EnsureUtc(fromUtc.Value).ToString("o")));
-            }
-            if (toUtc.HasValue)
-            {
-                filters.Add("OccurredAt <= @to");
-                parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
-            }
-
-            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite FROM Events WHERE " +
-                string.Join(" AND ", filters) +
-                " ORDER BY OccurredAt DESC";
-            if (limit.HasValue)
-            {
-                sql += " LIMIT @limit";
-                parameters.Add(new SqliteParameter("@limit", limit.Value));
-            }
-
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = sql;
-            foreach (var p in parameters) cmd.Parameters.Add(p);
-
-            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite)>();
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
-            {
-                var typeInt = r.GetInt32(1);
-                var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
-                var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
-                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4), r.GetInt32(5) != 0));
-            }
-            return result;
-        });
-        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, e.VisibleOnWebsite, GetXPriority(e.Type, e.Text))).ToList();
-        withPriority.Sort((a, b) =>
-        {
-            if (a.Item7 != b.Item7) return a.Item7.CompareTo(b.Item7);
-            return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
-        });
-        return withPriority;
-    }
-
     public void MarkEventsThreadsProcessed(IEnumerable<string> ids)
     {
         MarkEventsProcessed(ids, "ThreadsProcessed", "ThreadsSkipReason");
@@ -852,57 +751,6 @@ public sealed partial class EventDataService : IDisposable
     public void MarkEventsThreadsSkipped(IEnumerable<(string Id, SocialEventSkipReason Reason)> skipped)
     {
         MarkEventsSkipped(skipped, "ThreadsProcessed", "ThreadsSkipReason");
-    }
-
-    public IReadOnlyList<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite, int XPriority)> GetPendingFacebookEvents(DateTime? fromUtc = null, DateTime? toUtc = null, int? limit = null)
-    {
-        var list = _db.Run(sqlite =>
-        {
-            var filters = new List<string> { "FacebookProcessed = 0" };
-            var parameters = new List<SqliteParameter>();
-
-            if (fromUtc.HasValue)
-            {
-                filters.Add("OccurredAt >= @from");
-                parameters.Add(new SqliteParameter("@from", EnsureUtc(fromUtc.Value).ToString("o")));
-            }
-            if (toUtc.HasValue)
-            {
-                filters.Add("OccurredAt <= @to");
-                parameters.Add(new SqliteParameter("@to", EnsureUtc(toUtc.Value).ToString("o")));
-            }
-
-            var sql = "SELECT Id, Type, Text, OccurredAt, Relevance, VisibleOnWebsite FROM Events WHERE " +
-                string.Join(" AND ", filters) +
-                " ORDER BY OccurredAt DESC";
-            if (limit.HasValue)
-            {
-                sql += " LIMIT @limit";
-                parameters.Add(new SqliteParameter("@limit", limit.Value));
-            }
-
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText = sql;
-            foreach (var p in parameters) cmd.Parameters.Add(p);
-
-            var result = new List<(string Id, EventType Type, string Text, DateTime OccurredAtUtc, double Relevance, bool VisibleOnWebsite)>();
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
-            {
-                var typeInt = r.GetInt32(1);
-                var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
-                var occurred = DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind);
-                result.Add((r.GetString(0), type, r.GetString(2), occurred, r.GetDouble(4), r.GetInt32(5) != 0));
-            }
-            return result;
-        });
-        var withPriority = list.Select(e => (e.Id, e.Type, e.Text, e.OccurredAtUtc, e.Relevance, e.VisibleOnWebsite, GetXPriority(e.Type, e.Text))).ToList();
-        withPriority.Sort((a, b) =>
-        {
-            if (a.Item7 != b.Item7) return a.Item7.CompareTo(b.Item7);
-            return b.OccurredAtUtc.CompareTo(a.OccurredAtUtc);
-        });
-        return withPriority;
     }
 
     public void MarkEventsFacebookProcessed(IEnumerable<string> ids)
@@ -932,7 +780,8 @@ public sealed partial class EventDataService : IDisposable
     public void CreateNewRankEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Rank, string? ReplacedSlug)> items,
         bool skipIfExists = false,
-        double defaultRelevance = DefaultRelevanceNewRank)
+        double defaultRelevance = DefaultRelevanceNewRank,
+        IReadOnlyDictionary<string, int?>? previousRanks = null)
     {
         if (items is null) throw new ArgumentNullException(nameof(items));
 
@@ -944,7 +793,11 @@ public sealed partial class EventDataService : IDisposable
 
             using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt AND OccurredAt=@occ LIMIT 1;";
+            // The previous placement enriches the same event. Older rows omit it.
+            existsCmd.CommandText = """
+                SELECT 1 FROM Events WHERE Type=@t AND OccurredAt=@occ
+                  AND (Text=@txt OR instr(Text, @txt || ' prevPlace[')=1) LIMIT 1;
+                """;
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
             var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
             var exOcc = existsCmd.Parameters.Add("@occ", SqliteType.Text);
@@ -981,7 +834,8 @@ public sealed partial class EventDataService : IDisposable
 
                 pId.Value = Guid.NewGuid().ToString("N");
                 pType.Value = (int)EventType.NewRank;
-                pText.Value = text;
+                pText.Value = previousRanks is not null && previousRanks.TryGetValue(slug, out var previousRank) &&
+                    previousRank > rank ? $"{text} prevPlace[{previousRank}]" : text;
                 pOcc.Value = occurredAt;
                 pRel.Value = defaultRelevance;
                 insertCmd.ExecuteNonQuery();
@@ -2007,6 +1861,7 @@ public sealed partial class EventDataService : IDisposable
             $"WHEN Type = {(int)EventType.BiologicalAgeImproved} THEN 2 " +
             $"WHEN Type = {(int)EventType.CrowdAgeTop10Change} THEN 3 " +
             $"WHEN Type = {(int)EventType.AgeImprovementTop10Change} THEN 4 " +
+            $"WHEN Type = {(int)EventType.PhenoAgeTop10Change} THEN 4 " +
             $"WHEN Type = {(int)EventType.NewRank} THEN 5 " +
             $"WHEN Type = {(int)EventType.SeasonFinalResult} THEN 6 " +
             $"WHEN Type = {(int)EventType.LongevitymaxxingChallengeResult} THEN 7 " +
@@ -2278,6 +2133,7 @@ public sealed partial class EventDataService : IDisposable
             or EventType.BiologicalAgeImproved
             or EventType.CrowdAgeTop10Change
             or EventType.AgeImprovementTop10Change
+            or EventType.PhenoAgeTop10Change
             or EventType.TestResultAccepted;
 
     internal static IReadOnlyList<string> ExtractReferencedAthleteSlugs(string text)
@@ -2461,7 +2317,7 @@ public sealed partial class EventDataService : IDisposable
             return;
         }
 
-        if (type == EventType.AgeImprovementTop10Change)
+        if (type is EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change)
         {
             _ = _slackEvents.BufferAsync(type, rawText);
             return;

@@ -1,6 +1,6 @@
 interface InitialViewApi {
     prepare(): void;
-    complete(): void;
+    complete(options?: { animate?: boolean }): void;
     hold(): void;
     fail(): void;
     reload(): void;
@@ -74,9 +74,9 @@ interface Window {
         }, duration + 80);
     }
 
-    function complete(): void {
+    function complete({ animate = true }: { animate?: boolean } = {}): void {
         hold();
-        if (documentRoot.dataset.initialView === 'pending') reveal();
+        if (animate && documentRoot.dataset.initialView === 'pending') reveal();
         delete documentRoot.dataset.initialView;
         document.querySelectorAll<HTMLElement>('.initial-view-main').forEach(view => {
             view.setAttribute('aria-busy', 'false');

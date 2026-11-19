@@ -301,18 +301,24 @@ public sealed class LeaderboardOrderingBrowserTests(PlaywrightBrowserFixture bro
                     name: row.querySelector('.athlete-name').firstChild,
                     rank: row.querySelector('.rank').firstChild}));
                 window.orderingExtraWork = [];
+                let sorting = false;
+                document.querySelector('th[data-order-key=pheno] button').addEventListener('click', () => {
+                    sorting = true;
+                }, {once:true, capture:true});
                 const observe = new MutationObserver(records => {
                     for (const record of records) {
                         if (record.type === 'attributes' && record.target.matches('tr[data-athlete-name]')
-                            && (record.attributeName === 'style' || record.target.classList.contains('fade-in')
+                            && (record.attributeName === 'style'
+                                || (sorting && record.attributeName === 'data-lwc-enter-state' && record.target.hasAttribute('data-lwc-enter-state'))
+                                || record.target.classList.contains('fade-in')
                                 || (record.oldValue || '').split(/\s+/).includes('fade-in')))
-                            window.orderingExtraWork.push(`row ${record.attributeName}`);
+                            window.orderingExtraWork.push(`${record.target.dataset.athleteName} ${record.attributeName}: ${record.oldValue} -> ${record.target.getAttribute(record.attributeName)}`);
                         if (record.type === 'childList' && record.target.closest('.filter-count'))
                             window.orderingExtraWork.push('sidebar count rebuilt');
                     }
                 });
                 observe.observe(document.querySelector('#athleteDialogRuntime'),
-                    {subtree:true, childList:true, attributes:true, attributeOldValue:true, attributeFilter:['style','class']});
+                    {subtree:true, childList:true, attributes:true, attributeOldValue:true, attributeFilter:['style','class','data-lwc-enter-state']});
             }
             """);
         var before = await Snapshot(page);
