@@ -251,6 +251,39 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         await Assertions.Expect(page.Locator(".lb-rail")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("is-visible"));
     }
 
+    [Fact]
+    public async Task RowPeek_FollowsTheHoveredRowAndYieldsToContactLinks()
+    {
+        var (context, page) = await OpenAsync(reduce: true);
+        await using var _ = context;
+        var rows = page.Locator(Rows + ":visible").Filter(new() { Has = page.Locator("a.media-contact") });
+        var first = rows.First;
+        var second = rows.Nth(1);
+        var peek = page.Locator("#leaderboard-peek");
+        var name = peek.Locator(".lb-peek-name");
+
+        // Deliver the scroll notification after the pointer is already at its new position.
+        await first.EvaluateAsync("""
+            row => row.addEventListener('pointerover', () => requestAnimationFrame(() => window.dispatchEvent(new Event('scroll'))), { once: true })
+            """);
+        await first.Locator(".rank").HoverAsync();
+        await Assertions.Expect(name).ToHaveTextAsync(await first.Locator(".athlete-name").InnerTextAsync());
+        var score = second.Locator(".age-reduction");
+        await score.HoverAsync();
+        await Assertions.Expect(name).ToHaveTextAsync(await second.Locator(".athlete-name").InnerTextAsync());
+        await Assertions.Expect(peek).ToBeVisibleAsync();
+        var scoreBox = (await score.BoundingBoxAsync())!;
+        var cardBox = (await peek.BoundingBoxAsync())!;
+        var pointerX = scoreBox.X + scoreBox.Width / 2;
+        var gap = Math.Max(cardBox.X - pointerX, pointerX - (cardBox.X + cardBox.Width));
+        Assert.InRange(gap, 10, 14);
+        await Assertions.Expect(first.Locator(".athlete-name")).Not.ToHaveAttributeAsync("aria-describedby", "leaderboard-peek");
+
+        await second.Locator("a.media-contact").HoverAsync();
+        await Assertions.Expect(page.Locator(".lwc-tip")).ToBeVisibleAsync();
+        await Assertions.Expect(peek).ToBeHiddenAsync();
+    }
+
     [Theory]
     [InlineData("ultimate")]
     [InlineData("bortz")]
