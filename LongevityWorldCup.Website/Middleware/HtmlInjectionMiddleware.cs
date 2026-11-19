@@ -196,8 +196,6 @@ namespace LongevityWorldCup.Website.Middleware
                     // executing the header scripts. Preserve their order ahead of the board runtime.
                     header = header.Replace("<!--HEADER-RUNTIME-->", championPortrait is null ? HeaderRuntime : string.Empty);
                     leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null ? string.Empty : HeaderRuntime);
-                    if (championPortrait is not null)
-                        leaderboardContent = PortraitStylesheet() + Environment.NewLine + leaderboardContent;
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
@@ -220,7 +218,7 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
-                        bodyContent = InjectPortraitSystem(bodyContent, stylesheetInHead: championPortrait is null);
+                        bodyContent = InjectPortraitSystem(bodyContent);
                         bodyContent = InjectTouchLayer(bodyContent);
                         bodyContent = InjectPointerLayer(bodyContent);
                         bodyContent = InjectAestheticSystemStylesheet(bodyContent);
@@ -762,9 +760,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
         }
 
         // Athlete portraits share one frame, loading, fallback and motion treatment on every page.
-        private string PortraitStylesheet() => $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">";
-
-        private string InjectPortraitSystem(string html, bool stylesheetInHead)
+        private string InjectPortraitSystem(string html)
         {
             const string closingHeadTag = "</head>";
             var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
@@ -773,9 +769,8 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 return html;
             }
 
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}";
-            if (stylesheetInHead)
-                assets += PortraitStylesheet() + Environment.NewLine;
+            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">{Environment.NewLine}";
             return html.Insert(closingHeadIndex, assets);
         }
 

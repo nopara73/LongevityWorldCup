@@ -37,6 +37,7 @@ public sealed class HomepageLoadingBrowserTests(
         {
             release.TrySetResult();
         }
+        await page.WaitForLoadStateAsync(LoadState.Load);
         await page.WaitForFunctionAsync("() => !!window.LwcIcons && !!document.querySelector('i[data-lwc-icon] svg')");
         await Assertions.Expect(page.Locator("link[rel=stylesheet][href*='font-awesome']")).ToHaveAttributeAsync("media", "all");
     }
@@ -56,6 +57,7 @@ public sealed class HomepageLoadingBrowserTests(
             await route.ContinueAsync();
         }
         await page.RouteAsync("**/css/leaderboard-content.css*", Hold);
+        await page.RouteAsync("**/css/portrait-system.css*", Hold);
         await page.RouteAsync("**/css/share-sheet.css*", Hold);
         await page.RouteAsync("**/js/celebration.js*", Hold);
         await page.RouteAsync("**/js/site-header.js*", Hold);
@@ -78,6 +80,7 @@ public sealed class HomepageLoadingBrowserTests(
         }
         await ExpectHomepageLoadedAsync(page);
         Assert.Equal(paintedWidth, await portrait.EvaluateAsync<double>("img => img.getBoundingClientRect().width"), 1);
+        await page.WaitForLoadStateAsync(LoadState.Load);
         await Assertions.Expect(page.Locator("link[href*='/css/share-sheet.css']")).ToHaveAttributeAsync("media", "all");
     }
 

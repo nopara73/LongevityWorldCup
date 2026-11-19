@@ -8,7 +8,7 @@ internal static partial class HomepagePodiumAssets
     // The podium, header, typography and layout keep their normal blocking styles.
     private static readonly HashSet<string> EnhancementStyles = new(StringComparer.Ordinal)
     {
-        "/vendor/font-awesome/6.7.2/css/all.min.css", "/css/icons.css",
+        "/vendor/font-awesome/6.7.2/css/all.min.css", "/css/icons.css", "/css/portrait-system.css",
         "/css/badges.css", "/css/mobile-roughness.css", "/css/flow-controls.css",
         "/vendor/flag-icons/css/flag-icons.min.css", "/css/entry-journey.css",
         "/css/prize-pool.css", "/css/merch-shelf.css", "/css/touch.css", "/css/pointer.css",
