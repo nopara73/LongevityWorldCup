@@ -55,7 +55,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             if (Environment.GetEnvironmentVariable("LWC_VIEWER_CAPTURE_DIR") is not { Length: > 0 } directory) return;
             await page.EvaluateAsync("async()=>await document.fonts.ready");
-            await page.WaitForTimeoutAsync(450);
+            await WaitForFiniteAnimationsAsync(page, ".lwc-viewer, .lwc-viewer *, #lmxNotePhotoViewer, #lmxNotePhotoViewer *");
             await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"synthetic-photo-{stateName}-{width}-{theme}.png") });
         }
     }

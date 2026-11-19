@@ -15,8 +15,10 @@ public sealed class DarkSystemAssetTests(TestWebApplicationFactory factory)
         using var client = factory.CreateClient();
         using var response = await client.GetAsync(path);
         var html = await response.Content.ReadAsStringAsync();
-        var link = Regex.Match(html, @"<link rel=""stylesheet"" href=""(/css/dark-system\.css\?v=[^""]+)"">");
+        var link = Regex.Match(html, """<link rel="stylesheet" href="(/css/dark-system\.css\?v=[^"]+)"(?: media="([^"]+)")?>""");
         Assert.True(link.Success, "Dark surfaces must load directly with a content version.");
+        if (path == "/")
+            Assert.Equal("(prefers-color-scheme: dark) and (forced-colors: none)", link.Groups[2].Value);
         var paletteIndex = html.IndexOf("/css/aesthetic-system.css?v=", StringComparison.Ordinal);
         var depthIndex = html.IndexOf("/css/depth-system.css?v=", StringComparison.Ordinal);
         Assert.True(paletteIndex >= 0 && link.Index > paletteIndex);

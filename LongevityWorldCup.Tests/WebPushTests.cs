@@ -295,8 +295,11 @@ public sealed class WebPushTests
         return new() { WebPushVapidSubject = "mailto:testing@longevityworldcup.com", WebPushVapidPublicKey = WebPushTransport.Encode(WebPushTransport.PublicBytes(p)), WebPushVapidPrivateKey = WebPushTransport.Encode(p.D!) };
     }
 
-    [Fact]
-    public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverPodiumAndDonationWithoutDuplicates()
+    [Theory]
+    [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[6] prev[siim_land]")]
+    [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]")]
+    [InlineData(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[6] prevPlace[8] ageReduction[-20.4]")]
+    public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverRankAndDonationWithoutDuplicates(EventType type, string raw)
     {
         using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true, seedMatureRoster: true);
         // This test owns its event history. Drain the startup rescan before
@@ -314,7 +317,16 @@ public sealed class WebPushTests
         await Service().DispatchAsync();
         Assert.Equal(0, requests);
 
-        var rank = fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]", now.GetUtcNow().UtcDateTime);
+        if (type == EventType.NewRank)
+        {
+            Assert.True(EventHelpers.TryExtractRank(raw, out var publishedPlace));
+            fixture.Athletes.UpdateAthletesJsonInPlace(athlete =>
+            {
+                if ((string?)athlete["AthleteSlug"] == "benjamin_garden") athlete["CurrentPlacement"] = publishedPlace;
+            });
+            fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[2]", now.GetUtcNow().UtcDateTime);
+        }
+        var rank = fixture.InsertEvent(type, raw, now.GetUtcNow().UtcDateTime);
         await Service().DispatchAsync();
         Assert.Equal(1, requests);
         Assert.Equal((1, 0, 1), store.Progress(rank));
@@ -323,6 +335,7 @@ public sealed class WebPushTests
         {
             Assert.Contains("Benjamin Garden", payload.RootElement.GetProperty("title").GetString());
             Assert.DoesNotContain("slug[", prepared.Payload);
+            if (type == EventType.PhenoAgeTop10Change) Assert.Contains("Pheno Age", prepared.Payload);
             Assert.Equal("/athlete/benjamin-garden", payload.RootElement.GetProperty("url").GetString());
         }
         store.Subscribe(Subscription("https://fcm.googleapis.com/send/late"), now.GetUtcNow().AddSeconds(1));
@@ -353,6 +366,38 @@ public sealed class WebPushTests
         Assert.Contains("0.00961973 BTC", donationPayload.RootElement.GetProperty("title").GetString());
         Assert.Equal("/contribute", donationPayload.RootElement.GetProperty("url").GetString());
     }
+    [Fact]
+    public async Task PreparedPushStopsWhenTheAwardChangesHands()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true);
+        using var badges = new BadgeDataService(fixture.Athletes, fixture.Events, fixture.Database, NullLogger<BadgeDataService>.Instance);
+        var store = new WebPushStore(fixture.Database);
+        var clock = new Clock(DateTimeOffset.UtcNow);
+        store.EnableAutomaticAnnouncements(clock.GetUtcNow());
+        store.Subscribe(Subscription(), clock.GetUtcNow().AddMinutes(-1));
+        var id = fixture.InsertEvent(EventType.BadgeAward,
+            "slug[former_holder] badge[Pheno Age best improvement] cat[Global] val[] place[1]", clock.GetUtcNow().UtcDateTime);
+        new SocialDeliveryStore(fixture.Database).Prepare(SocialDeliveryStore.WebPush, id,
+            "prepared before the scoring correction", "former_holder", clock.GetUtcNow());
+        var requests = 0;
+        var service = new WebPushAnnouncementService(fixture.Events, store,
+            Transport(Configured(), _ => { requests++; return new(HttpStatusCode.Created); }),
+            new(fixture.Database), new(fixture.Env), NullLogger<WebPushAnnouncementService>.Instance,
+            clock, fixture.Athletes, fixture.ThreadsEvents);
+
+        await service.DispatchAsync();
+
+        Assert.Equal(0, requests);
+        Assert.Empty(store.Pending());
+        fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT LastErrorCode FROM SocialDeliveries WHERE EventId=@id AND Platform='webpush';";
+            cmd.Parameters.AddWithValue("@id", id);
+            Assert.Equal(nameof(SocialEventSkipReason.SupersededBadgeAward), cmd.ExecuteScalar());
+        });
+    }
+
     internal static WebPushSubscription Subscription(string endpoint = "https://fcm.googleapis.com/send/test")
     {
         using var key = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);

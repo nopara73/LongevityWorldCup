@@ -150,7 +150,7 @@ public sealed class HomepageLandingBrowserTests(
         await using var _ = context;
         await page.WaitForFunctionAsync(
             "() => document.querySelectorAll('#events-root-index tr.main-row').length > 2");
-        await page.WaitForTimeoutAsync(1500);
+        await FitInitialHighlightsAsync(page);
         var rows = await CountHighlightsAsync(page);
         await page.EvaluateAsync("() => window.retainedHighlights = [...document.querySelectorAll('#events-root-index tr.main-row')]");
 
@@ -231,7 +231,7 @@ public sealed class HomepageLandingBrowserTests(
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForSelectorAsync("#events-root-index tr.main-row");
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-        await page.WaitForTimeoutAsync(3500);
+        await FitInitialHighlightsAsync(page);
         var initialRows = await CountHighlightsAsync(page);
         Assert.InRange(initialRows, 2, 11);
         var initialWidth = await page.EvaluateAsync<int>("innerWidth");
@@ -254,7 +254,7 @@ public sealed class HomepageLandingBrowserTests(
             """, change);
         await page.WaitForFunctionAsync(
             "initial => document.querySelectorAll('#events-root-index tr.main-row').length !== initial", initialRows);
-        await page.WaitForTimeoutAsync(3500);
+        await page.EvaluateAsync("() => homepageHighlightsFitPromise");
         Assert.Equal(initialWidth, await page.EvaluateAsync<int>("innerWidth"));
 
         await page.EvaluateAsync(
@@ -267,7 +267,7 @@ public sealed class HomepageLandingBrowserTests(
             """, change);
         await page.WaitForFunctionAsync(
             "initial => document.querySelectorAll('#events-root-index tr.main-row').length === initial", initialRows);
-        await page.WaitForTimeoutAsync(500);
+        await page.EvaluateAsync("() => homepageHighlightsFitPromise");
         Assert.Equal(initialRows, await CountHighlightsAsync(page));
     }
 
@@ -289,7 +289,7 @@ public sealed class HomepageLandingBrowserTests(
         await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForSelectorAsync("#events-root-index .custom-event-expander");
-        await page.WaitForTimeoutAsync(3500);
+        await FitInitialHighlightsAsync(page);
         var expander = page.Locator("#events-root-index .custom-event-expander").Last;
         await expander.FocusAsync();
         await expander.PressAsync("Enter");
@@ -299,12 +299,19 @@ public sealed class HomepageLandingBrowserTests(
             () => {
                 window.retainedAnnouncement = document.activeElement;
                 window.retainedAnnouncementRow = document.activeElement.closest('tr.main-row');
+                window.observedHighlightFits = [];
+                const fit = fitHomepageHighlightsNow;
+                fitHomepageHighlightsNow = async function () {
+                    const padding = document.querySelector('.lwc-merch-copy').style.paddingBottom;
+                    await fit();
+                    window.observedHighlightFits.push(padding);
+                };
                 document.querySelector('.lwc-merch-copy').style.paddingBottom = '400px';
             }
             """);
-        await page.WaitForTimeoutAsync(3500);
-        await page.EvaluateAsync("() => document.querySelector('.lwc-merch-copy').style.paddingBottom = ''");
-        await page.WaitForTimeoutAsync(3500);
+        await page.WaitForFunctionAsync("() => window.observedHighlightFits.includes('400px')");
+        await page.EvaluateAsync("() => { window.observedHighlightFits = []; document.querySelector('.lwc-merch-copy').style.paddingBottom = ''; }");
+        await page.WaitForFunctionAsync("() => window.observedHighlightFits.includes('')");
         Assert.True(await page.EvaluateAsync<bool>(
             """
             () => window.retainedAnnouncement === document.activeElement
@@ -338,13 +345,13 @@ public sealed class HomepageLandingBrowserTests(
         await page.SetViewportSizeAsync(width, 900);
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForSelectorAsync("#events-root-index tr.main-row");
-        await page.EvaluateAsync("() => document.fonts.ready");
+        await FitInitialHighlightsAsync(page);
         await page.WaitForTimeoutAsync(1800);
         await page.EvaluateAsync("() => cancelAnimationFrame(highlightFrame)");
         Assert.Single(await page.EvaluateAsync<string[]>("highlightPaints"));
         Assert.Equal(0, await page.EvaluateAsync<int>("highlightGhosts"));
 
-        var stable = await page.EvaluateAsync<bool>("""
+        await page.EvaluateAsync("""
             async () => {
                 const root = document.querySelector('#events-root-index');
                 const images = [...root.querySelectorAll('img.avatar')];
@@ -357,15 +364,25 @@ public sealed class HomepageLandingBrowserTests(
                 });
                 observer.observe(root, { childList: true, subtree: true });
                 await fitHomepageHighlights();
+                window.highlightRefitComplete = false;
+                const fit = fitHomepageHighlightsNow;
+                fitHomepageHighlightsNow = async function () {
+                    await fit();
+                    observer.disconnect();
+                    window.highlightRefitStable = removals === 0 && rows.every(row => row.isConnected)
+                        && images.every(image => image.isConnected);
+                    window.highlightRefitComplete = true;
+                    fitHomepageHighlightsNow = fit;
+                };
                 document.fonts.dispatchEvent(new Event('loadingdone'));
-                await new Promise(resolve => setTimeout(resolve, 500));
-                observer.disconnect();
-                return removals === 0 && rows.every(row => row.isConnected)
-                    && images.every(image => image.isConnected);
             }
             """);
-        Assert.True(stable, "A layout refit must not detach decoded icons or replay feed animations.");
+        await page.WaitForFunctionAsync("() => window.highlightRefitComplete");
+        Assert.True(await page.EvaluateAsync<bool>("window.highlightRefitStable"), "A layout refit must not detach decoded icons or replay feed animations.");
     }
+
+    private static Task FitInitialHighlightsAsync(IPage page) =>
+        page.EvaluateAsync("async () => { await document.fonts.ready; await fitHomepageHighlights(); }");
 
     private static Task<int> CountHighlightsAsync(IPage page) =>
         page.EvaluateAsync<int>("() => document.querySelectorAll('#events-root-index tr.main-row').length");

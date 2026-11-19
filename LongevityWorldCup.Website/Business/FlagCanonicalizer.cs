@@ -37,7 +37,7 @@ public static class FlagCanonicalizer
             : cleaned;
     }
 
-    private static string NormalizeKey(string? value)
+    internal static string NormalizeKey(string? value)
     {
         var normalized = (value ?? string.Empty).Normalize(NormalizationForm.FormD);
         var builder = new StringBuilder(normalized.Length);

@@ -1,3 +1,56 @@
+/* Native feedback is available with the first screen. The shared pointer,
+   touch and motion sheets take precedence when their richer states arrive. */
+@layer homepage-input {
+    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+        :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover))
+            :is(.athlete-profile-link, .podium-rank) {
+            translate: 0 -5px;
+        }
+
+        :root:not([data-lwc-input="touch"]) :is(.option-button, .flow-action, .rankings-btn, .leaderboard-order-toggle, .view-badge):not(:disabled, [aria-disabled="true"], :active):hover {
+            translate: 0 -1px;
+        }
+    }
+
+    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: reduce) {
+        :root:has(> head > link[href^="/css/pointer.css"][media^="not all"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) .podium-portrait {
+            outline: 2px solid var(--lwc-accent, #087685);
+            outline-offset: 2px;
+        }
+    }
+
+    :where(a[href], button:enabled, input, select, summary, [tabindex]):focus-visible {
+        outline: 3px solid var(--lwc-accent, #087685);
+        outline-offset: 2px;
+    }
+
+    @media (any-pointer: coarse) {
+        :where(a[href], button:enabled, label, summary, [role="button"], [role="tab"], .podium-item, tr[data-athlete-name]) {
+            -webkit-tap-highlight-color: color-mix(in srgb, var(--lwc-accent, #087685) 22%, transparent);
+        }
+
+        [data-home-press],
+        :root:has(> head > link[href^="/css/touch.css"][media^="not all"]) [data-lwc-pressed] {
+            filter: brightness(.86);
+        }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        :where(.athlete-profile-link, .podium-rank, button, .option-button, .flow-action, .view-badge) {
+            transition: translate 140ms ease, scale 90ms ease;
+        }
+
+        :root:not([data-lwc-touch]) :where(button:enabled, a[href], summary, .view-badge):active,
+        [data-home-press], [data-lwc-pressed="control"] {
+            scale: .95;
+        }
+
+        [data-lwc-pressed="card"] {
+            scale: .985;
+        }
+    }
+}
+
 .dialog {
     display: none;
     position: fixed;
@@ -906,6 +959,48 @@ button:hover {
 
     #events-root-index .events-board table {
         table-layout: fixed;
+    }
+
+    /* The shared timeline owns portraits, kind chips, row arrival and freshness.
+       This compact layout only supplies its rail position and day grouping. */
+    #events-root-index .events-board {
+        --event-avatar-size: 30px;
+        --event-rail-x: calc(var(--event-avatar-inset) + var(--event-avatar-target) / 2 - 1px);
+        --event-message-start: var(--event-avatar-column);
+        --event-rail: linear-gradient(color-mix(in srgb, var(--secondary-color) 30%, var(--events-border)), color-mix(in srgb, var(--secondary-color) 30%, var(--events-border)));
+        --feed-pad-x: 20px;
+    }
+
+    #events-root-index .events-board tr.main-row:first-child {
+        --event-rail-y: 100%;
+        --event-rail-h: 50%;
+    }
+
+    #events-root-index .events-board tr.main-row:not(:has(~ tr.main-row)) {
+        --event-rail-h: 50%;
+    }
+
+    #events-root-index .events-board tr.main-row:first-child:not(:has(~ tr.main-row)),
+    #events-root-index .events-board tr.main-row:not(:has(~ tr.main-row)) + tr.custom-event-details {
+        --event-rail-image: none;
+    }
+
+    #events-root-index .events-board tr.main-row.day-start:not(:first-child) {
+        --event-day-rule: linear-gradient(var(--events-border), var(--events-border));
+    }
+
+    #events-root-index .events-board tr.main-row.day-repeat > td.col-date time {
+        opacity: 0;
+    }
+
+    #events-root-index .events-board tr.main-row.is-fresh.day-start > td.col-date {
+        color: var(--secondary-color);
+    }
+
+    #events-root-index .events-board .event-kind {
+        --event-kind-size: 14px;
+        right: -4px;
+        bottom: -3px;
     }
 
     #events-root-index .events-board col.events-col-date,

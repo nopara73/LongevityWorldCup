@@ -11,6 +11,35 @@ public static partial class RedditPost
     public const int MaxTitleLength = 300;
     public const int MaxTextLength = 40_000;
 
+    internal static string? BuildLeaderText(EventItem item, IReadOnlyList<AthleteForX> athletes)
+    {
+        if (item.Type != EventType.NewRank || !EventHelpers.TryExtractRank(item.Text, out var rank) || rank != 1 ||
+            !EventHelpers.TryExtractSlug(item.Text, out var slug)) return null;
+        var leader = athletes.FirstOrDefault(a => a.CurrentRank == 1 &&
+            string.Equals(a.Slug, slug, StringComparison.OrdinalIgnoreCase));
+        if (leader is null || string.IsNullOrWhiteSpace(leader.Name)) return null;
+        var age = leader.LowestBortzAge ?? leader.LowestPhenoAge;
+        if (age is not double value || !double.IsFinite(value)) return null;
+        var clock = leader.LowestBortzAge.HasValue ? "bortz" : "pheno";
+        var track = leader.LowestBortzAge.HasValue ? "Pro" : "Amateur";
+        var lines = new List<string>
+        {
+            $"{leader.Name} takes the Ultimate League lead",
+            "",
+            $"{leader.Name} moved into first place on the overall Longevity World Cup leaderboard on {item.OccurredAtUtc.ToString("d MMMM yyyy", CultureInfo.InvariantCulture)}.",
+            "",
+            $"Their current lowest submitted {clock} age is {value.ToString("0.0", CultureInfo.InvariantCulture)} years ({track} track)."
+        };
+        var runnerUp = athletes.FirstOrDefault(a => a.CurrentRank == 2);
+        if (runnerUp is not null && !string.IsNullOrWhiteSpace(runnerUp.Name))
+            lines.Add($"{runnerUp.Name} is currently in second place.");
+        lines.Add("");
+        lines.Add("The Ultimate League ranks Pro athletes ahead of Amateur athletes. Within each track, rankings use biological age minus chronological age, with lower values ranking higher.");
+        lines.Add("");
+        lines.Add($"Full standings and athlete results: {SocialPostLinks.LeaderboardUrl}");
+        return string.Join("\n", lines);
+    }
+
     internal static RedditPostRequest? Build(EventItem item, string ordinaryText, Func<string, string> resolveName)
     {
         string title;
@@ -25,8 +54,9 @@ public static partial class RedditPost
         }
         else
         {
-            text = ordinaryText.Trim();
-            title = UrlPattern().Replace(text.Split('\n')[0], "");
+            var parts = ordinaryText.Trim().Split('\n', 2);
+            title = UrlPattern().Replace(parts[0], "");
+            text = parts.Length == 2 ? parts[1].Trim() : parts[0];
         }
 
         if (string.IsNullOrWhiteSpace(text)) return null;

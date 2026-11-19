@@ -213,9 +213,7 @@ public sealed class LeaderboardPodiumBrowserTests(
         }
         else
         {
-            // Disabled page scripts do not run the readiness event callbacks.
-            // The browser still exposes its complete native document state.
-            await page.WaitForFunctionAsync("() => document.readyState === 'complete'");
+            await page.WaitForDocumentLoadedAsync(javaScriptEnabled: false);
         }
     }
 

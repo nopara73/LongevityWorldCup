@@ -168,6 +168,14 @@ internal static class SocialPostPolicy
         return bortzPhase ?? totalPhase;
     }
 
+    internal static string UltimatePlacementText(string rawText, string athleteName, int rank)
+    {
+        var placement = EventHelpers.TryExtractPreviousPlace(rawText, out var from) && from > rank
+            ? $"{athleteName} climbed from #{from} to #{rank} in the Ultimate League."
+            : $"{athleteName} is now #{rank} in the Ultimate League.";
+        return $"{placement}\n\n{SocialPostLinks.LeaderboardUrl}";
+    }
+
     internal static bool ShouldSuppressEvent(EventType type, string rawText, XPostPhase? phase)
     {
         if (!phase.HasValue || phase == XPostPhase.Mature)

@@ -37,13 +37,18 @@ public sealed class CustomEventPreviewController(
         var rawText = string.IsNullOrWhiteSpace(content)
             ? title
             : $"{title}\n\n{content}";
-        var plan = CustomEventSocialComposer.BuildPlan("preview", rawText, platform switch
+        var plan = platform switch
         {
-            SocialPlatform.X => 280,
-            SocialPlatform.Bluesky => 300,
-            SocialPlatform.Facebook => 63206,
-            _ => 500
-        });
+            SocialPlatform.Telegram => TelegramAnnouncementService.BuildCustomPlan(
+                new EventItem("preview", EventType.CustomEvent, rawText, DateTime.UtcNow, 15, true), slug => ResolveMention(slug, platform)),
+            SocialPlatform.X => XCustomEventPost.BuildPlan("preview", rawText, slug => ResolveMention(slug, platform)),
+            _ => CustomEventSocialComposer.BuildPlan("preview", rawText, platform switch
+            {
+                SocialPlatform.Bluesky => 300,
+                SocialPlatform.Facebook => 63206,
+                _ => 500
+            })
+        };
         var stream = platform == SocialPlatform.Instagram
             ? await instagramImages.RenderAsync(InstagramVisual.ForCustom(rawText, slug => ResolveMention(slug, platform)), ct)
             : await _images.RenderToStreamAsync(rawText, slug => ResolveMention(slug, platform), ct, useLinkedArtwork: plan.Mode == CustomEventPostMode.Artwork);
@@ -78,6 +83,7 @@ public sealed class CustomEventPreviewController(
             "nostr" => SocialPlatform.Nostr,
             "bluesky" => SocialPlatform.Bluesky,
             "instagram" => SocialPlatform.Instagram,
+            "telegram" => SocialPlatform.Telegram,
             _ => SocialPlatform.X
         };
     }

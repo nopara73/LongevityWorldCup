@@ -231,6 +231,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         });
         var page = await OpenDiscussionPolishAsync(context);
         await Assertions.Expect(page.Locator("#lmxBoardSection")).ToBeVisibleAsync();
+        await WaitForFiniteAnimationsAsync(page);
 
         var feed = await page.EvaluateAsync<JsonElement>(
             """

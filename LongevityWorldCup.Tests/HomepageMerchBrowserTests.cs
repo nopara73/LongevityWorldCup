@@ -15,8 +15,11 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
     [InlineData(320, 200, false)]
     [InlineData(320, 200, true)]
     [InlineData(390, 200, false)]
+    [InlineData(577, 200, false)]
+    [InlineData(577, 200, true)]
     [InlineData(1280, 100, false)]
     [InlineData(1280, 200, false)]
+    [InlineData(1280, 200, true)]
     public async Task Swag_ProductsRemainReadableAndKeyboardAccessible(int width, int textPercent, bool dark)
     {
         await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
@@ -263,9 +266,9 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await Assertions.Expect(cards.Nth(2)).ToHaveAttributeAsync("aria-hidden", "false");
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
 
-        // The page gesture still opens filters when it starts outside a scroller.
+        // A horizontal page gesture must not open the bottom sheet either.
         await SwipeAsync(page, page.Locator(".lwc-merch-copy"), forward: false);
-        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(page.Locator(".sidebar-toggle")).ToHaveAttributeAsync("aria-expanded", "false");
     }
 
     [Fact]
@@ -306,25 +309,37 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         var dot = page.Locator(".lwc-merch-mobile-dot").Nth(2);
         await dot.FocusAsync();
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-        await page.EvaluateAsync(
+        // Layout can change while the dot has focus but before Enter activates it.
+        // Check the selection on each rendered frame from the actual click onward.
+        await dot.EvaluateAsync(
             """
-            () => {
-                window.merchScrollSamples = [];
-                const track = document.querySelector('.lwc-merch-mobile-track');
-                const record = () => window.merchScrollSamples.push({
-                    hiddenFocus: !!document.activeElement.closest('[aria-hidden=true], [inert]'),
-                    selected: document.querySelectorAll('.lwc-merch-mobile-dot')[2].getAttribute('aria-pressed')
-                });
-                track.addEventListener('scroll', () => requestAnimationFrame(record));
-                new MutationObserver(record).observe(track, { subtree: true, attributes: true });
+            dot => {
+                const product = document.querySelectorAll('.lwc-merch-mobile-slide')[2];
+                const samples = [];
+                let frame;
+                function sample() {
+                    samples.push({
+                        productFocused: document.activeElement === product,
+                        productExposed: !product.closest('[aria-hidden=true], [inert]'),
+                        dotPressed: dot.getAttribute('aria-pressed') === 'true'
+                    });
+                    frame = requestAnimationFrame(sample);
+                }
+                dot.addEventListener('click', () => { frame = requestAnimationFrame(sample); }, { once: true });
+                window.takeMerchSelectionFrames = () => { cancelAnimationFrame(frame); return samples; };
             }
             """);
         await dot.PressAsync("Enter");
         await WaitForProductPositionAsync(page, 2);
         await HomepageChromeRegressionBrowserTests.SettleLayoutAsync(page);
-        Assert.True(await page.EvaluateAsync<bool>(
-            "window.merchScrollSamples.length > 1 && window.merchScrollSamples.every(sample => !sample.hiddenFocus && sample.selected === 'true')"),
-            "Every smooth-scroll frame must keep the keyboard-selected product exposed and its dot selected.");
+        var frames = await page.EvaluateAsync<MerchSelectionFrame[]>("() => window.takeMerchSelectionFrames()");
+        Assert.NotEmpty(frames);
+        Assert.All(frames, frame =>
+        {
+            Assert.True(frame.ProductFocused, "The keyboard-selected product lost focus during scrolling.");
+            Assert.True(frame.ProductExposed, "The keyboard-selected product was hidden during scrolling.");
+            Assert.True(frame.DotPressed, "The selected product's dot became unpressed during scrolling.");
+        });
         await Assertions.Expect(page.Locator(".lwc-merch-mobile-slide").Nth(2)).ToBeFocusedAsync();
     }
 
@@ -396,6 +411,13 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         await Assertions.Expect(page.Locator(".lwc-merch-grid")).ToHaveJSPropertyAsync("inert", true);
         await Assertions.Expect(page.Locator("#lwc-merch-mobile-carousel")).ToHaveJSPropertyAsync("inert", false);
         await Assertions.Expect(page.Locator("#emailInput")).ToBeFocusedAsync();
+    }
+
+    private sealed class MerchSelectionFrame
+    {
+        public bool ProductFocused { get; set; }
+        public bool ProductExposed { get; set; }
+        public bool DotPressed { get; set; }
     }
 
     private static async Task WaitForProductPositionAsync(IPage page, int index)

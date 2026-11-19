@@ -46,6 +46,31 @@
     cursor: not-allowed;
 }
 
+/* Caret browsing belongs in readable text. Skip graphical surfaces so an
+   image, medal or icon cannot create an oversized text caret. Keep the wrapper
+   out of selection too: excluding only its image still leaves a caret beside it.
+   These controls retain their accessible names, tab stops and focus outlines. */
+:where(
+    .athlete-profile-link,
+    .portrait-wrapper,
+    .avatar-link,
+    .avatar-disabled,
+    .event-avatar-frame,
+    .event-athlete-preview-portrait,
+    .flag-team-portraits,
+    .podium-rank,
+    .portrait-flag,
+    .badge-class:has(> i:only-child),
+    .personal-link-icon,
+    .footer-icon-link,
+    .lwc-icon,
+    i[data-lwc-icon],
+    i[class*="fa-"]
+) {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 /* --------------------------------------------------------------- hover intent */
 @media (hover: hover) and (pointer: fine) {
     /* Interactive cards: a short lift with a soft shadow and an accent edge. */

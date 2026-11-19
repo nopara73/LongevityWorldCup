@@ -95,6 +95,26 @@ public sealed class ProofReaderRecoveryBrowserTests(
         }
     }
 
+    [Fact]
+    public async Task EmbeddedReader_KeepsKeyboardNavigationWhenTheFocusedControlBecomesDisabled()
+    {
+        await using var context = await CreateContextAsync(1280);
+        await context.RouteAsync("**/proof-reader-test/**", FulfillImageAsync);
+        var page = await OpenProfileAsync(context, "/about");
+        await page.Locator("#proofsGallery img").First.ClickAsync();
+        var viewer = page.Locator(".lwc-viewer");
+        await ExpectStateAsync(viewer, "ready");
+        await viewer.GetByRole(AriaRole.Button, new() { Name = "Fit proof to viewer" }).ClickAsync();
+        await page.Keyboard.PressAsync("ArrowRight");
+        await ExpectStateAsync(viewer, "ready");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("src", new Uri(App.BaseAddress, SecondProof).AbsoluteUri);
+        await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(viewer.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("src", new Uri(App.BaseAddress, ThirdProof).AbsoluteUri);
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(viewer).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator("#proofsGallery img").Nth(2)).ToBeFocusedAsync();
+    }
+
     [Theory]
     [InlineData("/leaderboard", 390, false)]
     [InlineData("/about", 320, true)]

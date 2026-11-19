@@ -51,6 +51,7 @@ internal sealed record InstagramVisual(
             ("LWC is now on Bluesky" or "LWC announcements are now on Bluesky", "bsky.app") => "bluesky",
             ("LWC is now on Instagram" or "LWC announcements are now on Instagram", "instagram.com") => "instagram",
             ("LWC is now on Reddit" or "LWC announcements are now on Reddit", "reddit.com") => "reddit",
+            ("LWC is now on Telegram" or "LWC announcements are now on Telegram", "t.me") => "telegram",
             ("Follow LWC by RSS", "longevityworldcup.com") when uri.AbsolutePath == "/feeds/events.rss" => "rss",
             ("LWC announcements, straight to your browser", "longevityworldcup.com") when uri.AbsolutePath == "/events" => "browser",
             _ => null

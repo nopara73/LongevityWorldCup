@@ -120,6 +120,28 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
         Assert.Equal(edits, await page.EvaluateAsync<int>("window.numericWheelEdits"));
     }
 
+    [Fact]
+    public async Task UnansweredRadiosStayEmptyWhileAMixedCheckboxHasAMark()
+    {
+        await using var context = await ContextAsync();
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await page.GotoAsync("/health");
+        await page.SetContentAsync("""
+            <label><input type="radio" name="answer">Yes</label>
+            <label><input type="radio" name="answer">No</label>
+            <label><input type="checkbox">Mixed</label>
+            """);
+        await page.AddStyleTagAsync(new() { Url = new Uri(App.BaseAddress, "/css/form-controls.css").ToString() });
+        var choices = page.Locator("input");
+        await page.GetByRole(AriaRole.Checkbox).EvaluateAsync("input => input.indeterminate = true");
+        const string markOpacities = "inputs => inputs.map(input => getComputedStyle(input, '::before').opacity)";
+        Assert.Equal(new[] { "0", "0", "1" }, await choices.EvaluateAllAsync<string[]>(markOpacities));
+
+        await page.GetByRole(AriaRole.Radio, new() { Name = "Yes" }).CheckAsync();
+        Assert.Equal(new[] { "1", "0", "1" }, await choices.EvaluateAllAsync<string[]>(markOpacities));
+    }
+
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
@@ -234,6 +256,7 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
     {
         await using var context = await ContextAsync();
         var page = await context.NewPageAsync();
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/pheno-age");
         await page.WaitForFunctionAsync("() => !!window.LwcFormControls");
         await page.EvaluateAsync("""
@@ -259,9 +282,11 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(up).ToBeDisabledAsync();
         await page.EvaluateAsync("document.querySelector('#stepper-fixture').disabled = false");
         await Assertions.Expect(up).ToBeEnabledAsync();
+        // A delay between Playwright calls must not turn a press into a hold.
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
         await up.DispatchEventAsync("pointerdown", new { button = 0 });
         await page.EvaluateAsync("window.dispatchEvent(new Event('blur'))");
-        await page.WaitForTimeoutAsync(550);
+        await page.Clock.RunForAsync(550);
         await Assertions.Expect(input).ToHaveValueAsync("0.4");
         await up.ClickAsync();
         await Assertions.Expect(input).ToHaveValueAsync("0.5");
@@ -271,7 +296,7 @@ public sealed class FormControlsBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(input).ToHaveValueAsync("0.2");
         await up.DispatchEventAsync("pointerdown", new { button = 0 });
         await input.EvaluateAsync("el => { window.detachedField = el; el.closest('fieldset').remove(); }");
-        await page.WaitForTimeoutAsync(550);
+        await page.Clock.RunForAsync(550);
         Assert.Equal("0.3", await page.EvaluateAsync<string>("window.detachedField.value"));
     }
 
