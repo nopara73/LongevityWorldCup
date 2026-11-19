@@ -4136,9 +4136,6 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     }
     window.LwcLeaderboardOrder.sync(selectedState.ordering, selectedState.byFlag, metricLabel);
     document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
-    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
-        cell.setAttribute('data-label', metricLabel);
-    });
 
     // Cache each view's order for both the table and proposed sidebar selections.
     const athletesByView = new Map([['ultimate', athleteResults]]);
@@ -4281,7 +4278,9 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
                 setDisplayedRank(rankCell, entriesByAthlete.get(athlete).rank);
             }
 
-            const ageReductionCell = row.querySelector('.age-reduction');
+            const metricCell = row.querySelector('.age-reduction-td');
+            if (metricCell.dataset.label !== metricLabel) metricCell.dataset.label = metricLabel;
+            const ageReductionCell = metricCell.querySelector('.age-reduction');
             const displayMetric = entriesByAthlete.get(athlete).metric;
             if (ageReductionCell && displayMetric && ageReductionCell.textContent !== displayMetric) {
                 ageReductionCell.textContent = displayMetric;

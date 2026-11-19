@@ -14,6 +14,7 @@ public sealed class HomepageLoadingBrowserTests(
     {
         await using var context = await NewContextAsync(390);
         var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
         await ObserveFirstScreenPaintAsync(page);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         async Task Hold(IRoute route)
@@ -22,6 +23,9 @@ public sealed class HomepageLoadingBrowserTests(
             await route.ContinueAsync();
         }
         await page.RouteAsync("**/css/leaderboard-podium.css*", Hold);
+        await page.RouteAsync("**/css/portrait-system.css*", Hold);
+        await page.RouteAsync("**/css/dark-system.css*", Hold);
+        await page.RouteAsync("**/css/icons.css*", Hold);
         await page.RouteAsync("**/js/icons.js*", Hold);
         await page.RouteAsync("**/vendor/font-awesome/**/all.min.css*", Hold);
         try
@@ -127,6 +131,25 @@ public sealed class HomepageLoadingBrowserTests(
         await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible").First).ToHaveAttributeAsync("data-athlete-name", outsideTopTen);
         await page.Locator("#athleteSearch").FillAsync("");
         await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible")).ToHaveCountAsync(7);
+    }
+
+    [Theory]
+    [InlineData(320, "improvement", "Improvement")]
+    [InlineData(1440, "bortz-improvement", "Bortz improvement")]
+    public async Task Homepage_LabelsNewlyDisplayedRowsWithTheSelectedMetric(int width, string view, string metric)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        await ExpectHomepageLoadedAsync(page);
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await page.Locator($"label[data-aging-clock-view='{view}']").ClickAsync();
+
+        await Assertions.Expect(page.Locator("#leaderboardMetricHeader")).ToHaveTextAsync(metric);
+        var scores = page.Locator(".leaderboard tbody tr[data-athlete-name]:visible .age-reduction-td");
+        await Assertions.Expect(scores.First).ToBeVisibleAsync();
+        Assert.All(await scores.EvaluateAllAsync<string[]>("cells => cells.map(cell => cell.dataset.label)"),
+            label => Assert.Equal(metric, label));
     }
 
     [Fact]

@@ -256,6 +256,7 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
     {
         var (context, page) = await OpenAsync(reduce: true);
         await using var _ = context;
+        await page.Clock.InstallAsync();
         var rows = page.Locator(Rows + ":visible").Filter(new() { Has = page.Locator("a.media-contact") });
         var first = rows.First;
         var second = rows.Nth(1);
@@ -278,6 +279,18 @@ public sealed partial class LeaderboardFeelBrowserTests(PlaywrightBrowserFixture
         var gap = Math.Max(cardBox.X - pointerX, pointerX - (cardBox.X + cardBox.Width));
         Assert.InRange(gap, 10, 14);
         await Assertions.Expect(first.Locator(".athlete-name")).Not.ToHaveAttributeAsync("aria-describedby", "leaderboard-peek");
+
+        // Pause between the row and the card for longer than its dismissal delay.
+        var rowBox = (await second.BoundingBoxAsync())!;
+        var edgeX = cardBox.X > pointerX ? cardBox.X : cardBox.X + cardBox.Width;
+        var gapY = cardBox.Y < rowBox.Y ? rowBox.Y - 4 : rowBox.Y + rowBox.Height + 4;
+        await page.Mouse.MoveAsync((pointerX + edgeX) / 2, gapY);
+        await page.Clock.RunForAsync(500);
+        await Assertions.Expect(peek).ToBeVisibleAsync();
+        await Assertions.Expect(name).ToHaveTextAsync(await second.Locator(".athlete-name").InnerTextAsync());
+        await peek.HoverAsync();
+        await first.Locator(".age-reduction").HoverAsync();
+        await Assertions.Expect(name).ToHaveTextAsync(await first.Locator(".athlete-name").InnerTextAsync());
 
         await second.Locator("a.media-contact").HoverAsync();
         await Assertions.Expect(page.Locator(".lwc-tip")).ToBeVisibleAsync();
