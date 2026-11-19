@@ -31,7 +31,7 @@ public sealed class BioageInstrumentBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         Assert.Equal(0, await SegmentFillAsync(page));
         await SetFormValuesAsync(page, new Dictionary<string, string> { ["wbc"] = "6.54", ["mcv"] = "92" });
-        var total = await page.Locator("#lwc-step-2 .biomarker-card input[type=number][required]").CountAsync();
+        var total = await page.Locator("#lwc-step-2 .biomarker-card input[inputmode=decimal][required]").CountAsync();
         var expected = Math.Round(2.0 / total * 100);
         Assert.InRange(await SegmentFillAsync(page), expected - 1, expected + 1);
         await ExpectNoHorizontalOverflowAsync(page);
@@ -69,6 +69,44 @@ public sealed class BioageInstrumentBrowserTests(
         Assert.True(layout[3] <= 40, $"{scenario}: the card ends {layout[3]}px below its last row or action band.");
     }
 
+    [Theory]
+    [InlineData("/pheno-age", 1440)]
+    [InlineData("/bortz-age", 390)]
+    public async Task DecimalEntry_GuidesOneRowWithoutRemeasuringTheSheet(string path, int width)
+    {
+        var page = await OpenAsync(path, width, 844, ColorScheme.Light);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await FillBioageStepOneAsync(page, "2026-01-02");
+        var first = page.Locator("#wbc");
+        await first.FocusAsync();
+        await page.EvaluateAsync("""
+            () => {
+                window.rowReads = 0;
+                window.sparks = 0;
+                const rects = Element.prototype.getClientRects;
+                const animate = Element.prototype.animate;
+                Element.prototype.getClientRects = function () {
+                    if (this.matches('.biomarker-card')) window.rowReads++;
+                    return rects.call(this);
+                };
+                Element.prototype.animate = function (...args) {
+                    if (this.matches('.bioage-run-spark')) window.sparks++;
+                    return animate.apply(this, args);
+                };
+            }
+            """);
+        await first.PressSequentiallyAsync("6.1");
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.Equal(new[] { 1, 0 }, await page.EvaluateAsync<int[]>("() => [window.sparks, window.rowReads]"));
+        await Assertions.Expect(first).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator(".biomarker-card--complete")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator(".biomarker-card.is-next input").First).ToHaveAttributeAsync("id",
+            path == "/pheno-age" ? "lymphocyte" : "lymphocyte_percentage");
+        await page.ReloadAsync();
+        await Assertions.Expect(first).ToHaveValueAsync("6.1");
+        await Assertions.Expect(first.Locator("..")).ToHaveCSSAsync("border-top-style", "solid");
+    }
+
     [Fact]
     public async Task InvalidBiomarker_TintsItsWholeRow()
     {
@@ -96,7 +134,7 @@ public sealed class BioageInstrumentBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await page.WaitForFunctionAsync("() => document.querySelector('[data-bioage-result-rank]')?.getAttribute('aria-busy') === 'false'");
 
         var layout = await page.EvaluateAsync<double[]>(
@@ -133,10 +171,10 @@ public sealed class BioageInstrumentBrowserTests(
     {
         var page = await OpenAsync(path, 390, 844, scheme);
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await page.EvaluateAsync("() => { window.getSharedAthletes = () => new Promise(() => {}); }");
         if (path == "/bortz-age") await FillBortzBiomarkersAsync(page);
         else await FillPhenoBiomarkersAsync(page);
-        await page.EvaluateAsync("() => { window.getSharedAthletes = () => new Promise(() => {}); }");
-        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         var loading = page.Locator(".bioage-rank-loading");
         await loading.WaitForAsync();
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });

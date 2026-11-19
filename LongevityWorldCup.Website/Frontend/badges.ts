@@ -72,6 +72,8 @@ interface BadgeTooltipOptions {
 interface RenderedBadgeItem {
     readonly order: number;
     readonly searchText: string;
+    readonly ariaLabel?: string;
+    readonly nameLink?: boolean;
     readonly html: string;
 }
 
@@ -557,27 +559,27 @@ function makeUnformattedTooltipFromServerBadge(
     }
 
     if (label === 'Pheno Age best improvement') {
-        if (suppressValues) return 'Redemption Arc: greatest age reversal from first submission according to pheno age';
+        if (suppressValues) return 'Redemption Arc: greatest age reversal from worst submission to latest result according to pheno age';
         let delta = null;
-        if (athlete && typeof athlete.phenoAgeDifference === 'number') delta = athlete.phenoAgeDifference;
-        else if (athlete && typeof athlete.PhenoAgeDiffFromBaseline === 'number') delta = athlete.PhenoAgeDiffFromBaseline;
+        if (athlete && typeof athlete.phenoAgeImprovement === 'number') delta = athlete.phenoAgeImprovement;
+        else if (athlete && typeof athlete.PhenoAgeImprovementFromWorst === 'number') delta = athlete.PhenoAgeImprovementFromWorst;
         if (Number.isFinite(delta)) {
             const years = Number(delta).toFixed(1);
-            return `Redemption Arc: greatest age reversal from first submission according to pheno age: ${years} years`;
+            return `Redemption Arc: greatest age reversal from worst submission to latest result according to pheno age: ${years} years`;
         }
-        return 'Redemption Arc: greatest age reversal from first submission according to pheno age';
+        return 'Redemption Arc: greatest age reversal from worst submission to latest result according to pheno age';
     }
 
     if (label === 'Bortz Age best improvement') {
-        if (suppressValues) return 'Redemption Arc: greatest age reversal from first submission according to bortz age';
+        if (suppressValues) return 'Redemption Arc: greatest age reversal from worst submission to latest result according to bortz age';
         let delta = null;
-        if (athlete && typeof athlete.bortzAgeDifference === 'number') delta = athlete.bortzAgeDifference;
-        else if (athlete && typeof athlete.BortzAgeDiffFromBaseline === 'number') delta = athlete.BortzAgeDiffFromBaseline;
+        if (athlete && typeof athlete.bortzAgeImprovement === 'number') delta = athlete.bortzAgeImprovement;
+        else if (athlete && typeof athlete.BortzAgeImprovementFromWorst === 'number') delta = athlete.BortzAgeImprovementFromWorst;
         if (Number.isFinite(delta)) {
             const years = Number(delta).toFixed(1);
-            return `Redemption Arc: greatest age reversal from first submission according to bortz age: ${years} years`;
+            return `Redemption Arc: greatest age reversal from worst submission to latest result according to bortz age: ${years} years`;
         }
-        return 'Redemption Arc: greatest age reversal from first submission according to bortz age';
+        return 'Redemption Arc: greatest age reversal from worst submission to latest result according to bortz age';
     }
 
     if (typeof label === 'string' && label.startsWith('Best domain')) {
@@ -750,32 +752,25 @@ function rarityAttr(b: ServerBadge): string {
 }
 
 // Build one server badge bubble HTML
-function buildServerBadgeHtml(b: ServerBadge, athlete: BadgeAthlete): RenderedBadgeItem {
-    const icon = pickIconForServerBadge(b);
+function describeServerBadge(b: ServerBadge, athlete: BadgeAthlete): RenderedBadgeItem {
     const tooltip = makeTooltipFromServerBadge(b, athlete);
-    const style = pickBackgroundForServerBadge(b);
     const url = pickClickUrl(b, athlete);
-    const order = computeOrder(b);
-    const familyClass = getBadgeFamilyClass(b);
-    const label = getLabel(b);
-    const typeClass = label === 'Podcast' ? 'badge-podcast' : '';
-    const className = `badge-class ${familyClass}${typeClass ? ` ${typeClass}` : ''}`;
-    const rarity = rarityAttr(b);
-
-    if (url && label === 'Podcast') {
-        return {
-            order,
-            searchText: tooltip,
-            html: `<a class="${className} badge-clickable" href="${escapeAttr(url)}" target="_blank" rel="noopener" aria-label="${escapeAttr(tooltip)}. Open podcast" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"${rarity}><i class="fa ${icon}" aria-hidden="true"></i></a>`
-        };
-    }
-
+    const podcast = getLabel(b) === 'Podcast';
+    const ariaLabel = url ? tooltip + (podcast ? '. Open podcast' : '. Open league') : tooltip;
     return {
-        order,
+        order: computeOrder(b),
         searchText: tooltip,
-        html: url
-            ? `<a class="${className} badge-clickable" href="${escapeAttr(url)}" aria-label="${escapeAttr(tooltip)}. Open league" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"${rarity}><i class="fa ${icon}" aria-hidden="true"></i></a>`
-            : `<span class="${className} badge-explained" role="button" aria-haspopup="dialog" tabindex="0" aria-label="${escapeAttr(tooltip)}" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"${rarity}><i class="fa ${icon}" aria-hidden="true"></i></span>`
+        ariaLabel,
+        nameLink: podcast && !!url,
+        get html() {
+            const className = `badge-class ${getBadgeFamilyClass(b)}${podcast ? ' badge-podcast' : ''}`;
+            const title = escapeAttr(tooltip);
+            const attrs = `title="${title}" style="${styleWithBadgeVars(pickBackgroundForServerBadge(b))}"${rarityAttr(b)}`;
+            const icon = `<i class="fa ${pickIconForServerBadge(b)}" aria-hidden="true"></i>`;
+            return url
+                ? `<a class="${className} badge-clickable" href="${escapeAttr(url)}"${podcast ? ' target="_blank" rel="noopener"' : ''} aria-label="${escapeAttr(ariaLabel)}" ${attrs}>${icon}</a>`
+                : `<span class="${className} badge-explained" role="button" aria-haspopup="dialog" tabindex="0" aria-label="${title}" ${attrs}>${icon}</span>`;
+        }
     };
 }
 
@@ -785,26 +780,16 @@ const overflowStash = new WeakMap<HTMLElement, readonly StashedBadge[]>();
 /* =========================
    Public API
    ========================= */
-window.setBadges = function (athlete, athleteCell) {
-    let badgeContainer: HTMLElement | null = null;
-    if (athleteCell && athleteCell.classList && athleteCell.classList.contains('badge-section')) {
-        badgeContainer = athleteCell;
-    } else if (athleteCell && typeof athleteCell.querySelector === 'function') {
-        badgeContainer = athleteCell.querySelector('.badge-section') || athleteCell.querySelector('.badges');
-    }
-    if (!badgeContainer) return;
-
+function describeAthleteBadges(athlete: BadgeAthlete, separateNameLinks: boolean, guess: unknown) {
     const items: RenderedBadgeItem[] = [];
     const nameLinks: RenderedBadgeItem[] = [];
-    const nameLinksContainer = athleteCell?.classList?.contains('athlete-td')
-        ? athleteCell.querySelector<HTMLElement>('.athlete-name-links')
-        : null;
 
     const href = window.normalizeWebUrl(String(athlete.personalLink || athlete.PersonalLink || ''));
     if (href) {
-        (nameLinksContainer ? nameLinks : items).push({
+        (separateNameLinks ? nameLinks : items).push({
             order: 0,
             searchText: 'Personal page',
+            ariaLabel: 'Open personal page',
             html: `<a class="badge-class badge-family-utility badge-personal badge-clickable" href="${escapeAttr(href)}" target="_blank" rel="noopener" aria-label="Open personal page"
                title="Personal page" style="${LEGACY_BG.personal}">
                <i class="fa fa-link"></i>
@@ -817,46 +802,54 @@ window.setBadges = function (athlete, athleteCell) {
             Array.isArray(athlete.badges) ? athlete.badges : [];
 
     serverBadges.forEach(b => {
-        const item = buildServerBadgeHtml(b, athlete);
-        const isNameLink = nameLinksContainer && getLabel(b) === 'Podcast' && pickClickUrl(b, athlete);
+        const item = describeServerBadge(b, athlete);
+        const isNameLink = separateNameLinks && item.nameLink;
         (isNameLink ? nameLinks : items).push(item);
     });
 
-    if (nameLinksContainer) {
-        nameLinksContainer.innerHTML = nameLinks.sort((a, b) => a.order - b.order).map(item => item.html).join('');
+    const chrono = athlete.chronologicalAge ?? athlete.ChronoAge;
+    const perfectGuess = guess != null && Number.isFinite(chrono) && !!getAthleteProfileSlug(athlete)
+        && parseInt(String(guess), 10) === parseInt(String(chrono), 10);
+    if (perfectGuess) {
+        items.push({
+            order: 1.194,
+            searchText: 'Bullseye: you guessed their age perfectly!',
+            html: `<span class="badge-class badge-family-utility badge-explained" role="button" aria-haspopup="dialog" tabindex="0" aria-label="Bullseye: you guessed their age perfectly!" title="Bullseye: you guessed their age perfectly!" style="${LEGACY_BG.black}">
+                <i class="fa fa-bullseye" aria-hidden="true"></i>
+            </span>`
+        });
     }
-
-    try {
-        const slug = getAthleteProfileSlug(athlete);
-        if (slug) {
-            // A bullseye belongs to the portrait the player actually judged.
-            // Historical exact guesses still count toward the lifetime Pro
-            // discount, but must not decorate a replacement portrait.
-            const g = window.LwcGuessState?.get(athlete);
-            const guessed = (isRecord(g) && g.value != null) ? parseInt(String(g.value), 10) : null;
-
-            const chrono = athlete.chronologicalAge ?? athlete.ChronoAge ?? null;
-            const actualInt = Number.isFinite(chrono) ? parseInt(String(chrono), 10) : null;
-
-            if (guessed !== null && actualInt !== null
-                && Number.isInteger(guessed)
-                && Number.isInteger(actualInt)
-                && (guessed - actualInt === 0)) {
-                if (window.proDiscounts && typeof window.proDiscounts.setPerfectGuessMarker === 'function') {
-                    window.proDiscounts.setPerfectGuessMarker();
-                }
-                items.push({
-                    order: 1.194,
-                    searchText: 'Bullseye: you guessed their age perfectly!',
-                    html: `<span class="badge-class badge-family-utility badge-explained" role="button" aria-haspopup="dialog" tabindex="0" aria-label="Bullseye: you guessed their age perfectly!" title="Bullseye: you guessed their age perfectly!" style="${LEGACY_BG.black}">
-                               <i class="fa fa-bullseye" aria-hidden="true"></i>
-                           </span>`
-                });
-            }
-        }
-    } catch {}
-
     items.sort((a, b) => a.order - b.order);
+    nameLinks.sort((a, b) => a.order - b.order);
+    return { items, nameLinks, perfectGuess };
+}
+
+function overflowLabel(athlete: BadgeAthlete, count: number): string {
+    const name = athlete.displayName || athlete.DisplayName || athlete.name || athlete.Name || 'athlete';
+    return `Open ${name} profile to view ${count} more badges`;
+}
+
+function badgeSearchText(athlete: BadgeAthlete, guess: unknown): string {
+    const { items, nameLinks } = describeAthleteBadges(athlete, true, guess);
+    const overflow = items.length > 4 ? items.slice(3) : [];
+    const visible = overflow.length ? items.slice(0, 3) : items;
+    const text = [...nameLinks, ...visible].map(item => item.searchText + ' ' + (item.ariaLabel || ''));
+    if (overflow.length) {
+        text.push(...overflow.map(item => item.searchText), '+' + overflow.length);
+        if (getAthleteProfileUrl(athlete)) text.push(overflowLabel(athlete, overflow.length));
+    }
+    return text.join(' ');
+}
+
+window.setBadges = function (athlete, athleteCell) {
+    const badgeContainer = athleteCell?.matches?.('.badge-section, .modal-badge-strip') ? athleteCell
+        : athleteCell?.querySelector<HTMLElement>('.badge-section') || athleteCell?.querySelector<HTMLElement>('.badges');
+    if (!badgeContainer) return;
+    const nameLinksContainer = athleteCell?.classList?.contains('athlete-td')
+        ? athleteCell.querySelector<HTMLElement>('.athlete-name-links') : null;
+    const { items, nameLinks, perfectGuess } = describeAthleteBadges(athlete, !!nameLinksContainer, window.LwcGuessState?.get(athlete)?.value);
+    if (nameLinksContainer) nameLinksContainer.innerHTML = nameLinks.map(item => item.html).join('');
+    if (perfectGuess) window.proDiscounts?.setPerfectGuessMarker?.();
     const isModalStrip =
         (badgeContainer.id && badgeContainer.id === 'modalBadgeStrip') ||
         (typeof badgeContainer.closest === 'function' && !!badgeContainer.closest('#detailsModal'));
@@ -872,9 +865,8 @@ window.setBadges = function (athlete, athleteCell) {
         const athleteSlug = getAthleteProfileSlug(athlete);
         const athleteProfileUrl = getAthleteProfileUrl(athlete);
         const overflowTitle = hiddenTitle || `${hiddenItems.length} more badges`;
-        const athleteName = athlete.displayName || athlete.DisplayName || athlete.name || athlete.Name || 'athlete';
         const overflowHtml = athleteProfileUrl
-            ? `<a class="badge-class badge-family-utility badge-overflow-count badge-clickable" href="${escapeAttr(athleteProfileUrl)}" data-athlete-slug="${escapeAttr(athleteSlug)}" title="${escapeAttr(overflowTitle)}" aria-label="Open ${escapeAttr(athleteName)} profile to view ${hiddenItems.length} more badges">+${hiddenItems.length}</a>`
+            ? `<a class="badge-class badge-family-utility badge-overflow-count badge-clickable" href="${escapeAttr(athleteProfileUrl)}" data-athlete-slug="${escapeAttr(athleteSlug)}" title="${escapeAttr(overflowTitle)}" aria-label="${escapeAttr(overflowLabel(athlete, hiddenItems.length))}">+${hiddenItems.length}</a>`
             : `<span class="badge-class badge-family-utility badge-overflow-count badge-explained" role="button" aria-haspopup="dialog" tabindex="0" aria-label="${escapeAttr(overflowTitle)}" title="${escapeAttr(overflowTitle)}">+${hiddenItems.length}</span>`;
 
         renderedItems = [
@@ -1468,6 +1460,7 @@ function clearBadgeMotion(): void {
 
 if (!window.LwcBadges) {
     window.LwcBadges = {
+        searchText: badgeSearchText,
         celebrate: celebrateBadges,
         rarity: getBadgeRarity,
         stashOverflow(owner, html) {

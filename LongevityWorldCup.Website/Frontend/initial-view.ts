@@ -1,6 +1,6 @@
 interface InitialViewApi {
     prepare(): void;
-    complete(): void;
+    complete(options?: { animate?: boolean }): void;
     hold(): void;
     fail(): void;
     reload(): void;
@@ -16,6 +16,19 @@ interface Window {
     let deadline = 0;
     let recoveryObserver: MutationObserver | null = null;
     let revealTimer = 0;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const revealAnimations = new Set<Animation>();
+
+    function stopReveal(): void {
+        window.clearTimeout(revealTimer);
+        revealAnimations.forEach(animation => animation.cancel());
+        revealAnimations.clear();
+        delete documentRoot.dataset.lwcRevealed;
+    }
+
+    reducedMotion.addEventListener('change', event => {
+        if (event.matches) stopReveal();
+    });
 
     function hold(): void {
         window.clearTimeout(deadline);
@@ -25,8 +38,7 @@ interface Window {
     }
 
     function prepare(): void {
-        window.clearTimeout(revealTimer);
-        delete documentRoot.dataset.lwcRevealed;
+        stopReveal();
         documentRoot.dataset.initialView = 'pending';
         document.querySelectorAll<HTMLElement>('.initial-view-main').forEach(view => {
             view.setAttribute('aria-busy', 'true');
@@ -43,24 +55,28 @@ interface Window {
     // A resolved task fades in over its placeholder instead of replacing it in
     // one frame. Input is never blocked; reduced motion skips the handover.
     function reveal(): void {
-        window.clearTimeout(revealTimer);
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        stopReveal();
+        if (reducedMotion.matches) return;
         documentRoot.dataset.lwcRevealed = '';
         const style = getComputedStyle(documentRoot);
         const duration = parseFloat(style.getPropertyValue('--lwc-duration-normal')) || 220;
         const easing = style.getPropertyValue('--lwc-ease').trim() || 'ease';
         // Animations compose over each panel's own CSS motion without restarting it.
         document.querySelectorAll<HTMLElement>('.initial-view-main > :not(.initial-view-recovery, .play-start-panel, [hidden])').forEach(panel => {
-            panel.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration, easing });
+            const animation = panel.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration, easing });
+            if (!animation) return;
+            revealAnimations.add(animation);
+            const release = (): void => { revealAnimations.delete(animation); };
+            void animation.finished.then(release, release);
         });
         revealTimer = window.setTimeout(() => {
             delete documentRoot.dataset.lwcRevealed;
         }, duration + 80);
     }
 
-    function complete(): void {
+    function complete({ animate = true }: { animate?: boolean } = {}): void {
         hold();
-        if (documentRoot.dataset.initialView === 'pending') reveal();
+        if (animate && documentRoot.dataset.initialView === 'pending') reveal();
         delete documentRoot.dataset.initialView;
         document.querySelectorAll<HTMLElement>('.initial-view-main').forEach(view => {
             view.setAttribute('aria-busy', 'false');

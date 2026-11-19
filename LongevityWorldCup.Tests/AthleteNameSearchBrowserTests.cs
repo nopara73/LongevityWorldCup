@@ -91,6 +91,15 @@ public sealed class AthleteNameSearchBrowserTests(
         await Assertions.Expect(feedback).ToHaveTextAsync("No matching athlete.");
         Assert.Equal("status", await feedback.GetAttributeAsync("role"));
         Assert.NotEqual("true", await input.GetAttributeAsync("aria-invalid"));
+        await feedback.EvaluateAsync("""
+            element => {
+                window.searchFeedbackMutations = 0;
+                new MutationObserver(records => searchFeedbackMutations += records.length)
+                    .observe(element, { childList: true, subtree: true });
+            }
+            """);
+        await input.PressSequentiallyAsync(" still unmatched");
+        Assert.Equal(0, await page.EvaluateAsync<int>("searchFeedbackMutations"));
         await input.FillAsync("");
         await Assertions.Expect(feedback).ToBeEmptyAsync();
         await input.FillAsync("martin helstab");

@@ -45,7 +45,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         loaded = true;
         await retry.ClickAsync();
         await Assertions.Expect(retry).ToBeHiddenAsync();
-        await viewer.Locator("img").EvaluateAsync("async e=>await e.decode()");
+        var picture = viewer.Locator("img");
+        await Assertions.Expect(picture).ToHaveJSPropertyAsync("naturalWidth", 1600);
+        await picture.EvaluateAsync("img => img.decode()");
         await Capture("ready");
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(viewer).ToBeHiddenAsync();
@@ -55,7 +57,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         {
             if (Environment.GetEnvironmentVariable("LWC_VIEWER_CAPTURE_DIR") is not { Length: > 0 } directory) return;
             await page.EvaluateAsync("async()=>await document.fonts.ready");
-            await page.WaitForTimeoutAsync(450);
+            await WaitForFiniteAnimationsAsync(page, ".lwc-viewer, .lwc-viewer *, #lmxNotePhotoViewer, #lmxNotePhotoViewer *");
             await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"synthetic-photo-{stateName}-{width}-{theme}.png") });
         }
     }

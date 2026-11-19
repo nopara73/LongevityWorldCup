@@ -7,6 +7,52 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class LongevitymaxxingChallengeBrowserTests
 {
     [Theory]
+    [InlineData(390, true, false)]
+    [InlineData(1280, false, false)]
+    [InlineData(390, false, true)]
+    public async Task CheckIn_RemarksFitTheDraftAndKeepSaveReachable(int width, bool direct, bool legacySizing)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 },
+            HasTouch = width < 600,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        if (legacySizing) await context.AddInitScriptAsync("""
+            const supports = CSS.supports.bind(CSS);
+            CSS.supports = (...args) => args[0] === 'field-sizing' ? false : supports(...args);
+            """);
+        var page = await OpenCheckInWorkspaceAsync(context, direct: direct);
+        if (legacySizing) await page.AddStyleTagAsync(new() { Content = ".lmx-checkin-card textarea[data-mention-input] { field-sizing: fixed !important; }" });
+        var form = page.Locator(".lmx-checkin-card");
+        await AnswerAllHabitsAsync(form);
+        var note = form.GetByLabel("Remarks", new() { Exact = true });
+        var emptyHeight = await note.EvaluateAsync<int>("e => e.clientHeight");
+        const string paragraphs = "I got outside before breakfast. The walk felt easier today and I took the longer route home.\n\nI'll try the same route tomorrow.";
+        await note.FillAsync(paragraphs);
+        await note.PressAsync("Enter");
+        var draftHeight = await note.EvaluateAsync<int>("e => e.clientHeight");
+        Assert.True(draftHeight > emptyHeight, $"Remarks stayed at {emptyHeight}px after writing two paragraphs.");
+        Assert.True(await note.EvaluateAsync<bool>("e => e.scrollHeight <= e.clientHeight + 1"));
+        await Assertions.Expect(note).ToBeFocusedAsync();
+        await CaptureCheckInViewportAsync(page, $"remarks-{width}-{direct}-{legacySizing}");
+
+        await form.GetByRole(AriaRole.Button, new() { Name = "Reset this check-in" }).ClickAsync();
+        Assert.Equal(emptyHeight, await note.EvaluateAsync<int>("e => e.clientHeight"));
+        await form.GetByRole(AriaRole.Button, new() { Name = "Undo reset" }).ClickAsync();
+        await Assertions.Expect(note).ToHaveValueAsync(paragraphs + "\n");
+        Assert.Equal(draftHeight, await note.EvaluateAsync<int>("e => e.clientHeight"));
+
+        await note.FillAsync(string.Concat(Enumerable.Repeat("Walk\n", 28)));
+        Assert.True(await note.EvaluateAsync<bool>("e => e.scrollHeight > e.clientHeight && e.clientHeight < innerHeight * 0.65"));
+        var save = form.Locator("button[type='submit']");
+        await Assertions.Expect(save).ToBeEnabledAsync();
+        await Assertions.Expect(save).ToBeInViewportAsync();
+        await note.FillAsync("A short walk.");
+        Assert.Equal(emptyHeight, await note.EvaluateAsync<int>("e => e.clientHeight"));
+    }
+
+    [Theory]
     [InlineData(390, false)]
     [InlineData(320, true)]
     public async Task CheckIn_DaySwitcherKeepsDraftAndSavedLabelsReadable(int width, bool largeText)

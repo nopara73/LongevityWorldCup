@@ -35,7 +35,7 @@ public sealed class BlueskyAnnouncementService(
             string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
                 ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
 
-            foreach (var pending in deliveries.GetPending(SocialDeliveryStore.Bluesky, customOnly, now))
+            foreach (var pending in athletes.ReadPublishedEvents(() => deliveries.GetPending(SocialDeliveryStore.Bluesky, customOnly, now)))
             {
                 ct.ThrowIfCancellationRequested();
                 var e = pending.Event;
@@ -44,11 +44,10 @@ public sealed class BlueskyAnnouncementService(
                     deliveries.Skip(SocialDeliveryStore.Bluesky, e.Id, "MissingAthlete", now);
                     continue;
                 }
-                string? subject = e.Type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change
-                    && EventHelpers.TryExtractSlug(e.Text, out var slug) ? slug.Trim() : null;
+                var subject = pending.Headline.Subject;
                 if (pending.RecordJson is null)
                 {
-                    if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(e.Type, e.Text, e.OccurredAtUtc, pending.Priority,
+                    if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(e.Type, e.Text, e.OccurredAtUtc, pending.Headline,
                         now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
                     {
                         deliveries.Skip(SocialDeliveryStore.Bluesky, e.Id, reason.ToString(), now);
@@ -73,6 +72,9 @@ public sealed class BlueskyAnnouncementService(
                         json = record.ToJsonString();
                         (key, json) = deliveries.Prepare(SocialDeliveryStore.Bluesky, e.Id, json, subject, now, key);
                     }
+                    if (deliveries.SuppressIfSuperseded(SocialDeliveryStore.Bluesky, e.Id,
+                            athletes.SupersededAnnouncementReason(e.Type, e.Text), time.GetUtcNow())) continue;
+                    if (!deliveries.BeginAttempt(SocialDeliveryStore.Bluesky, e.Id, time.GetUtcNow())) continue;
                     var receipt = await api.SendRecordAsync(key!, JsonNode.Parse(json)!.AsObject(), ct);
                     deliveries.Complete(SocialDeliveryStore.Bluesky, e.Id, new(receipt.Cid, receipt.Uri), time.GetUtcNow());
                     log.LogInformation("Bluesky delivered event {EventId}: {PostUri}", e.Id, receipt.Uri);

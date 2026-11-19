@@ -128,7 +128,7 @@ public sealed class AthleteProfileDocumentBrowserTests(
 
         await page.Locator("#detailsModal .modal-content").EvaluateAsync("content => { content.style.scrollBehavior = 'auto'; content.scrollTop = content.scrollHeight / 2; content.dispatchEvent(new Event('scroll')); }");
         await Assertions.Expect(page.Locator("#modalStickyHeader")).ToBeVisibleAsync();
-        await page.WaitForTimeoutAsync(300);
+        await WaitForFiniteAnimationsAsync(page, "#modalStickyHeader, #modalStickyHeader *");
         var sticky = await CloseButtonBoxAsync(page, "#stickyCloseBtn");
         Assert.True(Math.Abs(sticky.X - top.X) <= 2,
             $"{width}px: the close button jumps from x={top.X:0} to x={sticky.X:0} when the header sticks.");

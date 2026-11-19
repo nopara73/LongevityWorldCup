@@ -14,7 +14,7 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
     [InlineData("improvement")]
     [InlineData("bortz-improvement")]
     [InlineData("crowd")]
-    public async Task RankingViews_UseTheSignedPageCardOnDirectRoutesAndTheCurrentViewAfterHistoryChanges(string view)
+    public async Task RankingViews_UseTheSignedLeagueCardOnDirectRoutesAndTheCurrentViewAfterHistoryChanges(string view)
     {
         await using var context = await ContextAsync();
         var page = await context.NewPageAsync();
@@ -22,11 +22,11 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();
         await ExpectPreviewAsync(page);
         var source = await page.Locator(".lwc-share__preview img").GetAttributeAsync("src");
-        Assert.StartsWith($"/og/page/view-{view}.png?v=", source);
+        Assert.StartsWith($"/og/league/{view}.png?v=", source);
         await page.Keyboard.PressAsync("Escape");
         await page.EvaluateAsync("() => history.replaceState({}, '', '/league/pheno')");
         await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();
-        Assert.StartsWith("/og/page/view-pheno.png", await page.Locator(".lwc-share__preview img").GetAttributeAsync("src"));
+        Assert.StartsWith(view == "pheno" ? "/og/league/pheno.png?v=" : "/og/leaderboard.png?path=%2Fleague%2Fpheno", await page.Locator(".lwc-share__preview img").GetAttributeAsync("src"));
         Assert.Equal("https://longevityworldcup.com/league/pheno", await SharedUrlAsync(page));
     }
 
@@ -49,7 +49,6 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
                     radio.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 """, selection);
-            await page.WaitForTimeoutAsync(400);
             var path = await page.EvaluateAsync<string>("() => location.pathname + location.search");
             Assert.NotEqual("/leaderboard", path);
             await page.Locator("#leaderboardTitle [data-lwc-share]").ClickAsync();
@@ -146,7 +145,7 @@ public sealed class ShareSheetBrowserTests(PlaywrightBrowserFixture browserFixtu
         await FlowActionDockBrowserTests.FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         if (path == "/pheno-age") await FlowActionDockBrowserTests.FillPhenoBiomarkersAsync(page);
         else await FlowActionDockBrowserTests.FillBortzBiomarkersAsync(page);
-        await page.Locator("#calculateBioageButton").ClickAsync();
+        await FlowActionDockBrowserTests.RevealBioageResultAsync(page);
         await Assertions.Expect(page.Locator(".bioage-result-share")).ToBeVisibleAsync();
         var values = await page.Locator("form input, form select").EvaluateAllAsync<string[]>("fields => fields.map(e => e.id + '=' + e.value)");
         var result = await page.Locator(".bio-age-number-container").InnerTextAsync();

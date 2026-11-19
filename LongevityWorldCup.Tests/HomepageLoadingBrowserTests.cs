@@ -10,6 +10,336 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task Homepage_DiscoversTheTitleStylesBeforeStartingTheBody()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/aesthetic-system.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.Locator("head #homepage-startup").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+            // The parser has reached the startup script. All four preloads match their
+            // consuming stylesheets, and Chrome is still prioritizing the document head.
+            Assert.True(await page.EvaluateAsync<bool>("""
+                () => !document.body && ['aesthetic', 'type', 'layout', 'depth'].every(name => {
+                    const style = document.head.querySelector(`link[rel=stylesheet][href^="/css/${name}-system.css?"]`);
+                    const preload = document.head.querySelector(`link[rel=preload][as=style][href^="/css/${name}-system.css?"]`);
+                    return !!style && preload?.href === style.href;
+                })
+                """));
+        }
+        finally { release.TrySetResult(); }
+
+        await ExpectHomepageLoadedAsync(page);
+    }
+
+    [Fact]
+    public async Task Homepage_MobileToolbarFitsBeforeResponsiveStylesArrive()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await context.NewPageAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/mobile-roughness.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        var toolbar = page.Locator(".leaderboard-controls .leaderboard-toolbar");
+        double width;
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await ExpectHomepageLoadedAsync(page);
+            width = await toolbar.EvaluateAsync<double>("bar => bar.getBoundingClientRect().width");
+            Assert.InRange(width, 1, await toolbar.EvaluateAsync<double>("bar => bar.parentElement.clientWidth"));
+            Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        }
+        finally { release.TrySetResult(); }
+
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        Assert.Equal(width, await toolbar.EvaluateAsync<double>("bar => bar.getBoundingClientRect().width"), 1);
+    }
+
+    [Fact]
+    public async Task Homepage_PaintsItsTitleWhileIconsAndPodiumStylesArePending()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await ObserveFirstScreenPaintAsync(page);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task Hold(IRoute route)
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        }
+        await page.RouteAsync("**/css/leaderboard-podium.css*", Hold);
+        await page.RouteAsync("**/css/portrait-system.css*", Hold);
+        await page.RouteAsync("**/css/dark-system.css*", Hold);
+        await page.RouteAsync("**/css/icons.css*", Hold);
+        await page.RouteAsync("**/js/icons.js*", Hold);
+        await page.RouteAsync("**/vendor/font-awesome/**/all.min.css*", Hold);
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("() => window.firstScreenPaints.has('header-title')");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.WaitForFunctionAsync("() => !!window.LwcIcons && !!document.querySelector('i[data-lwc-icon] svg')");
+        await Assertions.Expect(page.Locator("link[rel=stylesheet][href*='font-awesome']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task Homepage_PaintsTheStyledChampionWhileTableStylesAndHeaderScriptsArePending(int width)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        await ObserveFirstScreenPaintAsync(page);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task Hold(IRoute route)
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        }
+        await page.RouteAsync("**/css/leaderboard-content.css*", Hold);
+        await page.RouteAsync("**/css/homepage.css*", Hold);
+        await page.RouteAsync("**/css/portrait-system.css*", Hold);
+        await page.RouteAsync("**/css/share-sheet.css*", Hold);
+        await page.RouteAsync("**/js/celebration.js*", Hold);
+        await page.RouteAsync("**/js/site-header.js*", Hold);
+
+        var portrait = page.Locator(".podium-item.first img.podium-portrait");
+        double paintedWidth;
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("""
+                () => ['header-title', 'champion-name', 'champion-portrait'].every(id => window.firstScreenPaints.has(id))
+                """);
+            await Assertions.Expect(page.Locator("head link[rel=preload][as=image]")).ToHaveAttributeAsync("href", (await portrait.GetAttributeAsync("src"))!);
+            await Assertions.Expect(portrait).ToHaveCSSAsync("border-radius", "50%");
+            paintedWidth = await portrait.EvaluateAsync<double>("img => img.getBoundingClientRect().width");
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        await ExpectHomepageLoadedAsync(page);
+        Assert.Equal(paintedWidth, await portrait.EvaluateAsync<double>("img => img.getBoundingClientRect().width"), 1);
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        await Assertions.Expect(page.Locator("link[href*='/css/share-sheet.css']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task FirstScreen_RespondsBeforeInteractionAssetsArrive(bool touch, bool reduceMotion)
+    {
+        await using var context = await NewContextAsync(touch ? 390 : 1440, touch);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = reduceMotion ? ReducedMotion.Reduce : ReducedMotion.NoPreference });
+        await ObserveFirstScreenPaintAsync(page);
+        var styles = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var scripts = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        foreach (var layer in new[] { "pointer", "touch", "motion" })
+        {
+            await page.RouteAsync($"**/css/{layer}.css*", async route => { await styles.Task; await route.ContinueAsync(); });
+            await page.RouteAsync($"**/js/{layer}.js*", async route => { await scripts.Task; await route.ContinueAsync(); });
+        }
+        var link = page.Locator(".podium-item.first .athlete-profile-link").First;
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.WaitForFunctionAsync("() => window.firstScreenPaints.has('champion-portrait')");
+            if (touch)
+            {
+                var cdp = await context.NewCDPSessionAsync(page);
+                var image = link.Locator("img");
+                await image.EvaluateAsync("img => img.scrollIntoView({ block: 'center' })");
+                async Task PressAsync()
+                {
+                    var box = (await image.BoundingBoxAsync())!;
+                    await cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> {
+                        ["type"] = "touchStart", ["touchPoints"] = new[] { new { x = box.X + box.Width / 2, y = box.Y + box.Height / 2 } }
+                    });
+                }
+                Task CancelAsync() => cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> {
+                    ["type"] = "touchCancel", ["touchPoints"] = Array.Empty<object>()
+                });
+
+                await PressAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "brightness(0.86)");
+                if (reduceMotion) await Assertions.Expect(link).ToHaveCSSAsync("scale", "none");
+                await CancelAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "none");
+                scripts.TrySetResult();
+                await page.WaitForFunctionAsync("() => !!window.LwcTouch");
+                await PressAsync();
+                await Assertions.Expect(link).ToHaveAttributeAsync("data-lwc-pressed", "control");
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "brightness(0.86)");
+                await CancelAsync();
+                styles.TrySetResult();
+                await page.WaitForLoadStateAsync(LoadState.Load);
+                await PressAsync();
+                if (reduceMotion)
+                {
+                    await Assertions.Expect(link).ToHaveCSSAsync("filter", "brightness(0.86)");
+                    await Assertions.Expect(link).ToHaveCSSAsync("scale", "none");
+                }
+                else await Assertions.Expect(link).ToHaveCSSAsync("scale", "0.95");
+                await CancelAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("filter", "none");
+                await cdp.DetachAsync();
+            }
+            else
+            {
+                var image = link.Locator("img");
+                await image.HoverAsync();
+                if (reduceMotion)
+                {
+                    await Assertions.Expect(link).ToHaveCSSAsync("translate", "none");
+                    await Assertions.Expect(image).ToHaveCSSAsync("transform", "none");
+                    await Assertions.Expect(image).ToHaveCSSAsync("outline-style", "solid");
+                }
+                else await Assertions.Expect(link).ToHaveCSSAsync("translate", "0px -5px");
+                await page.Keyboard.PressAsync("Tab");
+                await link.FocusAsync();
+                await Assertions.Expect(link).ToHaveCSSAsync("outline-style", "solid");
+            }
+        }
+        finally { styles.TrySetResult(); scripts.TrySetResult(); }
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        foreach (var layer in new[] { "pointer", "touch", "motion" })
+            await Assertions.Expect(page.Locator($"link[href*='/css/{layer}.css']")).ToHaveAttributeAsync("media", "all");
+    }
+
+    private static Task ObserveFirstScreenPaintAsync(IPage page) => page.AddInitScriptAsync("""
+        const pending = new Map([
+            ['header-title', 'header .bannertext'],
+            ['champion-name', '.podium-item.first:not(.podium-skeleton-item) .athlete-name'],
+            ['champion-portrait', '.podium-item.first:not(.podium-skeleton-item) img.podium-portrait']
+        ]);
+        const marker = new MutationObserver(() => {
+            for (const [id, selector] of pending) {
+                const node = document.querySelector(selector);
+                if (!node) continue;
+                node.setAttribute('elementtiming', id);
+                pending.delete(id);
+            }
+            if (!pending.size) marker.disconnect();
+        });
+        marker.observe(document, { childList: true, subtree: true });
+        window.firstScreenPaints = new Set();
+        new PerformanceObserver(list => {
+            for (const entry of list.getEntries())
+                if (entry.renderTime > 0) window.firstScreenPaints.add(entry.identifier);
+        }).observe({ type: 'element', buffered: true });
+        """);
+
+    [Fact]
+    public async Task Homepage_KeepsPaintedAthletesAndCanFindAthletesOutsideTheTopTen()
+    {
+        await using var context = await NewContextAsync(390);
+        await context.AddInitScriptAsync("""
+            document.addEventListener('DOMContentLoaded', () => {
+                window.originalChampion = document.querySelector('.podium-item.first img');
+                window.originalRow = document.querySelector('tr.server-rendered-leaderboard-row:has(img.portrait)');
+            }, { capture: true, once: true });
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        await ExpectHomepageLoadedAsync(page);
+        var rows = page.Locator(".leaderboard tbody tr[data-athlete-name]");
+        await Assertions.Expect(rows).ToHaveCountAsync(10);
+        Assert.True(await page.EvaluateAsync<bool>("() => window.originalChampion === document.querySelector('.podium-item.first img') && window.originalRow.isConnected"));
+
+        var outsideTopTen = await page.EvaluateAsync<string>("""
+            async () => {
+                const names = new Set([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')].map(row => row.dataset.athleteName));
+                return (await window.getSharedAthletes()).find(athlete => !names.has(athlete.Name)).Name;
+            }
+            """);
+        await page.Locator("#athleteSearch").FillAsync(outsideTopTen);
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible").First).ToHaveAttributeAsync("data-athlete-name", outsideTopTen);
+        await page.Locator("#athleteSearch").FillAsync("");
+        await Assertions.Expect(page.Locator(".leaderboard tbody tr[data-athlete-name]:visible")).ToHaveCountAsync(7);
+    }
+
+    [Theory]
+    [InlineData(390, "improvement")]
+    [InlineData(1440, "bortz-improvement")]
+    public async Task Homepage_KeepsFilteredPreviewRowsAndKeyboardFocusDuringHydration(int width, string view)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/data/athletes", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        try
+        {
+            await page.GotoAsync($"/?view={view}", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            var preview = page.Locator(".leaderboard tr.server-rendered-leaderboard-row:visible");
+            await Assertions.Expect(preview.First).ToBeVisibleAsync();
+            await preview.EvaluateAllAsync<object?>("""
+                rows => {
+                    window.paintedRows = rows.map(row => ({ row, portrait: row.querySelector('img.portrait') }));
+                    window.focusedAthlete = rows.at(-1).querySelector('.athlete-name');
+                    window.focusedAthlete.focus({ preventScroll: true });
+                }
+                """);
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => window.paintedRows.every(({row, portrait}) => row.isConnected && (!portrait || portrait === row.querySelector('img.portrait')))"));
+        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement === window.focusedAthlete"));
+    }
+
+    [Theory]
+    [InlineData(320, "improvement", "Improvement")]
+    [InlineData(1440, "bortz-improvement", "Bortz improvement")]
+    public async Task Homepage_LabelsNewlyDisplayedRowsWithTheSelectedMetric(int width, string view, string metric)
+    {
+        await using var context = await NewContextAsync(width);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        await ExpectHomepageLoadedAsync(page);
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        await page.Locator($"label[data-aging-clock-view='{view}']").ClickAsync();
+
+        await Assertions.Expect(page.Locator("#leaderboardMetricHeader")).ToHaveTextAsync(metric);
+        var scores = page.Locator(".leaderboard tbody tr[data-athlete-name]:visible .age-reduction-td");
+        await Assertions.Expect(scores.First).ToBeVisibleAsync();
+        Assert.All(await scores.EvaluateAllAsync<string[]>("cells => cells.map(cell => cell.dataset.label)"),
+            label => Assert.Equal(metric, label));
+    }
+
+    [Fact]
     public async Task Homepage_FetchesItsDataWhileModulesAreStillLoading()
     {
         await using var context = await NewContextAsync(1440);
@@ -87,6 +417,9 @@ public sealed class HomepageLoadingBrowserTests(
         await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.EvaluateAsync("() => window.modulesReady");
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 1", target);
+        // Only the held response should cross the synthetic deadline. Let the other
+        // shared request finish consuming its real response body before advancing time.
+        await page.EvaluateAsync("path => path === '/api/events' ? window.getSharedAthletes() : window.getSharedEvents()", target);
         await page.Clock.FastForwardAsync(10_001);
         await page.WaitForFunctionAsync("path => window.publicDataAttempts[path] === 2", target,
             new() { Timeout = 3000 });
@@ -278,12 +611,14 @@ public sealed class HomepageLoadingBrowserTests(
         Assert.Equal(2, attempts);
     }
 
-    private async Task<IBrowserContext> NewContextAsync(int width)
+    private async Task<IBrowserContext> NewContextAsync(int width, bool touch = false)
     {
         var context = await Browser.NewContextAsync(new()
         {
             BaseURL = App.BaseAddress.ToString(),
             Locale = "en-US",
+            HasTouch = touch,
+            IsMobile = touch,
             ViewportSize = new() { Width = width, Height = 1000 },
             ReducedMotion = ReducedMotion.Reduce
         });

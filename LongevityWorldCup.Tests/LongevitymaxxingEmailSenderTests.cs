@@ -161,9 +161,10 @@ internal sealed class EmailTestSmtpClient : SmtpClient
     public override Task AuthenticateAsync(Encoding encoding, ICredentials credentials, CancellationToken cancellationToken = default)
         => AuthenticateFailure is null ? Task.CompletedTask : Task.FromException(AuthenticateFailure);
 
-    public override async Task<string> SendAsync(FormatOptions options, MimeMessage message, CancellationToken cancellationToken = default, ITransferProgress? progress = null)
+    public override async Task<SendResult> SendAsync(FormatOptions options, ISendRequest request, CancellationToken cancellationToken = default)
     {
         SendCalls++;
+        var message = request.Message;
         ContentStreams = message.BodyParts.OfType<TextPart>().Select(part => part.Content!.Stream!).ToList();
         using var buffer = new MemoryStream();
         // Match SMTP's CRLF framing regardless of host/display defaults.
@@ -174,7 +175,7 @@ internal sealed class EmailTestSmtpClient : SmtpClient
         MessageBytes = buffer.ToArray();
         if (SendFailure is not null) throw SendFailure;
         AfterSend?.Invoke();
-        return "250 Message accepted for delivery";
+        return new SmtpSendResult(SmtpStatusCode.Ok, "Message accepted for delivery", message.To.Mailboxes.ToArray(), []);
     }
 
     public override Task DisconnectAsync(bool quit, CancellationToken cancellationToken = default)

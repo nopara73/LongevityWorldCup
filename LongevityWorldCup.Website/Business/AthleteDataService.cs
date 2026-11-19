@@ -25,14 +25,6 @@ public sealed record CrowdAgeLeaderboardEntry(
     double CrowdAgeDifference,
     int CrowdCount);
 
-public sealed record AgeImprovementLeaderboardEntry(
-    string Slug,
-    string Name,
-    string Clock,
-    int Rank,
-    double Improvement,
-    double AgeReduction);
-
 public sealed record BiologicalAgeLeaderboardEntry(
     string Slug,
     string Name,
@@ -322,6 +314,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         // persist biomarker/test signature for all athletes (so we can detect new/changed tests later)
         var (changedSigsAtStartup, correctedAtStartup) = SyncBiomarkerSignatures();
         SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigsAtStartup);
+        SyncPhenoAgeTop10Placements(correctedAtStartup);
         HydratePlacementsIntoAthletesJson();
         var becameProAtStartup = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
         becameProAtStartup.RemoveAll(item => correctedAtStartup.Contains(item.AthleteSlug));
@@ -1005,6 +998,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 // recompute and persist biomarker/test signatures after reload
                 var (changedSigs, correctedSlugs) = SyncBiomarkerSignatures();
                 SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
+                SyncPhenoAgeTop10Placements(correctedSlugs);
                 var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
                 becamePro.RemoveAll(item => correctedSlugs.Contains(item.AthleteSlug));
                 var bioAgeImprovements = SyncBestBioAgeStates(
@@ -1514,105 +1508,51 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     {
         entry = null!;
         var normalized = NormalizeAthleteSlug(athleteSlug);
-        if (string.IsNullOrWhiteSpace(normalized))
+        if (string.IsNullOrWhiteSpace(normalized) ||
+            (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)))
             return false;
 
-        if (string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
-        {
-            var sorted = CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates()).ToList();
-            var index = sorted.FindIndex(t => string.Equals(NormalizeAthleteSlug(t.Slug), normalized, StringComparison.Ordinal));
-            if (index < 0)
-                return false;
-
-            var candidate = sorted[index];
-            entry = new AgeImprovementLeaderboardEntry(
-                NormalizeAthleteSlug(candidate.Slug),
-                candidate.Name,
-                "bortz",
-                index + 1,
-                candidate.BortzAgeImprovement,
-                candidate.BortzAgeReduction);
-            return true;
-        }
-
-        var phenoSorted = CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates()).ToList();
-        var phenoIndex = phenoSorted.FindIndex(t => string.Equals(NormalizeAthleteSlug(t.Slug), normalized, StringComparison.Ordinal));
-        if (phenoIndex < 0)
+        var ranked = GetAgeImprovementStandings(clock);
+        var candidate = ranked.FirstOrDefault(row =>
+            string.Equals(NormalizeAthleteSlug(row.Slug), normalized, StringComparison.Ordinal));
+        if (candidate is null)
             return false;
 
-        var phenoCandidate = phenoSorted[phenoIndex];
-        entry = new AgeImprovementLeaderboardEntry(
-            NormalizeAthleteSlug(phenoCandidate.Slug),
-            phenoCandidate.Name,
-            "pheno",
-            phenoIndex + 1,
-            phenoCandidate.PhenoAgeImprovement,
-            phenoCandidate.PhenoAgeReduction);
+        entry = candidate with { Slug = normalized };
         return true;
     }
 
-    public bool TryGetBaselineImprovementLeaderboardEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
+    public bool TryGetRedemptionArcEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
     {
+        if (TryGetAgeImprovementLeaderboardEntry(athleteSlug, clock, out entry) && entry.Improvement < 0)
+            return true;
+
         entry = null!;
-        var normalized = NormalizeAthleteSlug(athleteSlug);
-        if (string.IsNullOrWhiteSpace(normalized))
-            return false;
+        return false;
+    }
 
-        if (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var useBortz = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase);
-        var ranked = PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date)
-            .Values
-            .Select(result => new
-            {
-                Result = result,
-                Improvement = useBortz ? result.BortzAgeDiffFromBaseline : result.PhenoAgeDiffFromBaseline,
-                SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount,
-                AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction
-            })
-            .Where(row =>
-                row.SubmissionCount >= 2 &&
-                row.Improvement.HasValue &&
-                double.IsFinite(row.Improvement.Value))
-            .OrderBy(row => row.Improvement!.Value)
-            .ThenBy(row => row.Result.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var athlete = ranked.FirstOrDefault(row =>
-            string.Equals(NormalizeAthleteSlug(row.Result.Slug), normalized, StringComparison.Ordinal));
-        if (athlete is null || athlete.Improvement is not { } improvement)
-            return false;
-
-        var rank = ranked
-            .Select(row => row.Improvement!.Value)
-            .Distinct()
-            .TakeWhile(value => value < improvement)
-            .Count() + 1;
-        entry = new AgeImprovementLeaderboardEntry(
-            NormalizeAthleteSlug(athlete.Result.Slug),
-            athlete.Result.Name,
-            useBortz ? "bortz" : "pheno",
-            rank,
-            improvement,
-            athlete.AgeReduction is { } ageReduction && double.IsFinite(ageReduction)
-                ? ageReduction
-                : 0d);
-        return true;
+    private void SyncPhenoAgeTop10Placements(IReadOnlySet<string> correctedSlugs)
+    {
+        var signatures = GetAthletesSnapshot().OfType<JsonObject>()
+            .ToDictionary(athlete => NormalizeAthleteSlug(athlete["AthleteSlug"]?.GetValue<string>()),
+                ComputeBiomarkerSignature, StringComparer.OrdinalIgnoreCase);
+        _eventDataService.SyncPhenoAgeTop10Events(
+            GetBiologicalAgeLeaderboard("pheno"), signatures, correctedSlugs, DateTime.UtcNow);
     }
 
     public bool TryGetBiologicalAgeLeaderboardEntry(string athleteSlug, string clock, out BiologicalAgeLeaderboardEntry entry)
     {
-        entry = null!;
         var normalized = NormalizeAthleteSlug(athleteSlug);
-        if (string.IsNullOrWhiteSpace(normalized))
-            return false;
+        entry = GetBiologicalAgeLeaderboard(clock).FirstOrDefault(row => row.Slug == normalized)!;
+        return entry is not null;
+    }
 
+    internal IReadOnlyList<BiologicalAgeLeaderboardEntry> GetBiologicalAgeLeaderboard(string clock)
+    {
         if (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
-            return false;
-
+            return [];
         var useBortz = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase);
         var stats = PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date);
         var ranked = stats.Values
@@ -1620,7 +1560,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             .Select(result => new
             {
                 Result = result,
-                BiologicalAge = useBortz ? result.LowestBortzAge : result.LowestPhenoAge,
+                BiologicalAge = (useBortz ? result.BortzRankResult : result.PhenoRankResult)?.BiologicalAge,
                 AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction,
                 SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount
             })
@@ -1632,23 +1572,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 double.IsFinite(row.AgeReduction.Value))
             .OrderBy(row => row.AgeReduction!.Value)
             .ThenBy(row => row.Result.DobUtc!.Value)
-            .ThenBy(row => row.Result.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(row => row.Result.Name, StringComparer.Ordinal)
             .ToList();
 
-        var index = ranked.FindIndex(row =>
-            string.Equals(NormalizeAthleteSlug(row.Result.Slug), normalized, StringComparison.Ordinal));
-        if (index < 0)
-            return false;
-
-        var athlete = ranked[index];
-        entry = new BiologicalAgeLeaderboardEntry(
-            NormalizeAthleteSlug(athlete.Result.Slug),
-            athlete.Result.Name,
-            useBortz ? "bortz" : "pheno",
-            index + 1,
-            athlete.BiologicalAge!.Value,
-            athlete.AgeReduction!.Value);
-        return true;
+        return ranked.Select((row, index) => new BiologicalAgeLeaderboardEntry(
+            NormalizeAthleteSlug(row.Result.Slug), row.Result.Name,
+            useBortz ? "bortz" : "pheno", index + 1,
+            row.BiologicalAge!.Value, row.AgeReduction!.Value)).ToList();
     }
 
     private IReadOnlyList<CrowdAgeRankCandidate> GetCrowdAgeRankCandidates()
@@ -1789,118 +1719,29 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             _eventDataService.CreateCrowdAgeTop10ChangeEvents(changed);
     }
 
-    private IReadOnlyList<PhenoAgeImprovementRankCandidate> GetPhenoAgeImprovementRankCandidates()
-    {
-        var snapshot = GetAthletesSnapshot();
-        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
-        var list = new List<PhenoAgeImprovementRankCandidate>();
+    private IReadOnlyCollection<PhenoStatsCalculator.Result> CalculateCurrentAthleteScores() =>
+        PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date).Values;
 
-        foreach (var r in statsMap.Values)
-        {
-            if (!r.DobUtc.HasValue ||
-                !r.PhenoAgeImprovementFromWorst.HasValue ||
-                !double.IsFinite(r.PhenoAgeImprovementFromWorst.Value) ||
-                !r.AgeReduction.HasValue ||
-                !double.IsFinite(r.AgeReduction.Value))
-            {
-                continue;
-            }
-
-            list.Add(new PhenoAgeImprovementRankCandidate(
-                r.Slug,
-                r.Name ?? "",
-                r.PhenoAgeImprovementFromWorst.Value,
-                r.AgeReduction.Value,
-                r.DobUtc.Value));
-        }
-
-        return list;
-    }
-
-    private IReadOnlyList<BortzAgeImprovementRankCandidate> GetBortzAgeImprovementRankCandidates()
-    {
-        var snapshot = GetAthletesSnapshot();
-        var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
-        var list = new List<BortzAgeImprovementRankCandidate>();
-
-        foreach (var r in statsMap.Values)
-        {
-            if (!r.DobUtc.HasValue ||
-                !r.BortzAgeImprovementFromWorst.HasValue ||
-                !double.IsFinite(r.BortzAgeImprovementFromWorst.Value) ||
-                !r.BortzAgeReduction.HasValue ||
-                !double.IsFinite(r.BortzAgeReduction.Value))
-            {
-                continue;
-            }
-
-            list.Add(new BortzAgeImprovementRankCandidate(
-                r.Slug,
-                r.Name ?? "",
-                r.BortzAgeImprovementFromWorst.Value,
-                r.BortzAgeReduction.Value,
-                r.DobUtc.Value));
-        }
-
-        return list;
-    }
-
-    private IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> GetAgeImprovementTop10Snapshot(string clock)
-    {
-        if (string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase))
-        {
-            return CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates())
-                .Take(10)
-                .Select((candidate, index) => (
-                    candidate.Slug,
-                    Place: index + 1,
-                    Clock: "pheno",
-                    Improvement: candidate.PhenoAgeImprovement,
-                    AgeReduction: candidate.PhenoAgeReduction))
-                .ToList();
-        }
-
-        if (string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
-        {
-            return CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates())
-                .Take(10)
-                .Select((candidate, index) => (
-                    candidate.Slug,
-                    Place: index + 1,
-                    Clock: "bortz",
-                    Improvement: candidate.BortzAgeImprovement,
-                    AgeReduction: candidate.BortzAgeReduction))
-                .ToList();
-        }
-
-        return [];
-    }
+    private IReadOnlyList<AgeImprovementLeaderboardEntry> GetAgeImprovementStandings(string clock) =>
+        AgeImprovementRanking.Rank(CalculateCurrentAthleteScores(), clock);
 
     private void SyncAgeImprovementTop10Placements(bool emitEvents, IEnumerable<string>? eventSubjectSlugs = null)
     {
-        SyncAgeImprovementTop10Placements(
-            clock: "pheno",
-            placementColumn: PhenoImprovementTop10PlacementColumn,
-            currentTop10: GetAgeImprovementTop10Snapshot("pheno"),
-            emitEvents: emitEvents,
-            eventSubjectSlugs: eventSubjectSlugs);
-
-        SyncAgeImprovementTop10Placements(
-            clock: "bortz",
-            placementColumn: BortzImprovementTop10PlacementColumn,
-            currentTop10: GetAgeImprovementTop10Snapshot("bortz"),
-            emitEvents: emitEvents,
-            eventSubjectSlugs: eventSubjectSlugs);
+        var scores = CalculateCurrentAthleteScores();
+        SyncAgeImprovementTop10Placements("pheno", PhenoImprovementTop10PlacementColumn, scores, emitEvents, eventSubjectSlugs);
+        SyncAgeImprovementTop10Placements("bortz", BortzImprovementTop10PlacementColumn, scores, emitEvents, eventSubjectSlugs);
     }
 
     private void SyncAgeImprovementTop10Placements(
         string clock,
         string placementColumn,
-        IReadOnlyList<(string Slug, int Place, string Clock, double Improvement, double AgeReduction)> currentTop10,
+        IReadOnlyCollection<PhenoStatsCalculator.Result> scores,
         bool emitEvents,
         IEnumerable<string>? eventSubjectSlugs)
     {
-        var currentBySlug = currentTop10.ToDictionary(x => x.Slug, x => x, StringComparer.OrdinalIgnoreCase);
+        var currentBySlug = AgeImprovementRanking.Rank(scores, clock)
+            .Take(10)
+            .ToDictionary(row => row.Slug, StringComparer.OrdinalIgnoreCase);
         var eventSubjects = BuildTop10EventSubjectSet(emitEvents, eventSubjectSlugs);
         var changed = new List<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, int Place, int? PreviousPlace, string? PreviousSlug, double Improvement, double AgeReduction)>();
         var nowUtc = DateTime.UtcNow;
@@ -1938,23 +1779,21 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             foreach (var (slug, previousPlace) in stored)
             {
                 currentBySlug.TryGetValue(slug, out var current);
-                int? currentPlace = current.Place is >= 1 and <= 10 ? current.Place : null;
+                int? currentPlace = current?.Rank;
 
-                if (emitEvents &&
-                    currentPlace.HasValue &&
-                    previousPlace != currentPlace)
+                if (emitEvents && current is not null && previousPlace != current.Rank)
                 {
-                    previousSlugByPlace.TryGetValue(currentPlace.Value, out var previousSlug);
+                    previousSlugByPlace.TryGetValue(current.Rank, out var previousSlug);
                     if (string.Equals(previousSlug, slug, StringComparison.OrdinalIgnoreCase))
                         previousSlug = null;
 
-                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, currentPlace.Value, previousSlug, eventSubjects))
+                    if (ShouldEmitTop10PlacementChangeEvent(slug, previousPlace, current.Rank, previousSlug, eventSubjects))
                     {
                         changed.Add((
                             slug,
                             nowUtc,
                             clock,
-                            currentPlace.Value,
+                            current.Rank,
                             previousPlace,
                             previousSlug,
                             current.Improvement,
@@ -2090,6 +1929,54 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             "vitamin_d" => "Best domain – vitamin D",
             _ => null
         };
+    }
+
+    internal SocialEventSkipReason? SupersededAnnouncementReason(EventType type, string text)
+    {
+        if (type == EventType.BadgeAward)
+            return IsCurrentBadgeAward(text) ? null : SocialEventSkipReason.SupersededBadgeAward;
+
+        if (type != EventType.NewRank || !EventHelpers.TryExtractSlug(text, out var slug)
+            || !EventHelpers.TryExtractRank(text, out var claimedRank)) return null;
+
+        lock (_athletesJsonLock)
+        {
+            var athlete = _athletes.OfType<JsonObject>().FirstOrDefault(a =>
+                string.Equals(a["AthleteSlug"]?.GetValue<string>(), slug, StringComparison.OrdinalIgnoreCase));
+            return athlete is not null && athlete.TryGetPropertyValue("CurrentPlacement", out var published)
+                && published?.GetValue<int>() != claimedRank
+                ? SocialEventSkipReason.SupersededUltimateRank : null;
+        }
+    }
+
+    public bool IsCurrentBadgeAward(string text)
+    {
+        if (!EventHelpers.TryExtractBadgeLabel(text, out var label) ||
+            !EventHelpers.TryExtractSlug(text, out var slug) ||
+            !EventHelpers.TryExtractCategory(text, out var category)) return false;
+        EventHelpers.TryExtractValue(text, out var value);
+        var hasPlace = EventHelpers.TryExtractPlace(text, out var place);
+        var normalizedLabel = EventHelpers.NormalizeBadgeLabel(label);
+        var requiresSingleHolder = normalizedLabel is "Pheno Age best improvement" or "Bortz Age best improvement" ||
+            (EventHelpers.TryExtractSolo(text, out var solo) && solo);
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            var labels = AddBadgeLabelParameters(cmd, BadgeLabelQueryVariants(label));
+            cmd.CommandText = $"""
+                SELECT COUNT(DISTINCT AthleteSlug), COALESCE(MAX(AthleteSlug = @slug COLLATE NOCASE), 0)
+                    FROM BadgeAwards WHERE BadgeLabel IN ({labels})
+                      AND LeagueCategory = @category COLLATE NOCASE
+                      AND COALESCE(LeagueValue, '') = @value COLLATE NOCASE
+                      AND Place IS @place;
+                """;
+            cmd.Parameters.AddWithValue("@slug", slug);
+            cmd.Parameters.AddWithValue("@category", category);
+            cmd.Parameters.AddWithValue("@value", value ?? "");
+            cmd.Parameters.AddWithValue("@place", hasPlace ? place : DBNull.Value);
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() && reader.GetInt32(1) != 0 && (!requiresSingleHolder || reader.GetInt32(0) == 1);
+        });
     }
 
     public bool HasSingleGlobalPlaceOneBadgeHolder(string badgeLabel)
@@ -2253,14 +2140,14 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             (string.Equals(leagueSlug, "improvement", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(leagueSlug, "pheno-improvement", StringComparison.OrdinalIgnoreCase)))
         {
-            return CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates())
+            return GetAgeImprovementStandings("pheno")
                 .Select(t => t.Slug)
                 .ToList();
         }
 
         if (!requireBortz && string.Equals(leagueSlug, "bortz-improvement", StringComparison.OrdinalIgnoreCase))
         {
-            return CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates())
+            return GetAgeImprovementStandings("bortz")
                 .Select(t => t.Slug)
                 .ToList();
         }
@@ -2333,23 +2220,22 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText = "SELECT Placements FROM Athletes WHERE Key=@k";
             cmd.Parameters.AddWithValue("@k", athleteSlug);
-            var txt = cmd.ExecuteScalar() as string ?? "[]";
-
-            int?[] result;
-            try
-            {
-                var arr = JsonSerializer.Deserialize<int?[]>(txt) ?? Array.Empty<int?>();
-                result = new int?[4];
-                for (int i = 0; i < 4; i++)
-                    result[i] = i < arr.Length ? arr[i] : null;
-            }
-            catch
-            {
-                result = new int?[4];
-            }
-
-            return result;
+            return ParsePlacements(cmd.ExecuteScalar() as string);
         });
+    }
+
+    private static int?[] ParsePlacements(string? json)
+    {
+        try
+        {
+            var placements = json is null ? null : JsonSerializer.Deserialize<int?[]>(json);
+            Array.Resize(ref placements, 4);
+            return placements;
+        }
+        catch (JsonException)
+        {
+            return new int?[4];
+        }
     }
 
     public void SetPlacements(string athleteSlug, int?[] placements)
@@ -2409,29 +2295,28 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private void HydratePlacementsIntoAthletesJson()
     {
-        List<string> slugs;
-        lock (_athletesJsonLock)
+        var stored = _db.Run(sqlite =>
         {
-            slugs = _athletes
-                .OfType<JsonObject>()
-                .Select(a => a["AthleteSlug"]!.GetValue<string>())
-                .ToList();
-        }
-
-        var bySlug = new Dictionary<string, int?[]>(StringComparer.OrdinalIgnoreCase);
-        foreach (var slug in slugs)
-            bySlug[slug] = GetPlacements(slug);
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Key, Placements FROM Athletes";
+            using var reader = cmd.ExecuteReader();
+            var bySlug = new Dictionary<string, string?>(StringComparer.Ordinal);
+            while (reader.Read())
+            {
+                if (reader.GetValue(0) is string slug)
+                    bySlug.Add(slug, reader.GetValue(1) as string);
+            }
+            return bySlug;
+        });
 
         lock (_athletesJsonLock)
         {
             foreach (var athleteJson in _athletes.OfType<JsonObject>())
             {
                 var slug = athleteJson["AthleteSlug"]!.GetValue<string>();
-                if (!bySlug.TryGetValue(slug, out var p))
-                    continue;
-
+                var placements = ParsePlacements(stored.GetValueOrDefault(slug));
                 var arr = new JsonArray();
-                foreach (var v in p) arr.Add(v is int x ? JsonValue.Create(x) : null);
+                foreach (var v in placements) arr.Add(v is int x ? JsonValue.Create(x) : null);
                 athleteJson["Placements"] = arr;
             }
         }
@@ -2637,6 +2522,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             foreach (var o in _athletes.OfType<JsonObject>())
                 mutator(o);
         }
+    }
+
+    // Rank and badge events are written in separate transactions during reload.
+    // Read them under the publication lock so a dispatcher sees the whole update.
+    internal T ReadPublishedEvents<T>(Func<T> read)
+    {
+        lock (_athletesJsonLock) return read();
     }
 
     public JsonArray GetAthletesSnapshot()
@@ -3304,7 +3196,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             }
 
             if (changes.Count > 0)
-                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true);
+                _eventDataService.CreateNewRankEvents(changes, skipIfExists: true, previousRanks: before);
         }
 
         // Persist full snapshot AFTER emitting events (always, even if no changes)

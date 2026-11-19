@@ -8,7 +8,8 @@ public enum SocialPlatform
     Mastodon,
     Nostr,
     Bluesky,
-    Instagram
+    Instagram,
+    Telegram
 }
 
 public static class SocialContactParser

@@ -90,6 +90,9 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
             .GetProperty("application/json")
             .GetProperty("schema");
         AssertSchemaReferences(requestSchema, "HypotheticalRankRequest");
+        Assert.Equal("pheno", document.RootElement
+            .GetProperty("components").GetProperty("schemas").GetProperty("HypotheticalRankRequest")
+            .GetProperty("example").GetProperty("calculator").GetString());
         Assert.Equal("pheno", operation
             .GetProperty("requestBody")
             .GetProperty("content")

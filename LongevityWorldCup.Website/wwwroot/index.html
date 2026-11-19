@@ -3,22 +3,33 @@
 <head>
     <title>Longevity World Cup</title>
     <!--HEAD-->
-    <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_HOMEPAGE_FIRST_SCREEN_CSS}}">
+    <!--HOMEPAGE-SECTION-STYLES-->
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
-    <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
-    <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
     <link rel="stylesheet" href="{{ASSET_HERO_STAGE_CSS}}">
     <script src="{{ASSET_HERO_STAGE_JS}}" defer></script>
     <link rel="expect" href="#lwc-site-header" blocking="render">
-    <script>
-// Let native Back/Forward restore the saved viewport without scroll
-// anchoring adding offsets while fonts and the board finish hydrating.
-if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !location.hash) {
-    document.documentElement.classList.add('homepage-restoring');
+    <script id="homepage-startup">
+if (matchMedia('(any-pointer: coarse)').matches) {
+    let pressed;
+    const release = () => {
+        pressed?.removeAttribute('data-home-press');
+        pressed = null;
+    };
+    addEventListener('pointerdown', event => {
+        release();
+        if (!window.LwcTouch && event.isPrimary && event.pointerType === 'touch') {
+            pressed = event.target.closest?.('a[href],button:enabled,summary,label,[role=button],[role=tab],tr[data-athlete-name]');
+            pressed?.setAttribute('data-home-press', '');
+        }
+    }, true);
+    for (const type of ['pointerup', 'pointercancel', 'scroll', 'pagehide']) addEventListener(type, release, true);
 }
-// One clock from first paint, including cards replaced during hydration.
-// No hidden base styles, extra requests, or waits for content readiness.
+// Hydrated cards share the first frame's entrance timeline.
 (() => {
+    const root = document.documentElement;
+    const restoring = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+    if (restoring && !location.hash) root.classList.add('homepage-restoring');
     if (location.pathname === '/contribute' && !location.hash) {
         history.replaceState(history.state, '', location.pathname + location.search + '#contribute');
     }
@@ -26,9 +37,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
     const query = new URLSearchParams(location.search);
     if (['athlete', 'filters', 'search', 'view'].some(key => query.has(key))) return;
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
-    const navigation = performance.getEntriesByType('navigation')[0];
-    if (motion.matches || location.hash || navigation?.type === 'back_forward' || !Element.prototype.animate) return;
-    const root = document.documentElement;
+    if (motion.matches || location.hash || restoring || !Element.prototype.animate) return;
     const events = ['pointerdown', 'keydown', 'focusin', 'wheel', 'touchstart', 'hashchange', 'pagehide'];
     const tracks = new Map();
     let startedAt;
@@ -51,9 +60,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
         if (finished) return;
         if (startedAt === undefined) {
             if (!pendingFrame && document.querySelector('header .main-logo-image')) {
-                // The timeline can still be zero during parsing. Anchor
-                // to an actual frame so a cold load cannot consume the
-                // entrance before anything has been painted.
+                // The timeline can be zero during parsing. Start on the first real frame.
                 pendingFrame = requestAnimationFrame(time => { pendingFrame = null; startedAt = time; enter(); });
             }
             return;
@@ -91,8 +98,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
             tracks.set(selector, { element, animation });
         });
     };
-    // Bounded to the opening second. Observing child insertion catches
-    // both parser output and hydration before their next paint.
+    // Catch parser and hydration insertions before their next paint.
     const observer = new MutationObserver(enter);
     root.classList.add('homepage-arriving');
     observer.observe(root, { childList: true, subtree: true });
@@ -406,6 +412,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     <!--FOOTER-->
 
     <script src="{{ASSET_HOMEPAGE_JS}}"></script>
+    <script defer src="{{ASSET_LEADERBOARD_ROW_PREVIEW_JS}}"></script>
     <script src="{{ASSET_LEADERBOARD_PODIUM_JS}}"></script>
 </body>
 </html>
