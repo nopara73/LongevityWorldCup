@@ -293,7 +293,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             // Capture source changes before enumeration. Only consume them once the
             // initial roster and its database-backed competition state are ready.
             StartAthleteWatcher();
-            _athletes = LoadAthletesAsync(failedThumbnails).GetAwaiter().GetResult();
+            _athletes = LoadInitialAthletesAsync(failedThumbnails).GetAwaiter().GetResult();
             _db.DatabaseChanged += OnDatabaseChanged;
             InitializeCompetitionState();
         }
@@ -463,6 +463,25 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         });
 
         return result;
+    }
+
+    private async Task<JsonArray> LoadInitialAthletesAsync(List<FailedThumbnail> failedThumbnails)
+    {
+        try
+        {
+            return await LoadAthletesAsync(failedThumbnails).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or JsonException)
+        {
+            // A rename can invalidate an enumerated path, or an in-place edit can
+            // expose partial JSON. Retry once if a source notification corroborates it.
+            if (!await _reloadSignal.WaitAsync(_debounceInterval).ConfigureAwait(false))
+                throw;
+            _logger?.LogInformation("Athlete files changed during the initial read. Retrying the roster once.");
+            await Task.Delay(_debounceInterval).ConfigureAwait(false);
+            failedThumbnails.Clear();
+            return await LoadAthletesAsync(failedThumbnails).ConfigureAwait(false);
+        }
     }
 
     private async Task<JsonArray> LoadAthletesAsync(
