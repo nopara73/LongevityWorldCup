@@ -15,9 +15,10 @@ public sealed class ProfileDraftBrowserTests(
     public async Task TypingWithACroppedPortraitKeepsWritesSmallAndRestoresTheWholeDraft()
     {
         await using var context = await CreateContextAsync(390);
-        var page = await OpenEditorAsync(context);
-        // A valid PNG with a payload near the portrait optimizer's normal limit.
-        // Seed the format used by existing tabs, then open it with the current editor.
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/health");
+        // Seed a legacy draft before opening the editor. A pending division response
+        // in an already-open editor can overwrite session storage with its current form.
         await page.EvaluateAsync("""
             () => {
                 const png = document.createElement('canvas').toDataURL().split(',')[1];
@@ -26,7 +27,7 @@ public sealed class ProfileDraftBrowserTests(
                 sessionStorage.setItem('tempAthlete', JSON.stringify(draft));
             }
             """);
-        await page.ReloadAsync();
+        await page.GotoAsync("/edit-profile");
         await Assertions.Expect(page.Locator("#resetProfileDraftButton")).ToBeVisibleAsync();
         var image = page.Locator(".illustration");
         var portrait = await image.GetAttributeAsync("data-profile-pic-value");

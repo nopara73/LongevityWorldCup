@@ -533,6 +533,7 @@ public sealed class InternalToolsDashboardBrowserTests(
             """);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         await page.WaitForFunctionAsync("() => window.dayAnimation.playState === 'idle'");
+        await Assertions.Expect(page.Locator("#trafficOverview")).ToHaveCSSAsync("transition-property", "none");
         await page.Locator("#statsRange").SelectOptionAsync("30d");
         await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
         Assert.Empty(await page.EvaluateAsync<string[]>("() => document.querySelector('#trafficOverview').getAnimations({ subtree: true }).map(a => JSON.stringify({ state: a.playState, name: a.animationName, property: a.transitionProperty, target: a.effect.target.outerHTML.slice(0, 200) }))"));
