@@ -118,7 +118,7 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
     [InlineData("bortz")]
     public async Task ResultUpdate_ConvertsCommaValuesAndPreservesCarryovers_InTheSubmittedRequest(string clock)
     {
-        await using var context = await NewContextAsync(390, "en-US");
+        await using var context = await NewContextAsync(390, "en-US", hasTouch: true);
         var requestBody = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         await context.RouteAsync("**/api/application/application", async route =>
         {
@@ -150,8 +150,9 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
         await Assertions.Expect(page.Locator("#crp")).ToHaveValueAsync("0,015");
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
         await page.Locator("#calculateBioageButton").ClickAsync();
-        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
-        await page.Locator("#continueButton").ClickAsync();
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
+        // The mobile result dock puts Next under the user's finger without a preparatory scroll.
+        await page.Locator("#continueButton").TapAsync(new() { Scroll = ScrollMode.None });
         await page.WaitForURLAsync("**/proofs");
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
         // Only the unrelated proof-upload fixture is seeded; submission uses the actual button and HTTP serializer.
@@ -169,11 +170,11 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
         Assert.Equal("2026-09-01", panel.GetProperty("Date").GetString());
     }
 
-    private async Task<IBrowserContext> NewContextAsync(int width, string locale)
+    private async Task<IBrowserContext> NewContextAsync(int width, string locale, bool hasTouch = false)
     {
         var context = await Browser.NewContextAsync(new()
         {
-            BaseURL = App.BaseAddress.ToString(), Locale = locale, ReducedMotion = ReducedMotion.Reduce,
+            BaseURL = App.BaseAddress.ToString(), Locale = locale, ReducedMotion = ReducedMotion.Reduce, HasTouch = hasTouch,
             ViewportSize = new() { Width = width, Height = 844 }, Permissions = ["clipboard-read", "clipboard-write"]
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
