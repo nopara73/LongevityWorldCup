@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -15,6 +16,92 @@ namespace LongevityWorldCup.Tests;
 public sealed class CrowdAgeProfileImageTests
 {
     private const string AthleteSlug = "profile_history";
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task OneFailedThumbnailGetsOneRepairAttemptWithoutRereadingTheRoster(bool unblock)
+    {
+        using var workspace = new TestWorkspace();
+        var original = CreateProfileImage(new Rgba32(35, 120, 210));
+        workspace.WriteProfileImage(original);
+        var id = Hash(original);
+        // Start from an already published roster. Only the generated output changes between starts.
+        using (var seed = CreateFactory(workspace))
+            _ = seed.Services.GetRequiredService<AthleteDataService>();
+        var smallPath = Path.Combine(workspace.WebRoot, "generated", "thumbs", "athletes", $"{AthleteSlug}_thumb_sm_{id}.webp");
+        File.Delete(smallPath);
+        var blocked = Directory.CreateDirectory(smallPath);
+        var log = new PortraitLog(scan =>
+        {
+            if (scan == 1 && unblock)
+                blocked.Delete();
+        });
+        using var factory = CreateFactory(workspace, log);
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+
+        var repaired = await log.Repair.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal((unblock ? 1 : 0, 1), repaired);
+        var row = Assert.Single(athletes.GetAthletesSnapshot().OfType<JsonObject>());
+        Assert.Equal(id, row["ProfileImageId"]!.GetValue<string>());
+        Assert.Equal(unblock ? $"/generated/thumbs/athletes/{blocked.Name}?v={id}" : row["ProfilePic"]!.GetValue<string>(),
+            row["ProfilePicThumb"]!.GetValue<string>());
+        Assert.EndsWith($"_thumb_md_{id}.webp?v={id}", row["ProfilePicLeaderboardThumb"]!.GetValue<string>());
+        if (unblock)
+        {
+            using var thumb = Image.Load(blocked.FullName);
+            Assert.Equal(new Size(96, 96), thumb.Size);
+        }
+
+        // Leave a permanent failure in place for several debounce windows.
+        if (!unblock)
+            await Task.Delay(TimeSpan.FromMilliseconds(450));
+        Assert.Equal(1, log.RepairAttempts);
+        Assert.Equal(1, log.Scans);
+    }
+
+    [Fact]
+    public async Task SourceChangesDuringStartupSupersedeRepairsForTheOldPortrait()
+    {
+        using var workspace = new TestWorkspace();
+        var original = CreateProfileImage(new Rgba32(35, 120, 210));
+        var replacement = CreateProfileImage(new Rgba32(225, 95, 55));
+        var replacementId = Hash(replacement);
+        workspace.WriteProfileImage(original);
+        workspace.SeedLegacyGuesses(40);
+        var thumbs = Path.Combine(workspace.WebRoot, "generated", "thumbs", "athletes");
+        var oldSmall = Directory.CreateDirectory(Path.Combine(thumbs, $"{AthleteSlug}_thumb_sm_{Hash(original)}.webp"));
+        var newSmall = Directory.CreateDirectory(Path.Combine(thumbs, $"{AthleteSlug}_thumb_sm_{replacementId}.webp"));
+        var log = new PortraitLog(scan =>
+        {
+            // The first scan has read the original. Both edits precede startup's database hydration.
+            if (scan == 1)
+            {
+                oldSmall.Delete();
+                workspace.WriteProfileImage(replacement);
+                workspace.WriteAthleteJson("Changed during startup");
+            }
+            if (scan == 2)
+                newSmall.Delete();
+        });
+        using var factory = CreateFactory(workspace, log);
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        JsonObject row;
+        while (true)
+        {
+            row = Assert.Single(athletes.GetAthletesSnapshot().OfType<JsonObject>());
+            if (row["ProfilePicThumb"]!.GetValue<string>().EndsWith($"{newSmall.Name}?v={replacementId}", StringComparison.Ordinal))
+                break;
+            await Task.Delay(20, timeout.Token);
+        }
+        Assert.Equal("Changed during startup", row["DisplayName"]!.GetValue<string>());
+        Assert.Equal(replacementId, row["ProfileImageId"]!.GetValue<string>());
+        Assert.True(File.Exists(newSmall.FullName));
+        Assert.Equal((0d, 0), athletes.GetCrowdStats(AthleteSlug));
+        Assert.True(GuessBelongsTo(Assert.Single(ReadStoredGuesses(factory)), Hash(original)));
+    }
 
     [Fact]
     public void EachPortraitIsPublishedWithItsExactLengthAndHash()
@@ -297,7 +384,7 @@ public sealed class CrowdAgeProfileImageTests
         }
     }
 
-    private static TestWebApplicationFactory CreateFactory(TestWorkspace workspace)
+    private static TestWebApplicationFactory CreateFactory(TestWorkspace workspace, PortraitLog? log = null)
     {
         return new TestWebApplicationFactory(builder =>
         {
@@ -306,6 +393,8 @@ public sealed class CrowdAgeProfileImageTests
             {
                 services.RemoveAll<DatabaseManager>();
                 services.AddSingleton(_ => new DatabaseManager(dbPath: workspace.DatabasePath));
+                if (log is not null)
+                    services.AddSingleton<ILogger<AthleteDataService>>(log);
             });
         });
     }
@@ -352,6 +441,32 @@ public sealed class CrowdAgeProfileImageTests
 
     private static string Hash(byte[] bytes)
         => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+    private sealed class PortraitLog(Action<int> afterScan) : ILogger<AthleteDataService>
+    {
+        private int _scans;
+        private int _repairs;
+        public int Scans => Volatile.Read(ref _scans);
+        public int RepairAttempts => Volatile.Read(ref _repairs);
+        public TaskCompletionSource<(int Recovered, int Failed)> Repair { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool IsEnabled(LogLevel level) => true;
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? error, Func<TState, Exception?, string> formatter)
+        {
+            if (state is not IReadOnlyList<KeyValuePair<string, object?>> fields)
+                return;
+            if (fields.Any(f => f.Key == "PortraitElapsedMs"))
+                afterScan(Interlocked.Increment(ref _scans));
+            if (fields.FirstOrDefault(f => f.Key == "RecoveredCount").Value is int recovered &&
+                fields.FirstOrDefault(f => f.Key == "FailedCount").Value is int failed)
+            {
+                Interlocked.Increment(ref _repairs);
+                Repair.TrySetResult((recovered, failed));
+            }
+        }
+    }
 
     private sealed class TestWorkspace : IDisposable
     {
