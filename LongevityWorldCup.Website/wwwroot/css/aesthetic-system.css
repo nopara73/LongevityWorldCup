@@ -1105,7 +1105,7 @@ html body #biomarker-checklist .proof-tracker-head h4 {
 .proof-page-remove::before {
     content: "\f00d"; display: grid; place-items: center; width: 32px; height: 32px; box-sizing: border-box;
     border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-pill, 999px); background: var(--lwc-surface); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
-    font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .875rem; line-height: 1;
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free"); font-weight: 900; font-size: .875rem; line-height: 1;
     transition: background-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
 }
 .proof-page-remove:hover { background: transparent; color: var(--lwc-on-accent, #ffffff); }
@@ -1249,7 +1249,7 @@ html body #proofImageContainer .proof-upload-notice:not(:empty)::before {
     content: "\f05a" / "";
     margin-right: var(--lwc-space-2);
     color: var(--lwc-accent);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-weight: 900;
 }
 .proof-undo {

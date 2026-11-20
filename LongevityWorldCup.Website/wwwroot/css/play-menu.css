@@ -871,7 +871,7 @@ html[data-play-entry="join"]:not(.play-route-ready) .play-hub-main {
         margin-left: 1.05rem;
         z-index: 1;
         color: var(--lwc-muted, #526373);
-        font-family: "Font Awesome 6 Free";
+        font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
         font-size: 1.05rem;
         font-weight: 900;
         line-height: 1;
@@ -3312,7 +3312,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     border-radius: 10px;
     background: #17212b;
     color: #ffffff;
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 1rem;
     font-weight: 900;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
@@ -3387,7 +3387,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     border-radius: 50%;
     background: var(--lwc-success, #2e7d32);
     color: var(--lwc-on-accent, #fff);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.55rem;
     font-weight: 900;
     line-height: 1;

@@ -3144,7 +3144,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::bef
     background: var(--lwc-surface, #fff);
     box-shadow: inset 0 0 0 1px var(--bioage-hairline);
     color: var(--lwc-accent, #087685);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.72rem;
     font-weight: 900;
     letter-spacing: 0;
@@ -3234,7 +3234,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote::before {
     background: var(--lwc-surface, #fff);
     box-shadow: inset 0 0 0 1px var(--bioage-hairline);
     color: var(--lwc-accent, #087685);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.75rem;
     font-weight: 900;
 }
@@ -3442,7 +3442,7 @@ body:has(:is(#phenoAgeForm, #bortzAgeForm)) #lwcToStep2Btn {
     background: var(--lwc-surface, #fff);
     box-shadow: inset 0 0 0 1px var(--bioage-hairline, #d7e0e6);
     color: var(--lwc-accent, #087685);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.75rem;
     font-weight: 900;
     transition: background-color 180ms ease, color 180ms ease;
