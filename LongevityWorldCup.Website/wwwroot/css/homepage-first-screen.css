@@ -276,3 +276,65 @@ html body main.homepage-main .podium-score .age-reduction {
         box-shadow: 0 14px 24px -14px rgb(0 0 0 / 0.45);
     }
 }
+
+/* One stage: "longevity leaderboards" is the stage card's own header band, the
+   podium its floor. Both span the same column, so it is styled from the first
+   paint with no measuring and no shift once the podium arrives. */
+html body main.homepage-main > .game-description {
+    box-sizing: border-box;
+    max-width: none;
+    margin: 0;
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+    outline: 1px solid var(--lwc-border);
+    outline-offset: -1px;
+    background: var(--lwc-surface-accent);
+    color: var(--lwc-accent);
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+html body main.homepage-main > .game-description a {
+    color: inherit;
+}
+
+html body main.homepage-main .podium {
+    border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
+}
+
+/* A selection hides the podium; the heading then caps the leaderboard card. */
+html body main.homepage-main .podium[style*="none"] ~ .leaderboard-controls {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+/* The podium bleeds 0.5rem past the column on the narrowest phones (.main-container). */
+@media (max-width: 360px) {
+    html body main.homepage-main > .game-description {
+        margin-inline: -0.5rem;
+    }
+}
+
+/* Champion lighting: a soft gold beam falls from above the stage onto first
+   place, over the stage's own accent light; the champion's raised, gold-lit
+   portrait stands in it. */
+html body main.homepage-main .podium {
+    background:
+        conic-gradient(at 50% -14%, transparent 0deg 170deg, color-mix(in srgb, var(--lwc-gold) 16%, transparent) 180deg, transparent 190deg 360deg),
+        radial-gradient(ellipse 30% 46% at 50% 34%, color-mix(in srgb, var(--lwc-gold) 12%, transparent), transparent 100%),
+        var(--lwc-surface);
+}
+
+@media (min-width: 769px) and (min-height: 481px), (min-width: 933px) {
+    html body main.homepage-main .podium {
+        background:
+            conic-gradient(at 50% -14%, transparent 0deg 170deg, color-mix(in srgb, var(--lwc-gold) 16%, transparent) 180deg, transparent 190deg 360deg),
+            radial-gradient(ellipse 30% 46% at 50% 34%, color-mix(in srgb, var(--lwc-gold) 12%, transparent), transparent 100%),
+            radial-gradient(ellipse 42% 78% at 50% 0, var(--lwc-surface-accent), transparent 100%),
+            var(--lwc-surface);
+    }
+}

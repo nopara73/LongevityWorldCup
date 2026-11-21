@@ -30,12 +30,16 @@ public sealed class HomepageLandingBrowserTests(
                 const podium = document.querySelector('.podium');
                 const style = getComputedStyle(podium);
                 const box = podium.getBoundingClientRect();
+                // The heading band caps the stage card when it sits flush on the podium.
+                const band = document.querySelector('main.homepage-main > .game-description');
+                const capped = band && Math.abs(band.getBoundingClientRect().bottom - box.top) <= 1;
+                const top = capped ? getComputedStyle(band) : style;
                 const cards = [...podium.querySelectorAll('.podium-item:not(.podium-skeleton-item)')];
                 const rect = rank => cards.find(card => card.classList.contains(rank)).getBoundingClientRect();
                 const steps = [...podium.querySelectorAll('.podium-item-lower')].map(step => step.getBoundingClientRect());
                 return {
                     BorderWidth: parseFloat(style.outlineWidth) * (style.outlineStyle === 'solid' && parseFloat(style.outlineOffset) === -parseFloat(style.outlineWidth) ? 1 : 0),
-                    Radius: parseFloat(style.borderTopLeftRadius),
+                    Radius: Math.min(parseFloat(top.borderTopLeftRadius), parseFloat(style.borderBottomLeftRadius)),
                     Overflow: style.overflowX,
                     Left: box.left,
                     Right: box.right,
