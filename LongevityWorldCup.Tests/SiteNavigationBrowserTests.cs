@@ -74,8 +74,14 @@ public sealed class SiteNavigationBrowserTests(
         var last = page.Locator("#site-menu .footer-link").Last;
         await last.FocusAsync();
         Assert.True(await last.EvaluateAsync<bool>("e => { const r = e.getBoundingClientRect(), b = e.closest('.site-menu-body').getBoundingClientRect(); return r.top >= b.top - 1 && r.bottom <= b.bottom + 1; }"));
+        // The phone sheet keeps its close button. The desktop panel opens straight
+        // onto the tiles (the header toggle closes it), so Tab wraps to the first tile.
+        var sheet = await page.Locator("#site-menu").GetAttributeAsync("data-layout") == "sheet";
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Close menu" })).ToBeFocusedAsync();
+        if (sheet)
+            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Close menu" })).ToBeFocusedAsync();
+        else
+            await Assertions.Expect(page.Locator("#site-menu .footer-link").First).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Shift+Tab");
         await Assertions.Expect(last).ToBeFocusedAsync();
     }

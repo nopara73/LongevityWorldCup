@@ -73,9 +73,11 @@
             if (link && link !== target) place(link);
         });
         rail.addEventListener('pointerleave', () => rest());
+        // Only keyboard focus moves the indicator; a link focused by script
+        // (such as an opening menu) leaves it resting on the current page.
         rail.addEventListener('focusin', event => {
             const link = event.target instanceof Element && event.target.closest('.footer-link');
-            if (link) place(link);
+            if (link && link.matches(':focus-visible')) place(link);
         });
         rail.addEventListener('focusout', () => requestAnimationFrame(rest));
         new ResizeObserver(() => { if (target) place(target, true); }).observe(rail);
