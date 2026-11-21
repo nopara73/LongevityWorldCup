@@ -5107,6 +5107,54 @@ function renderAthleteFlagDetail(flag, athleteData) {
     return `<a href="${escapeHtml(flagHref)}" class="league-link">${renderFlagLabel(canonicalFlag)}</a>${getModalDetailRankMarkup(flagRank)}`;
 }
 
+// Standings tiles: Best rank, Division, Generation and Flag read as four
+// small scoreboard tiles. The "(#3)" / "(rank: #3)" text becomes a rank chip
+// (gold, silver and bronze for the podium places) that always shows the real
+// rank; the tiles may rise in, the digits never change. The visible words stay
+// the same.
+function decorateProfileStandings() {
+    const body = document.querySelector('#athlete-stats .athlete-info-basics');
+    if (!body) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    body.querySelectorAll(':scope > tr').forEach((row, index) => {
+        const cell = row.querySelector('td');
+        if (!cell) return;
+        row.style.setProperty('--standing-index', String(index));
+        // Drop the previous athlete's chip first, so the rank is read from this
+        // athlete's text and never from a stale chip.
+        cell.querySelector(':scope > .standing-rank')?.remove();
+        const rankHolder = cell.querySelector('.modal-rank-text, .modal-detail-rank, .detail-muted') || cell;
+        const match = /#\s*(\d+)/.exec(rankHolder.textContent || '');
+        const rank = match ? Number(match[1]) : NaN;
+        row.toggleAttribute('data-standing-podium', rank >= 1 && rank <= 3);
+        if (rank >= 1 && rank <= 3) row.dataset.standingPlace = String(rank);
+        else delete row.dataset.standingPlace;
+        if (!match) return;
+        const chip = document.createElement('span');
+        chip.className = 'standing-rank';
+        chip.textContent = `#${rank}`;
+        if (rankHolder === cell) {
+            // Best rank leads with a bare "#1 for …" text node: the chip takes its place.
+            const lead = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, {
+                acceptNode: node => node.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+            }).nextNode();
+            if (!lead || !/^\s*#\s*\d+/.test(lead.textContent)) return;
+            lead.textContent = lead.textContent.replace(/^\s*#\s*\d+\s*/, '');
+            chip.setAttribute('aria-label', `#${rank}`);
+        } else {
+            chip.setAttribute('aria-hidden', 'true');
+            rankHolder.classList.add('standing-rank-source');
+        }
+        cell.prepend(chip);
+    });
+    body.classList.remove('is-standing-entering');
+    if (!reduce) {
+        void body.offsetWidth;
+        body.classList.add('is-standing-entering');
+        window.setTimeout(() => body.classList.remove('is-standing-entering'), 1200);
+    }
+}
+
 document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' || event.key === 'Esc') {
         closeOpenComponents();
@@ -6284,6 +6332,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
     document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
     document.getElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
+    decorateProfileStandings();
     renderPortraitFlagMark(fullAthleteData.Flag || athleteData.canonicalFlag);
     const completedAge = getCompletedChronologicalAge(fullAthleteData, athleteData);
     document.getElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
@@ -8028,6 +8077,7 @@ function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
         const rankSummary = computeBestLeagueRank(athleteData);
         renderProfileRankings(athleteData, rankSummary.ultimateRank);
         document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary.bestCandidate);
+        decorateProfileStandings();
     }
 }
 
