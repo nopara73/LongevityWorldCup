@@ -1330,3 +1330,280 @@
         transition: none;
     }
 }
+
+
+/* ---------- The race, page-long ----------
+   The poster's track does not stop at the poster. A dashed lane leaves the
+   poster's lower edge and runs down the gutter beside the sheet to the
+   chequered finish line, with a waypoint at every section. The runner (the
+   racing colour) holds the reader's line and fills the lane behind it, each
+   waypoint lights as it is passed, and when the runner reaches the finish the
+   whole lane turns to the racing colour and its ring to gold. The two facts
+   paragraphs become lanes of their own, marked with a flag and a caution
+   sign. No new words. */
+.ro-guide {
+    position: relative;
+}
+
+.ro-lane {
+    /* The lane's axis sits 40px out from the sheet, or mid-gutter where the gutter is narrower. */
+    --ro-axis: max(-40px, calc(var(--ro-gutter, 80px) * -0.5));
+    --ro-lane-width: 4px;
+    --ro-stop: 14px;
+    --ro-runner: 18px;
+    --ro-runner-ring: 3px;
+    --ro-runner-glow: 18px;
+    --ro-lane-track: color-mix(in srgb, var(--ro-lane) 70%, transparent);
+    position: absolute;
+    z-index: 0;
+    width: 0;
+    pointer-events: none;
+}
+
+/* The dashed track. */
+.ro-lane::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--ro-axis) - var(--ro-lane-width) / 2);
+    width: var(--ro-lane-width);
+    border-radius: var(--ro-lane-width);
+    background: repeating-linear-gradient(to bottom, var(--ro-lane-track) 0 12px, transparent 12px 22px);
+}
+
+/* The filled lane rides up from the runner and is cut off at the start line. */
+.ro-lane-trail {
+    position: absolute;
+    inset: 0;
+    overflow: visible clip;
+}
+
+.ro-lane-fill,
+.ro-lane-runner {
+    position: sticky;
+    top: var(--ro-line, 38vh);
+    display: block;
+    height: 0;
+}
+
+.ro-lane-fill::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: calc(var(--ro-axis) - var(--ro-lane-width) / 2);
+    width: var(--ro-lane-width);
+    height: 150vh;
+    border-radius: var(--ro-lane-width);
+    background: linear-gradient(to top, var(--ro-racing), color-mix(in srgb, var(--ro-racing) 30%, transparent));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--ro-racing) 45%, transparent);
+}
+
+.ro-lane-runner {
+    z-index: 2;
+}
+
+.ro-lane-runner::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--ro-axis) - var(--ro-runner) / 2);
+    top: calc(var(--ro-runner) / -2);
+    width: var(--ro-runner);
+    height: var(--ro-runner);
+    border-radius: 50%;
+    background: var(--ro-field);
+    box-shadow: 0 0 0 var(--ro-runner-ring) var(--ro-racing), 0 0 var(--ro-runner-glow) 2px color-mix(in srgb, var(--ro-racing) 60%, transparent);
+}
+
+.ro-lane-mark {
+    position: absolute;
+    z-index: 1;
+    left: calc(var(--ro-axis) - var(--ro-stop) / 2);
+    width: var(--ro-stop);
+    height: var(--ro-stop);
+    margin-top: calc(var(--ro-stop) / -2);
+    border-radius: 50%;
+    background: var(--lwc-surface, #fff);
+    box-shadow: inset 0 0 0 2px var(--ro-lane-track);
+}
+
+.ro-lane-mark.is-passed {
+    background: var(--ro-racing);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ro-racing) 25%, transparent);
+    transform: scale(1.1);
+}
+
+/* The finish waypoint is a chequered flag tile; it stays on top of the runner. */
+.ro-lane-mark.is-finish {
+    z-index: 3;
+    left: calc(var(--ro-axis) - var(--ro-runner) / 2);
+    width: var(--ro-runner);
+    height: var(--ro-runner);
+    margin-top: calc(var(--ro-runner) / -2);
+    border-radius: 3px;
+    background: repeating-conic-gradient(var(--ro-field) 0 25%, var(--ro-field-ink) 0 50%) 0 0 / calc(var(--ro-runner) / 2) calc(var(--ro-runner) / 2);
+    box-shadow: 0 0 0 2px var(--ro-lane-track);
+    transform: none;
+}
+
+.ro-lane.is-finished .ro-lane-fill::before {
+    background: var(--ro-racing);
+}
+
+.ro-lane.is-finished .ro-lane-runner::after {
+    box-shadow: 0 0 0 var(--ro-runner-ring) var(--lwc-gold, #f5c542), 0 0 calc(var(--ro-runner-glow) + 4px) 4px color-mix(in srgb, var(--lwc-gold, #f5c542) 55%, transparent);
+}
+
+.ro-lane.is-finished .ro-lane-mark.is-finish {
+    box-shadow: 0 0 0 2px var(--lwc-gold, #f5c542);
+}
+
+.ro-lane.is-live .ro-lane-mark {
+    transition: box-shadow 220ms ease, background-color 220ms ease, transform 280ms var(--ro-ease-settle);
+}
+
+.ro-lane.is-live .ro-lane-runner::after,
+.ro-lane.is-live .ro-lane-fill::before {
+    transition: box-shadow 220ms ease, background 220ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ro-lane {
+        --ro-lane-track: color-mix(in srgb, var(--ro-lane), var(--ro-field-ink) 30%);
+    }
+}
+
+/* Phones keep a slim lane in the narrow gutter beside the sheet. */
+@media (max-width: 700px) {
+    .ro-lane {
+        --ro-lane-width: 2px;
+        --ro-stop: 9px;
+        --ro-runner: 12px;
+        --ro-runner-ring: 2px;
+        --ro-runner-glow: 8px;
+        --ro-lane-lead: 14px;
+    }
+
+    .ro-lane::before {
+        background: repeating-linear-gradient(to bottom, var(--ro-lane-track) 0 8px, transparent 8px 14px);
+    }
+
+    .ro-lane-fill::before {
+        width: 3px;
+        left: calc(var(--ro-axis) - 1.5px);
+        box-shadow: 0 0 6px color-mix(in srgb, var(--ro-racing) 45%, transparent);
+    }
+
+    .ro-lane-mark.is-passed {
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--ro-racing) 25%, transparent);
+    }
+
+    .ro-lane-mark.is-finish {
+        border-radius: 2px;
+    }
+}
+
+@media (forced-colors: active), print {
+    .ro-lane {
+        display: none;
+    }
+}
+
+/* The two facts become lanes: flag for what you get, caution for what does not carry over. */
+.ro-guide .ro-body {
+    display: grid;
+    gap: var(--lwc-space-4);
+}
+
+.ro-guide .ro-body p {
+    position: relative;
+    padding: var(--lwc-space-4) var(--lwc-space-5) var(--lwc-space-4) calc(var(--lwc-space-5) + 2.25rem);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-surface-muted, #eef2f5);
+    box-shadow: inset 4px 0 0 var(--ro-racing);
+}
+
+.ro-guide .ro-body p + p {
+    margin-top: 0;
+    box-shadow: inset 4px 0 0 var(--lwc-warning, #b7791f);
+}
+
+.ro-guide .ro-body p::before {
+    content: "\f11e";
+    position: absolute;
+    left: var(--lwc-space-4);
+    top: calc(var(--lwc-space-4) + 0.3em);
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--ro-field);
+    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 35%, transparent);
+    color: var(--ro-racing);
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.8rem;
+    font-weight: 900;
+}
+
+.ro-guide .ro-body p + p::before {
+    content: "\f071";
+    color: var(--lwc-gold, #f5c542);
+}
+
+/* The fact lanes arrive with the page's other bands, once: each slides in and
+   its edge draws, then its badge settles. */
+@media (prefers-reduced-motion: no-preference) {
+    .ro-body.ro-reveal > p {
+        transition: opacity 420ms var(--ro-ease-out), transform 420ms var(--ro-ease-out), box-shadow 420ms var(--ro-ease-out) 160ms;
+    }
+
+    .ro-body.ro-reveal > p::before {
+        transition: transform 360ms var(--ro-ease-settle) 240ms;
+    }
+
+    .ro-body.ro-reveal > p + p {
+        transition-delay: 90ms, 90ms, 250ms;
+    }
+
+    .ro-body.ro-reveal > p + p::before {
+        transition-delay: 330ms;
+    }
+
+    .ro-body.ro-reveal:not(.is-in) > p {
+        opacity: 0;
+        transform: translateX(-18px);
+        box-shadow: inset 0 0 0 var(--ro-racing);
+    }
+
+    .ro-body.ro-reveal:not(.is-in) > p + p {
+        box-shadow: inset 0 0 0 var(--lwc-warning, #b7791f);
+    }
+
+    .ro-body.ro-reveal:not(.is-in) > p::before {
+        transform: scale(0.6);
+    }
+
+    /* The lane arrives with the sheet it runs beside. */
+    .ro-lane {
+        animation: ro-sheet-up 620ms var(--ro-ease-out) 120ms both;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ro-lane.is-live .ro-lane-mark,
+    .ro-lane.is-live .ro-lane-runner::after,
+    .ro-lane.is-live .ro-lane-fill::before {
+        transition: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .ro-guide .ro-body p {
+        padding: var(--lwc-space-4) var(--lwc-space-4) var(--lwc-space-4) calc(var(--lwc-space-4) + 2rem);
+    }
+
+    .ro-guide .ro-body p::before {
+        left: var(--lwc-space-3);
+    }
+}
