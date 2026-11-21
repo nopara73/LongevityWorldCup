@@ -43,7 +43,7 @@ public sealed class TransactionalEmailBrowserTests(
                 // This checks the fallback contract; Chromium is not the Word rendering engine.
                 Assert.Contains("<!--[if mso]><table role=\"presentation\" width=\"560\"", html);
                 if (html.Contains("class=\"lwc-email-action-link\"", StringComparison.Ordinal))
-                    Assert.Contains("mso-padding-alt:15px 20px", html);
+                    Assert.Contains("mso-padding-alt:17px 22px", html);
                 html = Regex.Replace(html, @"<!--\[if mso\]>(.*?)<!\[endif\]-->", "$1", RegexOptions.Singleline);
                 html = html.Replace("max-width:560px;", "").Replace("table-layout:fixed;", "");
             }
