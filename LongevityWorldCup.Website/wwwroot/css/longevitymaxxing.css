@@ -5781,6 +5781,110 @@ a.lmx-note-mention:focus-visible {
     font-weight: 800;
 }
 
+/* Agencies: four habit tiles, each icon wearing a faint ring in its habit's
+   colour. The ring is a plain halo, drawn as it is from the first frame:
+   nothing on these tiles fills, stamps or celebrates by itself. They show
+   only to visitors who are not signed in, so no check-in happens here. A
+   pointer lifts a tile, thickens its stripe, tips its icon and brightens its
+   ring. On phones the tiles sit two by two with the question under the
+   name, and go one per row when enlarged text needs the width. Wording and
+   colours are unchanged. */
+.lmx-page .lmx-habit-card {
+    transition:
+        transform 200ms var(--lwc-ease-standard, ease),
+        box-shadow 200ms var(--lwc-ease-standard, ease),
+        border-color 200ms var(--lwc-ease-standard, ease);
+}
+
+.lmx-page .lmx-habit-card::before {
+    transition: height 200ms var(--lwc-ease-standard, ease);
+}
+
+.lmx-page .lmx-habit-card i {
+    position: relative;
+    transition: transform 260ms var(--lwc-ease-pop, ease-out);
+}
+
+.lmx-page .lmx-habit-card i::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--lmx-category-accent);
+    border-radius: calc(var(--lwc-radius-md) + 4px);
+    opacity: 0.35;
+    pointer-events: none;
+    transition: opacity 200ms var(--lwc-ease-standard, ease);
+}
+
+@media (hover: hover) {
+    .lmx-page .lmx-habit-card:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--lmx-category-accent) 45%, var(--lmx-border));
+        box-shadow: var(--lwc-shadow-md);
+    }
+
+    .lmx-page .lmx-habit-card:hover::before {
+        height: 5px;
+    }
+
+    .lmx-page .lmx-habit-card:hover i {
+        transform: rotate(-8deg) scale(1.08);
+    }
+
+    .lmx-page .lmx-habit-card:hover i::after {
+        opacity: 0.8;
+    }
+}
+
+/* Phones: two by two, name beside the icon, question beneath. These outrank
+   the later "Habit tiles" rules, which stack one card per row on phones.
+   Never more than two a row; the 7.5rem floor grows with the text, so the
+   tiles go one per row under enlarged text but stay two by two at the
+   default size down to 320px screens. */
+@media (max-width: 600px) {
+    .lmx-page #lmxHabitGrid.lmx-habit-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, max(7.5rem, calc(50% - var(--lwc-space-2, 0.5rem)))), 1fr));
+        gap: var(--lwc-space-2, 0.5rem);
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: center;
+        column-gap: var(--lwc-space-2, 0.5rem);
+        row-gap: 0.4rem;
+        padding: var(--lwc-space-3);
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card i {
+        grid-row: 1;
+        align-self: center;
+        width: 1.9rem;
+        height: 1.9rem;
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card span {
+        min-width: 0;
+        font-size: var(--lwc-type-sm, 0.9rem);
+    }
+
+    .lmx-page #lmxHabitGrid > .lmx-habit-card .lmx-habit-question {
+        grid-column: 1 / -1;
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lmx-page .lmx-habit-card,
+    .lmx-page .lmx-habit-card::before,
+    .lmx-page .lmx-habit-card i,
+    .lmx-page .lmx-habit-card i::after {
+        transition: none;
+    }
+}
+
 /* Daily checkins: one divided list on the same edges as the tiles above. */
 .lmx-page .lmx-question-preview {
     margin-top: 0;
