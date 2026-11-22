@@ -23,6 +23,7 @@ interface PdfViewport {
 interface PdfPage {
     getViewport: (options: { scale: number }) => PdfViewport;
     render: (options: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }) => { promise: Promise<void> };
+    getTextContent?: () => Promise<{ items: { str?: string }[] }>;
 }
 
 interface PdfDocument {
@@ -320,7 +321,7 @@ const getPreferredProofCanvasContentType = (): Promise<'image/webp' | 'image/jpe
     return preferredProofCanvasContentType;
 };
 
-const encodeProofCanvas: (canvas: HTMLCanvasElement) => Promise<string> = async canvas => {
+async function encodeProofCanvas(canvas: HTMLCanvasElement): Promise<{ source: string; width: number; height: number }> {
     const maxDimension = Math.max(canvas.width, canvas.height);
     let workingCanvas = maxDimension > proofOptimizationOptions.maxSize
         ? resizeProofCanvas(canvas, proofOptimizationOptions.maxSize / maxDimension)
@@ -341,7 +342,7 @@ const encodeProofCanvas: (canvas: HTMLCanvasElement) => Promise<string> = async 
 
         lastBlob = blob;
         if (blob.size <= proofOptimizationOptions.targetMaxBytes) {
-            return await readDataURL(blob);
+            return { source: await readDataURL(blob), width: workingCanvas.width, height: workingCanvas.height };
         }
 
         if (qualityStep === 3) {
@@ -353,7 +354,7 @@ const encodeProofCanvas: (canvas: HTMLCanvasElement) => Promise<string> = async 
 
     throw new Error(
         `Proof canvas remained too large after bounded encoding (${lastBlob?.size ?? 0} bytes).`);
-};
+}
 
 const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
     if (window.crypto?.subtle) {
@@ -374,6 +375,131 @@ const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
 
 
 interface ProofArea { x: number; y: number; width: number; height: number; }
+
+function containsProofArea(outer: ProofArea, inner: ProofArea): boolean {
+    return outer.x <= inner.x && outer.y <= inner.y
+        && outer.x + outer.width >= inner.x + inner.width && outer.y + outer.height >= inner.y + inner.height;
+}
+
+interface PdfProofAppearance {
+    pageNumber: number;
+    pageCount: number;
+    width: number;
+    height: number;
+    content: ProofArea;
+    samples: Uint8ClampedArray;
+    textFingerprint: string;
+}
+
+async function fingerprintPdfText(page: PdfPage): Promise<string> {
+    const text = await page.getTextContent?.().catch(() => undefined);
+    const characters = text?.items.map(item => item.str || '').join('').normalize('NFKC').replace(/\s/g, '');
+    return characters ? fingerprintProofSource(new TextEncoder().encode(characters).buffer) : '';
+}
+
+function samplePdfContent(pixels: ImageData, left: number, top: number, width: number, height: number): Uint8ClampedArray {
+    const side = 32;
+    const samples = new Uint8ClampedArray(side * side * 3);
+    let index = 0;
+    // Area averages keep thin table rules and glyphs comparable across PDF
+    // renderers, even when canvas downsampling on a phone drops those lines.
+    for (let row = 0; row < side; row++) {
+        const y0 = top + Math.floor(row * height / side);
+        const y1 = top + Math.ceil((row + 1) * height / side);
+        for (let column = 0; column < side; column++) {
+            const x0 = left + Math.floor(column * width / side);
+            const x1 = left + Math.ceil((column + 1) * width / side);
+            let red = 0, green = 0, blue = 0;
+            for (let y = y0; y < y1; y++) {
+                for (let x = x0; x < x1; x++) {
+                    const pixel = 4 * (y * pixels.width + x);
+                    red += pixels.data[pixel]!;
+                    green += pixels.data[pixel + 1]!;
+                    blue += pixels.data[pixel + 2]!;
+                }
+            }
+            const area = (x1 - x0) * (y1 - y0);
+            samples[index++] = red / area;
+            samples[index++] = green / area;
+            samples[index++] = blue / area;
+        }
+    }
+    return samples;
+}
+
+async function describePdfProof(canvas: HTMLCanvasElement, width: number, height: number,
+    page: PdfPage, pageNumber: number, pageCount: number): Promise<PdfProofAppearance | undefined> {
+    // PDF print drivers can scale the content and add white margins. Compare the
+    // printed content independently of the paper size or the encoder's output.
+    const probe = document.createElement('canvas');
+    const scale = Math.min(1, 512 / Math.max(canvas.width, canvas.height));
+    probe.width = Math.max(1, Math.round(canvas.width * scale));
+    probe.height = Math.max(1, Math.round(canvas.height * scale));
+    const context = probe.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('Proof page comparison canvas unavailable.');
+    context.imageSmoothingQuality = 'high';
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, probe.width, probe.height);
+    context.drawImage(canvas, 0, 0, probe.width, probe.height);
+    let left = probe.width, top = probe.height, right = -1, bottom = -1;
+    const pixels = context.getImageData(0, 0, probe.width, probe.height);
+    const { data } = pixels;
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i]! + data[i + 1]! + data[i + 2]! >= 3 * 220) continue;
+        const x = (i / 4) % probe.width;
+        const y = Math.floor(i / 4 / probe.width);
+        left = Math.min(left, x);
+        right = Math.max(right, x);
+        top = Math.min(top, y);
+        bottom = Math.max(bottom, y);
+    }
+    if (right <= left || bottom <= top) return undefined;
+    const x = left / probe.width, y = top / probe.height;
+    const contentWidth = right + 1 - left, contentHeight = bottom + 1 - top;
+    const w = contentWidth / probe.width, h = contentHeight / probe.height;
+    return {
+        pageNumber, pageCount, width, height,
+        content: { x: x * width, y: y * height, width: w * width, height: h * height },
+        samples: samplePdfContent(pixels, left, top, contentWidth, contentHeight),
+        textFingerprint: await fingerprintPdfText(page)
+    };
+}
+
+function pdfProofDifference(reference: PdfProofAppearance, copy: PdfProofAppearance): number {
+    if (reference.pageNumber !== copy.pageNumber || reference.pageCount !== copy.pageCount) return Infinity;
+    if (reference.textFingerprint && copy.textFingerprint && reference.textFingerprint !== copy.textFingerprint) return Infinity;
+    const a = reference.content, b = copy.content;
+    const aspectRatio = (a.width * b.height) / (a.height * b.width);
+    if (Math.abs(aspectRatio - 1) > .025) return Infinity;
+    let difference = 0, colorDifference = 0, ink = 0;
+    const first = reference.samples, second = copy.samples;
+    for (let i = 0; i < first.length; i += 3) {
+        const red = first[i]! - second[i]!;
+        const green = first[i + 1]! - second[i + 1]!;
+        const blue = first[i + 2]! - second[i + 2]!;
+        difference += Math.abs(red) + Math.abs(green) + Math.abs(blue);
+        colorDifference += Math.abs(red - green) + Math.abs(blue - green);
+        ink += 6 * 255 - first[i]! - first[i + 1]! - first[i + 2]!
+            - second[i]! - second[i + 1]! - second[i + 2]!;
+    }
+    // Measure disagreement relative to the ink on both pages. White space
+    // alone cannot make two pages look similar.
+    if (!ink || 2 * colorDifference / ink > .05) return Infinity;
+    return 2 * difference / ink;
+}
+
+function projectPdfRedaction(area: ProofArea, previous: PdfProofAppearance, copy: PdfProofAppearance): ProofArea {
+    const xScale = copy.content.width / previous.content.width;
+    const yScale = copy.content.height / previous.content.height;
+    // Allow for the small edge shifts caused by rasterizing and resampling a print.
+    const padding = Math.max(copy.width, copy.height) / 170;
+    const x = Math.max(0, copy.content.x + (area.x - previous.content.x) * xScale - padding);
+    const y = Math.max(0, copy.content.y + (area.y - previous.content.y) * yScale - padding);
+    const right = Math.min(copy.width, copy.content.x + (area.x + area.width - previous.content.x) * xScale + padding);
+    const bottom = Math.min(copy.height, copy.content.y + (area.y + area.height - previous.content.y) * yScale + padding);
+    return { x, y, width: right - x, height: bottom - y };
+}
+
 interface ProofEditPage {
     original: string;
     current: string;
@@ -387,6 +513,8 @@ interface ProofEditPage {
     scale: number;
     x: number;
     y: number;
+    pdfAppearance?: PdfProofAppearance;
+    pdfRedactionRevision?: number;
 }
 
 // Editable originals live only in this tab's working state. Upload/submission
@@ -902,7 +1030,7 @@ async function flattenProofAreas(original: string, areas: readonly ProofArea[]):
             const x = Math.floor(area.x), y = Math.floor(area.y);
             context.fillRect(x, y, Math.ceil(area.x + area.width) - x, Math.ceil(area.y + area.height) - y);
         }
-        return await encodeProofCanvas(canvas);
+        return (await encodeProofCanvas(canvas)).source;
     } finally { canvas.width = canvas.height = 0; image.src = ''; }
 }
 
@@ -916,6 +1044,8 @@ class ProofReview {
     private opener: Element | null = null;
     private editor: ProofRedaction | null = null;
     private editPages: Map<string, ProofEditPage>;
+    private pdfRedactions = new Map<PdfProofAppearance, { revision: number; areas: readonly ProofArea[] }>();
+    private pdfRedactionRevision = 0;
     private saveTask: Promise<void> | null = null;
     private editingPending: (pending: boolean) => void;
     private replaceSources: (replacements: Map<string, string>) => Promise<void>;
@@ -1273,13 +1403,75 @@ class ProofReview {
             else thumb.removeAttribute('aria-current');
         });
         this.fitNavigation();
+        if (this.editor) void this.editor.show(this.viewerIndex, this.editPage(source));
+    }
+
+    private editPage(source: string): ProofEditPage {
         let page = this.editPages.get(source);
         if (!page) {
             page = { original: source, current: source, areas: [], committedAreas: [], undo: [], revision: 0, savedRevision: 0,
                 failed: false, selected: -1, scale: 1, x: 0, y: 0 };
             this.editPages.set(source, page);
         }
-        if (this.editor) void this.editor.show(this.viewerIndex, page);
+        return page;
+    }
+
+    rememberPdfAppearance(source: string, appearance: PdfProofAppearance | undefined): void {
+        if (appearance) this.editPage(source).pdfAppearance ??= appearance;
+    }
+
+    async redactPdfCopy(source: string): Promise<string> {
+        const copy = this.editPages.get(source);
+        const appearance = copy?.pdfAppearance;
+        if (!copy || !appearance) return source;
+
+        const lastApplied = copy.pdfRedactionRevision ?? 0;
+        let revision = lastApplied;
+        let areas = copy.committedAreas;
+        const referenceTexts = new Set<string>();
+        for (const [reference, redaction] of this.pdfRedactions) {
+            if (redaction.revision <= lastApplied || pdfProofDifference(reference, appearance) > .15) continue;
+            revision = Math.max(revision, redaction.revision);
+            if (reference.textFingerprint) referenceTexts.add(reference.textFingerprint);
+            for (const area of redaction.areas) {
+                const projected = projectPdfRedaction(area, reference, appearance);
+                if (projected.width <= 0 || projected.height <= 0 || areas.some(existing => containsProofArea(existing, projected))) continue;
+                areas = areas.filter(existing => !containsProofArea(projected, existing));
+                areas.push(projected);
+            }
+        }
+        let replacement = source;
+        if (areas !== copy.committedAreas) {
+            // Keep the new report's pixels and apply the old masks before
+            // displaying or queuing it, even when the raster changed.
+            replacement = await flattenProofAreas(copy.original, areas);
+            await this.replaceSources(new Map([[source, replacement]]));
+            copy.areas = areas;
+            copy.committedAreas = areas.map(area => ({ ...area }));
+            copy.undo = [];
+            this.replacePageImage(copy, replacement);
+        }
+        copy.pdfRedactionRevision = revision;
+        // A reprint can lose its text layer. Remember an unambiguous match so
+        // later edits to the reprint don't affect digital reports with new values.
+        if (!appearance.textFingerprint && referenceTexts.size === 1) {
+            appearance.textFingerprint = referenceTexts.values().next().value!;
+        }
+        return replacement;
+    }
+
+    private replacePageImage(page: ProofEditPage, replacement: string): void {
+        const source = page.current;
+        for (let i = 0; i < this.images.length; i++) if (this.images[i] === source) this.images[i] = replacement;
+        for (const removed of this.removed) if (removed.image === source) removed.image = replacement;
+        const label = this.labels.get(source);
+        this.labels.delete(source);
+        if (label && !this.labels.has(replacement)) this.labels.set(replacement, label);
+        if (this.shown.delete(source)) this.shown.add(replacement);
+        this.arrivals.delete(source);
+        this.editPages.delete(source);
+        page.current = replacement;
+        if (!this.editPages.has(replacement)) this.editPages.set(replacement, page);
     }
 
     private pendingPages(): ProofEditPage[] {
@@ -1312,20 +1504,17 @@ class ProofReview {
                     if (batch.some(item => item.page.revision !== item.revision)) continue;
                     await this.replaceSources(replacements);
                     for (const item of batch) {
-                        const replacement = replacements.get(item.source)!;
-                        for (let i = 0; i < this.images.length; i++) if (this.images[i] === item.source) this.images[i] = replacement;
-                        for (const removed of this.removed) if (removed.image === item.source) removed.image = replacement;
-                        const label = this.labels.get(item.source);
-                        this.labels.delete(item.source);
-                        if (label) this.labels.set(replacement, label);
-                        this.shown.delete(item.source);
-                        this.shown.add(replacement);
-                        this.arrivals.delete(item.source);
-                        this.editPages.delete(item.source);
-                        item.page.current = replacement;
+                        this.replacePageImage(item.page, replacements.get(item.source)!);
                         item.page.savedRevision = item.revision;
                         item.page.failed = false;
-                        this.editPages.set(replacement, item.page);
+                        if (item.page.pdfAppearance) {
+                            // Record only intentional edits so automatic copies
+                            // don't accumulate alignment padding on every reprint.
+                            const revision = ++this.pdfRedactionRevision;
+                            item.page.pdfRedactionRevision = revision;
+                            if (item.areas.length) this.pdfRedactions.set(item.page.pdfAppearance, { revision, areas: item.areas });
+                            else this.pdfRedactions.delete(item.page.pdfAppearance);
+                        }
                     }
                     // Update existing thumbnails without replacing the focused
                     // filmstrip button or disrupting a gesture on the report.
@@ -1496,14 +1685,18 @@ window.setupProofUploadHTML = function (
                 return candidate;
             };
 
-            const useCachedProofSource = (sourceKey: string, label: string): boolean => {
+            const keepPdfRedactions = async (source: string): Promise<string> => {
+                const edited = await review.redactPdfCopy(source);
+                if (edited !== source && knownProofImages.delete(source)) knownProofImages.add(edited);
+                return edited;
+            };
+
+            const useCachedProofSource = async (sourceKey: string, label: string, pdf = false): Promise<boolean> => {
                 const existingProof = proofSourceImages.get(sourceKey);
                 if (!existingProof) return false;
-                if (proofPics.includes(existingProof)) duplicateProofs++;
-                else if (proofPics.length >= maxProofImages) hitImageLimit = true;
-                else addProofImage(existingProof, label);
-                // Removal and re-upload must restore the edited copy, never
-                // regenerate the unredacted page from the original file.
+                if (!knownProofImages.has(existingProof) && proofPics.length >= maxProofImages) hitImageLimit = true;
+                else addProofImage(pdf ? await keepPdfRedactions(existingProof) : existingProof, label);
+                // An earlier cached rendition may predate redacting another copy.
                 return true;
             };
 
@@ -1541,7 +1734,7 @@ window.setupProofUploadHTML = function (
                                     completed: fileIndex + (pageNum - 1) / pdfDoc.numPages, total: supportedFiles.length });
                                 const sourceKey = `${sourceFingerprint}:page:${pageNum}`;
                                 const label = `${file.name} · Page ${pageNum}`;
-                                if (useCachedProofSource(sourceKey, label)) continue;
+                                if (await useCachedProofSource(sourceKey, label, true)) continue;
                                 if (proofPics.length >= maxProofImages) {
                                     hitImageLimit = true;
                                     break;
@@ -1563,7 +1756,13 @@ window.setupProofUploadHTML = function (
                                 let optimizedPage: string;
                                 try {
                                     await page.render({ canvasContext: context, viewport }).promise;
-                                    optimizedPage = await resolveProofImage(await encodeProofCanvas(canvas));
+                                    const encoded = await encodeProofCanvas(canvas);
+                                    optimizedPage = await resolveProofImage(encoded.source);
+                                    if (optimizedPage === encoded.source) {
+                                        review.rememberPdfAppearance(optimizedPage,
+                                            await describePdfProof(canvas, encoded.width, encoded.height, page, pageNum, pdfDoc.numPages));
+                                    }
+                                    optimizedPage = await keepPdfRedactions(optimizedPage);
                                 } finally {
                                     canvas.width = canvas.height = 0;
                                 }
@@ -1581,7 +1780,7 @@ window.setupProofUploadHTML = function (
                     }
 
                     const sourceKey = `${sourceFingerprint}:image`;
-                    if (useCachedProofSource(sourceKey, file.name)) continue;
+                    if (await useCachedProofSource(sourceKey, file.name)) continue;
                     if (proofPics.length >= maxProofImages) {
                         hitImageLimit = true;
                         break;

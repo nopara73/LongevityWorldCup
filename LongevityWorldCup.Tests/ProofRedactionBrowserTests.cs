@@ -116,6 +116,71 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         for (var index = 0; index < submitted.Length; index++) AssertFlattened(original[index], submitted[index]);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReattachingAReprintedPdf_KeepsTheRedactionOnTheMatchingPage(bool cachedPrint)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, false);
+        var original = Assert.Single(await ReportsAsync(page, true));
+        var reprint = new FilePayload
+        {
+            Name = "Reprinted report.pdf", MimeType = original.MimeType, Buffer = [.. original.Buffer, 0]
+        };
+        if (cachedPrint)
+        {
+            await UploadAsync(page, [reprint]);
+            await Assertions.Expect(page.Locator(".proof-page-card")).ToHaveCountAsync(2);
+            await page.Locator(".proof-page-remove").Last.ClickAsync();
+            await page.Locator(".proof-page-remove").Last.ClickAsync();
+        }
+        await UploadAsync(page, [original]);
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        await DrawAsync(page, 50, 170, 600, 170);
+        await SavedAsync(page);
+        await page.Locator(".proof-review-close").ClickAsync();
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        await UploadAsync(page, [reprint]);
+
+        var current = await SourcesAsync(page);
+        Assert.Equal(2, current.Length);
+        using var edited = Image.Load<Rgba32>(Convert.FromBase64String(current[0].Split(',')[1]));
+        using var other = Image.Load<Rgba32>(Convert.FromBase64String(current[1].Split(',')[1]));
+        Assert.Equal(1200, edited.Width);
+        for (var y = 256; y < 403; y++)
+        for (var x = 183; x < 733; x++)
+        {
+            var pixel = edited[x, y];
+            Assert.True(pixel.R < 12 && pixel.G < 12 && pixel.B < 12 && pixel.A == 255,
+                $"The reprinted copy revealed pixel {x},{y} in the hidden area.");
+        }
+        Assert.True(other[680, 330].R > 230, "A redaction on the first page must leave the second page clear.");
+        await page.Locator(".proof-page-preview").First.ClickAsync();
+        await ReadyAsync(page);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        await DrawAsync(page, 150, 407, 420, 60);
+        await SavedAsync(page);
+        await page.Locator(".proof-review-close").ClickAsync();
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        var renamedOriginal = new FilePayload { Name = "Original with a new name.pdf", MimeType = original.MimeType, Buffer = original.Buffer };
+        await UploadAsync(page, [renamedOriginal]);
+        current = await SourcesAsync(page);
+        using var reattached = Image.Load<Rgba32>(Convert.FromBase64String(current[0].Split(',')[1]));
+        Assert.Equal(1000, reattached.Width);
+        Assert.True(reattached[330, 260].R < 12 && reattached[330, 445].R < 12,
+            "The original PDF must keep redactions added to the reprinted copy.");
+
+        var request = page.WaitForRequestAsync(r => r.Method == "POST" && r.Url.EndsWith("/api/application/application"));
+        await page.Locator("#submitButton").ClickAsync();
+        using var payload = JsonDocument.Parse((await request).PostData!);
+        var submitted = payload.RootElement.GetProperty("proofPics").EnumerateArray().Select(value => value.GetString()).ToArray();
+        Assert.Equal(current, submitted);
+    }
+
     [Fact]
     public async Task FailedAutomaticSave_BlocksSubmissionAndRetryPreservesEditableSelections()
     {
@@ -577,10 +642,29 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         // rendered review also exercises the real pinned PDF.js with a two-page PDF.
         await page.EvaluateAsync("""
             images => {
-                window.pdfjsLib = {GlobalWorkerOptions:{},getDocument:()=>({promise:Promise.resolve({numPages:2,
-                    getPage:async n=>({getViewport:()=>({width:1000,height:1300}),render:({canvasContext})=>({promise:(async()=>{
-                        const image=new Image();image.src=images[n-1];await image.decode();canvasContext.drawImage(image,0,0);
-                    })()})}),destroy:async()=>{}})})};
+                window.pdfjsLib = {
+                    GlobalWorkerOptions: {},
+                    getDocument({ data }) {
+                        const reprint = new Uint8Array(data).at(-1) === 0;
+                        const width = reprint ? 1200 : 1000, height = reprint ? 1520 : 1300;
+                        return { promise: Promise.resolve({
+                            numPages: 2,
+                            getPage: async n => ({
+                                getViewport: () => ({ width, height }),
+                                render: ({ canvasContext }) => ({ promise: (async () => {
+                                    const image = new Image();
+                                    image.src = images[n - 1];
+                                    await image.decode();
+                                    canvasContext.fillStyle = '#fff';
+                                    canvasContext.fillRect(0, 0, width, height);
+                                    if (reprint) canvasContext.drawImage(image, 125, 88, 950, 1235);
+                                    else canvasContext.drawImage(image, 0, 0);
+                                })() })
+                            }),
+                            destroy: async () => {}
+                        }) };
+                    }
+                };
             }
             """, images);
         return [new() { Name = "Synthetic report.pdf", MimeType = "application/pdf", Buffer = Encoding.ASCII.GetBytes("%PDF synthetic converter fixture") }];
