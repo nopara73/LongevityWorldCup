@@ -395,7 +395,10 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         {
             var before = await ReadSourcesAsync(page);
             await page.Locator(".proof-page-remove").First.ClickAsync();
-            await UploadAsync(page, [files[cycle % 2]]);
+            var source = files[cycle % 2];
+            var renamed = new FilePayload { Name = $"rescan-{cycle}.png", MimeType = source.MimeType, Buffer = source.Buffer };
+            await UploadAsync(page, [renamed]);
+            await Assertions.Expect(page.Locator(".proof-page-source").Last).ToHaveTextAsync(renamed.Name);
             await page.Locator(".proof-undo").ClickAsync();
             var after = await ReadSourcesAsync(page);
             Assert.Equal(2, after.Length);
@@ -406,8 +409,10 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         var sources = await ReadSourcesAsync(page);
         Assert.Equal(2, sources.Length);
         Assert.Equal(2, sources.Distinct().Count());
+        var labels = await page.Locator(".proof-page-source").AllTextContentsAsync();
         await UploadAsync(page, files);
         Assert.Equal(2, (await ReadSourcesAsync(page)).Length);
+        Assert.Equal(labels, await page.Locator(".proof-page-source").AllTextContentsAsync());
         Assert.Contains("Duplicate proof images were skipped.", await page.Locator(".proof-upload-notice").InnerTextAsync());
         await UploadAsync(page, [(await CreatePagesAsync(3))[2]]);
         Assert.Equal(3, (await ReadSourcesAsync(page)).Length);

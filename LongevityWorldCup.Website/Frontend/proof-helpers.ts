@@ -1496,12 +1496,12 @@ window.setupProofUploadHTML = function (
                 return candidate;
             };
 
-            const useCachedProofSource = (sourceKey: string): boolean => {
+            const useCachedProofSource = (sourceKey: string, label: string): boolean => {
                 const existingProof = proofSourceImages.get(sourceKey);
                 if (!existingProof) return false;
                 if (proofPics.includes(existingProof)) duplicateProofs++;
                 else if (proofPics.length >= maxProofImages) hitImageLimit = true;
-                else addProofImage(existingProof);
+                else addProofImage(existingProof, label);
                 // Removal and re-upload must restore the edited copy, never
                 // regenerate the unredacted page from the original file.
                 return true;
@@ -1512,7 +1512,7 @@ window.setupProofUploadHTML = function (
             let hitImageLimit = false;
             let duplicateProofs = 0;
             const knownProofImages = new Set(proofPics);
-            const addProofImage = (dataUrl: string): boolean => {
+            const addProofImage = (dataUrl: string, label: string): boolean => {
                 if (knownProofImages.has(dataUrl)) {
                     duplicateProofs++;
                     return false;
@@ -1520,6 +1520,7 @@ window.setupProofUploadHTML = function (
 
                 knownProofImages.add(dataUrl);
                 proofPics.push(dataUrl);
+                review.labels.set(dataUrl, label);
                 return true;
             };
             // process one by one to preserve order
@@ -1539,7 +1540,8 @@ window.setupProofUploadHTML = function (
                                 review.setProgress({ label: `${file.name} · Page ${pageNum} of ${pdfDoc.numPages}`,
                                     completed: fileIndex + (pageNum - 1) / pdfDoc.numPages, total: supportedFiles.length });
                                 const sourceKey = `${sourceFingerprint}:page:${pageNum}`;
-                                if (useCachedProofSource(sourceKey)) continue;
+                                const label = `${file.name} · Page ${pageNum}`;
+                                if (useCachedProofSource(sourceKey, label)) continue;
                                 if (proofPics.length >= maxProofImages) {
                                     hitImageLimit = true;
                                     break;
@@ -1566,8 +1568,7 @@ window.setupProofUploadHTML = function (
                                     canvas.width = canvas.height = 0;
                                 }
                                 if (optimizedPage) {
-                                    if (!review.labels.has(optimizedPage)) review.labels.set(optimizedPage, `${file.name} · Page ${pageNum}`);
-                                    addProofImage(optimizedPage);
+                                    addProofImage(optimizedPage, label);
                                     proofSourceImages.set(sourceKey, optimizedPage);
                                 }
                             }
@@ -1580,7 +1581,7 @@ window.setupProofUploadHTML = function (
                     }
 
                     const sourceKey = `${sourceFingerprint}:image`;
-                    if (useCachedProofSource(sourceKey)) continue;
+                    if (useCachedProofSource(sourceKey, file.name)) continue;
                     if (proofPics.length >= maxProofImages) {
                         hitImageLimit = true;
                         break;
@@ -1588,9 +1589,8 @@ window.setupProofUploadHTML = function (
                     const raw = await LwcUploadPhoto.read(file, proofOptimizationOptions.maxSize);
                     const dataUrl = await resolveProofImage(await optimizeProofImageOrFallback(raw));
                     if (dataUrl) {
-                        if (!review.labels.has(dataUrl)) review.labels.set(dataUrl, file.name);
                         proofSourceImages.set(sourceKey, dataUrl);
-                        if (addProofImage(dataUrl)) {
+                        if (addProofImage(dataUrl, file.name)) {
                             review.render();
                             checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                         }
