@@ -505,6 +505,52 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
     }
 
     [Fact]
+    public async Task SkippingAProtectedPdfAfterARetry_PreservesEarlierProofsAndFinishesTheSelection()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, false);
+        var images = await CreatePagesAsync(2);
+        await UploadAsync(page, [images[0]]);
+        var original = Assert.Single(await ReadSourcesAsync(page));
+
+        // The browser suite runs offline. Exercise the PDF.js password callback, including
+        // the worker's rejection, while processing real images on either side of the PDF.
+        await page.EvaluateAsync("""
+            window.pdfjsLib = {
+                PasswordResponses: { INCORRECT_PASSWORD: 2 },
+                getDocument() {
+                    const task = {};
+                    task.promise = new Promise((resolve, reject) => {
+                        const challenge = reason => task.onPassword(answer => {
+                            if (answer instanceof Error) reject(answer);
+                            else queueMicrotask(() => challenge(2));
+                        }, reason);
+                        queueMicrotask(() => challenge(1));
+                    });
+                    return task;
+                }
+            };
+            """);
+        await page.Locator("#proofPicInput").SetInputFilesAsync(new FilePayload[]
+        {
+            new() { Name = "protected.pdf", MimeType = "application/pdf", Buffer = [1] }, images[1]
+        });
+        var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Open protected PDF" });
+        var password = dialog.GetByLabel("PDF password", new() { Exact = true });
+        await Assertions.Expect(password).ToBeFocusedAsync();
+        await password.FillAsync("incorrect");
+        await password.PressAsync("Enter");
+        await Assertions.Expect(password).ToHaveAttributeAsync("aria-invalid", "true");
+        await Assertions.Expect(password).ToHaveValueAsync("");
+        await password.PressAsync("Escape");
+        await Assertions.Expect(dialog).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator(".proof-page-preview")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeEnabledAsync();
+        Assert.Equal(original, (await ReadSourcesAsync(page))[0]);
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToBeHiddenAsync();
+    }
+
+    [Fact]
     public async Task FailedPdf_KeepsExistingPagesAndContinuesWithTheNextImage()
     {
         await using var context = await NewContextAsync(Browser, App, new());

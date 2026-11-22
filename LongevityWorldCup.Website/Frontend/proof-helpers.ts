@@ -32,7 +32,12 @@ interface PdfDocument {
 }
 
 interface PdfJsLibrary {
-    getDocument: (options: { data: ArrayBuffer }) => { promise: Promise<PdfDocument> };
+    getDocument: (options: { data: ArrayBuffer }) => {
+        promise: Promise<PdfDocument>;
+        onPassword: ((reply: (password: string | Error) => void, reason: number) => void) | null;
+        destroy: () => Promise<void>;
+    };
+    PasswordResponses: { INCORRECT_PASSWORD: number };
     GlobalWorkerOptions?: { workerSrc: string };
 }
 
@@ -1526,10 +1531,8 @@ window.setupProofUploadHTML = function (
                     const fileBytes = await file.arrayBuffer();
                     const sourceFingerprint = await fingerprintProofSource(fileBytes);
                     if (isProofPdfFile(file)) {
-                        const pdfLib = await ensurePdfJsReady();
-                        // load PDF
-                        const loadingTask = pdfLib.getDocument({ data: fileBytes });
-                        const pdfDoc = await loadingTask.promise;
+                        const pdfDoc = await openProofPdf(fileBytes, file.name, options?.isActive);
+                        if (!pdfDoc) continue;
                         try {
                             // render each page
                             for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
@@ -1657,6 +1660,10 @@ window.setupProofUploadHTML = function (
             isProofUploadProcessing = false;
             review.setProgress(null);
             updateProcessing();
+            // A picker or password dialog can return focus while the upload button is disabled.
+            if (document.activeElement === document.body && options?.isActive?.() !== false) {
+                uploadProofButton.focus({ preventScroll: true });
+            }
         }
     };
 
@@ -1684,6 +1691,97 @@ window.setupProofUploadHTML = function (
 
     // Check if proof images already exist
     checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+}
+
+function createProofPasswordDialog(fileName: string, unlock: (password: string) => void, skip: () => void) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'proof-password-dialog';
+    dialog.setAttribute('aria-labelledby', 'proof-password-title');
+    dialog.setAttribute('aria-describedby', 'proof-password-file');
+    dialog.innerHTML = `<form method="dialog" autocomplete="off">
+        <div class="proof-password-heading"><i class="fas fa-file-lines" aria-hidden="true"></i><div>
+            <h2 id="proof-password-title">Open protected PDF</h2><p id="proof-password-file" dir="auto"></p>
+        </div></div>
+        <label for="proof-password-input">PDF password</label>
+        <input id="proof-password-input" type="password" required autocomplete="off" autocapitalize="none"
+            spellcheck="false" autofocus aria-describedby="proof-password-help">
+        <p id="proof-password-help" role="status"></p>
+        <div class="proof-password-actions">
+            <button type="button" class="flow-action--secondary">Skip this file</button>
+            <button type="submit" class="dialog-button">Open PDF</button>
+        </div>
+    </form>`;
+    dialog.querySelector('#proof-password-file')!.textContent = fileName;
+    const input = dialog.querySelector('input')!;
+    const help = dialog.querySelector<HTMLElement>('#proof-password-help')!;
+    const open = dialog.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    dialog.querySelector('form')!.onsubmit = event => {
+        event.preventDefault();
+        if (open.disabled) return;
+        open.disabled = true;
+        input.readOnly = true;
+        const password = input.value;
+        input.value = '';
+        unlock(password);
+    };
+    dialog.querySelector<HTMLButtonElement>('button[type=button]')!.onclick = skip;
+    dialog.oncancel = event => { event.preventDefault(); skip(); };
+    document.body.appendChild(dialog);
+    return {
+        ask(incorrect: boolean) {
+            open.disabled = false;
+            input.readOnly = false;
+            help.textContent = incorrect ? 'Incorrect password. Try again.' : 'Your password stays on this device.';
+            input.setAttribute('aria-invalid', String(incorrect));
+            if (!dialog.open) dialog.showModal();
+            input.focus();
+        },
+        close() {
+            input.value = '';
+            dialog.close();
+            dialog.remove();
+        }
+    };
+}
+
+async function openProofPdf(data: ArrayBuffer, fileName: string, isActive?: () => boolean): Promise<PdfDocument | null> {
+    const library = await ensurePdfJsReady();
+    const task = library.getDocument({ data });
+    let prompt: ReturnType<typeof createProofPasswordDialog> | undefined;
+    let reply: ((password: string | Error) => void) | undefined;
+    let skipped = false;
+    const skip = () => {
+        skipped = true;
+        // PDF.js rejects the pending password request when its callback receives an Error.
+        reply?.(new Error('PDF skipped'));
+        prompt?.close();
+    };
+    task.onPassword = (updatePassword, reason) => {
+        reply = updatePassword;
+        if (skipped || isActive?.() === false) { skip(); return; }
+        if (!prompt) {
+            prompt = createProofPasswordDialog(fileName, password => {
+                const answer = reply;
+                reply = undefined;
+                answer?.(password);
+            }, skip);
+            window.addEventListener('pagehide', skip);
+        }
+        prompt.ask(reason === library.PasswordResponses.INCORRECT_PASSWORD);
+    };
+    try {
+        const pdf = await task.promise;
+        if (!skipped) return pdf;
+        await pdf.destroy?.();
+        return null;
+    } catch (error) {
+        await task.destroy?.();
+        if (skipped) return null;
+        throw error;
+    } finally {
+        window.removeEventListener('pagehide', skip);
+        prompt?.close();
+    }
 }
 
 function ensurePdfJsReady(): Promise<PdfJsLibrary> {
