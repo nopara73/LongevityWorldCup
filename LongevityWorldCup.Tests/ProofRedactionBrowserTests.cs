@@ -119,6 +119,64 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task SinglePageReprint_SubmitsItsRedactionAndLeavesAnotherVisitUntouched(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, onboarding);
+        var report = Assert.Single(await ReportsAsync(page, true));
+        var secondPage = new FilePayload { Name = "Page two.pdf", MimeType = report.MimeType, Buffer = [.. report.Buffer, 1] };
+        var otherVisit = new FilePayload { Name = "Another visit.pdf", MimeType = report.MimeType, Buffer = [.. report.Buffer, 2] };
+
+        await UploadAsync(page, [otherVisit]);
+        var untouchedVisit = Assert.Single(await SourcesAsync(page));
+        await page.Locator(".proof-page-remove").ClickAsync();
+        await UploadAsync(page, [report]);
+        var firstPage = (await SourcesAsync(page))[0];
+        await page.Locator(".proof-page-preview").Nth(1).ClickAsync();
+        await ReadyAsync(page);
+        await DrawAsync(page, 50, 170, 600, 170);
+        await SavedAsync(page);
+        await page.Locator(".proof-review-close").ClickAsync();
+        await page.Locator(".proof-page-remove").Nth(1).ClickAsync();
+        await UploadAsync(page, [secondPage, otherVisit]);
+        var previews = await SourcesAsync(page);
+        Assert.Equal(3, previews.Length);
+
+        foreach (var checkbox in await page.Locator(".biomarker-checkbox").AllAsync()) await checkbox.CheckAsync();
+        if (onboarding)
+        {
+            foreach (var heading in new[] { "Final details", "Application" })
+            {
+                await page.Locator("#nextButton").ClickAsync();
+                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+            }
+        }
+        var request = page.WaitForRequestAsync(r => r.Method == "POST" && r.Url.EndsWith("/api/application/application"));
+        await page.Locator(onboarding ? "#nextButton" : "#submitButton").ClickAsync();
+        using var payload = JsonDocument.Parse((await request).PostData!);
+        var submitted = payload.RootElement.GetProperty("proofPics").EnumerateArray().Select(value => value.GetString()!).ToArray();
+        Assert.Equal(previews, submitted);
+        Assert.Equal(firstPage, submitted[0]);
+        Assert.Equal(untouchedVisit, submitted[2]);
+        using var reprint = Image.Load<Rgba32>(Convert.FromBase64String(submitted[1].Split(',')[1]));
+        AssertReprintMask(reprint);
+    }
+
+    private static void AssertReprintMask(Image<Rgba32> image)
+    {
+        Assert.Equal(1200, image.Width);
+        for (var y = 256; y < 403; y++)
+        for (var x = 183; x < 733; x++)
+        {
+            var pixel = image[x, y];
+            Assert.True(pixel.R < 12 && pixel.G < 12 && pixel.B < 12 && pixel.A == 255,
+                $"The reprinted copy revealed pixel {x},{y} in the hidden area.");
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task ReattachingAReprintedPdf_KeepsTheRedactionOnTheMatchingPage(bool cachedPrint)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
@@ -149,14 +207,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         Assert.Equal(2, current.Length);
         using var edited = Image.Load<Rgba32>(Convert.FromBase64String(current[0].Split(',')[1]));
         using var other = Image.Load<Rgba32>(Convert.FromBase64String(current[1].Split(',')[1]));
-        Assert.Equal(1200, edited.Width);
-        for (var y = 256; y < 403; y++)
-        for (var x = 183; x < 733; x++)
-        {
-            var pixel = edited[x, y];
-            Assert.True(pixel.R < 12 && pixel.G < 12 && pixel.B < 12 && pixel.A == 255,
-                $"The reprinted copy revealed pixel {x},{y} in the hidden area.");
-        }
+        AssertReprintMask(edited);
         Assert.True(other[680, 330].R > 230, "A redaction on the first page must leave the second page clear.");
         await page.Locator(".proof-page-preview").First.ClickAsync();
         await ReadyAsync(page);
@@ -626,16 +677,17 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     private static async Task<FilePayload[]> ReportsAsync(IPage page, bool pdf)
     {
         var images = await page.EvaluateAsync<string[]>("""
-            () => [1,2].map(number => {
+            pdf => (pdf ? [1,2,2] : [1,2]).map((number, index) => {
                 const canvas = document.createElement('canvas'); canvas.width=1000; canvas.height=1300;
                 const c=canvas.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,1000,1300);
                 c.fillStyle='#183b47'; c.font='bold 36px Arial'; c.fillText('EXAMPLE LABORATORY '+number,60,85);
                 c.fillStyle='#111'; c.font='28px Arial';
                 ['Name: Example Athlete','Address: 123 Example Street','Patient ID: EXAMPLE-012345'].forEach((s,i)=>c.fillText(s,60,210+i*55));
-                ['Collection date: 1 October 2026','Albumin: 43 g/L','Glucose: 5.0 mmol/L','Creatinine: 82 µmol/L','Source: Example Laboratory'].forEach((s,i)=>c.fillText(s,60,410+i*65));
+                const albumin = index === 2 ? 'Albumin: 48 g/L' : 'Albumin: 43 g/L';
+                ['Collection date: 1 October 2026',albumin,'Glucose: 5.0 mmol/L','Creatinine: 82 µmol/L','Source: Example Laboratory'].forEach((s,i)=>c.fillText(s,60,410+i*65));
                 return canvas.toDataURL('image/png');
             })
-            """);
+            """, pdf);
         if (!pdf) return images.Select((source, index) => new FilePayload
         { Name = $"Synthetic report {index + 1}.png", MimeType = "image/png", Buffer = Convert.FromBase64String(source.Split(',')[1]) }).ToArray();
         // Deterministic PDF rasterization at the converter boundary. The separate
@@ -645,15 +697,17 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
                 window.pdfjsLib = {
                     GlobalWorkerOptions: {},
                     getDocument({ data }) {
-                        const reprint = new Uint8Array(data).at(-1) === 0;
+                        const variant = new Uint8Array(data).at(-1);
+                        const singlePage = variant === 1 || variant === 2;
+                        const reprint = variant === 0 || singlePage;
                         const width = reprint ? 1200 : 1000, height = reprint ? 1520 : 1300;
                         return { promise: Promise.resolve({
-                            numPages: 2,
+                            numPages: singlePage ? 1 : 2,
                             getPage: async n => ({
                                 getViewport: () => ({ width, height }),
                                 render: ({ canvasContext }) => ({ promise: (async () => {
                                     const image = new Image();
-                                    image.src = images[n - 1];
+                                    image.src = images[singlePage ? variant : n - 1];
                                     await image.decode();
                                     canvasContext.fillStyle = '#fff';
                                     canvasContext.fillRect(0, 0, width, height);

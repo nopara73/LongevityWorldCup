@@ -382,13 +382,26 @@ function containsProofArea(outer: ProofArea, inner: ProofArea): boolean {
 }
 
 interface PdfProofAppearance {
-    pageNumber: number;
-    pageCount: number;
     width: number;
     height: number;
     content: ProofArea;
     samples: Uint8ClampedArray;
     textFingerprint: string;
+}
+
+function findPdfContent(pixels: ImageData): ProofArea | undefined {
+    const { width, height, data } = pixels;
+    let left = width, top = height, right = -1, bottom = -1;
+    for (let y = 0; y < height; y++) {
+        for (let x = 0, i = y * width * 4; x < width; x++, i += 4) {
+            if (data[i]! + data[i + 1]! + data[i + 2]! >= 3 * 220) continue;
+            left = Math.min(left, x);
+            right = Math.max(right, x);
+            top = Math.min(top, y);
+            bottom = Math.max(bottom, y);
+        }
+    }
+    return right > left && bottom > top ? { x: left, y: top, width: right + 1 - left, height: bottom + 1 - top } : undefined;
 }
 
 async function fingerprintPdfText(page: PdfPage): Promise<string> {
@@ -428,7 +441,7 @@ function samplePdfContent(pixels: ImageData, left: number, top: number, width: n
 }
 
 async function describePdfProof(canvas: HTMLCanvasElement, width: number, height: number,
-    page: PdfPage, pageNumber: number, pageCount: number): Promise<PdfProofAppearance | undefined> {
+    page: PdfPage): Promise<PdfProofAppearance | undefined> {
     // PDF print drivers can scale the content and add white margins. Compare the
     // printed content independently of the paper size or the encoder's output.
     const probe = document.createElement('canvas');
@@ -441,32 +454,19 @@ async function describePdfProof(canvas: HTMLCanvasElement, width: number, height
     context.fillStyle = '#fff';
     context.fillRect(0, 0, probe.width, probe.height);
     context.drawImage(canvas, 0, 0, probe.width, probe.height);
-    let left = probe.width, top = probe.height, right = -1, bottom = -1;
     const pixels = context.getImageData(0, 0, probe.width, probe.height);
-    const { data } = pixels;
-    for (let i = 0; i < data.length; i += 4) {
-        if (data[i]! + data[i + 1]! + data[i + 2]! >= 3 * 220) continue;
-        const x = (i / 4) % probe.width;
-        const y = Math.floor(i / 4 / probe.width);
-        left = Math.min(left, x);
-        right = Math.max(right, x);
-        top = Math.min(top, y);
-        bottom = Math.max(bottom, y);
-    }
-    if (right <= left || bottom <= top) return undefined;
-    const x = left / probe.width, y = top / probe.height;
-    const contentWidth = right + 1 - left, contentHeight = bottom + 1 - top;
-    const w = contentWidth / probe.width, h = contentHeight / probe.height;
+    const bounds = findPdfContent(pixels);
+    if (!bounds) return undefined;
+    const sx = width / probe.width, sy = height / probe.height;
     return {
-        pageNumber, pageCount, width, height,
-        content: { x: x * width, y: y * height, width: w * width, height: h * height },
-        samples: samplePdfContent(pixels, left, top, contentWidth, contentHeight),
+        width, height,
+        content: { x: bounds.x * sx, y: bounds.y * sy, width: bounds.width * sx, height: bounds.height * sy },
+        samples: samplePdfContent(pixels, bounds.x, bounds.y, bounds.width, bounds.height),
         textFingerprint: await fingerprintPdfText(page)
     };
 }
 
 function pdfProofDifference(reference: PdfProofAppearance, copy: PdfProofAppearance): number {
-    if (reference.pageNumber !== copy.pageNumber || reference.pageCount !== copy.pageCount) return Infinity;
     if (reference.textFingerprint && copy.textFingerprint && reference.textFingerprint !== copy.textFingerprint) return Infinity;
     const a = reference.content, b = copy.content;
     const aspectRatio = (a.width * b.height) / (a.height * b.width);
@@ -486,6 +486,99 @@ function pdfProofDifference(reference: PdfProofAppearance, copy: PdfProofAppeara
     // alone cannot make two pages look similar.
     if (!ink || 2 * colorDifference / ink > .05) return Infinity;
     return 2 * difference / ink;
+}
+
+// Compare the unmasked pages at the scale of printed characters. The 32-by-32
+// layout samples above only shortlist candidates: visits on one form share them.
+const pdfDetailSize = 1280;
+const pdfDetailMargin = 6;
+const pdfDetailStride = pdfDetailSize + 2 * pdfDetailMargin;
+
+async function readPdfPrintDetail(original: string): Promise<Uint8Array> {
+    const image = new Image();
+    image.src = original;
+    const canvas = document.createElement('canvas');
+    try {
+        await image.decode();
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        if (!context) throw new Error('Proof comparison canvas unavailable.');
+        context.drawImage(image, 0, 0);
+        const bounds = findPdfContent(context.getImageData(0, 0, canvas.width, canvas.height));
+        if (!bounds) throw new Error('Proof comparison content unavailable.');
+        canvas.width = canvas.height = pdfDetailStride;
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.imageSmoothingQuality = 'high';
+        context.drawImage(image, bounds.x, bounds.y, bounds.width, bounds.height,
+            pdfDetailMargin, pdfDetailMargin, pdfDetailSize, pdfDetailSize);
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+        const luminance = new Uint8Array(data.length / 4);
+        for (let i = 0; i < luminance.length; i++) {
+            luminance[i] = (77 * data[4 * i]! + 150 * data[4 * i + 1]! + 29 * data[4 * i + 2]!) >> 8;
+        }
+        // Smooth subpixel antialiasing before comparing the shapes of strokes.
+        const filtered = luminance.slice();
+        const vertical = 2 * pdfDetailStride;
+        for (let i = vertical + 2; i < luminance.length - vertical - 2; i++) {
+            const up = i - vertical, down = i + vertical;
+            filtered[i] = (luminance[up - 2]! + 2 * luminance[up]! + luminance[up + 2]!
+                + 2 * luminance[i - 2]! + 4 * luminance[i]! + 2 * luminance[i + 2]!
+                + luminance[down - 2]! + 2 * luminance[down]! + luminance[down + 2]! + 8) >> 4;
+        }
+        return filtered;
+    } finally {
+        canvas.width = canvas.height = 0;
+        image.removeAttribute('src');
+    }
+}
+
+const pdfDetailPatchSize = 7;
+function samePrintPatch(reference: Uint8Array, copy: Uint8Array, start: number, offset: number): boolean {
+    let sumReference = 0, sumCopy = 0, squaredReference = 0, squaredCopy = 0, products = 0;
+    for (let row = 0; row < pdfDetailPatchSize; row++) {
+        // Sample every other pixel so the alignment search has half-sample precision.
+        const end = start + 2 * pdfDetailPatchSize;
+        for (let i = start; i < end; i += 2) {
+            const originalInk = reference[i]!, newInk = copy[i + offset]!;
+            sumReference += originalInk;
+            sumCopy += newInk;
+            squaredReference += originalInk * originalInk;
+            squaredCopy += newInk * newInk;
+            products += originalInk * newInk;
+        }
+        start += 2 * pdfDetailStride;
+    }
+    const samples = pdfDetailPatchSize ** 2;
+    const referenceContrast = Math.sqrt(Math.max(0, squaredReference / samples - (sumReference / samples) ** 2));
+    const copyContrast = Math.sqrt(Math.max(0, squaredCopy / samples - (sumCopy / samples) ** 2));
+    const covariance = products / samples - (sumReference / samples) * (sumCopy / samples);
+    // A patch must agree in tone, contrast and spatial pattern. The noise
+    // allowance prevents a nearly blank patch from amplifying JPEG artifacts.
+    const noiseVariance = 350;
+    return Math.abs(sumReference - sumCopy) <= 52 * samples && Math.abs(referenceContrast - copyContrast) <= 45
+        && covariance + noiseVariance >= .73 * (referenceContrast * copyContrast + noiseVariance);
+}
+
+function samePdfPrintDetail(reference: Uint8Array, copy: Uint8Array): boolean {
+    // A print can move a whole character slightly. Its strokes must still line
+    // up together; a changed value cannot be averaged into the rest of a page.
+    const last = pdfDetailSize - (2 * pdfDetailPatchSize - 1);
+    for (let y = 0; y < last + 4; y += 4) {
+        for (let x = 0; x < last + 4; x += 4) {
+            const start = (pdfDetailMargin + Math.min(y, last)) * pdfDetailStride + pdfDetailMargin + Math.min(x, last);
+            if (samePrintPatch(reference, copy, start, 0)) continue;
+            let matched = false;
+            for (let dy = -4; dy <= 4 && !matched; dy++) {
+                for (let dx = -4; dx <= 4 && !matched; dx++) {
+                    matched = samePrintPatch(reference, copy, start, dy * pdfDetailStride + dx);
+                }
+            }
+            if (!matched) return false;
+        }
+    }
+    return true;
 }
 
 function projectPdfRedaction(area: ProofArea, previous: PdfProofAppearance, copy: PdfProofAppearance): ProofArea {
@@ -1044,7 +1137,8 @@ class ProofReview {
     private opener: Element | null = null;
     private editor: ProofRedaction | null = null;
     private editPages: Map<string, ProofEditPage>;
-    private pdfRedactions = new Map<PdfProofAppearance, { revision: number; areas: readonly ProofArea[] }>();
+    private pdfRedactions = new Map<PdfProofAppearance, { revision: number; areas: readonly ProofArea[]; original: string }>();
+    private lastPdfDetail: { original: string; pixels: Uint8Array } | undefined;
     private pdfRedactionRevision = 0;
     private saveTask: Promise<void> | null = null;
     private editingPending: (pending: boolean) => void;
@@ -1428,11 +1522,15 @@ class ProofReview {
         const lastApplied = copy.pdfRedactionRevision ?? 0;
         let revision = lastApplied;
         let areas = copy.committedAreas;
-        const referenceTexts = new Set<string>();
+        let copyDetail: Uint8Array | undefined;
         for (const [reference, redaction] of this.pdfRedactions) {
             if (redaction.revision <= lastApplied || pdfProofDifference(reference, appearance) > .15) continue;
+            copyDetail ??= await readPdfPrintDetail(copy.original);
+            if (this.lastPdfDetail?.original !== redaction.original) {
+                this.lastPdfDetail = { original: redaction.original, pixels: await readPdfPrintDetail(redaction.original) };
+            }
+            if (!samePdfPrintDetail(this.lastPdfDetail.pixels, copyDetail)) continue;
             revision = Math.max(revision, redaction.revision);
-            if (reference.textFingerprint) referenceTexts.add(reference.textFingerprint);
             for (const area of redaction.areas) {
                 const projected = projectPdfRedaction(area, reference, appearance);
                 if (projected.width <= 0 || projected.height <= 0 || areas.some(existing => containsProofArea(existing, projected))) continue;
@@ -1452,11 +1550,6 @@ class ProofReview {
             this.replacePageImage(copy, replacement);
         }
         copy.pdfRedactionRevision = revision;
-        // A reprint can lose its text layer. Remember an unambiguous match so
-        // later edits to the reprint don't affect digital reports with new values.
-        if (!appearance.textFingerprint && referenceTexts.size === 1) {
-            appearance.textFingerprint = referenceTexts.values().next().value!;
-        }
         return replacement;
     }
 
@@ -1512,7 +1605,7 @@ class ProofReview {
                             // don't accumulate alignment padding on every reprint.
                             const revision = ++this.pdfRedactionRevision;
                             item.page.pdfRedactionRevision = revision;
-                            if (item.areas.length) this.pdfRedactions.set(item.page.pdfAppearance, { revision, areas: item.areas });
+                            if (item.areas.length) this.pdfRedactions.set(item.page.pdfAppearance, { revision, areas: item.areas, original: item.page.original });
                             else this.pdfRedactions.delete(item.page.pdfAppearance);
                         }
                     }
@@ -1760,7 +1853,7 @@ window.setupProofUploadHTML = function (
                                     optimizedPage = await resolveProofImage(encoded.source);
                                     if (optimizedPage === encoded.source) {
                                         review.rememberPdfAppearance(optimizedPage,
-                                            await describePdfProof(canvas, encoded.width, encoded.height, page, pageNum, pdfDoc.numPages));
+                                            await describePdfProof(canvas, encoded.width, encoded.height, page));
                                     }
                                     optimizedPage = await keepPdfRedactions(optimizedPage);
                                 } finally {
