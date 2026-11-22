@@ -126,10 +126,13 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         var report = Assert.Single(await ReportsAsync(page, true));
         var secondPage = new FilePayload { Name = "Page two.pdf", MimeType = report.MimeType, Buffer = [.. report.Buffer, 1] };
         var otherVisit = new FilePayload { Name = "Another visit.pdf", MimeType = report.MimeType, Buffer = [.. report.Buffer, 2] };
+        var lookalike = new FilePayload { Name = "Another specimen.pdf", MimeType = report.MimeType, Buffer = [.. report.Buffer, 3] };
 
-        await UploadAsync(page, [otherVisit]);
-        var untouchedVisit = Assert.Single(await SourcesAsync(page));
-        await page.Locator(".proof-page-remove").ClickAsync();
+        await UploadAsync(page, [otherVisit, lookalike]);
+        var cleanVisits = await SourcesAsync(page);
+        Assert.Equal(2, cleanVisits.Length);
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
         await UploadAsync(page, [report]);
         var firstPage = (await SourcesAsync(page))[0];
         await page.Locator(".proof-page-preview").Nth(1).ClickAsync();
@@ -138,9 +141,23 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await SavedAsync(page);
         await page.Locator(".proof-review-close").ClickAsync();
         await page.Locator(".proof-page-remove").Nth(1).ClickAsync();
-        await UploadAsync(page, [secondPage, otherVisit]);
+        var decision = page.GetByRole(AriaRole.Dialog, new() { Name = "Keep earlier redactions?" });
+        await page.Locator("#proofPicInput").SetInputFilesAsync([secondPage]);
+        await decision.WaitForAsync();
+        Assert.Equal(new[] { firstPage }, await SourcesAsync(page));
+        await Assertions.Expect(page.Locator(onboarding ? "#nextButton" : "#submitButton")).ToBeDisabledAsync();
+        await decision.PressAsync("Escape");
+        await SavedAsync(page);
+        Assert.Equal(new[] { firstPage }, await SourcesAsync(page));
+
+        await page.Locator("#proofPicInput").SetInputFilesAsync([secondPage, otherVisit]);
+        await decision.GetByRole(AriaRole.Button, new() { Name = "Keep redactions" }).ClickAsync();
+        await SavedAsync(page);
+        await page.Locator("#proofPicInput").SetInputFilesAsync([lookalike]);
+        await decision.GetByRole(AriaRole.Button, new() { Name = "Different report" }).ClickAsync();
+        await SavedAsync(page);
         var previews = await SourcesAsync(page);
-        Assert.Equal(3, previews.Length);
+        Assert.Equal(4, previews.Length);
 
         foreach (var checkbox in await page.Locator(".biomarker-checkbox").AllAsync()) await checkbox.CheckAsync();
         if (onboarding)
@@ -157,7 +174,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         var submitted = payload.RootElement.GetProperty("proofPics").EnumerateArray().Select(value => value.GetString()!).ToArray();
         Assert.Equal(previews, submitted);
         Assert.Equal(firstPage, submitted[0]);
-        Assert.Equal(untouchedVisit, submitted[2]);
+        Assert.Equal(cleanVisits, submitted[2..]);
         using var reprint = Image.Load<Rgba32>(Convert.FromBase64String(submitted[1].Split(',')[1]));
         AssertReprintMask(reprint);
     }
@@ -201,7 +218,9 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await page.Locator(".proof-review-close").ClickAsync();
         await page.Locator(".proof-page-remove").Last.ClickAsync();
         await page.Locator(".proof-page-remove").Last.ClickAsync();
-        await UploadAsync(page, [reprint]);
+        await page.Locator("#proofPicInput").SetInputFilesAsync([reprint]);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Keep redactions" }).ClickAsync();
+        await SavedAsync(page);
 
         var current = await SourcesAsync(page);
         Assert.Equal(2, current.Length);
@@ -677,7 +696,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     private static async Task<FilePayload[]> ReportsAsync(IPage page, bool pdf)
     {
         var images = await page.EvaluateAsync<string[]>("""
-            pdf => (pdf ? [1,2,2] : [1,2]).map((number, index) => {
+            pdf => (pdf ? [1,2,2,2] : [1,2]).map((number, index) => {
                 const canvas = document.createElement('canvas'); canvas.width=1000; canvas.height=1300;
                 const c=canvas.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,1000,1300);
                 c.fillStyle='#183b47'; c.font='bold 36px Arial'; c.fillText('EXAMPLE LABORATORY '+number,60,85);
@@ -685,6 +704,10 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
                 ['Name: Example Athlete','Address: 123 Example Street','Patient ID: EXAMPLE-012345'].forEach((s,i)=>c.fillText(s,60,210+i*55));
                 const albumin = index === 2 ? 'Albumin: 48 g/L' : 'Albumin: 43 g/L';
                 ['Collection date: 1 October 2026',albumin,'Glucose: 5.0 mmol/L','Creatinine: 82 µmol/L','Source: Example Laboratory'].forEach((s,i)=>c.fillText(s,60,410+i*65));
+                if (pdf) {
+                    c.font='12px Arial'; c.fillStyle='#687479';
+                    c.fillText(index === 3 ? 'Specimen 008' : 'Specimen 006',60,615);
+                }
                 return canvas.toDataURL('image/png');
             })
             """, pdf);
@@ -698,7 +721,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
                     GlobalWorkerOptions: {},
                     getDocument({ data }) {
                         const variant = new Uint8Array(data).at(-1);
-                        const singlePage = variant === 1 || variant === 2;
+                        const singlePage = variant >= 1 && variant <= 3;
                         const reprint = variant === 0 || singlePage;
                         const width = reprint ? 1200 : 1000, height = reprint ? 1520 : 1300;
                         return { promise: Promise.resolve({

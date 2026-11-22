@@ -1336,7 +1336,7 @@ html body #biomarker-checklist .biomarker-checkbox {
 }
 html body #biomarker-checklist .biomarker-checkbox:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
 
-.proof-password-dialog {
+.proof-file-dialog {
     box-sizing: border-box;
     width: min(25rem, calc(100% - 2rem));
     max-height: calc(100% - 2rem);
@@ -1349,16 +1349,16 @@ html body #biomarker-checklist .biomarker-checkbox:focus-visible { outline: 3px 
     color: var(--lwc-ink);
     box-shadow: var(--lwc-shadow-md);
 }
-.proof-password-dialog::backdrop { background: rgba(4, 12, 20, .72); }
-.proof-password-dialog form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lwc-space-2); margin: 0; text-align: start; }
+.proof-file-dialog::backdrop { background: rgba(4, 12, 20, .72); }
+.proof-file-dialog form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lwc-space-2); margin: 0; text-align: start; }
 .proof-password-heading { display: flex; align-items: center; gap: var(--lwc-space-3); margin-bottom: var(--lwc-space-3); }
 .proof-password-heading > i {
     display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem;
     border-radius: var(--lwc-radius-md); background: var(--lwc-surface-accent); color: var(--lwc-accent);
 }
 .proof-password-heading > div { min-width: 0; }
-.proof-password-dialog h2 { margin: 0; color: var(--lwc-ink); font-size: var(--lwc-type-h2); text-align: start; }
-.proof-password-dialog p { margin: 0; color: var(--lwc-muted); font-size: var(--lwc-type-sm); overflow-wrap: anywhere; }
+.proof-file-dialog h2 { margin: 0; color: var(--lwc-ink); font-size: var(--lwc-type-h2); text-align: start; }
+.proof-file-dialog p { margin: 0; color: var(--lwc-muted); font-size: var(--lwc-type-sm); overflow-wrap: anywhere; }
 .proof-password-dialog label { margin: 0; color: var(--lwc-ink); font-weight: 700; }
 .proof-password-dialog input { box-sizing: border-box; width: 100%; padding: .6rem .75rem; font-size: max(16px, 1rem); }
 .proof-password-dialog input[aria-invalid="true"] { border-color: var(--lwc-danger); }
@@ -1366,6 +1366,13 @@ html body #biomarker-checklist .biomarker-checkbox:focus-visible { outline: 3px 
 .proof-password-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--lwc-space-2); margin-top: var(--lwc-space-3); }
 .proof-password-actions button { width: auto; min-height: 44px; padding: .55rem 1rem; margin: 0; font: inherit; font-weight: 700; }
 .proof-password-actions button:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+
+.proof-copy-dialog .proof-password-heading { margin-bottom: 0; }
+.proof-copy-dialog figure { margin: var(--lwc-space-2) 0 0; text-align: center; }
+.proof-copy-dialog figure img { display: block; width: 100%; height: clamp(5rem, 21vh, 9rem); object-fit: contain; }
+.proof-copy-dialog figcaption { margin-top: .4rem; overflow-wrap: anywhere; color: var(--lwc-muted); font-size: var(--lwc-type-sm); }
+.proof-copy-dialog .proof-password-actions { margin-top: var(--lwc-space-2); }
+.proof-copy-dialog .proof-copy-skip { justify-self: center; width: auto; min-height: 44px; margin: 0; padding: 0 .5rem; color: var(--lwc-muted); background: none; border: none; font: inherit; text-decoration: underline; cursor: pointer; }
 
 /* Viewer: the card opened full screen, with every page as a thumbnail below. */
 body.proof-review-open { overflow: hidden; }
