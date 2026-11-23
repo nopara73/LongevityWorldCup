@@ -908,13 +908,15 @@
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="text" id="crp" name="crp" required aria-required="true" aria-label="C-reactive protein (CRP)" inputmode="decimal" spellcheck="false" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="text" id="crp" name="crp" required aria-required="true" aria-label="C-reactive protein (CRP)" aria-describedby="crp-entry-help crp-score-note" inputmode="text" autocapitalize="none" spellcheck="false" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="crpUnit" class="visually-hidden">CRP unit</label>
                                     <select id="crpUnit" name="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="10">mg/L</option>
                                         <option value="1">mg/dL</option>
                                     </select>
                                 </div>
+                                <p id="crp-entry-help" class="crp-entry-note">You can also enter a lab limit such as &lt;1, or “negative”.</p>
+                                <p id="crp-score-note" class="crp-entry-note" role="status"></p>
                             </div>
                         </div>
                     </fieldset>
@@ -2228,6 +2230,7 @@
                         expandFieldCard(id);
                     }
                 });
+                bioageFlow.restoreReportedCrp(stored.CrpReports?.[entry.Date]);
             }
             // Explicit links take precedence over an older result handoff.
             overwritePhenoFormFromUrlParams();
@@ -2328,9 +2331,8 @@
                 / parseFloat(document.getElementById('creatinineUnit').value)).toFixed(2));
             entry.GluMmolL = parseFloat((parseBiomarkerInput(document.getElementById('glucose').value)
                 / parseFloat(document.getElementById('glucoseUnit').value)).toFixed(2));
-            entry.CrpMgL = parseFloat(((parseBiomarkerInput(document.getElementById('crp').value)
-                / parseFloat(document.getElementById('crpUnit').value)) * 10).toFixed(2)); // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
-
+            const crp = bioageFlow.readCrpEntry();
+            entry.CrpMgL = crp.mgL;
 
             const biomarkerData = {
                 DateOfBirth: {
@@ -2340,6 +2342,7 @@
                 },
                 Biomarkers: [entry]
             };
+            if (crp.report) biomarkerData.CrpReports = { [entry.Date]: crp.report };
 
             // Store the data in sessionStorage
             const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));

@@ -776,6 +776,28 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     color: var(--lwc-accent-hover, #087f91);
 }
 
+.crp-entry-note {
+    margin: 0.4rem 0 0;
+    color: var(--lwc-muted, #526373);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.5;
+    text-align: start;
+}
+
+#crp[data-crp-default] {
+    grid-column: 1 / -1;
+}
+
+#crp[data-crp-default] ~ #crpUnit,
+#crp-entry-help,
+#crp-score-note:empty {
+    display: none;
+}
+
+.biomarker-card-content:has(#crp:focus:placeholder-shown) #crp-entry-help {
+    display: block;
+}
+
 .bioage-biomarker-error {
     margin: 0.4rem 0 0;
     color: var(--danger-color, #b4233b);
