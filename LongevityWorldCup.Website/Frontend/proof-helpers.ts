@@ -1,4 +1,5 @@
 interface ProofUploadSetupOptions {
+    redactionScope?: string;
     cameraButton?: HTMLButtonElement | null;
     cameraInput?: HTMLInputElement | null;
     isActive?: () => boolean;
@@ -29,6 +30,7 @@ interface PdfPage {
 
 interface PdfDocument {
     numPages: number;
+    fingerprints?: (string | null)[];
     getPage: (pageNumber: number) => Promise<PdfPage>;
     destroy?: () => Promise<void>;
 }
@@ -45,6 +47,7 @@ interface PdfJsLibrary {
 }
 
 interface ProofHelpersWindowApi {
+    clearProofRedactionDraft: (scope: string) => Promise<void>;
     getMainProofInstructionsInnerHTML: () => string;
     getSubProofInstructionsInnerHTML: () => string;
     isAthletePro: (athlete: unknown) => boolean;
@@ -378,6 +381,78 @@ const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
 
 interface ProofArea { x: number; y: number; width: number; height: number; }
 
+interface ProofMaskPage { keys: string[]; width: number; height: number; }
+interface ProofMaskRecord extends ProofMaskPage { areas: ProofArea[]; }
+interface PdfDraftPageIdentity { pixels: string; rendition: string; width: number; height: number; }
+
+// The tab holds only opaque content keys and rectangle coordinates. A page has
+// a file-and-ordinal key and, for complete PDFs, a key for the ordered rendered
+// document. The latter also recognizes an unlocked copy without trusting its name.
+async function proofMaskStorageKey(scope: string): Promise<string> {
+    return 'proofRedactions:v1:' + (scope === 'application' ? scope
+        : await fingerprintProofSource(new TextEncoder().encode(scope).buffer));
+}
+
+window.clearProofRedactionDraft = async scope => {
+    try { sessionStorage.removeItem(await proofMaskStorageKey(scope)); } catch { /* Storage may be disabled. */ }
+};
+
+class ProofMaskDraft {
+    private storageKey: string | null = null;
+    readonly ready: Promise<void>;
+
+    constructor(scope: string | undefined) {
+        this.ready = scope && window.crypto?.subtle ? proofMaskStorageKey(scope).then(key => {
+            sessionStorage.getItem(key);
+            this.storageKey = key;
+        }).catch(() => {}) : Promise.resolve();
+    }
+
+    get available(): boolean { return this.storageKey !== null; }
+
+    private read(): ProofMaskRecord[] {
+        if (!this.storageKey) return [];
+        const raw = sessionStorage.getItem(this.storageKey);
+        if (raw === null) return [];
+        const records: unknown = JSON.parse(raw);
+        if (!Array.isArray(records) || !records.every(record => record && Array.isArray(record.keys)
+            && record.keys.every((k: unknown) => typeof k === 'string') && Number.isInteger(record.width) && record.width > 0
+            && Number.isInteger(record.height) && record.height > 0 && Array.isArray(record.areas)
+            && record.areas.length && record.areas.every((a: ProofArea) => a && Number.isFinite(a.x)
+                && Number.isFinite(a.y) && Number.isFinite(a.width) && Number.isFinite(a.height)
+                && a.x >= 0 && a.y >= 0 && a.width > 0 && a.height > 0
+                && a.x + a.width <= record.width + .001 && a.y + a.height <= record.height + .001))) {
+            throw new Error('Invalid saved proof rectangles.');
+        }
+        return records;
+    }
+
+    restore(page: ProofMaskPage): ProofArea[] {
+        const record = this.read().find(r => r.keys.some(k => page.keys.includes(k)));
+        if (!record) return [];
+        page.keys = [...new Set([...record.keys, ...page.keys])];
+        const sx = page.width / record.width, sy = page.height / record.height;
+        return record.areas.map(a => ({ x: a.x * sx, y: a.y * sy, width: a.width * sx, height: a.height * sy }));
+    }
+
+    save(page: ProofMaskPage, areas: readonly ProofArea[]): void {
+        if (!this.storageKey) throw new Error('Tab storage is unavailable.');
+        const records = this.read();
+        const otherPages: ProofMaskRecord[] = [];
+        const aliases = new Set(page.keys);
+        for (const record of records) {
+            if (record.keys.some(k => page.keys.includes(k))) record.keys.forEach(key => aliases.add(key));
+            else otherPages.push(record);
+        }
+        if (areas.length) {
+            page.keys = [...aliases];
+            otherPages.push({ ...page, areas: areas.map(a => ({ ...a })) });
+        }
+        if (otherPages.length) sessionStorage.setItem(this.storageKey, JSON.stringify(otherPages));
+        else sessionStorage.removeItem(this.storageKey);
+    }
+}
+
 function containsProofArea(outer: ProofArea, inner: ProofArea): boolean {
     return outer.x <= inner.x && outer.y <= inner.y
         && outer.x + outer.width >= inner.x + inner.width && outer.y + outer.height >= inner.y + inner.height;
@@ -650,6 +725,7 @@ function projectPdfRedaction(area: ProofArea, previous: PdfProofAppearance, copy
 }
 
 interface ProofEditPage {
+    draftPage?: ProofMaskPage;
     original: string;
     current: string;
     areas: ProofArea[];
@@ -1193,6 +1269,7 @@ class ProofReview {
     private opener: Element | null = null;
     private editor: ProofRedaction | null = null;
     private editPages: Map<string, ProofEditPage>;
+    private maskDraft: ProofMaskDraft;
     private pdfRedactions = new Map<PdfProofAppearance, SavedPdfRedaction>();
     private lastPdfDetail: { original: string; detail: PdfPrintDetail } | undefined;
     private pdfCopyDecisions = new WeakMap<PdfProofAppearance, WeakMap<PdfProofAppearance, boolean>>();
@@ -1215,13 +1292,15 @@ class ProofReview {
     };
 
     constructor(container: HTMLElement, images: string[], changed: () => void, hasUnsubmittedProofs: () => boolean,
-        replaceSources: (replacements: Map<string, string>) => Promise<void>, editingPending: (pending: boolean) => void) {
+        replaceSources: (replacements: Map<string, string>) => Promise<void>, editingPending: (pending: boolean) => void,
+        maskDraft: ProofMaskDraft) {
         this.container = container;
         this.images = images;
         this.changed = changed;
         this.hasUnsubmittedProofs = hasUnsubmittedProofs;
         this.replaceSources = replaceSources;
         this.editingPending = editingPending;
+        this.maskDraft = maskDraft;
         this.editPages = proofEdits.get(images) || new Map();
         proofEdits.set(images, this.editPages);
         images.forEach(image => this.shown.add(image));
@@ -1571,6 +1650,56 @@ class ProofReview {
         if (appearance) this.editPage(source).pdfAppearance ??= appearance;
     }
 
+    async restoreDraft(source: string, identity: ProofMaskPage): Promise<string> {
+        const page = this.editPage(source);
+        const known = page.draftPage;
+        if (known && identity.keys.some(k => known.keys.includes(k))) {
+            const additional = identity.keys.filter(k => !known.keys.includes(k));
+            if (additional.length) {
+                known.keys.push(...additional);
+                if (page.committedAreas.length) this.rememberDraft(page);
+            }
+            return page.current;
+        }
+        const areas = this.maskDraft.restore(identity);
+        if (areas.length) {
+            const flattened = await flattenProofAreas(page.original, areas);
+            // Restore only this incoming attachment. A clean, pixel-identical sheet
+            // already attached from a different report keeps its own pixels.
+            const restored = this.editPage(flattened);
+            restored.original = page.original;
+            restored.areas = areas;
+            restored.committedAreas = areas.map(a => ({ ...a }));
+            restored.draftPage = identity;
+            if (page.pdfAppearance) restored.pdfAppearance = page.pdfAppearance;
+            if (source !== flattened && !this.images.includes(source) && !this.removed.some(p => p.image === source)) this.editPages.delete(source);
+            this.announce('Your redactions were restored.');
+            this.rememberDraft(restored);
+            return flattened;
+        }
+        page.draftPage ??= identity;
+        return page.current;
+    }
+
+    private rememberDraft(page: ProofEditPage): void {
+        try {
+            if (!page.draftPage) throw new Error('Missing proof source identity.');
+            this.maskDraft.save(page.draftPage, page.committedAreas);
+        } catch {
+            this.announce('Keep this tab open. Your browser could not save these redactions for a refresh.');
+        }
+    }
+
+    private rememberPdfEdit(page: ProofEditPage, label: string): void {
+        if (!page.pdfAppearance) return;
+        const revision = ++this.pdfRedactionRevision;
+        page.pdfRedactionRevision = revision;
+        if (page.committedAreas.length) this.pdfRedactions.set(page.pdfAppearance, {
+            revision, areas: page.committedAreas, original: page.original, preview: page.current, label
+        });
+        else this.pdfRedactions.delete(page.pdfAppearance);
+    }
+
     private async matchPdfCopy(reference: PdfProofAppearance, saved: SavedPdfRedaction, copy: PdfProofAppearance,
         label: string, getCopyDetail: () => Promise<PdfPrintDetail>): Promise<PdfCopyDecision> {
         const known = this.pdfCopyDecisions.get(reference)?.get(copy);
@@ -1627,6 +1756,7 @@ class ProofReview {
             copy.committedAreas = areas.map(area => ({ ...area }));
             copy.undo = [];
             this.replacePageImage(copy, replacement);
+            this.rememberDraft(copy);
         }
         copy.pdfRedactionRevision = revision;
         return replacement;
@@ -1654,6 +1784,8 @@ class ProofReview {
         page.revision++;
         page.committedAreas = page.areas.map(area => ({ ...area }));
         page.failed = false;
+        // A reload can interrupt the encoder. Save the finished gesture while it is still synchronous.
+        this.rememberDraft(page);
         // Disable progression synchronously, before the first encoder await.
         this.editingPending(true);
         if (!this.saveTask) this.render();
@@ -1679,17 +1811,7 @@ class ProofReview {
                         this.replacePageImage(item.page, replacements.get(item.source)!);
                         item.page.savedRevision = item.revision;
                         item.page.failed = false;
-                        if (item.page.pdfAppearance) {
-                            // Record only intentional edits so automatic copies
-                            // don't accumulate alignment padding on every reprint.
-                            const revision = ++this.pdfRedactionRevision;
-                            item.page.pdfRedactionRevision = revision;
-                            if (item.areas.length) this.pdfRedactions.set(item.page.pdfAppearance, {
-                                revision, areas: item.areas, original: item.page.original, preview: item.page.current,
-                                label: this.labels.get(item.page.current) || 'Previously redacted page'
-                            });
-                            else this.pdfRedactions.delete(item.page.pdfAppearance);
-                        }
+                        this.rememberPdfEdit(item.page, this.labels.get(item.page.current) || 'Previously redacted page');
                     }
                     // Update existing thumbnails without replacing the focused
                     // filmstrip button or disrupting a gesture on the report.
@@ -1759,11 +1881,12 @@ window.setupProofUploadHTML = function (
     };
     const queuedProofSelections: { files: File[]; retryButton: HTMLButtonElement | null | undefined }[] = [];
     const proofSourceImages = new Map<string, string>();
+    const pdfPageIdentities = new Map<string, PdfDraftPageIdentity>();
+    const maskDraft = new ProofMaskDraft(options?.redactionScope);
     // Keep only a fingerprint of replaced bytes. Even a differently named input
     // that optimizes to the old image resolves to the latest flattened copy.
     const redactedImages = new Map<string, string>();
     const imageFingerprint = (source: string): Promise<string> => fingerprintProofSource(new TextEncoder().encode(source).buffer);
-    const resolveProofImage = async (source: string): Promise<string> => redactedImages.get(await imageFingerprint(source)) || source;
     const review = new ProofReview(proofImageContainer, proofPics,
         () => checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer),
         options?.hasUnsubmittedProofs || (() => proofPics.length > 0),
@@ -1779,7 +1902,7 @@ window.setupProofUploadHTML = function (
         }, pending => {
             isProofEditPending = pending;
             updateProcessing();
-        });
+        }, maskDraft);
     proofReviews.set(proofImageContainer, review);
 
     ensurePdfJsReady().catch(() => {});
@@ -1842,7 +1965,11 @@ window.setupProofUploadHTML = function (
         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
         review.setProgress({ label: 'Preparing proof files…', completed: 0, total: supportedFiles.length });
         try {
-            const optimizeProofImageOrFallback: (raw: string) => Promise<string> = async raw => {
+            await maskDraft.ready;
+            if (!maskDraft.available && options?.redactionScope) {
+                review.announce('This browser cannot remember redactions after a refresh. Check each proof before submitting.');
+            }
+            const optimizeProofImageOrFallback = async (raw: string) => {
                 let candidate = raw;
                 try {
                     const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
@@ -1857,7 +1984,7 @@ window.setupProofUploadHTML = function (
                 image.src = candidate;
                 await image.decode();
                 if (!image.naturalWidth || !image.naturalHeight) throw new Error('Proof image could not be decoded.');
-                return candidate;
+                return { source: candidate, width: image.naturalWidth, height: image.naturalHeight };
             };
 
             const keepPdfRedactions = async (source: string, label: string): Promise<string | null> => {
@@ -1867,28 +1994,17 @@ window.setupProofUploadHTML = function (
                 return edited;
             };
 
-            const useCachedProofSource = async (sourceKey: string, label: string, pdf = false): Promise<boolean> => {
-                const existingProof = proofSourceImages.get(sourceKey);
-                if (!existingProof) return false;
-                if (!knownProofImages.has(existingProof) && proofPics.length >= maxProofImages) hitImageLimit = true;
-                else {
-                    const image = pdf ? await keepPdfRedactions(existingProof, label) : existingProof;
-                    if (image) addProofImage(image, label);
-                }
-                // An earlier cached rendition may predate redacting another copy.
-                return true;
-            };
-
             let failedFiles = 0;
             const failedFileSamples: File[] = [];
             let hitImageLimit = false;
             let duplicateProofs = 0;
             const knownProofImages = new Set(proofPics);
             const addProofImage = (dataUrl: string, label: string): boolean => {
-                if (knownProofImages.has(dataUrl)) {
+                if (proofPics.includes(dataUrl)) {
                     duplicateProofs++;
                     return false;
                 }
+                if (proofPics.length >= maxProofImages) { hitImageLimit = true; return false; }
 
                 knownProofImages.add(dataUrl);
                 proofPics.push(dataUrl);
@@ -1906,15 +2022,26 @@ window.setupProofUploadHTML = function (
                     if (isProofPdfFile(file)) {
                         const pdfDoc = await openProofPdf(fileBytes, file.name, options?.isActive);
                         if (!pdfDoc) continue;
+                        const pageCount = pdfDoc.numPages;
+                        const pdfIds = pdfDoc.fingerprints;
+                        const prepared: (PdfDraftPageIdentity & { sourceKey: string; source: string; label: string })[] = [];
+                        const newPages = new Set<string>();
+                        let pageFailure: unknown;
                         try {
-                            // render each page
-                            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                                review.setProgress({ label: `${file.name} · Page ${pageNum} of ${pdfDoc.numPages}`,
-                                    completed: fileIndex + (pageNum - 1) / pdfDoc.numPages, total: supportedFiles.length });
+                            // Keep pages private until the ordered document can be recognized.
+                            // An unrelated visit may contain an identical page from the same lab.
+                            for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+                                review.setProgress({ label: `${file.name} · Page ${pageNum} of ${pageCount}`,
+                                    completed: fileIndex + (pageNum - 1) / pageCount, total: supportedFiles.length });
                                 const sourceKey = `${sourceFingerprint}:page:${pageNum}`;
                                 const label = `${file.name} · Page ${pageNum}`;
-                                if (await useCachedProofSource(sourceKey, label, true)) continue;
-                                if (proofPics.length >= maxProofImages) {
+                                const cached = proofSourceImages.get(sourceKey), identity = pdfPageIdentities.get(sourceKey);
+                                if (cached && identity) {
+                                    prepared.push({ sourceKey, source: cached, label, ...identity });
+                                    if (!knownProofImages.has(cached)) newPages.add(cached);
+                                    continue;
+                                }
+                                if (proofPics.length + newPages.size >= maxProofImages) {
                                     hitImageLimit = true;
                                     break;
                                 }
@@ -1930,42 +2057,68 @@ window.setupProofUploadHTML = function (
                                 const canvas = document.createElement('canvas');
                                 canvas.width = viewport.width;
                                 canvas.height = viewport.height;
-                                const context = canvas.getContext('2d');
+                                const context = canvas.getContext('2d', { willReadFrequently: maskDraft.available });
                                 if (!context) throw new Error('Canvas context unavailable.');
-                                let optimizedPage: string | null;
                                 try {
                                     await page.render({ canvasContext: context, viewport }).promise;
                                     const encoded = await encodeProofCanvas(canvas);
-                                    optimizedPage = await resolveProofImage(encoded.source);
+                                    const rendition = await imageFingerprint(encoded.source);
+                                    const optimizedPage = redactedImages.get(rendition) || encoded.source;
                                     if (optimizedPage === encoded.source) {
                                         review.rememberPdfAppearance(optimizedPage,
                                             await describePdfProof(canvas, encoded.width, encoded.height, page));
                                     }
-                                    optimizedPage = await keepPdfRedactions(optimizedPage, label);
+                                    // Include even marks that lossy WebP compression could erase.
+                                    const pixels = maskDraft.available ? `${canvas.width}x${canvas.height}:` +
+                                        await fingerprintProofSource(context.getImageData(0, 0, canvas.width, canvas.height).data.buffer) : '';
+                                    const identity = { pixels, rendition, width: encoded.width, height: encoded.height };
+                                    pdfPageIdentities.set(sourceKey, identity);
+                                    prepared.push({ sourceKey, source: optimizedPage, label, ...identity });
+                                    if (!knownProofImages.has(optimizedPage)) newPages.add(optimizedPage);
                                 } finally {
                                     canvas.width = canvas.height = 0;
                                 }
-                                if (optimizedPage) {
-                                    addProofImage(optimizedPage, label);
-                                    proofSourceImages.set(sourceKey, optimizedPage);
-                                }
                             }
+                        } catch (error) {
+                            pageFailure = error;
                         } finally {
                             await pdfDoc.destroy?.();
                         }
+                        const documentKeys: string[] = [];
+                        if (maskDraft.available && prepared.length === pageCount) {
+                            documentKeys.push(await imageFingerprint(prepared.map(p => p.pixels).join(',')));
+                            // Pixel readback can vary slightly. Also accept the same PDF revision
+                            // if every page produces the exact same unredacted upload image.
+                            if (pdfIds?.[0]) documentKeys.push(await imageFingerprint(JSON.stringify([pdfIds, prepared.map(p => p.rendition)])));
+                        }
+                        for (const [index, proof] of prepared.entries()) {
+                            const keys = [proof.sourceKey, ...documentKeys.map(k => `pdf:${k}:${index + 1}`)];
+                            const image = await review.restoreDraft(proof.source, { keys, width: proof.width, height: proof.height });
+                            const edited = await keepPdfRedactions(image, proof.label);
+                            if (edited) {
+                                addProofImage(edited, proof.label);
+                                proofSourceImages.set(proof.sourceKey, edited);
+                            }
+                        }
+                        if (pageFailure) throw pageFailure;
                         review.render();
                         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                         continue;
                     }
 
                     const sourceKey = `${sourceFingerprint}:image`;
-                    if (await useCachedProofSource(sourceKey, file.name)) continue;
+                    const cached = proofSourceImages.get(sourceKey);
+                    if (cached) { addProofImage(cached, file.name); continue; }
                     if (proofPics.length >= maxProofImages) {
                         hitImageLimit = true;
                         break;
                     }
                     const raw = await LwcUploadPhoto.read(file, proofOptimizationOptions.maxSize);
-                    const dataUrl = await resolveProofImage(await optimizeProofImageOrFallback(raw));
+                    const optimized = await optimizeProofImageOrFallback(raw);
+                    const image = redactedImages.get(await imageFingerprint(optimized.source)) || optimized.source;
+                    const dataUrl = await review.restoreDraft(image, {
+                        keys: [sourceKey], width: optimized.width, height: optimized.height
+                    });
                     if (dataUrl) {
                         proofSourceImages.set(sourceKey, dataUrl);
                         if (addProofImage(dataUrl, file.name)) {

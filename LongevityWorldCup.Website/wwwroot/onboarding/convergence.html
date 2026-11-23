@@ -1143,6 +1143,7 @@
         }
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
+        const proofRedactionScope = isFake ? 'application-preview' : 'application';
         const APPLICATION_DRAFT_KEY = 'applicationDetailsDraft:v1';
         const applicationDraftFields = ['name', 'division', 'flag', 'why', 'personalLink', 'mediaContact', 'accountEmail'];
         let applicationDraftDivision = '';
@@ -1762,8 +1763,9 @@
                 : null;
         }
 
-        function finishFullApplicationSubmission(submitResult, submissionContext) {
+        async function finishFullApplicationSubmission(submitResult, submissionContext) {
             window.LwcInitialView.hold();
+            await window.clearProofRedactionDraft?.(proofRedactionScope);
             const checkoutLink = getCheckoutLink(submitResult);
             const invoiceId = getInvoiceId(submitResult);
             const paymentRequired = isPaymentRequired(submitResult);
@@ -2201,6 +2203,7 @@
                     cameraButton: takeProofPhotoButton,
                     cameraInput: proofCameraInput,
                     hasUnsubmittedProofs: () => proofPics.length > 0,
+                    redactionScope: proofRedactionScope,
                     isActive: () => currentStage === 5
                 }
             );
@@ -2219,7 +2222,7 @@
                     const recovered = await window.tryRecoverPendingApplicationSubmission('full-application');
                     if (recovered) {
                         hideLoading();
-                        finishFullApplicationSubmission(recovered.submitResult, recovered.pending);
+                        await finishFullApplicationSubmission(recovered.submitResult, recovered.pending);
                         return;
                     }
                 } catch (error) {
@@ -2414,7 +2417,7 @@
                         if (submissionWait) await submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
                         else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
-                            finishFullApplicationSubmission(attempt.submitResult, {
+                            return finishFullApplicationSubmission(attempt.submitResult, {
                                 submissionId: submissionId,
                                 applicantName: applicantData.name,
                                 accountEmail: applicantData.accountEmail
@@ -2423,7 +2426,7 @@
                             const response = attempt.response;
                             const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
                             const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
-                            window.readApplicationError(response).catch(() => ({ message: fallbackError, field: null })).then(problem => {
+                            return window.readApplicationError(response).catch(() => ({ message: fallbackError, field: null })).then(problem => {
                                 const badResponse = problem.message;
                                 if (problem.field === 'profilePic') {
                                     recoverApplicationProfilePicture();
@@ -2434,12 +2437,11 @@
                                         type: `HTTP ${responseStatus}`,
                                         message: badResponse
                                     });
-                                    finishFullApplicationSubmission({ paymentRequired: true, paymentUnavailable: true }, {
+                                    return finishFullApplicationSubmission({ paymentRequired: true, paymentUnavailable: true }, {
                                         submissionId: submissionId,
                                         applicantName: applicantData.name,
                                         accountEmail: applicantData.accountEmail
                                     });
-                                    return;
                                 }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: `HTTP ${responseStatus}`,

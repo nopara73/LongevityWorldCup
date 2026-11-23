@@ -13,6 +13,110 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Refresh_RestoresOnlyTheMatchingProofMasksBeforeSubmission(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, onboarding);
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        var files = await ReportsAsync(page, pdf: false);
+        await UploadAsync(page, [files[0]]);
+        var original = (await SourcesAsync(page)).Single();
+        await page.Locator(".proof-page-preview").ClickAsync();
+        await ReadyAsync(page);
+        // The user may refresh the moment they finish drawing, before WebP encoding finishes.
+        await page.EvaluateAsync("() => { HTMLCanvasElement.prototype.toBlob = () => {}; }");
+        await DrawAsync(page, 50, 170, 600, 170);
+        await page.WaitForFunctionAsync("() => document.querySelector('#proofPicInput').disabled");
+        var draft = await page.EvaluateAsync<string>("() => sessionStorage.getItem(Object.keys(sessionStorage).find(k => k.startsWith('proofRedactions:v1:')))");
+        Assert.DoesNotContain("data:", draft);
+        Assert.DoesNotContain(files[0].Name, draft);
+        using (var masks = JsonDocument.Parse(draft))
+        {
+            var saved = Assert.Single(masks.RootElement.EnumerateArray());
+            Assert.Single(saved.GetProperty("areas").EnumerateArray());
+            Assert.Matches("^[0-9a-f]{64}:image$", saved.GetProperty("keys")[0].GetString()!);
+        }
+
+        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        if (onboarding)
+        {
+            foreach (var heading in new[] { "Finding your why", "The price of glory", "Almost there", "Don't trust, verify" })
+            {
+                await page.Locator("#nextButton").ClickAsync();
+                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+            }
+            // The fake application includes its own small sample page.
+            while (await page.Locator(".proof-page-remove").CountAsync() > 0) await page.Locator(".proof-page-remove").First.ClickAsync();
+        }
+        await page.WaitForFunctionAsync("() => document.querySelector('#proofPicInput')?.hasAttribute('data-listener')");
+        Assert.Empty(await SourcesAsync(page));
+        await UploadAsync(page, [new FilePayload { Name = files[0].Name, MimeType = files[1].MimeType, Buffer = files[1].Buffer }]);
+        var unrelated = (await SourcesAsync(page)).Single();
+        await UploadAsync(page, [new FilePayload { Name = "Renamed proof.png", MimeType = files[0].MimeType, Buffer = files[0].Buffer }]);
+        var attached = await SourcesAsync(page);
+        Assert.Equal(unrelated, attached[0]);
+        AssertFlattened(original, attached[1]);
+        await page.Locator(".proof-page-preview").Nth(1).ClickAsync();
+        await ReadyAsync(page);
+        await Assertions.Expect(Areas(page)).ToHaveCountAsync(1);
+        await page.Locator(".proof-review-close").ClickAsync();
+
+        if (onboarding)
+        {
+            await page.Locator("#nextButton").ClickAsync();
+            await page.Locator("#nextButton").ClickAsync();
+        }
+        var request = await page.RunAndWaitForRequestAsync(() => page.Locator(onboarding ? "#nextButton" : "#submitButton").ClickAsync(),
+            r => r.Url.EndsWith("/api/application/application") && r.Method == "POST");
+        using var payload = JsonDocument.Parse(request.PostData!);
+        Assert.Equal(attached, payload.RootElement.GetProperty("proofPics").EnumerateArray().Select(p => p.GetString()).ToArray());
+        await page.WaitForFunctionAsync("() => !Object.keys(sessionStorage).some(k => k.startsWith('proofRedactions:v1:'))");
+    }
+
+    [Fact]
+    public async Task Refresh_MatchesTheWholePdfWhenItsBytesAndCanvasReadbackChange()
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, onboarding: false);
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        var report = Assert.Single(await ReportsAsync(page, pdf: true));
+        // Simulate a browser changing one readback pixel while encoding identical upload images.
+        await page.EvaluateAsync("""
+            () => {
+                const get = CanvasRenderingContext2D.prototype.getImageData;
+                CanvasRenderingContext2D.prototype.getImageData = function(...args) {
+                    const image = get.apply(this, args);
+                    if (image.width === 1000 && image.height === 1300) image.data[0] ^= 1;
+                    return image;
+                };
+            }
+            """);
+        await UploadAsync(page, [report]);
+        var original = await SourcesAsync(page);
+        await page.Locator(".proof-page-preview").Nth(1).ClickAsync();
+        await ReadyAsync(page);
+        await DrawAsync(page, 50, 170, 600, 170);
+        await SavedAsync(page);
+        var redacted = await SourcesAsync(page);
+        AssertFlattened(original[1], redacted[1]);
+        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('#proofPicInput')?.hasAttribute('data-listener')");
+        await ReportsAsync(page, pdf: true);
+        // Both files reuse the original PDF identifiers and have an identical second page.
+        FilePayload Copy(byte variant) => new() { Name = report.Name, MimeType = report.MimeType, Buffer = [.. report.Buffer, variant] };
+        await UploadAsync(page, [Copy(4)]);
+        var otherVisit = await SourcesAsync(page);
+        Assert.NotEqual(original[0], otherVisit[0]);
+        Assert.Equal(original[1], otherVisit[1]);
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        await UploadAsync(page, [Copy(5)]);
+        Assert.Equal(redacted, await SourcesAsync(page));
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -725,12 +829,14 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
                         const reprint = variant === 0 || singlePage;
                         const width = reprint ? 1200 : 1000, height = reprint ? 1520 : 1300;
                         return { promise: Promise.resolve({
+                            fingerprints: ['shared test document', 'shared revision'],
                             numPages: singlePage ? 1 : 2,
                             getPage: async n => ({
                                 getViewport: () => ({ width, height }),
                                 render: ({ canvasContext }) => ({ promise: (async () => {
                                     const image = new Image();
-                                    image.src = images[singlePage ? variant : n - 1];
+                                    const index = singlePage ? variant : n - 1;
+                                    image.src = images[variant === 4 && n === 1 ? 2 : index];
                                     await image.decode();
                                     canvasContext.fillStyle = '#fff';
                                     canvasContext.fillRect(0, 0, width, height);

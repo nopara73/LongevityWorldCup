@@ -980,8 +980,9 @@
                 : null;
         }
 
-        function finishResultSubmission(submitResult, submissionContext) {
+        async function finishResultSubmission(submitResult, submissionContext) {
             window.LwcInitialView.hold();
+            await window.clearProofRedactionDraft?.('result:' + (submissionContext.applicantName || athlete.Name));
             const checkoutLink = getCheckoutLink(submitResult);
             const invoiceId = getInvoiceId(submitResult);
             const paymentRequired = isPaymentRequired(submitResult);
@@ -1080,6 +1081,7 @@
                 ? window.getProofChecklistLabelsFromSession()
                 : [];
             window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems, {
+                redactionScope: 'result:' + athlete.Name,
                 cameraButton: takeProofPhotoButton,
                 cameraInput: proofCameraInput,
                 hasUnsubmittedProofs: () => proofPics.length > 0
@@ -1098,7 +1100,7 @@
                     const recovered = await window.tryRecoverPendingApplicationSubmission('result-upload');
                     if (recovered) {
                         hideLoading();
-                        finishResultSubmission(recovered.submitResult, recovered.pending);
+                        await finishResultSubmission(recovered.submitResult, recovered.pending);
                         return;
                     }
                 } catch (error) {
@@ -1204,7 +1206,7 @@
                         if (submissionWait) void submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
                         else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
-                            finishResultSubmission(attempt.submitResult, {
+                            return finishResultSubmission(attempt.submitResult, {
                                 submissionId: submissionId,
                                 applicantName: applicantData.name,
                                 accountEmail: applicantData.accountEmail
@@ -1213,18 +1215,17 @@
                             const response = attempt.response;
                             const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
                             const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
-                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
+                            return window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
                                 if (isSubmissionAcceptedPaymentFailure(badResponse)) {
                                     void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
                                         type: `HTTP ${responseStatus}`,
                                         message: badResponse
                                     });
-                                    finishResultSubmission({ paymentRequired: true, paymentUnavailable: true }, {
+                                    return finishResultSubmission({ paymentRequired: true, paymentUnavailable: true }, {
                                         submissionId: submissionId,
                                         applicantName: applicantData.name,
                                         accountEmail: applicantData.accountEmail
                                     });
-                                    return;
                                 }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: `HTTP ${responseStatus}`,
