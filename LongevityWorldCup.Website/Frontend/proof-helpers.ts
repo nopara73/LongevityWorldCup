@@ -381,9 +381,28 @@ const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
 
 interface ProofArea { x: number; y: number; width: number; height: number; }
 
-interface ProofMaskPage { keys: string[]; width: number; height: number; }
+interface PdfMaskPrint {
+    content: ProofArea;
+    layout: string;
+    rendition: string;
+    text: string;
+}
+interface ProofMaskPage { keys: string[]; width: number; height: number; print?: PdfMaskPrint; printDecision?: true; }
 interface ProofMaskRecord extends ProofMaskPage { areas: ProofArea[]; }
 interface PdfDraftPageIdentity { pixels: string; rendition: string; width: number; height: number; }
+
+function isSavedProofArea(area: ProofArea | undefined, page: { width: number; height: number }): boolean {
+    return !!area && Number.isFinite(area.x) && Number.isFinite(area.y) && Number.isFinite(area.width) && Number.isFinite(area.height)
+        && area.x >= 0 && area.y >= 0 && area.width > 0 && area.height > 0
+        && area.x + area.width <= page.width + .001 && area.y + area.height <= page.height + .001;
+}
+
+function bindPrintChoice(page: ProofMaskPage): void {
+    page.printDecision = true;
+    // A different report can contain precisely the same printed sheet. Remember
+    // the decision for the chosen file (also if renamed), never for its visual aliases.
+    page.keys = page.keys.filter(key => !key.startsWith('pdf:'));
+}
 
 // The tab holds only opaque content keys and rectangle coordinates. A page has
 // a file-and-ordinal key and, for complete PDFs, a key for the ordered rendered
@@ -418,18 +437,21 @@ class ProofMaskDraft {
         if (!Array.isArray(records) || !records.every(record => record && Array.isArray(record.keys)
             && record.keys.every((k: unknown) => typeof k === 'string') && Number.isInteger(record.width) && record.width > 0
             && Number.isInteger(record.height) && record.height > 0 && Array.isArray(record.areas)
-            && record.areas.length && record.areas.every((a: ProofArea) => a && Number.isFinite(a.x)
-                && Number.isFinite(a.y) && Number.isFinite(a.width) && Number.isFinite(a.height)
-                && a.x >= 0 && a.y >= 0 && a.width > 0 && a.height > 0
-                && a.x + a.width <= record.width + .001 && a.y + a.height <= record.height + .001))) {
+            && (record.areas.length || record.printDecision === true) && record.areas.every((area: ProofArea) => isSavedProofArea(area, record)))) {
             throw new Error('Invalid saved proof rectangles.');
         }
         return records;
     }
 
-    restore(page: ProofMaskPage): ProofArea[] {
+    prints(): ProofMaskRecord[] {
+        return this.read().filter(r => !r.printDecision && r.areas.length && r.print && /^[\da-f]{16}$/.test(r.print.layout)
+            && /^[\da-f]{64}$/.test(r.print.rendition) && /^(?:[\da-f]{64})?$/.test(r.print.text) && isSavedProofArea(r.print.content, r));
+    }
+
+    restore(page: ProofMaskPage): ProofArea[] | undefined {
         const record = this.read().find(r => r.keys.some(k => page.keys.includes(k)));
-        if (!record) return [];
+        if (!record) return undefined;
+        if (record.printDecision) bindPrintChoice(page);
         page.keys = [...new Set([...record.keys, ...page.keys])];
         const sx = page.width / record.width, sy = page.height / record.height;
         return record.areas.map(a => ({ x: a.x * sx, y: a.y * sy, width: a.width * sx, height: a.height * sy }));
@@ -444,11 +466,13 @@ class ProofMaskDraft {
             if (record.keys.some(k => page.keys.includes(k))) record.keys.forEach(key => aliases.add(key));
             else otherPages.push(record);
         }
-        if (areas.length) {
+        if (areas.length || page.printDecision) {
             page.keys = [...aliases];
-            otherPages.push({ ...page, areas: areas.map(a => ({ ...a })) });
+            const { keys, width, height, print, printDecision } = page;
+            otherPages.push({ keys, width, height, ...(printDecision ? { printDecision } : print && { print }),
+                areas: areas.map(a => ({ ...a })) });
         }
-        if (otherPages.length) sessionStorage.setItem(this.storageKey, JSON.stringify(otherPages));
+        if (otherPages.some(record => record.areas.length)) sessionStorage.setItem(this.storageKey, JSON.stringify(otherPages));
         else sessionStorage.removeItem(this.storageKey);
     }
 }
@@ -473,6 +497,7 @@ interface SavedPdfRedaction {
     original: string;
     label: string;
     preview: string;
+    sourceKeys: readonly string[];
 }
 
 type PdfCopyDecision = 'keep' | 'different' | 'skip';
@@ -600,6 +625,37 @@ function pdfProofDifference(reference: PdfProofAppearance, copy: PdfProofAppeara
     return 2 * difference / ink;
 }
 
+// SimHash of the ink distribution over the entire page. These 64 aggregate bits
+// shortlist scans for confirmation; the tab never keeps the samples or a thumbnail.
+function pdfLayoutFingerprint(samples: Uint8ClampedArray): string {
+    const votes = new Int32Array(64);
+    for (let i = 0; i < samples.length; i += 3) {
+        const ink = 765 - samples[i]! - samples[i + 1]! - samples[i + 2]!;
+        if (!ink) continue;
+        let signs = Math.imul(i + 1, 0x9e3779b1);
+        for (let bit = 0; bit < votes.length; bit++) {
+            signs ^= signs << 13; signs ^= signs >>> 17; signs ^= signs << 5;
+            votes[bit] = votes[bit]! + (signs < 0 ? ink : -ink);
+        }
+    }
+    let hash = '';
+    for (let bit = 0; bit < votes.length; bit += 4) {
+        let nibble = 0;
+        for (let offset = 0; offset < 4; offset++) if (votes[bit + offset]! > 0) nibble |= 1 << offset;
+        hash += nibble.toString(16);
+    }
+    return hash;
+}
+
+function pdfLayoutDistance(a: string, b: string): number {
+    let count = 0;
+    for (let i = 0; i < a.length; i++) {
+        let bits = parseInt(a[i]!, 16) ^ parseInt(b[i]!, 16);
+        while (bits) { bits &= bits - 1; count++; }
+    }
+    return count;
+}
+
 // Compare the unmasked pages at the scale of printed characters. The 32-by-32
 // layout samples above only shortlist candidates: visits on one form share them.
 const pdfDetailSize = 1280;
@@ -712,7 +768,7 @@ function hasIsolatedInkChange(reference: Uint8Array, copy: Uint8Array): boolean 
     return peakDifference > 24 && changed < ink * .012;
 }
 
-function projectPdfRedaction(area: ProofArea, previous: PdfProofAppearance, copy: PdfProofAppearance): ProofArea {
+function projectPdfRedaction(area: ProofArea, previous: { content: ProofArea }, copy: { width: number; height: number; content: ProofArea }): ProofArea {
     const xScale = copy.content.width / previous.content.width;
     const yScale = copy.content.height / previous.content.height;
     // Allow for the small edge shifts caused by rasterizing and resampling a print.
@@ -1650,10 +1706,16 @@ class ProofReview {
         if (appearance) this.editPage(source).pdfAppearance ??= appearance;
     }
 
-    async restoreDraft(source: string, identity: ProofMaskPage): Promise<string> {
+    async restoreDraft(source: string, identity: ProofMaskPage, rendition?: string, excerptLabel?: string): Promise<string | null> {
         const page = this.editPage(source);
+        if (this.maskDraft.available && rendition && page.pdfAppearance) {
+            const appearance = page.pdfAppearance;
+            identity.print = { content: appearance.content, layout: pdfLayoutFingerprint(appearance.samples), rendition,
+                text: appearance.textOnly ? appearance.textFingerprint : '' };
+        }
         const known = page.draftPage;
         if (known && identity.keys.some(k => known.keys.includes(k))) {
+            if (known.printDecision) bindPrintChoice(identity);
             const additional = identity.keys.filter(k => !known.keys.includes(k));
             if (additional.length) {
                 known.keys.push(...additional);
@@ -1661,8 +1723,13 @@ class ProofReview {
             }
             return page.current;
         }
-        const areas = this.maskDraft.restore(identity);
-        if (areas.length) {
+        let areas = this.maskDraft.restore(identity);
+        if (areas === undefined && excerptLabel && identity.print && page.pdfAppearance) {
+            const recovered = await this.matchStoredPrint(page, identity, identity.print, page.pdfAppearance, excerptLabel);
+            if (recovered === null) return null;
+            areas = recovered;
+        }
+        if (areas?.length) {
             const flattened = await flattenProofAreas(page.original, areas);
             // Restore only this incoming attachment. A clean, pixel-identical sheet
             // already attached from a different report keeps its own pixels.
@@ -1677,8 +1744,49 @@ class ProofReview {
             this.rememberDraft(restored);
             return flattened;
         }
+        if (identity.printDecision) {
+            const clean = this.editPage(page.original);
+            clean.draftPage = identity;
+            if (page.pdfAppearance) clean.pdfAppearance = page.pdfAppearance;
+            this.rememberDraft(clean);
+            return clean.original;
+        }
         page.draftPage ??= identity;
         return page.current;
+    }
+
+    private async matchStoredPrint(page: ProofEditPage, identity: ProofMaskPage, print: PdfMaskPrint,
+        appearance: PdfProofAppearance, label: string): Promise<ProofArea[] | null | undefined> {
+        const inMemory = new Set([...this.pdfRedactions.values()].flatMap(saved => saved.sourceKeys));
+        const candidates = [];
+        for (const saved of this.maskDraft.prints()) {
+            const previous = saved.print!;
+            if (saved.keys.some(key => inMemory.has(key)) || (previous.text && print.text && previous.text !== print.text)) continue;
+            const aspect = previous.content.width * print.content.height / (previous.content.height * print.content.width);
+            const distance = pdfLayoutDistance(previous.layout, print.layout);
+            if (Math.abs(aspect - 1) > .035 || distance > 12) continue;
+            const samePixels = previous.rendition === print.rendition;
+            const areas = samePixels ? saved.areas.map(area => ({ ...area })) : saved.areas.map(area => projectPdfRedaction(area, previous, appearance));
+            if (areas.some(area => area.width <= 0 || area.height <= 0)) continue;
+            candidates.push({ saved, distance, areas, samePixels, sameText: !!print.text && previous.text === print.text });
+        }
+        if (!candidates.length) return undefined;
+        candidates.sort((a, b) => Number(b.samePixels) - Number(a.samePixels) || Number(b.sameText) - Number(a.sameText) || a.distance - b.distance);
+        // Even a pixel-identical sheet can occur in two different reports. The
+        // first detached print needs a decision before either version is queued.
+        for (const { saved, areas } of candidates) {
+            const originalPage = saved.keys.map(key => /:page:(\d+)$/.exec(key)?.[1]).find(Boolean);
+            const decision = await confirmPdfCopy(label, originalPage ? `Redactions from page ${originalPage}` : 'Remembered redactions',
+                page.original, { areas, width: identity.width, height: identity.height });
+            if (decision === 'skip') return null;
+            if (decision === 'different') continue;
+            // Keep the reprint's own coordinate system and remember this exact choice.
+            // Its padded boxes must never become templates for subsequent reprints.
+            bindPrintChoice(identity);
+            return areas;
+        }
+        bindPrintChoice(identity);
+        return [];
     }
 
     private rememberDraft(page: ProofEditPage): void {
@@ -1695,7 +1803,7 @@ class ProofReview {
         const revision = ++this.pdfRedactionRevision;
         page.pdfRedactionRevision = revision;
         if (page.committedAreas.length) this.pdfRedactions.set(page.pdfAppearance, {
-            revision, areas: page.committedAreas, original: page.original, preview: page.current, label
+            revision, areas: page.committedAreas, original: page.original, preview: page.current, label, sourceKeys: page.draftPage?.keys || []
         });
         else this.pdfRedactions.delete(page.pdfAppearance);
     }
@@ -1782,6 +1890,8 @@ class ProofReview {
 
     private queueSave(page: ProofEditPage): void {
         page.revision++;
+        // Drawing a first box on a previously declined sheet makes it a new source.
+        if (page.areas.length && !page.committedAreas.length && page.draftPage) delete page.draftPage.printDecision;
         page.committedAreas = page.areas.map(area => ({ ...area }));
         page.failed = false;
         // A reload can interrupt the encoder. Save the finished gesture while it is still synchronous.
@@ -2092,9 +2202,13 @@ window.setupProofUploadHTML = function (
                             if (pdfIds?.[0]) documentKeys.push(await imageFingerprint(JSON.stringify([pdfIds, prepared.map(p => p.rendition)])));
                         }
                         for (const [index, proof] of prepared.entries()) {
+                            if (options?.isActive?.() === false) break;
                             const keys = [proof.sourceKey, ...documentKeys.map(k => `pdf:${k}:${index + 1}`)];
-                            const image = await review.restoreDraft(proof.source, { keys, width: proof.width, height: proof.height });
-                            const edited = await keepPdfRedactions(image, proof.label);
+                            const identity: ProofMaskPage = { keys, width: proof.width, height: proof.height };
+                            const image = await review.restoreDraft(proof.source, identity,
+                                proof.rendition, pageCount === 1 ? proof.label : undefined);
+                            if (!image || options?.isActive?.() === false) continue;
+                            const edited = identity.printDecision ? image : await keepPdfRedactions(image, proof.label);
                             if (edited) {
                                 addProofImage(edited, proof.label);
                                 proofSourceImages.set(proof.sourceKey, edited);
@@ -2224,7 +2338,8 @@ window.setupProofUploadHTML = function (
     checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
 }
 
-function confirmPdfCopy(label: string, previousLabel: string, redactedPreview: string): Promise<PdfCopyDecision> {
+function confirmPdfCopy(label: string, previousLabel: string, preview: string,
+    placement?: { areas: ProofArea[]; width: number; height: number }): Promise<PdfCopyDecision> {
     const dialog = document.createElement('dialog');
     dialog.className = 'proof-file-dialog proof-copy-dialog';
     dialog.setAttribute('aria-label', 'Keep earlier redactions?');
@@ -2232,7 +2347,7 @@ function confirmPdfCopy(label: string, previousLabel: string, redactedPreview: s
         <div class="proof-password-heading"><i class="fas fa-file-lines" aria-hidden="true"></i><div>
             <h2>Keep earlier redactions?</h2><p class="proof-copy-file" dir="auto"></p>
         </div></div>
-        <p>This scan looks like a page you redacted earlier.</p>
+        <p>${placement ? 'Is this the same report? The outlined areas will be hidden.' : 'This scan looks like a page you redacted earlier.'}</p>
         <figure><img alt="Earlier page with its redactions"><figcaption dir="auto"></figcaption></figure>
         <div class="proof-password-actions">
             <button value="keep" class="dialog-button" autofocus>Keep redactions</button>
@@ -2242,7 +2357,35 @@ function confirmPdfCopy(label: string, previousLabel: string, redactedPreview: s
     </form>`;
     dialog.querySelector('.proof-copy-file')!.textContent = label;
     dialog.querySelector('figcaption')!.textContent = previousLabel;
-    dialog.querySelector('img')!.src = redactedPreview;
+    const image = dialog.querySelector('img')!;
+    if (placement) {
+        const viewport = document.createElement('div');
+        viewport.className = 'proof-print-viewport';
+        viewport.tabIndex = 0;
+        viewport.setAttribute('role', 'region');
+        viewport.setAttribute('aria-label', 'Inspect the reprinted page and proposed redactions');
+        const sheet = document.createElement('div');
+        sheet.className = 'proof-print-sheet';
+        image.replaceWith(viewport);
+        sheet.append(image);
+        viewport.append(sheet);
+        image.alt = 'The newly selected page, with proposed redactions outlined';
+        for (const area of placement.areas) {
+            const outline = document.createElement('span');
+            outline.ariaHidden = 'true';
+            outline.style.left = `${100 * area.x / placement.width}%`;
+            outline.style.top = `${100 * area.y / placement.height}%`;
+            outline.style.width = `${100 * area.width / placement.width}%`;
+            outline.style.height = `${100 * area.height / placement.height}%`;
+            sheet.append(outline);
+        }
+        image.onload = () => {
+            const first = sheet.querySelector('span')!;
+            viewport.scrollTop = first.offsetTop + first.offsetHeight / 2 - viewport.clientHeight / 2;
+            viewport.scrollLeft = first.offsetLeft + first.offsetWidth / 2 - viewport.clientWidth / 2;
+        };
+    }
+    image.src = preview;
     document.body.append(dialog);
     return new Promise(resolve => {
         const skip = () => dialog.close('skip');
