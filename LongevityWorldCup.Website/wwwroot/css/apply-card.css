@@ -1,10 +1,6 @@
-/* Apply flow, later steps: the athlete card that assembles itself.
-   Frontend/apply-card.ts inserts .apply-card after the stage title and sets
-   .is-shown, .has-portrait, .has-chips, .is-stamped, and .is-lit per chip.
-   Only --lwc-* colours; the podium's ring and icon language. */
-
 /* The header makes room: title on the left, card on the right. The title keeps
    its place from step to step; the card hangs beside it from the same top line. */
+.convergence-stage-head { container: apply-header / inline-size; }
 .convergence-stage-head.is-carded {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -14,8 +10,8 @@
 .convergence-stage-head.is-carded > :not(h1):not(.apply-card) { grid-column: 1 / -1; }
 .convergence-stage-head.is-carded > h1 { grid-column: 1; }
 
-.apply-card { display: none; }
-.apply-card.is-shown {
+.apply-card[hidden] { display: none; }
+.apply-card {
     grid-column: 2;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -34,6 +30,7 @@
 
 /* Portrait in the podium's ring; a hooded seat until there is a picture. */
 .apply-card-portrait {
+    position: relative;
     grid-row: 1 / span 2;
     display: grid;
     place-items: center;
@@ -42,9 +39,8 @@
     border-radius: 50%;
     background: var(--lwc-surface-muted);
     box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent);
-    overflow: hidden;
 }
-.apply-card-portrait img { width: 100%; height: 100%; object-fit: cover; display: none; }
+.apply-card-portrait img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: none; }
 .apply-card.has-portrait .apply-card-portrait img { display: block; }
 .apply-card:not(.has-portrait) .apply-card-portrait::before {
     content: "\f007" / "";
@@ -58,12 +54,10 @@
 .apply-card-flag.fi { flex: 0 0 auto; width: 1.25rem; height: .95rem; border-radius: 2px; box-shadow: 0 0 0 1px var(--lwc-border); background-size: cover; }
 .apply-card-name {
     min-width: 0;
-    overflow: hidden;
     color: var(--lwc-ink);
     font-size: .98rem;
     line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 .apply-card-why {
     min-width: 0;
@@ -103,9 +97,42 @@
     opacity: 1;
 }
 
-/* Apply pressed: the card is stamped. */
-.apply-card.is-stamped { animation: apply-card-stamp 700ms cubic-bezier(.34, 1.4, .64, 1); }
-.apply-card.is-stamped .apply-card-portrait { animation: apply-card-ring 900ms cubic-bezier(.2, 0, 0, 1); }
+/* The confirmation carries the same stamped portrait in its existing medallion. */
+.custom-alert-mark > .custom-alert-portrait {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
+.apply-card.is-stamped .apply-card-portrait::after,
+.custom-alert-mark > .custom-alert-portrait + i {
+    position: absolute;
+    inset: auto -.15rem -.15rem auto;
+    display: grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: var(--lwc-accent);
+    color: var(--lwc-on-accent, #fff);
+    box-shadow: 0 0 0 2px var(--lwc-surface);
+    font-size: .7rem;
+}
+.apply-card.is-stamped .apply-card-portrait::after {
+    content: "\f00c" / "";
+    font: 900 .7rem/1 "Font Awesome 6 Free", "Font Awesome 5 Free";
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .convergence-stage-enter .apply-card { animation: apply-card-nod 300ms ease-out; }
+    body[data-convergence-stage="4"] .convergence-stage-enter .apply-card { animation: apply-card-appear 420ms ease-out; }
+    .apply-card-chips > .is-lit { animation: apply-chip-pop 460ms ease-out; }
+    .apply-card.is-stamped { animation: apply-card-stamp 700ms cubic-bezier(.34, 1.4, .64, 1); }
+    .apply-card.is-stamped .apply-card-portrait { animation: apply-card-ring 900ms ease-out; }
+}
+@keyframes apply-card-appear { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+@keyframes apply-card-nod { from { transform: translateY(-3px); } }
+@keyframes apply-chip-pop { 0% { transform: scale(.6); } 55% { transform: scale(1.25); } }
 @keyframes apply-card-stamp {
     0% { transform: scale(1); }
     25% { transform: scale(.95) rotate(-1deg); }
@@ -117,15 +144,23 @@
     100% { box-shadow: 0 0 0 2px var(--lwc-surface), 0 0 0 4px var(--lwc-accent), 0 0 0 22px transparent; }
 }
 
-/* Phones: the card sits under the title as a full-width plate. */
-@media (max-width: 600px) {
-    .convergence-stage-head.is-carded { grid-template-columns: minmax(0, 1fr); }
-    .apply-card.is-shown { grid-column: 1; max-width: none; margin-top: .6rem; }
-    .apply-card.has-chips .apply-card-chips { grid-column: 2; }
+/* Fit the actual header, including when the applicant enlarges text. */
+@container apply-header (max-width: 34rem) {
+    .convergence-stage-head.is-carded > h1, .apply-card { grid-column: 1 / -1; }
+    .apply-card { max-width: none; margin-top: .6rem; }
+}
+@container apply-header (max-width: 14rem) {
+    .apply-card:not([hidden]) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem .55rem;
+        border-radius: var(--lwc-radius-lg, 12px);
+    }
+    .apply-card-portrait { flex: none; width: min(2.5rem, 40px); height: auto; aspect-ratio: 1; }
+    .apply-card-id { flex: 1 0 100%; order: 1; }
+    .apply-card.has-chips .apply-card-chips { flex-wrap: wrap; margin-inline-start: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .apply-card.is-stamped,
-    .apply-card.is-stamped .apply-card-portrait { animation: none; }
     .apply-card-chips > i { transition: none; }
 }
