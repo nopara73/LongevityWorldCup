@@ -62,17 +62,25 @@
     vertical-align: 0.14em;
 }
 
-/* ------------------------------------------------------------ condensing on scroll */
+/* ------------------------------------------------------------ condensing on scroll
+   The portrait shrinks toward its top edge. The origin stays centred (the
+   Guess My Age glide measures from the centre), so the translate lifts it by
+   the 15% that a centred 0.3 shrink would drop the top edge. */
 #detailsModal #athlete-profile[data-profile-stage] .portrait-wrapper {
-    transform-origin: 50% 0;
     scale: calc(1 - var(--stage-p) * 0.3);
-    translate: 0 calc(var(--stage-p) * 30px);
+    translate: 0 calc(var(--stage-p) * 30px - var(--stage-p) * 15%);
     opacity: calc(1 - var(--stage-p) * 0.55);
 }
 
 #detailsModal #athlete-profile[data-profile-stage] #athleteName {
     opacity: calc(1 - var(--stage-p) * 0.4);
     translate: 0 calc(var(--stage-p) * 12px);
+}
+
+/* A moving element can't hold the scroll anchor: Chrome would stop anchoring,
+   and the content would jump when the sticky bar takes its place in the flow. */
+#detailsModal #athlete-profile[data-profile-stage] :is(.portrait-wrapper, #athleteName) {
+    overflow-anchor: none;
 }
 
 /* The sticky bar catches the header: its portrait pops in ringed, the name slides on. */

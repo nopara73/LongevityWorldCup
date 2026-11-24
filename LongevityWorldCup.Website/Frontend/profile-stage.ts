@@ -23,7 +23,10 @@
     const rail = profile?.querySelector<HTMLElement>(".athlete-links");
     if (!modal || !content || !profile || !name || !portrait || !rail) return;
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const reduced = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+    const observe = (target: Node, options: MutationObserverInit, callback: () => void): void => {
+        if (typeof MutationObserver === "function") new MutationObserver(callback).observe(target, options);
+    };
     profile.dataset.profileStage = "";
     modal.dataset.profileStage = "";
 
@@ -47,13 +50,13 @@
         requestAnimationFrame(measureRail);
         [450, 1100, 2400].forEach(ms => window.setTimeout(measureRail, ms));
     }
-    new MutationObserver(settle).observe(name, { childList: true, characterData: true, subtree: true });
+    observe(name, { childList: true, characterData: true, subtree: true }, settle);
 
     // ------------------------------------------------ scroll condense
     let frame = 0;
     function condense(): void {
         frame = 0;
-        if (guessing() || reduced.matches) { profile!.style.removeProperty("--stage-p"); return; }
+        if (guessing() || reduced?.matches) { profile!.style.removeProperty("--stage-p"); return; }
         const reach = Math.max(120, name!.offsetTop - 24);
         const p = Math.min(1, Math.max(0, content!.scrollTop / reach));
         profile!.style.setProperty("--stage-p", p.toFixed(3));
@@ -92,6 +95,17 @@
     rail.addEventListener("focusout", () => requestAnimationFrame(() => {
         if (!rail!.contains(document.activeElement) && !rail!.matches(":hover")) glideTo(null);
     }));
+    // Stepping to another athlete can move or remove the ring under the lens.
+    // Put the lens back on the ring that still has focus or the pointer, without a glide.
+    function keepLens(): void {
+        if (!rail!.classList.contains("is-gliding")) return;
+        const el = items().find(item => item === document.activeElement || item.matches(":hover"));
+        if (!el) { glideTo(null); return; }
+        glide.classList.add("is-snapping");
+        glide.style.setProperty("--glide-x", `${centre(el)}px`);
+        void glide.offsetWidth;
+        glide.classList.remove("is-snapping");
+    }
 
     // The rail runs from the first ring's centre to the last one's and stops
     // short of each ring, so the rings keep the dialog's own translucent fill.
@@ -121,18 +135,21 @@
         // Write only on a change: the observers below also see the rail.
         if (next === measured) return;
         measured = next;
+        keepLens();
         rail!.classList.toggle("has-rail", next !== "none");
         if (next === "none") return;
         rail!.style.setProperty("--rail-from", `${from}px`);
         rail!.style.setProperty("--rail-len", `${length}px`);
         rail!.style.setProperty("--rail-mask", mask);
     }
-    new MutationObserver(() => requestAnimationFrame(measureRail)).observe(rail, { attributes: true, subtree: true, attributeFilter: ["hidden", "href"] });
-    new MutationObserver(() => requestAnimationFrame(measureRail)).observe(name, { childList: true, subtree: true });
-    const resized = new ResizeObserver(() => measureRail());
-    resized.observe(rail);
-    resized.observe(profile);
-    rail.querySelectorAll<HTMLElement>(":scope > a, :scope > .athlete-share-wrapper").forEach(host => resized.observe(host));
+    observe(rail, { attributes: true, subtree: true, attributeFilter: ["hidden", "href"] }, () => requestAnimationFrame(measureRail));
+    observe(name, { childList: true, subtree: true }, () => requestAnimationFrame(measureRail));
+    if (typeof ResizeObserver === "function") {
+        const resized = new ResizeObserver(() => measureRail());
+        resized.observe(rail);
+        resized.observe(profile);
+        rail.querySelectorAll<HTMLElement>(":scope > a, :scope > .athlete-share-wrapper").forEach(host => resized.observe(host));
+    }
     rail.addEventListener("pointerenter", measureRail);
     document.fonts?.ready.then(measureRail).catch(() => undefined);
     window.addEventListener("load", measureRail, { once: true });

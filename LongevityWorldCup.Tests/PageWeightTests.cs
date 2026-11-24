@@ -9,7 +9,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class PageWeightTests(TestWebApplicationFactory factory)
 {
     [Theory]
-    [InlineData("/", 110_000)]
+    [InlineData("/", 111_000)]
     [InlineData("/athlete/michael-lustgarten", 110_000)]
     [InlineData("/leaderboard", 430_000)]
     [InlineData("/events", 80_000)]

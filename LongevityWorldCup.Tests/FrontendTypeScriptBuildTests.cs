@@ -34,6 +34,7 @@ public sealed class FrontendTypeScriptBuildTests
         "pointer",
         "motion",
         "portrait-system",
+        "profile-stage",
         "proof-desk",
         "upload-photo",
         "share-sheet",
