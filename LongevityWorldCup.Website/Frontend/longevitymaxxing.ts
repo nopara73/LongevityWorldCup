@@ -6143,7 +6143,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderCheckInEcho();
         let rolledBack = false;
         try {
-            const quoteBucket = submittedDay.existing ? null : selectQuoteBucket(draft);
+            const habitsChanged = QUESTIONS.some(question => submittedDay.existing?.[question.key] !== draft[question.key]);
+            const quoteBucket = habitsChanged ? selectQuoteBucket(draft) : null;
             const notePhotos = getPendingNotePhotos(form);
             const retained = (submittedDay.existing?.images || []).filter(image => !draft.removedPhotoNames.includes(photoName(image)));
             const submission = await prepareCheckInSubmission(key, currentAccessToken, values, notePhotos, retained.length, draft.removedPhotoNames);
