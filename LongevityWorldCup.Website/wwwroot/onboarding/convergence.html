@@ -13,6 +13,7 @@
     <link rel="expect" href="#lwc-site-header" blocking="render">
     <link rel="stylesheet" href="{{ASSET_APPLY_FLOW_FEEL_CSS}}">
     <script src="{{ASSET_APPLY_FLOW_FEEL_JS}}" defer></script>
+    <link rel="stylesheet" href="{{ASSET_APPLY_CARD_CSS}}">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -937,6 +938,18 @@
                 <div class="convergence-stage-head">
                     <!--SUB-PROGRESS-BAR-->
                     <h1 id="applicationStageTitle" tabindex="-1">Enter the arena</h1>
+                    <div class="apply-card" aria-hidden="true" hidden>
+                        <span class="apply-card-portrait"><img alt=""></span>
+                        <span class="apply-card-id">
+                            <span class="apply-card-name-row"><span class="apply-card-flag"></span><strong class="apply-card-name"></strong></span>
+                            <span class="apply-card-why"></span>
+                        </span>
+                        <span class="apply-card-chips">
+                            <i class="fa fa-link" data-chip="link"></i>
+                            <i class="fas fa-envelope" data-chip="media"></i>
+                            <i class="fas fa-rocket" data-chip="email"></i>
+                        </span>
+                    </div>
                 </div>
                 <div id="privacyText" class="convergence-stage-copy" style="display:none">
                     <p><strong>Privacy is your ability to selectively reveal yourself to the world.</strong></p>
@@ -1103,6 +1116,37 @@
         let profilePic = null;
         let proofPics = [];
         let isApplicationSubmitting = false;
+        const applyCard = document.querySelector('.apply-card');
+        const cardPortrait = applyCard.querySelector('.apply-card-portrait img');
+        const linkChip = applyCard.querySelector('[data-chip="link"]');
+        const mediaChip = applyCard.querySelector('[data-chip="media"]');
+        const emailChip = applyCard.querySelector('[data-chip="email"]');
+
+        function updateCardPortrait() {
+            if (profilePic !== cardPortrait.getAttribute('src')) {
+                if (profilePic) cardPortrait.src = profilePic;
+                else cardPortrait.removeAttribute('src');
+            }
+            applyCard.classList.toggle('has-portrait', !!profilePic);
+        }
+
+        function updateCardForStage(stage) {
+            const name = document.getElementById('name').value.trim();
+            const show = stage >= 4 && !!(name || profilePic);
+            applyCard.hidden = !show;
+            applyCard.parentElement.classList.toggle('is-carded', show);
+            if (!show) return;
+
+            updateCardPortrait();
+            const flag = window.LwcFlags?.getFlagIconCode(document.getElementById('flag').value);
+            applyCard.querySelector('.apply-card-flag').className = 'apply-card-flag' + (flag ? ' fi fi-' + flag : '');
+            applyCard.querySelector('.apply-card-name').textContent = name;
+            const why = document.getElementById('why').value.trim();
+            applyCard.querySelector('.apply-card-why').textContent = why ? '“' + why + '”' : '';
+            applyCard.classList.toggle('has-chips', stage >= 6);
+            if (stage < 7) emailChip.classList.remove('is-lit');
+        }
+
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
@@ -1764,6 +1808,7 @@
         }
 
         async function finishFullApplicationSubmission(submitResult, submissionContext) {
+            applyCard.classList.add('is-stamped');
             window.LwcInitialView.hold();
             await window.clearProofRedactionDraft?.(proofRedactionScope);
             const checkoutLink = getCheckoutLink(submitResult);
@@ -1815,7 +1860,7 @@
                 : paymentRequired
                     ? 'Your application was received, but the payment page could not be opened. Check your confirmation email.'
                     : 'Your application was received';
-            customAlert(nextStepMessage).then(() => {
+            customAlert(nextStepMessage, { portrait: cardPortrait }).then(() => {
                 window.location.href = '/review';
             });
         }
@@ -2143,12 +2188,14 @@
                     addStageListenerOnce(accountEmailInput, 'input', handleAccountEmailInput, 'stage7ValidityListener');
 
                     // Run checkFormValidityStage7 initially
+                    updateFinalDetailsReadiness();
                     checkFormValidityStage7();
                     break;
                 default:
                     console.error('Unknown stage:', stage);
             }
 
+            updateCardForStage(stage);
             updateSubProgress(stage);
             playStageEntrance(previousStage, stage);
             finishStageMotion?.();
@@ -2682,6 +2729,7 @@
                         }
 
                         profilePic = croppedImageDataURL;
+                        updateCardPortrait();
                         document.getElementById('profilePictureError').textContent = '';
                         document.getElementById('profilePictureError').hidden = true;
                         applicationProfilePending = false;
@@ -2830,31 +2878,17 @@
             }
         }
 
+        function updateFinalDetailsReadiness() {
+            const mediaFilled = document.getElementById('mediaContact').value.trim() !== '';
+            const link = document.getElementById('personalLink').value.trim();
+            const linkValid = isOptionalUrl(link);
+            mediaChip.classList.toggle('is-lit', mediaFilled);
+            linkChip.classList.toggle('is-lit', !!link && linkValid);
+            return mediaFilled && linkValid;
+        }
+
         function checkFormValidityStage6() {
-            if (currentStage !== 6) return;
-
-            const mediaContactInput = document.getElementById('mediaContact');
-            const personalLinkInput = document.getElementById('personalLink');
-            const nextButton = document.getElementById('nextButton');
-
-            const mediaContactFilled = mediaContactInput.value.trim() !== '';
-            const personalLinkValue = personalLinkInput.value.trim();
-
-            let isValid = true;
-
-            if (!mediaContactFilled) {
-                isValid = false;
-            }
-
-            if (!isOptionalUrl(personalLinkValue)) {
-                isValid = false;
-            }
-
-            if (isValid) {
-                nextButton.disabled = false;
-            } else {
-                nextButton.disabled = true;
-            }
+            if (currentStage === 6) document.getElementById('nextButton').disabled = !updateFinalDetailsReadiness();
         }
 
         function normalizeStage6MediaContact() {
@@ -2883,11 +2917,9 @@
             const accountEmailInput = document.getElementById('accountEmail');
             const nextButton = document.getElementById('nextButton');
 
-            if (normalizeContactEmail(accountEmailInput.value)) {
-                nextButton.disabled = false;
-            } else {
-                nextButton.disabled = true;
-            }
+            const emailValid = !!normalizeContactEmail(accountEmailInput.value);
+            emailChip.classList.toggle('is-lit', emailValid);
+            nextButton.disabled = !emailValid;
         }
 
         function getExistingAthleteNameCandidates(athlete) {
