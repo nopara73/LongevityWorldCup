@@ -1774,13 +1774,7 @@ public sealed partial class LongevitymaxxingChallengeService
 
             if (checkIn.Request.SubmissionId is not null)
             {
-                using var receipt = sqlite.CreateCommand();
-                receipt.Transaction = transaction;
-                receipt.CommandText = "INSERT INTO LongevitymaxxingCheckInSubmissions (ParticipantId, SubmissionId, RequestHash) VALUES (@participantId, @submissionId, @requestHash);";
-                Add(receipt, "@participantId", checkIn.Participant.Id);
-                Add(receipt, "@submissionId", checkIn.Request.SubmissionId.ToLowerInvariant());
-                Add(receipt, "@requestHash", requestHash);
-                receipt.ExecuteNonQuery();
+                RecordCheckInReceipt(sqlite, transaction, checkIn.Participant.Id, checkIn.Request.SubmissionId, requestHash);
             }
             transaction.Commit();
             foreach (var image in newImages) image.Committed = true;
@@ -1795,17 +1789,40 @@ public sealed partial class LongevitymaxxingChallengeService
         return (GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc), applied);
     }
 
-    public LongevitymaxxingParticipantState EditDiscussionPost(LongevitymaxxingDiscussionPostEditRequest request, DateTimeOffset? nowUtc = null)
+    private static void RecordCheckInReceipt(SqliteConnection sqlite, SqliteTransaction transaction, string participantId, string id, string hash)
     {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var author = RequireParticipantByAccessToken(request.AccessToken);
+        using var receipt = sqlite.CreateCommand();
+        receipt.Transaction = transaction;
+        receipt.CommandText = "INSERT INTO LongevitymaxxingCheckInSubmissions (ParticipantId, SubmissionId, RequestHash) VALUES (@participantId, @submissionId, @requestHash);";
+        Add(receipt, "@participantId", participantId);
+        Add(receipt, "@submissionId", id.ToLowerInvariant());
+        Add(receipt, "@requestHash", hash);
+        receipt.ExecuteNonQuery();
+    }
+
+    public LongevitymaxxingParticipantState EditDiscussionPost(LongevitymaxxingDiscussionPostEditRequest request, DateTimeOffset? nowUtc = null)
+        => SaveDiscussionPostEdit(request, RequireParticipantByAccessToken(request.AccessToken), EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow), [], [], []);
+
+    private LongevitymaxxingParticipantState SaveDiscussionPostEdit(LongevitymaxxingDiscussionPostEditRequest request, ParticipantRecord author,
+        DateTimeOffset now, IReadOnlyList<PendingCheckInImage> photos, IReadOnlyList<string> hashes, IReadOnlyList<string> photoIds)
+    {
         var limit = GetCharacterAllowance(author, now).Limit;
         _db.Run(sqlite =>
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
+            var newImages = new List<PendingCheckInImage>();
+            for (var i = 0; i < photos.Count; i++)
+            {
+                // Each attachment can be retried alongside a revised caption or another attachment.
+                var hash = $"post-photo/{request.ChallengeDay}/{hashes[i]}";
+                if (HasCheckInReceipt(sqlite, transaction, author.Id, photoIds[i], hash)) continue;
+                RecordCheckInReceipt(sqlite, transaction, author.Id, photoIds[i], hash);
+                newImages.Add(photos[i]);
+            }
             var removedFiles = SaveDiscussionContent(sqlite, transaction, author.Id, request.ChallengeDay, request.Note,
-                limit, [], request.RemovedPhotoNames, now, editingPost: true, originalNote: request.OriginalNote);
+                limit, newImages, request.RemovedPhotoNames, now, editingPost: true, originalNote: request.OriginalNote);
             transaction.Commit();
+            foreach (var image in newImages) image.Committed = true;
             foreach (var file in removedFiles) TryDeleteFile(GetCheckInPhotoPath(file));
         });
         return GetParticipantState(request.AccessToken, now) with {

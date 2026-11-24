@@ -77,7 +77,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await editor.Locator("textarea").FillAsync("Corrected remarks.");
         await editor.GetByRole(AriaRole.Button, new() { Name = "Remove photo 1" }).ClickAsync();
         await editor.GetByRole(AriaRole.Button, new() { Name = "Save", Exact = true }).ClickAsync();
-        await Assertions.Expect(editor.Locator("[role=status]")).Not.ToBeEmptyAsync();
+        await Assertions.Expect(editor.Locator(".lmx-status")).Not.ToBeEmptyAsync();
         await Assertions.Expect(editor.Locator("textarea")).ToHaveValueAsync("Corrected remarks.");
         await Assertions.Expect(editor.GetByRole(AriaRole.Button, new() { Name = "Undo removal of photo 1" })).ToBeEnabledAsync();
         await editor.GetByRole(AriaRole.Button, new() { Name = "Save", Exact = true }).ClickAsync();
@@ -85,6 +85,39 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(thread.Locator(":scope > p")).ToHaveTextAsync("Corrected remarks.");
         await Assertions.Expect(thread.Locator(".lmx-note-photo")).ToHaveCountAsync(0);
         Assert.Equal(2, calls);
+
+        await edit.ClickAsync();
+        var picker = editor.GetByRole(AriaRole.Button, new() { Name = "Add photos" });
+        await Assertions.Expect(picker).ToBeEnabledAsync();
+        await AddCheckInPhotosAsync(editor, "replacement.png");
+        await Assertions.Expect(editor.GetByRole(AriaRole.Button, new() { Name = "Remove replacement.png" })).ToBeEnabledAsync();
+        await editor.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
+        await edit.ClickAsync();
+        await Assertions.Expect(editor.Locator("[data-photo-previews] img")).ToHaveCountAsync(0);
+        await AddCheckInPhotosAsync(editor, "replacement.png");
+        string? uploadId = null;
+        var uploads = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/post/edit", async route =>
+        {
+            var body = Encoding.UTF8.GetString(route.Request.PostDataBuffer!);
+            var id = Regex.Match(body, """name="photoIds"\r\n\r\n([0-9a-f-]{36})""").Groups[1].Value;
+            Assert.True(Guid.TryParse(id, out _));
+            Assert.Contains("replacement.webp", body);
+            if (++uploads == 1) { uploadId = id; await route.FulfillAsync(new() { Status = 503 }); return; }
+            Assert.Equal(uploadId, id);
+            own["images"] = new JsonArray(JsonSerializer.SerializeToNode(photo));
+            UpdateNotes();
+            state["updatedDiscussionThread"] = own.DeepClone();
+            await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        var save = editor.GetByRole(AriaRole.Button, new() { Name = "Save", Exact = true });
+        await save.ClickAsync();
+        await Assertions.Expect(editor.Locator(".lmx-status")).Not.ToBeEmptyAsync();
+        await Assertions.Expect(save).ToBeEnabledAsync();
+        await save.ClickAsync();
+        await Assertions.Expect(editor).ToHaveCountAsync(0);
+        await Assertions.Expect(thread.Locator(".lmx-note-photo img")).ToHaveCountAsync(1);
+        Assert.Equal(2, uploads);
     }
 
     [Fact]
