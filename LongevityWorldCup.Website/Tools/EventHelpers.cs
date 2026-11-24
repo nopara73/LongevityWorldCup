@@ -34,6 +34,9 @@ public static class EventHelpers
         return int.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out rank);
     }
 
+    internal static bool TryExtractTop10Rank(string raw, out int rank) =>
+        TryExtractRank(raw, out rank) && rank is >= 1 and <= 10;
+
     public static bool TryExtractPlace(string raw, out int place)
     {
         place = 0;

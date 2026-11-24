@@ -296,6 +296,7 @@ public sealed class WebPushTests
     }
 
     [Theory]
+    [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[6] prev[siim_land]")]
     [InlineData(EventType.NewRank, "slug[benjamin_garden] rank[3] prev[siim_land]")]
     [InlineData(EventType.PhenoAgeTop10Change, "slug[benjamin_garden] place[6] prevPlace[8] ageReduction[-20.4]")]
     public async Task AutomaticAnnouncements_BaselineHistoryThenDeliverRankAndDonationWithoutDuplicates(EventType type, string raw)
@@ -316,6 +317,15 @@ public sealed class WebPushTests
         await Service().DispatchAsync();
         Assert.Equal(0, requests);
 
+        if (type == EventType.NewRank)
+        {
+            Assert.True(EventHelpers.TryExtractRank(raw, out var publishedPlace));
+            fixture.Athletes.UpdateAthletesJsonInPlace(athlete =>
+            {
+                if ((string?)athlete["AthleteSlug"] == "benjamin_garden") athlete["CurrentPlacement"] = publishedPlace;
+            });
+            fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[2]", now.GetUtcNow().UtcDateTime);
+        }
         var rank = fixture.InsertEvent(type, raw, now.GetUtcNow().UtcDateTime);
         await Service().DispatchAsync();
         Assert.Equal(1, requests);

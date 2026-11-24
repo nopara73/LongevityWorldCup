@@ -98,6 +98,39 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
         await ExpectNoHorizontalOverflowAsync(page);
     }
 
+    [Fact]
+    public async Task Review_ShowsTheResolvedStatusImmediatelyAndOnlyAnimatesOnce()
+    {
+        await using var context = await NewReviewContextAsync(390, 844, "dark");
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.AddInitScriptAsync("""
+            window.reviewFirstFrame = new Promise(resolve => {
+                const observer = new MutationObserver(() => {
+                    const main = document.querySelector('.initial-view-main[aria-busy=false]');
+                    if (!main) return;
+                    observer.disconnect();
+                    const readable = selector => {
+                        const target = main.querySelector(selector);
+                        if (!target) return false;
+                        for (let el = target; el; el = el.parentElement) {
+                            const style = getComputedStyle(el);
+                            if (style.visibility !== 'visible' || Number(style.opacity) < 0.99) return false;
+                        }
+                        return true;
+                    };
+                    resolve([readable('h1'), readable('.is-current'), readable('.primary'),
+                        main.querySelector('h1').textContent.includes('Result review'),
+                        main.getAnimations({subtree:true}).every(a => a.effect.getTiming().iterations !== Infinity)]);
+                });
+                observer.observe(document, {subtree:true, attributes:true, attributeFilter:['aria-busy']});
+            });
+            """);
+        await page.GotoAsync("/review?from=proof-upload");
+        var frame = await page.EvaluateAsync<bool[]>("window.reviewFirstFrame").WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal([true, true, true, true, true], frame);
+    }
+
     [Theory]
     [InlineData(true, "payment:is-done")]
     [InlineData(false, "payment:is-waiting")]
@@ -187,30 +220,43 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
     }
 
     [Fact]
-    public async Task Review_RetriesAnUnreachableStatusThenStopsAfterVerifiedPayment()
+    public async Task Review_AnnouncesPaymentChangesOnceAndStopsAfterVerifiedPayment()
     {
         await using var context = await NewReviewContextAsync(1440, 900, "light");
         await context.AddInitScriptAsync($"sessionStorage.setItem('pendingPaymentInvoice', {System.Text.Json.JsonSerializer.Serialize(PendingInvoice)});");
-        var requests = 0;
-        await context.RouteAsync("**/api/application/payment-status", route =>
-        {
-            var attempt = Interlocked.Increment(ref requests);
-            return route.FulfillAsync(new()
-            {
-                Status = attempt == 1 ? 503 : 200,
-                ContentType = "application/json",
-                Body = attempt == 1 ? "{}" : """{"checkedInvoice":true,"isPaid":true,"status":"Settled"}"""
-            });
-        });
+        await context.AddInitScriptAsync("""
+            const originalFetch = window.fetch;
+            window.paymentRequests = 0;
+            window.fetch = (url, options) => {
+                if (url !== '/api/application/payment-status') return originalFetch(url, options);
+                const attempt = ++window.paymentRequests;
+                const paid = attempt >= 4;
+                return Promise.resolve(new Response(JSON.stringify({ checkedInvoice: true, isPaid: paid,
+                    status: paid ? 'Settled' : 'New' }), { status: attempt <= 2 ? 503 : 200 }));
+            };
+            """);
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
         await NavigateAndSettleAsync(page, "/review");
-        await Assertions.Expect(page.Locator("#review-payment-status")).ToContainTextAsync("unavailable");
+        var status = page.Locator("#review-payment-status");
+        await Assertions.Expect(status).ToContainTextAsync("unavailable");
+        await status.EvaluateAsync("""
+            el => {
+                window.paymentAnnouncements = [];
+                new MutationObserver(() => paymentAnnouncements.push(el.textContent)).observe(el, { childList: true });
+            }
+            """);
+        await page.Clock.FastForwardAsync(5000);
+        Assert.Equal(2, await page.EvaluateAsync<int>("window.paymentRequests"));
+        await page.Clock.FastForwardAsync(5000);
+        await Assertions.Expect(status).ToHaveTextAsync("Payment confirmation pending.");
         await page.Clock.FastForwardAsync(5000);
         await Assertions.Expect(page.Locator("[data-step='payment']")).ToHaveClassAsync("is-done");
+        Assert.Equal(["Payment confirmation pending.", "Payment confirmed. Awaiting review."],
+            await page.EvaluateAsync<string[]>("window.paymentAnnouncements"));
         Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentInvoice')"));
         await page.Clock.FastForwardAsync(120000);
-        Assert.Equal(2, Volatile.Read(ref requests));
+        Assert.Equal(4, await page.EvaluateAsync<int>("window.paymentRequests"));
     }
 
     [Theory]
@@ -286,6 +332,28 @@ public sealed class ApplicationReviewCelebrationBrowserTests(
                 });
             }
             """), $"At an effective {width}px viewport the trail must fit without clipping an icon.");
+    }
+
+    [Fact]
+    public async Task Review_EnlargedTextKeepsTheSealAndPaymentTrailInsideTheCard()
+    {
+        await using var context = await NewReviewContextAsync(320, 640, "light");
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/review?checkout=unavailable");
+        await page.EvaluateAsync("document.documentElement.style.fontSize = '200%'");
+        Assert.True(await page.EvaluateAsync<bool>("""
+            () => {
+                const inside = (el, parent) => {
+                    const r = el.getBoundingClientRect(), p = parent.getBoundingClientRect();
+                    return r.left >= p.left - 1 && r.right <= p.right + 1;
+                };
+                const trail = document.querySelector('.application-review-trail');
+                const seal = document.querySelector('.application-review-seal');
+                return inside(seal, seal.closest('.application-review-visual'))
+                    && [...trail.querySelectorAll('li:not([hidden]) .application-review-step')].every(el => inside(el, trail))
+                    && document.querySelector('#review-payment-status').clientHeight > 1;
+            }
+            """));
     }
 
     private async Task<IBrowserContext> NewReviewContextAsync(int width, int height, string scheme)

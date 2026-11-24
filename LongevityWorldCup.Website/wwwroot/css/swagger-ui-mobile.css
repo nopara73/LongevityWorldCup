@@ -69,13 +69,10 @@
     }
 
     .swagger-ui .opblock .opblock-summary-control {
-        display: grid;
-        grid-template-columns: minmax(4.35rem, auto) minmax(0, 1fr);
-        grid-template-areas:
-            "method path"
-            "description description"
-            "operation operation";
+        display: flex;
+        flex-wrap: wrap;
         grid-column: 1;
+        align-items: flex-start;
         min-width: 0;
         width: 100%;
         gap: 0.35rem 0.55rem;
@@ -83,7 +80,6 @@
     }
 
     .swagger-ui .opblock .opblock-summary-method {
-        grid-area: method;
         align-self: start;
     }
 
@@ -92,14 +88,15 @@
     }
 
     .swagger-ui .opblock .opblock-summary-path {
-        grid-area: path;
+        /* Move the path below the badge when enlarged text needs the full line. */
+        flex: 1 1 min(100%, 8em);
         min-width: 0;
         white-space: normal;
         overflow-wrap: anywhere;
     }
 
     .swagger-ui .opblock .opblock-summary-operation-id {
-        grid-area: operation;
+        flex-basis: 100%;
         min-width: 0;
         display: block;
         text-align: left;
@@ -108,7 +105,7 @@
     }
 
     .swagger-ui .opblock .opblock-summary-description {
-        grid-area: description;
+        flex-basis: 100%;
         min-width: 0;
         white-space: normal;
         overflow-wrap: normal;
@@ -192,7 +189,7 @@
         margin-right: 0 !important;
     }
 
-    .swagger-ui .model-container .model-box-control {
+    .swagger-ui .model-container .model-box-control:not(table *) {
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) 1.75rem;
         align-items: center;
@@ -204,32 +201,35 @@
         text-align: left;
     }
 
-    .swagger-ui .model-box-control > .pointer,
-    .swagger-ui .model-box-control .model-box,
-    .swagger-ui .model-box-control .model-title {
+    .swagger-ui .model-container .model-box-control:not(table *) :is(.pointer, .model-box, .model-title) {
         display: block;
         width: 100%;
         min-width: 0;
         max-width: 100%;
     }
 
-    .swagger-ui .model-box-control .model-box {
+    .swagger-ui .model-container .model-box-control:not(table *) .model-box {
         padding: 0;
     }
 
-    .swagger-ui .model-box-control .model-title {
+    .swagger-ui .model-container .model-box-control:not(table *) .model-title {
         font-size: clamp(0.82rem, 3.45vw, 0.95rem);
         line-height: 1.18;
         text-align: left;
     }
 
-    .swagger-ui .model-box-control .model-toggle {
+    .swagger-ui .model-container .model-box-control:not(table *) > .model-toggle {
         justify-self: end;
         min-width: 1.75rem;
     }
 
-    .swagger-ui .model-box-control > span:last-child:not(.model-toggle) {
+    .swagger-ui .model-container .model-box-control:not(table *) > span:last-child:not(.model-toggle) {
         display: none;
+    }
+
+    .swagger-ui table.model .model-box-control {
+        min-width: 24px;
+        min-height: 24px;
     }
 }
 
@@ -243,12 +243,809 @@
         grid-template-columns: minmax(0, 1fr) 2.5rem;
     }
 
-    .swagger-ui .opblock .opblock-summary-control {
-        grid-template-columns: minmax(3.8rem, auto) minmax(0, 1fr);
-    }
-
     .swagger-ui .opblock .opblock-control-arrow {
         min-width: 2.5rem;
         min-height: 2.5rem;
+    }
+}
+
+
+/* ===== The public API docs in the site's own clothes =====
+   Swagger UI renders the page; this sheet dresses it like the rest of the
+   site: the dark header band with the crest, a hero card for the API, the
+   access facts as tiles, operations as cards with a method edge (GET in the
+   site accent, POST in the action green), and quick, eased motion when an
+   operation opens. Swagger's own dark mode (html.dark-mode) and the system
+   setting both get the graphite palette. No new words; redundant chrome
+   (the single-definition picker) is removed. */
+@font-face {
+    font-family: "LWC Roboto";
+    src: url("/assets/fonts/Roboto-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "LWC Roboto";
+    src: url("/assets/fonts/Roboto-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+}
+
+html {
+    --api-bg: #f3f5f7;
+    --api-surface: #ffffff;
+    --api-surface-muted: #eef2f5;
+    --api-ink: #17212b;
+    --api-muted: #52606d;
+    --api-border: #d7e0e6;
+    --api-accent: #087685;
+    --api-accent-soft: #dff5f7;
+    --api-green: #217a3c;
+    --api-green-soft: #e8f5ec;
+    --api-header: linear-gradient(90deg, #0f1418, #1c262d 60%, #26323a);
+    --api-code: #0f1720;
+    --api-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px -16px rgba(15, 23, 42, 0.25);
+    --api-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+html.dark-mode {
+    --api-bg: #111416;
+    --api-surface: #191d20;
+    --api-surface-muted: #20262a;
+    --api-ink: #f5f7fb;
+    --api-muted: rgba(245, 247, 251, 0.7);
+    --api-border: rgba(255, 255, 255, 0.12);
+    --api-accent: #6bcec0;
+    --api-accent-soft: rgba(107, 206, 192, 0.12);
+    --api-green: #67d393;
+    --api-green-soft: rgba(103, 211, 147, 0.12);
+    --api-code: #0b0f12;
+    --api-shadow: 0 14px 42px rgba(0, 0, 0, 0.35);
+}
+
+body {
+    background: var(--api-bg);
+}
+
+.swagger-ui,
+.swagger-ui .info .title,
+.swagger-ui .opblock-tag,
+.swagger-ui .opblock .opblock-summary-description,
+.swagger-ui .btn,
+.swagger-ui input,
+.swagger-ui select,
+.swagger-ui .renderedMarkdown p,
+.swagger-ui .renderedMarkdown li,
+.swagger-ui table thead tr td,
+.swagger-ui table thead tr th,
+.swagger-ui .parameter__name,
+.swagger-ui .response-col_status,
+.swagger-ui .tab li,
+.swagger-ui label {
+    font-family: "LWC Roboto", Roboto, system-ui, sans-serif;
+}
+
+.swagger-ui {
+    color: var(--api-ink);
+}
+
+/* Header band: the site's dark gradient and crest; one definition needs no picker. */
+.swagger-ui .topbar {
+    padding: 10px 0;
+    background: var(--api-header);
+    box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.6);
+}
+
+.swagger-ui .topbar .topbar-wrapper {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.swagger-ui .topbar .link {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    background: url("/assets/favicon-dark-512x512.png") center / contain no-repeat;
+    transition: transform 200ms var(--api-ease);
+}
+
+.swagger-ui .topbar .link:hover {
+    transform: rotate(-6deg) scale(1.06);
+}
+
+.swagger-ui .topbar .link > * {
+    display: none;
+}
+
+.swagger-ui .topbar .download-url-wrapper:has(select > option:only-child) {
+    display: none;
+}
+
+/* Page column. */
+.swagger-ui .wrapper {
+    max-width: 1120px;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Hero card for the API. */
+.swagger-ui .information-container.wrapper {
+    margin-top: 28px;
+    padding: 0;
+}
+
+.swagger-ui .information-container .info {
+    position: relative;
+    margin: 0 20px;
+    padding: 28px 32px 26px;
+    overflow: hidden;
+    border: 1px solid var(--api-border);
+    border-radius: 16px;
+    background: var(--api-surface);
+    box-shadow: var(--api-shadow);
+}
+
+.swagger-ui .information-container .info::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, var(--api-accent), var(--api-green));
+}
+
+.swagger-ui .info .title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    color: var(--api-ink);
+    font-size: clamp(1.6rem, 1.1rem + 1.8vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.swagger-ui .info .title small {
+    top: 0;
+    margin: 0;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--api-surface-muted);
+    box-shadow: inset 0 0 0 1px var(--api-border);
+    vertical-align: middle;
+}
+
+.swagger-ui .info .title small pre {
+    color: var(--api-muted);
+    font-family: "LWC Roboto", Roboto, system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.swagger-ui .info .title small.version-stamp {
+    background: var(--api-accent);
+    box-shadow: none;
+}
+
+.swagger-ui .info .title small.version-stamp pre {
+    color: #fff;
+}
+
+.swagger-ui .info .main .link,
+.swagger-ui .info .main a {
+    color: var(--api-accent);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+
+.swagger-ui .info .description,
+.swagger-ui .info .description p {
+    max-width: 72ch;
+    color: var(--api-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.swagger-ui .info a {
+    color: var(--api-accent);
+    text-underline-offset: 3px;
+}
+
+/* The access facts read as tiles. */
+.swagger-ui .info .description ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 10px;
+    max-width: none;
+    margin: 12px 0 4px;
+    padding: 0;
+    list-style: none;
+}
+
+.swagger-ui .info .description li {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--api-border);
+    border-radius: 10px;
+    background: var(--api-surface-muted);
+    color: var(--api-muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.swagger-ui .info .description li strong {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--api-ink);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Servers: a slim strip under the hero. */
+.swagger-ui .scheme-container {
+    margin: 16px 0 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.swagger-ui .scheme-container .schemes {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 40px;
+    box-sizing: border-box;
+}
+
+.swagger-ui .scheme-container .schemes-title,
+.swagger-ui .servers-title {
+    color: var(--api-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.swagger-ui select {
+    border: 1px solid var(--api-border);
+    border-radius: 8px;
+    background-color: var(--api-surface);
+    color: var(--api-ink);
+    box-shadow: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.swagger-ui .servers label {
+    display: block;
+    margin: 0;
+}
+
+.swagger-ui .servers select {
+    max-width: 100%;
+    min-height: 44px;
+}
+
+/* Filter: the site's search field. */
+.swagger-ui .filter-container .operation-filter-input {
+    max-width: none;
+    margin: 22px 0 6px;
+    padding: 12px 14px 12px 40px;
+    border: 1px solid var(--api-border);
+    border-radius: 10px;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352606d' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") 13px 50% / 18px no-repeat,
+        var(--api-surface);
+    color: var(--api-ink);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.swagger-ui .filter-container .operation-filter-input:focus {
+    border-color: var(--api-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--api-accent-soft);
+}
+
+/* Tag headings: the site's uppercase section titles with the accent underline. */
+.swagger-ui .opblock-tag {
+    position: relative;
+    margin: 18px 0 8px;
+    padding: 14px 4px 12px;
+    border-bottom: 1px solid var(--api-border);
+    color: var(--api-ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.swagger-ui .opblock-tag::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    bottom: -1px;
+    width: 3rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--api-accent);
+}
+
+.swagger-ui .opblock-tag small {
+    color: var(--api-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.swagger-ui .opblock-tag svg,
+.swagger-ui .opblock .opblock-summary .arrow,
+.swagger-ui .expand-operation svg {
+    fill: var(--api-muted);
+    transition: transform 220ms var(--api-ease), fill 140ms ease;
+}
+
+/* Operations: cards with a method edge. */
+.swagger-ui .opblock {
+    --api-method: var(--api-accent);
+    --api-method-soft: var(--api-accent-soft);
+    margin: 0 0 10px;
+    overflow: hidden;
+    border: 1px solid var(--api-border);
+    border-radius: 10px;
+    background: var(--api-surface);
+    box-shadow: inset 4px 0 0 var(--api-method);
+    transition: border-color 160ms ease, box-shadow 200ms var(--api-ease), transform 200ms var(--api-ease);
+}
+
+.swagger-ui .opblock.opblock-post {
+    --api-method: var(--api-green);
+    --api-method-soft: var(--api-green-soft);
+}
+
+.swagger-ui .opblock:hover {
+    border-color: color-mix(in srgb, var(--api-method) 45%, var(--api-border));
+    box-shadow: inset 4px 0 0 var(--api-method), var(--api-shadow);
+    transform: translateY(-1px);
+}
+
+.swagger-ui .opblock.is-open {
+    border-color: color-mix(in srgb, var(--api-method) 55%, var(--api-border));
+    box-shadow: inset 4px 0 0 var(--api-method), var(--api-shadow);
+    transform: none;
+}
+
+.swagger-ui .opblock .opblock-summary {
+    padding: 8px 12px 8px 16px;
+    border: 0;
+}
+
+.swagger-ui .opblock.is-open .opblock-summary {
+    border-bottom: 1px solid var(--api-border);
+    background: var(--api-method-soft);
+}
+
+.swagger-ui .opblock .opblock-summary-method {
+    min-width: 4rem;
+    flex-shrink: 0;
+    padding: 6px 0;
+    border-radius: 6px;
+    background: var(--api-method);
+    color: #fff;
+    font-family: "LWC Roboto", Roboto, system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-shadow: none;
+    transition: transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+html.dark-mode .swagger-ui .opblock .opblock-summary-method {
+    color: #0b1d1a;
+}
+
+.swagger-ui .opblock:hover .opblock-summary-method {
+    transform: scale(1.05);
+}
+
+.swagger-ui .opblock .opblock-summary-path,
+.swagger-ui .opblock .opblock-summary-path__deprecated {
+    color: var(--api-ink);
+    font-size: 0.95rem;
+}
+
+.swagger-ui .opblock .opblock-summary-description {
+    color: var(--api-muted);
+}
+
+.swagger-ui .opblock .opblock-summary-operation-id {
+    color: var(--api-muted);
+    font-size: 0.8rem;
+}
+
+.swagger-ui .opblock.is-open .opblock-summary .arrow,
+.swagger-ui .opblock-tag[data-is-open="true"] svg {
+    fill: var(--api-method, var(--api-accent));
+}
+
+/* The opened operation unfolds instead of popping in. */
+.swagger-ui .opblock .opblock-body {
+    animation: api-unfold 240ms var(--api-ease) both;
+}
+
+.swagger-ui .responses-wrapper .response,
+.swagger-ui .live-responses-table {
+    animation: api-rise 260ms var(--api-ease) both;
+}
+
+@keyframes api-unfold {
+    from { opacity: 0; transform: translateY(-6px); clip-path: inset(0 0 100% 0); }
+    to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes api-rise {
+    from { opacity: 0; transform: translateY(6px); }
+}
+
+/* Inside an operation: the site's band and controls. */
+.swagger-ui .opblock .opblock-section-header {
+    background: var(--api-surface-muted);
+    box-shadow: none;
+}
+
+.swagger-ui .opblock .opblock-section-header h4,
+.swagger-ui .opblock .tab-header .tab-item.active h4 span,
+.swagger-ui .responses-inner h4,
+.swagger-ui .responses-inner h5 {
+    color: var(--api-ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.swagger-ui .opblock .tab-header .tab-item.active h4 span::after {
+    background: var(--api-method);
+}
+
+.swagger-ui .opblock-description-wrapper p,
+.swagger-ui .opblock-external-docs-wrapper p,
+.swagger-ui .parameter__type,
+.swagger-ui .response-col_description,
+.swagger-ui table thead tr th,
+.swagger-ui table thead tr td {
+    color: var(--api-muted);
+}
+
+.swagger-ui .parameter__name,
+.swagger-ui .response-col_status {
+    color: var(--api-ink);
+}
+
+.swagger-ui .btn {
+    border-radius: 8px;
+    box-shadow: none;
+    font-weight: 700;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 90ms ease;
+}
+
+.swagger-ui .btn:active {
+    transform: scale(0.97);
+}
+
+.swagger-ui .btn.execute {
+    border-color: var(--api-green);
+    background: var(--api-green);
+    color: #fff;
+}
+
+.swagger-ui .btn.try-out__btn,
+.swagger-ui .btn.cancel {
+    border: 1px solid var(--api-border);
+    background: var(--api-surface);
+    color: var(--api-ink);
+}
+
+.swagger-ui .btn.try-out__btn:hover,
+.swagger-ui .btn.cancel:hover {
+    border-color: var(--api-ink);
+}
+
+.swagger-ui textarea,
+.swagger-ui input[type="text"],
+.swagger-ui input[type="search"] {
+    border: 1px solid var(--api-border);
+    border-radius: 8px;
+    background: var(--api-surface);
+    color: var(--api-ink);
+}
+
+/* Code: the site's graphite well. */
+.swagger-ui .highlight-code > .microlight,
+.swagger-ui .microlight,
+.swagger-ui pre.microlight {
+    border-radius: 10px;
+    background: var(--api-code) !important;
+}
+
+.swagger-ui .copy-to-clipboard:not(.view-line-link) {
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Give the copy button a stable target for touch, hover and keyboard focus. */
+.swagger-ui .opblock .opblock-summary .view-line-link.copy-to-clipboard,
+.swagger-ui .opblock .opblock-summary:hover .view-line-link.copy-to-clipboard {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    margin: 0 4px;
+    background: transparent;
+    transition: none;
+}
+
+.swagger-ui .opblock .view-line-link.copy-to-clipboard button {
+    width: 100%;
+    height: 100%;
+}
+
+html:not(.dark-mode) .swagger-ui .view-line-link.copy-to-clipboard button {
+    filter: brightness(0.4);
+}
+
+/* Schemas: a card like the operations. */
+.swagger-ui section.models {
+    border: 1px solid var(--api-border);
+    border-radius: 10px;
+    background: var(--api-surface);
+}
+
+.swagger-ui section.models h4 {
+    color: var(--api-ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.swagger-ui .model-box,
+.swagger-ui section.models .model-container {
+    border-radius: 8px;
+    background: var(--api-surface-muted);
+}
+
+.swagger-ui .model-title,
+.swagger-ui .model {
+    color: var(--api-ink);
+}
+
+/* Keyboard focus: the site ring. */
+.swagger-ui :is(button, a, input, textarea, select, .opblock-summary-control, .opblock-tag):focus-visible,
+.swagger-ui .filter-container .operation-filter-input:focus-visible {
+    outline: 2px solid var(--api-accent);
+    outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+    .swagger-ui .information-container .info {
+        margin: 0 12px;
+        padding: 22px 18px 18px;
+    }
+
+    .swagger-ui .wrapper,
+    .swagger-ui .topbar .topbar-wrapper {
+        padding: 0 12px;
+    }
+
+    .swagger-ui .scheme-container .schemes {
+        padding: 0 24px;
+    }
+
+    /* Swagger's desktop model reserves 174px for the property name alone. */
+    .swagger-ui .opblock .responses-inner {
+        padding-inline: 10px;
+        overflow-x: auto;
+    }
+
+    .swagger-ui .responses-table,
+    .swagger-ui .opblock table.model {
+        table-layout: fixed;
+    }
+
+    .swagger-ui .responses-table .response-col_status {
+        width: 2.5em;
+        min-width: 0;
+    }
+
+    .swagger-ui .responses-table .response-col_links {
+        width: 3.25em;
+        min-width: 0;
+        padding-left: 0.5em;
+    }
+
+    .swagger-ui .content-type-wrapper select.content-type {
+        min-height: 32px;
+        padding-inline-end: 28px;
+        background-position: right 4px center;
+    }
+
+    .swagger-ui .responses-table :is(td, .model, .model-title) {
+        overflow-wrap: anywhere;
+    }
+
+    .swagger-ui .opblock table.model tbody tr td {
+        padding-left: 0.3em;
+    }
+
+    .swagger-ui .opblock table.model tbody tr td:first-of-type {
+        width: 38%;
+        padding-left: 0;
+    }
+
+    .swagger-ui .opblock .model-box {
+        padding-inline: 3px;
+    }
+
+    .swagger-ui .opblock .tab {
+        flex-wrap: wrap;
+    }
+
+    .swagger-ui .opblock .opblock-section-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .swagger-ui .opblock .opblock-summary-control {
+        grid-row: 1 / span 2;
+    }
+
+    .swagger-ui .opblock .opblock-control-arrow {
+        min-height: 32px;
+        align-self: center;
+        justify-self: center;
+    }
+
+    .swagger-ui .opblock .opblock-summary .view-line-link {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: center;
+        justify-self: center;
+    }
+}
+
+
+/* Swagger colours each method with its own rule; meet it at the same weight. */
+.swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch) {
+    border-color: var(--api-border);
+    background: var(--api-surface);
+}
+
+.swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch):is(:hover, .is-open) {
+    border-color: color-mix(in srgb, var(--api-method) 50%, var(--api-border));
+}
+
+.swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch) .opblock-summary {
+    border-color: var(--api-border);
+}
+
+.swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch) .opblock-summary-method {
+    background: var(--api-method);
+}
+
+.swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch) .tab-header .tab-item.active h4 span::after {
+    background: var(--api-method);
+}
+
+/* The facts span the card; the prose keeps its reading measure. */
+.swagger-ui .info .description {
+    max-width: none;
+}
+
+.swagger-ui .info .description > div > p,
+.swagger-ui .info .description p {
+    max-width: 72ch;
+}
+
+/* Dark: Swagger's own bands and link colours follow the graphite palette. */
+html.dark-mode .swagger-ui .scheme-container {
+    background: transparent;
+    box-shadow: none;
+}
+
+html.dark-mode .swagger-ui .info a,
+html.dark-mode .swagger-ui .info .main a {
+    color: var(--api-accent);
+}
+
+html.dark-mode .swagger-ui .opblock-description-wrapper .renderedMarkdown :is(th, td) {
+    color: var(--api-ink);
+}
+
+html.dark-mode .swagger-ui section.models {
+    border-color: var(--api-border);
+}
+
+.swagger-ui .info .description > div > p,
+.swagger-ui .info .description p {
+    margin-inline: 0;
+}
+
+.swagger-ui .topbar .topbar-wrapper {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.swagger-ui .topbar .dark-mode-toggle button {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* Swagger outlines the summary on every click; keep the ring for keyboard focus only. */
+.swagger-ui .opblock .opblock-summary-control:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Swagger's dark mode recolours methods at a higher weight; meet it there too. */
+html.dark-mode .swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch) {
+    border-color: var(--api-border);
+    background: var(--api-surface);
+}
+
+html.dark-mode .swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch) .opblock-summary-method {
+    background: var(--api-method);
+}
+
+html.dark-mode .swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put, .opblock-delete, .opblock-patch).is-open .opblock-summary {
+    background: var(--api-method-soft);
+}
+
+html.dark-mode .swagger-ui .opblock .highlight-code pre.microlight,
+html.dark-mode .swagger-ui .opblock pre.microlight {
+    background: var(--api-code) !important;
+}
+
+html.dark-mode .swagger-ui .opblock .btn.execute {
+    border-color: var(--api-green);
+    background: var(--api-green);
+    color: #0b1d1a;
+}
+
+html.dark-mode .swagger-ui .opblock .opblock-section-header .try-out__btn,
+html.dark-mode .swagger-ui .opblock .opblock-section-header .try-out__btn.cancel {
+    border-color: var(--api-border);
+    color: var(--api-ink);
+}
+
+html.dark-mode .swagger-ui .opblock .opblock-section-header .try-out__btn:hover {
+    border-color: var(--api-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swagger-ui .opblock,
+    .swagger-ui .opblock .opblock-summary-method,
+    .swagger-ui .topbar .link,
+    .swagger-ui .opblock-tag svg,
+    .swagger-ui .opblock .opblock-summary .arrow,
+    .swagger-ui .btn,
+    .swagger-ui .opblock .opblock-summary .view-line-link {
+        transition: none;
+    }
+
+    .swagger-ui .opblock .opblock-body,
+    .swagger-ui .responses-wrapper .response,
+    .swagger-ui .live-responses-table {
+        animation: none;
+    }
+
+    .swagger-ui .opblock:hover,
+    .swagger-ui .opblock:hover .opblock-summary-method,
+    .swagger-ui .topbar .link:hover,
+    .swagger-ui .btn:active {
+        transform: none;
     }
 }

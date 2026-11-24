@@ -392,7 +392,8 @@
     width: min(100%, 36rem);
     aspect-ratio: 16 / 10;
     /* Wrapped axis labels and all tooltip contributors need a reading area at browser zoom. */
-    min-height: 180px;
+    min-height: min(180px, var(--radar-available-height, 100dvh));
+    max-height: var(--radar-available-height, 100dvh);
 }
 @media (max-width: 768px) {
     /* Phones let the web use the card's side padding; the labels sit in it. */

@@ -88,10 +88,11 @@ public sealed class TransactionalEmailFamilyTests
         Assert.Contains("@media (max-width:600px)", html);
         Assert.Contains("max-width:560px", html);
         Assert.Contains($"src=\"{TransactionalEmail.LogoUrl}\"", html);
-        Assert.Contains("class=\"lwc-email-masthead\" bgcolor=\"#101820\"", html);
+        Assert.Contains("class=\"lwc-email-masthead\" align=\"center\" bgcolor=\"#101820\"", html);
         Assert.Contains("class=\"lwc-email-card\"", html);
         Assert.Contains("class=\"lwc-email-greeting", html);
-        Assert.Contains("<p style=\"margin:0;\">Longevity World Cup</p>", html);
+        Assert.Contains("class=\"lwc-email-signoff\"", html);
+        Assert.Contains(">Longevity World Cup</p>", html);
         Assert.DoesNotContain("font-family:Arial,sans-serif;line-height:1.5", html);
     }
 

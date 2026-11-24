@@ -1,12 +1,11 @@
 <meta charset="UTF-8" />
+<!--FIRST-SCREEN-PRELOADS-->
 <script>document.activeViewTransition?.ready.catch(() => {});</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="color-scheme" content="light dark" />
 <meta name="theme-color" content="#101820" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#0b1117" media="(prefers-color-scheme: dark)" />
-<style id="lwc-first-paint">html{background:#f3f5f7;color:#17212b}@media (prefers-color-scheme:dark){html{background:#0d141b;color:#e6edf3}}</style>
-<link rel="preload" href="{{ASSET_ROBOTO_REGULAR}}" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="{{ASSET_ROBOTO_BOLD}}" as="font" type="font/woff2" crossorigin>
+<style id="lwc-first-paint">*,*::before,*::after{box-sizing:border-box}@media(prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}html{background:#f3f5f7;color:#17212b}@media (prefers-color-scheme:dark){html{background:#0d141b;color:#e6edf3}}</style>
 <meta name="lwc-athlete-placeholder" content="{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}" />
 <meta name="description" content="{{SEO_DESCRIPTION}}" />
 <meta name="robots" content="{{SEO_ROBOTS}}" />
@@ -49,10 +48,9 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous">
 
-<link rel="preload" href="{{ASSET_FONT_AWESOME_CSS}}" as="style">
 <link rel="stylesheet" href="{{ASSET_FONT_AWESOME_CSS}}">
 <link rel="stylesheet" href="{{ASSET_ICONS_CSS}}">
-<script src="{{ASSET_ICONS_JS}}"></script>
+<script src="{{ASSET_ICONS_JS}}"{{ICON_SCRIPT_LOADING}}></script>
 
 {{OPTIONAL_HEAD_SCRIPTS}}
 

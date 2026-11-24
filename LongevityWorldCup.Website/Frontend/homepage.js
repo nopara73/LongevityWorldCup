@@ -67,38 +67,11 @@ if (!window.callScoped) {
 
 const homepageHighlightsBaseRows = 5;
 const homepageHighlightsMaxRows = 12;
-const homepageVisitCounterKey = 'lwcHomepageVisitCount:v1';
-const homepageHighlightsBeforePodiumVisit = 4;
 let homepageHighlightsRows = homepageHighlightsBaseRows;
 let homepageHighlightsMeasureTimer = null;
 let homepageHighlightsResizeTimer = null;
 let homepageHighlightsFitPromise = null;
 let homepageHighlightsRequested = false;
-
-function incrementHomepageVisitCount() {
-    try {
-        const raw = window.localStorage ? window.localStorage.getItem(homepageVisitCounterKey) : null;
-        const current = Number.parseInt(raw || '0', 10);
-        const next = Math.min((Number.isFinite(current) && current >= 0 ? current : 0) + 1, 1000000);
-        window.localStorage.setItem(homepageVisitCounterKey, String(next));
-        return next;
-    } catch (_) {
-        return 1;
-    }
-}
-
-function isHomepageVisitCounterRoute() {
-    const path = (window.location && window.location.pathname ? window.location.pathname : '/').toLowerCase();
-    const isHomepagePath = path === '/' || path === '/index.html';
-    if (!isHomepagePath) return false;
-
-    try {
-        const params = new URLSearchParams(window.location.search || '');
-        return !['athlete', 'filters', 'search', 'view'].some(param => params.has(param));
-    } catch (_) {
-        return true;
-    }
-}
 
 function stabilizeHomepageFragmentTarget(initialContentReady) {
     const requestedHash = window.location.hash;
@@ -174,37 +147,6 @@ function stabilizeHomepageFragmentTarget(initialContentReady) {
             stopTracking();
         }, 5000);
     });
-}
-
-function placeHomepageHighlightsForVisit() {
-    const main = document.querySelector('main');
-    const historyLayout = history.state?.lwcHomepageVisitLayout;
-    const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
-        && (historyLayout === 'default' || historyLayout === 'repeat');
-    // Filtering can add query parameters after this visit's layout was chosen.
-    // Back keeps that layout without counting another homepage visit.
-    if (!returning && !isHomepageVisitCounterRoute()) {
-        if (main) main.dataset.homepageVisitLayout = 'default';
-        return;
-    }
-
-    const layout = returning ? historyLayout
-        : incrementHomepageVisitCount() < homepageHighlightsBeforePodiumVisit ? 'default' : 'repeat';
-    if (!returning) history.replaceState({ ...history.state, lwcHomepageVisitLayout: layout }, '');
-    if (layout === 'default') {
-        if (main) main.dataset.homepageVisitLayout = 'default';
-        return;
-    }
-
-    const highlights = document.querySelector('.lwc-highlights-countdown-wrapper');
-    const leaderboard = document.querySelector('.main-container');
-    if (!highlights || !leaderboard || !leaderboard.parentNode) {
-        if (main) main.dataset.homepageVisitLayout = 'default';
-        return;
-    }
-
-    leaderboard.parentNode.insertBefore(highlights, leaderboard);
-    if (main) main.dataset.homepageVisitLayout = 'repeat';
 }
 
 function loadHomepageHighlights(rowCount) {
@@ -307,12 +249,14 @@ function watchHomepageHighlightsLayout() {
     // Appending a highlight changes both card heights; using those heights as
     // inputs would continually reset the rows we just fitted.
     const signature = function () {
+        // Stacked cards always use the base row count. Their geometry only
+        // participates in fitting when the cards sit beside one another.
+        if (window.innerWidth <= 991) return 'stacked';
         const row = highlights.querySelector('.event-message');
         const rowStyle = row ? getComputedStyle(row) : null;
         const bodyStyle = getComputedStyle(body);
         const content = [swag.querySelector('.lwc-countdown-header-row'), ...body.children];
         return JSON.stringify([
-            window.innerWidth > 991,
             highlights.getBoundingClientRect().width,
             rowStyle?.fontSize, rowStyle?.lineHeight, rowStyle?.fontFamily,
             bodyStyle.paddingBlockStart, bodyStyle.paddingBlockEnd, bodyStyle.rowGap,
@@ -345,7 +289,6 @@ function watchHomepageHighlightsLayout() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    placeHomepageHighlightsForVisit();
     const highlightsReady = fitHomepageHighlights();
     const leaderboardReady = LoadLeaderboard(true, 10);
     stabilizeHomepageFragmentTarget(Promise.allSettled([highlightsReady, leaderboardReady]));
@@ -564,9 +507,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    setActiveSlide(0);
-    merchCarousel.hidden = false;
-    merchCarousel.parentElement.classList.add('has-merch-carousel');
+    // Keep a product the visitor already focused or scrolled to in the native strip.
+    const focusedProduct = slides.indexOf(document.activeElement);
+    setActiveSlide(focusedProduct >= 0 ? focusedProduct : slideNearestScroll());
+    merchCarousel.querySelector('.lwc-merch-mobile-dots').inert = false;
     syncLayout();
     phone.addEventListener('change', syncLayout);
     let layoutFrame = 0;
@@ -950,7 +894,10 @@ window.addEventListener('resize', adjustBitcoinAddressDisplay);
 
     const easeOut = t => 1 - Math.pow(1 - t, 3);
     const running = new Set();
-    const counted = new WeakSet();
+    // These scores have already been on screen. Hydration must never rewind
+    // a published result to zero to play a count-up.
+    const counted = new WeakSet(main.querySelectorAll(
+        '.podium[data-server-rendered] .podium-score .age-reduction, .server-rendered-leaderboard-row .age-reduction-td .age-reduction'));
     const settleAnimations = [];
     const cleanup = [];
     const board = main.querySelector('#athleteLeaderboard');

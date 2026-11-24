@@ -9,10 +9,10 @@ namespace LongevityWorldCup.Tests;
 public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedFactory)
 {
     [Theory]
-    [InlineData("/flag/hungary")]
-    [InlineData("/league/amateur")]
-    [InlineData("/league/bortz")]
-    public async Task CanonicalLeaderboardRoute_RendersFullLeaderboardShell(string path)
+    [InlineData("/flag/hungary", "fi fi-hu lwc-flag-icon")]
+    [InlineData("/league/amateur", "fas fa-user-graduate filter-icon")]
+    [InlineData("/league/bortz", null)]
+    public async Task CanonicalLeaderboardRoute_RendersFullLeaderboardShell(string path, string? emblem)
     {
         using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -23,7 +23,10 @@ public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedF
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("<main data-leaderboard-page=\"full\">", html, StringComparison.Ordinal);
+        var main = emblem is null ? "<main data-leaderboard-page=\"full\">" : "<main data-leaderboard-page=\"full\" data-league>";
+        var mark = emblem is null ? "<span class=\"league-emblem\" aria-hidden=\"true\" hidden></span>" : $"class=\"{emblem} league-emblem-mark\"";
+        Assert.Contains(main, html, StringComparison.Ordinal);
+        Assert.Contains(mark, html, StringComparison.Ordinal);
         Assert.Contains("<h1 id=\"leaderboardTitle\">", html, StringComparison.Ordinal);
         Assert.Contains("LoadLeaderboard(false, Infinity);", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"viewAllAthletesBtn\"", html, StringComparison.Ordinal);
@@ -37,7 +40,7 @@ public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedF
         var html = await client.GetStringAsync("/athlete/ron-lugbill");
 
         Assert.Contains("id=\"viewAllAthletesBtn\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("<main data-leaderboard-page=\"full\">", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<main data-leaderboard-page=\"full\"", html, StringComparison.Ordinal);
     }
 
     [Theory]

@@ -83,7 +83,7 @@
     box-sizing: border-box;
     background: linear-gradient(135deg, var(--lwc-accent) 50%, transparent 50%);
     color: var(--lwc-on-accent, #fff);
-    font: 900 .7rem/1 "Font Awesome 6 Free", "Font Awesome 5 Free";
+    font: 900 .7rem/1 var(--fa-style-family-classic, "Font Awesome 6 Free"), "Font Awesome 5 Free";
     pointer-events: none;
     animation: media-stamp-in 420ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1));
 }
@@ -124,4 +124,75 @@
     .media-kit-main .media-file-tile[data-collected]::after,
     .media-kit-main .media-kit-primary-download:hover::before { animation: none; }
     .media-kit-main .media-file-thumb img { transition: opacity 120ms linear; }
+}
+
+/* A multi-format asset keeps its preview and its native radio controls in place. */
+.media-kit-main .media-kit-featured:has(> :only-child) {
+    width: min(100%, 46rem);
+    margin-inline: auto;
+}
+.media-file-details {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .375rem .75rem;
+}
+.media-file-tile:not(.media-file-doc) .media-file-details {
+    border-top: 1px solid var(--lwc-border);
+    padding: .5rem .8rem;
+}
+.media-kit-main .media-file-details .media-file-name {
+    padding: 0;
+    border: 0;
+    overflow-wrap: anywhere;
+}
+.media-kit-main .media-format-switch {
+    display: inline-flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 2px;
+    border: 1px solid var(--lwc-border);
+    border-radius: 1.5rem;
+    background: var(--lwc-surface-muted);
+}
+.media-kit-main .media-format-switch label {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: .4em;
+    box-sizing: border-box;
+    border-radius: inherit;
+    color: var(--lwc-muted);
+    font-size: var(--lwc-type-xs, .75rem);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.media-kit-main .media-format-switch :is(label, input) {
+    transition: none;
+}
+.media-format-switch input::before { content: none; }
+.media-format-switch input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.media-kit-main .media-format-switch label:has(:checked) {
+    color: var(--lwc-accent);
+    background: var(--lwc-surface);
+    box-shadow: inset 0 0 0 1px currentColor;
+}
+.media-format-switch label:has(:focus-visible) {
+    outline: 2px solid var(--lwc-accent);
+    outline-offset: 1px;
 }

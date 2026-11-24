@@ -303,13 +303,20 @@ interface Window {
             ownMonogram.delete(img);
             delete img.dataset["lwcPortraitFallback"];
         }
+        // Adding responsive candidates can start another image selection. Keep
+        // the existing photo visible when first adopting a loaded image.
+        const previous = tracked.get(img);
+        const alreadyLoaded = !previous && loaded(img);
         // Clear owned candidates even when the page removes src during a step.
         syncSrcset(img);
         const source = signature(img);
-        const previous = tracked.get(img);
         if (previous?.source === source) return;
         if (previous?.timer) clearTimeout(previous.timer);
         tracked.set(img, { source, version: (previous?.version || 0) + 1 });
+        if (alreadyLoaded) {
+            setState(img, "ready");
+            return;
+        }
         setState(img, "loading");
         if (src && loaded(img)) finishDecode(img, true);
         else if (src && img.complete && img.naturalWidth === 0) {
@@ -332,7 +339,7 @@ interface Window {
         queueMicrotask(() => {
             if (!img.isConnected) return;
             track(img);
-            finishDecode(img);
+            if (img.dataset["lwcPortraitState"] === "loading") finishDecode(img);
         });
     }
 
@@ -360,7 +367,7 @@ interface Window {
     let driftY = 0;
 
     function deep(img: Element | null): img is HTMLImageElement {
-        return img instanceof HTMLImageElement
+        return img instanceof HTMLImageElement && !img.classList.contains("podium-portrait")
             && known.has(img) && isAthletePortrait(img)
             && (img.dataset["lwcPortraitTier"] === "md" || img.dataset["lwcPortraitTier"] === "lg");
     }

@@ -74,7 +74,8 @@
         observer?.unobserve(element);
         pending.delete(element);
         // A jump that lands many items at once compresses the cascade so the screen fills fast.
-        element.style.setProperty('--lwc-enter-i', String(Math.min(index * pace, STAGGER_CAP)));
+        const step = Math.min(index * pace, STAGGER_CAP);
+        if (step) element.dataset.lwcEnterStep = String(step);
         element.setAttribute('data-lwc-enter-state', 'go');
         // Clear once settled so the element's own transitions take over again.
         settling.set(element, window.setTimeout(() => clearEntrance(element), 900 + Math.min(index, STAGGER_CAP) * 80));
@@ -90,6 +91,7 @@
         // Removing the rule alone can leave an in-flight transition contributing its
         // current opacity. Cancel only the two transitions owned by this entrance.
         const transitions = element.getAttribute('data-lwc-enter-state') === 'go'
+            && typeof element.getAnimations === 'function' && typeof CSSTransition !== 'undefined'
             ? element.getAnimations().filter(animation => animation instanceof CSSTransition
                 && (animation.transitionProperty === 'opacity' || animation.transitionProperty === 'translate'))
             : [];
@@ -98,7 +100,7 @@
         window.clearTimeout(settling.get(element));
         settling.delete(element);
         element.removeAttribute('data-lwc-enter-state');
-        element.style.removeProperty('--lwc-enter-i');
+        element.removeAttribute('data-lwc-enter-step');
         transitions.forEach(animation => animation.cancel());
     }
 
@@ -284,8 +286,19 @@
         document.addEventListener('pointerdown', () => { pointerDown = true; }, { capture: true, passive: true });
         document.addEventListener('pointerup', () => { pointerDown = false; }, { capture: true, passive: true });
         document.addEventListener('pointercancel', () => { pointerDown = false; }, { capture: true, passive: true });
-        document.addEventListener('focusin', () => { if (!pointerDown) releaseAll(); }, true);
-        document.addEventListener('click', releaseAll, { capture: true, passive: true });
+        function finishInteractionEntrance(event: Event): void {
+            // A media format switch keeps the reader on one asset. Its neighbours
+            // should still enter when scrolled to, even after keyboard selection.
+            const formats = event.target instanceof Element && event.target.closest('.media-format-switch');
+            if (formats) {
+                const tile = formats.closest<HTMLElement>('.media-file-tile[data-lwc-enter-state]');
+                if (tile) clearEntrance(tile);
+                return;
+            }
+            releaseAll();
+        }
+        document.addEventListener('focusin', event => { if (!pointerDown) finishInteractionEntrance(event); }, true);
+        document.addEventListener('click', finishInteractionEntrance, { capture: true, passive: true });
         reduce.addEventListener?.('change', () => { if (reduce.matches) releaseAll(); });
         window.addEventListener('pageshow', event => { if (event.persisted) releaseAll(); });
         window.addEventListener('pagehide', releaseAll);

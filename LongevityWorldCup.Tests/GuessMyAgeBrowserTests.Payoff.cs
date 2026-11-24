@@ -73,7 +73,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
     {
         await using var context = await NewStageContextAsync(
             Browser, App.BaseAddress,
-            """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+            """{"previousCrowdAge":100,"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
         var page = await OpenStageAsync(context, "payoff-crowd-test", 54);
         await page.EvaluateAsync(
             """
@@ -176,7 +176,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests(
     {
         await using var context = await NewStageContextAsync(
             Browser, App.BaseAddress,
-            """{"crowdAge":49,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+            """{"previousCrowdAge":49,"crowdAge":49,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
         var page = await OpenStageAsync(context, "payoff-exact-test", 41);
         await SubmitAndSettleAsync(page);
         for (var elapsed = 0; elapsed < 3000 && await page.Locator(".gma-exact-jackpot").CountAsync() == 0; elapsed += 50)
