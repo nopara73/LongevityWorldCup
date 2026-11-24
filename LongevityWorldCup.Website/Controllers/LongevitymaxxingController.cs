@@ -206,7 +206,8 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
                 request.Nutrition,
                 request.Vices,
                 request.Note,
-                request.SubmissionId);
+                request.SubmissionId,
+                request.RemovedPhotoNames);
             return Ok(await _challenge.SubmitCheckInAsync(checkIn, notePhotos, context: HttpContext, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
@@ -217,6 +218,15 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpPost("discussion/post/edit")]
+    public IActionResult EditDiscussionPost([FromBody] LongevitymaxxingDiscussionPostEditRequest request)
+    {
+        try { return Ok(_challenge.EditDiscussionPost(request)); }
+        catch (LongevitymaxxingDiscussionPostChangedException ex) { return Conflict(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpPost("discussion/replies")]
@@ -373,6 +383,7 @@ public sealed class LongevitymaxxingCheckInFormRequest
     public int Vices { get; set; }
     public string? Note { get; set; }
     public string? SubmissionId { get; set; }
+    public List<string>? RemovedPhotoNames { get; set; }
 }
 
 public sealed class LongevitymaxxingDiscussionReplyFormRequest

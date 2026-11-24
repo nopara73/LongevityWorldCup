@@ -64,7 +64,7 @@ Proceed only when current/newer conversation confirms this exact submission, or 
 3. Reuse a draft only if its thread ID matches and its recipient is independently trusted. Otherwise create the threaded draft through the sender workflow below.
 4. Present the short security summary and stop that candidate. No ZIP, file/proof work, folder opening, ledger, or welcome/update email while verification is pending, unless explicitly overridden after the summary. Continue enforcing `UNREAD`.
 
-Use this body, adjusting the first name and selecting the submitted item phrase. Omit the greeting if a prior human reply in the thread already greeted them; no signature or proof details unless requested.
+Translate the template below into the chosen reply language and use the athlete's first name and the relevant submission type. Omit the greeting if a prior human reply in the thread already greeted them; no signature or proof details unless requested.
 
 ```text
 Hi {firstName}, for security reasons can you confirm you've submitted {the new results/the change request/the new results and the change request}?
@@ -167,11 +167,13 @@ Do not mention successful payment or receipt of an entry fee when there is no pa
 
 Do not use em dashes in newly written replies. Use periods or commas instead; preserve original quoted correspondence unchanged.
 
-Language priority: explicit user/athlete instruction; otherwise a clearly non-English `Why` field; otherwise latest direct exchange; otherwise English. Localize the entire reply, retaining names, URLs, biomarker labels, and exact values. Lab-report language alone does not establish preference.
+Follow the operator's current language instruction and carry forward the athlete's latest explicit language preference across related threads. Otherwise default to Hungarian for known Hungarian athletes, including those whose application lists Hungary, even when the form or earlier emails are in English. For other athletes, use a clearly non-English `Why`, then the latest direct exchange, then English. For security confirmations, use the history already available before opening the submission. A name, a lab report's language, or Gmail's quoted-reply header alone does not establish a preference. Localize the whole reply, including headings, while retaining names, URLs, biomarker labels, and exact values.
 
 For new applications blocked by missing evidence, introduce Adam on first contact and ask only about the confirmed blocker. If unpaid, tell them to hold off paying until the evidence can be verified; if already paid and the evidence may not exist, offer a refund. Request only the missing markers, same-day evidence, or safe proof needed, not a premature payment. Use the Ruleset's same-day wording in replies, not a stricter same-blood-draw requirement.
 
 An introduction belongs only on first direct human contact when needed, not automatically at acceptance. Never repeat Adam's name/founder introduction after requested corrections or when prior correspondence has already introduced him. Do not restart a welcome script because the application has become acceptable.
+
+Put each visible URL in newly written athlete emails on its own line, with no trailing period or other added punctuation. In HTML, put the link in its own paragraph with the exact URL as both its text and destination. Check the saved draft before sending.
 
 For accepted applications, lead with a brief, warm confirmation suited to the preceding exchange, then the new profile link. Follow with substantive review changes when relevant. Invite corrections only when useful; do not pad the reply with branding or generic praise.
 

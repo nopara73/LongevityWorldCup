@@ -835,9 +835,12 @@ public sealed partial class LongevitymaxxingChallengeService
             using var transaction = sqlite.BeginTransaction(deferred: false);
             var reply = RequireOwnedDiscussionReply(sqlite, transaction, replyId, author.Id, "edit");
             RequireAdviceReplyEditable(sqlite, transaction, reply);
-            var body = NormalizeDiscussionReply(request.Body, Math.Max(characterLimit, reply.Body.Length),
-                ReadDiscussionPhotos(sqlite, transaction, replyId, reply.SystemPostId).Count > 0);
-            if (string.Equals(reply.Body, body, StringComparison.Ordinal))
+            var photos = ReadDiscussionPhotos(sqlite, transaction, replyId, reply.SystemPostId);
+            var removeNames = PhotoNamesToRemove(request.RemovedPhotoNames);
+            var removed = photos.Where(photo => removeNames.Contains(photo.FileName)).ToList();
+            var retained = photos.Where(photo => !removeNames.Contains(photo.FileName)).ToList();
+            var body = NormalizeDiscussionReply(request.Body, Math.Max(characterLimit, reply.Body.Length), retained.Count > 0);
+            if (string.Equals(reply.Body, body, StringComparison.Ordinal) && removed.Count == 0)
             {
                 transaction.Commit();
                 return PopulateDiscussionReplyContexts(sqlite, [ToDiscussionReply(reply)])[0];
@@ -856,18 +859,19 @@ public sealed partial class LongevitymaxxingChallengeService
                 update.CommandText = reply.SystemPostId is null
                     ? """
                     UPDATE LongevitymaxxingDiscussionReplies
-                    SET Body = @body,
+                    SET Body = @body, PhotosJson = @photos,
                         EditedAtUtc = @edited
                     WHERE Id = @id;
                     """
                     :
                     """
                     UPDATE LongevitymaxxingDiscussionSystemPostReplies
-                    SET Body = @body,
+                    SET Body = @body, PhotosJson = @photos,
                         EditedAtUtc = @edited
                     WHERE Id = @id;
                     """;
                 Add(update, "@body", body);
+                Add(update, "@photos", JsonSerializer.Serialize(retained));
                 Add(update, "@edited", now.ToString("o"));
                 Add(update, "@id", replyId);
                 update.ExecuteNonQuery();
@@ -894,6 +898,7 @@ public sealed partial class LongevitymaxxingChallengeService
                 now, newOwnerMention);
 
             transaction.Commit();
+            foreach (var photo in removed) TryDeleteFile(GetCheckInPhotoPath(photo.FileName));
             return PopulateDiscussionReplyContexts(sqlite, [new LongevitymaxxingDiscussionReply(
                 reply.Id,
                 reply.AuthorParticipantId,
@@ -1693,10 +1698,23 @@ public sealed partial class LongevitymaxxingChallengeService
     }
 
     private static string CheckInRequestHash(LongevitymaxxingCheckInRequest request, IReadOnlyList<string> photoHashes)
-        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
+    {
+        var content = JsonSerializer.Serialize(new {
             request.ChallengeDay, request.Sleep, request.Exercise, request.Nutrition, request.Vices,
             Note = NormalizeNote(request.Note, int.MaxValue), Photos = photoHashes
-        }))));
+        });
+        // Keep existing receipts valid. A removal is identified by its immutable filename, never its grid position.
+        var removed = PhotoNamesToRemove(request.RemovedPhotoNames);
+        if (removed.Count > 0) content += JsonSerializer.Serialize(removed.Order(StringComparer.Ordinal));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+    }
+
+    private static HashSet<string> PhotoNamesToRemove(IReadOnlyList<string>? names)
+    {
+        if (names is { Count: > MaxCheckInPhotoCount })
+            throw new InvalidOperationException($"Each check-in or reply can have up to {MaxCheckInPhotoCount} photos.");
+        return (names ?? []).ToHashSet(StringComparer.Ordinal);
+    }
 
     private static bool HasCheckInReceipt(SqliteConnection sqlite, SqliteTransaction? transaction, string participantId, string? submissionId, string requestHash)
     {
@@ -1725,60 +1743,18 @@ public sealed partial class LongevitymaxxingChallengeService
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
             if (HasCheckInReceipt(sqlite, transaction, checkIn.Participant.Id, checkIn.Request.SubmissionId, requestHash)) return false;
-            var existingDiscussion = GetPersistedDiscussionSnapshot(
-                sqlite,
-                transaction,
-                checkIn.Participant.Id,
-                checkIn.Request.ChallengeDay);
-            if (existingDiscussion.ImageCount + newImages.Count > MaxCheckInPhotoCount)
-                throw new InvalidOperationException($"Each check-in can have up to {MaxCheckInPhotoCount} photos.");
-            var confirmedParticipants = GetConfirmedParticipants(sqlite, transaction);
-            var publishedAdvice = ReadAdviceRequest(sqlite, transaction, participantId: checkIn.Participant.Id, day: checkIn.Request.ChallengeDay);
-            var hasAdvice = publishedAdvice?.Status is "published" or "withdrawn";
-            var hasDiscussionContent = hasAdvice || checkIn.Note is not null || existingDiscussion.ImageCount + newImages.Count > 0;
-            var discussionChanged = !string.Equals(checkIn.Note, existingDiscussion.Note, StringComparison.Ordinal) || newImages.Count > 0;
-            var discussionUpdatedAt = hasDiscussionContent ? checkIn.NowUtc.ToString("o") : null;
-
-            var previousMentionIds = ResolveMentionedParticipants(
-                    $"{existingDiscussion.Note}\n{(publishedAdvice?.Status == "published" ? publishedAdvice.Story : "")}",
-                    checkIn.Participant.Id,
-                    confirmedParticipants)
-                .Select(mentioned => mentioned.Id)
-                .ToHashSet(StringComparer.Ordinal);
-            var currentMentionRecipients = ResolveMentionedParticipants(
-                $"{checkIn.Note}\n{(publishedAdvice?.Status == "published" ? publishedAdvice.Story : "")}",
-                checkIn.Participant.Id,
-                confirmedParticipants);
-            if (currentMentionRecipients.Count > MaxMentionsPerCheckIn)
-                throw new InvalidOperationException($"Each discussion post can mention up to {MaxMentionsPerCheckIn} participants.");
-            var currentMentionIds = currentMentionRecipients
-                .Select(mentioned => mentioned.Id)
-                .ToHashSet(StringComparer.Ordinal);
-
-            if (!hasDiscussionContent && DiscussionPostHasReplies(
-                    sqlite,
-                    transaction,
-                    checkIn.Participant.Id,
-                    checkIn.Request.ChallengeDay))
-                throw new InvalidOperationException("A discussion post with replies cannot be removed.");
-
             using var upsert = sqlite.CreateCommand();
             upsert.Transaction = transaction;
             upsert.CommandText =
                 """
                 INSERT INTO LongevitymaxxingCheckIns
-                (ParticipantId, ChallengeDay, ChallengeDate, Sleep, Exercise, Nutrition, Vices, Note, DiscussionUpdatedAtUtc, CheckedInAtUtc, UpdatedAtUtc)
-                VALUES (@participantId, @day, @date, @sleep, @exercise, @nutrition, @vices, @note, @discussionUpdated, @checked, @updated)
+                (ParticipantId, ChallengeDay, ChallengeDate, Sleep, Exercise, Nutrition, Vices, CheckedInAtUtc, UpdatedAtUtc)
+                VALUES (@participantId, @day, @date, @sleep, @exercise, @nutrition, @vices, @checked, @updated)
                 ON CONFLICT(ParticipantId, ChallengeDay) DO UPDATE SET
                     Sleep = excluded.Sleep,
                     Exercise = excluded.Exercise,
                     Nutrition = excluded.Nutrition,
                     Vices = excluded.Vices,
-                    Note = excluded.Note,
-                    DiscussionUpdatedAtUtc = CASE
-                        WHEN @discussionChanged = 1 THEN @discussionUpdated
-                        ELSE LongevitymaxxingCheckIns.DiscussionUpdatedAtUtc
-                    END,
                     UpdatedAtUtc = excluded.UpdatedAtUtc;
                 """;
             Add(upsert, "@participantId", checkIn.Participant.Id);
@@ -1788,60 +1764,13 @@ public sealed partial class LongevitymaxxingChallengeService
             Add(upsert, "@exercise", checkIn.Exercise);
             Add(upsert, "@nutrition", checkIn.Nutrition);
             Add(upsert, "@vices", checkIn.Vices);
-            Add(upsert, "@note", checkIn.Note);
-            Add(upsert, "@discussionUpdated", discussionUpdatedAt);
-            Add(upsert, "@discussionChanged", discussionChanged ? 1 : 0);
             Add(upsert, "@checked", checkIn.NowUtc.ToString("o"));
             Add(upsert, "@updated", checkIn.NowUtc.ToString("o"));
             upsert.ExecuteNonQuery();
             UpdateAdvicePrompt(sqlite, transaction, checkIn, adviceCharacterLimit);
 
-            var nextImageIndex = existingDiscussion.LastImageIndex + 1;
-            foreach (var image in newImages)
-            {
-                using var insertImage = sqlite.CreateCommand();
-                insertImage.Transaction = transaction;
-                insertImage.CommandText =
-                    """
-                    INSERT INTO LongevitymaxxingCheckInImages
-                    (ParticipantId, ChallengeDay, ImageIndex, FileName, Width, Height, CreatedAtUtc)
-                    VALUES (@participantId, @day, @imageIndex, @fileName, @width, @height, @created);
-                    """;
-                Add(insertImage, "@participantId", checkIn.Participant.Id);
-                Add(insertImage, "@day", checkIn.Request.ChallengeDay);
-                Add(insertImage, "@imageIndex", nextImageIndex++);
-                Add(insertImage, "@fileName", image.FileName);
-                Add(insertImage, "@width", image.Width);
-                Add(insertImage, "@height", image.Height);
-                Add(insertImage, "@created", image.CreatedAtUtc.ToString("o"));
-                insertImage.ExecuteNonQuery();
-            }
-
-            RemovePendingOpeningPostMentionsExcept(
-                sqlite,
-                transaction,
-                checkIn.Participant.Id,
-                checkIn.Request.ChallengeDay,
-                currentMentionIds);
-
-            foreach (var recipient in currentMentionRecipients.Where(recipient => !previousMentionIds.Contains(recipient.Id)))
-            {
-                using var notify = sqlite.CreateCommand();
-                notify.Transaction = transaction;
-                notify.CommandText =
-                    """
-                    INSERT OR IGNORE INTO LongevitymaxxingDiscussionNotifications
-                    (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc, NotifiedAtUtc)
-                    VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'mention', NULL, @created, NULL);
-                    """;
-                Add(notify, "@id", Guid.NewGuid().ToString("N"));
-                Add(notify, "@recipientParticipantId", recipient.Id);
-                Add(notify, "@actorParticipantId", checkIn.Participant.Id);
-                Add(notify, "@postParticipantId", checkIn.Participant.Id);
-                Add(notify, "@day", checkIn.Request.ChallengeDay);
-                Add(notify, "@created", checkIn.NowUtc.ToString("o"));
-                notify.ExecuteNonQuery();
-            }
+            var removedFiles = SaveDiscussionContent(sqlite, transaction, checkIn.Participant.Id, checkIn.Request.ChallengeDay,
+                checkIn.Note, adviceCharacterLimit, newImages, checkIn.Request.RemovedPhotoNames, checkIn.NowUtc);
 
             if (checkIn.Request.SubmissionId is not null)
             {
@@ -1855,6 +1784,7 @@ public sealed partial class LongevitymaxxingChallengeService
             }
             transaction.Commit();
             foreach (var image in newImages) image.Committed = true;
+            foreach (var file in removedFiles) TryDeleteFile(GetCheckInPhotoPath(file));
             return true;
         });
 
@@ -1865,7 +1795,151 @@ public sealed partial class LongevitymaxxingChallengeService
         return (GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc), applied);
     }
 
-    private static (string? Note, int ImageCount, int LastImageIndex) GetPersistedDiscussionSnapshot(
+    public LongevitymaxxingParticipantState EditDiscussionPost(LongevitymaxxingDiscussionPostEditRequest request, DateTimeOffset? nowUtc = null)
+    {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        var author = RequireParticipantByAccessToken(request.AccessToken);
+        var limit = GetCharacterAllowance(author, now).Limit;
+        _db.Run(sqlite =>
+        {
+            using var transaction = sqlite.BeginTransaction(deferred: false);
+            var removedFiles = SaveDiscussionContent(sqlite, transaction, author.Id, request.ChallengeDay, request.Note,
+                limit, [], request.RemovedPhotoNames, now, editingPost: true, originalNote: request.OriginalNote);
+            transaction.Commit();
+            foreach (var file in removedFiles) TryDeleteFile(GetCheckInPhotoPath(file));
+        });
+        return GetParticipantState(request.AccessToken, now) with {
+            UpdatedDiscussionThread = GetParticipantNotes(publicOnly: false, now, author.Id, request.ChallengeDay).SingleOrDefault()
+        };
+    }
+
+    private List<string> SaveDiscussionContent(SqliteConnection sqlite, SqliteTransaction transaction,
+        string participantId, int day, string? note, int limit, IReadOnlyList<PendingCheckInImage> newImages,
+        IReadOnlyList<string>? removedPhotoNames, DateTimeOffset now, bool editingPost = false, string? originalNote = null)
+    {
+        var existingDiscussion = GetPersistedDiscussionSnapshot(sqlite, transaction, participantId, day)
+            ?? throw new InvalidOperationException("This check-in is no longer available.");
+        note = NormalizeNote(note, Math.Max(limit, existingDiscussion.Note?.Length ?? 0));
+        if (editingPost && existingDiscussion.Note != note)
+        {
+            var original = NormalizeNote(originalNote, int.MaxValue);
+            if (original == note) note = existingDiscussion.Note; // A photo-only edit leaves a newer caption intact.
+            else if (original != existingDiscussion.Note) throw new LongevitymaxxingDiscussionPostChangedException();
+        }
+
+        var removedFiles = new List<string>();
+        foreach (var name in PhotoNamesToRemove(removedPhotoNames))
+        {
+            using var remove = sqlite.CreateCommand();
+            remove.Transaction = transaction;
+            remove.CommandText = """
+                DELETE FROM LongevitymaxxingCheckInImages
+                WHERE ParticipantId = @participant AND ChallengeDay = @day AND FileName = @name RETURNING FileName;
+                """;
+            Add(remove, "@participant", participantId);
+            Add(remove, "@day", day);
+            Add(remove, "@name", name);
+            if (remove.ExecuteScalar() is string ownedFile) removedFiles.Add(ownedFile);
+        }
+        var imageCount = existingDiscussion.ImageCount - removedFiles.Count + newImages.Count;
+        if (imageCount > MaxCheckInPhotoCount)
+            throw new InvalidOperationException($"Each check-in can have up to {MaxCheckInPhotoCount} photos.");
+        var confirmedParticipants = GetConfirmedParticipants(sqlite, transaction);
+        var publishedAdvice = ReadAdviceRequest(sqlite, transaction, participantId: participantId, day: day);
+        var hasAdvice = publishedAdvice?.Status is "published" or "withdrawn";
+        var hasDiscussionContent = hasAdvice || note is not null || imageCount > 0;
+        var discussionChanged = !string.Equals(note, existingDiscussion.Note, StringComparison.Ordinal) || newImages.Count > 0 || removedFiles.Count > 0;
+        var discussionUpdatedAt = hasDiscussionContent ? now.ToString("o") : null;
+
+        var previousMentionIds = ResolveMentionedParticipants(
+                $"{existingDiscussion.Note}\n{(publishedAdvice?.Status == "published" ? publishedAdvice.Story : "")}",
+                participantId,
+                confirmedParticipants)
+            .Select(mentioned => mentioned.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var currentMentionRecipients = ResolveMentionedParticipants(
+            $"{note}\n{(publishedAdvice?.Status == "published" ? publishedAdvice.Story : "")}",
+            participantId,
+            confirmedParticipants);
+        if (currentMentionRecipients.Count > MaxMentionsPerCheckIn)
+            throw new InvalidOperationException($"Each discussion post can mention up to {MaxMentionsPerCheckIn} participants.");
+        var currentMentionIds = currentMentionRecipients
+            .Select(mentioned => mentioned.Id)
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (!hasDiscussionContent && DiscussionPostHasReplies(
+                sqlite,
+                transaction,
+                participantId,
+                day))
+            throw new InvalidOperationException("A discussion post with replies cannot be removed.");
+
+        if (discussionChanged)
+        {
+            using var update = sqlite.CreateCommand();
+            update.Transaction = transaction;
+            update.CommandText = """
+                UPDATE LongevitymaxxingCheckIns SET Note = @note, DiscussionUpdatedAtUtc = @activity, UpdatedAtUtc = @now
+                WHERE ParticipantId = @participant AND ChallengeDay = @day;
+                """;
+            Add(update, "@note", note);
+            Add(update, "@activity", discussionUpdatedAt);
+            Add(update, "@now", now.ToString("o"));
+            Add(update, "@participant", participantId);
+            Add(update, "@day", day);
+            update.ExecuteNonQuery();
+        }
+        var nextImageIndex = existingDiscussion.LastImageIndex + 1;
+        foreach (var image in newImages)
+        {
+            using var insertImage = sqlite.CreateCommand();
+            insertImage.Transaction = transaction;
+            insertImage.CommandText =
+                """
+                INSERT INTO LongevitymaxxingCheckInImages
+                (ParticipantId, ChallengeDay, ImageIndex, FileName, Width, Height, CreatedAtUtc)
+                VALUES (@participantId, @day, @imageIndex, @fileName, @width, @height, @created);
+                """;
+            Add(insertImage, "@participantId", participantId);
+            Add(insertImage, "@day", day);
+            Add(insertImage, "@imageIndex", nextImageIndex++);
+            Add(insertImage, "@fileName", image.FileName);
+            Add(insertImage, "@width", image.Width);
+            Add(insertImage, "@height", image.Height);
+            Add(insertImage, "@created", image.CreatedAtUtc.ToString("o"));
+            insertImage.ExecuteNonQuery();
+        }
+
+        RemovePendingOpeningPostMentionsExcept(
+            sqlite,
+            transaction,
+            participantId,
+            day,
+            currentMentionIds);
+
+        foreach (var recipient in currentMentionRecipients.Where(recipient => !previousMentionIds.Contains(recipient.Id)))
+        {
+            using var notify = sqlite.CreateCommand();
+            notify.Transaction = transaction;
+            notify.CommandText =
+                """
+                INSERT OR IGNORE INTO LongevitymaxxingDiscussionNotifications
+                (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc, NotifiedAtUtc)
+                VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'mention', NULL, @created, NULL);
+                """;
+            Add(notify, "@id", Guid.NewGuid().ToString("N"));
+            Add(notify, "@recipientParticipantId", recipient.Id);
+            Add(notify, "@actorParticipantId", participantId);
+            Add(notify, "@postParticipantId", participantId);
+            Add(notify, "@day", day);
+            Add(notify, "@created", now.ToString("o"));
+            notify.ExecuteNonQuery();
+        }
+
+        return removedFiles;
+    }
+
+    private static (string? Note, int ImageCount, int LastImageIndex)? GetPersistedDiscussionSnapshot(
         SqliteConnection sqlite,
         SqliteTransaction transaction,
         string participantId,
@@ -1892,7 +1966,7 @@ public sealed partial class LongevitymaxxingChallengeService
         using var reader = cmd.ExecuteReader();
         return reader.Read()
             ? (reader.IsDBNull(0) ? null : reader.GetString(0), reader.GetInt32(1), reader.GetInt32(2))
-            : (null, 0, 0);
+            : null;
     }
 
     private static void RemovePendingOpeningPostMentionsExcept(
