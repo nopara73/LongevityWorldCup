@@ -530,7 +530,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
                     const style = getComputedStyle(input);
                     const ctx = document.createElement('canvas').getContext('2d');
                     ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-                    const available = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    const available = input.offsetWidth - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+                        - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                     return ctx.measureText(input.value).width <= available + 1;
                 }
                 """), $"{id}: the edited value is clipped beside its comparison chip.");
