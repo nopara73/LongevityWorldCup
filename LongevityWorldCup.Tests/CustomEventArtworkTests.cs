@@ -46,6 +46,37 @@ public sealed class CustomEventArtworkTests(TestWebApplicationFactory factory)
     public void StoryArtwork_RequiresTheExactHttpsArticle(string url, bool selected)
         => Assert.Equal(selected, CustomEventArtwork.ForUrl(url) is not null);
 
+    [Fact]
+    public void XAnnouncement_WithLongSourceUrlPreservesCopyAndArtwork()
+    {
+        const string sourceUrl = "https://www.buzzsprout.com/2529295/episodes/20132993-protocoles-et-complements-anti-age-jusqu-ou-aller-valerie-orsoni";
+        const string caption = "On Heiven’s Experts Longévité podcast, Longevity World Cup athlete Valérie Orsoni explains why she uses Bortz Age and what the clock leaves out, including bone density.";
+        var rawText = caption.Replace("Experts Longévité", $"[Experts Longévité]({sourceUrl})");
+        var expected = $"{caption}\n\n{sourceUrl}";
+
+        Assert.True(expected.Length > 280);
+        var plan = XCustomEventPost.BuildPlan("event", rawText, includeEventUrl: false);
+        Assert.Equal(CustomEventPostMode.Artwork, plan.Mode);
+        Assert.Equal(expected, plan.PostText);
+        Assert.Equal(sourceUrl, plan.EventUrl);
+    }
+
+    [Theory]
+    [InlineData(247, CustomEventPostMode.Text)]
+    [InlineData(248, CustomEventPostMode.Image)]
+    public void XAnnouncement_UsesTheSameLinkBudgetInPreviewAndDelivery(int titleLength, CustomEventPostMode mode)
+    {
+        var title = new string('T', titleLength);
+        var raw = $"{title} [one](https://example.com/one) [two](https://example.com/two)";
+        foreach (var id in new[] { "preview", "fedcba98765432100123456789abcdef" })
+        {
+            var plan = XCustomEventPost.BuildPlan(id, raw);
+            Assert.Equal(mode, plan.Mode);
+            Assert.EndsWith(CustomEventSocialComposer.BuildEventUrl(id), plan.PostText);
+            if (mode == CustomEventPostMode.Text) Assert.StartsWith($"{title} one two\n\n", plan.PostText);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

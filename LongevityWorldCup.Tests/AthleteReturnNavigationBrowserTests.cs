@@ -11,6 +11,32 @@ public sealed class AthleteReturnNavigationBrowserTests(
     private const string FilteredPath = "/leaderboard?search=michael";
     private const string Michael = "michael-lustgarten";
 
+    [Fact]
+    public async Task ReadOnlyDocumentMethods_AllowSearchOpeningAProfileAndReturningToTheResults()
+    {
+        await using var context = await CreateContextAsync();
+        await context.AddInitScriptAsync("""
+            for (const name of ['createElement', 'getElementById']) {
+                Object.defineProperty(document, name, { value: document[name], writable: false, configurable: false });
+            }
+            """);
+        var page = await context.NewPageAsync();
+        await NavigateToDocumentAsync(page, "/leaderboard");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+
+        var search = page.Locator("#athleteSearch");
+        var matches = page.Locator(".leaderboard tbody .athlete-name:visible");
+        await search.FillAsync("lustgarten");
+        await Assertions.Expect(matches).ToHaveCountAsync(1);
+        await OpenMichaelAsync(page);
+        await page.GoBackAsync();
+
+        await Assertions.Expect(page.Locator("#detailsModal")).ToBeHiddenAsync();
+        await Assertions.Expect(search).ToHaveValueAsync("lustgarten");
+        await Assertions.Expect(matches).ToHaveCountAsync(1);
+        await Assertions.Expect(matches).ToContainTextAsync("Michael Lustgarten");
+    }
+
     [Theory]
     [InlineData(390)]
     [InlineData(1280)]

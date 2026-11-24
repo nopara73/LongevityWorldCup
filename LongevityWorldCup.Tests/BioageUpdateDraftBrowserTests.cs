@@ -93,9 +93,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("");
 
         await page.Locator("#calculateBioageButton").ClickAsync();
-        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
-        await page.Locator("#continueButton").ClickAsync();
-        await page.WaitForURLAsync("**/proofs");
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
+        await ContinueToProofsAsync(page);
         var stored = await page.EvaluateAsync<JsonElement>("() => JSON.parse(sessionStorage.getItem('biomarkerData')).Biomarkers[0]");
         Assert.Equal("2026-09-01", stored.GetProperty("Date").GetString());
         Assert.Equal(5.2, stored.GetProperty("Wbc1000cellsuL").GetDouble(), 6);
@@ -134,10 +133,9 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await FillMarkerAsync(page, "wbc", "5.2");
         await FillMarkerAsync(page, "glucose", "90.08", "18.016");
         await page.Locator("#calculateBioageButton").ClickAsync();
-        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("45");
-        await page.Locator("#continueButton").ClickAsync();
-        await page.WaitForURLAsync("**/proofs");
+        await ContinueToProofsAsync(page);
 
         var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -223,9 +221,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         await page.Locator("#calculateBioageButton").ClickAsync();
-        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
-        await page.Locator("#continueButton").ClickAsync();
-        await page.WaitForURLAsync("**/proofs");
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
+        await ContinueToProofsAsync(page);
         await page.WaitForDocumentContentLoadedAsync();
         var readyGates = 0;
 
@@ -291,9 +288,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         await page.Locator("#calculateBioageButton").ClickAsync();
-        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
-        await page.Locator("#continueButton").ClickAsync();
-        await page.WaitForURLAsync("**/proofs");
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
+        await ContinueToProofsAsync(page);
         var draftKey = (await page.EvaluateAsync<string>("() => sessionStorage.getItem('biomarkerDraftKey')"))!;
         await page.WaitForFunctionAsync("key => sessionStorage.getItem(key) !== null", draftKey);
         var otherDraftKey = $"bioageDraft:{clock}:update:Other%20Athlete:v1";
@@ -328,9 +324,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         {
             await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
             await page.Locator("#calculateBioageButton").ClickAsync();
-            await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
-            await page.Locator("#continueButton").ClickAsync();
-            await page.WaitForURLAsync("**/proofs");
+            await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
+            await ContinueToProofsAsync(page);
         }
         await page.GotoAsync($"/{clock}-age?update=1&Wbc1000cellsuL=7.3&Date=2026-09-02");
         await WaitForEntryAsync(page);
@@ -369,7 +364,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
         await FlowActionDockBrowserTests.FillBloodDrawDateAsync(page, "2026-09-01");
         await FillMarkerAsync(page, "wbc", "5.2");
         await page.Locator("#calculateBioageButton").ClickAsync();
-        await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
+        await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator("#albumin")).ToHaveValueAsync("45");
 
         // Keep the calculated DOM alive, as the browser back/forward cache does.
@@ -495,6 +490,13 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
 
     private static Task WaitForEntryAsync(IPage page) => page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view') && document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
 
+    private static async Task ContinueToProofsAsync(IPage page)
+    {
+        // Next must already be reachable from the result on both phone and desktop.
+        await page.Locator("#continueButton").ClickAsync(new() { Scroll = ScrollMode.None });
+        await page.WaitForURLAsync("**/proofs");
+    }
+
     private static async Task RunCachedReturnAsync(IPage page, Func<Task> returnToCachedPage)
     {
         var reloadReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -528,7 +530,8 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
                     const style = getComputedStyle(input);
                     const ctx = document.createElement('canvas').getContext('2d');
                     ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-                    const available = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    const available = input.offsetWidth - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+                        - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                     return ctx.measureText(input.value).width <= available + 1;
                 }
                 """), $"{id}: the edited value is clipped beside its comparison chip.");

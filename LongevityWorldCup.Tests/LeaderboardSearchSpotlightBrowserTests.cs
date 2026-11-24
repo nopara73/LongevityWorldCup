@@ -185,6 +185,10 @@ public sealed class LeaderboardSearchSpotlightBrowserTests(PlaywrightBrowserFixt
             await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textPercent);
             var team = page.Locator($".flag-team[data-flag='{flag}']");
             var reason = team.Locator(".search-reason");
+            await reason.EvaluateAsync("chip => window.previousMemberChip = chip");
+            await page.Locator("#athleteSearch").FillAsync("blondi");
+            await Assertions.Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("search=blondi(?:&|$)"));
+            Assert.True(await reason.EvaluateAsync<bool>("chip => chip === window.previousMemberChip"));
             await reason.ScrollIntoViewIfNeededAsync();
             await Assertions.Expect(reason).ToBeVisibleAsync();
             var captureDir = Environment.GetEnvironmentVariable("LWC_SEARCH_CAPTURE_DIR");
