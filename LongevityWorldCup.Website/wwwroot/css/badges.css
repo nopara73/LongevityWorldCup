@@ -674,7 +674,8 @@ html .badge-class.badge-earned:not(.badge-family-domain){
 #detailsModal .modal-badge-strip:has(.modal-badge-item.expanded) .modal-badge-item:not(.expanded) .badge-class{filter:saturate(.9) brightness(.92)}
 @media (hover:hover){
     #detailsModal .modal-badge-strip .modal-badge-item:hover{transform:none}
-    #detailsModal .modal-badge-strip .modal-badge-item:hover .badge-class{translate:0 -3px}
+    /* The chosen medal keeps its lift; hover only raises the others. */
+    #detailsModal .modal-badge-strip .modal-badge-item:not(.expanded):hover .badge-class{translate:0 -3px}
 }
 
 /* A short shelf (four medals or fewer) stands its medals together in the
@@ -737,5 +738,6 @@ html .badge-class.badge-earned:not(.badge-family-domain){
     to{opacity:1;scale:1;rotate:0deg}
 }
 @media (prefers-reduced-motion: reduce){
-    #detailsModal .modal-badge-strip .modal-badge-item .badge-class{transition:none}
+    #detailsModal .modal-badge-strip .modal-badge-item .badge-class,
+    #detailsModal .modal-badge-strip .modal-badge-item::before{transition:none}
 }
