@@ -140,10 +140,34 @@ public sealed class TransactionalEmailBrowserTests(
         }
     }
 
+    [Fact]
+    public async Task CheckoutLink_IncludesTheButtonsLowerEdge()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.RouteAsync("https://**/*", route => route.AbortAsync());
+        var page = await context.NewPageAsync();
+        await page.SetContentAsync(TransactionalEmailFamilyTests.SubmissionHtml(checkoutLink: TransactionalEmailFamilyTests.CheckoutUrl, isPro: true));
+
+        var button = page.Locator(".lwc-email-action-cell");
+        await button.ScrollIntoViewIfNeededAsync();
+        var target = await button.EvaluateAsync<string?>("""
+            cell => {
+                const bounds = cell.getBoundingClientRect();
+                return document.elementFromPoint(bounds.left + bounds.width / 2, bounds.bottom - 1)?.closest('a')?.href;
+            }
+            """);
+        Assert.Equal(TransactionalEmailFamilyTests.CheckoutUrl, target);
+    }
+
     [Theory]
-    [InlineData(false, "rgb(255, 255, 255)", "rgb(23, 33, 43)", "rgb(243, 245, 247)")]
-    [InlineData(true, "rgb(23, 33, 43)", "rgb(230, 237, 243)", "rgb(13, 20, 27)")]
-    public async Task AthleteEmails_FollowTheReadersColorScheme(bool dark, string card, string ink, string canvas)
+    [InlineData(false, false, "rgb(255, 255, 255)", "rgb(23, 33, 43)", "rgb(243, 245, 247)")]
+    [InlineData(true, false, "rgb(23, 33, 43)", "rgb(230, 237, 243)", "rgb(13, 20, 27)")]
+    [InlineData(true, true, "rgb(23, 33, 43)", "rgb(230, 237, 243)", "rgb(13, 20, 27)")]
+    public async Task AthleteEmails_FollowTheReadersColorScheme(bool dark, bool filterMotion, string card, string ink, string canvas)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
@@ -153,6 +177,8 @@ public sealed class TransactionalEmailBrowserTests(
         await context.RouteAsync("https://longevityworldcup.com/**", route => route.AbortAsync());
         var page = await context.NewPageAsync();
         await page.SetContentAsync(TransactionalEmailFamilyTests.SubmissionHtml(checkoutLink: TransactionalEmailFamilyTests.CheckoutUrl, isPro: true));
+        if (filterMotion)
+            await page.EvaluateAsync("() => { for (const style of document.querySelectorAll('style')) if (style.textContent.includes('@keyframes')) style.remove(); }");
 
         var colors = await page.EvaluateAsync<string[]>(
             """
@@ -162,7 +188,8 @@ public sealed class TransactionalEmailBrowserTests(
                 getComputedStyle(document.querySelector('.lwc-email-canvas')).backgroundColor,
                 getComputedStyle(document.querySelector('.lwc-email-masthead')).backgroundColor,
                 getComputedStyle(document.querySelector('.lwc-email-action-cell')).backgroundColor,
-                getComputedStyle(document.querySelector('.lwc-email-action-link')).color
+                getComputedStyle(document.querySelector('.lwc-email-action-link')).color,
+                getComputedStyle(document.querySelector('.lwc-email-community-cell')).borderLeftColor
             ]
             """);
 
@@ -172,5 +199,6 @@ public sealed class TransactionalEmailBrowserTests(
         Assert.Equal("rgb(16, 24, 32)", colors[3]);
         Assert.Equal("rgb(8, 118, 133)", colors[4]);
         Assert.Equal("rgb(255, 255, 255)", colors[5]);
+        Assert.Equal(dark ? "rgb(91, 213, 221)" : "rgb(25, 195, 209)", colors[6]);
     }
 }

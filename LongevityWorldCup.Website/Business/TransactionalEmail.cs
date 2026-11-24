@@ -91,8 +91,8 @@ internal sealed partial class TransactionalEmail
     {
         _blocks.Append(
             "<table role=\"presentation\" class=\"lwc-email-action\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin:8px 0 24px;border-collapse:separate;\">" +
-            $"<tr><td class=\"lwc-email-action-cell\" align=\"center\" bgcolor=\"{Accent}\" style=\"background:{Accent};border-radius:12px;border-bottom:3px solid {AccentDeep};box-shadow:0 10px 22px -12px rgba(8,118,133,0.75);mso-padding-alt:17px 22px;\">" +
-            $"<a href=\"{EncodeLinkUrl(url)}\" class=\"lwc-email-action-link\" style=\"display:block;padding:17px 22px;font-family:{FontStack};font-size:17px;line-height:1.4;font-weight:700;letter-spacing:0.01em;color:#ffffff;text-decoration:none;text-align:center;border-radius:12px;\">" +
+            $"<tr><td class=\"lwc-email-action-cell\" align=\"center\" bgcolor=\"{Accent}\" style=\"background:{Accent};border-radius:12px;box-shadow:0 10px 22px -12px rgba(8,118,133,0.75);mso-padding-alt:17px 22px;\">" +
+            $"<a href=\"{EncodeLinkUrl(url)}\" class=\"lwc-email-action-link\" style=\"display:block;padding:17px 22px;font-family:{FontStack};font-size:17px;line-height:1.4;font-weight:700;letter-spacing:0.01em;color:#ffffff;text-decoration:none;text-align:center;border-radius:12px;border-bottom:3px solid {AccentDeep};\">" +
             $"<font color=\"#ffffff\">{EncodeKeepingDatesWhole(label)}&nbsp;&rarr;</font></a></td></tr></table>");
         return this;
     }
@@ -186,7 +186,7 @@ internal sealed partial class TransactionalEmail
             "}" +
             "@media (prefers-color-scheme:dark){" +
             ".lwc-email-reply-mark{color:#5bd5dd !important;}" +
-            ".lwc-email-action-cell{border-bottom-color:#04434b !important;}" +
+            ".lwc-email-action-link{border-bottom-color:#04434b !important;}" +
             ".lwc-email-body,.lwc-email-canvas{background:#0d141b !important;}" +
             ".lwc-email-masthead{border:1px solid #42515e !important;border-bottom:0 !important;}" +
             ".lwc-email-card{background:#17212b !important;border-color:#42515e !important;}" +
