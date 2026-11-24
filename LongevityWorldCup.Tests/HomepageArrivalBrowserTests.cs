@@ -28,8 +28,8 @@ public sealed class HomepageArrivalBrowserTests(
                     if (animation.id !== 'homepage-arrival') return;
                     const timing = animation.effect.getTiming();
                     window.arrivalStarts.push({
-                        podium: this.classList.contains('podium-item'),
-                        highlights: this.id === 'events-root-index',
+                        podium: this.classList.contains('podium-rank'),
+                        readingContent: !this.matches('.main-logo-image, .podium-rank'),
                         startTime: animation.startTime,
                         end: timing.duration + timing.delay,
                         opacity: Number(getComputedStyle(this).opacity)
@@ -72,13 +72,23 @@ public sealed class HomepageArrivalBrowserTests(
             await Assertions.Expect(page.Locator("header .join-game:not(.scrolled-button)")).ToBeVisibleAsync();
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
             Assert.Equal(3, await page.EvaluateAsync<int>("arrivalStarts.filter(a => a.podium).length"));
-            Assert.Equal(7, await page.EvaluateAsync<int>("arrivalStarts.length"));
-            Assert.False(await page.EvaluateAsync<bool>("arrivalStarts.some(a => a.highlights)"));
-            Assert.True(await page.EvaluateAsync<bool>("arrivalStarts.every(a => a.opacity >= 0.2 && a.end <= 1000)"));
+            Assert.Equal(4, await page.EvaluateAsync<int>("arrivalStarts.length"));
+            Assert.False(await page.EvaluateAsync<bool>("arrivalStarts.some(a => a.readingContent)"));
+            Assert.True(await page.EvaluateAsync<bool>("arrivalStarts.every(a => a.opacity >= 0.89 && a.end <= 300)"));
             var startTimes = await page.EvaluateAsync<double[]>("arrivalStarts.map(a => a.startTime)");
             // Browser timestamp conversion can round fractional milliseconds.
             Assert.InRange(startTimes.Max() - startTimes.Min(), 0, 1);
             Assert.True(await page.EvaluateAsync<bool>("window.arrivalReachedPaint"));
+            await page.Locator(".podium-link-row a[href]").First.EvaluateAsync("""
+                async link => {
+                    await document.fonts.ready;
+                    link.focus({ preventScroll: true });
+                    window.initialPodiumLink = link;
+                    window.controlsOffset = () => document.querySelector('.leaderboard-controls').getBoundingClientRect().top
+                        - document.querySelector('.podium').getBoundingClientRect().top;
+                    window.serverControlsOffset = controlsOffset();
+                }
+                """);
             await CaptureAsync(page, $"{width}-{visits}-server");
         }
         finally
@@ -88,6 +98,8 @@ public sealed class HomepageArrivalBrowserTests(
 
         await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
         await Assertions.Expect(page.Locator("#eventsStatus")).ToHaveTextAsync("Events loaded.");
+        Assert.True(await page.EvaluateAsync<bool>("initialPodiumLink === document.activeElement"));
+        Assert.InRange(await page.EvaluateAsync<double>("Math.abs(controlsOffset() - serverControlsOffset)"), 0, 1);
         Assert.Equal(0, await page.EvaluateAsync<int>("hiddenPodiumFrames"));
         Assert.Equal(3, await page.EvaluateAsync<int>("arrivalStarts.filter(a => a.podium).length"));
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
@@ -101,7 +113,7 @@ public sealed class HomepageArrivalBrowserTests(
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
-    public async Task LateParsedContent_RemainsVisibleWithoutRestartingTheEntrance(int width)
+    public async Task DelayedRuntime_KeepsTheParsedSectionsVisibleWithoutRestartingTheEntrance(int width)
     {
         await using var context = await NewContextAsync(width);
         await HoldOpeningFrameAsync(context);
@@ -112,14 +124,14 @@ public sealed class HomepageArrivalBrowserTests(
                 const animation = animate.apply(this, args);
                 queueMicrotask(() => {
                     if (animation.id === 'homepage-arrival')
-                        window.arrivalTargets.push(this.id || this.className);
+                        window.arrivalTargets.push(this.closest('.podium-item')?.className || this.className);
                 });
                 return animation;
             };
             """);
         var parserBlocked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releasePage = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await context.RouteAsync("**/js/custom-event-markup.js*", async route =>
+        await context.RouteAsync("**/js/leaderboard-page.js*", async route =>
         {
             parserBlocked.TrySetResult();
             await releasePage.Task;
@@ -135,19 +147,16 @@ public sealed class HomepageArrivalBrowserTests(
         {
             await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
             await parserBlocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
-            // The preload scanner can request a script before the parser gets
-            // there. Wait for the Highlights root immediately before that script;
-            // it stays steady, leaving six entrance targets before the countdown.
-            await Assertions.Expect(page.Locator("#events-root-index")).ToBeAttachedAsync();
-            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+            // Both sections are available before the shared board runtime runs.
+            await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeAttachedAsync();
+            await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
             await page.WaitForFunctionAsync("() => typeof window.releaseOpeningFrame === 'function'");
             await page.EvaluateAsync("window.releaseOpeningFrame()");
             await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('homepage-arriving')");
-            Assert.Equal(new[] { "main-logo-image", "bannertext", "podium-item first", "podium-item second",
-                "podium-item third", "athleteLeaderboard" },
+            Assert.Equal(new[] { "main-logo-image", "podium-item first", "podium-item second", "podium-item third" },
                 await page.EvaluateAsync<string[]>("arrivalTargets"));
             Assert.DoesNotContain("events-root-index", await page.EvaluateAsync<string[]>("arrivalTargets"));
-            Assert.Equal(0, await page.Locator("#lwc-countdown-box").CountAsync());
+            await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToBeVisibleAsync();
         }
         finally
         {
@@ -160,7 +169,7 @@ public sealed class HomepageArrivalBrowserTests(
         // separate scroll entrance when the reader actually reaches it.
         await page.Locator("#lwc-countdown-box").ScrollIntoViewIfNeededAsync();
         await Assertions.Expect(page.Locator("#lwc-countdown-box")).ToHaveCSSAsync("opacity", "1");
-        Assert.Equal(6, await page.EvaluateAsync<int>("arrivalTargets.length"));
+        Assert.Equal(4, await page.EvaluateAsync<int>("arrivalTargets.length"));
         Assert.False(await page.EvaluateAsync<bool>("arrivalTargets.includes('events-root-index')"));
         Assert.DoesNotContain("lwc-countdown-box", await page.EvaluateAsync<string[]>("arrivalTargets"));
         Assert.Equal(0, await page.EvaluateAsync<int>("document.getAnimations().filter(a => a.id === 'homepage-arrival').length"));
@@ -204,10 +213,10 @@ public sealed class HomepageArrivalBrowserTests(
             const animate = Element.prototype.animate;
             Element.prototype.animate = function(...args) {
                 const animation = animate.apply(this, args);
-                if (this.matches('.podium-item.first')) queueMicrotask(() => {
+                if (this.matches('.podium-item.first .podium-rank')) queueMicrotask(() => {
                     if (animation.id !== 'homepage-arrival') return;
                     window.interactedDuringArrival = document.documentElement.classList.contains('homepage-arriving');
-                    if (INTERACTION === 'focusin') this.querySelector('.athlete-name').focus();
+                    if (INTERACTION === 'focusin') this.closest('.podium-item').querySelector('.athlete-name').focus();
                     else window.dispatchEvent(new Event(INTERACTION));
                     window.arrivalStoppedOnInteraction = !document.documentElement.classList.contains('homepage-arriving');
                 });
@@ -236,12 +245,15 @@ public sealed class HomepageArrivalBrowserTests(
             const animate = Element.prototype.animate;
             Element.prototype.animate = function(...args) {
                 const animation = animate.apply(this, args);
-                if (this.matches('.podium-item.first')) queueMicrotask(() => {
+                if (this.matches('.podium-item.first .podium-rank')) queueMicrotask(() => {
                     if (animation.id !== 'homepage-arrival') return;
                     window.podiumStartTimes.push(animation.startTime);
                     // Force the same node replacement hydration performs, while
                     // the entrance is active, without a wall-clock race in CI.
-                    if (window.podiumStartTimes.length === 1) this.replaceWith(this.cloneNode(true));
+                    if (window.podiumStartTimes.length === 1) {
+                        const card = this.closest('.podium-item');
+                        card.replaceWith(card.cloneNode(true));
+                    }
                 });
                 return animation;
             };

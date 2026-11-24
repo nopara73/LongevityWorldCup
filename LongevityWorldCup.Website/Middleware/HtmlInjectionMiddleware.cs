@@ -122,10 +122,22 @@ namespace LongevityWorldCup.Website.Middleware
                     var progressBar = await ReadPartialAsync("main-progress-bar.html", bodyContent.Contains("<!--MAIN-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var subProgressBar = await ReadPartialAsync("sub-progress-bar.html", bodyContent.Contains("<!--SUB-PROGRESS-BAR-->", StringComparison.Ordinal));
                     var needsAthleteDialogRuntime = !containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path);
-                    var leaderboardContent = CompactStaticTableMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
+                    var leaderboardContent = CompactStaticMarkup(await ReadPartialAsync("leaderboard-content.html", containsLeaderboardContent || needsAthleteDialogRuntime));
                     var guessMyAge = await ReadPartialAsync("guess-my-age.html",
                         bodyContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--GUESS-MY-AGE-->", StringComparison.Ordinal));
-                    var eventBoardContent = await ReadPartialAsync("event-board-content.html", bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
+                    var homepageMerch = await ReadPartialAsync("homepage-merch.html", bodyContent.Contains("<!--HOMEPAGE-MERCH-->", StringComparison.Ordinal));
+                    var eventBoardContent = await ReadPartialAsync("event-board-content.html", homepageMerch.Length > 0 || bodyContent.Contains("<!--EVENT-BOARD-CONTENT-->", StringComparison.Ordinal));
+                    if (homepageMerch.Length > 0)
+                    {
+                        // Parse both sections before running their classic scripts, in their original order.
+                        var events = eventBoardContent.Split("<!--EVENT-BOARD-RUNTIME-->", 2, StringSplitOptions.None);
+                        var shelf = CompactStaticMarkup(homepageMerch);
+                        var carousel = CompactStaticMarkup(await ReadPartialAsync("homepage-merch-carousel.html", true));
+                        bodyContent = bodyContent.Replace("<!--HOMEPAGE-MERCH-->", shelf.Replace("<!--HOMEPAGE-MERCH-CAROUSEL-->", carousel), StringComparison.Ordinal)
+                            .Replace("<!--HOMEPAGE-STATIC-MERCH-->", shelf.Replace("<!--HOMEPAGE-MERCH-CAROUSEL-->", string.Empty), StringComparison.Ordinal)
+                            .Replace("<!--HOMEPAGE-EVENT-RUNTIME-->", events[1], StringComparison.Ordinal);
+                        eventBoardContent = CompactStaticMarkup(events[0]);
+                    }
                     var ageVisualization = await ReadPartialAsync("age-visualization.html",
                         bodyContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal) || leaderboardContent.Contains("<!--AGE-VISUALIZATION-->", StringComparison.Ordinal));
                     var seo = GetSeoMeta(context);
@@ -192,12 +204,21 @@ namespace LongevityWorldCup.Website.Middleware
                         header = RemoveHeaderTagline(header);
                     }
 
-                    // On a populated homepage the browser can paint the real podium before
-                    // executing the header scripts. Preserve their order ahead of the board runtime.
                     header = header.Replace("<!--HEADER-RUNTIME-->", championPortrait is null ? HeaderRuntime : string.Empty);
-                    leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null ? string.Empty : HeaderRuntime);
-                    if (championPortrait is not null)
-                        leaderboardContent = PortraitStylesheet() + Environment.NewLine + leaderboardContent;
+                    leaderboardContent = leaderboardContent.Replace("<!--PODIUM-HEADER-RUNTIME-->", championPortrait is null
+                        ? string.Empty : HeaderRuntime + "\n" + HomepagePodiumAssets.SectionStyles);
+                    if (homepageMerch.Length > 0)
+                    {
+                        var runtime = leaderboardContent.IndexOf(LeaderboardRuntimeScriptsStartMarker, StringComparison.Ordinal);
+                        if (runtime >= 0)
+                        {
+                            var scripts = leaderboardContent[(runtime + LeaderboardRuntimeScriptsStartMarker.Length)..];
+                            bodyContent = bodyContent.Replace("<!--HOMEPAGE-LEADERBOARD-RUNTIME-->", scripts, StringComparison.Ordinal);
+                            leaderboardContent = leaderboardContent[..runtime];
+                        }
+                    }
+                    // These template boundaries are only used while assembling the response.
+                    leaderboardContent = Regex.Replace(leaderboardContent, @"<!--(?:LEADERBOARD|ATHLETE-DIALOG|ORDER)-[A-Z-]+-->", string.Empty);
 
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
@@ -205,6 +226,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{SEO_ROBOTS}}", EncodeMeta(seo.Robots))
                         .Replace("{{SEO_CANONICAL_URL}}", EncodeMeta(seo.CanonicalUrl))
                         .Replace("<!--HEAD-->", HomepagePodiumAssets.PrepareHead(head, championPortrait))
+                        .Replace("<!--HOMEPAGE-SECTION-STYLES-->", championPortrait is null ? HomepagePodiumAssets.SectionStyles : string.Empty)
                         .Replace("<!--HEADER-->", header)
                         .Replace("<!--FOOTER-->", footer)
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
@@ -220,14 +242,7 @@ namespace LongevityWorldCup.Website.Middleware
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
                     if (usesSharedHead || optsIntoSharedAestheticSystem)
                     {
-                        bodyContent = InjectPortraitSystem(bodyContent, stylesheetInHead: championPortrait is null);
-                        bodyContent = InjectTouchLayer(bodyContent);
-                        bodyContent = InjectPointerLayer(bodyContent);
-                        bodyContent = InjectAestheticSystemStylesheet(bodyContent);
-                        bodyContent = InjectDepthSystem(bodyContent);
-                        bodyContent = InjectScrollChoreography(bodyContent);
-                        bodyContent = InjectImageViewer(bodyContent);
-                        bodyContent = InjectDisclosureLayer(bodyContent);
+                        bodyContent = InjectSharedHeadAssets(bodyContent, championPortrait is not null);
                     }
 
                     if (championPortrait is not null)
@@ -337,13 +352,9 @@ namespace LongevityWorldCup.Website.Middleware
             };
         }
 
-        private static string CompactStaticTableMarkup(string html) => Regex.Replace(
-            html,
-            @"<table(?: class=""athlete-info-table""[^>]*)?>.*?</table>",
-            // Compact only static leaderboard/profile table tag indentation,
-            // before athlete content is injected. Keep all inter-element line breaks.
-            table => Regex.Replace(table.Value, @"(?m)^[ \t]+(?=<)", string.Empty),
-            RegexOptions.Singleline);
+        // These static fragments contain ordinary HTML. Keep line breaks between
+        // elements and perform this before injecting any athlete-authored content.
+        private static string CompactStaticMarkup(string html) => Regex.Replace(html, @"(?m)^[ \t]+(?=<)", string.Empty);
 
         private static bool TryBuildAthleteDialogRuntime(string leaderboardContent, out string runtime)
         {
@@ -472,9 +483,12 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                             .Replace("aria-label=\"Search athletes\"", "aria-label=\"Search flags or athletes\"", StringComparison.Ordinal)
                             .Replace(">Search athletes</label>", ">Search flags or athletes</label>", StringComparison.Ordinal);
                         html = html.Replace("<!--FLAG-LEADERBOARD-->", "<!--FLAG-LEADERBOARD--><p class=\"flag-empty\" aria-busy=\"true\">Loading flags...</p>", StringComparison.Ordinal);
-                        html = PublicProfileHtmlRenderer.SetContent(html, "rankingExplanation", FlagLeaderboard.Explanation(selection.View))
-                            .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     }
+                    var explanation = selection.ByFlag ? FlagLeaderboard.Explanation(selection.View)
+                        : Regex.Match(html, $"<template id=\"ranking-copy-{Regex.Escape(selection.View)}\">(.*?)</template>", RegexOptions.Singleline).Groups[1].Value;
+                    if (explanation.Length > 0)
+                        html = PublicProfileHtmlRenderer.SetContent(html, "rankingExplanation", explanation)
+                            .Replace("class=\"ranking-explanation\"", "class=\"ranking-explanation is-visible\"", StringComparison.Ordinal);
                     html = PublicProfileHtmlRenderer.SetContent(html, "leaderboardMetricHeader", selection.MetricLabel);
                     if (selection.LeagueTitle.Length > 0)
                     {
@@ -511,7 +525,7 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                             podium.Rows.FirstOrDefault()?.LeaderboardThumbnailUrl is { Length: > 0 } portrait)
                             championPortrait = portrait;
                         html = Regex.Replace(html, "<!--LEADERBOARD-PODIUM-START-->.*?<!--LEADERBOARD-PODIUM-END-->",
-                            _ => "<!--LEADERBOARD-PODIUM-START-->" + LeaderboardHtmlRenderer.RenderPodium(podium, visible.Select(r => r.Slug).ToHashSet()) + "<!--LEADERBOARD-PODIUM-END-->", RegexOptions.Singleline);
+                            _ => "<!--LEADERBOARD-PODIUM-START-->" + LeaderboardHtmlRenderer.RenderPodium(podium, visible.Select(r => r.Slug).ToHashSet(), snapshot.Athletes) + "<!--LEADERBOARD-PODIUM-END-->", RegexOptions.Singleline);
                         var podiumDisplay = selection.IsDefault ? "flex" : "none";
                         html = html.Replace("class=\"podium\" aria-busy=\"true\" style=\"display:none;\"", $"class=\"podium\" data-server-rendered=\"true\" aria-busy=\"false\" style=\"display:{podiumDisplay};\"", StringComparison.Ordinal);
                         table = new LeaderboardSnapshot(selection.IsDefault ? visible.Skip(3).ToList() : visible);
@@ -638,19 +652,27 @@ $@"<div id=""{AthleteDialogRuntimeId}""
             return Path.Combine(environment.ContentRootPath, "wwwroot");
         }
 
-        private string InjectAestheticSystemStylesheet(string html)
+        private string InjectSharedHeadAssets(string html, bool hasHomepagePodium)
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
+            var headEnd = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+            if (headEnd < 0) return html;
 
+            // On the populated homepage, Chrome must discover the title's styles before
+            // the startup script lets the parser open the body and compete for bandwidth.
+            var startup = hasHomepagePodium
+                ? html.IndexOf("<script id=\"homepage-startup\">", 0, headEnd, StringComparison.Ordinal)
+                : -1;
+            var assets = PortraitAssets() + TouchAssets() + PointerAssets() + AestheticAssets()
+                + DepthAssets() + ScrollAssets() + ImageViewerAssets() + DisclosureAssets();
+            return html.Insert(startup >= 0 ? startup : headEnd, assets);
+        }
+
+        private string AestheticAssets()
+        {
             // Shared interaction and type styles precede the palette, dark
             // lighting and the final depth scale. Component states retain priority.
             // The layout system closes the group so every page shares its column.
-            var stylesheet = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/motion.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/motion.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/empty-state.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/empty-state.js")}\" defer></script>{Environment.NewLine}"
@@ -665,118 +687,58 @@ $@"<div id=""{AthleteDialogRuntimeId}""
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/dark-system.css")}\">{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/layout-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/layout-system.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, stylesheet);
         }
 
         // The touch layer goes in ahead of motion and the aesthetic system, which keep the final say.
-        private string InjectTouchLayer(string html)
+        private string TouchAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/touch.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/touch.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Pointer behavior follows touch; the surface systems retain their
         // page-specific focus and control treatments later in the cascade.
-        private string InjectPointerLayer(string html)
+        private string PointerAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/pointer.js")}\" defer></script>{Environment.NewLine}"
                 + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/pointer.css")}\">{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Surface and depth tokens follow the palette; components retain their
         // semantic colours, focus indicators and transition ownership.
-        private string InjectDepthSystem(string html)
+        private string DepthAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/depth-system.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/depth-system.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Sections, cards, lists and numbers arrive through one shared scroll vocabulary.
-        private string InjectScrollChoreography(string html)
+        private string ScrollAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/scroll-choreography.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/scroll-choreography.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Pictures open into one shared viewer: flight from the page, zoom, pan, swipe and dismiss.
-        private string InjectImageViewer(string html)
+        private string ImageViewerAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/image-viewer.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/image-viewer.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/image-viewer.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Everything that opens and closes (details, reveal-more toggles, flag
         // rosters) shares one motion and marker; it loads after the surface systems.
-        private string InjectDisclosureLayer(string html)
+        private string DisclosureAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/disclosure.css")}\">{Environment.NewLine}"
+            return $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/disclosure.css")}\">{Environment.NewLine}"
                 + $"<script src=\"{_assetVersionProvider.AppendVersion("/js/disclosure.js")}\" defer></script>{Environment.NewLine}";
-            return html.Insert(closingHeadIndex, assets);
         }
 
         // Athlete portraits share one frame, loading, fallback and motion treatment on every page.
-        private string PortraitStylesheet() => $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">";
-
-        private string InjectPortraitSystem(string html, bool stylesheetInHead)
+        private string PortraitAssets()
         {
-            const string closingHeadTag = "</head>";
-            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
-            if (closingHeadIndex < 0)
-            {
-                return html;
-            }
-
-            var assets = $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}";
-            if (stylesheetInHead)
-                assets += PortraitStylesheet() + Environment.NewLine;
-            return html.Insert(closingHeadIndex, assets);
+            return $"<script src=\"{_assetVersionProvider.AppendVersion("/js/portrait-system.js")}\" defer></script>{Environment.NewLine}"
+                + $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/portrait-system.css")}\">{Environment.NewLine}";
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)

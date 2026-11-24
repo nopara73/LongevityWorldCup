@@ -404,6 +404,7 @@ interface GuessMyAgeState {
     skipped: boolean;
     first: boolean;
     exact: boolean;
+    beatCrowd?: boolean;
 }
 
 interface GuessMyAgeStoredEntry {
@@ -539,6 +540,7 @@ interface Window {
     __lwcBadgeLightBound?: boolean;
     getBadgeRarity?(badge: ServerBadge): 'legendary' | 'rare' | '';
     LwcBadges?: {
+        searchText(athlete: BadgeAthlete, guess: unknown): string;
         celebrate(scope: Element | null | undefined): void;
         rarity(badge: ServerBadge): 'legendary' | 'rare' | '';
         stashOverflow(owner: HTMLElement, html: string): void;

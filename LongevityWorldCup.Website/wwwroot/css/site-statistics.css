@@ -1107,10 +1107,21 @@ select:focus-visible,
 .funnel-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 8px; font-size: 12px; color: var(--muted); }
 .funnel-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .funnel-legend i { display: inline-block; width: 16px; height: 5px; border-radius: 3px; }
-.funnel-legend .reach-key { background: linear-gradient(90deg, var(--pink), var(--cyan)); }
+.funnel-legend .reach-key, .funnel-fill {
+    background-color: var(--cyan);
+    background-image: linear-gradient(90deg, var(--pink), var(--cyan));
+}
 .funnel-legend .cohort-key, .funnel-cohort { background: var(--muted); }
 .funnel-legend .drop-key, .funnel-leak {
-    background: repeating-linear-gradient(125deg, var(--red) 0 2px, var(--panel) 2px 4px);
+    background-color: var(--red);
+    background-image: repeating-linear-gradient(125deg, var(--red) 0 2px, var(--panel) 2px 4px);
+}
+
+@media (forced-colors: active) {
+    .funnel-bar, .funnel-legend i { forced-color-adjust: none; }
+    .funnel-legend .reach-key, .funnel-fill { background: Highlight; }
+    .funnel-legend .cohort-key, .funnel-cohort { background: GrayText; }
+    .funnel-legend .drop-key, .funnel-leak { background: CanvasText; }
 }
 
 .flow-card { display: grid; gap: 8px; padding: 12px 14px; }
@@ -1130,7 +1141,7 @@ select:focus-visible,
 
 .funnel-name { font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
 .funnel-bar { display: grid; grid-template-rows: 7px 5px; row-gap: 2px; min-width: 0; }
-.funnel-fill { display: block; height: 100%; min-width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--pink), var(--cyan)); }
+.funnel-fill { display: block; height: 100%; min-width: 0; border-radius: 999px; }
 .funnel-cohort { display: flex; justify-content: flex-end; overflow: hidden; border-radius: 999px; }
 .funnel-leak { display: block; }
 .funnel-row:is(:hover, :focus-visible) .funnel-number { color: var(--cyan); }
@@ -1577,8 +1588,10 @@ select:focus-visible,
     to { background-position: 140% 0; }
 }
 
-.stats-page > :is(.traffic-overview, .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {
-    transition: opacity 200ms ease, filter 200ms ease;
+@media (prefers-reduced-motion: no-preference) {
+    .stats-page > :is(.traffic-overview, .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {
+        transition: opacity 200ms ease, filter 200ms ease;
+    }
 }
 
 .stats-page[aria-busy="true"] > :is(.traffic-overview:not(:empty), .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {

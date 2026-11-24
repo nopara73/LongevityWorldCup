@@ -35,7 +35,7 @@ public class FacebookDailyPostJob : IJob
         foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, headline) in pending)
         {
             if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(type, text, occurredAtUtc, headline,
-                    DateTime.UtcNow.AddDays(-7), _athletes.HasSingleGlobalPlaceOneBadgeHolder, out var skipReason, _athletes.IsCurrentBadgeAward))
+                    DateTime.UtcNow.AddDays(-7), _athletes.HasSingleGlobalPlaceOneBadgeHolder, out var skipReason, _athletes.SupersededAnnouncementReason))
             {
                 skippedEvents.Add((id, skipReason));
                 continue;

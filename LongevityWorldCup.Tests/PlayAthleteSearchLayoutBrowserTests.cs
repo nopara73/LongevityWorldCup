@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
@@ -7,7 +8,8 @@ namespace LongevityWorldCup.Tests;
 [Collection(BrowserTestCollections.WorkloadB)]
 public sealed class PlayAthleteSearchLayoutBrowserTests(
     PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
+    BrowserTestAppFixture appFixture,
+    ITestOutputHelper output)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
@@ -93,15 +95,45 @@ public sealed class PlayAthleteSearchLayoutBrowserTests(
                 $"Match {index + 1} moved the page from {pageScroll} to {navigationScroll}.");
             // Popup sizing and dock callbacks can settle after keydown. Keep the
             // geometry and hit test together while the page itself stays still.
-            await page.WaitForFunctionAsync("""
-                option => {
-                    const box = option.getBoundingClientRect();
-                    const list = option.parentElement.getBoundingClientRect();
-                    const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
-                    return box.top >= list.top - 1 && box.bottom <= Math.min(list.bottom, actions.top, innerHeight) + 1
-                        && option.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
-                }
-                """, await option.ElementHandleAsync());
+            try
+            {
+                await page.WaitForFunctionAsync("""
+                    option => {
+                        const box = option.getBoundingClientRect();
+                        const list = option.parentElement.getBoundingClientRect();
+                        const actions = document.querySelector('.play-athlete-actions').getBoundingClientRect();
+                        return box.top >= list.top - 1 && box.bottom <= Math.min(list.bottom, actions.top, innerHeight) + 1
+                            && option.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+                    }
+                    """, await option.ElementHandleAsync());
+            }
+            catch (TimeoutException)
+            {
+                await WriteFailureDiagnosticsAsync(page, output, $"Keyboard match {index + 1} of {count}", """
+                    index => {
+                        const input = document.getElementById('playAthleteInput');
+                        const list = document.getElementById(input?.getAttribute('aria-controls'));
+                        const options = list?.querySelectorAll('[role=option]');
+                        const option = options?.[index];
+                        const dock = document.querySelector('.play-athlete-actions');
+                        const rect = element => element?.getBoundingClientRect().toJSON();
+                        const box = rect(option);
+                        const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+                        const viewport = window.visualViewport;
+                        return {
+                            viewport: [innerWidth, innerHeight, viewport?.height, viewport?.offsetTop, viewport?.scale],
+                            scrollY, fontSize: getComputedStyle(document.documentElement).fontSize,
+                            option: box, optionId: option?.id, selected: option?.getAttribute('aria-selected'),
+                            activeDescendant: input?.getAttribute('aria-activedescendant'),
+                            focused: document.activeElement?.id, list: rect(list), optionCount: options?.length,
+                            listScroll: [list?.scrollTop, list?.clientHeight, list?.scrollHeight],
+                            dock: rect(dock), docked: dock?.classList.contains('flow-action-stack--docked'),
+                            hit: hit && { id: hit.id, tag: hit.tagName, className: hit.getAttribute('class'), inside: option.contains(hit) }
+                        };
+                    }
+                    """, index);
+                throw;
+            }
         }
         var selectedName = await options.Last.InnerTextAsync();
         await input.PressAsync("Enter");

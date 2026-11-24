@@ -1143,6 +1143,7 @@
         }
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
+        const proofRedactionScope = isFake ? 'application-preview' : 'application';
         const APPLICATION_DRAFT_KEY = 'applicationDetailsDraft:v1';
         const applicationDraftFields = ['name', 'division', 'flag', 'why', 'personalLink', 'mediaContact', 'accountEmail'];
         let applicationDraftDivision = '';
@@ -1762,8 +1763,9 @@
                 : null;
         }
 
-        function finishFullApplicationSubmission(submitResult, submissionContext) {
+        async function finishFullApplicationSubmission(submitResult, submissionContext) {
             window.LwcInitialView.hold();
+            await window.clearProofRedactionDraft?.(proofRedactionScope);
             const checkoutLink = getCheckoutLink(submitResult);
             const invoiceId = getInvoiceId(submitResult);
             const paymentRequired = isPaymentRequired(submitResult);
@@ -1879,6 +1881,7 @@
                 personalLink: personalLink,
                 dateOfBirth: biomarkerData.DateOfBirth,
                 biomarkers: biomarkerData.Biomarkers,
+                crpReports: biomarkerData.CrpReports,
                 profilePic: profilePic, // Base64 string
                 proofPics: proofPics, // Array of Base64 strings
                 paymentOffer: paymentOffer,
@@ -2201,6 +2204,7 @@
                     cameraButton: takeProofPhotoButton,
                     cameraInput: proofCameraInput,
                     hasUnsubmittedProofs: () => proofPics.length > 0,
+                    redactionScope: proofRedactionScope,
                     isActive: () => currentStage === 5
                 }
             );
@@ -2219,7 +2223,7 @@
                     const recovered = await window.tryRecoverPendingApplicationSubmission('full-application');
                     if (recovered) {
                         hideLoading();
-                        finishFullApplicationSubmission(recovered.submitResult, recovered.pending);
+                        await finishFullApplicationSubmission(recovered.submitResult, recovered.pending);
                         return;
                     }
                 } catch (error) {
@@ -2414,7 +2418,7 @@
                         if (submissionWait) await submissionWait(attempt.ok && attempt.submitResult ? 'success' : 'error');
                         else hideLoading();
                         if (attempt.ok && attempt.submitResult) {
-                            finishFullApplicationSubmission(attempt.submitResult, {
+                            return finishFullApplicationSubmission(attempt.submitResult, {
                                 submissionId: submissionId,
                                 applicantName: applicantData.name,
                                 accountEmail: applicantData.accountEmail
@@ -2423,7 +2427,7 @@
                             const response = attempt.response;
                             const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
                             const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
-                            window.readApplicationError(response).catch(() => ({ message: fallbackError, field: null })).then(problem => {
+                            return window.readApplicationError(response).catch(() => ({ message: fallbackError, field: null })).then(problem => {
                                 const badResponse = problem.message;
                                 if (problem.field === 'profilePic') {
                                     recoverApplicationProfilePicture();
@@ -2434,12 +2438,11 @@
                                         type: `HTTP ${responseStatus}`,
                                         message: badResponse
                                     });
-                                    finishFullApplicationSubmission({ paymentRequired: true, paymentUnavailable: true }, {
+                                    return finishFullApplicationSubmission({ paymentRequired: true, paymentUnavailable: true }, {
                                         submissionId: submissionId,
                                         applicantName: applicantData.name,
                                         accountEmail: applicantData.accountEmail
                                     });
-                                    return;
                                 }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: `HTTP ${responseStatus}`,
@@ -2526,6 +2529,16 @@
             let encodingCropper = null;
             let pendingProfileSource = null;
             let profileReadVersion = 0;
+            const cropImage = document.getElementById('cropperImage');
+
+            function clearCropper() {
+                cropImage.onerror = null;
+                if (cropper) {
+                    try { cropper.destroy(); } catch (_) { }
+                    cropper = null;
+                }
+                LwcUploadPhoto.setCropImage(cropImage, null);
+            }
 
             function syncProfileCropLayout() {
                 document.getElementById('cropButton').disabled = !!encodingCropper || !cropper?.ready;
@@ -2550,11 +2563,7 @@
                 const failedVersion = ++profileReadVersion;
                 applicationProfilePending = false;
                 pendingProfileSource = null;
-                document.getElementById('cropperImage').onerror = null;
-                if (cropper) {
-                    try { cropper.destroy(); } catch (_) { }
-                    cropper = null;
-                }
+                clearCropper();
                 document.getElementById('uploadPart').style.display = '';
                 document.getElementById('croppingPart').style.display = 'none';
                 if (currentStage === 4) document.getElementById('nextButton').disabled = !profilePic;
@@ -2570,20 +2579,18 @@
                     nextButton.disabled = true;
                     document.getElementById('cropButton').disabled = true;
                     updateUploadButtons();
-                    if (cropper) cropper.destroy();
-                    cropper = null;
-                    const image = document.getElementById('cropperImage');
+                    clearCropper();
                     // Reading bytes successfully does not mean the browser can decode them.
-                    image.onerror = () => failProfileUpload(version);
-                    image.src = source;
+                    cropImage.onerror = () => failProfileUpload(version);
+                    LwcUploadPhoto.setCropImage(cropImage, source);
                     document.getElementById('uploadPart').style.display = 'none';
                     document.getElementById('croppingPart').style.display = 'block';
-                    cropper = new LwcPortraitCropper(document.getElementById('cropperImage'), {
+                    cropper = new LwcPortraitCropper(cropImage, {
                         maxHeight: 320,
                         error: () => failProfileUpload(version),
                         ready() {
                             if (version !== profileReadVersion) return;
-                            image.onerror = null;
+                            cropImage.onerror = null;
                             window.requestAnimationFrame(syncProfileCropLayout);
                         },
                         minCropBoxWidth: 200,
@@ -2618,7 +2625,7 @@
                     const version = ++profileReadVersion;
                     pendingProfileSource = null;
                     try {
-                        const source = await LwcUploadPhoto.read(file);
+                        const source = await LwcUploadPhoto.prepareCrop(file);
                         if (version !== profileReadVersion) return;
                         // Back can leave this stage while the photo is being prepared.
                         if (currentStage === 4) showProfileCrop(source);
@@ -2681,10 +2688,7 @@
                         pendingProfileSource = null;
                         ++profileReadVersion;
 
-                        try { activeCropper.destroy(); } catch (_) { }
-                        if (cropper === activeCropper) {
-                            cropper = null; // Reset the Cropper instance
-                        }
+                        clearCropper();
 
                         document.getElementById('uploadPart').style.display = '';
                         document.getElementById('croppingPart').style.display = 'none';
@@ -2708,11 +2712,7 @@
                     applicationProfilePending = false;
                     pendingProfileSource = null;
                     ++profileReadVersion;
-                    document.getElementById('cropperImage').onerror = null;
-                    if (cropper) {
-                        try { cropper.destroy(); } catch (_) { }
-                        cropper = null;
-                    }
+                    clearCropper();
 
                     document.getElementById('uploadPart').style.display = '';
                     document.getElementById('croppingPart').style.display = 'none';

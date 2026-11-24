@@ -205,7 +205,8 @@ public sealed class LeagueFilterResponsiveBrowserTests(
                 // Numeric variants can make style.font empty; retain the rendered font size.
                 canvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
                 canvas.letterSpacing = style.letterSpacing;
-                const textWidth = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                const textWidth = input.offsetWidth - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+                    - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
                 // Long queries may scroll; a useful portion must remain readable beside Clear.
                 if (textWidth < canvas.measureText('Mich').width)
                     problems.push(`Search has only ${textWidth}px for its text`);
