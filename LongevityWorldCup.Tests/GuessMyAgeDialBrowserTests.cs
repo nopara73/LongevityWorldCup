@@ -24,7 +24,7 @@ public sealed class GuessMyAgeDialBrowserTests(
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         var page = await context.NewPageAsync();
-        await page.GotoAsync("/athlete/patrick-ruff?guessmyage=1");
+        await page.GotoAsync("/athlete/patrick-ruff?guessmyage=1", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         var slider = page.Locator("#gmaRange");
         await Assertions.Expect(slider).ToBeFocusedAsync();
         await AssertDialAsync(page, 33);
@@ -75,16 +75,21 @@ public sealed class GuessMyAgeDialBrowserTests(
     {
         var state = await page.EvaluateAsync<JsonElement>(
             """
-            () => ({
-                number: Number(document.querySelector('#gmaBubble').textContent),
-                years: Number(getComputedStyle(document.querySelector('.gma-dial')).getPropertyValue('--gma-years')),
-                angle: parseFloat(getComputedStyle(document.querySelector('.gma-dial-hand')).rotate),
-                fraction: Number(getComputedStyle(document.querySelector('.gma-ruler-lit')).getPropertyValue('--gma-frac'))
-            })
+            () => {
+                const ruler = getComputedStyle(document.querySelector('.gma-slider-wrap'), '::before');
+                return {
+                    number: Number(document.querySelector('#gmaBubble').textContent),
+                    years: Number(getComputedStyle(document.querySelector('.gma-dial')).getPropertyValue('--gma-years')),
+                    angle: parseFloat(getComputedStyle(document.querySelector('.gma-dial-hand')).rotate),
+                    rulerVisible: ruler.content === '""' && ruler.clipPath.startsWith('inset('),
+                    fraction: Number(ruler.getPropertyValue('--gma-frac'))
+                };
+            }
             """);
         Assert.Equal(age, state.GetProperty("number").GetInt32());
         Assert.Equal(age, state.GetProperty("years").GetInt32());
         Assert.Equal(age * 6, state.GetProperty("angle").GetInt32());
+        Assert.True(state.GetProperty("rulerVisible").GetBoolean());
         Assert.Equal((age - 1) / 129d, state.GetProperty("fraction").GetDouble(), precision: 4);
     }
 }

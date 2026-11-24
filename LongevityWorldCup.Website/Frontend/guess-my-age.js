@@ -4,8 +4,8 @@ const gmaRange = document.getElementById('gmaRange');
 const gmaDefaultValue = gmaRange.value;
 
 const gmaBubble = document.getElementById('gmaBubble');
-const gmaDial = document.querySelector('#athlete-profile .gma-dial');
-const gmaDialHand = gmaDial.querySelector('.gma-dial-hand');
+let gmaDial;
+let gmaDialHand;
 const gmaCard = document.querySelector('.gma-card');
 const gmaSliderWrap = gmaCard.querySelector('.gma-slider-wrap');
 
@@ -258,11 +258,24 @@ function setGmaRangeProgress(age) {
     gmaRange.style.setProperty('--percent', `${geometry.fillPercent}%`);
 }
 
+function mountGmaDial() {
+    if (gmaDial || !modalContent.classList.contains('guess-mode')) return;
+    gmaDial = document.createElement('span');
+    gmaDial.className = 'gma-dial';
+    gmaDial.setAttribute('aria-hidden', 'true');
+    gmaDialHand = document.createElement('span');
+    gmaDialHand.className = 'gma-dial-hand';
+    gmaDialHand.addEventListener('animationend', () => gmaDialHand.classList.remove('is-clicking'));
+    gmaDial.append(gmaDialHand);
+    document.getElementById('modalProfilePic').after(gmaDial);
+}
+
 function syncRange(event) {
+    if (!event) mountGmaDial();
     const value = gmaRange.valueAsNumber;
     const previous = Number(gmaBubble.dataset.age);
     gmaSliderWrap.style.setProperty('--gma-frac', gmaRangeFraction(value));
-    gmaDial.style.setProperty('--gma-years', value);
+    gmaDial?.style.setProperty('--gma-years', value);
     gmaRange.dataset.visualAge = String(value);
     gmaBubble.dataset.age = String(value);
     gmaBubble.value = String(value);
@@ -272,20 +285,19 @@ function syncRange(event) {
         gmaRange.style.removeProperty('--percent');
         gmaBubble.style.removeProperty('left');
         gmaBubble.classList.remove('gma-roll-up', 'gma-roll-down');
-        gmaDialHand.classList.remove('is-clicking');
+        gmaDialHand?.classList.remove('is-clicking');
         return;
     }
     if (value === previous || prefersReducedGmaMotion()) return;
     gmaBubble.classList.toggle('gma-roll-up', value > previous);
     gmaBubble.classList.toggle('gma-roll-down', value < previous);
-    if (Math.floor(value / 10) !== Math.floor(previous / 10)) gmaDialHand.classList.add('is-clicking');
+    if (Math.floor(value / 10) !== Math.floor(previous / 10)) gmaDialHand?.classList.add('is-clicking');
 }
 
 gmaBubble.addEventListener('animationend', event => {
     if (event.animationName === 'gma-roll-up' || event.animationName === 'gma-roll-down')
         gmaBubble.classList.remove(event.animationName);
 });
-gmaDialHand.addEventListener('animationend', () => gmaDialHand.classList.remove('is-clicking'));
 
 function setGmaRangeResultState(isResult) {
     if (isResult) {

@@ -320,8 +320,7 @@
 
 /* The first sixty years light in cyan, the next sixty in cream, and years
    121–130 start a new cyan lap. The wedge starts halfway between ticks. */
-.gma-dial,
-.gma-ruler-lit {
+.gma-dial {
     display: none;
 }
 
@@ -1822,7 +1821,7 @@
 }
 /* Decade ticks under the track turn the slider into an age ruler. */
 #detailsModal .gma-slider-wrap::after,
-#detailsModal .guess-mode .gma-ruler-lit {
+#detailsModal .guess-mode .gma-slider-wrap::before {
     content: '';
     position: absolute;
     left: calc(var(--gma-thumb, 64px) / 2);
@@ -1839,10 +1838,9 @@
     mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
     opacity: 0.85;
 }
-#detailsModal .guess-mode .gma-ruler-lit {
+#detailsModal .guess-mode .gma-slider-wrap::before {
     --gma-ruler-major: var(--lwc-accent-bright, #19c3d1);
     --gma-ruler-minor: var(--gma-ruler-major);
-    display: block;
     z-index: 1;
     clip-path: inset(0 calc((1 - var(--gma-frac)) * 100% - 1px) 0 0);
     filter: drop-shadow(0 0 3px var(--gma-ruler-major));
