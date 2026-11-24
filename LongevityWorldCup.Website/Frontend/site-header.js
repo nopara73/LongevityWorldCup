@@ -99,14 +99,17 @@ function handleScroll(scrollPos, remeasure = false) {
     // Cache this geometry between layout changes, keeping scrolling cheap.
     if (remeasure || !measuredStickyHeight || measuredRootFontSize !== rootFontSize) {
         // Measure synchronously without painting the hidden bar.
-        const measuring = !stickyHeader.classList.contains('visible');
+        // A compositor-driven bar already has a layout box while transparent.
+        const measuring = !stickyHeader.classList.contains('visible') && !stickyHeader.hasAttribute('data-scroll-handoff');
         const visibility = stickyHeader.style.visibility;
-        stickyHeader.style.visibility = 'hidden';
-        stickyHeader.classList.add('visible');
+        if (measuring) {
+            stickyHeader.style.visibility = 'hidden';
+            stickyHeader.classList.add('visible');
+        }
         measuredStickyHeight = fitStickyHeader(stickyHeader);
         measuredRootFontSize = rootFontSize;
-        stickyHeader.style.visibility = visibility;
         if (measuring) {
+            stickyHeader.style.visibility = visibility;
             stickyHeader.classList.remove('visible');
         }
     }
@@ -163,7 +166,8 @@ function fitStickyHeader(stickyHeader) {
     // The brand and controls share normal flex layout, including wrapping.
     // Measure that result for anchor clearance and the reading-progress line.
     const height = stickyHeader.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--site-sticky-height', `${height}px`);
+    const rootStyle = document.documentElement.style;
+    if (rootStyle.getPropertyValue('--site-sticky-height') !== `${height}px`) rootStyle.setProperty('--site-sticky-height', `${height}px`);
     return height;
 }
 
@@ -327,6 +331,12 @@ function showNextCustomAlert() {
     customAlertDialog.dataset.tone = tone;
     const mark = customAlertDialog.querySelector('.custom-alert-mark i');
     if (mark) mark.className = `fas ${CUSTOM_ALERT_TONE_ICONS[tone]}`;
+    customAlertDialog.querySelector('.custom-alert-portrait')?.remove();
+    if (tone === 'success' && options?.portrait instanceof HTMLImageElement && options.portrait.hasAttribute('src')) {
+        const portrait = options.portrait.cloneNode(false);
+        portrait.className = 'custom-alert-portrait';
+        mark?.before(portrait);
+    }
     renderCustomAlertMessage(message);
 
     customAlertDialog.hidden = false;

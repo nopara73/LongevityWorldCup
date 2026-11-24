@@ -1626,17 +1626,16 @@ gmaSubmitBtn.addEventListener('click', async function () {
         // the player completed the game. Always reveal a successful response: asking the
         // player to revise after the server has disclosed the real age creates a dead end
         // and would let a filtered guess be replaced with a knowingly correct one.
-        const crowdCountBeforeGuess = result.crowdCount === 1 ? 0 : result.crowdCount;
-        const isFirstGuess = result.guessAccepted === true && crowdCountBeforeGuess === 0;
+        const isFirstGuess = result.guessAccepted === true && result.previousCrowdAge === null;
         const userError = Math.abs(realAge - userGuess);
-        const crowdError = result.crowdAge === 0 || isFirstGuess
-            ? null
-            : Math.abs(realAge - result.crowdAge);
+        const beatCrowd = Number.isFinite(result.previousCrowdAge)
+            && userError < Math.abs(realAge - result.previousCrowdAge);
         const guessState = {
             value: userGuess,
             skipped: false,
             first: isFirstGuess,
-            exact: userError === 0
+            exact: userError === 0,
+            beatCrowd
         };
 
         // The accepted result is durable before any presentation work. A reload, tab switch,
@@ -1679,7 +1678,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
             ? ' Bullseye!'
             : isFirstGuess
                 ? ' First accepted guess!'
-                : crowdError !== null && userError < crowdError
+                : beatCrowd
                     ? ' You beat the crowd!'
                     : '';
         gmaStatus.classList.add('gma-status--semantic');
@@ -1708,7 +1707,6 @@ gmaSubmitBtn.addEventListener('click', async function () {
 
         cancelGmaMotionEphemera();
         focusGmaCloseControl();
-        const beatCrowd = crowdError !== null && userError < crowdError;
         showGmaGap(userGuess, realAge, isFirstGuess ? 'first' : beatCrowd ? 'crowd' : 'plain');
 
         const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()

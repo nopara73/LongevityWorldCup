@@ -7,13 +7,14 @@
     "npm": ">=11 <12"
   },
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('wwwroot/js',{recursive:true,force:true})\" && tsc --project tsconfig.json && node Scripts/embed-flag-icon-codes.mjs && node Scripts/copy-classic-scripts.mjs && npm run verify:outputs",
+    "build": "node -e \"require('node:fs').rmSync('wwwroot/js',{recursive:true,force:true})\" && tsc --project tsconfig.json && node Scripts/embed-icon-catalogs.mjs && node Scripts/copy-classic-scripts.mjs && npm run verify:outputs",
     "check": "tsc --project tsconfig.json --noEmit",
     "verify:outputs": "node Scripts/verify-frontend-outputs.mjs"
   },
   "devDependencies": {
     "chart.js": "4.6.1",
     "cropperjs": "2.3.1",
+    "heic-to": "1.6.7",
     "typescript": "7.0.2"
   }
 }
