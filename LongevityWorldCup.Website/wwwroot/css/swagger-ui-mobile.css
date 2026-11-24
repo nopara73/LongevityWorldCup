@@ -521,6 +521,7 @@ body {
 
 /* Filter: the site's search field. */
 .swagger-ui .filter-container .operation-filter-input {
+    max-width: none;
     margin: 22px 0 6px;
     padding: 12px 14px 12px 40px;
     border: 1px solid var(--api-border);
@@ -659,8 +660,7 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
 }
 
 /* The opened operation unfolds instead of popping in. */
-.swagger-ui .opblock .opblock-body,
-.swagger-ui .opblock-tag-section > div > div:has(> .opblock) {
+.swagger-ui .opblock .opblock-body {
     animation: api-unfold 240ms var(--api-ease) both;
 }
 
@@ -759,7 +759,7 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
     background: var(--api-code) !important;
 }
 
-.swagger-ui .copy-to-clipboard {
+.swagger-ui .copy-to-clipboard:not(.view-line-link) {
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.08);
 }
@@ -809,6 +809,29 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
 
     .swagger-ui .scheme-container .schemes {
         padding: 0 24px;
+    }
+
+    /* The narrow links column keeps its header inside the card. */
+    .swagger-ui .responses-table .response-col_links {
+        padding-left: 0.5rem;
+    }
+
+    /* The card clips; anything still wider (schemas on the narrowest phones) scrolls inside it. */
+    .swagger-ui .opblock .responses-inner {
+        overflow-x: auto;
+    }
+
+    .swagger-ui .opblock .opblock-section-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* The deep-link copy button sits under the arrow instead of opening an empty row. */
+    .swagger-ui .opblock .opblock-summary .view-line-link {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: end;
+        justify-self: center;
     }
 }
 
@@ -896,23 +919,46 @@ html.dark-mode .swagger-ui .opblock:is(.opblock-get, .opblock-post, .opblock-put
     background: var(--api-method-soft);
 }
 
+html.dark-mode .swagger-ui .opblock .highlight-code pre.microlight,
+html.dark-mode .swagger-ui .opblock pre.microlight {
+    background: var(--api-code) !important;
+}
+
+html.dark-mode .swagger-ui .opblock .btn.execute {
+    border-color: var(--api-green);
+    background: var(--api-green);
+    color: #0b1d1a;
+}
+
+html.dark-mode .swagger-ui .opblock .opblock-section-header .try-out__btn,
+html.dark-mode .swagger-ui .opblock .opblock-section-header .try-out__btn.cancel {
+    border-color: var(--api-border);
+    color: var(--api-ink);
+}
+
+html.dark-mode .swagger-ui .opblock .opblock-section-header .try-out__btn:hover {
+    border-color: var(--api-ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .swagger-ui .opblock,
     .swagger-ui .opblock .opblock-summary-method,
     .swagger-ui .topbar .link,
     .swagger-ui .opblock-tag svg,
-    .swagger-ui .opblock .opblock-summary .arrow {
+    .swagger-ui .opblock .opblock-summary .arrow,
+    .swagger-ui .btn,
+    .swagger-ui .opblock .opblock-summary .view-line-link {
         transition: none;
     }
 
     .swagger-ui .opblock .opblock-body,
-    .swagger-ui .opblock-tag-section > div > div:has(> .opblock),
     .swagger-ui .responses-wrapper .response,
     .swagger-ui .live-responses-table {
         animation: none;
     }
 
-    .swagger-ui .opblock:hover {
+    .swagger-ui .opblock:hover,
+    .swagger-ui .btn:active {
         transform: none;
     }
 }
