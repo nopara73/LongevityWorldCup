@@ -123,7 +123,7 @@ public sealed class OptionalBrowserFeaturesBrowserTests(
         await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new()
         {
             ContentType = "application/json",
-            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":40,"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
         await page.GotoAsync("/athlete/michael-lustgarten?guessmyage=1");

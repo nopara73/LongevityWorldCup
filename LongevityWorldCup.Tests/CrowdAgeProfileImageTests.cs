@@ -17,6 +17,28 @@ public sealed class CrowdAgeProfileImageTests
 {
     private const string AthleteSlug = "profile_history";
 
+    [Fact]
+    public async Task ConcurrentGuessesCompeteAgainstOnlyTheEarlierVotesForTheirPhoto()
+    {
+        using var workspace = new TestWorkspace();
+        workspace.WriteProfileImage(CreateProfileImage(new Rgba32(35, 120, 210)));
+        using var factory = CreateFactory(workspace);
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        Assert.True(athletes.TryGetProfileImageId(AthleteSlug, out var imageId));
+
+        (int Guess, double? Previous) Record(int guess)
+        {
+            Assert.True(athletes.TryAddAgeGuess(AthleteSlug, imageId, guess, out var previous));
+            return (guess, previous);
+        }
+
+        var rounds = await Task.WhenAll(Task.Run(() => Record(40)), Task.Run(() => Record(56)));
+        var first = Assert.Single(rounds, round => round.Previous is null);
+        var second = Assert.Single(rounds, round => round.Previous.HasValue);
+        Assert.Equal((double)first.Guess, second.Previous);
+        Assert.Equal((48d, 2), athletes.GetCrowdStats(AthleteSlug));
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

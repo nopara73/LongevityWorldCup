@@ -8045,18 +8045,13 @@ function updateYourGuess() {
     if (Number.isFinite(guess)) {
         yourGuessContainer.hidden = false;
 
-        // grab the displayed chrono & crowd ages
-        const chrono = parseInt(getRuntimeElementById('chronologicalAge').textContent, 10);
-        const crowd = parseFloat(getRuntimeElementById('crowdAge')?.textContent);
-
-        // compute how far you and the crowd are from the true age
-        const diffYou = Math.abs(guess - chrono);
-        const diffCrowd = Math.abs(crowd - chrono);
+        const isExact = guessData.exact ?? (guess === parseInt(getRuntimeElementById('chronologicalAge').textContent, 10));
+        const beatCrowd = guessData.beatCrowd === true;
 
         // collect any matching icons
         const iconClasses = [];
-        if (diffYou === 0) iconClasses.push('fa-bullseye');
-        if (!getRuntimeElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) iconClasses.push('fa-trophy');
+        if (isExact) iconClasses.push('fa-bullseye');
+        if (beatCrowd) iconClasses.push('fa-trophy');
         if (guessData.first) iconClasses.push('fa-medal');
 
         // build and render
@@ -8065,9 +8060,9 @@ function updateYourGuess() {
 
         // apply stamp to the value span only so the row stays a normal table row
         yourGuessSpan.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
-        if (diffYou === 0) {
+        if (isExact) {
             yourGuessSpan.classList.add('golden-stamp');
-        } else if (!getRuntimeElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) {
+        } else if (beatCrowd) {
             yourGuessSpan.classList.add('primary-stamp');
         } else if (guessData.first) {
             yourGuessSpan.classList.add('first-guess-stamp');

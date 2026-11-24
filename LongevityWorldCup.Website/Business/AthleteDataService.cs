@@ -1136,8 +1136,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     /// updates that athlete's current CrowdAge (median) and CrowdCount.
     /// </summary>
     public bool TryAddAgeGuess(string athleteSlug, string profileImageId, int ageGuess)
+        => TryAddAgeGuess(athleteSlug, profileImageId, ageGuess, out _);
+
+    public bool TryAddAgeGuess(string athleteSlug, string profileImageId, int ageGuess, out double? previousCrowdAge)
     {
         using var operation = _reloadOperations.Enter();
+        previousCrowdAge = null;
+        double? priorMedian = null;
         int cnt;
         double median;
 
@@ -1165,6 +1170,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     return false;
 
                 var ageArray = JsonSerializer.Deserialize<List<JsonObject>>(existingJson) ?? [];
+                var prior = CalculateCrowdStats(ageArray, currentProfileImageId);
+                if (prior.Count > 0)
+                    priorMedian = prior.Median;
+
                 ageArray.Add(new JsonObject
                 {
                     ["TimestampUtc"] = DateTime.UtcNow.ToString("o"),
@@ -1191,6 +1200,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             if (!persisted)
                 return false;
 
+            previousCrowdAge = priorMedian;
             lock (_athletesJsonLock)
             {
                 var athleteJson = _athletes
