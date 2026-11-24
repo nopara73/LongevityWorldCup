@@ -363,7 +363,7 @@ body {
     display: none;
 }
 
-.swagger-ui .topbar .download-url-wrapper {
+.swagger-ui .topbar .download-url-wrapper:has(select > option:only-child) {
     display: none;
 }
 
@@ -441,6 +441,7 @@ body {
 .swagger-ui .info .main a {
     color: var(--api-accent);
     font-size: 0.8rem;
+    overflow-wrap: anywhere;
 }
 
 .swagger-ui .info .description,
@@ -459,7 +460,7 @@ body {
 /* The access facts read as tiles. */
 .swagger-ui .info .description ul {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
     gap: 10px;
     max-width: none;
     margin: 12px 0 4px;
@@ -517,6 +518,18 @@ body {
     background-color: var(--api-surface);
     color: var(--api-ink);
     box-shadow: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.swagger-ui .servers label {
+    display: block;
+    margin: 0;
+}
+
+.swagger-ui .servers select {
+    max-width: 100%;
+    min-height: 44px;
 }
 
 /* Filter: the site's search field. */
@@ -618,7 +631,8 @@ body {
 }
 
 .swagger-ui .opblock .opblock-summary-method {
-    min-width: 64px;
+    min-width: 4rem;
+    flex-shrink: 0;
     padding: 6px 0;
     border-radius: 6px;
     background: var(--api-method);
@@ -764,6 +778,26 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
     background: rgba(255, 255, 255, 0.08);
 }
 
+/* Give the copy button a stable target for touch, hover and keyboard focus. */
+.swagger-ui .opblock .opblock-summary .view-line-link.copy-to-clipboard,
+.swagger-ui .opblock .opblock-summary:hover .view-line-link.copy-to-clipboard {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    margin: 0 4px;
+    background: transparent;
+    transition: none;
+}
+
+.swagger-ui .opblock .view-line-link.copy-to-clipboard button {
+    width: 100%;
+    height: 100%;
+}
+
+html:not(.dark-mode) .swagger-ui .view-line-link.copy-to-clipboard button {
+    filter: brightness(0.4);
+}
+
 /* Schemas: a card like the operations. */
 .swagger-ui section.models {
     border: 1px solid var(--api-border);
@@ -791,7 +825,8 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
 }
 
 /* Keyboard focus: the site ring. */
-.swagger-ui :is(button, a, .opblock-summary-control, .opblock-tag):focus-visible {
+.swagger-ui :is(button, a, input, textarea, select, .opblock-summary-control, .opblock-tag):focus-visible,
+.swagger-ui .filter-container .operation-filter-input:focus-visible {
     outline: 2px solid var(--api-accent);
     outline-offset: 2px;
 }
@@ -811,14 +846,53 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
         padding: 0 24px;
     }
 
-    /* The narrow links column keeps its header inside the card. */
-    .swagger-ui .responses-table .response-col_links {
-        padding-left: 0.5rem;
+    /* Swagger's desktop model reserves 174px for the property name alone. */
+    .swagger-ui .opblock .responses-inner {
+        padding-inline: 10px;
+        overflow-x: auto;
     }
 
-    /* The card clips; anything still wider (schemas on the narrowest phones) scrolls inside it. */
-    .swagger-ui .opblock .responses-inner {
-        overflow-x: auto;
+    .swagger-ui .responses-table,
+    .swagger-ui .opblock table.model {
+        table-layout: fixed;
+    }
+
+    .swagger-ui .responses-table .response-col_status {
+        width: 2.5em;
+        min-width: 0;
+    }
+
+    .swagger-ui .responses-table .response-col_links {
+        width: 3.25em;
+        min-width: 0;
+        padding-left: 0.5em;
+    }
+
+    .swagger-ui .content-type-wrapper select.content-type {
+        min-height: 32px;
+        padding-inline-end: 28px;
+        background-position: right 4px center;
+    }
+
+    .swagger-ui .responses-table :is(td, .model, .model-title) {
+        overflow-wrap: anywhere;
+    }
+
+    .swagger-ui .opblock table.model tbody tr td {
+        padding-left: 0.3em;
+    }
+
+    .swagger-ui .opblock table.model tbody tr td:first-of-type {
+        width: 38%;
+        padding-left: 0;
+    }
+
+    .swagger-ui .opblock .model-box {
+        padding-inline: 3px;
+    }
+
+    .swagger-ui .opblock .tab {
+        flex-wrap: wrap;
     }
 
     .swagger-ui .opblock .opblock-section-header {
@@ -826,11 +900,20 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
         gap: 0.5rem;
     }
 
-    /* The deep-link copy button sits under the arrow instead of opening an empty row. */
+    .swagger-ui .opblock .opblock-summary-control {
+        grid-row: 1 / span 2;
+    }
+
+    .swagger-ui .opblock .opblock-control-arrow {
+        min-height: 32px;
+        align-self: center;
+        justify-self: center;
+    }
+
     .swagger-ui .opblock .opblock-summary .view-line-link {
         grid-column: 2;
-        grid-row: 1;
-        align-self: end;
+        grid-row: 2;
+        align-self: center;
         justify-self: center;
     }
 }
@@ -868,10 +951,6 @@ html.dark-mode .swagger-ui .opblock .opblock-summary-method {
     max-width: 72ch;
 }
 
-.swagger-ui .info .description ul {
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-}
-
 /* Dark: Swagger's own bands and link colours follow the graphite palette. */
 html.dark-mode .swagger-ui .scheme-container {
     background: transparent;
@@ -894,10 +973,16 @@ html.dark-mode .swagger-ui section.models {
 
 .swagger-ui .topbar .topbar-wrapper {
     display: flex;
+    flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+.swagger-ui .topbar .dark-mode-toggle button {
+    min-width: 44px;
+    min-height: 44px;
 }
 
 /* Swagger outlines the summary on every click; keep the ring for keyboard focus only. */
@@ -958,6 +1043,8 @@ html.dark-mode .swagger-ui .opblock .opblock-section-header .try-out__btn:hover 
     }
 
     .swagger-ui .opblock:hover,
+    .swagger-ui .opblock:hover .opblock-summary-method,
+    .swagger-ui .topbar .link:hover,
     .swagger-ui .btn:active {
         transform: none;
     }
