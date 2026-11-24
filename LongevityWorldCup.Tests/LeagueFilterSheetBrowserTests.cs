@@ -52,6 +52,35 @@ public sealed class LeagueFilterSheetBrowserTests(PlaywrightBrowserFixture brows
     }
 
     [Theory]
+    [InlineData("/leaderboard", 1440)]
+    [InlineData("/", 390)]
+    public async Task SelectedFilterShowsOneCheckAndUsesTheNativeMarkInForcedColors(string path, int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.Locator(".sidebar-toggle").ClickAsync();
+        var amateur = page.Locator("input[name=leagueTrack][value=Amateur i]");
+        await amateur.CheckAsync();
+        var marks = await amateur.EvaluateAsync<int>("""
+            input => ['::before', '::after'].filter(pseudo => {
+                const style = getComputedStyle(input, pseudo);
+                return !['none', 'normal'].includes(style.content) && style.display !== 'none' && style.opacity !== '0';
+            }).length
+            """);
+        Assert.Equal(1, marks);
+
+        await page.EmulateMediaAsync(new() { ForcedColors = ForcedColors.Active });
+        await Assertions.Expect(amateur).ToHaveCSSAsync("appearance", "auto");
+        await amateur.PressAsync("Space");
+        await Assertions.Expect(amateur).Not.ToBeCheckedAsync();
+    }
+
+    [Theory]
     [InlineData(390, 844)]
     [InlineData(844, 390)]
     public async Task Sheet_ConfinesFocusAndOnlyDismissesADownwardHeadingDrag(int width, int height)

@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -493,12 +494,30 @@ public sealed class PlayFlowMotionBrowserTests(
             """);
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForFunctionAsync("() => document.body.classList.contains('play-route-hydrating')");
-        await page.EvaluateAsync("() => window.__releaseHeader()");
-        await page.WaitForFunctionAsync("() => document.documentElement.dataset.playMove === 'forward'");
-        Assert.Equal("visible", await page.Locator("#athleteDashboardPanel").EvaluateAsync<string>("panel => getComputedStyle(panel).visibility"));
-        Assert.Null(await page.Locator("body").GetAttributeAsync("aria-busy"));
-        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement?.matches('#athleteDashboardActions .flow-action:not(.back-button)')"));
+        // Record the arrival in the browser before the transition marker is cleared.
+        await page.EvaluateAsync("""
+            () => {
+                const root = document.documentElement;
+                const observer = new MutationObserver(() => {
+                    if (root.dataset.playMove !== 'forward') return;
+                    const panel = document.getElementById('athleteDashboardPanel');
+                    window.__dashboardArrival = {
+                        visibility: getComputedStyle(panel).visibility,
+                        busy: document.body.getAttribute('aria-busy'),
+                        focused: Boolean(document.activeElement?.matches('#athleteDashboardActions .flow-action:not(.back-button)'))
+                    };
+                    observer.disconnect();
+                });
+                observer.observe(root, { attributeFilter: ['data-play-move'] });
+                window.__releaseHeader();
+            }
+            """);
+        await page.WaitForFunctionAsync("() => window.__dashboardArrival !== undefined");
         await WaitForMoveToSettleAsync(page);
+        var arrival = await page.EvaluateAsync<JsonElement>("() => window.__dashboardArrival");
+        Assert.Equal("visible", arrival.GetProperty("visibility").GetString());
+        Assert.Null(arrival.GetProperty("busy").GetString());
+        Assert.True(arrival.GetProperty("focused").GetBoolean());
     }
 
     [Theory]

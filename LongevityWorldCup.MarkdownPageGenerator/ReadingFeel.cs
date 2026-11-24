@@ -116,7 +116,7 @@ internal static class ReadingFeel
         }
 
         /* A jump lands with a soft accent band sweeping under the heading, and a
-           number tile or timeline marker gives a small bounce. */
+           timeline marker gives a small bounce. */
         .documentation-document .is-arriving {
             background-image: linear-gradient(90deg,
                 color-mix(in srgb, var(--lwc-accent-soft) calc(var(--documentation-arrive-alpha) * 100%), transparent),
@@ -129,10 +129,6 @@ internal static class ReadingFeel
             animation: documentation-arrive 1500ms var(--lwc-ease-standard, ease) both;
         }
 
-        .documentation-document .is-arriving::before {
-            animation: documentation-tile-pop 560ms var(--lwc-ease-pop, ease) 120ms both;
-        }
-
         .documentation-timeline-entry:has(> .is-arriving)::before {
             animation: documentation-marker-ring 900ms var(--lwc-ease-standard, ease) 120ms both;
         }
@@ -142,12 +138,6 @@ internal static class ReadingFeel
             22% { --documentation-arrive-sweep: 1; --documentation-arrive-alpha: 1; }
             60% { --documentation-arrive-alpha: 1; }
             100% { --documentation-arrive-sweep: 1; --documentation-arrive-alpha: 0; }
-        }
-
-        @keyframes documentation-tile-pop {
-            0% { transform: scale(1); }
-            40% { transform: scale(1.16) rotate(-4deg); }
-            100% { transform: scale(1); }
         }
 
         @keyframes documentation-marker-ring {
@@ -178,16 +168,6 @@ internal static class ReadingFeel
         .documentation-reveal.is-instant::before,
         .documentation-reveal-marker.is-instant::before {
             transition: none !important;
-        }
-
-        /* Chapter and rule tiles pop in a beat after their heading. */
-        .documentation-document h2.documentation-reveal::before {
-            transition: transform 460ms var(--lwc-ease-pop, ease) calc(var(--reveal-delay, 0ms) + 90ms),
-                background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-        }
-
-        .documentation-document h2.documentation-reveal:not(.is-revealed)::before {
-            transform: scale(0.55);
         }
 
         /* Timeline markers pop onto the rail. */
@@ -234,28 +214,15 @@ internal static class ReadingFeel
             color: var(--lwc-accent-hover);
         }
 
-        /* Next-step tiles lift toward the pointer and their arrow leans forward. */
-        .documentation-page #where-to-go-next + ul > li {
-            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
-                box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
-                transform var(--lwc-motion-base, 200ms) var(--lwc-ease-standard, ease);
+        /* Keep the whole tile stationary as a pointer or keyboard targets it. */
+        .documentation-page #where-to-go-next + ul > li:is(:hover, :focus-within)::before {
+            background: var(--lwc-accent);
+            color: var(--lwc-on-accent);
         }
 
-        .documentation-page #where-to-go-next + ul > li::before {
-            transition: transform var(--lwc-motion-base, 200ms) var(--lwc-ease-pop, ease);
-        }
-
-        .documentation-page #where-to-go-next + ul > li:hover {
-            transform: translateY(-2px);
-        }
-
-        .documentation-page #where-to-go-next + ul > li:hover::before,
-        .documentation-page #where-to-go-next + ul > li:focus-within::before {
-            transform: translateX(4px);
-        }
-
-        .documentation-page #where-to-go-next + ul > li:active {
-            transform: translateY(0) scale(0.99);
+        /* The link overlay already outlines the entire destination. */
+        html:has(.documentation-page #where-to-go-next + ul > li > a:focus-visible) .lwc-focus-ring {
+            opacity: 0;
         }
 
         /* Narrow tables: each row is one compact line. Rank, then the name, with a
@@ -393,21 +360,12 @@ internal static class ReadingFeel
             .documentation-progress,
             .documentation-nav a[href^="#"],
             .documentation-nav.is-ink-ready .documentation-nav-ink,
-            .documentation-page #where-to-go-next + ul > li,
-            .documentation-page #where-to-go-next + ul > li::before,
             .documentation-nav-toggle-icon,
             .documentation-nav .documentation-nav-toggle::after {
                 transition: none;
             }
 
-            .documentation-page #where-to-go-next + ul > li:hover,
-            .documentation-page #where-to-go-next + ul > li:hover::before,
-            .documentation-page #where-to-go-next + ul > li:focus-within::before {
-                transform: none;
-            }
-
             .documentation-document .is-arriving,
-            .documentation-document .is-arriving::before,
             .documentation-timeline-entry:has(> .is-arriving)::before,
             .documentation-nav.is-open .documentation-nav-links,
             .documentation-nav.is-open .documentation-nav-links > a,
@@ -426,6 +384,101 @@ internal static class ReadingFeel
                 transform: none !important;
                 transition: none !important;
             }
+        }
+
+        /* Apply the reading measure to the actual parents of body blocks.
+           The cover, its caption, closing links and compact FAQ have their own type. */
+        .documentation-page :is(.documentation-document, .documentation-document .documentation-timeline-entry, .documentation-document .ruleset-rule-body) {
+            & > p:where(:not(:has(> img), p:has(> img) + p:has(> em:only-child))) {
+                max-width: 68ch;
+                line-height: 1.72;
+            }
+
+            & > h2 + p:not(:has(> img)),
+            &.ruleset-rule-body > p:first-child:not(:has(> img)) {
+                max-width: 61ch;
+                color: var(--lwc-ink);
+                font-size: 1.18rem;
+                line-height: 1.6;
+            }
+
+            & > ul:not(#where-to-go-next + ul, .ruleset-term-list) {
+                --rail-indent: 1.9rem;
+                max-width: 68ch;
+                margin-inline-start: 0;
+                padding-inline-start: var(--rail-indent);
+                list-style: none;
+
+                & li {
+                    position: relative;
+                    margin: 0;
+                    padding: .275rem 0;
+                    line-height: 1.65;
+                }
+
+                & > li::before {
+                    content: "";
+                    position: absolute;
+                    z-index: 1;
+                    inset-inline-start: calc(.55rem - var(--rail-indent) - 6px);
+                    top: calc(.275rem + .52em);
+                    width: 12px;
+                    height: 12px;
+                    border: 0;
+                    border-radius: 50%;
+                    background: var(--lwc-surface);
+                    box-shadow: inset 0 0 0 3px var(--lwc-accent), 0 0 0 3px var(--lwc-surface);
+                }
+
+                /* Each segment ends at the center of the following stop. */
+                & > li:not(:last-child)::after {
+                    content: "";
+                    position: absolute;
+                    inset-inline-start: calc(.55rem - var(--rail-indent) - 1px);
+                    top: calc(.275rem + .52em + 6px);
+                    bottom: calc(-.275rem - .52em - 6px);
+                    width: 2px;
+                    background: color-mix(in srgb, var(--lwc-accent) 35%, var(--lwc-border));
+                }
+
+                & ul {
+                    margin: .3rem 0 0;
+                    padding: 0;
+                    padding-inline-start: 1.4rem;
+                    border: 0;
+                    list-style: none;
+                }
+
+                & ul > li::before {
+                    inset-inline-start: -1.1rem;
+                    top: calc(.275rem + .6em);
+                    width: 8px;
+                    height: 8px;
+                    box-sizing: border-box;
+                    border: 2px solid color-mix(in srgb, var(--lwc-accent) 55%, var(--lwc-border));
+                    border-radius: 50%;
+                    background: transparent;
+                }
+            }
+
+            @media (max-width: 600px) {
+                & > h2 + p:not(:has(> img)),
+                &.ruleset-rule-body > p:first-child:not(:has(> img)) {
+                    font-size: 1.08rem;
+                }
+
+                /* Retain the phone reading column when the list gains a rail. */
+                & > ul:not(#where-to-go-next + ul, .ruleset-term-list) {
+                    --rail-indent: 1.55rem;
+                }
+            }
+        }
+
+        .documentation-page:not(.documentation-page-about) .documentation-document :is(.documentation-timeline-entry, .ruleset-rule-body) > p:has(> img:only-child) {
+            grid-template-columns: minmax(0, 1fr);
+            padding: clamp(8px, 1.4vw, 14px);
+            background: var(--lwc-surface);
+            box-shadow: 0 1px 0 color-mix(in srgb, var(--lwc-ink) 6%, transparent), 0 18px 32px -26px color-mix(in srgb, var(--lwc-ink) 55%, transparent);
         }
 """;
 }

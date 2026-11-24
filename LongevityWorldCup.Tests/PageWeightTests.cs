@@ -66,6 +66,7 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
         var paths = new[]
         {
             "/js/site-header.js", "/js/site-footer.js", "/js/leaderboard-page.js",
+            "/js/leaderboard-row-preview.js",
             "/js/leaderboard-embed-listener.js", "/js/guess-my-age.js",
             "/css/site-header.css", "/css/site-footer.css", "/css/leaderboard-content.css",
             "/css/guess-my-age.css", "/css/age-visualization.css", "/css/dark-system.css"
@@ -98,6 +99,8 @@ public sealed class PageWeightTests(TestWebApplicationFactory factory)
     {
         using var client = factory.CreateClient();
         var shared = await client.GetStringAsync($"/css/{name}.css");
+        if (name == "leaderboard-content")
+            shared = await client.GetStringAsync("/css/leaderboard-podium.css") + "\n" + shared;
         var scoped = await client.GetStringAsync($"/css/athlete-dialog/{name}.css");
         Assert.Equal("@scope (#athleteDialogRuntime) {\n" + Regex.Replace(shared, @":root\b", ":scope", RegexOptions.IgnoreCase) + "}\n", scoped);
     }

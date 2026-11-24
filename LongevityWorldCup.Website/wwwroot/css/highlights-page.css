@@ -478,7 +478,7 @@ main.event-board-page {
     border-radius: 50%;
     background: var(--events-header-bg);
     color: var(--events-header-action);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 1.5rem;
     font-weight: 900;
     line-height: 1;
@@ -1017,4 +1017,118 @@ main.event-board-page {
     .event-board-page .events-board .event-kind {
         transition: none;
     }
+}
+
+/* The phone strip occupies its space before data arrives. On wide screens the
+   same controls move into the gutter and stay beside the reader. */
+main.event-board-page { position: relative; }
+.event-pulse-slot {
+    --pulse-strip-height: calc(7 * 24px + 16px);
+    flex: 0 0 100%;
+    min-width: 0;
+    height: var(--pulse-strip-height);
+}
+.event-pulse-rail, .event-pulse-slot[hidden], .event-pulse[hidden] { display: none; }
+.event-pulse {
+    position: relative;
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
+    height: 100%;
+    padding: 3px;
+    overflow: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lwc-border-strong, #8a9a9f) transparent;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-md, 8px);
+    background: var(--lwc-surface);
+}
+.event-pulse-grid, .event-pulse-week { display: flex; width: max-content; }
+.event-pulse-week { flex-direction: column; }
+.event-pulse-gap {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 168px;
+    background: linear-gradient(var(--lwc-border), var(--lwc-border)) center / 1px 100% no-repeat;
+}
+.event-pulse-gap::before {
+    content: '';
+    width: 6px;
+    height: 14px;
+    border-inline: 2px solid var(--lwc-border-strong);
+    background: var(--lwc-surface);
+    box-shadow: 0 0 0 3px var(--lwc-surface);
+    transform: skew(-20deg);
+}
+.event-pulse .event-pulse-cell {
+    appearance: none;
+    display: grid;
+    place-items: center;
+    flex: none;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    opacity: 1;
+    box-shadow: none;
+    transform: none;
+    cursor: pointer;
+}
+.event-pulse-cell::before {
+    content: '';
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--secondary-color) var(--pulse-level, 26%), var(--lwc-surface-muted));
+}
+.event-pulse .event-pulse-cell[aria-hidden] { cursor: default; }
+.event-pulse-cell[aria-hidden]::before {
+    background: var(--lwc-surface-muted);
+    box-shadow: inset 0 0 0 1px var(--lwc-border);
+}
+.event-pulse-cell.is-month-start::before { border-block-start: 2px solid var(--lwc-border-strong); }
+.event-pulse-cell[aria-current]::before {
+    outline: 2px solid var(--secondary-color);
+    outline-offset: 1px;
+}
+.event-pulse .event-pulse-cell:focus-visible {
+    outline: 2px solid var(--lwc-ink);
+    outline-offset: -2px;
+}
+@media (hover: hover) {
+    .event-pulse-cell:enabled:hover::before { box-shadow: inset 0 0 0 2px var(--secondary-color); }
+}
+.event-board-page #eventsTable tr.main-row {
+    scroll-margin-block-start: var(--event-month-height, 40px);
+}
+@media (min-width: 1280px) {
+    .event-pulse-slot { display: none; }
+    .event-pulse-rail {
+        display: block;
+        position: absolute;
+        inset-block: var(--feed-clearance) 0;
+        left: calc(50% + 430px + 16px);
+    }
+    .event-pulse {
+        position: sticky;
+        top: calc(max(3.25rem, var(--site-sticky-height, 0px)) + 0.75rem);
+        height: auto;
+        max-height: calc(100dvh - max(3.25rem, var(--site-sticky-height, 0px)) - 1.5rem);
+        padding: 5px;
+        box-shadow: var(--lwc-shadow-sm);
+    }
+    .event-pulse-grid { flex-direction: column; }
+    .event-pulse-week { flex-direction: row; }
+    .event-pulse-gap { width: 168px; height: 24px; background-size: 100% 1px; }
+    .event-pulse-gap::before { transform: rotate(90deg) skew(-20deg); }
 }

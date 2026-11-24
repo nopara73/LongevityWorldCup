@@ -275,8 +275,8 @@ public sealed class AestheticSystemBrowserTests(
                     .map(entry => entry.name)
                     .filter(name => name.includes('font-awesome'));
                 return {
-                    SolidFaceLoaded: document.fonts.check('900 16px "Font Awesome 6 Free"'),
-                    BrandFaceLoaded: document.fonts.check('400 16px "Font Awesome 6 Brands"'),
+                    SolidFaceLoaded: document.fonts.check('900 16px "LWC Icons"', '\uf091'),
+                    BrandFaceLoaded: document.fonts.check('400 16px "LWC Icon Brands"', '\uf16d'),
                     Icons: icons,
                     VectorIcons: vectorIcons,
                     FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.filter(icon => icon.IsFooterIcon).length,
@@ -288,8 +288,8 @@ public sealed class AestheticSystemBrowserTests(
             }
             """);
 
-        Assert.True(diagnostics.SolidFaceLoaded, "The self-hosted solid Font Awesome face did not load.");
-        Assert.True(diagnostics.BrandFaceLoaded, "The self-hosted brand Font Awesome face did not load.");
+        Assert.True(diagnostics.SolidFaceLoaded, "The compact solid icon font did not load.");
+        Assert.True(diagnostics.BrandFaceLoaded, "The compact brand icon font did not load.");
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         // Signed out, the habit tiles carry the daily questions, so their four icons are not repeated.
         Assert.True(iconCount >= 30, $"Expected at least 30 visible Challenge/footer icons, found {iconCount}.");
@@ -304,16 +304,34 @@ public sealed class AestheticSystemBrowserTests(
         Assert.All(diagnostics.Icons, icon =>
         {
             Assert.DoesNotContain(icon.Content, new[] { "", "none", "normal", "\"\"" });
-            Assert.Contains("Font Awesome", icon.FontFamily);
+            Assert.Contains("LWC Icon", icon.FontFamily);
             Assert.True(icon.Width > 0 && icon.Height > 0, $"{icon.Label} has no rendered geometry.");
         });
         Assert.Contains(
             diagnostics.LocalResources,
-            resource => resource.EndsWith("/vendor/font-awesome/6.7.2/webfonts/fa-solid-900.woff2", StringComparison.Ordinal));
+            resource => new Uri(resource).AbsolutePath.EndsWith("/lwc-solid.woff2", StringComparison.Ordinal));
         Assert.Contains(
             diagnostics.LocalResources,
-            resource => resource.EndsWith("/vendor/font-awesome/6.7.2/webfonts/fa-brands-400.woff2", StringComparison.Ordinal));
+            resource => new Uri(resource).AbsolutePath.EndsWith("/lwc-brands.woff2", StringComparison.Ordinal));
+        Assert.DoesNotContain(diagnostics.LocalResources, resource => new Uri(resource).AbsolutePath.Contains("/webfonts/fa-", StringComparison.Ordinal));
         Assert.Empty(diagnostics.ExternalResources);
+
+        // Draw a character from the unused face. Which symbols are rare can change as the site grows.
+        await page.EvaluateAsync("""
+            () => {
+                const catalog = [...document.fonts].find(face =>
+                    face.family.includes('LWC Icons') && face.weight === '900' && face.status === 'unloaded');
+                const firstCode = catalog.unicodeRange.match(/U\+([0-9a-f]+)/i)[1];
+                const icon = document.createElement('i');
+                icon.className = 'fas';
+                icon.textContent = String.fromCodePoint(parseInt(firstCode, 16));
+                document.body.append(icon);
+            }
+            """);
+        await page.WaitForFunctionAsync("""
+            () => performance.getEntriesByType('resource').some(entry =>
+                new URL(entry.name).pathname.endsWith('/webfonts/fa-solid-900.woff2'))
+            """);
     }
 
     [Fact]
@@ -1233,6 +1251,10 @@ public sealed class AestheticSystemBrowserTests(
                     await AssertLeaderboardContainerBoundariesAsync(page,
                         source.Where(condition => condition.Name != "lwc-bar").ToArray());
                     break;
+                case "css/leaderboard-podium.css":
+                case "css/homepage-first-screen.css":
+                    await AssertFontRelativeLeaderboardBoundariesAsync(page, source.ToArray());
+                    break;
                 case "css/leaderboard-ordering.css":
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
@@ -1246,10 +1268,7 @@ public sealed class AestheticSystemBrowserTests(
                         source.Where(condition => condition.Name == "play-player-card").ToArray());
                     break;
                 case "css/homepage.css":
-                    await AssertNewsletterContainerBoundariesAsync(page,
-                        source.Where(condition => condition.Name == "newsletter-section").ToArray());
-                    await AssertFontRelativeLeaderboardBoundariesAsync(page,
-                        source.Where(condition => condition.Name != "newsletter-section").ToArray());
+                    await AssertNewsletterContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "css/prize-pool.css":
                     await AssertPrizePoolContainerBoundariesAsync(page, source.ToArray());
@@ -2230,7 +2249,7 @@ public sealed class AestheticSystemBrowserTests(
         foreach (var condition in conditions)
         {
             Assert.Equal("em", condition.Unit);
-            Assert.Contains(condition.Name, new[] { "league-filters", "podium", "athlete-stats", "athlete-proofs", "athlete-results", "athlete-header", "leaderboard" });
+            Assert.Contains(condition.Name, new[] { "league-filters", "league-status", "podium", "athlete-stats", "athlete-proofs", "athlete-results", "athlete-header", "leaderboard" });
             var desktop = condition.Name == "league-filters" || condition.Name == "podium" && condition.Value == 32;
             await page.SetViewportSizeAsync(desktop ? 1440 : 390, desktop ? 1000 : 844);
             await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
@@ -2239,7 +2258,7 @@ public sealed class AestheticSystemBrowserTests(
                 : condition.Name is "athlete-stats" or "athlete-proofs" or "athlete-results" ? "/athlete/michael-lustgarten"
                 : "/leaderboard?filters=open,baby%20boomers";
             await NavigateAndSettleAsync(page, route);
-            if (condition.Name is "league-filters" or "leaderboard")
+            if (condition.Name is "league-filters" or "league-status" or "leaderboard")
                 await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
             if (condition.Name == "podium") await page.Locator(".podium-item.first").WaitForAsync();
             if (condition.Name == "athlete-results") await page.Locator(".biomarker-overview-table .result-summary").First.WaitForAsync();
@@ -2280,6 +2299,11 @@ public sealed class AestheticSystemBrowserTests(
                         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         let applied;
                         if (arg.Name === 'league-filters') applied = getComputedStyle(probe.querySelector('.filter-label-copy')).display === 'block';
+                        else if (arg.Name === 'league-status') {
+                            const chips = probe.querySelector('.leaderboard-selection-chips').getBoundingClientRect();
+                            const clear = probe.querySelector('.leaderboard-clear-all').getBoundingClientRect();
+                            applied = clear.top >= chips.bottom - 1;
+                        }
                         else if (arg.Name === 'athlete-stats') applied = arg.Value < 20
                             ? getComputedStyle(probe.querySelector('.athlete-info-basics tr')).gridTemplateColumns.split(' ').length === 1
                             : parseFloat(getComputedStyle(probe.querySelector('.athlete-age-board > tr')).paddingLeft) < 15.5;

@@ -1,0 +1,28 @@
+{
+  "Name": "Anna Kriszti",
+  "DisplayName": null,
+  "MediaContact": "https://www.facebook.com/annakrisztitolnay",
+  "DateOfBirth": {
+    "Year": 1969,
+    "Month": 12,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-27",
+      "AlbGL": 45,
+      "CreatUmolL": 68,
+      "GluMmolL": 4.9,
+      "CrpMgL": 1.9,
+      "LymPc": 37.2,
+      "McvFL": 93,
+      "RdwPc": 13.2,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 5.2
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "I believe mental well-being is not a luxury, but the foundation of a balanced, peaceful and fulfilling life. True longevity means not just living longer, but living well, with a healthy mind and body.",
+  "PersonalLink": "https://www.annakriszti.hu"
+}

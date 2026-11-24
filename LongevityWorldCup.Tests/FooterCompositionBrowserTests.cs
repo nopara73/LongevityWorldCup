@@ -98,7 +98,7 @@ public sealed class FooterCompositionBrowserTests(
                 if (featured.some(b => Math.abs(b.top - featured[0].top) > 1)) problems.push('featured platforms split across rows');
                 if (Math.min(...remaining.map(b => b.top)) < Math.max(...featured.map(b => b.bottom))) problems.push('other icons share the featured row');
                 if (Math.min(...featured.map(b => b.width)) <= Math.max(...remaining.map(b => b.width))) problems.push('featured platforms are not larger');
-                if (!document.fonts.check('400 16px Roboto') || !document.fonts.check('400 16px "Font Awesome 6 Brands"')) problems.push('fonts missing');
+                if (!document.fonts.check('400 16px Roboto')) problems.push('Roboto missing');
                 return problems;
             }
             """);

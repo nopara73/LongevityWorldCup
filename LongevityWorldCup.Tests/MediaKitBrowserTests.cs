@@ -79,7 +79,13 @@ public sealed partial class MediaKitBrowserTests(PlaywrightBrowserFixture browse
         await page.GotoAsync("/media", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
         await Assertions.Expect(page.Locator("#fileList .media-file-row")).ToHaveCountAsync(KitFiles.Value.Count);
         await page.AddStyleTagAsync(new() { Content = $"html {{ font-size: {textSize}% !important; }}" });
-        await page.EvaluateAsync("() => document.fonts.ready");
+        // Give the ResizeObserver a rendering update to rebalance the lists at the new text size.
+        await page.EvaluateAsync("""
+            async () => {
+                await document.fonts.ready;
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            """);
         var problems = await page.EvaluateAsync<string[]>(
             """
             () => {

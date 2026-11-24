@@ -25,6 +25,9 @@ public static class CustomEventSocialComposer
         return $"{SiteBaseUrl}/events?event={Uri.EscapeDataString(eventId ?? string.Empty)}";
     }
 
+    internal static string GetPostUrl(string eventId, string rawText, bool includeEventUrl) =>
+        CustomEventMarkup.GetSingleHyperlink(rawText) ?? (includeEventUrl ? BuildEventUrl(eventId) : string.Empty);
+
     public static CustomEventSocialPlan BuildPlan(string eventId, string rawText, int maxTextLength)
     {
         return BuildPlan(eventId, rawText, maxTextLength, mentionResolver: null, includeEventUrl: true);
@@ -37,8 +40,7 @@ public static class CustomEventSocialComposer
         var (titleRaw, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
         var titleText = CollapseWhitespace(CustomEventMarkup.ToPlainText(titleRaw, keepHyperlinkLabels: true, mentionResolver)).Trim();
         var bodyText = CustomEventMarkup.ToPlainText(contentRaw, keepHyperlinkLabels: true, mentionResolver).Trim();
-        var singleHyperlink = CustomEventMarkup.GetSingleHyperlink(rawText);
-        var eventUrl = singleHyperlink ?? (includeEventUrl ? BuildEventUrl(eventId) : string.Empty);
+        var eventUrl = GetPostUrl(eventId, rawText, includeEventUrl);
         var hasHyperlinks = CustomEventMarkup.ContainsHyperlink(rawText);
         var textMode = CustomEventArtwork.ForLinkedPage(rawText) is null ? CustomEventPostMode.Text : CustomEventPostMode.Artwork;
 
