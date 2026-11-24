@@ -21,7 +21,7 @@
 (() => {
     const modal = document.getElementById("detailsModal");
     const content = modal?.querySelector<HTMLElement>(".modal-content");
-    if (!modal || !content) return;
+    if (!modal || !content || typeof IntersectionObserver !== "function") return;
     const dialog: HTMLElement = modal;
     const scroller: HTMLElement = content;
 

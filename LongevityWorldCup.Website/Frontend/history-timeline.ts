@@ -50,8 +50,8 @@ interface Window {
                     const next: Element | null = card.nextElementSibling;
                     card.classList.remove("documentation-reveal", "is-instant");
                     card.classList.add("history-evidence-card");
-                    (card as HTMLElement).style.setProperty("--evidence-tilt", `${index++ % 2 ? 1.1 : -1.3}deg`);
-                    (card as HTMLElement).style.setProperty("--evidence-index", String(strip.childElementCount));
+                    card.style.setProperty("--evidence-tilt", `${index++ % 2 ? 1.1 : -1.3}deg`);
+                    card.style.setProperty("--evidence-index", String(strip.childElementCount));
                     strip.appendChild(card);
                     card = next;
                 }
@@ -62,7 +62,8 @@ interface Window {
         let dealtBefore = false;
         try { dealtBefore = sessionStorage.getItem(PRINTS_DEALT) === "1"; } catch { /* storage unavailable */ }
         const settle = (strip: Element): void => {
-            if (!strip.classList.contains("is-dealt")) strip.classList.add("is-settled");
+            strip.classList.remove("is-dealt");
+            strip.classList.add("is-settled");
         };
         if (dealtBefore || reduced.matches || !("IntersectionObserver" in window)) {
             strips.forEach(settle);
@@ -74,7 +75,10 @@ interface Window {
                 observer.unobserve(item.target);
                 if (item.target.classList.contains("is-settled")) continue;
                 item.target.classList.add("is-dealt");
-                try { sessionStorage.setItem(PRINTS_DEALT, "1"); } catch { /* storage unavailable */ }
+                if (!dealtBefore) {
+                    dealtBefore = true;
+                    try { sessionStorage.setItem(PRINTS_DEALT, "1"); } catch { /* storage unavailable */ }
+                }
             }
         }, { rootMargin: "0px 0px -12% 0px" });
         strips.forEach(strip => {
@@ -84,13 +88,13 @@ interface Window {
             strip.addEventListener("focusin", () => {
                 observer.unobserve(strip);
                 settle(strip);
-            });
+            }, { once: true });
         });
-        // Older engines only offer MediaQueryList.addListener; the strips then
-        // keep the preference they loaded with.
-        if (typeof reduced.addEventListener === "function") {
-            reduced.addEventListener("change", () => { if (reduced.matches) strips.forEach(strip => { observer.unobserve(strip); settle(strip); }); });
-        }
+        reduced.addEventListener?.("change", () => {
+            if (!reduced.matches) return;
+            observer.disconnect();
+            strips.forEach(settle);
+        });
     }
 
     function start(): void {
@@ -186,7 +190,7 @@ interface Window {
         window.addEventListener("resize", schedule, { passive: true });
         window.addEventListener("pageshow", schedule);
         window.addEventListener("pagehide", settleYear);
-        reduced.addEventListener("change", () => { if (reduced.matches) settleYear(); });
+        reduced.addEventListener?.("change", () => { if (reduced.matches) settleYear(); });
         new ResizeObserver(schedule).observe(timeline);
         timeline.addEventListener("load", schedule, true);
         measure();

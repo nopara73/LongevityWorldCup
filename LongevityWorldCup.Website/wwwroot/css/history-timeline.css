@@ -225,8 +225,10 @@
 
     @media (hover: hover) {
         .documentation-timeline .history-evidence > .history-evidence-card:hover {
-            transform: rotate(0deg) translateY(-4px) scale(1.02);
             box-shadow: var(--lwc-shadow-md), 0 0 0 2px var(--lwc-accent);
+            @media (prefers-reduced-motion: no-preference) {
+                transform: rotate(0deg) translateY(-4px) scale(1.02);
+            }
         }
     }
 
