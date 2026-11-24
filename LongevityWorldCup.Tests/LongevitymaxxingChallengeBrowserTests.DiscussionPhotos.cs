@@ -75,8 +75,10 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(thread.Locator(".lmx-note-photo img")).ToHaveCountAsync(1);
         await edit.ClickAsync();
         await editor.Locator("textarea").FillAsync("Corrected remarks.");
+        await editor.Locator("textarea").DispatchEventAsync("keydown", new { key = "Escape", isComposing = true });
+        await Assertions.Expect(editor.Locator("textarea")).ToHaveValueAsync("Corrected remarks.");
         await editor.GetByRole(AriaRole.Button, new() { Name = "Remove photo 1" }).ClickAsync();
-        await editor.GetByRole(AriaRole.Button, new() { Name = "Save", Exact = true }).ClickAsync();
+        await editor.Locator("textarea").PressAsync("Control+Enter");
         await Assertions.Expect(editor.Locator(".lmx-status")).Not.ToBeEmptyAsync();
         await Assertions.Expect(editor.Locator("textarea")).ToHaveValueAsync("Corrected remarks.");
         await Assertions.Expect(editor.GetByRole(AriaRole.Button, new() { Name = "Undo removal of photo 1" })).ToBeEnabledAsync();
@@ -150,11 +152,69 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await editor.Locator("[data-reply-action='close']").ClickAsync();
         await Assertions.Expect(reply.Locator(".lmx-reply-photos img")).ToBeVisibleAsync();
         await edit.ClickAsync();
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        await page.ReloadAsync();
         await Assertions.Expect(editor.GetByRole(AriaRole.Button, new() { Name = "Undo removal of photo 1" })).ToBeVisibleAsync();
         await editor.Locator("[data-reply-edit-submit]").ClickAsync();
         await Assertions.Expect(editor).ToHaveCountAsync(0);
         await Assertions.Expect(reply.Locator(".lmx-reply-photos img")).ToHaveCountAsync(0);
         await Assertions.Expect(reply.Locator("[data-discussion-reply-body]")).ToContainTextAsync("An actual child reply");
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task SavedPhotos_FullReplyCanReplaceAnImageAndRetryAfterReload(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = width, Height = 840 }, IsMobile = width < 500, HasTouch = width < 500
+        });
+        await RouteChallengeResourcesAsync(context);
+        var state = DiscussionWorkspaceState();
+        var replyNode = state["notes"]!.AsArray().Single(item => (string?)item!["participantId"] == "p7")!["replies"]!.AsArray()
+            .Single(item => (string?)item!["id"] == "r6")!;
+        var photos = Enumerable.Range(1, 4).Select(i => CheckInImage($"/generated/longevitymaxxing/check-in-photos/walk-{i}.webp?v=1")).ToArray();
+        replyNode["images"] = JsonSerializer.SerializeToNode(photos);
+        state["public"]!["notes"] = state["notes"]!.DeepClone();
+        string? uploadId = null;
+        await context.RouteAsync("**/api/longevitymaxxing/discussion/replies/edit", async route =>
+        {
+            var body = Encoding.UTF8.GetString(route.Request.PostDataBuffer!);
+            Assert.Contains("walk-1.webp", body);
+            Assert.Contains("new-walk.webp", body);
+            var id = Regex.Match(body, """name="photoIds"\r\n\r\n([0-9a-f-]{36})""").Groups[1].Value;
+            Assert.True(Guid.TryParse(id, out _));
+            if (uploadId is null) { uploadId = id; await route.FulfillAsync(new() { Status = 503 }); return; }
+            Assert.Equal(uploadId, id);
+            replyNode["images"] = JsonSerializer.SerializeToNode(photos.Skip(1).Append(CheckInImage("/generated/longevitymaxxing/check-in-photos/new-walk.webp?v=2")));
+            await FulfillJsonAsync(route, replyNode.ToJsonString());
+        });
+        var page = await OpenDiscussionPolishAsync(context, state);
+        var reply = DiscussionThread(page, "p7", 5).Locator("[data-discussion-reply-id='r6']");
+        var edit = reply.Locator("[data-discussion-reply-edit]");
+        await edit.ClickAsync();
+        var editor = reply.Locator("[data-discussion-draft]");
+        var picker = editor.GetByRole(AriaRole.Button, new() { Name = "Add photos", Exact = true });
+        var submit = editor.Locator("[data-reply-edit-submit]");
+        await Assertions.Expect(picker).ToBeDisabledAsync();
+        await editor.GetByRole(AriaRole.Button, new() { Name = "Remove photo 1" }).ClickAsync();
+        await Assertions.Expect(picker).ToBeEnabledAsync();
+        var image = ProfilePhotoFile("new-walk.png");
+        await editor.Locator("[data-reply-photos]").SetInputFilesAsync(image);
+        await Assertions.Expect(picker).ToBeDisabledAsync();
+        await Assertions.Expect(editor.GetByRole(AriaRole.Button, new() { Name = "Undo removal of photo 1" })).ToBeDisabledAsync();
+        await submit.ClickAsync();
+        await Assertions.Expect(submit).ToHaveTextAsync("Retry");
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        await page.ReloadAsync();
+        await Assertions.Expect(submit).ToBeDisabledAsync();
+        await Assertions.Expect(picker).ToBeEnabledAsync();
+        await editor.Locator("[data-reply-photos]").SetInputFilesAsync(image);
+        await submit.ClickAsync();
+        await Assertions.Expect(editor).ToHaveCountAsync(0);
+        await Assertions.Expect(edit).ToBeFocusedAsync();
+        await Assertions.Expect(reply.Locator(".lmx-reply-photos img")).ToHaveCountAsync(4);
+        await Assertions.Expect(reply.Locator(".lmx-reply-photos img").Last).ToHaveAttributeAsync("src", new Regex("new-walk.webp"));
     }
 
     [Theory]

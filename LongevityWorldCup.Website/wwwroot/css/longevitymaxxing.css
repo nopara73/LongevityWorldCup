@@ -1281,8 +1281,8 @@
 
 .lmx-note-photo-remove {
     position: absolute;
-    top: 0.35rem;
-    right: 0.35rem;
+    top: 0;
+    right: 0;
     width: 44px;
     height: 44px;
     border: 0;
@@ -1290,7 +1290,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.84);
+    background: transparent;
     color: #ffffff;
     cursor: pointer;
     min-width: 44px;
@@ -6279,7 +6279,10 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-story-dialog .lmx-status:empty { display: none; }
 .lmx-advice-story > p { max-width: 65ch; }
 .lmx-advice-story-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
-.lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; margin-top: .75rem; }
+.lmx-advice-story:has(> .lmx-advice-story-editor) > :is(p, .lmx-advice-story-tools) { display: none; }
+.lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; }
+.lmx-advice-story-editor .lmx-advice-story-count { align-self: center; margin: 0 auto 0 0; }
+.lmx-advice-story-editor .lmx-status:empty { display: none; }
 .lmx-advice-story-editor textarea { width: 100%; box-sizing: border-box; padding: .75rem; font: inherit; color: var(--lmx-ink); background: var(--lmx-surface); border: 1px solid var(--lmx-border-strong); border-radius: 6px; }
 .lmx-advice-post .lmx-discussion-reply { width: auto; max-width: 100%; padding-inline: .75rem; white-space: normal; }
 .lmx-advice-post .lmx-discussion-reply > span { display: inline; }
@@ -6530,13 +6533,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     object-fit: cover;
 }
 
-:is(.lmx-page, .lmx-checkin-dialog-panel) :is(.lmx-checkin-card, .lmx-saved-photo) .lmx-note-photo-remove {
-    top: 0;
-    right: 0;
-    background: transparent;
-}
-
-:is(.lmx-page, .lmx-checkin-dialog-panel) :is(.lmx-checkin-card, .lmx-saved-photo) .lmx-note-photo-remove::before {
+.lmx-note-photo-remove::before {
     content: "";
     position: absolute;
     top: 50%;
@@ -6550,7 +6547,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     transform: translate(-50%, -50%);
 }
 
-:is(.lmx-page, .lmx-checkin-dialog-panel) :is(.lmx-checkin-card, .lmx-saved-photo) .lmx-note-photo-remove > i {
+.lmx-note-photo-remove > i {
     position: relative;
     font-size: 0.75rem;
 }

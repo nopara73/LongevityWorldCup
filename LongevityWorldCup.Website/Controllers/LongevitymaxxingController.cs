@@ -306,12 +306,14 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     }
 
     [HttpPost("discussion/replies/edit")]
+    [Consumes("application/json")]
     public IActionResult EditDiscussionReply([FromBody] LongevitymaxxingDiscussionReplyEditRequest request)
     {
         try
         {
             return Ok(_challenge.EditDiscussionReply(request));
         }
+        catch (LongevitymaxxingDiscussionReplyChangedException ex) { return Conflict(new { message = ex.Message, ex.CurrentBody }); }
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { message = ex.Message });
@@ -320,6 +322,20 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpPost("discussion/replies/edit")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(LongevitymaxxingChallengeService.MaxCheckInPhotoRequestBytes)]
+    public async Task<IActionResult> EditDiscussionReplyWithPhotos([FromForm] LongevitymaxxingDiscussionReplyEditRequest request,
+        [FromForm] List<IFormFile> photos, [FromForm] List<string> photoIds, CancellationToken ct)
+    {
+        // Form binding turns an explicitly empty original caption into null.
+        if (request.OriginalBody is null && Request.Form.ContainsKey("originalBody")) request = request with { OriginalBody = "" };
+        try { return Ok(await _challenge.EditDiscussionReplyWithPhotosAsync(request, photos, photoIds, ct: ct).ConfigureAwait(false)); }
+        catch (LongevitymaxxingDiscussionReplyChangedException ex) { return Conflict(new { message = ex.Message, ex.CurrentBody }); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
+        catch (Exception ex) when (IsClientError(ex)) { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpPost("discussion/replies/delete")]

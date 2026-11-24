@@ -38,7 +38,14 @@ public sealed record LongevitymaxxingDiscussionReplyEditRequest(
     string AccessToken,
     string ReplyId,
     string? Body,
-    IReadOnlyList<string>? RemovedPhotoNames = null);
+    IReadOnlyList<string>? RemovedPhotoNames = null,
+    string? OriginalBody = null);
+
+public sealed class LongevitymaxxingDiscussionReplyChangedException(string currentBody) : InvalidOperationException(
+    "This reply changed. Discard this edit and reopen the reply to use the latest text.")
+{
+    public string CurrentBody { get; } = currentBody;
+}
 
 public sealed record LongevitymaxxingDiscussionReplyDeleteRequest(
     string AccessToken,

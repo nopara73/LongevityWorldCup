@@ -164,6 +164,60 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal(4, Directory.GetFiles(PhotoDirectory(fixture)).Length);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SavedPhotos_ReplyReplacementAtCapacityCanBeRetriedAfterACaptionChange(bool welcome)
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("edit-photos@example.com", "Photo Author");
+        var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
+        var state = fixture.Service.SubmitCheckIn(new(access, 12, 2, 2, 2, 2, "Opening post."), now);
+        var owner = state.Participant.Id;
+        var post = welcome ? state.Public.SystemDiscussionPosts.Single(item => item.ParticipantId == owner).Id : null;
+        var replyId = Guid.NewGuid().ToString("N");
+        using var png = CreatePngStream();
+        await fixture.Service.SubmitDiscussionReplyWithPhotosAsync(new(access, owner, 12, "", replyId, post),
+            Enumerable.Range(0, 4).Select(_ => CreatePngFormFile(png)).ToArray(), now);
+        var thread = fixture.Service.GetDiscussionThread(owner, 12, post);
+        var original = Assert.Single(thread.Note?.Replies ?? thread.SystemPost!.Replies);
+        var remove = Path.GetFileName(new Uri($"https://example.test{original.Images[1].Url}").AbsolutePath);
+        var uploadId = Guid.NewGuid().ToString();
+        await using var factory = new TestWebApplicationFactory(builder =>
+            builder.ConfigureTestServices(services => services.AddSingleton(fixture.Service)));
+        using var client = factory.CreateClient();
+        async Task<HttpResponseMessage> ReplaceAsync(bool removeOriginal, string caption = "")
+        {
+            using var image = CreatePngStream(20, 1);
+            using var form = new MultipartFormDataContent {
+                { new StringContent(access), "accessToken" }, { new StringContent(replyId), "replyId" },
+                { new StringContent(""), "originalBody" }, { new StringContent(caption), "body" },
+                { new StringContent(uploadId), "photoIds" }, { new ByteArrayContent(image.ToArray()), "photos", "replacement.png" }
+            };
+            if (removeOriginal) form.Add(new StringContent(remove), "removedPhotoNames");
+            return await client.PostAsync("/api/longevitymaxxing/discussion/replies/edit", form);
+        }
+        using var full = await ReplaceAsync(false);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, full.StatusCode);
+        fixture.Service.EditDiscussionReply(new(access, replyId, "Caption from another tab."), now.AddSeconds(1));
+        using var conflict = await ReplaceAsync(true, "Conflicting caption.");
+        Assert.Equal(System.Net.HttpStatusCode.Conflict, conflict.StatusCode);
+        using var save = await ReplaceAsync(true);
+        Assert.True(save.IsSuccessStatusCode, await save.Content.ReadAsStringAsync());
+        var updated = (await save.Content.ReadFromJsonAsync<LongevitymaxxingDiscussionReply>())!;
+        Assert.Equal("Caption from another tab.", updated.Body);
+        Assert.Equal(4, updated.Images.Count);
+        Assert.Equal(original.Images.Where((_, i) => i != 1), updated.Images.Take(3));
+        Assert.Equal(20 * updated.Images[^1].Height, updated.Images[^1].Width);
+        using var replay = await ReplaceAsync(true);
+        Assert.True(replay.IsSuccessStatusCode, await replay.Content.ReadAsStringAsync());
+        var retried = (await replay.Content.ReadFromJsonAsync<LongevitymaxxingDiscussionReply>())!;
+        Assert.Equal(updated.EditedAtUtc, retried.EditedAtUtc);
+        Assert.Equal(updated.Images, retried.Images);
+        Assert.Equal(4, Directory.GetFiles(PhotoDirectory(fixture)).Length);
+        Assert.False(File.Exists(Path.Combine(PhotoDirectory(fixture), remove)));
+    }
+
     [Fact]
     public async Task DiscussionPhotos_ChangedAndInvalidUploadsCannotAlterAnAcceptedReply()
     {

@@ -826,9 +826,14 @@ public sealed partial class LongevitymaxxingChallengeService
         LongevitymaxxingDiscussionReplyEditRequest request,
         DateTimeOffset? nowUtc = null)
     {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var author = RequireParticipantByAccessToken(request.AccessToken);
         var replyId = NormalizeDiscussionReplyId(request.ReplyId);
+        return SaveDiscussionReplyEdit(request, replyId, author, EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow), []);
+    }
+
+    private LongevitymaxxingDiscussionReply SaveDiscussionReplyEdit(LongevitymaxxingDiscussionReplyEditRequest request,
+        string replyId, ParticipantRecord author, DateTimeOffset now, IReadOnlyList<DiscussionPhotoUpload> uploads)
+    {
         var characterLimit = GetCharacterAllowance(author, now).Limit;
         return _db.Run(sqlite =>
         {
@@ -839,8 +844,18 @@ public sealed partial class LongevitymaxxingChallengeService
             var removeNames = PhotoNamesToRemove(request.RemovedPhotoNames);
             var removed = photos.Where(photo => removeNames.Contains(photo.FileName)).ToList();
             var retained = photos.Where(photo => !removeNames.Contains(photo.FileName)).ToList();
-            var body = NormalizeDiscussionReply(request.Body, Math.Max(characterLimit, reply.Body.Length), retained.Count > 0);
-            if (string.Equals(reply.Body, body, StringComparison.Ordinal) && removed.Count == 0)
+            var added = NewDiscussionPhotos(sqlite, transaction, author.Id, $"reply-photo/{replyId}", uploads);
+            if (retained.Count + added.Count > MaxCheckInPhotoCount)
+                throw new InvalidOperationException($"Each reply can have up to {MaxCheckInPhotoCount} photos.");
+            retained.AddRange(added.Select(image => new DiscussionPhotoRecord(image.FileName, image.Width, image.Height)));
+            var body = request.Body?.Trim() ?? "";
+            if (request.OriginalBody is { } original && body != reply.Body && original.Trim() != reply.Body)
+            {
+                if (body != original.Trim()) throw new LongevitymaxxingDiscussionReplyChangedException(reply.Body);
+                body = reply.Body;
+            }
+            body = NormalizeDiscussionReply(body, Math.Max(characterLimit, reply.Body.Length), retained.Count > 0);
+            if (string.Equals(reply.Body, body, StringComparison.Ordinal) && removed.Count == 0 && added.Count == 0)
             {
                 transaction.Commit();
                 return PopulateDiscussionReplyContexts(sqlite, [ToDiscussionReply(reply)])[0];
@@ -898,6 +913,7 @@ public sealed partial class LongevitymaxxingChallengeService
                 now, newOwnerMention);
 
             transaction.Commit();
+            foreach (var image in added) image.Committed = true;
             foreach (var photo in removed) TryDeleteFile(GetCheckInPhotoPath(photo.FileName));
             return PopulateDiscussionReplyContexts(sqlite, [new LongevitymaxxingDiscussionReply(
                 reply.Id,
@@ -1278,7 +1294,7 @@ public sealed partial class LongevitymaxxingChallengeService
 
     private static DiscussionReplyRecord RequireOwnedDiscussionReply(
         SqliteConnection sqlite,
-        SqliteTransaction transaction,
+        SqliteTransaction? transaction,
         string replyId,
         string participantId,
         string action)
@@ -1801,24 +1817,16 @@ public sealed partial class LongevitymaxxingChallengeService
     }
 
     public LongevitymaxxingParticipantState EditDiscussionPost(LongevitymaxxingDiscussionPostEditRequest request, DateTimeOffset? nowUtc = null)
-        => SaveDiscussionPostEdit(request, RequireParticipantByAccessToken(request.AccessToken), EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow), [], [], []);
+        => SaveDiscussionPostEdit(request, RequireParticipantByAccessToken(request.AccessToken), EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow), []);
 
     private LongevitymaxxingParticipantState SaveDiscussionPostEdit(LongevitymaxxingDiscussionPostEditRequest request, ParticipantRecord author,
-        DateTimeOffset now, IReadOnlyList<PendingCheckInImage> photos, IReadOnlyList<string> hashes, IReadOnlyList<string> photoIds)
+        DateTimeOffset now, IReadOnlyList<DiscussionPhotoUpload> uploads)
     {
         var limit = GetCharacterAllowance(author, now).Limit;
         _db.Run(sqlite =>
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
-            var newImages = new List<PendingCheckInImage>();
-            for (var i = 0; i < photos.Count; i++)
-            {
-                // Each attachment can be retried alongside a revised caption or another attachment.
-                var hash = $"post-photo/{request.ChallengeDay}/{hashes[i]}";
-                if (HasCheckInReceipt(sqlite, transaction, author.Id, photoIds[i], hash)) continue;
-                RecordCheckInReceipt(sqlite, transaction, author.Id, photoIds[i], hash);
-                newImages.Add(photos[i]);
-            }
+            var newImages = NewDiscussionPhotos(sqlite, transaction, author.Id, $"post-photo/{request.ChallengeDay}", uploads);
             var removedFiles = SaveDiscussionContent(sqlite, transaction, author.Id, request.ChallengeDay, request.Note,
                 limit, newImages, request.RemovedPhotoNames, now, editingPost: true, originalNote: request.OriginalNote);
             transaction.Commit();

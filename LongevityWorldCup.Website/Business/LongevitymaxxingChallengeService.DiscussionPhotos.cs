@@ -26,17 +26,53 @@ public sealed partial class LongevitymaxxingChallengeService
         DateTimeOffset? nowUtc = null, CancellationToken ct = default)
     {
         var author = RequireParticipantByAccessToken(request.AccessToken);
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        return WithEditedDiscussionPhotosAsync(author, request.ChallengeDay, now, photos, photoIds,
+            uploads => SaveDiscussionPostEdit(request, author, now, uploads), ct);
+    }
+
+    public Task<LongevitymaxxingDiscussionReply> EditDiscussionReplyWithPhotosAsync(
+        LongevitymaxxingDiscussionReplyEditRequest request, IReadOnlyList<IFormFile> photos, IReadOnlyList<string> photoIds,
+        DateTimeOffset? nowUtc = null, CancellationToken ct = default)
+    {
+        var author = RequireParticipantByAccessToken(request.AccessToken);
+        var replyId = NormalizeDiscussionReplyId(request.ReplyId);
+        var day = _db.Run(sqlite => RequireOwnedDiscussionReply(sqlite, null, replyId, author.Id, "edit").PostChallengeDay);
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        return WithEditedDiscussionPhotosAsync(author, day, now, photos, photoIds,
+            uploads => SaveDiscussionReplyEdit(request, replyId, author, now, uploads), ct);
+    }
+
+    private sealed record DiscussionPhotoUpload(PendingCheckInImage Image, string Id, string Hash);
+
+    private Task<TResult> WithEditedDiscussionPhotosAsync<TResult>(
+        ParticipantRecord author, int day, DateTimeOffset now, IReadOnlyList<IFormFile> photos, IReadOnlyList<string> photoIds,
+        Func<IReadOnlyList<DiscussionPhotoUpload>, TResult> save, CancellationToken ct)
+    {
         if (photoIds.Count != photos.Count || photoIds.Any(id => !Guid.TryParseExact(id, "D", out _)) ||
             photoIds.Distinct(StringComparer.OrdinalIgnoreCase).Count() != photoIds.Count)
             throw new InvalidOperationException("Each selected photo needs a unique upload ID.");
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        return WithDiscussionPhotosAsync(author, request.ChallengeDay, now, photos,
-            (prepared, hashes) => SaveDiscussionPostEdit(request, author, now, prepared, hashes, photoIds), ct);
+        return WithDiscussionPhotosAsync(author, day, now, photos,
+            (prepared, hashes) => save(prepared.Select((image, index) => new DiscussionPhotoUpload(image, photoIds[index], hashes[index])).ToArray()), ct);
     }
 
-    private async Task<LongevitymaxxingParticipantState> WithDiscussionPhotosAsync(
+    private static List<PendingCheckInImage> NewDiscussionPhotos(SqliteConnection sqlite, SqliteTransaction transaction,
+        string participantId, string scope, IReadOnlyList<DiscussionPhotoUpload> uploads)
+    {
+        var images = new List<PendingCheckInImage>();
+        foreach (var upload in uploads)
+        {
+            var hash = $"{scope}/{upload.Hash}";
+            if (HasCheckInReceipt(sqlite, transaction, participantId, upload.Id, hash)) continue;
+            RecordCheckInReceipt(sqlite, transaction, participantId, upload.Id, hash);
+            images.Add(upload.Image);
+        }
+        return images;
+    }
+
+    private async Task<TResult> WithDiscussionPhotosAsync<TResult>(
         ParticipantRecord author, int day, DateTimeOffset now, IReadOnlyList<IFormFile> files,
-        Func<IReadOnlyList<PendingCheckInImage>, IReadOnlyList<string>, LongevitymaxxingParticipantState> save, CancellationToken ct)
+        Func<IReadOnlyList<PendingCheckInImage>, IReadOnlyList<string>, TResult> save, CancellationToken ct)
     {
         if (files.Count > MaxCheckInPhotoCount || files.Any(file => file.Length <= 0 || file.Length > MaxCheckInPhotoUploadBytes))
             throw new InvalidOperationException($"Choose up to {MaxCheckInPhotoCount} standard phone photos.");
